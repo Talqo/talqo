@@ -1,0 +1,38 @@
+{
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"remoteUser": "vscode",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:4": {
+			"moby": false
+		},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"postCreateCommand": ".devcontainer/post-create.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"docker.docker",
+				"oxc.oxc-vscode",
+				"bradlc.vscode-tailwindcss",
+				"streetsidesoftware.code-spell-checker"
+			],
+			"settings": {
+				"editor.formatOnSave": true,
+				"[javascript]": {
+					"editor.defaultFormatter": "oxc.oxc-vscode"
+				},
+				"[javascriptreact]": {
+					"editor.defaultFormatter": "oxc.oxc-vscode"
+				},
+				"[typescript]": {
+					"editor.defaultFormatter": "oxc.oxc-vscode"
+				},
+				"[typescriptreact]": {
+					"editor.defaultFormatter": "oxc.oxc-vscode"
+				}
+			}
+		}
+	}
+}
