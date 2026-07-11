@@ -5,7 +5,8 @@ Talqo is an AI agent for any website. It can be configured to answer based on th
 ## Notes
 
 - When creating a PR, follow template inside `.github/pull_request_template.md`.
-- Whenever an architectural decision is made it should be documented in `docs/adr`.
+- Document significant architectural decisions in `docs/adr`.
+- Put shared shadcn components and styles in `packages/ui`.
 
 ## Feedback loop
 
@@ -13,4 +14,6 @@ Run after changes
 
 ```sh
 pnpm quality:fix
+pnpm typecheck
+pnpm test
 ```
