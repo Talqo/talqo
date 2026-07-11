@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env*.local
+
+# Vite cache
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# VS Code settings
+.vscode/
+
+# Claude private configs
+.claude/settings.local.json
+
+# Turbo
+.turbo/
+
+# Private files for personal use
+/private/
+
+# Git worktrees
+.worktrees/
+.claude/worktrees/
+
+# MCP output
+.playwright-mcp/
