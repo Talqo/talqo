@@ -1,0 +1,23 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error",
+		"perf": "error",
+		"suspicious": "error"
+	},
+	"plugins": ["import", "oxc", "typescript", "unicorn"],
+	"rules": {
+		"no-restricted-imports": [
+			"error",
+			{
+				"patterns": [
+					{
+						"group": ["../**"],
+						"message": "Use @ alias imports instead of relative parent imports"
+					}
+				]
+			}
+		],
+		"typescript/consistent-type-definitions": ["error", "type"]
+	}
+}
