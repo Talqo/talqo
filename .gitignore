@@ -12,6 +12,9 @@ dist/
 # Vite cache
 .vite/
 
+# Fumadocs generated content
+.source/
+
 # TypeScript
 *.tsbuildinfo
 

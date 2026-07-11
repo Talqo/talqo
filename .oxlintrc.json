@@ -1,5 +1,6 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"ignorePatterns": ["**/.source/**", "**/routeTree.gen.ts"],
 	"categories": {
 		"correctness": "error",
 		"perf": "error",
@@ -7,6 +8,7 @@
 	},
 	"plugins": ["import", "oxc", "typescript", "unicorn"],
 	"rules": {
+		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
 		"no-restricted-imports": [
 			"error",
 			{

@@ -1,0 +1,28 @@
+{
+	"name": "@talqo/api",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --packages=external --platform=node",
+		"dev": "tsx watch src/index.ts",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@hono/node-server": "2.0.8",
+		"drizzle-orm": "0.45.2",
+		"hono": "4.12.29",
+		"postgres": "3.4.9",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@talqo/typescript-config": "workspace:*",
+		"@types/node": "26.1.1",
+		"drizzle-kit": "0.31.10",
+		"esbuild": "0.28.1",
+		"tsx": "4.23.0",
+		"typescript": "7.0.2",
+		"vitest": "4.1.10"
+	}
+}

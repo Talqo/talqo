@@ -1,0 +1,29 @@
+{
+	"name": "@talqo/web",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite",
+		"preview": "vite preview",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@talqo/ui": "workspace:*",
+		"@tanstack/react-router": "1.170.17",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@tailwindcss/vite": "4.3.2",
+		"@talqo/typescript-config": "workspace:*",
+		"@tanstack/router-plugin": "1.168.19",
+		"@types/node": "26.1.1",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"@vitejs/plugin-react": "6.0.3",
+		"typescript": "7.0.2",
+		"vite": "8.1.4"
+	}
+}

@@ -1,7 +1,7 @@
 {
 	"$schema": "./node_modules/oxfmt/configuration_schema.json",
 	"endOfLine": "lf",
-	"ignorePatterns": ["**/*.md"],
+	"ignorePatterns": ["**/*.md", "**/.source/**", "**/routeTree.gen.ts"],
 	"printWidth": 120,
 	"semi": false,
 	"singleQuote": false,

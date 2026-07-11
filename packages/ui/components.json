@@ -1,0 +1,21 @@
+{
+	"$schema": "https://ui.shadcn.com/schema.json",
+	"style": "base-nova",
+	"rsc": false,
+	"tsx": true,
+	"tailwind": {
+		"config": "",
+		"css": "src/styles/globals.css",
+		"baseColor": "neutral",
+		"cssVariables": true
+	},
+	"iconLibrary": "lucide",
+	"aliases": {
+		"components": "@talqo/ui/components",
+		"hooks": "@talqo/ui/hooks",
+		"lib": "@talqo/ui/lib",
+		"ui": "@talqo/ui/components",
+		"utils": "@talqo/ui/lib/utils"
+	},
+	"rtl": false
+}

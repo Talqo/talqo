@@ -1,0 +1,7 @@
+{
+	"extends": "@talqo/typescript-config/node.json",
+	"compilerOptions": {
+		"rootDir": "."
+	},
+	"include": ["drizzle.config.ts", "src/**/*.ts"]
+}
