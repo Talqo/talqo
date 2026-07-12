@@ -1,0 +1,1 @@
+Keep CLAUDE.md files accurate and up to date with project-specific information. If a CLAUDE.md file contradicts the code, tooling, commands, or workflow, update the CLAUDE.md file to match the project.
