@@ -13,7 +13,7 @@ Talqo is an AI agent for any website. It can be configured to answer based on th
 Run after changes
 
 ```sh
-pnpm quality:fix
-pnpm typecheck
-pnpm test
+bun run quality:fix
+bun run typecheck
+bun test
 ```

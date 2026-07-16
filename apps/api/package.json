@@ -4,13 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --packages=external --platform=node",
-		"dev": "tsx watch src/index.ts",
-		"test": "vitest run",
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"dev": "bun --watch src/index.ts",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@hono/node-server": "2.0.8",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.12.29",
 		"postgres": "3.4.9",
@@ -18,11 +17,8 @@
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
-		"@types/node": "26.1.1",
+		"@types/bun": "1.3.14",
 		"drizzle-kit": "0.31.10",
-		"esbuild": "0.28.1",
-		"tsx": "4.23.0",
-		"typescript": "7.0.2",
-		"vitest": "4.1.10"
+		"typescript": "7.0.2"
 	}
 }

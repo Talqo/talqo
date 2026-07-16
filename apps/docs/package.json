@@ -8,7 +8,7 @@
 		"dev": "vite dev --port 3002",
 		"generate": "fumadocs-mdx source.config.ts",
 		"preview": "vite preview",
-		"typecheck": "pnpm generate && tsc --noEmit"
+		"typecheck": "bun run generate && tsc --noEmit"
 	},
 	"dependencies": {
 		"@tanstack/react-router": "1.170.17",
@@ -22,7 +22,6 @@
 		"@tailwindcss/vite": "4.3.2",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/mdx": "2.0.13",
-		"@types/node": "26.1.1",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "6.0.3",

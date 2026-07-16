@@ -1,5 +1,5 @@
 {
-	"extends": "@talqo/typescript-config/node.json",
+	"extends": "@talqo/typescript-config/bun.json",
 	"compilerOptions": {
 		"rootDir": "."
 	},

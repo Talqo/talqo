@@ -1,1 +1,1 @@
-pnpm quality
+bun run quality

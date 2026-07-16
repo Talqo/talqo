@@ -1,8 +1,10 @@
-FROM node:26.5.0-bookworm-slim AS node
+FROM oven/bun:1.3.14 AS bun
 
 FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04
 
-COPY --from=node /usr/local/ /usr/local/
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
-RUN npm install --global --ignore-scripts pnpm@11.11.0 \
-	&& npm cache clean --force
+RUN ln -sf /usr/local/bin/bun /usr/local/bin/bunx \
+	&& ln -sf /usr/local/bin/bun /usr/local/bin/npm \
+	&& printf '#!/bin/sh\nexec bunx "$@"\n' > /usr/local/bin/npx \
+	&& chmod +x /usr/local/bin/npx
