@@ -6,5 +6,6 @@ COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
 
 RUN ln -sf /usr/local/bin/bun /usr/local/bin/bunx \
 	&& ln -sf /usr/local/bin/bun /usr/local/bin/npm \
+	&& ln -sf /usr/local/bin/bun /usr/local/bin/node \
 	&& printf '#!/bin/sh\nexec bunx "$@"\n' > /usr/local/bin/npx \
 	&& chmod +x /usr/local/bin/npx
