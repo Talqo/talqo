@@ -13,6 +13,7 @@
 		"ci": "bun run actions:check && bun run quality && bun run typecheck && bun run test && bun run build",
 		"dev": "turbo run dev --filter=!@talqo/docs --ui=tui",
 		"docs:dev": "bun run --filter @talqo/docs dev",
+		"e2e": "turbo run e2e --output-logs=errors-only",
 		"format": "oxfmt --check",
 		"format:fix": "oxfmt .",
 		"lint": "oxlint --deny-warnings --report-unused-disable-directives .",
