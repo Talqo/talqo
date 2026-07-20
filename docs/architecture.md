@@ -76,15 +76,15 @@ apps/api/
     |-- lib/                          # optional proven non-domain capabilities
     `-- modules/
         `-- <module>/
-            |-- <module>.contract.ts
-            |-- <module>.routes.ts
-            |-- <module>.service.ts
-            |-- <module>.repository.ts
-            |-- <module>.schema.ts
-            |-- <module>.seed.ts
-            |-- <module>.test.ts
-            |-- <module>.routes.test.ts
-            `-- <module>.integration.test.ts
+            |-- <module>.contract.ts  # HTTP/OpenAPI schemas and metadata
+            |-- <module>.routes.ts    # Hono transport adapter
+            |-- <module>.service.ts   # module API and application behavior
+            |-- <module>.repository.ts # owned persistence operations
+            |-- <module>.schema.ts    # owned Drizzle schema
+            |-- <module>.seed.ts      # deterministic seed contribution
+            |-- <module>.test.ts      # unit tests
+            |-- <module>.routes.test.ts # in-process HTTP tests
+            `-- <module>.integration.test.ts # service-facing module integration
 ```
 
 Every role file and support directory is capability-triggered. Do not create empty `contract`, `routes`, `service`, `repository`, `schema`, `seed`, `http`, or `lib` placeholders. `app.ts` composes available capabilities; `index.ts` starts the process and contains no application behavior.
@@ -171,15 +171,22 @@ apps/web/src/
 |-- router.tsx
 |-- routeTree.gen.ts                 # generated; never hand-edit
 |-- api/
-|-- routes/
-`-- features/                         # optional after proven reuse
+|   |-- client.ts                    # configured generated API client
+|   `-- errors.ts                    # web transport-error normalization
+|-- routes/                           # TanStack Router routes
+`-- features/
+    `-- <feature>/                    # reusable user journey
+        |-- components/
+        |-- <operation>-query.ts
+        |-- <operation>-mutation.ts
+        `-- <form>-form.ts
 ```
 
 - Follow official TanStack Router tokens: `__root`, leading `_` pathless layouts, `route.tsx` directory routes, `index`, `$param`, dot-delimited nesting, and leading `-` route exclusion.
 - Use dot notation for shallow routes that need no colocated support. Use a directory when a route owns a layout, child routes, or operation-specific support files. Do not represent the same route with both styles.
 - A route owns its loader, component, validated search schema, and operation-specific query, mutation, and form files while those files have one route consumer.
 - Every query, mutation, form, and UI workflow has exactly one source owner. If several routes reuse the same semantics, move the files into `features/<feature>` and delete the route-owned copies in the same change.
-- Feature extraction is optional and reuse-triggered. Frontend features model user workflows and do not mirror API modules mechanically.
+- Feature extraction is reuse-triggered. Frontend features model reusable user journeys and do not mirror API modules mechanically. A reusable login journey belongs in `features/authentication`; its routes only own URL and route-lifecycle concerns.
 - Use operation-specific names, not `queries.ts`, `mutations.ts`, or `forms.ts` buckets.
 
 ### Query And Forms
