@@ -43,10 +43,10 @@ Use the [architecture guide](docs/architecture.md) for detailed boundaries and c
 | --- | --- |
 | Unit | Service behavior and pure code, colocated in `*.test.ts` |
 | In-process | HTTP validation, status, headers, serialization, and service integration through the composed app in `*.routes.test.ts` |
-| Integration | Module behavior across services, repositories, and real PostgreSQL in `<module>.integration.test.ts`; repository-only coverage may use `<module>.repository.integration.test.ts` |
+| Integration | Module behavior through its service interface in `<module>.integration.test.ts` |
 | E2E | Critical cross-system journeys in `apps/e2e/tests/*.spec.ts` |
 
-E2E records come from the API-owned deterministic seed against an isolated E2E database. Do not maintain browser fixture datasets.
+E2E records come from the API-owned deterministic seed against an isolated E2E database.
 
 ## Verification
 

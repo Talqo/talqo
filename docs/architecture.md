@@ -75,22 +75,19 @@ apps/api/
     |-- http/                         # optional cross-cutting HTTP capabilities
     |-- lib/                          # optional proven non-domain capabilities
     `-- modules/
-        `-- project/
-            |-- project.contract.ts  # optional HTTP schemas and metadata
-            |-- project.routes.ts    # optional HTTP adapter
-            |-- project.service.ts   # optional module API/application behavior
-            |-- project.repository.ts # optional owned persistence operations
-            |-- project.schema.ts    # optional owned Drizzle schema
-            |-- project.seed.ts      # optional module seed contribution
-            |-- project.test.ts      # optional colocated unit test
-            |-- project.routes.test.ts
-            |-- project.integration.test.ts # optional module/PostgreSQL integration
-            `-- test/                 # optional reusable module test support
-                |-- fixtures.ts
-                `-- builders.ts
+        `-- <module>/
+            |-- <module>.contract.ts
+            |-- <module>.routes.ts
+            |-- <module>.service.ts
+            |-- <module>.repository.ts
+            |-- <module>.schema.ts
+            |-- <module>.seed.ts
+            |-- <module>.test.ts
+            |-- <module>.routes.test.ts
+            `-- <module>.integration.test.ts
 ```
 
-Every role file and support directory is capability-triggered. Do not create empty `contract`, `routes`, `service`, `repository`, `schema`, `seed`, `http`, `lib`, or `test` placeholders. `app.ts` composes available capabilities; `index.ts` starts the process and contains no application behavior.
+Every role file and support directory is capability-triggered. Do not create empty `contract`, `routes`, `service`, `repository`, `schema`, `seed`, `http`, or `lib` placeholders. `app.ts` composes available capabilities; `index.ts` starts the process and contains no application behavior.
 
 ### Module Boundaries
 
@@ -127,11 +124,10 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
-- `<module>.integration.test.ts` verifies module behavior that crosses service, repository, and real PostgreSQL boundaries. Use a narrower `<module>.repository.integration.test.ts` only when the repository itself is the subject. The `.test.ts` suffix is required for Bun discovery; do not name tests `<module>.integration.ts`.
-- `test/fixtures.ts` contains reusable static test values; `test/builders.ts` creates variable test objects. Create either only after repeated use inside the module.
-- Seeds create deterministic environment or demonstration data through API-owned lifecycle entry points. Fixtures and builders create test-scoped values. Do not use production/demo seeds as test fixtures.
+- `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
+- Module seeds provide deterministic integration and E2E data through the centralized seed lifecycle.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
-- E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions or browser fixture datasets.
+- E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
 ## Shared Code Decisions
@@ -175,26 +171,8 @@ apps/web/src/
 |-- router.tsx
 |-- routeTree.gen.ts                 # generated; never hand-edit
 |-- api/
-|   |-- client.ts
-|   `-- errors.ts                    # optional
 |-- routes/
-|   |-- __root.tsx
-|   `-- _authenticated/
-|       |-- route.tsx                # pathless authenticated layout
-|       |-- account.settings.tsx     # dot notation for a shallow route
-|       `-- projects/
-|           |-- route.tsx            # directory route/layout
-|           |-- index.tsx            # index route
-|           `-- $projectId/
-|               |-- route.tsx        # dynamic route
-|               |-- -project-query.ts
-|               |-- -update-project-mutation.ts
-|               `-- -project-settings-form.ts
 `-- features/                         # optional after proven reuse
-    `-- project-settings/
-        |-- project-query.ts
-        |-- update-project-mutation.ts
-        `-- project-settings-form.ts
 ```
 
 - Follow official TanStack Router tokens: `__root`, leading `_` pathless layouts, `route.tsx` directory routes, `index`, `$param`, dot-delimited nesting, and leading `-` route exclusion.
@@ -202,7 +180,7 @@ apps/web/src/
 - A route owns its loader, component, validated search schema, and operation-specific query, mutation, and form files while those files have one route consumer.
 - Every query, mutation, form, and UI workflow has exactly one source owner. If several routes reuse the same semantics, move the files into `features/<feature>` and delete the route-owned copies in the same change.
 - Feature extraction is optional and reuse-triggered. Frontend features model user workflows and do not mirror API modules mechanically.
-- Use operation-specific names such as `project-query.ts`, `update-project-mutation.ts`, and `project-settings-form.ts`, not `queries.ts`, `mutations.ts`, or `forms.ts` buckets.
+- Use operation-specific names, not `queries.ts`, `mutations.ts`, or `forms.ts` buckets.
 
 ### Query And Forms
 
@@ -234,62 +212,20 @@ apps/e2e/
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
 - All E2E records come from the API-owned deterministic reset and E2E seed against an isolated database before each isolation scope. Playwright owns no record definitions.
-- Do not create `test-data`, `support`, generic helper, or fixture-data buckets. Add auth setup, fixtures, or page objects only when repeated interaction justifies them.
+- Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.
 - Prefer user-visible role, accessible name, and label selectors. Never synchronize with fixed sleeps.
-- Capture a trace on first retry and a screenshot on failure. Run Chromium for pull requests and all configured browsers nightly or for releases.
+- Capture a trace on first retry and a screenshot on failure.
 - `bun run e2e` runs the noncached Chromium suite.
 
 ## Naming And Exceptions
 
-- Module directories and module file stems are singular lower-kebab-case: `project/project.service.ts`. HTTP resource paths may be plural: `/projects`.
+- Module directories and module file stems are singular lower-kebab-case: `<module>/<module>.service.ts`. HTTP resource paths may be plural.
 - `.contract.ts`, `.routes.ts`, `.service.ts`, `.repository.ts`, `.schema.ts`, and `.seed.ts` are Talqo role suffixes.
 - Avoid broad barrels and `public.ts`. Import the owning capability's explicit file or a package's declared export.
 - Generated migrations, route trees, OpenAPI artifacts, and generated clients are never hand-edited.
 - For a cross-module read or tooling deviation, document the owner, reason, exact scope, and removal trigger beside the code. Put repository-wide or long-lived exceptions in this guide or an ADR.
-
-## Placement Examples
-
-| Change | Place it | Do not place it |
-| --- | --- | --- |
-| Project creation invariant | `modules/project/project.service.ts` | Route, schema, shared helper |
-| Project table and index | `modules/project/project.schema.ts` | Central schema bucket |
-| `POST /projects` validation | `modules/project/project.contract.ts` | Web app or generated client |
-| Project persistence query | `modules/project/project.repository.ts` | Another module's service |
-| Request ID middleware | Named capability under `src/http` | `src/utils` |
-| One route's project query policy | Route-owned `-project-query.ts` | Generated API client |
-| Reused project settings workflow | `features/project-settings` after moving its sole copies | Mirrored `features/project` by default |
-| Neutral reused button | `packages/ui` | API or route feature |
-| Critical project journey | `apps/e2e/tests/<journey>.spec.ts` | Web unit test directory |
-
-## Change Checklists
-
-### New API Module
-
-- Name the singular lower-kebab business owner and its owned tables.
-- Add only capability-triggered role files.
-- Expose cross-module behavior only through the explicit service path.
-- Keep Hono in routes and Drizzle values behind service boundaries.
-- Compose routes and schemas centrally; generate and inspect one central migration when persistence changes.
-- Add colocated behavior tests and document any ownership exception.
-
-### New Web Route Or Feature
-
-- Choose dot notation or a directory from colocation/layout needs; use official route tokens.
-- Validate shareable state as search parameters and keep ephemeral state local.
-- Keep operation-specific query, mutation, and form files with their single route owner.
-- Reuse one `queryOptions` definition in loader and component; pass the abort signal.
-- On proven same-semantic reuse, move to one feature owner and remove the old copies.
-- Keep generated transport and shared UI free of Query and workflow policy.
-
-### New E2E Journey
-
-- Add deterministic API-owned reset/seed scenarios against the isolated E2E database.
-- Test one critical behavior through real web and API processes.
-- Use role/label selectors, no sleeps, and mock only external providers.
-- Keep lifecycle in fixtures; add saved auth or page objects only when needed.
-- Keep one worker until per-worker databases exist; configure required retry artifacts and browser schedules.
 
 ## Boundary Enforcement
 
