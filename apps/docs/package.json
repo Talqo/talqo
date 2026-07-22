@@ -11,23 +11,23 @@
 		"typecheck": "bun run generate && tsc --noEmit"
 	},
 	"dependencies": {
-		"@tanstack/react-router": "1.170.17",
-		"@tanstack/react-start": "1.168.27",
-		"fumadocs-core": "16.11.2",
-		"fumadocs-ui": "16.11.2",
+		"@tanstack/react-router": "1.170.18",
+		"@tanstack/react-start": "1.168.32",
+		"fumadocs-core": "16.11.5",
+		"fumadocs-ui": "16.11.5",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"
 	},
 	"devDependencies": {
-		"@tailwindcss/vite": "4.3.2",
+		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
-		"@types/mdx": "2.0.13",
-		"@types/react": "19.2.14",
+		"@types/mdx": "2.0.14",
+		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "6.0.3",
-		"fumadocs-mdx": "15.1.0",
-		"tailwindcss": "4.3.2",
+		"fumadocs-mdx": "15.2.0",
+		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
-		"vite": "8.1.4"
+		"vite": "8.1.5"
 	}
 }
