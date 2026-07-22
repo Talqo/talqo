@@ -160,6 +160,7 @@ Talqo is one of three related repos:
 | FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Not started |
 | FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Not started |
 | FR-3.4 | SDK authenticates using the same public widget token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
+| FR-3.5 | SDK fetches the server-side visual configuration (described in FR-2e) | Medium | Not started |
 
 ## 4. Non-Functional Requirements
 
