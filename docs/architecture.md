@@ -12,6 +12,7 @@ Update this guide in the same change as any decision that changes architecture, 
 - HTTP routes translate transport concerns and call services; they do not contain business or persistence logic.
 - Application composition, database connection setup, and migration generation/application are centralized in the API app.
 - The database and API are authoritative. Browser caches, projections, and generated clients are derived.
+- The client-rendered dashboard, embedded widget, SDK, and integrations consume the same standalone API.
 
 ## Technology Baseline
 
@@ -23,6 +24,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
+| Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
@@ -150,9 +152,8 @@ The flow is one-way and deterministic:
 ```text
 module contracts + route metadata
   -> API-owned OpenAPI document
-  -> generated packages/api-client
-  -> apps/web configured client
-  -> route/feature-owned TanStack Query policy
+  -> generated clients
+  -> dashboard + widget + SDK + integrations
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
@@ -163,6 +164,8 @@ module contracts + route metadata
 - Generated code contains no TanStack Query keys, caching, retries, invalidation, optimistic updates, or UI error policy. The consuming route or extracted frontend feature owns that policy.
 
 ## Web
+
+`apps/web` is a client-rendered API consumer. This logical boundary does not require separate deployment images; static web assets and the API may be packaged together.
 
 ```text
 apps/web/src/
