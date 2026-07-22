@@ -6,7 +6,7 @@ Accepted (2026-07-18)
 
 ## Context
 
-Relational persistence needs type-safe access while preserving explicit SQL-oriented schemas and module ownership. Raw SQL offers maximum control but more manual typing; a heavier ORM or data mapper adds abstraction and lifecycle machinery.
+Talqo needs type-safe relational access while keeping SQL behavior and schema ownership explicit. Raw SQL offers maximum control but duplicates result and input typing. Heavier ORMs and data mappers centralize models, hide SQL behavior, and add lifecycle machinery. Drizzle preserves SQL-like queries and module-owned schemas while deriving TypeScript types.
 
 ## Decision
 

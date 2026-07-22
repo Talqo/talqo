@@ -6,7 +6,7 @@ Accepted (2026-07-18)
 
 ## Context
 
-API consumers need a language-neutral contract that reflects runtime validation. A handwritten OpenAPI specification can drift from implementation, while TypeScript-only RPC couples consumers to one language and toolchain.
+Talqo needs one contract for web, external, and non-TypeScript consumers. A handwritten OpenAPI specification duplicates route definitions and can drift from runtime validation. TypeScript RPC or inferred server types reduce duplication but couple every consumer to the repository's language and tooling. Generated OpenAPI preserves runtime-defined contracts while supporting standard client and documentation tooling.
 
 ## Decision
 
