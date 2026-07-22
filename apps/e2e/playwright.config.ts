@@ -14,7 +14,6 @@ export default defineConfig({
 	reporter: isCI ? [["line"], ["html", { open: "never" }]] : "list",
 	retries: isCI ? 2 : 0,
 	testDir: "./tests",
-	testMatch: "**/*.e2e.ts",
 	use: {
 		baseURL: "http://127.0.0.1:4173",
 		screenshot: "only-on-failure",

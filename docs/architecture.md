@@ -125,7 +125,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
 - `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
 - Module seeds provide deterministic integration and E2E data through the centralized seed lifecycle.
-- Playwright E2E specs live in `apps/e2e/tests/*.e2e.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
+- Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
@@ -201,8 +201,8 @@ apps/e2e/
 |-- tsconfig.json
 |-- playwright.config.ts             # testDir: "./tests"
 `-- tests/
-    |-- smoke.e2e.ts
-    `-- <critical-journey>.e2e.ts
+    |-- smoke.spec.ts
+    `-- <critical-journey>.spec.ts
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.

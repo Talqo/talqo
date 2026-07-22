@@ -4,3 +4,6 @@ minimumReleaseAge = 86400
 
 [run]
 bun = true
+
+[test]
+pathIgnorePatterns = ["apps/e2e/**"]
