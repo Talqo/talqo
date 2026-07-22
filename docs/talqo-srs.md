@@ -48,8 +48,10 @@ talqo is one of three related repos:
 
 ### 2.3 Constraints
 
-- Single-tenant only: one deployment serves exactly one bot, though the dashboard supports
-  multiple operator accounts within that single tenant.
+- Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev
+  group), which may run multiple bots — e.g. one per website, or multiple bots on the same
+  site for A/B testing. The dashboard supports multiple operator accounts within that
+  single tenant.
 - Dashboard accounts are role-based: exactly one admin account exists per deployment,
   created via first-run setup (FR-2.1); all other registered accounts are user role. There
   is no superadmin.
