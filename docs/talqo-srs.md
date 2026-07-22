@@ -152,8 +152,8 @@ talqo is one of three related repos:
 
 > A headless JS/TS client library that lets developers build a fully custom chat UI against
 > talqo's agent, as an alternative to embedding the pre-built widget. Uses the same backend
-> as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy NFRs
-> apply automatically to SDK-originated traffic — no separate enforcement needed.
+> as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy
+> NFRs (NFR-2) apply automatically to SDK-originated traffic — no separate enforcement needed.
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
