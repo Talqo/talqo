@@ -8,7 +8,9 @@
 	],
 	"type": "module",
 	"scripts": {
+		"actions:check": "actionlint && zizmor --offline .",
 		"build": "turbo run build",
+		"ci": "bun run actions:check && bun run quality && bun run typecheck && bun run test && bun run build",
 		"dev": "turbo run dev --filter=!@talqo/docs --ui=tui",
 		"docs:dev": "bun run --filter @talqo/docs dev",
 		"format": "oxfmt --check",
