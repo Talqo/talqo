@@ -8,13 +8,14 @@ This document specifies the functional and non-functional requirements for **tal
 
 ### 1.2 Scope
 
-talqo covers the embeddable widget, the operator dashboard, and the connection SDK, packaged as a single self-hosted deployment. It does not cover deployment orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
+Talqo covers the embeddable widget, the operator dashboard, and the connection SDK, packaged as a single self-hosted deployment. It does not cover deployment orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
 
 ### 1.3 Definitions & Acronyms
 
 | Term | Meaning |
 |------|---------|
 | MCP | Model Context Protocol — lets the bot call external tools/structured data sources |
+| RAG | Retrieval-Augmented Generation — extracts relevant context from the knowledge base when responding to end user |
 | SDK | The headless connection SDK (FR-3) |
 | Widget | The pre-built, embeddable chat UI (FR-1) |
 | Knowledge base | Content (uploaded files or crawled site pages) the bot references when answering |
@@ -27,7 +28,7 @@ Contributors and implementers of the `talqo` repository.
 
 ### 2.1 Product Perspective
 
-talqo is one of three related repos:
+Talqo is one of three related repos:
 
 - **`talqo-deploy`** consumes talqo's published container images to provide deployment recipes (Compose, Helm, Terraform). talqo does not include deployment orchestration itself.
 - **`talqo-platform2`** is a separate, unrelated commercial product (a fork of `talqo-platform`'s existing multi-tenant codebase) — it does not depend on or consume talqo.
@@ -37,7 +38,7 @@ talqo is one of three related repos:
 | Actor | Description |
 |-------|-------------|
 | **End user** | The visitor on the operator's website who chats with the widget |
-| **Operator** | A dashboard user for this deployment; exactly one account holds the admin role (created via the first-run setup flow, FR-2.1), and all other accounts are user role — see Constraints below. Configures the bot and monitors usage |
+| **Operator** | A dashboard user who configures the bot and monitors usage |
 | **Developer** | A technical user integrating against the connection SDK instead of the pre-built widget |
 
 ### 2.3 Constraints
@@ -45,7 +46,6 @@ talqo is one of three related repos:
 - Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple bots — e.g. one per website, or multiple bots on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
 - Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1). The admin can assign granular permissions to other registered accounts. There is no superadmin.
 - The operator must supply their own AI provider API key; there is no platform-funded default key.
-- No back-office, billing, or usage metering — see `talqo-platform2` if that's needed.
 
 ### 2.4 Assumptions & Dependencies
 
@@ -65,10 +65,10 @@ talqo is one of three related repos:
 |----|-------------|----------|------------|
 | FR-1.1 | End user can send text messages to the bot and receive AI-generated responses (rendered as markdown) | High | Not started |
 | FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Not started |
-| FR-1.3 | Widget can be minimised and reopened without losing the conversation state | High | Not started |
+| FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Not started |
 | FR-1.4 | Widget displays a typing indicator while the bot is generating a response | High | Not started |
-| FR-1.5 | End user can clear / reset the current conversation, which starts a new browser session | Medium | Not started |
-| FR-1.6 | End user can rate each individual bot response with a thumbs up / thumbs down | Low | Not started |
+| FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Not started |
+| FR-1.6 | End user can rate individual bot responses with a thumbs up / thumbs down | Low | Not started |
 | FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Not started |
 
 ### 3.2 Dashboard (FR-2)
@@ -80,7 +80,7 @@ talqo is one of three related repos:
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
 | FR-2.1 | On first deployment run, the operator is redirected to an admin setup page and must create the sole admin account before the dashboard becomes otherwise usable | High | Not started |
-| FR-2.2 | Operator can register a new dashboard account (creates a user-role account — the sole admin account is created via first-run setup, FR-2.1) | High | Not started |
+| FR-2.2 | Operator can register a new operator user account | High | Not started |
 | FR-2.3 | Operator can log in and log out of the dashboard | High | Not started |
 | FR-2.4 | Operator can change their account password | Medium | Not started |
 | FR-2.5 | Operator can update their account information (e.g. name, email) | Medium | Not started |
@@ -92,13 +92,13 @@ talqo is one of three related repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | Operator must configure their own AI provider API endpoint and API key before the bot can respond to end users — there is no platform-funded default key | High | Not started |
+| FR-2.9 | Operator must configure their own AI provider API endpoint and API key before the bot can respond to end users | High | Not started |
 
 #### 3.2.3 Bot configuration (FR-2c)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can assign a custom name to the bot | Medium | Not started |
+| FR-2.10 | Operator can create a new bot with custom name | Medium | Not started |
 | FR-2.11 | Operator can set a system prompt that defines the bot's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Not started |
 | FR-2.12 | Operator can maintain a word blacklist; the bot must not use or engage with blacklisted terms | Medium | Not started |
 | FR-2.13 | Operator can preview/test the bot via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | Not started |
@@ -118,7 +118,7 @@ talqo is one of three related repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.20 | Operator can set the widget's accent colour via a hex color picker | Medium | Not started |
+| FR-2.20 | Operator can set the widget's accent color via a hex color picker | Medium | Not started |
 | FR-2.21 | Operator can toggle whether the widget displays a light/dark mode switch to end users | Low | Not started |
 | FR-2.22 | Operator can set the widget's display language | Low | Not started |
 | FR-2.23 | Operator can set the bot's avatar image | Low | Not started |
@@ -145,6 +145,7 @@ talqo is one of three related repos:
 | FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Not started |
 | FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Not started |
 | FR-3.4 | SDK authenticates using the same public widget token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
+| FR-3.5 | SDK fetches the server-side visual configuration (described in FR-2e) | Medium | Not started |
 
 ## 4. Non-Functional Requirements
 
@@ -156,8 +157,8 @@ talqo is one of three related repos:
 | NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app is expected to use a documentation framework (fumadocs is the leading candidate) | High | Not started |
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
-| NFR-1.3b | The CD pipeline publishes the connection SDK — an installable, typed (TypeScript) package — to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
-| NFR-1.4 | Operator-configurable settings (AI provider key, bot configuration, etc.) are supplied through the dashboard web interface after deployment | Only the database connection — including a randomly-generated password — is supplied via environment variables at deploy time, validated at startup, failing fast if missing or invalid | High | Not started |
+| NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
+| NFR-1.4 | Operator-configurable settings (AI provider key, bot configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection — including a randomly-generated password — is supplied via environment variables at deploy time, validated at startup, failing fast if missing or invalid | High | Not started |
 
 ### 4.2 Safety & Content Policy (NFR-2)
 
@@ -184,13 +185,13 @@ talqo is one of three related repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-4.1 | Widget must be fully responsive and usable across screen sizes, including mobile devices | | High | Not started |
-| NFR-4.2 | Widget defaults to the end user's system colour-scheme preference (light/dark); the operator may override it via configuration | | High | Not started |
+| NFR-4.2 | Widget defaults to the end user's system color-scheme preference (light/dark); the operator may override it via configuration | | High | Not started |
 
 ### 4.5 Test Coverage (NFR-5)
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-5.1 | API must have integration tests covering all major modules (auth, bot configuration, widget, SDK) with mocked external services | Integration tests use real DB; unit tests use in-memory repo | High | Not started |
+| NFR-5.1 | API must have integration tests covering all major modules with mocked external services | Integration tests use real DB; unit tests use in-memory repo | High | Not started |
 | NFR-5.2 | Integration tests must run in CI pipeline on every PR | Separate job with a database service | High | Not started |
-| NFR-5.3 | Core business logic (validators, services, utilities) across API and web apps has unit test coverage | | High | Not started |
-| NFR-5.4 | Critical user flows (chat conversation, dashboard configuration, account management) are covered by end-to-end (E2E) tests | | High | Not started |
+| NFR-5.3 | Core business logic across API and web apps has unit test coverage | | High | Not started |
+| NFR-5.4 | Critical user flows are covered by end-to-end (E2E) tests | | High | Not started |
