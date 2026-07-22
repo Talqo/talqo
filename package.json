@@ -8,7 +8,9 @@
 	],
 	"type": "module",
 	"scripts": {
+		"actions:check": "actionlint && zizmor --offline .",
 		"build": "turbo run build",
+		"ci": "bun run actions:check && bun run quality && bun run typecheck && bun run test && bun run build",
 		"dev": "turbo run dev --filter=!@talqo/docs --ui=tui",
 		"docs:dev": "bun run --filter @talqo/docs dev",
 		"format": "oxfmt --check",
@@ -25,10 +27,10 @@
 		"@commitlint/cli": "^21.2.1",
 		"@commitlint/config-conventional": "^21.2.0",
 		"husky": "^9.1.7",
-		"oxfmt": "0.58.0",
-		"oxlint": "1.73.0",
-		"oxlint-tsgolint": "^0.24.0",
-		"turbo": "2.10.4"
+		"oxfmt": "0.59.0",
+		"oxlint": "1.74.0",
+		"oxlint-tsgolint": "^0.25.0",
+		"turbo": "2.10.5"
 	},
 	"packageManager": "bun@1.3.14"
 }
