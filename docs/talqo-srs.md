@@ -11,8 +11,8 @@ open-source, self-hosted AI chat agent that operators embed on their own website
 
 talqo covers the embeddable widget, the operator dashboard, and the connection SDK,
 packaged as a single self-hosted deployment. It does not cover deployment
-orchestration (Docker Compose, Helm, cloud recipes — see the `talqo-deploy` SRS) or
-multi-tenant hosting, billing, or back-office tooling (see the `talqo-platform2` SRS).
+orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or
+multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
 
 ### 1.3 Definitions & Acronyms
 
