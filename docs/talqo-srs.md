@@ -4,15 +4,11 @@
 
 ### 1.1 Purpose
 
-This document specifies the functional and non-functional requirements for **talqo**, an
-open-source, self-hosted AI chat agent that operators embed on their own websites.
+This document specifies the functional and non-functional requirements for **talqo**, an open-source, self-hosted AI chat agent that operators embed on their own websites.
 
 ### 1.2 Scope
 
-talqo covers the embeddable widget, the operator dashboard, and the connection SDK,
-packaged as a single self-hosted deployment. It does not cover deployment
-orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or
-multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
+talqo covers the embeddable widget, the operator dashboard, and the connection SDK, packaged as a single self-hosted deployment. It does not cover deployment orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
 
 ### 1.3 Definitions & Acronyms
 
@@ -33,10 +29,8 @@ Contributors and implementers of the `talqo` repository.
 
 talqo is one of three related repos:
 
-- **`talqo-deploy`** consumes talqo's published container images to provide deployment
-  recipes (Compose, Helm, Terraform). talqo does not include deployment orchestration itself.
-- **`talqo-platform2`** is a separate, unrelated commercial product (a fork of
-  `talqo-platform`'s existing multi-tenant codebase) — it does not depend on or consume talqo.
+- **`talqo-deploy`** consumes talqo's published container images to provide deployment recipes (Compose, Helm, Terraform). talqo does not include deployment orchestration itself.
+- **`talqo-platform2`** is a separate, unrelated commercial product (a fork of `talqo-platform`'s existing multi-tenant codebase) — it does not depend on or consume talqo.
 
 ### 2.2 User Classes
 
@@ -48,21 +42,14 @@ talqo is one of three related repos:
 
 ### 2.3 Constraints
 
-- Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev
-  group), which may run multiple bots — e.g. one per website, or multiple bots on the same
-  site for A/B testing. The dashboard supports multiple operator accounts within that
-  single tenant.
-- Dashboard accounts are role-based: exactly one admin account exists per deployment,
-  created via first-run setup (FR-2.1). The admin can assign granular permissions to other
-  registered accounts. There is no superadmin.
-- The operator must supply their own AI provider API key; there is no platform-funded
-  default key.
+- Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple bots — e.g. one per website, or multiple bots on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
+- Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1). The admin can assign granular permissions to other registered accounts. There is no superadmin.
+- The operator must supply their own AI provider API key; there is no platform-funded default key.
 - No back-office, billing, or usage metering — see `talqo-platform2` if that's needed.
 
 ### 2.4 Assumptions & Dependencies
 
-- `talqo-deploy` is expected to consume the container images talqo publishes (NFR-1.3a) —
-  talqo does not need to provide its own orchestration.
+- `talqo-deploy` is expected to consume the container images talqo publishes (NFR-1.3a) — talqo does not need to provide its own orchestration.
 - An external database is available at deploy time; PostgreSQL is not required, but the
   database must support vector similarity search for knowledge-base embeddings (FR-2.17).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
@@ -150,10 +137,7 @@ talqo is one of three related repos:
 
 ### 3.3 Connection SDK (FR-3)
 
-> A headless JS/TS client library that lets developers build a fully custom chat UI against
-> talqo's agent, as an alternative to embedding the pre-built widget. Uses the same backend
-> as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy
-> NFRs (NFR-2) apply automatically to SDK-originated traffic — no separate enforcement needed.
+> A headless JS/TS client library that lets developers build a fully custom chat UI against talqo's agent, as an alternative to embedding the pre-built widget. Uses the same backend as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy NFRs (NFR-2) apply automatically to SDK-originated traffic — no separate enforcement needed.
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
@@ -186,21 +170,21 @@ talqo is one of three related repos:
 
 ### 4.3 Security (NFR-3)
 
-| ID | Requirement | Notes | Priority |
-|----|-------------|-------|----------|
-| NFR-3.1 | The operator's AI provider API key must be stored encrypted at rest and never exposed to the frontend | | High |
-| NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High |
-| NFR-3.3 | SDK and widget endpoints authenticate using the instance's public token | Related to FR-3.4 | High |
-| NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High |
-| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High |
-| NFR-3.6 | Widget enforces a per-conversation message limit | | High |
+| ID | Requirement | Notes | Priority | Completion |
+|----|-------------|-------|----------|------------|
+| NFR-3.1 | The operator's AI provider API key must be stored encrypted at rest and never exposed to the frontend | | High | Not started |
+| NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Not started |
+| NFR-3.3 | SDK and widget endpoints authenticate using the instance's public token | Related to FR-3.4 | High | Not started |
+| NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
+| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Not started |
+| NFR-3.6 | Widget enforces a per-conversation message limit | | High | Not started |
 
 ### 4.4 Usability (NFR-4)
 
-| ID | Requirement | Notes | Priority |
-|----|-------------|-------|----------|
-| NFR-4.1 | Widget must be fully responsive and usable across screen sizes, including mobile devices | | High |
-| NFR-4.2 | Widget defaults to the end user's system colour-scheme preference (light/dark); the operator may override it via configuration | | High |
+| ID | Requirement | Notes | Priority | Completion |
+|----|-------------|-------|----------|------------|
+| NFR-4.1 | Widget must be fully responsive and usable across screen sizes, including mobile devices | | High | Not started |
+| NFR-4.2 | Widget defaults to the end user's system colour-scheme preference (light/dark); the operator may override it via configuration | | High | Not started |
 
 ### 4.5 Test Coverage (NFR-5)
 
