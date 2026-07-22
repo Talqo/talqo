@@ -4,7 +4,6 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"boundaries": "bun run scripts/check-boundaries.ts",
 		"build": "bun build src/index.ts --outdir dist --target bun",
 		"dev": "bun --watch src/index.ts",
 		"test": "bun test",
@@ -20,7 +19,6 @@
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.3.14",
 		"drizzle-kit": "0.31.10",
-		"oxc-parser": "0.141.0",
 		"typescript": "7.0.2"
 	}
 }

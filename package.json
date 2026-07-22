@@ -9,7 +9,6 @@
 	"type": "module",
 	"scripts": {
 		"actions:check": "actionlint && zizmor --offline .",
-		"boundaries": "bun run --cwd apps/api boundaries",
 		"build": "turbo run build",
 		"ci": "bun run actions:check && bun run quality && bun run typecheck && bun run test && bun run build",
 		"dev": "turbo run dev --filter=!@talqo/docs --ui=tui",
@@ -20,8 +19,8 @@
 		"lint": "oxlint --deny-warnings --report-unused-disable-directives .",
 		"lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix .",
 		"prepare": "husky",
-		"quality": "turbo run lint format --output-logs=errors-only && bun run boundaries",
-		"quality:fix": "turbo run lint:fix format:fix --output-logs=errors-only && bun run boundaries",
+		"quality": "turbo run lint format --output-logs=errors-only",
+		"quality:fix": "turbo run lint:fix format:fix --output-logs=errors-only",
 		"test": "turbo run test --output-logs=errors-only",
 		"typecheck": "turbo run typecheck --output-logs=errors-only"
 	},

@@ -6,5 +6,5 @@
 		},
 		"rootDir": "."
 	},
-	"include": ["drizzle.config.ts", "scripts/**/*.ts", "src/**/*.ts"]
+	"include": ["drizzle.config.ts", "src/**/*.ts"]
 }

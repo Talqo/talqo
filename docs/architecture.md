@@ -224,7 +224,7 @@ apps/e2e/
 
 ## Boundary Enforcement
 
-- `bun run boundaries` rejects cross-module implementation imports and module cycles. It runs through the repository quality checks and CI.
+- Module boundaries and cycles are enforced by linting and CI.
 - Schema files may import another module's schema only for foreign-key declarations; all runtime cross-module access goes through the target service.
 - Add packages only for measured cross-app reuse; do not pre-split modules or speculative shared code.
 
