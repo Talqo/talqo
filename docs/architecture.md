@@ -37,7 +37,7 @@ Conventions have three sources. Preserve upstream conventions unless a documente
 | --- | --- |
 | Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/` |
 | Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/client.ts`; `packages/api-client`; `apps/e2e` |
-| Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; optional feature extraction; `apps/e2e` owns browser journeys |
+| Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
 
 Role suffixes and boundary rules in this document are Talqo conventions, not framework requirements.
 
@@ -98,7 +98,6 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Routes validate and translate HTTP input, call one or more services, and serialize the result. Keep authentication extraction, status/header mapping, and transport errors at this boundary.
 - A module writes only its own tables. It may not import another module's repository or mutate another module's tables through the shared client.
 - A schema file may reference another module's table only to declare a database foreign key. This schema-only exception does not grant query or write ownership.
-- Cross-module read models and reporting queries are explicit exceptions. Name the owner and read purpose; keep them read-only and prevent domain decisions from depending on denormalized reporting behavior.
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
 
@@ -126,7 +125,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
 - `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
 - Module seeds provide deterministic integration and E2E data through the centralized seed lifecycle.
-- Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
+- Playwright E2E specs live in `apps/e2e/tests/*.e2e.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
@@ -191,19 +190,8 @@ apps/web/src/
 
 ### Query And Forms
 
-- Create one `QueryClient` and expose it through the typed TanStack Router context in `router.tsx`.
-- Define shared `queryOptions` once per operation. The route loader calls `queryClient.ensureQueryData(options)` and the component hook consumes the same options.
-- Query functions call the generated API client and pass TanStack Query's abort signal to the request.
-- Mutations invalidate only keys whose authoritative results may have changed. Prefer precise keys over global invalidation.
-- PostgreSQL and the API remain authoritative; the Query cache is derived, disposable server state. Do not embed mock records in routes, query files, forms, or production components.
-- Forms own client interaction only: field interaction, client-safe validation feedback, submission state, and mapping to an operation-specific mutation. API validation and domain behavior remain authoritative.
-- Keep forms operation-specific. Extract a form only under the same exact-owner and move-on-extraction rule.
-
-### State And UI
-
-- Put shareable, bookmarkable, navigation-relevant state in validated route search parameters: filters, sort, pagination, tabs, and selected resource identifiers when appropriate.
-- Keep ephemeral interaction state local: open menus, temporary draft affordances, hover, focus, and unsubmitted UI state.
-- Promote UI to `packages/ui` only after it is product-neutral and reused. Keep workflow components and app-specific composition in `apps/web`.
+- Routes or features own query keys, cache policy, invalidation, and forms; generated clients own transport only.
+- The API remains authoritative. Browser caches and client validation never replace server validation or domain behavior.
 
 ## E2E Tests
 
@@ -213,8 +201,8 @@ apps/e2e/
 |-- tsconfig.json
 |-- playwright.config.ts             # testDir: "./tests"
 `-- tests/
-    |-- smoke.spec.ts
-    `-- <critical-journey>.spec.ts
+    |-- smoke.e2e.ts
+    `-- <critical-journey>.e2e.ts
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
@@ -232,11 +220,12 @@ apps/e2e/
 - `.contract.ts`, `.routes.ts`, `.service.ts`, `.repository.ts`, `.schema.ts`, and `.seed.ts` are Talqo role suffixes.
 - Avoid broad barrels and `public.ts`. Import the owning capability's explicit file or a package's declared export.
 - Generated migrations, route trees, OpenAPI artifacts, and generated clients are never hand-edited.
-- For a cross-module read or tooling deviation, document the owner, reason, exact scope, and removal trigger beside the code. Put repository-wide or long-lived exceptions in this guide or an ADR.
+- For a tooling deviation, document the owner, reason, exact scope, and removal trigger beside the code. Put repository-wide or long-lived exceptions in this guide or an ADR.
 
 ## Boundary Enforcement
 
-- Add import-boundary and cycle enforcement when the module graph is large enough to validate the rules against real dependencies.
+- `bun run boundaries` rejects cross-module implementation imports and module cycles. It runs through the repository quality checks and CI.
+- Schema files may import another module's schema only for foreign-key declarations; all runtime cross-module access goes through the target service.
 - Add packages only for measured cross-app reuse; do not pre-split modules or speculative shared code.
 
 ## Authoritative References

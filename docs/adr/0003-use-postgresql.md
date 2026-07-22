@@ -6,7 +6,7 @@ Accepted (2026-07-18)
 
 ## Context
 
-Talqo requires relational integrity, transactions, expressive queries, and dependable operational tooling for authoritative application data. Document databases and embedded relational databases provide different scaling or deployment trade-offs but fit these requirements less directly.
+Talqo requires ACID transactions, relational constraints, concurrent writes, JSON support, and server-grade operations. PostgreSQL provides these with mature self-hosted and managed options plus direct Drizzle and driver support. SQLite has a different concurrency and deployment model; MySQL and MariaDB are viable but introduce different SQL, migration, and operational behavior without a current benefit.
 
 ## Decision
 

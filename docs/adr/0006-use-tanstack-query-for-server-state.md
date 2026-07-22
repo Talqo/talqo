@@ -6,7 +6,7 @@ Accepted (2026-07-18)
 
 ## Context
 
-Browser code needs consistent request lifecycles, caching, invalidation, and derived views of remote data. Router-only loading centralizes navigation fetches but poorly serves interactive refreshes; ad hoc React state duplicates lifecycle and cache logic.
+The React app consumes an OpenAPI REST client and needs shared caching, request deduplication, mutations, and invalidation across routes. TanStack Query integrates with TanStack Router without requiring Redux or GraphQL. Router-only loading underserves non-navigation updates; Apollo targets GraphQL, RTK Query requires Redux, and ad hoc React state duplicates server-state lifecycle logic.
 
 ## Decision
 
