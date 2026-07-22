@@ -53,8 +53,8 @@ talqo is one of three related repos:
   site for A/B testing. The dashboard supports multiple operator accounts within that
   single tenant.
 - Dashboard accounts are role-based: exactly one admin account exists per deployment,
-  created via first-run setup (FR-2.1); all other registered accounts are user role. There
-  is no superadmin.
+  created via first-run setup (FR-2.1). The admin can assign granular permissions to other
+  registered accounts. There is no superadmin.
 - The operator must supply their own AI provider API key; there is no platform-funded
   default key.
 - No back-office, billing, or usage metering — see `talqo-platform2` if that's needed.
