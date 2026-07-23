@@ -4,11 +4,10 @@ Entities and relationships only — no columns or types. Column-level design is 
 
 ```mermaid
 erDiagram
-    ACCOUNT
     USER
-    ACCOUNT_MEMBER
+    USER_ROLE
     INVITATION
-    ACCOUNT_ACTIVITY_LOG
+    AUDIT_LOG
 
     AGENT
     AGENT_CONFIG
@@ -25,20 +24,15 @@ erDiagram
     FILE_EMBEDDING
     USAGE_RECORD
 
-    ACCOUNT ||--o{ ACCOUNT_MEMBER : ""
-    USER ||--o{ ACCOUNT_MEMBER : ""
-    ACCOUNT ||--o{ INVITATION : issues
+    USER ||--o{ USER_ROLE : has
     USER ||--o{ INVITATION : sends
-    ACCOUNT ||--o{ ACCOUNT_ACTIVITY_LOG : ""
-    USER ||--o{ ACCOUNT_ACTIVITY_LOG : performs
+    USER ||--o{ AUDIT_LOG : performs
 
-    ACCOUNT ||--o{ AGENT : configures
+    USER ||--o{ AGENT : configures
     AGENT ||--|| AGENT_CONFIG : has
     AGENT ||--o{ BLACKLIST_WORD : defines
-    ACCOUNT ||--o| AI_PROVIDER_CONFIG : configures
-    ACCOUNT ||--o{ MCP_CONFIG : configures
-    ACCOUNT ||--o{ USAGE_RECORD : generates
-    ACCOUNT ||--o{ FILE_EMBEDDING : embeds
+    AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
+    AGENT ||--o{ FILE_EMBEDDING : embeds
 
     AGENT ||--o{ END_USER_SESSION : receives
     END_USER_SESSION ||--o{ CONVERSATION : contains
