@@ -1,14 +1,14 @@
-# Software Requirements Specification: talqo
+# Software Requirements Specification
 
 ## 1. Introduction
 
 ### 1.1 Purpose
 
-This document specifies the functional and non-functional requirements for **talqo**, an open-source, self-hosted AI chat agent that operators embed on their own websites.
+This document specifies the functional and non-functional requirements for **Talqo**, an open-source, self-hosted AI chat agent that operators embed on their own websites.
 
 ### 1.2 Scope
 
-Talqo covers the embeddable widget, the operator dashboard, and the connection SDK, packaged as a single self-hosted deployment. It does not cover deployment orchestration (Docker Compose, Helm, cloud recipes — that's `talqo-deploy`) or multi-tenant hosting, billing, or back-office tooling (that's `talqo-platform2`).
+Talqo covers the embeddable widget, the operator dashboard, and the connection SDK, packaged as a single self-hosted deployment. It does not cover deployment orchestration or multi-tenant hosting, billing, or back-office tooling.
 
 ### 1.3 Definitions & Acronyms
 
@@ -28,10 +28,9 @@ Contributors and implementers of the `talqo` repository.
 
 ### 2.1 Product Perspective
 
-Talqo is one of three related repos:
+Talqo is related to these repos:
 
-- **`talqo-deploy`** consumes talqo's published container images to provide deployment recipes (Compose, Helm, Terraform). talqo does not include deployment orchestration itself.
-- **`talqo-platform2`** is a separate, unrelated commercial product (a fork of `talqo-platform`'s existing multi-tenant codebase) — it does not depend on or consume talqo.
+- **`talqo-deploy`** consumes `talqo`'s published container images to provide deployment recipes (Compose, Helm, Terraform). `talqo` does not include deployment orchestration itself.
 
 ### 2.2 User Classes
 
@@ -49,7 +48,7 @@ Talqo is one of three related repos:
 
 ### 2.4 Assumptions & Dependencies
 
-- `talqo-deploy` is expected to consume the container images talqo publishes (NFR-1.3a) — talqo does not need to provide its own orchestration.
+- `talqo-deploy` is expected to consume the container images `talqo` publishes (NFR-1.3a) — `talqo` does not need to provide its own orchestration.
 - An external database is available at deploy time; PostgreSQL is not required, but the
   database must support vector similarity search for knowledge-base embeddings (FR-2.17).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
@@ -137,7 +136,7 @@ Talqo is one of three related repos:
 
 ### 3.3 Connection SDK (FR-3)
 
-> A headless JS/TS client library that lets developers build a fully custom chat UI against talqo's agent, as an alternative to embedding the pre-built widget. Uses the same backend as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy NFRs (NFR-2) apply automatically to SDK-originated traffic — no separate enforcement needed.
+> A headless JS/TS client library that lets developers build a fully custom chat UI against Talqo agent, as an alternative to embedding the pre-built widget. Uses the same backend as the widget, so rate limiting (NFR-3.5), message limits (NFR-3.6), and content-policy NFRs (NFR-2) apply automatically to SDK-originated traffic — no separate enforcement needed.
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
