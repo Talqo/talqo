@@ -60,7 +60,7 @@ graph LR
 |---|---|---|
 | `identity` | `USER` | Who a person is: login credentials. No knowledge of accounts or roles. |
 | `account` | `ACCOUNT`, `ACCOUNT_MEMBER`, `INVITATION` | RBAC membership and invite flow — owns "who can do what in which account." |
-| `agent` | `WIDGET`, `AGENT_CONFIG`, `BLACKLIST_WORD`, `WIDGET_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. One account owns many agents. |
+| `agent` | `AGENT`, `AGENT_CONFIG`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. One account owns many agents. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Account-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once per account, shared across the account's agents. |
 | `knowledge` | `FILE_EMBEDDING` | RAG ingestion and embedding store, decoupled from live chat. |

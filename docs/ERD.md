@@ -10,10 +10,10 @@ erDiagram
     INVITATION
     ACCOUNT_ACTIVITY_LOG
 
-    WIDGET
+    AGENT
     AGENT_CONFIG
     BLACKLIST_WORD
-    WIDGET_IP_RATE_LIMIT
+    AGENT_IP_RATE_LIMIT
 
     MCP_CONFIG
     AI_PROVIDER_CONFIG
@@ -32,15 +32,15 @@ erDiagram
     ACCOUNT ||--o{ ACCOUNT_ACTIVITY_LOG : ""
     USER ||--o{ ACCOUNT_ACTIVITY_LOG : performs
 
-    ACCOUNT ||--o{ WIDGET : configures
-    WIDGET ||--|| AGENT_CONFIG : has
-    WIDGET ||--o{ BLACKLIST_WORD : defines
+    ACCOUNT ||--o{ AGENT : configures
+    AGENT ||--|| AGENT_CONFIG : has
+    AGENT ||--o{ BLACKLIST_WORD : defines
     ACCOUNT ||--o| AI_PROVIDER_CONFIG : configures
     ACCOUNT ||--o{ MCP_CONFIG : configures
     ACCOUNT ||--o{ USAGE_RECORD : generates
     ACCOUNT ||--o{ FILE_EMBEDDING : embeds
 
-    WIDGET ||--o{ END_USER_SESSION : receives
+    AGENT ||--o{ END_USER_SESSION : receives
     END_USER_SESSION ||--o{ CONVERSATION : contains
     CONVERSATION ||--o{ MESSAGE : includes
     MESSAGE ||--o{ USAGE_RECORD : tracks
