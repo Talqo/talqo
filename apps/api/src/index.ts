@@ -1,6 +1,6 @@
 import { app } from "./app.ts"
 
-const port = 3000
+const port = Number(process.env.TALQO_API_PORT ?? 3000)
 
 const server = Bun.serve({ fetch: app.fetch, hostname: "0.0.0.0", port })
 

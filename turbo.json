@@ -16,6 +16,7 @@
 		},
 		"dev": {
 			"cache": false,
+			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT", "TALQO_WIDGET_PORT"],
 			"persistent": true
 		},
 		"e2e": {

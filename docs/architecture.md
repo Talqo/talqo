@@ -55,6 +55,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - `packages/api-client` is generated transport-only code. It contains no authentication policy, telemetry policy, error presentation, TanStack Query options, or handwritten domain logic.
+- `packages/sdk` is the public browser SDK. It consumes `packages/api-client`; the widget consumes the SDK.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -195,6 +196,14 @@ apps/web/src/
 
 - Routes or features own query keys, cache policy, invalidation, and forms; generated clients own transport only.
 - The API remains authoritative. Browser caches and client validation never replace server validation or domain behavior.
+
+## Widget
+
+`apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
+
+- `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
+- The widget consumes `packages/sdk` and never imports API app source.
+- Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 
 ## E2E Tests
 
