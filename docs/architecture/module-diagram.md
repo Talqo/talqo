@@ -60,7 +60,7 @@ graph LR
 |---|---|---|
 | `identity` | `USER` | Who a person is: login credentials. No knowledge of roles. |
 | `roles` | `USER_ROLE`, `INVITATION` | RBAC role assignment and invite flow — owns "who can do what." |
-| `agent` | `AGENT`, `AGENT_CONFIG`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. |
+| `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
 | `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. |
