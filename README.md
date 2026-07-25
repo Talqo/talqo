@@ -8,6 +8,7 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 | --- | --- |
 | `apps/api` | Hono API application |
 | `apps/web` | React web application |
+| `apps/widget` | Embedded React widget application |
 | `apps/docs` | Public documentation application |
 | `apps/e2e` | Playwright cross-system browser tests |
 | `packages/ui` | Shared presentation components and styles |
@@ -23,8 +24,8 @@ bun install
 
 | Command | Purpose |
 | --- | --- |
-| `bun run dev` | Run API and web development tasks |
-| `bun run docs:dev` | Run the documentation application |
+| `bun run dev` | Run API, web, widget, and PostgreSQL development tasks |
+| `bun run dev:docs` | Run the documentation application |
 | `bun run e2e` | Run browser E2E tests in Chromium |
 | `bun run build` | Build current workspaces |
 | `bun run quality` | Check linting and formatting |

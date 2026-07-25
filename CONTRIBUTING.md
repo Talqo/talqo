@@ -10,6 +10,10 @@ For local setup, install Bun and run:
 bun install
 ```
 
+## Development
+
+- Run `bun run dev` for the API, web app, widget, and PostgreSQL; each worktree gets isolated ports and database resources. Use `bun run dev:docs` for documentation.
+
 ## Placement
 
 Use the [architecture guide](docs/architecture.md) for detailed boundaries and conventions.
