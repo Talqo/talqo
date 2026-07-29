@@ -14,11 +14,12 @@ Talqo covers the embeddable widget, the operator dashboard, and the connection S
 
 | Term | Meaning |
 |------|---------|
-| MCP | Model Context Protocol — lets the bot call external tools/structured data sources |
+| Agent | The configured AI persona (system prompt, blacklist, knowledge base, MCP tools) that answers end users; a deployment may run multiple agents |
+| MCP | Model Context Protocol — lets the agent call external tools/structured data sources |
 | RAG | Retrieval-Augmented Generation — extracts relevant context from the knowledge base when responding to end user |
 | SDK | The headless connection SDK (FR-3) |
 | Widget | The pre-built, embeddable chat UI (FR-1) |
-| Knowledge base | Content (uploaded files or crawled site pages) the bot references when answering |
+| Knowledge base | Content (uploaded files or crawled site pages) the agent references when answering |
 
 ### 1.4 Intended Audience
 
@@ -37,12 +38,12 @@ Talqo is related to these repos:
 | Actor | Description |
 |-------|-------------|
 | **End user** | The visitor on the operator's website who chats with the widget |
-| **Operator** | A dashboard user who configures the bot and monitors usage |
+| **Operator** | A dashboard user who configures the agent and monitors usage |
 | **Developer** | A technical user integrating against the connection SDK instead of the pre-built widget |
 
 ### 2.3 Constraints
 
-- Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple bots — e.g. one per website, or multiple bots on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
+- Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple agents — e.g. one per website, or multiple agents on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
 - Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1). The admin can assign granular permissions to other registered accounts. There is no superadmin.
 - The operator must supply their own AI provider API key; there is no platform-funded default key.
 
@@ -62,17 +63,17 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-1.1 | End user can send text messages to the bot and receive AI-generated responses (rendered as markdown) | High | Not started |
+| FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | Not started |
 | FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Not started |
 | FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Not started |
-| FR-1.4 | Widget displays a typing indicator while the bot is generating a response | High | Not started |
+| FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Not started |
 | FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Not started |
-| FR-1.6 | End user can rate individual bot responses with a thumbs up / thumbs down | Low | Not started |
+| FR-1.6 | End user can rate individual agent responses with a thumbs up / thumbs down | Low | Not started |
 | FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Not started |
 
 ### 3.2 Dashboard (FR-2)
 
-> The web application where the operator configures the bot and monitors usage.
+> The web application where the operator configures the agent and monitors usage.
 
 #### 3.2.1 Operator account & access (FR-2a)
 
@@ -91,26 +92,28 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | Operator must configure their own AI provider API endpoint and API key before the bot can respond to end users | High | Not started |
+| FR-2.9 | Operator must configure their own AI provider API endpoint and API key before the agent can respond to end users | High | Not started |
+| FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
 
-#### 3.2.3 Bot configuration (FR-2c)
+#### 3.2.3 Agent configuration (FR-2c)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can create a new bot with custom name | Medium | Not started |
-| FR-2.11 | Operator can set a system prompt that defines the bot's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Not started |
-| FR-2.12 | Operator can maintain a word blacklist; the bot must not use or engage with blacklisted terms | Medium | Not started |
-| FR-2.13 | Operator can preview/test the bot via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | Not started |
+| FR-2.10 | Operator can create a new agent with custom name | Medium | Not started |
+| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Not started |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Not started |
+| FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | Not started |
+| FR-2.13a | Operator can delete an agent | Medium | Not started |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the bot references when responding | High | Not started |
+| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Not started |
 | FR-2.15 | Operator can delete files from the knowledge base | Medium | Not started |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
 | FR-2.17 | Operator can configure the embedding model used to index knowledge base content (with provider-specific defaults) | Medium | Not started |
-| FR-2.18 | Operator can connect their own MCP server to give the bot access to structured data | High | Not started |
+| FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |
 | FR-2.19 | Operator can verify MCP server connectivity and view available tools before or after enabling | Medium | Not started |
 
 #### 3.2.5 Widget appearance (FR-2e)
@@ -120,7 +123,7 @@ Talqo is related to these repos:
 | FR-2.20 | Operator can set the widget's accent color via a hex color picker | Medium | Not started |
 | FR-2.21 | Operator can toggle whether the widget displays a light/dark mode switch to end users | Low | Not started |
 | FR-2.22 | Operator can set the widget's display language | Low | Not started |
-| FR-2.23 | Operator can set the bot's avatar image | Low | Not started |
+| FR-2.23 | Operator can set the agent's avatar image | Low | Not started |
 | FR-2.24 | Operator can set the widget's on-page position (e.g. bottom-right, bottom-left) | Low | Not started |
 
 #### 3.2.6 Analytics (FR-2f)
@@ -132,7 +135,7 @@ Talqo is related to these repos:
 | FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |
-| FR-2.30 | Dashboard displays general engagement metrics (total conversations, unique chat users, percentage of site visitors who used the chatbot) | Low | Not started |
+| FR-2.30 | Dashboard displays general engagement metrics (total conversations, unique chat users, percentage of site visitors who used the widget) | Low | Not started |
 
 ### 3.3 Connection SDK (FR-3)
 
@@ -140,7 +143,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-3.1 | Developer can send a message to the bot and receive a response via the SDK, without using the pre-built widget UI | High | Not started |
+| FR-3.1 | Developer can send a message to the agent and receive a response via the SDK, without using the pre-built widget UI | High | Not started |
 | FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Not started |
 | FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Not started |
 | FR-3.4 | SDK authenticates using the same public widget token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
@@ -157,16 +160,16 @@ Talqo is related to these repos:
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
 | NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
-| NFR-1.4 | Operator-configurable settings (AI provider key, bot configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection — including a randomly-generated password — is supplied via environment variables at deploy time, validated at startup, failing fast if missing or invalid | High | Not started |
+| NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection — including a randomly-generated password — is supplied via environment variables at deploy time, validated at startup, failing fast if missing or invalid | High | Not started |
 
 ### 4.2 Safety & Content Policy (NFR-2)
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-2.1 | The bot must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via system prompt guardrails | High | Not started |
+| NFR-2.1 | The agent must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via system prompt guardrails | High | Not started |
 | NFR-2.2 | Operator-defined word blacklist violations must be filtered **before** the response is sent to the end user | | High | Not started |
-| NFR-2.3 | The bot must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via system prompt guardrails | High | Not started |
-| NFR-2.4 | The bot must resist prompt injection attempts that try to override its system prompt, leak blacklisted terms, or trigger unintended MCP tool calls — whether embedded directly in an end-user message or indirectly in ingested knowledge base content | Covers both direct input (FR-1.1) and indirect injection via uploaded files or crawled pages (FR-2.14, FR-2.16) reaching the bot as context | High | Not started |
+| NFR-2.3 | The agent must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via system prompt guardrails | High | Not started |
+| NFR-2.4 | The agent must resist prompt injection attempts that try to override its system prompt, leak blacklisted terms, or trigger unintended MCP tool calls — whether embedded directly in an end-user message or indirectly in ingested knowledge base content | Covers both direct input (FR-1.1) and indirect injection via uploaded files or crawled pages (FR-2.14, FR-2.16) reaching the agent as context | High | Not started |
 
 ### 4.3 Security (NFR-3)
 
