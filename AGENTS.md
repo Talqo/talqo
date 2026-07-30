@@ -1,16 +1,16 @@
 # Talqo
 
-Talqo is an AI agent for any website. It can be configured to answer based on the provided context or by calling MCP tools. This app is fully production-ready, open-source and is built on the latest industry standards.
-
-## Notes
+Talqo is an AI agent for any website. It can answer from configured context or call MCP tools. It is written to be production-ready, open-source and self-hosted.
 
 - When creating a PR, follow template inside `.github/pull_request_template.md`.
-- Document significant architectural decisions in `docs/adr`.
+- Follow [the architecture guide](docs/architecture.md) and the nearest `AGENTS.md`.
 - Put shared shadcn components and styles in `packages/ui`.
+- Never hand-edit generated artifacts.
+- Record significant architectural decisions in `docs/adr`.
+- Update `docs/architecture.md` in the same change when architecture, boundaries, ownership, or canonical structure changes.
+- Keep E2E data in the API-owned seed for an isolated test database.
 
-## Feedback loop
-
-Run after changes
+Run after changes:
 
 ```sh
 bun run quality:fix
