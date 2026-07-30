@@ -82,6 +82,7 @@ Talqo is related to these repos:
 | FR-2.1 | On first deployment run, the operator is redirected to an admin setup page and must create the sole admin account before the dashboard becomes otherwise usable | High | Not started |
 | FR-2.2 | Operator can register a new operator user account | High | Not started |
 | FR-2.3 | Operator can log in and log out of the dashboard | High | Not started |
+| FR-2.3a | Operator can log in via SSO (e.g. Google) as an alternative to email/password credentials | Medium | Not started |
 | FR-2.4 | Operator can change their account password | Medium | Not started |
 | FR-2.5 | Operator can update their account information (e.g. name, email) | Medium | Not started |
 | FR-2.6 | Operator can delete their account | Medium | Not started |
