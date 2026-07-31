@@ -19,7 +19,7 @@ function WidgetPreviewPage() {
 	const { accent, position, language } = Route.useSearch()
 
 	return (
-		<div className="relative min-h-screen bg-background p-6 text-foreground">
+		<div className="bg-background text-foreground relative min-h-screen p-6">
 			<Button
 				render={<Link to="/dashboard/widget" search={{ bot: undefined }} />}
 				nativeButton={false}

@@ -113,7 +113,7 @@ function WidgetPage() {
 								</Select>
 							</div>
 							<div className="relative">
-								<pre className="overflow-x-auto rounded-lg border bg-muted p-4 font-mono text-sm">{snippet}</pre>
+								<pre className="bg-muted overflow-x-auto rounded-lg border p-4 font-mono text-sm">{snippet}</pre>
 								<Button
 									variant="outline"
 									size="icon"
@@ -121,7 +121,7 @@ function WidgetPage() {
 									onClick={copySnippet}
 									aria-label={t("widgetSetup.copyEmbed")}
 								>
-									{copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4" />}
+									{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
 								</Button>
 							</div>
 						</>
@@ -209,13 +209,13 @@ function WidgetPage() {
 					</CardHeader>
 					<CardContent>
 						<div className="overflow-hidden rounded-lg border">
-							<div className="flex items-center gap-1.5 border-b bg-muted px-3 py-2">
-								<span className="size-2.5 rounded-full bg-destructive/70" />
-								<span className="size-2.5 rounded-full bg-chart-4" />
-								<span className="size-2.5 rounded-full bg-primary/70" />
-								<span className="ml-2 text-muted-foreground text-xs">your-site.com</span>
+							<div className="bg-muted flex items-center gap-1.5 border-b px-3 py-2">
+								<span className="bg-destructive/70 size-2.5 rounded-full" />
+								<span className="bg-chart-4 size-2.5 rounded-full" />
+								<span className="bg-primary/70 size-2.5 rounded-full" />
+								<span className="text-muted-foreground ml-2 text-xs">your-site.com</span>
 							</div>
-							<div className="relative h-[452px] bg-background">
+							<div className="bg-background relative h-[452px]">
 								<WidgetPreview accent={accentColor} position={position} language={language} />
 							</div>
 						</div>
