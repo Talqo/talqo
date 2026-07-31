@@ -1,0 +1,133 @@
+{
+	"nav": {
+		"dashboard": "Přehled",
+		"bots": "Boti",
+		"widget": "Widget",
+		"analytics": "Analytika",
+		"account": "Účet"
+	},
+	"header": {
+		"toggleNavigation": "Přepnout navigaci",
+		"toLightTheme": "Přepnout na světlý motiv",
+		"toDarkTheme": "Přepnout na tmavý motiv",
+		"language": "Jazyk"
+	},
+	"dashboard": {
+		"heading": "Vítejte v Talqo",
+		"subheading": "Spravujte své chatboty, widget a analytiku na jednom místě.",
+		"openCard": "Otevřít {{title}} →",
+		"cards": {
+			"bots": {
+				"title": "Boti",
+				"description": "Spravujte chatboty a jejich chování."
+			},
+			"widget": {
+				"title": "Widget",
+				"description": "Nakonfigurujte a zobrazte náhled vloženého widgetu."
+			},
+			"analytics": {
+				"title": "Analytika",
+				"description": "Zobrazte statistiky konverzací a využití."
+			},
+			"account": {
+				"title": "Účet",
+				"description": "Upravte svůj profil a předvolby."
+			}
+		}
+	},
+	"botFields": {
+		"name": "Název",
+		"namePlaceholder": "Podpora Bot",
+		"systemPrompt": "Systémový prompt",
+		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
+		"wordBlacklist": "Zakázaná slova",
+		"blacklistPlaceholder": "spam, urážky, podvod",
+		"blacklistHelp": "Slova oddělujte čárkami.",
+		"statusActive": "Aktivní",
+		"statusPaused": "Pozastavený"
+	},
+	"bots": {
+		"heading": "Boti",
+		"subheading": "Spravujte své chatboty a jejich chování.",
+		"loading": "Načítání botů…",
+		"empty": "Zatím žádní boti. Vytvořte svého prvního bota a začněte.",
+		"create": "Vytvořit bota",
+		"createDescription": "Definujte název, chování a zakázaná slova bota.",
+		"configure": "Konfigurovat"
+	},
+	"botConfig": {
+		"backToBots": "Zpět na boty",
+		"loading": "Načítání bota…",
+		"notFound": "Bot nenalezen. Možná byl odstraněn.",
+		"heading": "Konfigurovat {{name}}",
+		"subheading": "Upravte název, chování, zakázaná slova a stav bota.",
+		"cardTitle": "Konfigurace bota",
+		"cardDescription": "Změny se ukládají do dočasného úložiště a projeví se v celém přehledu.",
+		"save": "Uložit změny",
+		"saved": "Právě uloženo."
+	},
+	"widgetSetup": {
+		"heading": "Nastavení widgetu",
+		"subheading": "Vložte chatovací widget na svůj web a vylaďte jeho vzhled.",
+		"openFullPreview": "Otevřít náhled na celou obrazovku",
+		"backToSetup": "Zpět na nastavení widgetu",
+		"embedCode": "Kód pro vložení",
+		"embedDescription": "Vložte tento kód před uzavírací značku body svého webu.",
+		"loading": "Načítání botů…",
+		"empty": "Zatím žádní boti. Před vložením widgetu vytvořte bota na stránce Boti.",
+		"botLabel": "Bot",
+		"selectBot": "Vyberte bota",
+		"copyEmbed": "Zkopírovat kód pro vložení",
+		"appearance": "Vzhled",
+		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
+		"accentColor": "Akcentová barva",
+		"accentHex": "Hexadecimální hodnota akcentové barvy",
+		"position": "Pozice",
+		"positionBottomRight": "Vpravo dole",
+		"positionBottomLeft": "Vlevo dole",
+		"language": "Jazyk",
+		"avatarUrl": "URL avatara",
+		"themeSwitch": "Zobrazit přepínač motivu v záhlaví widgetu",
+		"notPersisted": "Konfigurace se zatím neukládá; slouží jako náhled chování nastavení.",
+		"livePreview": "Živý náhled",
+		"livePreviewDescription": "Akcentová barva, pozice a jazyk se projeví v náhledu; avatar a přepínač motivu jsou součástí konfigurace vložení a zde se zatím nezobrazují."
+	},
+	"analytics": {
+		"heading": "Analytika",
+		"subheading": "Statistiky konverzací a využití pro jednotlivé widgety.",
+		"selectWidget": "Vyberte widget",
+		"loading": "Načítání widgetů…",
+		"empty": "Zatím žádné widgety. Pro zobrazení statistik vytvořte bota na stránce Boti.",
+		"loadingStats": "Načítání statistik…",
+		"conversations": "Konverzace",
+		"messages": "Zprávy",
+		"tokens": "Tokeny",
+		"last30Days": "{{metric}} (30 dní)",
+		"usageOverTime": "Využití v čase",
+		"dailyTotals": "Denní součty za posledních 30 dní."
+	},
+	"account": {
+		"heading": "Účet",
+		"subheading": "Spravujte nastavení a předvolby svého účtu.",
+		"loading": "Načítání účtu…",
+		"profile": "Profil",
+		"profileDescription": "Vaše jméno a e-mail operátora.",
+		"name": "Jméno",
+		"email": "E-mail",
+		"profileSaved": "Změny profilu budou trvale uloženy v pozdější iteraci.",
+		"saveProfile": "Uložit profil",
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
+		"currentPassword": "Současné heslo",
+		"newPassword": "Nové heslo",
+		"confirmNewPassword": "Potvrdit nové heslo",
+		"passwordsMismatch": "Nová hesla se neshodují.",
+		"passwordChanged": "Změny hesla budou trvale uloženy v pozdější iteraci.",
+		"dangerZone": "Nebezpečná zóna",
+		"dangerDescription": "Smazáním účtu odstraníte všechny boty a analytická data.",
+		"deleteAccount": "Smazat účet",
+		"deleteDescription": "Tuto akci nelze vrátit zpět. Všichni boti, konfigurace widgetů a analytická data budou trvale odstraněny.",
+		"cancel": "Zrušit",
+		"deleteConfirmed": "Smazání účtu bude implementováno v pozdější iteraci."
+	}
+}

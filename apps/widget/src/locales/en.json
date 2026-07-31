@@ -1,0 +1,11 @@
+{
+	"defaultTitle": "AI Chat",
+	"greeting": "Hi there! How can I help you today?",
+	"placeholder": "Type a message...",
+	"send": "Send",
+	"openChat": "Open chat",
+	"closeChat": "Close chat",
+	"close": "Close",
+	"messageLabel": "Message",
+	"chatIcon": "Chat icon"
+}

@@ -9,14 +9,21 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"class-variance-authority": "0.7.1",
+		"clsx": "2.1.1",
+		"i18next": "^26.3.6",
 		"react": "19.2.8",
-		"react-dom": "19.2.8"
+		"react-dom": "19.2.8",
+		"react-i18next": "^17.0.11",
+		"tailwind-merge": "3.6.0"
 	},
 	"devDependencies": {
+		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "6.0.4",
+		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
 		"vite": "8.1.5"
 	}

@@ -202,7 +202,9 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
+- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`) are the only contract — `apps/web` never imports widget source.
 - The widget consumes `packages/sdk` and never imports API app source.
+- Widget CSS is isolated from the host page: every utility carries the `tw:` Tailwind prefix, theme variables are scoped under `.talqo-widget`, and preflight is stripped from the bundle at build time (`vite.config.ts`). Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 
 ## E2E Tests
