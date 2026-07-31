@@ -1,10 +1,19 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
+import { applyTheme, getInitialTheme } from "./lib/use-theme"
 import { routeTree } from "./routeTree.gen"
 
 import "@talqo/ui/globals.css"
+// eslint-disable-next-line import/no-unassigned-import -- initializes the dashboard i18next instance for side effects.
+import "./lib/i18n"
+
+// Apply the persisted/system theme before first paint to avoid a flash of the wrong theme.
+applyTheme(getInitialTheme())
+
+const queryClient = new QueryClient()
 
 const router = createRouter({ routeTree })
 
@@ -23,6 +32,8 @@ if (!root) {
 
 createRoot(root).render(
 	<StrictMode>
-		<RouterProvider router={router} />
+		<QueryClientProvider client={queryClient}>
+			<RouterProvider router={router} />
+		</QueryClientProvider>
 	</StrictMode>,
 )

@@ -1,0 +1,133 @@
+{
+	"nav": {
+		"dashboard": "Dashboard",
+		"bots": "Bots",
+		"widget": "Widget",
+		"analytics": "Analytics",
+		"account": "Account"
+	},
+	"header": {
+		"toggleNavigation": "Toggle navigation",
+		"toLightTheme": "Switch to light theme",
+		"toDarkTheme": "Switch to dark theme",
+		"language": "Language"
+	},
+	"dashboard": {
+		"heading": "Welcome to Talqo",
+		"subheading": "Manage your chat bots, widget, and analytics from one place.",
+		"openCard": "Open {{title}} →",
+		"cards": {
+			"bots": {
+				"title": "Bots",
+				"description": "Manage your chat bots and their behavior."
+			},
+			"widget": {
+				"title": "Widget",
+				"description": "Configure and preview your embedded widget."
+			},
+			"analytics": {
+				"title": "Analytics",
+				"description": "View conversation and usage statistics."
+			},
+			"account": {
+				"title": "Account",
+				"description": "Update your profile and preferences."
+			}
+		}
+	},
+	"botFields": {
+		"name": "Name",
+		"namePlaceholder": "Support Bot",
+		"systemPrompt": "System prompt",
+		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
+		"wordBlacklist": "Word blacklist",
+		"blacklistPlaceholder": "spam, abuse, scam",
+		"blacklistHelp": "Separate words with commas.",
+		"statusActive": "Active",
+		"statusPaused": "Paused"
+	},
+	"bots": {
+		"heading": "Bots",
+		"subheading": "Manage your chat bots and their behavior.",
+		"loading": "Loading bots…",
+		"empty": "No bots yet. Create your first bot to get started.",
+		"create": "Create bot",
+		"createDescription": "Define the bot's name, behavior, and blocked words.",
+		"configure": "Configure"
+	},
+	"botConfig": {
+		"backToBots": "Back to bots",
+		"loading": "Loading bot…",
+		"notFound": "Bot not found. It may have been removed.",
+		"heading": "Configure {{name}}",
+		"subheading": "Update the bot's name, behavior, blocked words, and status.",
+		"cardTitle": "Bot configuration",
+		"cardDescription": "Changes are saved to the mock store and reflected across the dashboard.",
+		"save": "Save changes",
+		"saved": "Saved just now."
+	},
+	"widgetSetup": {
+		"heading": "Widget setup",
+		"subheading": "Embed the chat widget on your site and tune its appearance.",
+		"openFullPreview": "Open full-screen preview",
+		"backToSetup": "Back to widget setup",
+		"embedCode": "Embed code",
+		"embedDescription": "Paste this snippet before the closing body tag of your site.",
+		"loading": "Loading bots…",
+		"empty": "No bots yet. Create one on the Bots page before embedding the widget.",
+		"botLabel": "Bot",
+		"selectBot": "Select a bot",
+		"copyEmbed": "Copy embed code",
+		"appearance": "Appearance",
+		"appearanceDescription": "Visual configuration applied to the embedded widget.",
+		"accentColor": "Accent color",
+		"accentHex": "Accent color hex value",
+		"position": "Position",
+		"positionBottomRight": "Bottom right",
+		"positionBottomLeft": "Bottom left",
+		"language": "Language",
+		"avatarUrl": "Avatar URL",
+		"themeSwitch": "Show theme switch in widget header",
+		"notPersisted": "Configuration is not persisted yet; it previews how the setup screen will behave.",
+		"livePreview": "Live preview",
+		"livePreviewDescription": "Accent color, position, and language apply to the preview; avatar and theme switch are part of the embed configuration and are not yet reflected here."
+	},
+	"analytics": {
+		"heading": "Analytics",
+		"subheading": "Conversation and usage statistics per widget.",
+		"selectWidget": "Select a widget",
+		"loading": "Loading widgets…",
+		"empty": "No widgets yet. Create a bot on the Bots page to see statistics.",
+		"loadingStats": "Loading statistics…",
+		"conversations": "Conversations",
+		"messages": "Messages",
+		"tokens": "Tokens",
+		"last30Days": "{{metric}} (30 days)",
+		"usageOverTime": "Usage over time",
+		"dailyTotals": "Daily totals for the last 30 days."
+	},
+	"account": {
+		"heading": "Account",
+		"subheading": "Manage your account settings and preferences.",
+		"loading": "Loading account…",
+		"profile": "Profile",
+		"profileDescription": "Your operator name and email.",
+		"name": "Name",
+		"email": "Email",
+		"profileSaved": "Profile changes will be persisted in a later iteration.",
+		"saveProfile": "Save profile",
+		"changePassword": "Change password",
+		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
+		"currentPassword": "Current password",
+		"newPassword": "New password",
+		"confirmNewPassword": "Confirm new password",
+		"passwordsMismatch": "New passwords do not match.",
+		"passwordChanged": "Password changes will be persisted in a later iteration.",
+		"dangerZone": "Danger zone",
+		"dangerDescription": "Deleting your account removes all bots and analytics data.",
+		"deleteAccount": "Delete account",
+		"deleteDescription": "This action cannot be undone. All bots, widget configurations, and analytics data will be permanently removed.",
+		"cancel": "Cancel",
+		"deleteConfirmed": "Account deletion will be implemented in a later iteration."
+	}
+}

@@ -10,7 +10,12 @@
 	},
 	"dependencies": {
 		"react": "19.2.8",
-		"react-dom": "19.2.8"
+		"react-dom": "19.2.8",
+		"class-variance-authority": "0.7.1",
+		"clsx": "2.1.1",
+		"i18next": "^26.3.6",
+		"react-i18next": "^17.0.11",
+		"tailwind-merge": "3.6.0"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
@@ -18,6 +23,10 @@
 		"@types/react-dom": "19.2.4",
 		"@vitejs/plugin-react": "6.0.5",
 		"typescript": "7.0.2",
-		"vite": "8.2.1"
-	}
+		"vite": "8.2.1",
+		"@tailwindcss/vite": "4.3.3",
+		"tailwindcss": "4.3.3"
+	},
+	"peerDependencies": {},
+	"optionalDependencies": {}
 }
