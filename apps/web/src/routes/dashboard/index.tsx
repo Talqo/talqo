@@ -39,8 +39,8 @@ function DashboardIndexPage() {
 	return (
 		<div className="mx-auto max-w-5xl space-y-8">
 			<div>
-				<h1 className="font-bold text-3xl text-foreground">{t("dashboard.heading")}</h1>
-				<p className="mt-2 text-muted-foreground">{t("dashboard.subheading")}</p>
+				<h1 className="text-foreground text-3xl font-bold">{t("dashboard.heading")}</h1>
+				<p className="text-muted-foreground mt-2">{t("dashboard.subheading")}</p>
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -50,12 +50,12 @@ function DashboardIndexPage() {
 						<Link key={to} to={to} className="group">
 							<Card className="h-full transition-shadow hover:shadow-md">
 								<CardHeader>
-									<Icon className="mb-2 size-8 text-primary" />
+									<Icon className="text-primary mb-2 size-8" />
 									<CardTitle>{title}</CardTitle>
 									<CardDescription>{t(descriptionKey)}</CardDescription>
 								</CardHeader>
 								<CardContent>
-									<span className="font-medium text-primary text-sm group-hover:underline">
+									<span className="text-primary text-sm font-medium group-hover:underline">
 										{t("dashboard.openCard", { title })}
 									</span>
 								</CardContent>

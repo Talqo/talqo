@@ -34,7 +34,7 @@ function NavLink({ to, labelKey, icon: Icon, onNavigate }: (typeof navItems)[num
 			inactiveProps={{
 				className: "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 			}}
-			className="flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-sm transition-colors"
+			className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
 			onClick={onNavigate}
 		>
 			<Icon className="size-5" />
@@ -100,15 +100,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const closeMobile = () => setMobileOpen(false)
 
 	return (
-		<div className="flex min-h-screen bg-background text-foreground">
+		<div className="bg-background text-foreground flex min-h-screen">
 			{/* Desktop sidebar */}
-			<aside className="sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-sidebar-border border-r bg-sidebar p-4 md:flex">
-				<div className="mb-6 truncate px-3 font-semibold text-sidebar-foreground text-sm">{accountName}</div>
+			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
+				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
 			<div className="flex min-h-screen flex-1 flex-col">
-				<header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-border border-b bg-background p-4">
+				<header className="border-border bg-background sticky top-0 z-20 flex items-center justify-between gap-2 border-b p-4">
 					<div className="flex items-center gap-2">
 						<Button
 							variant="ghost"
@@ -119,7 +119,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<span className="truncate font-semibold text-sm md:hidden">{accountName}</span>
+						<span className="truncate text-sm font-semibold md:hidden">{accountName}</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
@@ -128,7 +128,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				</header>
 				{mobileOpen && (
 					<NavList
-						className="flex flex-col gap-1 border-border border-b bg-sidebar p-4 md:hidden"
+						className="border-border bg-sidebar flex flex-col gap-1 border-b p-4 md:hidden"
 						onNavigate={closeMobile}
 					/>
 				)}
