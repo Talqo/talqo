@@ -11,32 +11,29 @@ export type Widget = {
 
 const widgetsQueryKey = ["widgets"] as const
 
-// Mock data until the /widgets API endpoint exists.
-// Kept in a mutable module-level store so edits made on the bot config page
-// stay visible on the other dashboard pages.
-let widgets: Widget[] = [
+// Interim in-memory stand-in until the /widgets API endpoint exists; the API
+// stays authoritative, so the dashboard ships with an honest empty state.
+// Demo entries load only when explicitly requested for local development
+// (VITE_MOCK_WIDGETS=true), never silently. Created and edited bots live in
+// this module store so the config page stays consistent within the session.
+const DEMO_WIDGETS: Widget[] = [
 	{
-		id: "bot-1",
-		name: "Support Bot",
+		id: "demo-1",
+		name: "Demo bot 1",
 		status: "active",
-		systemPrompt: "You are a helpful customer support assistant for a SaaS product.",
+		systemPrompt: "Demo system prompt.",
 		wordBlacklist: ["spam", "abuse"],
 	},
 	{
-		id: "bot-2",
-		name: "Sales Assistant",
-		status: "active",
-		systemPrompt: "You are a friendly sales assistant that helps visitors choose the right plan.",
-		wordBlacklist: ["scam"],
-	},
-	{
-		id: "bot-3",
-		name: "FAQ Bot",
+		id: "demo-2",
+		name: "Demo bot 2",
 		status: "paused",
-		systemPrompt: "You answer frequently asked questions from the knowledge base.",
+		systemPrompt: "Demo system prompt.",
 		wordBlacklist: [],
 	},
 ]
+
+let widgets: Widget[] = import.meta.env.VITE_MOCK_WIDGETS === "true" ? [...DEMO_WIDGETS] : []
 
 export function useWidgets() {
 	return useQuery({

@@ -9,6 +9,7 @@ import { isWidgetLanguage } from "./lib/i18n"
 const params = new URLSearchParams(window.location.search)
 const language = params.get("language")
 const theme = params.get("theme")
+const position = params.get("position")
 
 const rootElement = document.querySelector("#talqo-widget")
 
@@ -22,5 +23,6 @@ createRoot(rootElement).render(
 		language={isWidgetLanguage(language) ? language : undefined}
 		theme={theme === "light" || theme === "dark" ? theme : undefined}
 		accent={params.get("accent") ?? undefined}
+		position={position === "bottom-left" || position === "bottom-right" ? position : undefined}
 	/>,
 )

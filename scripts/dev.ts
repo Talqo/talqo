@@ -21,10 +21,12 @@ const turbo = Bun.spawn(
 			TALQO_API_PORT: apiPort,
 			TALQO_WEB_PORT: webPort,
 			TALQO_WIDGET_PORT: widgetPort,
-			// The dashboard's live-preview iframe targets the widget dev server,
-			// whose port is reserved dynamically above (see
-			// apps/web/src/components/widget-preview.tsx).
+			// The dashboard's live-preview iframe and embed-snippet origin target
+			// the widget dev server, whose port is reserved dynamically above (see
+			// apps/web/src/components/widget-preview.tsx and
+			// apps/web/src/routes/dashboard/-embed-snippet.ts).
 			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/preview.html`,
+			VITE_WIDGET_CDN_URL: `http://localhost:${widgetPort}/widget.js`,
 		},
 		stderr: "inherit",
 		stdin: "inherit",

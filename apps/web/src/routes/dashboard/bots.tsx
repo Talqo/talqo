@@ -123,15 +123,6 @@ function BotsPage() {
 								<CardDescription className="line-clamp-2">{bot.systemPrompt}</CardDescription>
 							</CardHeader>
 							<CardContent className="space-y-4">
-								{bot.wordBlacklist.length > 0 && (
-									<div className="flex flex-wrap gap-1">
-										{bot.wordBlacklist.map((word) => (
-											<Badge key={word} variant="outline">
-												{word}
-											</Badge>
-										))}
-									</div>
-								)}
 								<div className="flex items-center justify-between gap-2">
 									<div className="flex items-center gap-2">
 										<Switch

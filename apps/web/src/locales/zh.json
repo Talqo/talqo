@@ -86,11 +86,11 @@
 		"positionBottomRight": "右下",
 		"positionBottomLeft": "左下",
 		"language": "语言",
-		"avatarUrl": "头像 URL",
-		"themeSwitch": "在组件标题栏显示主题切换",
 		"notPersisted": "配置暂时不会保存，仅用于预览设置界面的行为。",
 		"livePreview": "实时预览",
-		"livePreviewDescription": "强调色、位置和语言会应用到预览；头像和主题切换属于嵌入配置，暂时不在此处显示。"
+		"livePreviewDescription": "强调色、位置和语言会同时应用到嵌入代码和此预览。",
+		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
+		"previewUnavailable": "此部署未配置实时预览。"
 	},
 	"analytics": {
 		"heading": "分析",
@@ -121,13 +121,9 @@
 		"currentPassword": "当前密码",
 		"newPassword": "新密码",
 		"confirmNewPassword": "确认新密码",
-		"passwordsMismatch": "两次输入的新密码不一致。",
-		"passwordChanged": "密码更改将在后续迭代中持久保存。",
 		"dangerZone": "危险区域",
 		"dangerDescription": "删除账户将移除所有机器人和分析数据。",
 		"deleteAccount": "删除账户",
-		"deleteDescription": "此操作无法撤销。所有机器人、聊天组件配置和分析数据将被永久删除。",
-		"cancel": "取消",
-		"deleteConfirmed": "账户删除功能将在后续迭代中实现。"
+		"comingSoon": "即将推出"
 	}
 }

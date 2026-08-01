@@ -86,11 +86,11 @@
 		"positionBottomRight": "Bottom right",
 		"positionBottomLeft": "Bottom left",
 		"language": "Language",
-		"avatarUrl": "Avatar URL",
-		"themeSwitch": "Show theme switch in widget header",
 		"notPersisted": "Configuration is not persisted yet; it previews how the setup screen will behave.",
 		"livePreview": "Live preview",
-		"livePreviewDescription": "Accent color, position, and language apply to the preview; avatar and theme switch are part of the embed configuration and are not yet reflected here."
+		"livePreviewDescription": "Accent color, position, and language apply to both the snippet and this preview.",
+		"scriptUrlMissing": "Set VITE_WIDGET_CDN_URL to the widget.js origin to generate the embed snippet.",
+		"previewUnavailable": "Live preview is not configured for this deployment."
 	},
 	"analytics": {
 		"heading": "Analytics",
@@ -121,13 +121,9 @@
 		"currentPassword": "Current password",
 		"newPassword": "New password",
 		"confirmNewPassword": "Confirm new password",
-		"passwordsMismatch": "New passwords do not match.",
-		"passwordChanged": "Password changes will be persisted in a later iteration.",
 		"dangerZone": "Danger zone",
 		"dangerDescription": "Deleting your account removes all bots and analytics data.",
 		"deleteAccount": "Delete account",
-		"deleteDescription": "This action cannot be undone. All bots, widget configurations, and analytics data will be permanently removed.",
-		"cancel": "Cancel",
-		"deleteConfirmed": "Account deletion will be implemented in a later iteration."
+		"comingSoon": "Coming soon"
 	}
 }
