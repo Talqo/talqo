@@ -7,11 +7,8 @@ import { defineConfig, type Plugin } from "vite"
 
 const SCOPE = ".talqo-widget"
 
-// The widget embeds into arbitrary host pages. Utilities are isolated by the
-// tw: prefix; this pass additionally strips preflight and global @property
-// rules and scopes the remaining unprefixed rules under .talqo-widget, failing
-// the build on anything left over. Dev CSS is unscoped — the harness hosts
-// the widget alone.
+// Embed CSS must not restyle the host page: strip preflight/@property rules
+// and scope the rest under .talqo-widget. Dev CSS is unscoped.
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
 
@@ -52,10 +49,8 @@ function scopeWidgetCss(css: string): string {
 	return root.toString()
 }
 
-// A scoped selector is either under .talqo-widget or carries the tw: prefix.
-// @keyframe children are skipped: keyframe names are global by CSS nature and
-// are referenced only by prefixed utilities. @font-face has no selector and no
-// isolated form — it fails closed until a custom font gets explicit handling.
+// @keyframes pass (their names are global by CSS nature); @font-face fails
+// closed until a scoped embedding story exists.
 function assertNoGlobalRules(root: Root): void {
 	const leaked: string[] = []
 	root.walkAtRules("font-face", () => {

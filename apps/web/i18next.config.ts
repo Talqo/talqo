@@ -1,8 +1,7 @@
 import { defineConfig, recommendedAcceptedAttributes, recommendedAcceptedTags } from "i18next-cli"
 
-// Locales are bundled from src/locales/<lang>.json, so output is a flat
-// single-file-per-language template (no namespace directories); everything
-// else mirrors talqo-platform/apps/web/i18next.config.ts.
+// Locales are bundled from src/locales/<lang>.json: flat single file per
+// language, no namespace nesting.
 export default defineConfig({
 	locales: ["en", "cs", "zh"],
 	extract: {
