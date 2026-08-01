@@ -40,7 +40,14 @@ function embedProps(): EmbeddedWidgetProps {
 // The snippet carries no mount element, so the default path creates its own
 // root. An explicit target must exist — a missing one is a host-page error.
 function resolveMountElement(target: MountTarget): HTMLElement | null {
-	const element = typeof target === "string" ? document.querySelector(target) : target
+	let element: Element | MountTarget | null
+	try {
+		element = typeof target === "string" ? document.querySelector(target) : target
+	} catch {
+		// An invalid selector (e.g. mount("foo")) takes the same warn path as a
+		// missing element instead of breaking the host page.
+		element = null
+	}
 	if (element instanceof HTMLElement || target !== DEFAULT_TARGET) {
 		return element instanceof HTMLElement ? element : null
 	}

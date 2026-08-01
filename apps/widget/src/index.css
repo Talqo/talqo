@@ -1,5 +1,6 @@
-/* Embed build: the tw: prefix plus the scoping pass in vite.config.ts keep
-   widget CSS out of the host page's global cascade. */
+/* Embed build: utilities carry the tw: prefix so they can't restyle host
+   elements unless the host uses the same prefix; vite.config.ts strips and
+   scopes the remaining unprefixed global rules. */
 @import "./theme/tokens.css";
 @import "tailwindcss" prefix(tw);
 

@@ -12,6 +12,7 @@
 		"i18n:fix": "i18next-cli extract --quiet"
 	},
 	"dependencies": {
+		"@talqo/ui": "workspace:*",
 		"clsx": "2.1.1",
 		"i18next": "^26.3.6",
 		"react": "19.2.8",

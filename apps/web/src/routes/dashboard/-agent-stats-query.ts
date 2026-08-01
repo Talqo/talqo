@@ -32,6 +32,14 @@ function hashAgentId(agentId: string): number {
 	return hash
 }
 
+// Label in the same zone the buckets are built in (local); the real endpoint
+// must bucket and label in one declared zone.
+function formatLocalDate(date: Date): string {
+	const month = String(date.getMonth() + 1).padStart(2, "0")
+	const day = String(date.getDate()).padStart(2, "0")
+	return `${date.getFullYear()}-${month}-${day}`
+}
+
 function createMockStats(agentId: string): AgentStats {
 	const random = seededRandom(hashAgentId(agentId))
 	const history: AgentStats["history"] = []
@@ -41,7 +49,7 @@ function createMockStats(agentId: string): AgentStats {
 		const date = new Date(today)
 		date.setDate(date.getDate() - i)
 		history.push({
-			date: date.toISOString().slice(0, 10),
+			date: formatLocalDate(date),
 			conversations: Math.floor(random() * 50) + 10,
 			messages: Math.floor(random() * 200) + 50,
 			tokens: Math.floor(random() * 10000) + 2000,

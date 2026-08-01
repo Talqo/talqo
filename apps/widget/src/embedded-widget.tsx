@@ -1,9 +1,9 @@
+import { cn } from "@talqo/ui/lib/utils"
 import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i18n"
-import { cn } from "./lib/utils"
 
 import "./index.css"
 
@@ -85,7 +85,6 @@ function WidgetChat({
 	const [open, setOpen] = useState(false)
 	const [messages, setMessages] = useState<Message[]>([{ id: 1, from: "assistant", i18nKey: "greeting" }])
 	const [draft, setDraft] = useState("")
-	const nextId = useRef(2)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
@@ -109,7 +108,7 @@ function WidgetChat({
 		if (!text) {
 			return
 		}
-		setMessages((prev) => [...prev, { id: nextId.current++, from: "user", text }])
+		setMessages((prev) => [...prev, { id: (prev.at(-1)?.id ?? 0) + 1, from: "user", text }])
 		setDraft("")
 	}
 
