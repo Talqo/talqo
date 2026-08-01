@@ -21,6 +21,19 @@ export const Route = createFileRoute("/dashboard/analytics")({
 })
 
 const metricKeys = ["conversations", "messages", "tokens"] as const
+
+// Translation keys stay static literals so i18next-cli extraction can
+// resolve them; no template-built keys.
+function metricLabel(metric: (typeof metricKeys)[number], t: (key: string) => string): string {
+	switch (metric) {
+		case "conversations":
+			return t("analytics.conversations")
+		case "messages":
+			return t("analytics.messages")
+		case "tokens":
+			return t("analytics.tokens")
+	}
+}
 const metricColors: Record<(typeof metricKeys)[number], string> = {
 	conversations: "var(--chart-1)",
 	messages: "var(--chart-2)",
@@ -137,7 +150,7 @@ function AnalyticsPage() {
 						{metricKeys.map((metric) => (
 							<Card key={metric}>
 								<CardHeader>
-									<CardDescription>{t("analytics.last30Days", { metric: t(`analytics.${metric}`) })}</CardDescription>
+									<CardDescription>{t("analytics.last30Days", { metric: metricLabel(metric, t) })}</CardDescription>
 									<CardTitle className="text-2xl">{compactNumber.format(stats[metric])}</CardTitle>
 								</CardHeader>
 							</Card>
@@ -154,7 +167,7 @@ function AnalyticsPage() {
 								<TabsList>
 									{metricKeys.map((metric) => (
 										<TabsTrigger key={metric} value={metric}>
-											{t(`analytics.${metric}`)}
+											{metricLabel(metric, t)}
 										</TabsTrigger>
 									))}
 								</TabsList>
@@ -163,7 +176,7 @@ function AnalyticsPage() {
 										<MetricChart
 											history={stats.history}
 											metric={metric}
-											label={t(`analytics.${metric}`)}
+											label={metricLabel(metric, t)}
 											language={language}
 											compactNumber={compactNumber}
 										/>

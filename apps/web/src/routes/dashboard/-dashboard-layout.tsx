@@ -8,19 +8,32 @@ import { BarChart3, Bot, LayoutDashboard, Menu, MessageSquare, Moon, Sun, User, 
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-// Placeholder until real account data is wired up; shown in the desktop
-// sidebar and the mobile header.
-const accountName = "Account name"
-
 const navItems = [
-	{ to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
-	{ to: "/dashboard/agents", labelKey: "nav.agents", icon: Bot },
-	{ to: "/dashboard/widget", labelKey: "nav.widget", icon: MessageSquare },
-	{ to: "/dashboard/analytics", labelKey: "nav.analytics", icon: BarChart3 },
-	{ to: "/dashboard/account", labelKey: "nav.account", icon: User },
+	{ to: "/dashboard", icon: LayoutDashboard },
+	{ to: "/dashboard/agents", icon: Bot },
+	{ to: "/dashboard/widget", icon: MessageSquare },
+	{ to: "/dashboard/analytics", icon: BarChart3 },
+	{ to: "/dashboard/account", icon: User },
 ] as const
 
-function NavLink({ to, labelKey, icon: Icon, onNavigate }: (typeof navItems)[number] & { onNavigate: () => void }) {
+// Translation keys stay static literals so i18next-cli extraction can
+// resolve them; no indirection through config-driven key strings.
+function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => string) {
+	switch (to) {
+		case "/dashboard":
+			return t("nav.dashboard")
+		case "/dashboard/agents":
+			return t("nav.agents")
+		case "/dashboard/widget":
+			return t("nav.widget")
+		case "/dashboard/analytics":
+			return t("nav.analytics")
+		case "/dashboard/account":
+			return t("nav.account")
+	}
+}
+
+function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { onNavigate: () => void }) {
 	const { t } = useTranslation()
 	return (
 		<Link
@@ -38,7 +51,7 @@ function NavLink({ to, labelKey, icon: Icon, onNavigate }: (typeof navItems)[num
 			onClick={onNavigate}
 		>
 			<Icon className="size-5" />
-			{t(labelKey)}
+			{navLabel(to, t)}
 		</Link>
 	)
 }
@@ -103,7 +116,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		<div className="bg-background text-foreground flex min-h-screen">
 			{/* Desktop sidebar */}
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
+				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">
+					{t("header.placeholderName")}
+				</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
@@ -119,7 +134,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<span className="truncate text-sm font-semibold md:hidden">{accountName}</span>
+						<span className="truncate text-sm font-semibold md:hidden">{t("header.placeholderName")}</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />

@@ -7,7 +7,9 @@
 		"build": "vite build",
 		"dev": "vite",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test"
+		"test": "bun test",
+		"i18n": "i18next-cli status && i18next-cli lint --quiet && i18next-cli extract --ci --dry-run --quiet",
+		"i18n:fix": "i18next-cli extract --quiet"
 	},
 	"dependencies": {
 		"clsx": "2.1.1",
@@ -25,6 +27,7 @@
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "6.0.4",
+		"i18next-cli": "1.67.3",
 		"postcss": "^8.5.25",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",

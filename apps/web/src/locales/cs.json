@@ -1,129 +1,131 @@
 {
-	"nav": {
-		"dashboard": "Přehled",
-		"agents": "Agenti",
-		"widget": "Widget",
-		"analytics": "Analytika",
-		"account": "Účet"
-	},
-	"header": {
-		"toggleNavigation": "Přepnout navigaci",
-		"toLightTheme": "Přepnout na světlý motiv",
-		"toDarkTheme": "Přepnout na tmavý motiv",
-		"language": "Jazyk"
-	},
-	"dashboard": {
-		"heading": "Vítejte v Talqo",
-		"subheading": "Spravujte své agenty, widget a analytiku na jednom místě.",
-		"openCard": "Otevřít {{title}} →",
-		"cards": {
-			"agents": {
-				"title": "Agenti",
-				"description": "Spravujte agenty a jejich chování."
-			},
-			"widget": {
-				"title": "Widget",
-				"description": "Nakonfigurujte a zobrazte náhled vloženého widgetu."
-			},
-			"analytics": {
-				"title": "Analytika",
-				"description": "Zobrazte statistiky konverzací a využití."
-			},
-			"account": {
-				"title": "Účet",
-				"description": "Upravte svůj profil a předvolby."
-			}
-		}
-	},
-	"agentFields": {
-		"name": "Název",
-		"namePlaceholder": "Agent podpory",
-		"systemPrompt": "Systémový prompt",
-		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
-		"wordBlacklist": "Zakázaná slova",
-		"blacklistPlaceholder": "spam, urážky, podvod",
-		"blacklistHelp": "Slova oddělujte čárkami.",
-		"statusActive": "Aktivní",
-		"statusPaused": "Pozastavený"
-	},
-	"agents": {
-		"heading": "Agenti",
-		"subheading": "Spravujte své agenty a jejich chování.",
-		"loading": "Načítání agentů…",
-		"empty": "Zatím žádní agenti. Vytvořte svého prvního agenta a začněte.",
-		"create": "Vytvořit agenta",
-		"createDescription": "Definujte název, chování a zakázaná slova agenta.",
-		"configure": "Konfigurovat"
+	"account": {
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
+		"comingSoon": "Již brzy",
+		"confirmNewPassword": "Potvrdit nové heslo",
+		"currentPassword": "Současné heslo",
+		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
+		"dangerZone": "Nebezpečná zóna",
+		"deleteAccount": "Smazat účet",
+		"email": "E-mail",
+		"heading": "Účet",
+		"loading": "Načítání účtu…",
+		"name": "Jméno",
+		"newPassword": "Nové heslo",
+		"profile": "Profil",
+		"profileDescription": "Vaše jméno a e-mail operátora.",
+		"profileSaved": "Změny profilu budou trvale uloženy v pozdější iteraci.",
+		"saveProfile": "Uložit profil",
+		"subheading": "Spravujte nastavení a předvolby svého účtu."
 	},
 	"agentConfig": {
 		"backToAgents": "Zpět na agenty",
+		"cardDescription": "Změny se ukládají do dočasného úložiště a projeví se v celém přehledu.",
+		"cardTitle": "Konfigurace agenta",
+		"heading": "Konfigurovat {{name}}",
 		"loading": "Načítání agenta…",
 		"notFound": "Agent nenalezen. Možná byl odstraněn.",
-		"heading": "Konfigurovat {{name}}",
-		"subheading": "Upravte název, chování, zakázaná slova a stav agenta.",
-		"cardTitle": "Konfigurace agenta",
-		"cardDescription": "Změny se ukládají do dočasného úložiště a projeví se v celém přehledu.",
 		"save": "Uložit změny",
-		"saved": "Právě uloženo."
+		"saved": "Právě uloženo.",
+		"subheading": "Upravte název, chování, zakázaná slova a stav agenta."
 	},
-	"widgetSetup": {
-		"heading": "Nastavení widgetu",
-		"subheading": "Vložte chatovací widget na svůj web a vylaďte jeho vzhled.",
-		"openFullPreview": "Otevřít náhled na celou obrazovku",
-		"backToSetup": "Zpět na nastavení widgetu",
-		"embedCode": "Kód pro vložení",
-		"embedDescription": "Vložte tento kód před uzavírací značku body svého webu.",
+	"agentFields": {
+		"blacklistHelp": "Slova oddělujte čárkami.",
+		"blacklistPlaceholder": "spam, urážky, podvod",
+		"name": "Název",
+		"namePlaceholder": "Agent podpory",
+		"statusActive": "Aktivní",
+		"statusPaused": "Pozastavený",
+		"systemPrompt": "Systémový prompt",
+		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
+		"wordBlacklist": "Zakázaná slova"
+	},
+	"agents": {
+		"configure": "Konfigurovat",
+		"create": "Vytvořit agenta",
+		"createDescription": "Definujte název, chování a zakázaná slova agenta.",
+		"empty": "Zatím žádní agenti. Vytvořte svého prvního agenta a začněte.",
+		"heading": "Agenti",
 		"loading": "Načítání agentů…",
-		"empty": "Zatím žádní agenti. Před vložením widgetu vytvořte agenta na stránce Agenti.",
-		"agentLabel": "Agent",
-		"selectAgent": "Vyberte agenta",
-		"copyEmbed": "Zkopírovat kód pro vložení",
-		"appearance": "Vzhled",
-		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
-		"accentColor": "Akcentová barva",
-		"accentHex": "Hexadecimální hodnota akcentové barvy",
-		"position": "Pozice",
-		"positionBottomRight": "Vpravo dole",
-		"positionBottomLeft": "Vlevo dole",
-		"language": "Jazyk",
-		"notPersisted": "Konfigurace se zatím neukládá; slouží jako náhled chování nastavení.",
-		"livePreview": "Živý náhled",
-		"livePreviewDescription": "Akcentová barva, pozice a jazyk se použijí jak v kódu pro vložení, tak v tomto náhledu.",
-		"scriptUrlMissing": "Pro vygenerování kódu pro vložení nastavte VITE_WIDGET_CDN_URL na zdrojovou adresu souboru widget.js.",
-		"previewUnavailable": "Živý náhled není pro toto nasazení nakonfigurován."
+		"subheading": "Spravujte své agenty a jejich chování."
 	},
 	"analytics": {
-		"heading": "Analytika",
-		"subheading": "Statistiky konverzací a využití pro jednotlivé agenty.",
-		"selectAgent": "Vyberte agenta",
-		"loading": "Načítání agentů…",
-		"empty": "Zatím žádní agenti. Pro zobrazení statistik vytvořte agenta na stránce Agenti.",
-		"loadingStats": "Načítání statistik…",
 		"conversations": "Konverzace",
-		"messages": "Zprávy",
-		"tokens": "Tokeny",
+		"dailyTotals": "Denní součty za posledních 30 dní.",
+		"empty": "Zatím žádní agenti. Pro zobrazení statistik vytvořte agenta na stránce Agenti.",
+		"heading": "Analytika",
 		"last30Days": "{{metric}} (30 dní)",
-		"usageOverTime": "Využití v čase",
-		"dailyTotals": "Denní součty za posledních 30 dní."
+		"loading": "Načítání agentů…",
+		"loadingStats": "Načítání statistik…",
+		"messages": "Zprávy",
+		"selectAgent": "Vyberte agenta",
+		"subheading": "Statistiky konverzací a využití pro jednotlivé agenty.",
+		"tokens": "Tokeny",
+		"usageOverTime": "Využití v čase"
 	},
-	"account": {
-		"heading": "Účet",
-		"subheading": "Spravujte nastavení a předvolby svého účtu.",
-		"loading": "Načítání účtu…",
-		"profile": "Profil",
-		"profileDescription": "Vaše jméno a e-mail operátora.",
-		"name": "Jméno",
-		"email": "E-mail",
-		"profileSaved": "Změny profilu budou trvale uloženy v pozdější iteraci.",
-		"saveProfile": "Uložit profil",
-		"changePassword": "Změnit heslo",
-		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
-		"currentPassword": "Současné heslo",
-		"newPassword": "Nové heslo",
-		"confirmNewPassword": "Potvrdit nové heslo",
-		"dangerZone": "Nebezpečná zóna",
-		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
-		"deleteAccount": "Smazat účet",
-		"comingSoon": "Již brzy"
+	"dashboard": {
+		"cards": {
+			"account": {
+				"description": "Upravte svůj profil a předvolby.",
+				"title": "Účet"
+			},
+			"agents": {
+				"description": "Spravujte agenty a jejich chování.",
+				"title": "Agenti"
+			},
+			"analytics": {
+				"description": "Zobrazte statistiky konverzací a využití.",
+				"title": "Analytika"
+			},
+			"widget": {
+				"description": "Nakonfigurujte a zobrazte náhled vloženého widgetu.",
+				"title": "Widget"
+			}
+		},
+		"heading": "Vítejte v Talqo",
+		"openCard": "Otevřít {{title}} →",
+		"subheading": "Spravujte své agenty, widget a analytiku na jednom místě."
+	},
+	"header": {
+		"language": "Jazyk",
+		"placeholderName": "Jméno účtu",
+		"toDarkTheme": "Přepnout na tmavý motiv",
+		"toggleNavigation": "Přepnout navigaci",
+		"toLightTheme": "Přepnout na světlý motiv"
+	},
+	"nav": {
+		"account": "Účet",
+		"agents": "Agenti",
+		"analytics": "Analytika",
+		"dashboard": "Přehled",
+		"widget": "Widget"
+	},
+	"widgetSetup": {
+		"accentColor": "Akcentová barva",
+		"accentHex": "Hexadecimální hodnota akcentové barvy",
+		"agentLabel": "Agent",
+		"appearance": "Vzhled",
+		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
+		"backToSetup": "Zpět na nastavení widgetu",
+		"copyEmbed": "Zkopírovat kód pro vložení",
+		"embedCode": "Kód pro vložení",
+		"embedDescription": "Vložte tento kód před uzavírací značku body svého webu.",
+		"empty": "Zatím žádní agenti. Před vložením widgetu vytvořte agenta na stránce Agenti.",
+		"heading": "Nastavení widgetu",
+		"language": "Jazyk",
+		"livePreview": "Živý náhled",
+		"livePreviewDescription": "Akcentová barva, pozice a jazyk se použijí jak v kódu pro vložení, tak v tomto náhledu.",
+		"loading": "Načítání agentů…",
+		"notPersisted": "Konfigurace se zatím neukládá; slouží jako náhled chování nastavení.",
+		"openFullPreview": "Otevřít náhled na celou obrazovku",
+		"position": "Pozice",
+		"positionBottomLeft": "Vlevo dole",
+		"positionBottomRight": "Vpravo dole",
+		"previewSiteLabel": "your-site.com",
+		"previewUnavailable": "Živý náhled není pro toto nasazení nakonfigurován.",
+		"scriptUrlMissing": "Pro vygenerování kódu pro vložení nastavte VITE_WIDGET_CDN_URL na zdrojovou adresu souboru widget.js.",
+		"selectAgent": "Vyberte agenta",
+		"subheading": "Vložte chatovací widget na svůj web a vylaďte jeho vzhled."
 	}
 }
