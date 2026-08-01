@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 
-export type WidgetStats = {
+export type AgentStats = {
 	conversations: number
 	messages: number
 	tokens: number
@@ -12,8 +12,8 @@ export type WidgetStats = {
 	}[]
 }
 
-// Seed stable mock stats per widget so refetches do not reshuffle the chart;
-// replace with the /widgets/:id/stats endpoint when it exists.
+// Seed stable mock stats per agent so refetches do not reshuffle the chart;
+// replace with the /agents/:id/stats endpoint when it exists.
 function seededRandom(seed: number) {
 	let state = seed
 	return () => {
@@ -24,17 +24,17 @@ function seededRandom(seed: number) {
 	}
 }
 
-function hashWidgetId(widgetId: string): number {
+function hashAgentId(agentId: string): number {
 	let hash = 0
-	for (let i = 0; i < widgetId.length; i++) {
-		hash = (Math.imul(hash, 31) + widgetId.charCodeAt(i)) | 0
+	for (let i = 0; i < agentId.length; i++) {
+		hash = (Math.imul(hash, 31) + agentId.charCodeAt(i)) | 0
 	}
 	return hash
 }
 
-function createMockStats(widgetId: string): WidgetStats {
-	const random = seededRandom(hashWidgetId(widgetId))
-	const history: WidgetStats["history"] = []
+function createMockStats(agentId: string): AgentStats {
+	const random = seededRandom(hashAgentId(agentId))
+	const history: AgentStats["history"] = []
 	const today = new Date()
 
 	for (let i = 29; i >= 0; i--) {
@@ -56,11 +56,11 @@ function createMockStats(widgetId: string): WidgetStats {
 	}
 }
 
-export function useWidgetStats(widgetId: string) {
+export function useAgentStats(agentId: string) {
 	return useQuery({
-		queryKey: ["widget-stats", widgetId],
-		queryFn: () => Promise.resolve(createMockStats(widgetId)),
-		enabled: widgetId.length > 0,
+		queryKey: ["agent-stats", agentId],
+		queryFn: () => Promise.resolve(createMockStats(agentId)),
+		enabled: agentId.length > 0,
 		staleTime: Number.POSITIVE_INFINITY,
 	})
 }

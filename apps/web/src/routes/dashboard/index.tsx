@@ -5,9 +5,9 @@ import { useTranslation } from "react-i18next"
 
 const cards = [
 	{
-		to: "/dashboard/bots",
-		titleKey: "dashboard.cards.bots.title",
-		descriptionKey: "dashboard.cards.bots.description",
+		to: "/dashboard/agents",
+		titleKey: "dashboard.cards.agents.title",
+		descriptionKey: "dashboard.cards.agents.description",
 		icon: Bot,
 	},
 	{

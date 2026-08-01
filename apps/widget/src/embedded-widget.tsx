@@ -13,7 +13,7 @@ export type WidgetPosition = "bottom-right" | "bottom-left"
 export type EmbeddedWidgetProps = {
 	title?: string
 	language?: WidgetLanguage
-	botId?: string
+	agentId?: string
 	theme?: WidgetTheme
 	accent?: string
 	position?: WidgetPosition
@@ -44,13 +44,13 @@ function WidgetChat({
 	title,
 	theme,
 	accent,
-	botId,
+	agentId,
 	position,
 }: {
 	title?: string
 	theme?: WidgetTheme
 	accent?: string
-	botId?: string
+	agentId?: string
 	position?: WidgetPosition
 }) {
 	const { t } = useTranslation()
@@ -92,7 +92,7 @@ function WidgetChat({
 				theme === "light" && "light",
 			)}
 			style={accentStyle}
-			data-bot={botId}
+			data-agent={agentId}
 		>
 			{open && (
 				<div
@@ -194,7 +194,7 @@ function WidgetChat({
 	)
 }
 
-export const EmbeddedWidget = ({ title, language = "en", botId, theme, accent, position }: EmbeddedWidgetProps) => {
+export const EmbeddedWidget = ({ title, language = "en", agentId, theme, accent, position }: EmbeddedWidgetProps) => {
 	const [i18n] = useState(() => createWidgetI18n(isWidgetLanguage(language) ? language : "en"))
 
 	useEffect(() => {
@@ -205,7 +205,7 @@ export const EmbeddedWidget = ({ title, language = "en", botId, theme, accent, p
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} botId={botId} theme={theme} accent={sanitizeAccent(accent)} position={position} />
+			<WidgetChat title={title} agentId={agentId} theme={theme} accent={sanitizeAccent(accent)} position={position} />
 		</I18nextProvider>
 	)
 }

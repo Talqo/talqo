@@ -10,14 +10,14 @@ export type MountTarget = string | HTMLElement
 const DEFAULT_TARGET = "#talqo-widget"
 
 // Reads the embed snippet's configuration, e.g.
-// <script src=".../widget.js" data-talqo-bot="..." data-talqo-language="cs"></script>.
+// <script src=".../widget.js" data-talqo-agent="..." data-talqo-language="cs"></script>.
 // currentScript is null when a host page adds defer/async or loads the bundle
 // dynamically, so fall back to a lookup (single-widget pages only).
 function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
 	}
-	return document.querySelector<HTMLScriptElement>("script[data-talqo-bot]")?.dataset
+	return document.querySelector<HTMLScriptElement>("script[data-talqo-agent]")?.dataset
 }
 
 function embedProps(): EmbeddedWidgetProps {
@@ -25,9 +25,9 @@ function embedProps(): EmbeddedWidgetProps {
 	if (!dataset) {
 		return {}
 	}
-	const { talqoBot, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
+	const { talqoAgent, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
 	return {
-		botId: talqoBot,
+		agentId: talqoAgent,
 		language: isWidgetLanguage(talqoLanguage) ? talqoLanguage : undefined,
 		title: talqoTitle,
 		theme: talqoTheme === "light" || talqoTheme === "dark" ? (talqoTheme as WidgetTheme) : undefined,

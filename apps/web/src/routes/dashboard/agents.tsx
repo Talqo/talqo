@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
-import { parseBlacklist } from "@/features/widgets/blacklist"
-import { useCreateWidget, useUpdateWidget, useWidgets, type Widget } from "@/features/widgets/widgets-query"
+import { useAgents, useCreateAgent, useUpdateAgent, type Agent } from "@/features/agents/agents-query"
+import { parseBlacklist } from "@/features/agents/blacklist"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -22,20 +22,20 @@ import { Plus, Settings2 } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-export const Route = createFileRoute("/dashboard/bots")({
-	component: BotsPage,
+export const Route = createFileRoute("/dashboard/agents")({
+	component: AgentsPage,
 })
 
-function BotsPage() {
+function AgentsPage() {
 	const { t } = useTranslation()
-	const { data: bots, isLoading } = useWidgets()
+	const { data: agents, isLoading } = useAgents()
 	const [dialogOpen, setDialogOpen] = useState(false)
-	const createWidget = useCreateWidget()
-	const updateWidget = useUpdateWidget()
+	const createAgent = useCreateAgent()
+	const updateAgent = useUpdateAgent()
 
-	function toggleStatus(bot: Widget) {
-		updateWidget(bot.id, {
-			status: bot.status === "active" ? "paused" : "active",
+	function toggleStatus(agent: Agent) {
+		updateAgent(agent.id, {
+			status: agent.status === "active" ? "paused" : "active",
 		})
 	}
 
@@ -47,7 +47,7 @@ function BotsPage() {
 		if (!name || !systemPrompt) {
 			return
 		}
-		createWidget({
+		createAgent({
 			name,
 			systemPrompt,
 			status: "active",
@@ -59,45 +59,45 @@ function BotsPage() {
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
 			<PageHeader
-				title={t("bots.heading")}
-				description={t("bots.subheading")}
+				title={t("agents.heading")}
+				description={t("agents.subheading")}
 				actions={
 					<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 						<DialogTrigger render={<Button />}>
 							<Plus className="size-4" />
-							{t("bots.create")}
+							{t("agents.create")}
 						</DialogTrigger>
 						<DialogContent>
 							<DialogHeader>
-								<DialogTitle>{t("bots.create")}</DialogTitle>
-								<DialogDescription>{t("bots.createDescription")}</DialogDescription>
+								<DialogTitle>{t("agents.create")}</DialogTitle>
+								<DialogDescription>{t("agents.createDescription")}</DialogDescription>
 							</DialogHeader>
 							<form onSubmit={handleCreate} className="space-y-4">
 								<div className="space-y-2">
-									<Label htmlFor="bot-name">{t("botFields.name")}</Label>
-									<Input id="bot-name" name="name" placeholder={t("botFields.namePlaceholder")} required />
+									<Label htmlFor="agent-name">{t("agentFields.name")}</Label>
+									<Input id="agent-name" name="name" placeholder={t("agentFields.namePlaceholder")} required />
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="bot-system-prompt">{t("botFields.systemPrompt")}</Label>
+									<Label htmlFor="agent-system-prompt">{t("agentFields.systemPrompt")}</Label>
 									<Textarea
-										id="bot-system-prompt"
+										id="agent-system-prompt"
 										name="systemPrompt"
-										placeholder={t("botFields.systemPromptPlaceholder")}
+										placeholder={t("agentFields.systemPromptPlaceholder")}
 										rows={4}
 										required
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="bot-word-blacklist">{t("botFields.wordBlacklist")}</Label>
+									<Label htmlFor="agent-word-blacklist">{t("agentFields.wordBlacklist")}</Label>
 									<Input
-										id="bot-word-blacklist"
+										id="agent-word-blacklist"
 										name="wordBlacklist"
-										placeholder={t("botFields.blacklistPlaceholder")}
+										placeholder={t("agentFields.blacklistPlaceholder")}
 									/>
-									<p className="text-muted-foreground text-xs">{t("botFields.blacklistHelp")}</p>
+									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
 								</div>
 								<DialogFooter>
-									<Button type="submit">{t("bots.create")}</Button>
+									<Button type="submit">{t("agents.create")}</Button>
 								</DialogFooter>
 							</form>
 						</DialogContent>
@@ -106,42 +106,42 @@ function BotsPage() {
 			/>
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("bots.loading")}</p>
-			) : !bots?.length ? (
-				<p className="text-muted-foreground">{t("bots.empty")}</p>
+				<p className="text-muted-foreground">{t("agents.loading")}</p>
+			) : !agents?.length ? (
+				<p className="text-muted-foreground">{t("agents.empty")}</p>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
-					{bots.map((bot) => (
-						<Card key={bot.id}>
+					{agents.map((agent) => (
+						<Card key={agent.id}>
 							<CardHeader>
 								<div className="flex items-center justify-between gap-2">
-									<CardTitle>{bot.name}</CardTitle>
-									<Badge variant={bot.status === "active" ? "default" : "secondary"}>
-										{t(bot.status === "active" ? "botFields.statusActive" : "botFields.statusPaused")}
+									<CardTitle>{agent.name}</CardTitle>
+									<Badge variant={agent.status === "active" ? "default" : "secondary"}>
+										{t(agent.status === "active" ? "agentFields.statusActive" : "agentFields.statusPaused")}
 									</Badge>
 								</div>
-								<CardDescription className="line-clamp-2">{bot.systemPrompt}</CardDescription>
+								<CardDescription className="line-clamp-2">{agent.systemPrompt}</CardDescription>
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="flex items-center justify-between gap-2">
 									<div className="flex items-center gap-2">
 										<Switch
-											id={`status-${bot.id}`}
-											checked={bot.status === "active"}
-											onCheckedChange={() => toggleStatus(bot)}
+											id={`status-${agent.id}`}
+											checked={agent.status === "active"}
+											onCheckedChange={() => toggleStatus(agent)}
 										/>
-										<Label htmlFor={`status-${bot.id}`}>
-											{t(bot.status === "active" ? "botFields.statusActive" : "botFields.statusPaused")}
+										<Label htmlFor={`status-${agent.id}`}>
+											{t(agent.status === "active" ? "agentFields.statusActive" : "agentFields.statusPaused")}
 										</Label>
 									</div>
 									<Button
-										render={<Link to="/dashboard/bot/$botId" params={{ botId: bot.id }} />}
+										render={<Link to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} />}
 										nativeButton={false}
 										variant="outline"
 										size="sm"
 									>
 										<Settings2 className="size-4" />
-										{t("bots.configure")}
+										{t("agents.configure")}
 									</Button>
 								</div>
 							</CardContent>

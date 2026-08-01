@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/page-header"
-import { useActiveWidget } from "@/features/widgets/widgets-query"
+import { useActiveAgent } from "@/features/agents/agents-query"
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -9,13 +9,13 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
-import { useWidgetStats, type WidgetStats } from "./-widget-stats-query"
+import { useAgentStats, type AgentStats } from "./-agent-stats-query"
 
 export const Route = createFileRoute("/dashboard/analytics")({
-	// Selected bot lives in the URL so the page is shareable; see
-	// features/widgets/widgets-query.ts useActiveWidget.
+	// Selected agent lives in the URL so the page is shareable; see
+	// features/agents/agents-query.ts useActiveAgent.
 	validateSearch: (search: Record<string, unknown>) => ({
-		bot: typeof search.bot === "string" ? search.bot : undefined,
+		agent: typeof search.agent === "string" ? search.agent : undefined,
 	}),
 	component: AnalyticsPage,
 })
@@ -42,7 +42,7 @@ function MetricChart({
 	language,
 	compactNumber,
 }: {
-	history: WidgetStats["history"]
+	history: AgentStats["history"]
 	metric: (typeof metricKeys)[number]
 	label: string
 	language: string
@@ -94,8 +94,8 @@ function MetricChart({
 
 function AnalyticsPage() {
 	const { t } = useTranslation()
-	const { widgets, isLoading, activeId, setSelectedId } = useActiveWidget()
-	const { data: stats, isLoading: statsLoading } = useWidgetStats(activeId)
+	const { agents, isLoading, activeId, setSelectedId } = useActiveAgent()
+	const { data: stats, isLoading: statsLoading } = useAgentStats(activeId)
 	const { language } = useLanguage()
 	// Numbers and dates follow the operator's dashboard language, not a fixed locale.
 	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
@@ -109,15 +109,15 @@ function AnalyticsPage() {
 					<Select
 						value={activeId}
 						onValueChange={(value) => setSelectedId(value ?? "")}
-						disabled={isLoading || !widgets?.length}
+						disabled={isLoading || !agents?.length}
 					>
-						<SelectTrigger className="w-48" aria-label={t("analytics.selectWidget")}>
-							<SelectValue placeholder={t("analytics.selectWidget")} />
+						<SelectTrigger className="w-48" aria-label={t("analytics.selectAgent")}>
+							<SelectValue placeholder={t("analytics.selectAgent")} />
 						</SelectTrigger>
 						<SelectContent>
-							{(widgets ?? []).map((widget) => (
-								<SelectItem key={widget.id} value={widget.id}>
-									{widget.name}
+							{(agents ?? []).map((agent) => (
+								<SelectItem key={agent.id} value={agent.id}>
+									{agent.name}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -127,7 +127,7 @@ function AnalyticsPage() {
 
 			{isLoading ? (
 				<p className="text-muted-foreground">{t("analytics.loading")}</p>
-			) : !widgets?.length ? (
+			) : !agents?.length ? (
 				<p className="text-muted-foreground">{t("analytics.empty")}</p>
 			) : statsLoading || !stats ? (
 				<p className="text-muted-foreground">{t("analytics.loadingStats")}</p>

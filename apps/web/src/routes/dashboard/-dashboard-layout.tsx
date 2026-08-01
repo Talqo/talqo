@@ -14,7 +14,7 @@ const accountName = "Account name"
 
 const navItems = [
 	{ to: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
-	{ to: "/dashboard/bots", labelKey: "nav.bots", icon: Bot },
+	{ to: "/dashboard/agents", labelKey: "nav.agents", icon: Bot },
 	{ to: "/dashboard/widget", labelKey: "nav.widget", icon: MessageSquare },
 	{ to: "/dashboard/analytics", labelKey: "nav.analytics", icon: BarChart3 },
 	{ to: "/dashboard/account", labelKey: "nav.account", icon: User },
