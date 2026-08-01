@@ -133,7 +133,7 @@ function WidgetChat({
 					aria-modal="true"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
