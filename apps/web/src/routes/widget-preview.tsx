@@ -28,7 +28,7 @@ function WidgetPreviewPage() {
 				<ArrowLeft className="size-4" />
 				{t("widgetSetup.backToSetup")}
 			</Button>
-			<WidgetPreview accent={accent} position={position} language={language} inset="page" />
+			<WidgetPreview accent={accent} position={position} language={language} />
 		</div>
 	)
 }

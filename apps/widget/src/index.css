@@ -2,7 +2,8 @@
    (--tw-*) from colliding with the host page. prefix() only works on the full
    tailwindcss import, so preflight is stripped from the emitted bundle by the
    widgetCss plugin in vite.config.ts, which also scopes the :root theme
-   variables under .talqo-widget. */
+   variables under .talqo-widget, removes the global @property --tw-*
+   registrations, and fails the build if any unscoped rule survives. */
 @import "./theme/tokens.css";
 @import "tailwindcss" prefix(tw);
 

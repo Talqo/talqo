@@ -8,6 +8,7 @@ import { cn } from "./lib/utils"
 import "./index.css"
 
 export type WidgetTheme = "light" | "dark"
+export type WidgetPosition = "bottom-right" | "bottom-left"
 
 export type EmbeddedWidgetProps = {
 	title?: string
@@ -15,6 +16,14 @@ export type EmbeddedWidgetProps = {
 	botId?: string
 	theme?: WidgetTheme
 	accent?: string
+	position?: WidgetPosition
+}
+
+// Fixed corner placement for snippet embeds. A programmatic mount without a
+// position stays in flow so the host controls layout.
+const positionClasses: Record<WidgetPosition, string> = {
+	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
+	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
 }
 
 type Message = {
@@ -36,11 +45,13 @@ function WidgetChat({
 	theme,
 	accent,
 	botId,
+	position,
 }: {
 	title?: string
 	theme?: WidgetTheme
 	accent?: string
 	botId?: string
+	position?: WidgetPosition
 }) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
@@ -75,7 +86,8 @@ function WidgetChat({
 	return (
 		<div
 			className={cn(
-				"talqo-widget tw:flex tw:flex-col tw:items-end tw:gap-3 tw:font-sans tw:text-foreground",
+				"talqo-widget tw:flex tw:flex-col tw:gap-3 tw:font-sans tw:text-foreground",
+				position ? positionClasses[position] : "tw:items-end",
 				theme === "dark" && "dark",
 				theme === "light" && "light",
 			)}
@@ -182,7 +194,7 @@ function WidgetChat({
 	)
 }
 
-export const EmbeddedWidget = ({ title, language = "en", botId, theme, accent }: EmbeddedWidgetProps) => {
+export const EmbeddedWidget = ({ title, language = "en", botId, theme, accent, position }: EmbeddedWidgetProps) => {
 	const [i18n] = useState(() => createWidgetI18n(isWidgetLanguage(language) ? language : "en"))
 
 	useEffect(() => {
@@ -193,7 +205,7 @@ export const EmbeddedWidget = ({ title, language = "en", botId, theme, accent }:
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} botId={botId} theme={theme} accent={sanitizeAccent(accent)} />
+			<WidgetChat title={title} botId={botId} theme={theme} accent={sanitizeAccent(accent)} position={position} />
 		</I18nextProvider>
 	)
 }

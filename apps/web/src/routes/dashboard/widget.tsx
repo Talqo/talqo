@@ -2,17 +2,17 @@ import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
 import { useActiveWidget } from "@/features/widgets/widgets-query"
 import { type DashboardLanguage, dashboardLanguages } from "@/lib/languages"
-import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
-import { Switch } from "@talqo/ui/components/switch"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
+import { buildEmbedSnippet, type EmbedPosition, widgetScriptUrl } from "./-embed-snippet"
 
 export const Route = createFileRoute("/dashboard/widget")({
 	// Selected bot lives in the URL so the page is shareable; see
@@ -23,16 +23,10 @@ export const Route = createFileRoute("/dashboard/widget")({
 	component: WidgetPage,
 })
 
-// No defer/async: document.currentScript is how the bundle reads its own
-// data-talqo-bot configuration (see apps/widget/src/widget.tsx).
-function buildEmbedSnippet(botId: string) {
-	return ["<script", '  src="https://cdn.talqo.dev/widget.js"', `  data-talqo-bot="${botId}"`, "></script>"].join("\n")
-}
-
-const positions = [
+const positions: { value: EmbedPosition; labelKey: string }[] = [
 	{ value: "bottom-right", labelKey: "widgetSetup.positionBottomRight" },
 	{ value: "bottom-left", labelKey: "widgetSetup.positionBottomLeft" },
-] as const
+]
 
 const languages = Object.entries(dashboardLanguages).map(([value, label]) => ({
 	value: value as DashboardLanguage,
@@ -45,19 +39,29 @@ function WidgetPage() {
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 	const [accentColor, setAccentColor] = useState("#1a7f4b")
-	const [position, setPosition] = useState<"bottom-right" | "bottom-left">("bottom-right")
-	const [showThemeSwitch, setShowThemeSwitch] = useState(true)
-	// Shared with the dashboard header language switch (see lib/use-language).
-	const { language, setLanguage } = useLanguage()
-	const [avatarUrl, setAvatarUrl] = useState("")
+	const [position, setPosition] = useState<EmbedPosition>("bottom-right")
+	// The widget's end-user language is embed configuration; it stays separate
+	// from the operator's dashboard UI language (lib/use-language).
+	const [widgetLanguage, setWidgetLanguage] = useState<DashboardLanguage>("en")
 
 	useEffect(() => {
 		return () => window.clearTimeout(copyTimeout.current)
 	}, [])
 
-	const snippet = buildEmbedSnippet(activeBotId)
+	const scriptUrl = widgetScriptUrl()
+	const snippet = scriptUrl
+		? buildEmbedSnippet(scriptUrl, {
+				botId: activeBotId,
+				accent: accentColor,
+				language: widgetLanguage,
+				position,
+			})
+		: undefined
 
 	async function copySnippet() {
+		if (!snippet) {
+			return
+		}
 		try {
 			await navigator.clipboard.writeText(snippet)
 			setCopied(true)
@@ -75,7 +79,7 @@ function WidgetPage() {
 				description={t("widgetSetup.subheading")}
 				actions={
 					<Button
-						render={<Link to="/widget-preview" search={{ accent: accentColor, position, language }} />}
+						render={<Link to="/widget-preview" search={{ accent: accentColor, position, language: widgetLanguage }} />}
 						nativeButton={false}
 						variant="outline"
 					>
@@ -112,18 +116,22 @@ function WidgetPage() {
 									</SelectContent>
 								</Select>
 							</div>
-							<div className="relative">
-								<pre className="bg-muted overflow-x-auto rounded-lg border p-4 font-mono text-sm">{snippet}</pre>
-								<Button
-									variant="outline"
-									size="icon"
-									className="absolute top-2 right-2"
-									onClick={copySnippet}
-									aria-label={t("widgetSetup.copyEmbed")}
-								>
-									{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
-								</Button>
-							</div>
+							{snippet ? (
+								<div className="relative">
+									<pre className="bg-muted overflow-x-auto rounded-lg border p-4 font-mono text-sm">{snippet}</pre>
+									<Button
+										variant="outline"
+										size="icon"
+										className="absolute top-2 right-2"
+										onClick={copySnippet}
+										aria-label={t("widgetSetup.copyEmbed")}
+									>
+										{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
+									</Button>
+								</div>
+							) : (
+								<p className="text-muted-foreground">{t("widgetSetup.scriptUrlMissing")}</p>
+							)}
 						</>
 					)}
 				</CardContent>
@@ -156,7 +164,7 @@ function WidgetPage() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="widget-position">{t("widgetSetup.position")}</Label>
-							<Select value={position} onValueChange={(value) => setPosition(value as "bottom-right" | "bottom-left")}>
+							<Select value={position} onValueChange={(value) => setPosition(value as EmbedPosition)}>
 								<SelectTrigger id="widget-position" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
@@ -171,7 +179,7 @@ function WidgetPage() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="widget-language">{t("widgetSetup.language")}</Label>
-							<Select value={language} onValueChange={(value) => setLanguage(value as DashboardLanguage)}>
+							<Select value={widgetLanguage} onValueChange={(value) => setWidgetLanguage(value as DashboardLanguage)}>
 								<SelectTrigger id="widget-language" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
@@ -183,20 +191,6 @@ function WidgetPage() {
 									))}
 								</SelectContent>
 							</Select>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="avatar-url">{t("widgetSetup.avatarUrl")}</Label>
-							<Input
-								id="avatar-url"
-								type="url"
-								placeholder="https://example.com/avatar.png"
-								value={avatarUrl}
-								onChange={(event) => setAvatarUrl(event.target.value)}
-							/>
-						</div>
-						<div className="flex items-center gap-2">
-							<Switch id="theme-switch" checked={showThemeSwitch} onCheckedChange={setShowThemeSwitch} />
-							<Label htmlFor="theme-switch">{t("widgetSetup.themeSwitch")}</Label>
 						</div>
 						<p className="text-muted-foreground text-xs">{t("widgetSetup.notPersisted")}</p>
 					</CardContent>
@@ -215,8 +209,8 @@ function WidgetPage() {
 								<span className="bg-primary/70 size-2.5 rounded-full" />
 								<span className="text-muted-foreground ml-2 text-xs">your-site.com</span>
 							</div>
-							<div className="bg-background relative h-[452px]">
-								<WidgetPreview accent={accentColor} position={position} language={language} />
+							<div className="bg-background relative h-[460px]">
+								<WidgetPreview accent={accentColor} position={position} language={widgetLanguage} />
 							</div>
 						</div>
 					</CardContent>

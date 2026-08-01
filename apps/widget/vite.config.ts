@@ -2,39 +2,73 @@ import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { parse, type Root } from "postcss"
 import { defineConfig, type Plugin } from "vite"
 
-function withoutLayerBlock(css: string, layerName: string): string {
-	const match = new RegExp(`@layer ${layerName}\\s*\\{`).exec(css)
-	if (!match) {
-		return css
-	}
-	let depth = 0
-	for (let i = match.index + match[0].length - 1; i < css.length; i++) {
-		if (css[i] === "{") {
-			depth++
-		} else if (css[i] === "}") {
-			depth--
-			if (depth === 0) {
-				return css.slice(0, match.index) + css.slice(i + 1)
-			}
-		}
-	}
-	throw new Error(`widgetCss: unbalanced braces in @layer ${layerName}`)
-}
+const SCOPE = ".talqo-widget"
 
 // The widget ships into arbitrary host pages, so nothing in its CSS may touch
-// the global cascade: Tailwind preflight is removed, theme variables move from
-// :root under .talqo-widget, and the @property default-value layer is scoped
-// the same way. Runs on the emitted asset only; the dev harness hosts the
-// widget alone, so preflight is harmless there.
+// the global cascade. The tw: prefix namespaces Tailwind utilities, preflight
+// (@layer base) is removed, and the remaining host-independent rules are moved
+// under .talqo-widget. Runs on the emitted asset only; the dev harness hosts
+// the widget alone, so preflight is harmless there.
 function scopeWidgetCss(css: string): string {
-	return withoutLayerBlock(css, "base")
-		.replace(/:root\s*,\s*:host(?=\s*\{)/g, ".talqo-widget")
-		.replace(
-			/\*\s*,\s*:{1,2}before\s*,\s*:{1,2}after\s*,\s*::backdrop(?=\s*\{)/g,
-			".talqo-widget,.talqo-widget *,.talqo-widget *::before,.talqo-widget *::after,.talqo-widget ::backdrop",
-		)
+	const root = parse(css)
+
+	root.walkAtRules("layer", (atRule) => {
+		if (atRule.params === "base") {
+			atRule.remove()
+		}
+	})
+	// @property registrations are global by definition and emitted for --tw-*
+	// variables; utilities still work via the initial values set under SCOPE.
+	root.walkAtRules("property", (atRule) => {
+		atRule.remove()
+	})
+
+	root.walkRules((rule) => {
+		rule.selectors = rule.selectors.map((selector) => {
+			switch (selector) {
+				case ":root":
+				case ":host":
+					return SCOPE
+				case "*":
+					return `${SCOPE} *`
+				case "::before":
+				case ":before":
+					return `${SCOPE} *::before`
+				case "::after":
+				case ":after":
+					return `${SCOPE} *::after`
+				case "::backdrop":
+					return `${SCOPE} ::backdrop`
+				default:
+					return selector
+			}
+		})
+	})
+
+	assertNoGlobalRules(root)
+	return root.toString()
+}
+
+// Surviving global rules would silently leak into the host page; a scoped
+// selector is either under .talqo-widget or carries the tw: utility prefix.
+function assertNoGlobalRules(root: Root): void {
+	const leaked: string[] = []
+	root.walkRules((rule) => {
+		for (const selector of rule.selectors) {
+			if (!selector.startsWith(SCOPE) && !selector.includes(".tw\\:")) {
+				leaked.push(selector)
+			}
+		}
+	})
+	root.walkAtRules("property", (atRule) => {
+		leaked.push(`@property ${atRule.params}`)
+	})
+	if (leaked.length > 0) {
+		throw new Error(`widgetCss: global CSS survived scoping: ${leaked.slice(0, 5).join(", ")}`)
+	}
 }
 
 function widgetCssPlugin(): Plugin {

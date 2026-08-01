@@ -31,6 +31,11 @@ export default defineConfig({
 		{
 			command: "bun run dev --host 127.0.0.1 --port 4173",
 			cwd: "../web",
+			env: {
+				// The embed snippet is only generated once the dashboard knows the
+				// widget.js origin (see dashboard/-embed-snippet.ts).
+				VITE_WIDGET_CDN_URL: "http://localhost:5174/widget.js",
+			},
 			reuseExistingServer: !isCI,
 			timeout: 120_000,
 			url: "http://127.0.0.1:4173",

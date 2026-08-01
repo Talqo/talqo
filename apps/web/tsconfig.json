@@ -4,7 +4,8 @@
 		"resolveJsonModule": true,
 		"paths": {
 			"@/*": ["./src/*"]
-		}
+		},
+		"types": ["vite/client", "bun"]
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }

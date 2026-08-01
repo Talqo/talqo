@@ -1,9 +1,11 @@
 import { PageHeader } from "@/components/page-header"
 import { useActiveWidget } from "@/features/widgets/widgets-query"
+import { useLanguage } from "@/lib/use-language"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute } from "@tanstack/react-router"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -18,8 +20,6 @@ export const Route = createFileRoute("/dashboard/analytics")({
 	component: AnalyticsPage,
 })
 
-const compactNumber = new Intl.NumberFormat("en", { notation: "compact" })
-
 const metricKeys = ["conversations", "messages", "tokens"] as const
 const metricColors: Record<(typeof metricKeys)[number], string> = {
 	conversations: "var(--chart-1)",
@@ -27,8 +27,8 @@ const metricColors: Record<(typeof metricKeys)[number], string> = {
 	tokens: "var(--chart-3)",
 }
 
-function formatHistoryDate(date: string) {
-	return new Date(`${date}T00:00:00Z`).toLocaleDateString("en", {
+function formatHistoryDate(language: string, date: string) {
+	return new Date(`${date}T00:00:00Z`).toLocaleDateString(language, {
 		month: "short",
 		day: "numeric",
 		timeZone: "UTC",
@@ -39,10 +39,14 @@ function MetricChart({
 	history,
 	metric,
 	label,
+	language,
+	compactNumber,
 }: {
 	history: WidgetStats["history"]
 	metric: (typeof metricKeys)[number]
 	label: string
+	language: string
+	compactNumber: Intl.NumberFormat
 }) {
 	return (
 		<ResponsiveContainer width="100%" height={280}>
@@ -50,7 +54,7 @@ function MetricChart({
 				<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
 				<XAxis
 					dataKey="date"
-					tickFormatter={formatHistoryDate}
+					tickFormatter={(date: string) => formatHistoryDate(language, date)}
 					tick={{ fontSize: 12 }}
 					stroke="var(--muted-foreground)"
 					tickLine={false}
@@ -65,7 +69,7 @@ function MetricChart({
 					width={48}
 				/>
 				<Tooltip
-					labelFormatter={(axisLabel) => formatHistoryDate(String(axisLabel))}
+					labelFormatter={(axisLabel) => formatHistoryDate(language, String(axisLabel))}
 					contentStyle={{
 						background: "var(--popover)",
 						border: "1px solid var(--border)",
@@ -92,6 +96,9 @@ function AnalyticsPage() {
 	const { t } = useTranslation()
 	const { widgets, isLoading, activeId, setSelectedId } = useActiveWidget()
 	const { data: stats, isLoading: statsLoading } = useWidgetStats(activeId)
+	const { language } = useLanguage()
+	// Numbers and dates follow the operator's dashboard language, not a fixed locale.
+	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
@@ -153,7 +160,13 @@ function AnalyticsPage() {
 								</TabsList>
 								{metricKeys.map((metric) => (
 									<TabsContent key={metric} value={metric}>
-										<MetricChart history={stats.history} metric={metric} label={t(`analytics.${metric}`)} />
+										<MetricChart
+											history={stats.history}
+											metric={metric}
+											label={t(`analytics.${metric}`)}
+											language={language}
+											compactNumber={compactNumber}
+										/>
 									</TabsContent>
 								))}
 							</Tabs>
