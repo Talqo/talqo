@@ -11,11 +11,9 @@ export type Agent = {
 
 const agentsQueryKey = ["agents"] as const
 
-// Interim in-memory stand-in until the /agents API endpoint exists; the API
-// stays authoritative, so the dashboard ships with an honest empty state.
-// Demo entries load only when explicitly requested for local development
-// (VITE_MOCK_AGENTS=true), never silently. Created and edited agents live in
-// this module store so the config page stays consistent within the session.
+// Interim in-memory stand-in until the /agents API exists; the dashboard
+// ships an honest empty state, and demo entries load only with
+// VITE_MOCK_AGENTS=true for local development.
 const DEMO_AGENTS: Agent[] = [
 	{
 		id: "demo-1",

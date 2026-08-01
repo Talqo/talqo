@@ -1,25 +1,21 @@
 import { cn } from "@talqo/ui/lib/utils"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export type WidgetPosition = "bottom-right" | "bottom-left"
 
-// The dashboard previews the widget exactly like a customer site hosts it: in
-// an iframe pointed at the widget app's preview page, configured through URL
-// params. There is no compile-time dependency on apps/widget — see
-// docs/architecture.md ("Apps do not import one another").
-//
-// The widget build ships only widget.js/css — no hosted preview page exists —
-// so a preview target must come from configuration. scripts/dev.ts points this
-// at the widget dev server; any other deployment sets its own. Without one the
-// preview degrades to a notice instead of iframing a dead localhost address.
+// The preview iframes the widget app's preview page (no cross-app imports; see
+// docs/architecture.md). A target must be configured via VITE_WIDGET_PREVIEW_URL
+// or the dev server; otherwise a notice is shown.
 const PREVIEW_URL =
 	(import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined) ??
 	(import.meta.env.DEV ? "http://localhost:5174/preview.html" : undefined)
 
+// The widget fixes itself to the iframe corner, so the frame sits flush. It is
+// sized for the open panel plus the launcher and the widget's corner offset.
+const FRAME_WIDTH = 336
+
 const insetClasses: Record<WidgetPosition, string> = {
-	// The widget fixes itself to the iframe corner, so the iframe sits flush;
-	// its size covers the open panel (320x384) plus the launcher and offsets.
 	"bottom-right": "right-0 bottom-0",
 	"bottom-left": "bottom-0 left-0",
 }
@@ -59,10 +55,34 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 	return debounced
 }
 
+// Narrow preview cards are smaller than the fixed-size frame; scale the frame
+// down proportionally instead of clipping the panel.
+function useFrameScale(ref: React.RefObject<HTMLDivElement | null>): number {
+	const [scale, setScale] = useState(1)
+	useEffect(() => {
+		const frame = ref.current
+		if (!frame) {
+			return
+		}
+		const observer = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				setScale(Math.min(1, entry.contentRect.width / FRAME_WIDTH))
+			}
+		})
+		observer.observe(frame)
+		return () => {
+			observer.disconnect()
+		}
+	}, [ref])
+	return scale
+}
+
 export function WidgetPreview({ accent, position = "bottom-right", language, title = "AI Chat" }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const src = useMemo(() => previewSrc({ accent, language, title }), [accent, language, title])
 	const debouncedSrc = useDebouncedValue(src, 300)
+	const frameRef = useRef<HTMLDivElement>(null)
+	const scale = useFrameScale(frameRef)
 
 	if (!debouncedSrc) {
 		return (
@@ -78,12 +98,16 @@ export function WidgetPreview({ accent, position = "bottom-right", language, tit
 	}
 
 	return (
-		<iframe
-			src={debouncedSrc}
-			title={title}
-			// Sized to fit the open chat panel (320x384) plus the launcher button
-			// and the widget's own fixed corner offset.
-			className={cn("absolute h-[460px] w-[336px] border-0", insetClasses[position])}
-		/>
+		<div ref={frameRef} className={cn("absolute h-[460px] w-full max-w-[336px]", insetClasses[position])}>
+			<iframe
+				src={debouncedSrc}
+				title={title}
+				className={cn("absolute h-[460px] w-[336px] border-0", position === "bottom-right" ? "right-0" : "left-0")}
+				style={{
+					transform: `scale(${scale})`,
+					transformOrigin: position === "bottom-right" ? "bottom right" : "bottom left",
+				}}
+			/>
+		</div>
 	)
 }

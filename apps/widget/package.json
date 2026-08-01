@@ -10,7 +10,6 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"class-variance-authority": "0.7.1",
 		"clsx": "2.1.1",
 		"i18next": "^26.3.6",
 		"react": "19.2.8",

@@ -4,9 +4,8 @@ export type Theme = "light" | "dark"
 
 const STORAGE_KEY = "talqo-theme"
 
-// Read the theme to use on first paint: stored preference wins, otherwise the
-// OS preference. Called both by main.tsx before render (avoids a flash of the
-// wrong theme) and as the store seed below, so it must be SSR-safe.
+// First-paint theme: stored preference, else OS preference. Called pre-render
+// (avoids a theme flash), so it must be SSR-safe.
 export function getInitialTheme(): Theme {
 	if (typeof window === "undefined") {
 		return "light"
