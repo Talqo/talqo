@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
-import { parseBlacklist } from "@/features/widgets/blacklist"
-import { useUpdateWidget, useWidget } from "@/features/widgets/widgets-query"
+import { useAgent, useUpdateAgent } from "@/features/agents/agents-query"
+import { parseBlacklist } from "@/features/agents/blacklist"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -13,15 +13,15 @@ import { ArrowLeft } from "lucide-react"
 import { type FormEvent, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-export const Route = createFileRoute("/dashboard/bot/$botId")({
-	component: BotConfigPage,
+export const Route = createFileRoute("/dashboard/agent/$agentId")({
+	component: AgentConfigPage,
 })
 
-function BotConfigPage() {
+function AgentConfigPage() {
 	const { t } = useTranslation()
-	const { botId } = Route.useParams()
-	const { data: bot, isLoading } = useWidget(botId)
-	const updateWidget = useUpdateWidget()
+	const { agentId } = Route.useParams()
+	const { data: agent, isLoading } = useAgent(agentId)
+	const updateAgent = useUpdateAgent()
 
 	const [name, setName] = useState("")
 	const [systemPrompt, setSystemPrompt] = useState("")
@@ -29,19 +29,19 @@ function BotConfigPage() {
 	const [active, setActive] = useState(false)
 	const [savedAt, setSavedAt] = useState<number | null>(null)
 
-	// Populate the form once the bot loads (or reloads after an external edit).
+	// Populate the form once the agent loads (or reloads after an external edit).
 	useEffect(() => {
-		if (bot) {
-			setName(bot.name)
-			setSystemPrompt(bot.systemPrompt)
-			setBlacklist(bot.wordBlacklist.join(", "))
-			setActive(bot.status === "active")
+		if (agent) {
+			setName(agent.name)
+			setSystemPrompt(agent.systemPrompt)
+			setBlacklist(agent.wordBlacklist.join(", "))
+			setActive(agent.status === "active")
 		}
-	}, [bot])
+	}, [agent])
 
 	function handleSave(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
-		updateWidget(botId, {
+		updateAgent(agentId, {
 			name: name.trim(),
 			systemPrompt: systemPrompt.trim(),
 			wordBlacklist: parseBlacklist(blacklist),
@@ -52,58 +52,61 @@ function BotConfigPage() {
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
-			<Button render={<Link to="/dashboard/bots" />} nativeButton={false} variant="ghost" className="-ml-2">
+			<Button render={<Link to="/dashboard/agents" />} nativeButton={false} variant="ghost" className="-ml-2">
 				<ArrowLeft className="size-4" />
-				{t("botConfig.backToBots")}
+				{t("agentConfig.backToAgents")}
 			</Button>
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("botConfig.loading")}</p>
-			) : !bot ? (
-				<p className="text-muted-foreground">{t("botConfig.notFound")}</p>
+				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
+			) : !agent ? (
+				<p className="text-muted-foreground">{t("agentConfig.notFound")}</p>
 			) : (
 				<>
-					<PageHeader title={t("botConfig.heading", { name: bot.name })} description={t("botConfig.subheading")} />
+					<PageHeader
+						title={t("agentConfig.heading", { name: agent.name })}
+						description={t("agentConfig.subheading")}
+					/>
 					<Card>
 						<CardHeader>
-							<CardTitle>{t("botConfig.cardTitle")}</CardTitle>
-							<CardDescription>{t("botConfig.cardDescription")}</CardDescription>
+							<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
+							<CardDescription>{t("agentConfig.cardDescription")}</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<form onSubmit={handleSave} className="space-y-4">
 								<div className="space-y-2">
-									<Label htmlFor="config-name">{t("botFields.name")}</Label>
+									<Label htmlFor="config-name">{t("agentFields.name")}</Label>
 									<Input
 										id="config-name"
 										value={name}
 										onChange={(event) => setName(event.target.value)}
-										placeholder={t("botFields.namePlaceholder")}
+										placeholder={t("agentFields.namePlaceholder")}
 										required
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="config-system-prompt">{t("botFields.systemPrompt")}</Label>
+									<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
 									<Textarea
 										id="config-system-prompt"
 										value={systemPrompt}
 										onChange={(event) => setSystemPrompt(event.target.value)}
-										placeholder={t("botFields.systemPromptPlaceholder")}
+										placeholder={t("agentFields.systemPromptPlaceholder")}
 										rows={5}
 										required
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label htmlFor="config-blacklist">{t("botFields.wordBlacklist")}</Label>
+									<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
 									<Input
 										id="config-blacklist"
 										value={blacklist}
 										onChange={(event) => setBlacklist(event.target.value)}
-										placeholder={t("botFields.blacklistPlaceholder")}
+										placeholder={t("agentFields.blacklistPlaceholder")}
 									/>
-									<p className="text-muted-foreground text-xs">{t("botFields.blacklistHelp")}</p>
-									{bot.wordBlacklist.length > 0 && (
+									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
+									{agent.wordBlacklist.length > 0 && (
 										<div className="flex flex-wrap gap-1 pt-1">
-											{bot.wordBlacklist.map((word) => (
+											{agent.wordBlacklist.map((word) => (
 												<Badge key={word} variant="outline">
 													{word}
 												</Badge>
@@ -114,12 +117,12 @@ function BotConfigPage() {
 								<div className="flex items-center gap-2">
 									<Switch id="config-status" checked={active} onCheckedChange={setActive} />
 									<Label htmlFor="config-status">
-										{t(active ? "botFields.statusActive" : "botFields.statusPaused")}
+										{t(active ? "agentFields.statusActive" : "agentFields.statusPaused")}
 									</Label>
 								</div>
 								<div className="flex items-center gap-3 pt-2">
-									<Button type="submit">{t("botConfig.save")}</Button>
-									{savedAt && <span className="text-muted-foreground text-sm">{t("botConfig.saved")}</span>}
+									<Button type="submit">{t("agentConfig.save")}</Button>
+									{savedAt && <span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>}
 								</div>
 							</form>
 						</CardContent>

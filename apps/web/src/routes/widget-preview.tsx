@@ -21,7 +21,7 @@ function WidgetPreviewPage() {
 	return (
 		<div className="bg-background text-foreground relative min-h-screen p-6">
 			<Button
-				render={<Link to="/dashboard/widget" search={{ bot: undefined }} />}
+				render={<Link to="/dashboard/widget" search={{ agent: undefined }} />}
 				nativeButton={false}
 				variant="outline"
 			>

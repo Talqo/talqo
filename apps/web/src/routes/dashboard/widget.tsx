@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
-import { useActiveWidget } from "@/features/widgets/widgets-query"
+import { useActiveAgent } from "@/features/agents/agents-query"
 import { type DashboardLanguage, dashboardLanguages } from "@/lib/languages"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -15,10 +15,10 @@ import { useTranslation } from "react-i18next"
 import { buildEmbedSnippet, type EmbedPosition, widgetScriptUrl } from "./-embed-snippet"
 
 export const Route = createFileRoute("/dashboard/widget")({
-	// Selected bot lives in the URL so the page is shareable; see
-	// features/widgets/widgets-query.ts useActiveWidget.
+	// Selected agent lives in the URL so the page is shareable; see
+	// features/agents/agents-query.ts useActiveAgent.
 	validateSearch: (search: Record<string, unknown>) => ({
-		bot: typeof search.bot === "string" ? search.bot : undefined,
+		agent: typeof search.agent === "string" ? search.agent : undefined,
 	}),
 	component: WidgetPage,
 })
@@ -35,7 +35,7 @@ const languages = Object.entries(dashboardLanguages).map(([value, label]) => ({
 
 function WidgetPage() {
 	const { t } = useTranslation()
-	const { widgets, isLoading, activeId: activeBotId, setSelectedId } = useActiveWidget()
+	const { agents, isLoading, activeId: activeAgentId, setSelectedId } = useActiveAgent()
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 	const [accentColor, setAccentColor] = useState("#1a7f4b")
@@ -51,7 +51,7 @@ function WidgetPage() {
 	const scriptUrl = widgetScriptUrl()
 	const snippet = scriptUrl
 		? buildEmbedSnippet(scriptUrl, {
-				botId: activeBotId,
+				agentId: activeAgentId,
 				accent: accentColor,
 				language: widgetLanguage,
 				position,
@@ -97,20 +97,20 @@ function WidgetPage() {
 				<CardContent className="space-y-4">
 					{isLoading ? (
 						<p className="text-muted-foreground">{t("widgetSetup.loading")}</p>
-					) : !widgets?.length ? (
+					) : !agents?.length ? (
 						<p className="text-muted-foreground">{t("widgetSetup.empty")}</p>
 					) : (
 						<>
 							<div className="max-w-xs space-y-2">
-								<Label htmlFor="embed-bot">{t("widgetSetup.botLabel")}</Label>
-								<Select value={activeBotId} onValueChange={(value) => setSelectedId(value ?? "")}>
-									<SelectTrigger id="embed-bot" className="w-full">
-										<SelectValue placeholder={t("widgetSetup.selectBot")} />
+								<Label htmlFor="embed-agent">{t("widgetSetup.agentLabel")}</Label>
+								<Select value={activeAgentId} onValueChange={(value) => setSelectedId(value ?? "")}>
+									<SelectTrigger id="embed-agent" className="w-full">
+										<SelectValue placeholder={t("widgetSetup.selectAgent")} />
 									</SelectTrigger>
 									<SelectContent>
-										{widgets.map((widget) => (
-											<SelectItem key={widget.id} value={widget.id}>
-												{widget.name}
+										{agents.map((agent) => (
+											<SelectItem key={agent.id} value={agent.id}>
+												{agent.name}
 											</SelectItem>
 										))}
 									</SelectContent>

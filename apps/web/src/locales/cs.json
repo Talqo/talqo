@@ -1,7 +1,7 @@
 {
 	"nav": {
 		"dashboard": "Přehled",
-		"bots": "Boti",
+		"agents": "Agenti",
 		"widget": "Widget",
 		"analytics": "Analytika",
 		"account": "Účet"
@@ -14,12 +14,12 @@
 	},
 	"dashboard": {
 		"heading": "Vítejte v Talqo",
-		"subheading": "Spravujte své chatboty, widget a analytiku na jednom místě.",
+		"subheading": "Spravujte své agenty, widget a analytiku na jednom místě.",
 		"openCard": "Otevřít {{title}} →",
 		"cards": {
-			"bots": {
-				"title": "Boti",
-				"description": "Spravujte chatboty a jejich chování."
+			"agents": {
+				"title": "Agenti",
+				"description": "Spravujte agenty a jejich chování."
 			},
 			"widget": {
 				"title": "Widget",
@@ -35,9 +35,9 @@
 			}
 		}
 	},
-	"botFields": {
+	"agentFields": {
 		"name": "Název",
-		"namePlaceholder": "Podpora Bot",
+		"namePlaceholder": "Agent podpory",
 		"systemPrompt": "Systémový prompt",
 		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
 		"wordBlacklist": "Zakázaná slova",
@@ -46,22 +46,22 @@
 		"statusActive": "Aktivní",
 		"statusPaused": "Pozastavený"
 	},
-	"bots": {
-		"heading": "Boti",
-		"subheading": "Spravujte své chatboty a jejich chování.",
-		"loading": "Načítání botů…",
-		"empty": "Zatím žádní boti. Vytvořte svého prvního bota a začněte.",
-		"create": "Vytvořit bota",
-		"createDescription": "Definujte název, chování a zakázaná slova bota.",
+	"agents": {
+		"heading": "Agenti",
+		"subheading": "Spravujte své agenty a jejich chování.",
+		"loading": "Načítání agentů…",
+		"empty": "Zatím žádní agenti. Vytvořte svého prvního agenta a začněte.",
+		"create": "Vytvořit agenta",
+		"createDescription": "Definujte název, chování a zakázaná slova agenta.",
 		"configure": "Konfigurovat"
 	},
-	"botConfig": {
-		"backToBots": "Zpět na boty",
-		"loading": "Načítání bota…",
-		"notFound": "Bot nenalezen. Možná byl odstraněn.",
+	"agentConfig": {
+		"backToAgents": "Zpět na agenty",
+		"loading": "Načítání agenta…",
+		"notFound": "Agent nenalezen. Možná byl odstraněn.",
 		"heading": "Konfigurovat {{name}}",
-		"subheading": "Upravte název, chování, zakázaná slova a stav bota.",
-		"cardTitle": "Konfigurace bota",
+		"subheading": "Upravte název, chování, zakázaná slova a stav agenta.",
+		"cardTitle": "Konfigurace agenta",
 		"cardDescription": "Změny se ukládají do dočasného úložiště a projeví se v celém přehledu.",
 		"save": "Uložit změny",
 		"saved": "Právě uloženo."
@@ -73,10 +73,10 @@
 		"backToSetup": "Zpět na nastavení widgetu",
 		"embedCode": "Kód pro vložení",
 		"embedDescription": "Vložte tento kód před uzavírací značku body svého webu.",
-		"loading": "Načítání botů…",
-		"empty": "Zatím žádní boti. Před vložením widgetu vytvořte bota na stránce Boti.",
-		"botLabel": "Bot",
-		"selectBot": "Vyberte bota",
+		"loading": "Načítání agentů…",
+		"empty": "Zatím žádní agenti. Před vložením widgetu vytvořte agenta na stránce Agenti.",
+		"agentLabel": "Agent",
+		"selectAgent": "Vyberte agenta",
 		"copyEmbed": "Zkopírovat kód pro vložení",
 		"appearance": "Vzhled",
 		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
@@ -94,10 +94,10 @@
 	},
 	"analytics": {
 		"heading": "Analytika",
-		"subheading": "Statistiky konverzací a využití pro jednotlivé widgety.",
-		"selectWidget": "Vyberte widget",
-		"loading": "Načítání widgetů…",
-		"empty": "Zatím žádné widgety. Pro zobrazení statistik vytvořte bota na stránce Boti.",
+		"subheading": "Statistiky konverzací a využití pro jednotlivé agenty.",
+		"selectAgent": "Vyberte agenta",
+		"loading": "Načítání agentů…",
+		"empty": "Zatím žádní agenti. Pro zobrazení statistik vytvořte agenta na stránce Agenti.",
 		"loadingStats": "Načítání statistik…",
 		"conversations": "Konverzace",
 		"messages": "Zprávy",
@@ -122,7 +122,7 @@
 		"newPassword": "Nové heslo",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"dangerZone": "Nebezpečná zóna",
-		"dangerDescription": "Smazáním účtu odstraníte všechny boty a analytická data.",
+		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
 		"deleteAccount": "Smazat účet",
 		"comingSoon": "Již brzy"
 	}

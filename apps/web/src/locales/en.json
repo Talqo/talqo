@@ -1,7 +1,7 @@
 {
 	"nav": {
 		"dashboard": "Dashboard",
-		"bots": "Bots",
+		"agents": "Agents",
 		"widget": "Widget",
 		"analytics": "Analytics",
 		"account": "Account"
@@ -14,12 +14,12 @@
 	},
 	"dashboard": {
 		"heading": "Welcome to Talqo",
-		"subheading": "Manage your chat bots, widget, and analytics from one place.",
+		"subheading": "Manage your agents, widget, and analytics from one place.",
 		"openCard": "Open {{title}} →",
 		"cards": {
-			"bots": {
-				"title": "Bots",
-				"description": "Manage your chat bots and their behavior."
+			"agents": {
+				"title": "Agents",
+				"description": "Manage your agents and their behavior."
 			},
 			"widget": {
 				"title": "Widget",
@@ -35,9 +35,9 @@
 			}
 		}
 	},
-	"botFields": {
+	"agentFields": {
 		"name": "Name",
-		"namePlaceholder": "Support Bot",
+		"namePlaceholder": "Support Agent",
 		"systemPrompt": "System prompt",
 		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
 		"wordBlacklist": "Word blacklist",
@@ -46,22 +46,22 @@
 		"statusActive": "Active",
 		"statusPaused": "Paused"
 	},
-	"bots": {
-		"heading": "Bots",
-		"subheading": "Manage your chat bots and their behavior.",
-		"loading": "Loading bots…",
-		"empty": "No bots yet. Create your first bot to get started.",
-		"create": "Create bot",
-		"createDescription": "Define the bot's name, behavior, and blocked words.",
+	"agents": {
+		"heading": "Agents",
+		"subheading": "Manage your agents and their behavior.",
+		"loading": "Loading agents…",
+		"empty": "No agents yet. Create your first agent to get started.",
+		"create": "Create agent",
+		"createDescription": "Define the agent's name, behavior, and blocked words.",
 		"configure": "Configure"
 	},
-	"botConfig": {
-		"backToBots": "Back to bots",
-		"loading": "Loading bot…",
-		"notFound": "Bot not found. It may have been removed.",
+	"agentConfig": {
+		"backToAgents": "Back to agents",
+		"loading": "Loading agent…",
+		"notFound": "Agent not found. It may have been removed.",
 		"heading": "Configure {{name}}",
-		"subheading": "Update the bot's name, behavior, blocked words, and status.",
-		"cardTitle": "Bot configuration",
+		"subheading": "Update the agent's name, behavior, blocked words, and status.",
+		"cardTitle": "Agent configuration",
 		"cardDescription": "Changes are saved to the mock store and reflected across the dashboard.",
 		"save": "Save changes",
 		"saved": "Saved just now."
@@ -73,10 +73,10 @@
 		"backToSetup": "Back to widget setup",
 		"embedCode": "Embed code",
 		"embedDescription": "Paste this snippet before the closing body tag of your site.",
-		"loading": "Loading bots…",
-		"empty": "No bots yet. Create one on the Bots page before embedding the widget.",
-		"botLabel": "Bot",
-		"selectBot": "Select a bot",
+		"loading": "Loading agents…",
+		"empty": "No agents yet. Create one on the Agents page before embedding the widget.",
+		"agentLabel": "Agent",
+		"selectAgent": "Select an agent",
 		"copyEmbed": "Copy embed code",
 		"appearance": "Appearance",
 		"appearanceDescription": "Visual configuration applied to the embedded widget.",
@@ -94,10 +94,10 @@
 	},
 	"analytics": {
 		"heading": "Analytics",
-		"subheading": "Conversation and usage statistics per widget.",
-		"selectWidget": "Select a widget",
-		"loading": "Loading widgets…",
-		"empty": "No widgets yet. Create a bot on the Bots page to see statistics.",
+		"subheading": "Conversation and usage statistics per agent.",
+		"selectAgent": "Select an agent",
+		"loading": "Loading agents…",
+		"empty": "No agents yet. Create an agent on the Agents page to see statistics.",
 		"loadingStats": "Loading statistics…",
 		"conversations": "Conversations",
 		"messages": "Messages",
@@ -122,7 +122,7 @@
 		"newPassword": "New password",
 		"confirmNewPassword": "Confirm new password",
 		"dangerZone": "Danger zone",
-		"dangerDescription": "Deleting your account removes all bots and analytics data.",
+		"dangerDescription": "Deleting your account removes all agents and analytics data.",
 		"deleteAccount": "Delete account",
 		"comingSoon": "Coming soon"
 	}

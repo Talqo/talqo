@@ -1,19 +1,19 @@
 import { expect, test } from "@playwright/test"
 
-test("bot journey: create, configure, pause, and embed", async ({ page }) => {
-	await page.goto("/dashboard/bots")
-	await expect(page.getByRole("heading", { name: "Bots" })).toBeVisible()
-	await expect(page.getByText("No bots yet.")).toBeVisible()
+test("agent journey: create, configure, pause, and embed", async ({ page }) => {
+	await page.goto("/dashboard/agents")
+	await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible()
+	await expect(page.getByText("No agents yet.")).toBeVisible()
 
-	// Create a bot through the dialog.
-	await page.getByRole("button", { name: "Create bot" }).click()
+	// Create an agent through the dialog.
+	await page.getByRole("button", { name: "Create agent" }).click()
 	const dialog = page.getByRole("dialog")
 	await dialog.getByLabel("Name").fill("Docs helper")
 	await dialog.getByLabel("System prompt").fill("You answer questions from the product docs.")
 	await dialog.getByLabel("Word blacklist").fill("spam, abuse")
-	await dialog.getByRole("button", { name: "Create bot" }).click()
+	await dialog.getByRole("button", { name: "Create agent" }).click()
 
-	// The overview card shows the bot without the blocked-word detail, which
+	// The overview card shows the agent without the blocked-word detail, which
 	// stays on the config page.
 	const card = page.locator("[data-slot=card]", { hasText: "Docs helper" })
 	await expect(card).toBeVisible()
@@ -29,20 +29,20 @@ test("bot journey: create, configure, pause, and embed", async ({ page }) => {
 	await expect(page.getByText("Saved just now.")).toBeVisible()
 
 	// Pause from the overview.
-	await page.getByRole("button", { name: "Back to bots" }).click()
+	await page.getByRole("button", { name: "Back to agents" }).click()
 	const updated = page.locator("[data-slot=card]", { hasText: "Docs helper 2" })
 	await expect(updated).toBeVisible()
 	await updated.getByRole("switch").click()
 	await expect(updated.getByRole("switch")).toHaveAttribute("aria-checked", "false")
 
-	// The embed snippet carries the selected bot and appearance settings; it is
+	// The embed snippet carries the selected agent and appearance settings; it is
 	// only rendered once the widget origin is configured (see playwright.config).
 	await page.getByRole("link", { name: "Widget", exact: true }).click()
-	await page.getByLabel("Bot").click()
+	await page.getByLabel("Agent").click()
 	await page.getByRole("option", { name: "Docs helper 2" }).click()
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('src="http://localhost:5174/widget.js"')
-	await expect(snippet).toContainText("data-talqo-bot=")
+	await expect(snippet).toContainText("data-talqo-agent=")
 	await expect(snippet).toContainText('data-talqo-language="en"')
 	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
 })

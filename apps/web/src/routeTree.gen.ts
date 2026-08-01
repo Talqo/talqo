@@ -14,10 +14,10 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as WidgetPreviewRouteImport } from './routes/widget-preview'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
+import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
-import { Route as DashboardBotsRouteImport } from './routes/dashboard/bots'
 import { Route as DashboardWidgetRouteImport } from './routes/dashboard/widget'
-import { Route as DashboardBotBotIdRouteImport } from './routes/dashboard/bot.$botId'
+import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -44,14 +44,14 @@ const DashboardAccountRoute = DashboardAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardAgentsRoute = DashboardAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
-const DashboardBotsRoute = DashboardBotsRouteImport.update({
-  id: '/bots',
-  path: '/bots',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardWidgetRoute = DashboardWidgetRouteImport.update({
@@ -59,9 +59,9 @@ const DashboardWidgetRoute = DashboardWidgetRouteImport.update({
   path: '/widget',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardBotBotIdRoute = DashboardBotBotIdRouteImport.update({
-  id: '/bot/$botId',
-  path: '/bot/$botId',
+const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
+  id: '/agent/$agentId',
+  path: '/agent/$agentId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
@@ -70,21 +70,21 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/bots': typeof DashboardBotsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/bot/$botId': typeof DashboardBotBotIdRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/bots': typeof DashboardBotsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard': typeof DashboardIndexRoute
-  '/dashboard/bot/$botId': typeof DashboardBotBotIdRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -92,11 +92,11 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
-  '/dashboard/bots': typeof DashboardBotsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/dashboard/bot/$botId': typeof DashboardBotBotIdRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,32 +105,32 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/widget-preview'
     | '/dashboard/account'
+    | '/dashboard/agents'
     | '/dashboard/analytics'
-    | '/dashboard/bots'
     | '/dashboard/widget'
     | '/dashboard/'
-    | '/dashboard/bot/$botId'
+    | '/dashboard/agent/$agentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/widget-preview'
     | '/dashboard/account'
+    | '/dashboard/agents'
     | '/dashboard/analytics'
-    | '/dashboard/bots'
     | '/dashboard/widget'
     | '/dashboard'
-    | '/dashboard/bot/$botId'
+    | '/dashboard/agent/$agentId'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/widget-preview'
     | '/dashboard/account'
+    | '/dashboard/agents'
     | '/dashboard/analytics'
-    | '/dashboard/bots'
     | '/dashboard/widget'
     | '/dashboard/'
-    | '/dashboard/bot/$botId'
+    | '/dashboard/agent/$agentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,18 +176,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAccountRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/agents': {
+      id: '/dashboard/agents'
+      path: '/agents'
+      fullPath: '/dashboard/agents'
+      preLoaderRoute: typeof DashboardAgentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/analytics': {
       id: '/dashboard/analytics'
       path: '/analytics'
       fullPath: '/dashboard/analytics'
       preLoaderRoute: typeof DashboardAnalyticsRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
-    '/dashboard/bots': {
-      id: '/dashboard/bots'
-      path: '/bots'
-      fullPath: '/dashboard/bots'
-      preLoaderRoute: typeof DashboardBotsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/widget': {
@@ -197,11 +197,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardWidgetRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/bot/$botId': {
-      id: '/dashboard/bot/$botId'
-      path: '/bot/$botId'
-      fullPath: '/dashboard/bot/$botId'
-      preLoaderRoute: typeof DashboardBotBotIdRouteImport
+    '/dashboard/agent/$agentId': {
+      id: '/dashboard/agent/$agentId'
+      path: '/agent/$agentId'
+      fullPath: '/dashboard/agent/$agentId'
+      preLoaderRoute: typeof DashboardAgentAgentIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
   }
@@ -209,20 +209,20 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteRouteChildren {
   DashboardAccountRoute: typeof DashboardAccountRoute
+  DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
-  DashboardBotsRoute: typeof DashboardBotsRoute
   DashboardWidgetRoute: typeof DashboardWidgetRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardBotBotIdRoute: typeof DashboardBotBotIdRoute
+  DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAccountRoute: DashboardAccountRoute,
+  DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
-  DashboardBotsRoute: DashboardBotsRoute,
   DashboardWidgetRoute: DashboardWidgetRoute,
   DashboardIndexRoute: DashboardIndexRoute,
-  DashboardBotBotIdRoute: DashboardBotBotIdRoute,
+  DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

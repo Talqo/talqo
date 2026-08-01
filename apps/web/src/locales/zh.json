@@ -1,7 +1,7 @@
 {
 	"nav": {
 		"dashboard": "仪表盘",
-		"bots": "机器人",
+		"agents": "智能体",
 		"widget": "聊天组件",
 		"analytics": "分析",
 		"account": "账户"
@@ -14,12 +14,12 @@
 	},
 	"dashboard": {
 		"heading": "欢迎使用 Talqo",
-		"subheading": "在一个地方管理您的聊天机器人、聊天组件和分析。",
+		"subheading": "在一个地方管理您的智能体、聊天组件和分析。",
 		"openCard": "打开{{title}} →",
 		"cards": {
-			"bots": {
-				"title": "机器人",
-				"description": "管理您的聊天机器人及其行为。"
+			"agents": {
+				"title": "智能体",
+				"description": "管理您的智能体及其行为。"
 			},
 			"widget": {
 				"title": "聊天组件",
@@ -35,9 +35,9 @@
 			}
 		}
 	},
-	"botFields": {
+	"agentFields": {
 		"name": "名称",
-		"namePlaceholder": "客服机器人",
+		"namePlaceholder": "客服智能体",
 		"systemPrompt": "系统提示词",
 		"systemPromptPlaceholder": "你是一位乐于助人的客户支持助手……",
 		"wordBlacklist": "屏蔽词",
@@ -46,22 +46,22 @@
 		"statusActive": "已启用",
 		"statusPaused": "已暂停"
 	},
-	"bots": {
-		"heading": "机器人",
-		"subheading": "管理您的聊天机器人及其行为。",
-		"loading": "正在加载机器人…",
-		"empty": "还没有机器人。创建您的第一个机器人开始使用。",
-		"create": "创建机器人",
-		"createDescription": "定义机器人的名称、行为和屏蔽词。",
+	"agents": {
+		"heading": "智能体",
+		"subheading": "管理您的智能体及其行为。",
+		"loading": "正在加载智能体…",
+		"empty": "还没有智能体。创建您的第一个智能体开始使用。",
+		"create": "创建智能体",
+		"createDescription": "定义智能体的名称、行为和屏蔽词。",
 		"configure": "配置"
 	},
-	"botConfig": {
-		"backToBots": "返回机器人列表",
-		"loading": "正在加载机器人…",
-		"notFound": "未找到机器人，可能已被删除。",
+	"agentConfig": {
+		"backToAgents": "返回智能体列表",
+		"loading": "正在加载智能体…",
+		"notFound": "未找到智能体，可能已被删除。",
 		"heading": "配置 {{name}}",
-		"subheading": "更新机器人的名称、行为、屏蔽词和状态。",
-		"cardTitle": "机器人配置",
+		"subheading": "更新智能体的名称、行为、屏蔽词和状态。",
+		"cardTitle": "智能体配置",
 		"cardDescription": "更改会保存到模拟存储，并在整个仪表盘中生效。",
 		"save": "保存更改",
 		"saved": "刚刚已保存。"
@@ -73,10 +73,10 @@
 		"backToSetup": "返回聊天组件设置",
 		"embedCode": "嵌入代码",
 		"embedDescription": "将此代码粘贴到您网站 body 结束标签之前。",
-		"loading": "正在加载机器人…",
-		"empty": "还没有机器人。请先在“机器人”页面创建机器人，再嵌入聊天组件。",
-		"botLabel": "机器人",
-		"selectBot": "选择机器人",
+		"loading": "正在加载智能体…",
+		"empty": "还没有智能体。请先在“智能体”页面创建智能体，再嵌入聊天组件。",
+		"agentLabel": "智能体",
+		"selectAgent": "选择智能体",
 		"copyEmbed": "复制嵌入代码",
 		"appearance": "外观",
 		"appearanceDescription": "应用于嵌入式聊天组件的视觉配置。",
@@ -94,10 +94,10 @@
 	},
 	"analytics": {
 		"heading": "分析",
-		"subheading": "每个聊天组件的对话和使用统计。",
-		"selectWidget": "选择聊天组件",
-		"loading": "正在加载聊天组件…",
-		"empty": "还没有聊天组件。请在“机器人”页面创建机器人以查看统计。",
+		"subheading": "每个智能体的对话和使用统计。",
+		"selectAgent": "选择智能体",
+		"loading": "正在加载智能体…",
+		"empty": "还没有智能体。请在“智能体”页面创建智能体以查看统计。",
 		"loadingStats": "正在加载统计…",
 		"conversations": "对话数",
 		"messages": "消息数",
@@ -122,7 +122,7 @@
 		"newPassword": "新密码",
 		"confirmNewPassword": "确认新密码",
 		"dangerZone": "危险区域",
-		"dangerDescription": "删除账户将移除所有机器人和分析数据。",
+		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
 		"deleteAccount": "删除账户",
 		"comingSoon": "即将推出"
 	}
