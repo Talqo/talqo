@@ -9,7 +9,7 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bun test",
 		"i18n": "i18next-cli status && i18next-cli lint --quiet && i18next-cli extract --ci --dry-run --quiet",
-		"i18n:fix": "i18next-cli extract --quiet"
+		"i18n:fix": "i18next-cli extract --quiet && i18next-cli status && i18next-cli lint --quiet"
 	},
 	"dependencies": {
 		"@talqo/ui": "workspace:*",

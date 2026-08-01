@@ -1,7 +1,6 @@
 import { defineConfig, recommendedAcceptedAttributes, recommendedAcceptedTags } from "i18next-cli"
 
-// Same layout and reasoning as apps/web/i18next.config.ts; the widget owns an
-// isolated i18n registry with its own locales in src/locales/<lang>.json.
+// Flat single-file-per-language layout, same as apps/web/i18next.config.ts.
 export default defineConfig({
 	locales: ["en", "cs", "zh"],
 	extract: {
