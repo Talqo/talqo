@@ -3,9 +3,8 @@ import { createRoot } from "react-dom/client"
 import { EmbeddedWidget } from "./embedded-widget"
 import { isWidgetLanguage } from "./lib/i18n"
 
-// Standalone preview page: the dashboard previews the widget by embedding this
-// page in an iframe instead of importing widget code. Config arrives as URL
-// params, e.g. /preview.html?accent=%231a7f4b&language=cs&theme=dark.
+// Dashboard iframe preview of the widget; config arrives as URL params
+// (title, language, theme, accent, position).
 const params = new URLSearchParams(window.location.search)
 const language = params.get("language")
 const theme = params.get("theme")

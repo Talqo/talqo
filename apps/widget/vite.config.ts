@@ -7,11 +7,10 @@ import { defineConfig, type Plugin } from "vite"
 
 const SCOPE = ".talqo-widget"
 
-// The widget ships into arbitrary host pages, so nothing in its CSS may touch
-// the global cascade. The tw: prefix namespaces Tailwind utilities, preflight
-// (@layer base) is removed, and the remaining host-independent rules are moved
-// under .talqo-widget. Runs on the emitted asset only; the dev harness hosts
-// the widget alone, so preflight is harmless there.
+// The widget embeds into arbitrary host pages: preflight and global @property
+// rules are removed, remaining rules move under .talqo-widget, and the build
+// fails on any surviving global rule. Dev CSS is unscoped — the harness hosts
+// the widget alone.
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
 

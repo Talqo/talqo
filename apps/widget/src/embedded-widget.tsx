@@ -1,4 +1,4 @@
-import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react"
+import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
@@ -40,6 +40,26 @@ function sanitizeAccent(accent: string | undefined): string | undefined {
 	return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : undefined
 }
 
+// Keep Tab cycling inside the open chat panel instead of leaking into the host page.
+function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement | null) {
+	if (event.key !== "Tab" || !container) {
+		return
+	}
+	const focusable = container.querySelectorAll<HTMLElement>("button, input")
+	const first = focusable.item(0)
+	const last = focusable.item(focusable.length - 1)
+	if (!first || !last) {
+		return
+	}
+	if (event.shiftKey && document.activeElement === first) {
+		event.preventDefault()
+		last.focus()
+	} else if (!event.shiftKey && document.activeElement === last) {
+		event.preventDefault()
+		first.focus()
+	}
+}
+
 function WidgetChat({
 	title,
 	theme,
@@ -59,12 +79,18 @@ function WidgetChat({
 	const [draft, setDraft] = useState("")
 	const nextId = useRef(2)
 	const launcherRef = useRef<HTMLButtonElement>(null)
+	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
 
-	// Return focus to the launcher after the panel closes.
+	// While the panel is open: the launcher is inert, and closing returns
+	// focus to it.
 	useEffect(() => {
+		const launcher = launcherRef.current
+		if (launcher) {
+			launcher.inert = open
+		}
 		if (wasOpen.current && !open) {
-			launcherRef.current?.focus()
+			launcher?.focus()
 		}
 		wasOpen.current = open
 	}, [open])
@@ -97,11 +123,15 @@ function WidgetChat({
 			{open && (
 				<div
 					role="dialog"
+					aria-modal="true"
 					aria-label={title ?? t("defaultTitle")}
+					ref={panelRef}
 					className="tw:flex tw:h-96 tw:w-80 tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
+						} else {
+							trapFocus(event, panelRef.current)
 						}
 					}}
 				>
@@ -134,12 +164,11 @@ function WidgetChat({
 					<div className="tw:flex-1 tw:overflow-y-auto tw:p-3" aria-live="polite">
 						<BubbleGroup>
 							{messages.map((message) => (
-								<Bubble
-									key={message.id}
-									variant={message.from === "user" ? "default" : "muted"}
-									align={message.from === "user" ? "end" : "start"}
-								>
-									<BubbleContent className={cn(message.from === "assistant" && "tw:text-foreground")}>
+								<Bubble key={message.id} align={message.from === "user" ? "end" : "start"}>
+									<BubbleContent
+										variant={message.from === "user" ? "default" : "muted"}
+										className={cn(message.from === "assistant" && "tw:text-foreground")}
+									>
 										{message.i18nKey ? t(message.i18nKey) : message.text}
 									</BubbleContent>
 								</Bubble>

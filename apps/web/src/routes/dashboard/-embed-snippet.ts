@@ -9,9 +9,8 @@ export type EmbedConfig = {
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
 
-// The repo does not host a public CDN origin, so the dashboard must be told
-// where widget.js is served (scripts/dev.ts points this at the widget dev
-// server; deployments set their own origin). Without it no snippet is shown.
+// The dashboard must be told where widget.js is served (scripts/dev.ts points
+// this at the widget dev server; deployments set their own origin).
 export function widgetScriptUrl(): string | undefined {
 	return import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
 }

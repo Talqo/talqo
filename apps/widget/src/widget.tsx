@@ -9,10 +9,8 @@ export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
 
-// Reads the embed snippet's configuration, e.g.
-// <script src=".../widget.js" data-talqo-agent="..." data-talqo-language="cs"></script>.
-// currentScript is null when a host page adds defer/async or loads the bundle
-// dynamically, so fall back to a lookup (single-widget pages only).
+// Reads the snippet's data-talqo-* attributes. currentScript is null for
+// defer/async or dynamic loads, so fall back to a lookup (single-widget pages).
 function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
@@ -39,9 +37,8 @@ function embedProps(): EmbeddedWidgetProps {
 	}
 }
 
-// The pasted snippet carries no mount element, so the default embed path
-// creates its own root. An explicit target must still exist — a missing one
-// is a host-page error, not something to paper over.
+// The snippet carries no mount element, so the default path creates its own
+// root. An explicit target must exist — a missing one is a host-page error.
 function resolveMountElement(target: MountTarget): HTMLElement | null {
 	const element = typeof target === "string" ? document.querySelector(target) : target
 	if (element instanceof HTMLElement || target !== DEFAULT_TARGET) {
@@ -73,17 +70,8 @@ export function unmount() {
 	}
 }
 
-declare global {
-	// eslint-disable-next-line typescript/consistent-type-definitions -- window augmentation requires interface merging.
-	interface Window {
-		TalqoWidget?: {
-			mount: typeof mount
-			unmount: typeof unmount
-		}
-	}
-}
-
-window.TalqoWidget = { mount, unmount }
+const globalScope = window as { TalqoWidget?: { mount: typeof mount; unmount: typeof unmount } }
+globalScope.TalqoWidget = { mount, unmount }
 
 if (document.readyState === "loading") {
 	document.addEventListener("DOMContentLoaded", () => mount())
