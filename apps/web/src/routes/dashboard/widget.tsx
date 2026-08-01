@@ -23,10 +23,7 @@ export const Route = createFileRoute("/dashboard/widget")({
 	component: WidgetPage,
 })
 
-const positions: { value: EmbedPosition; labelKey: string }[] = [
-	{ value: "bottom-right", labelKey: "widgetSetup.positionBottomRight" },
-	{ value: "bottom-left", labelKey: "widgetSetup.positionBottomLeft" },
-]
+const positions: EmbedPosition[] = ["bottom-right", "bottom-left"]
 
 const languages = Object.entries(dashboardLanguages).map(([value, label]) => ({
 	value: value as DashboardLanguage,
@@ -170,8 +167,10 @@ function WidgetPage() {
 								</SelectTrigger>
 								<SelectContent>
 									{positions.map((option) => (
-										<SelectItem key={option.value} value={option.value}>
-											{t(option.labelKey)}
+										<SelectItem key={option} value={option}>
+											{option === "bottom-right"
+												? t("widgetSetup.positionBottomRight")
+												: t("widgetSetup.positionBottomLeft")}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -207,7 +206,7 @@ function WidgetPage() {
 								<span className="bg-destructive/70 size-2.5 rounded-full" />
 								<span className="bg-chart-4 size-2.5 rounded-full" />
 								<span className="bg-primary/70 size-2.5 rounded-full" />
-								<span className="text-muted-foreground ml-2 text-xs">your-site.com</span>
+								<span className="text-muted-foreground ml-2 text-xs">{t("widgetSetup.previewSiteLabel")}</span>
 							</div>
 							<div className="bg-background relative h-[460px]">
 								<WidgetPreview accent={accentColor} position={position} language={widgetLanguage} />

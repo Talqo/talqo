@@ -27,6 +27,7 @@
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
-		}
+		},
+		"i18n": {}
 	}
 }

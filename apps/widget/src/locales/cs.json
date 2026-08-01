@@ -1,11 +1,11 @@
 {
+	"chatIcon": "Ikona chatu",
+	"close": "Zavřít",
+	"closeChat": "Zavřít chat",
 	"defaultTitle": "AI Chat",
 	"greeting": "Dobrý den! Jak vám mohu dnes pomoci?",
-	"placeholder": "Napište zprávu...",
-	"send": "Odeslat",
-	"openChat": "Otevřít chat",
-	"closeChat": "Zavřít chat",
-	"close": "Zavřít",
 	"messageLabel": "Zpráva",
-	"chatIcon": "Ikona chatu"
+	"openChat": "Otevřít chat",
+	"placeholder": "Napište zprávu...",
+	"send": "Odeslat"
 }

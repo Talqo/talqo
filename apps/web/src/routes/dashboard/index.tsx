@@ -4,31 +4,26 @@ import { BarChart3, Bot, MessageSquare, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const cards = [
-	{
-		to: "/dashboard/agents",
-		titleKey: "dashboard.cards.agents.title",
-		descriptionKey: "dashboard.cards.agents.description",
-		icon: Bot,
-	},
-	{
-		to: "/dashboard/widget",
-		titleKey: "dashboard.cards.widget.title",
-		descriptionKey: "dashboard.cards.widget.description",
-		icon: MessageSquare,
-	},
-	{
-		to: "/dashboard/analytics",
-		titleKey: "dashboard.cards.analytics.title",
-		descriptionKey: "dashboard.cards.analytics.description",
-		icon: BarChart3,
-	},
-	{
-		to: "/dashboard/account",
-		titleKey: "dashboard.cards.account.title",
-		descriptionKey: "dashboard.cards.account.description",
-		icon: User,
-	},
+	{ to: "/dashboard/agents", icon: Bot },
+	{ to: "/dashboard/widget", icon: MessageSquare },
+	{ to: "/dashboard/analytics", icon: BarChart3 },
+	{ to: "/dashboard/account", icon: User },
 ] as const
+
+// Translation keys stay static literals so i18next-cli extraction can
+// resolve them; no indirection through config-driven key strings.
+function cardCopy(to: (typeof cards)[number]["to"], t: (key: string) => string) {
+	switch (to) {
+		case "/dashboard/agents":
+			return { title: t("dashboard.cards.agents.title"), description: t("dashboard.cards.agents.description") }
+		case "/dashboard/widget":
+			return { title: t("dashboard.cards.widget.title"), description: t("dashboard.cards.widget.description") }
+		case "/dashboard/analytics":
+			return { title: t("dashboard.cards.analytics.title"), description: t("dashboard.cards.analytics.description") }
+		case "/dashboard/account":
+			return { title: t("dashboard.cards.account.title"), description: t("dashboard.cards.account.description") }
+	}
+}
 
 export const Route = createFileRoute("/dashboard/")({
 	component: DashboardIndexPage,
@@ -44,15 +39,15 @@ function DashboardIndexPage() {
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				{cards.map(({ to, titleKey, descriptionKey, icon: Icon }) => {
-					const title = t(titleKey)
+				{cards.map(({ to, icon: Icon }) => {
+					const { title, description } = cardCopy(to, t)
 					return (
 						<Link key={to} to={to} className="group">
 							<Card className="h-full transition-shadow hover:shadow-md">
 								<CardHeader>
 									<Icon className="text-primary mb-2 size-8" />
 									<CardTitle>{title}</CardTitle>
-									<CardDescription>{t(descriptionKey)}</CardDescription>
+									<CardDescription>{description}</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<span className="text-primary text-sm font-medium group-hover:underline">

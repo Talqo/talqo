@@ -1,129 +1,131 @@
 {
-	"nav": {
-		"dashboard": "仪表盘",
-		"agents": "智能体",
-		"widget": "聊天组件",
-		"analytics": "分析",
-		"account": "账户"
-	},
-	"header": {
-		"toggleNavigation": "切换导航",
-		"toLightTheme": "切换到浅色主题",
-		"toDarkTheme": "切换到深色主题",
-		"language": "语言"
-	},
-	"dashboard": {
-		"heading": "欢迎使用 Talqo",
-		"subheading": "在一个地方管理您的智能体、聊天组件和分析。",
-		"openCard": "打开{{title}} →",
-		"cards": {
-			"agents": {
-				"title": "智能体",
-				"description": "管理您的智能体及其行为。"
-			},
-			"widget": {
-				"title": "聊天组件",
-				"description": "配置并预览嵌入式聊天组件。"
-			},
-			"analytics": {
-				"title": "分析",
-				"description": "查看对话和使用统计。"
-			},
-			"account": {
-				"title": "账户",
-				"description": "更新您的个人资料和偏好设置。"
-			}
-		}
-	},
-	"agentFields": {
-		"name": "名称",
-		"namePlaceholder": "客服智能体",
-		"systemPrompt": "系统提示词",
-		"systemPromptPlaceholder": "你是一位乐于助人的客户支持助手……",
-		"wordBlacklist": "屏蔽词",
-		"blacklistPlaceholder": "垃圾信息、辱骂、诈骗",
-		"blacklistHelp": "用逗号分隔词语。",
-		"statusActive": "已启用",
-		"statusPaused": "已暂停"
-	},
-	"agents": {
-		"heading": "智能体",
-		"subheading": "管理您的智能体及其行为。",
-		"loading": "正在加载智能体…",
-		"empty": "还没有智能体。创建您的第一个智能体开始使用。",
-		"create": "创建智能体",
-		"createDescription": "定义智能体的名称、行为和屏蔽词。",
-		"configure": "配置"
+	"account": {
+		"changePassword": "修改密码",
+		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
+		"comingSoon": "即将推出",
+		"confirmNewPassword": "确认新密码",
+		"currentPassword": "当前密码",
+		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
+		"dangerZone": "危险区域",
+		"deleteAccount": "删除账户",
+		"email": "邮箱",
+		"heading": "账户",
+		"loading": "正在加载账户…",
+		"name": "姓名",
+		"newPassword": "新密码",
+		"profile": "个人资料",
+		"profileDescription": "您的操作员姓名和邮箱。",
+		"profileSaved": "个人资料更改将在后续迭代中持久保存。",
+		"saveProfile": "保存个人资料",
+		"subheading": "管理您的账户设置和偏好。"
 	},
 	"agentConfig": {
 		"backToAgents": "返回智能体列表",
+		"cardDescription": "更改会保存到模拟存储，并在整个仪表盘中生效。",
+		"cardTitle": "智能体配置",
+		"heading": "配置 {{name}}",
 		"loading": "正在加载智能体…",
 		"notFound": "未找到智能体，可能已被删除。",
-		"heading": "配置 {{name}}",
-		"subheading": "更新智能体的名称、行为、屏蔽词和状态。",
-		"cardTitle": "智能体配置",
-		"cardDescription": "更改会保存到模拟存储，并在整个仪表盘中生效。",
 		"save": "保存更改",
-		"saved": "刚刚已保存。"
+		"saved": "刚刚已保存。",
+		"subheading": "更新智能体的名称、行为、屏蔽词和状态。"
 	},
-	"widgetSetup": {
-		"heading": "聊天组件设置",
-		"subheading": "将聊天组件嵌入您的网站并调整其外观。",
-		"openFullPreview": "打开全屏预览",
-		"backToSetup": "返回聊天组件设置",
-		"embedCode": "嵌入代码",
-		"embedDescription": "将此代码粘贴到您网站 body 结束标签之前。",
+	"agentFields": {
+		"blacklistHelp": "用逗号分隔词语。",
+		"blacklistPlaceholder": "垃圾信息、辱骂、诈骗",
+		"name": "名称",
+		"namePlaceholder": "客服智能体",
+		"statusActive": "已启用",
+		"statusPaused": "已暂停",
+		"systemPrompt": "系统提示词",
+		"systemPromptPlaceholder": "你是一位乐于助人的客户支持助手……",
+		"wordBlacklist": "屏蔽词"
+	},
+	"agents": {
+		"configure": "配置",
+		"create": "创建智能体",
+		"createDescription": "定义智能体的名称、行为和屏蔽词。",
+		"empty": "还没有智能体。创建您的第一个智能体开始使用。",
+		"heading": "智能体",
 		"loading": "正在加载智能体…",
-		"empty": "还没有智能体。请先在“智能体”页面创建智能体，再嵌入聊天组件。",
-		"agentLabel": "智能体",
-		"selectAgent": "选择智能体",
-		"copyEmbed": "复制嵌入代码",
-		"appearance": "外观",
-		"appearanceDescription": "应用于嵌入式聊天组件的视觉配置。",
-		"accentColor": "强调色",
-		"accentHex": "强调色十六进制值",
-		"position": "位置",
-		"positionBottomRight": "右下",
-		"positionBottomLeft": "左下",
-		"language": "语言",
-		"notPersisted": "配置暂时不会保存，仅用于预览设置界面的行为。",
-		"livePreview": "实时预览",
-		"livePreviewDescription": "强调色、位置和语言会同时应用到嵌入代码和此预览。",
-		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
-		"previewUnavailable": "此部署未配置实时预览。"
+		"subheading": "管理您的智能体及其行为。"
 	},
 	"analytics": {
-		"heading": "分析",
-		"subheading": "每个智能体的对话和使用统计。",
-		"selectAgent": "选择智能体",
-		"loading": "正在加载智能体…",
-		"empty": "还没有智能体。请在“智能体”页面创建智能体以查看统计。",
-		"loadingStats": "正在加载统计…",
 		"conversations": "对话数",
-		"messages": "消息数",
-		"tokens": "令牌数",
+		"dailyTotals": "最近 30 天的每日总量。",
+		"empty": "还没有智能体。请在“智能体”页面创建智能体以查看统计。",
+		"heading": "分析",
 		"last30Days": "{{metric}}（30 天）",
-		"usageOverTime": "使用量趋势",
-		"dailyTotals": "最近 30 天的每日总量。"
+		"loading": "正在加载智能体…",
+		"loadingStats": "正在加载统计…",
+		"messages": "消息数",
+		"selectAgent": "选择智能体",
+		"subheading": "每个智能体的对话和使用统计。",
+		"tokens": "令牌数",
+		"usageOverTime": "使用量趋势"
 	},
-	"account": {
-		"heading": "账户",
-		"subheading": "管理您的账户设置和偏好。",
-		"loading": "正在加载账户…",
-		"profile": "个人资料",
-		"profileDescription": "您的操作员姓名和邮箱。",
-		"name": "姓名",
-		"email": "邮箱",
-		"profileSaved": "个人资料更改将在后续迭代中持久保存。",
-		"saveProfile": "保存个人资料",
-		"changePassword": "修改密码",
-		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
-		"currentPassword": "当前密码",
-		"newPassword": "新密码",
-		"confirmNewPassword": "确认新密码",
-		"dangerZone": "危险区域",
-		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
-		"deleteAccount": "删除账户",
-		"comingSoon": "即将推出"
+	"dashboard": {
+		"cards": {
+			"account": {
+				"description": "更新您的个人资料和偏好设置。",
+				"title": "账户"
+			},
+			"agents": {
+				"description": "管理您的智能体及其行为。",
+				"title": "智能体"
+			},
+			"analytics": {
+				"description": "查看对话和使用统计。",
+				"title": "分析"
+			},
+			"widget": {
+				"description": "配置并预览嵌入式聊天组件。",
+				"title": "聊天组件"
+			}
+		},
+		"heading": "欢迎使用 Talqo",
+		"openCard": "打开{{title}} →",
+		"subheading": "在一个地方管理您的智能体、聊天组件和分析。"
+	},
+	"header": {
+		"language": "语言",
+		"placeholderName": "账户名称",
+		"toDarkTheme": "切换到深色主题",
+		"toggleNavigation": "切换导航",
+		"toLightTheme": "切换到浅色主题"
+	},
+	"nav": {
+		"account": "账户",
+		"agents": "智能体",
+		"analytics": "分析",
+		"dashboard": "仪表盘",
+		"widget": "聊天组件"
+	},
+	"widgetSetup": {
+		"accentColor": "强调色",
+		"accentHex": "强调色十六进制值",
+		"agentLabel": "智能体",
+		"appearance": "外观",
+		"appearanceDescription": "应用于嵌入式聊天组件的视觉配置。",
+		"backToSetup": "返回聊天组件设置",
+		"copyEmbed": "复制嵌入代码",
+		"embedCode": "嵌入代码",
+		"embedDescription": "将此代码粘贴到您网站 body 结束标签之前。",
+		"empty": "还没有智能体。请先在“智能体”页面创建智能体，再嵌入聊天组件。",
+		"heading": "聊天组件设置",
+		"language": "语言",
+		"livePreview": "实时预览",
+		"livePreviewDescription": "强调色、位置和语言会同时应用到嵌入代码和此预览。",
+		"loading": "正在加载智能体…",
+		"notPersisted": "配置暂时不会保存，仅用于预览设置界面的行为。",
+		"openFullPreview": "打开全屏预览",
+		"position": "位置",
+		"positionBottomLeft": "左下",
+		"positionBottomRight": "右下",
+		"previewSiteLabel": "your-site.com",
+		"previewUnavailable": "此部署未配置实时预览。",
+		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
+		"selectAgent": "选择智能体",
+		"subheading": "将聊天组件嵌入您的网站并调整其外观。"
 	}
 }

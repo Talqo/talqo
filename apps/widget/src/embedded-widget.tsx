@@ -32,7 +32,15 @@ type Message = {
 	// Seed messages carry an i18n key so they re-translate on language switch;
 	// user messages are plain text.
 	text?: string
-	i18nKey?: string
+	i18nKey?: "greeting"
+}
+
+// i18n keys stay static literals so i18next-cli extraction can resolve them.
+function messageText(message: Message, t: (key: string) => string): string | undefined {
+	if (message.i18nKey === "greeting") {
+		return t("greeting")
+	}
+	return message.text
 }
 
 // URL-provided accent is interpolated into a CSS variable; only hex colors are allowed.
@@ -169,7 +177,7 @@ function WidgetChat({
 										variant={message.from === "user" ? "default" : "muted"}
 										className={cn(message.from === "assistant" && "tw:text-foreground")}
 									>
-										{message.i18nKey ? t(message.i18nKey) : message.text}
+										{messageText(message, t)}
 									</BubbleContent>
 								</Bubble>
 							))}
