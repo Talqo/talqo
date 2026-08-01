@@ -1,9 +1,8 @@
 import { PageHeader } from "@/components/page-header"
 import { useAgents, useCreateAgent, useUpdateAgent, type Agent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
-import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
 	Dialog,
 	DialogContent,
@@ -114,13 +113,7 @@ function AgentsPage() {
 					{agents.map((agent) => (
 						<Card key={agent.id}>
 							<CardHeader>
-								<div className="flex items-center justify-between gap-2">
-									<CardTitle>{agent.name}</CardTitle>
-									<Badge variant={agent.status === "active" ? "default" : "secondary"}>
-										{t(agent.status === "active" ? "agentFields.statusActive" : "agentFields.statusPaused")}
-									</Badge>
-								</div>
-								<CardDescription className="line-clamp-2">{agent.systemPrompt}</CardDescription>
+								<CardTitle>{agent.name}</CardTitle>
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="flex items-center justify-between gap-2">

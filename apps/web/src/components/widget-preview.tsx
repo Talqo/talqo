@@ -27,7 +27,17 @@ type WidgetPreviewProps = {
 	title?: string
 }
 
-function previewSrc({ accent, language, title }: { accent?: string; language?: string; title?: string }) {
+function previewSrc({
+	accent,
+	language,
+	title,
+	position,
+}: {
+	accent?: string
+	language?: string
+	title?: string
+	position?: WidgetPosition
+}) {
 	if (!PREVIEW_URL) {
 		return undefined
 	}
@@ -40,6 +50,9 @@ function previewSrc({ accent, language, title }: { accent?: string; language?: s
 	}
 	if (title) {
 		url.searchParams.set("title", title)
+	}
+	if (position) {
+		url.searchParams.set("position", position)
 	}
 	return url.toString()
 }
@@ -79,7 +92,7 @@ function useFrameScale(ref: React.RefObject<HTMLDivElement | null>): number {
 
 export function WidgetPreview({ accent, position = "bottom-right", language, title = "AI Chat" }: WidgetPreviewProps) {
 	const { t } = useTranslation()
-	const src = useMemo(() => previewSrc({ accent, language, title }), [accent, language, title])
+	const src = useMemo(() => previewSrc({ accent, language, title, position }), [accent, language, title, position])
 	const debouncedSrc = useDebouncedValue(src, 300)
 	const frameRef = useRef<HTMLDivElement>(null)
 	const scale = useFrameScale(frameRef)

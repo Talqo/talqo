@@ -18,6 +18,8 @@ test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	const card = page.locator("[data-slot=card]", { hasText: "Docs helper" })
 	await expect(card).toBeVisible()
 	await expect(card.getByText("spam", { exact: true })).toHaveCount(0)
+	// Overview cards stay minimal: no system prompt, no status badge.
+	await expect(card.getByText(/answer questions/)).toHaveCount(0)
 
 	// Configure: blacklist chips and edits live here.
 	// (Button render={<Link />} keeps button role semantics.)
@@ -45,6 +47,12 @@ test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	await expect(snippet).toContainText("data-talqo-agent=")
 	await expect(snippet).toContainText('data-talqo-language="en"')
 	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
+
+	// Bottom-left alignment flows into the snippet and the live preview iframe.
+	await page.getByLabel("Position").click()
+	await page.getByRole("option", { name: "Bottom left" }).click()
+	await expect(snippet).toContainText('data-talqo-position="bottom-left"')
+	await expect(page.locator("iframe")).toHaveAttribute("src", /position=bottom-left/)
 })
 
 test("account security controls stay disabled until the account API exists", async ({ page }) => {
