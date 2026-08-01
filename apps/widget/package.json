@@ -15,7 +15,8 @@
 		"clsx": "2.1.1",
 		"i18next": "^26.3.6",
 		"react-i18next": "^17.0.11",
-		"tailwind-merge": "3.6.0"
+		"tailwind-merge": "3.6.0",
+		"@talqo/ui": "workspace:*"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",

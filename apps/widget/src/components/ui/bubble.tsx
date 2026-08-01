@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@talqo/ui/lib/utils"
 
 // shadcn/ui-derived chat bubble, vendored into the widget app: the embed build
 // hardcodes the tw: utility prefix, which the unprefixed packages/ui
