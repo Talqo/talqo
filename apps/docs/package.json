@@ -12,9 +12,9 @@
 	},
 	"dependencies": {
 		"@tanstack/react-router": "1.170.18",
-		"@tanstack/react-start": "1.168.32",
-		"fumadocs-core": "16.12.1",
-		"fumadocs-ui": "16.12.1",
+		"@tanstack/react-start": "1.168.34",
+		"fumadocs-core": "16.14.0",
+		"fumadocs-ui": "16.14.0",
 		"react": "19.2.8",
 		"react-dom": "19.2.8"
 	},
@@ -22,12 +22,12 @@
 		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/mdx": "2.0.14",
-		"@types/react": "19.2.17",
-		"@types/react-dom": "19.2.3",
-		"@vitejs/plugin-react": "6.0.4",
-		"fumadocs-mdx": "15.2.0",
+		"@types/react": "19.2.18",
+		"@types/react-dom": "19.2.4",
+		"@vitejs/plugin-react": "6.0.5",
+		"fumadocs-mdx": "15.2.1",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
-		"vite": "8.1.5"
+		"vite": "8.2.0"
 	}
 }
