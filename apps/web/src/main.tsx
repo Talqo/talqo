@@ -3,7 +3,6 @@ import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
-import { applyInitialFont } from "./lib/use-font"
 import { applyTheme, getInitialTheme } from "./lib/use-theme"
 import { routeTree } from "./routeTree.gen"
 
@@ -13,7 +12,6 @@ import "./lib/i18n"
 
 // Apply the persisted/system theme before first paint to avoid a flash of the wrong theme.
 applyTheme(getInitialTheme())
-applyInitialFont()
 
 const queryClient = new QueryClient()
 

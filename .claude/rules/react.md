@@ -45,15 +45,6 @@ paths:
 - Use semantic tokens for UI intent: background, foreground, muted, primary, destructive, and border.
 - Keep component code free of one-off colors and ad hoc visual constants.
 - The design token source of truth is `packages/ui/src/styles/globals.css`: primitive palettes plus semantic tokens for light (`:root`) and dark (`.dark`). Add new intents there, not in components.
-- Talqo motif: interactive controls (buttons, select triggers, icon toggles) are pill-shaped — use `rounded-full`, not `rounded-md`.
-
-## Internationalization
-
-- Every app owns its locales: `apps/*/src/locales/<lang>.json` with its own i18next instance in `src/lib/i18n.ts`. Do not share locale files across apps.
-- Register supported languages in the app's `src/lib/languages.ts` guard map; extend all locale JSONs and the registry together when adding a language.
-- All locale JSONs of one app must carry identical key sets — add or rename a key in every language at once.
-- Call `t()` with literal keys so they stay statically greppable; when a key is chosen dynamically (e.g. `labelKey`), map it from an explicit constant list in code.
-
 ## Accessibility And UX
 
 - Add ARIA for behavior native HTML cannot express.

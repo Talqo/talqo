@@ -11,9 +11,6 @@ export type Agent = {
 
 const agentsQueryKey = ["agents"] as const
 
-// Interim in-memory stand-in until the /agents API exists; the dashboard
-// ships an honest empty state, and demo entries load only with
-// VITE_MOCK_AGENTS=true for local development.
 const DEMO_AGENTS: Agent[] = [
 	{
 		id: "demo-1",
@@ -41,9 +38,6 @@ export function useAgents() {
 	})
 }
 
-// The selected agent lives in the `agent` search param (validated on the
-// routes that use this hook), so selection survives navigation and is
-// shareable.
 export function useActiveAgent() {
 	const { data: agentList, isLoading } = useAgents()
 	const { agent: selectedId } = useSearch({ strict: false })
@@ -61,9 +55,6 @@ export function useActiveAgent() {
 	return { agents: agentList, isLoading, activeId, setSelectedId }
 }
 
-// Returns null for unknown ids (e.g. a stale /dashboard/agent/$agentId link)
-// so the page can render its not-found state; React Query rejects undefined
-// data.
 export function useAgent(id: string) {
 	return useQuery({
 		queryKey: [...agentsQueryKey, id],
