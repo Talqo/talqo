@@ -101,6 +101,11 @@ function widgetCssPlugin(): Plugin {
 }
 
 export default defineConfig({
+	// Library builds do not define process.env: the embed must not crash on
+	// host pages evaluating React's CommonJS NODE_ENV guards.
+	define: {
+		"process.env.NODE_ENV": JSON.stringify("production"),
+	},
 	build: {
 		lib: {
 			entry: "src/widget.tsx",
