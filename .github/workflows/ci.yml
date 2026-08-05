@@ -106,6 +106,8 @@ jobs:
         run: bun ci
       - name: Run tests
         run: bun run test
+        env:
+          DATABASE_URL: postgres://talqo:talqo@localhost:5432/talqo
 
   i18n:
     name: I18n
