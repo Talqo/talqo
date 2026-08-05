@@ -2,7 +2,7 @@ import { dashboardLanguages, isDashboardLanguage } from "@/lib/languages"
 import { useLanguage } from "@/lib/use-language"
 import { useTheme } from "@/lib/use-theme"
 import { Button } from "@talqo/ui/components/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
 import { Link } from "@tanstack/react-router"
 import { BarChart3, Bot, LayoutDashboard, Menu, MessageSquare, Moon, Sun, User, X } from "lucide-react"
 import { useState } from "react"
@@ -93,10 +93,10 @@ function LanguageSelect() {
 				}
 			}}
 		>
-			<SelectTrigger className="w-32" aria-label={t("header.language")}>
-				<SelectValue />
+			<SelectTrigger size="sm" className="w-auto justify-center px-3 [&>svg]:hidden" aria-label={t("header.language")}>
+				{language}
 			</SelectTrigger>
-			<SelectContent>
+			<SelectContent align="end">
 				{Object.entries(dashboardLanguages).map(([value, label]) => (
 					<SelectItem key={value} value={value}>
 						{label}
