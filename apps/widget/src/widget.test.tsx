@@ -1,10 +1,6 @@
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { beforeEach, describe, expect, test } from "bun:test"
 
-// The DOM must exist before the widget module loads: importing it auto-mounts.
-GlobalRegistrator.register({ url: "http://localhost/" })
-
-const { mount, unmount } = await import("./widget")
+const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
 
 describe("widget mount", () => {
 	beforeEach(() => {
