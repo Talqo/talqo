@@ -20,7 +20,8 @@
 			"persistent": true
 		},
 		"e2e": {
-			"cache": false
+			"cache": false,
+			"dependsOn": ["@talqo/widget#build"]
 		},
 		"test": {
 			"dependsOn": ["^build"]

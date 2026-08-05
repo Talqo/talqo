@@ -27,7 +27,7 @@ function AgentConfigPage() {
 	const [systemPrompt, setSystemPrompt] = useState("")
 	const [blacklist, setBlacklist] = useState("")
 	const [active, setActive] = useState(false)
-	const [savedAt, setSavedAt] = useState<number | null>(null)
+	const [saved, setSaved] = useState(false)
 
 	// Populate the form once the agent loads (or reloads after an external edit).
 	useEffect(() => {
@@ -47,7 +47,7 @@ function AgentConfigPage() {
 			wordBlacklist: parseBlacklist(blacklist),
 			status: active ? "active" : "paused",
 		})
-		setSavedAt(Date.now())
+		setSaved(true)
 	}
 
 	return (
@@ -122,7 +122,7 @@ function AgentConfigPage() {
 								</div>
 								<div className="flex items-center gap-3 pt-2">
 									<Button type="submit">{t("agentConfig.save")}</Button>
-									{savedAt && <span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>}
+									{saved && <span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>}
 								</div>
 							</form>
 						</CardContent>

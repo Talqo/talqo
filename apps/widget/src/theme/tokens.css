@@ -15,7 +15,6 @@
 	--talqo-input: #e5e5e5;
 	--talqo-ring: #1a7f4b;
 	--talqo-radius: 0.75rem;
-	--talqo-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 /* OS dark is the default; explicit .light/.dark classes override it (embed theme option). */
@@ -36,7 +35,6 @@
 		--talqo-border: #262626;
 		--talqo-input: #262626;
 		--talqo-ring: #2ea86a;
-		--talqo-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
 	}
 }
 
@@ -56,5 +54,4 @@
 	--talqo-border: #262626;
 	--talqo-input: #262626;
 	--talqo-ring: #2ea86a;
-	--talqo-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
 }

@@ -15,7 +15,11 @@ function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
 	}
-	return document.querySelector<HTMLScriptElement>("script[data-talqo-agent]")?.dataset
+	const scripts = document.querySelectorAll<HTMLScriptElement>("script[data-talqo-agent]")
+	if (scripts.length > 1) {
+		console.warn("TalqoWidget: multiple embed snippets found; using the first")
+	}
+	return scripts[0]?.dataset
 }
 
 function embedProps(): EmbeddedWidgetProps {
@@ -58,14 +62,14 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET) {
-	unmount()
-
+	// Resolve before unmounting so a bad target cannot tear down a live widget.
 	const element = resolveMountElement(target)
 	if (!element) {
 		console.warn(`TalqoWidget: mount target not found (${typeof target === "string" ? target : "element"})`)
 		return
 	}
 
+	unmount()
 	root = createRoot(element)
 	root.render(<EmbeddedWidget {...embedProps()} />)
 }

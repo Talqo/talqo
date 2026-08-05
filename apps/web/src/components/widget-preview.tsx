@@ -90,7 +90,7 @@ function useFrameScale(ref: React.RefObject<HTMLDivElement | null>): number {
 	return scale
 }
 
-export function WidgetPreview({ accent, position = "bottom-right", language, title = "AI Chat" }: WidgetPreviewProps) {
+export function WidgetPreview({ accent, position = "bottom-right", language, title }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const src = useMemo(() => previewSrc({ accent, language, title, position }), [accent, language, title, position])
 	const debouncedSrc = useDebouncedValue(src, 300)
@@ -114,7 +114,7 @@ export function WidgetPreview({ accent, position = "bottom-right", language, tit
 		<div ref={frameRef} className={cn("absolute h-[460px] w-full max-w-[336px]", insetClasses[position])}>
 			<iframe
 				src={debouncedSrc}
-				title={title}
+				title={t("widgetSetup.livePreview")}
 				className={cn("absolute h-[460px] w-[336px] border-0", position === "bottom-right" ? "right-0" : "left-0")}
 				style={{
 					transform: `scale(${scale})`,

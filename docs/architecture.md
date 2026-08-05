@@ -170,12 +170,14 @@ module contracts + route metadata
 
 ```text
 apps/web/src/
-|-- main.tsx
-|-- router.tsx
+|-- main.tsx                         # entry point; creates the router
 |-- routeTree.gen.ts                 # generated; never hand-edit
-|-- api/
+|-- api/                              # added with the first real endpoint
 |   |-- client.ts                    # configured generated API client
 |   `-- errors.ts                    # web transport-error normalization
+|-- components/                       # route-shared presentation
+|-- lib/                              # app-level UI infrastructure (i18n, theme, language stores)
+|-- locales/                          # dashboard translations (<lang>.json)
 |-- routes/                           # TanStack Router routes
 `-- features/
     `-- <feature>/                    # reusable user journey
