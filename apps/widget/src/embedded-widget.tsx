@@ -89,15 +89,12 @@ function WidgetChat({
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
 
-	// While the panel is open: the launcher is inert, and closing returns
-	// focus to it.
+	// Closing returns focus to the launcher. It stays clickable while the
+	// panel is open (the focus trap keeps keyboard users inside the panel),
+	// so it also acts as a toggle.
 	useEffect(() => {
-		const launcher = launcherRef.current
-		if (launcher) {
-			launcher.inert = open
-		}
 		if (wasOpen.current && !open) {
-			launcher?.focus()
+			launcherRef.current?.focus()
 		}
 		wasOpen.current = open
 	}, [open])
