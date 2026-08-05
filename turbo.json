@@ -33,6 +33,11 @@
 		"test": {
 			"dependsOn": ["^build"]
 		},
+		"test:integration": {
+			"cache": false,
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
+		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
 		},
