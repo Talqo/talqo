@@ -98,7 +98,7 @@ function LanguageSelect() {
 			</SelectTrigger>
 			<SelectContent align="end">
 				{Object.entries(dashboardLanguages).map(([value, label]) => (
-					<SelectItem key={value} value={value}>
+					<SelectItem key={value} value={value} className="py-2.5 pl-3.5">
 						{label}
 					</SelectItem>
 				))}
