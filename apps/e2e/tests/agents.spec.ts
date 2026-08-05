@@ -44,7 +44,7 @@ test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	await page.getByRole("option", { name: "Docs helper 2" }).click()
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('src="http://localhost:5174/widget.js"')
-	await expect(snippet).toContainText("data-talqo-agent=")
+	await expect(snippet).toContainText('data-talqo-agent="local-')
 	await expect(snippet).toContainText('data-talqo-language="en"')
 	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
 

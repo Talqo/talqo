@@ -93,7 +93,10 @@ function LanguageSelect() {
 				}
 			}}
 		>
-			<SelectTrigger className="w-auto justify-center px-4 [&>svg]:hidden" aria-label={t("header.language")}>
+			<SelectTrigger
+				className="w-auto justify-center px-4 [&>svg]:hidden"
+				aria-label={t("header.language") + ": " + dashboardLanguages[language]}
+			>
 				{language}
 			</SelectTrigger>
 			<SelectContent align="end">

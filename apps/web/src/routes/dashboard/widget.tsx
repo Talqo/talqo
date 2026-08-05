@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
 import { useActiveAgent } from "@/features/agents/agents-query"
-import { type DashboardLanguage, dashboardLanguages } from "@/lib/languages"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
@@ -25,10 +24,19 @@ export const Route = createFileRoute("/dashboard/widget")({
 
 const positions: EmbedPosition[] = ["bottom-right", "bottom-left"]
 
-const languages = Object.entries(dashboardLanguages).map(([value, label]) => ({
-	value: value as DashboardLanguage,
-	label,
-}))
+// Languages the widget embed supports, pinned to the widget app registry
+// (apps/widget/src/lib/i18n.ts); apps never import from one another, so the
+// contract is declared here instead.
+const embedLanguages = [
+	{ value: "en", label: "English" },
+	{ value: "cs", label: "Čeština" },
+	{ value: "zh", label: "中文" },
+] as const
+
+type EmbedLanguage = (typeof embedLanguages)[number]["value"]
+
+const isEmbedLanguage = (value: unknown): value is EmbedLanguage =>
+	typeof value === "string" && embedLanguages.some((option) => option.value === value)
 
 function WidgetPage() {
 	const { t } = useTranslation()
@@ -39,7 +47,7 @@ function WidgetPage() {
 	const [position, setPosition] = useState<EmbedPosition>("bottom-right")
 	// The widget's end-user language is embed configuration; it stays separate
 	// from the operator's dashboard UI language (lib/use-language).
-	const [widgetLanguage, setWidgetLanguage] = useState<DashboardLanguage>("en")
+	const [widgetLanguage, setWidgetLanguage] = useState<EmbedLanguage>("en")
 
 	useEffect(() => {
 		return () => window.clearTimeout(copyTimeout.current)
@@ -161,7 +169,14 @@ function WidgetPage() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="widget-position">{t("widgetSetup.position")}</Label>
-							<Select value={position} onValueChange={(value) => setPosition(value as EmbedPosition)}>
+							<Select
+								value={position}
+								onValueChange={(value) => {
+									if (value === "bottom-right" || value === "bottom-left") {
+										setPosition(value)
+									}
+								}}
+							>
 								<SelectTrigger id="widget-position" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
@@ -178,12 +193,19 @@ function WidgetPage() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="widget-language">{t("widgetSetup.language")}</Label>
-							<Select value={widgetLanguage} onValueChange={(value) => setWidgetLanguage(value as DashboardLanguage)}>
+							<Select
+								value={widgetLanguage}
+								onValueChange={(value) => {
+									if (isEmbedLanguage(value)) {
+										setWidgetLanguage(value)
+									}
+								}}
+							>
 								<SelectTrigger id="widget-language" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{languages.map((option) => (
+									{embedLanguages.map((option) => (
 										<SelectItem key={option.value} value={option.value}>
 											{option.label}
 										</SelectItem>

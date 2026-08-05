@@ -127,7 +127,6 @@ function WidgetChat({
 			{open && (
 				<div
 					role="dialog"
-					aria-modal="true"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
 					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
@@ -157,7 +156,7 @@ function WidgetChat({
 								strokeWidth="2"
 								strokeLinecap="round"
 								strokeLinejoin="round"
-								role="img"
+								aria-hidden="true"
 							>
 								<title>{t("close")}</title>
 								<path d="M18 6 6 18" />
@@ -204,7 +203,7 @@ function WidgetChat({
 								strokeWidth="2"
 								strokeLinecap="round"
 								strokeLinejoin="round"
-								role="img"
+								aria-hidden="true"
 							>
 								<title>{t("send")}</title>
 								<path d="m22 2-7 20-4-9-9-4Z" />
@@ -233,7 +232,7 @@ function WidgetChat({
 					strokeWidth="2"
 					strokeLinecap="round"
 					strokeLinejoin="round"
-					role="img"
+					aria-hidden="true"
 				>
 					<title>{t("chatIcon")}</title>
 					<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />

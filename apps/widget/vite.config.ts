@@ -23,6 +23,16 @@ function scopeWidgetCss(css: string): string {
 		atRule.remove()
 	})
 
+	// With @property gone, --tw-* defaults depend on Tailwind's @supports
+	// fallback — but Chromium answers false for both its feature probes, and
+	// the defaults never materialize (border-style collapses to none). The
+	// rules are already scoped here, so the wrapper can go.
+	root.walkAtRules("supports", (atRule) => {
+		if (atRule.params.includes("-webkit-hyphens")) {
+			atRule.replaceWith(...(atRule.nodes ?? []))
+		}
+	})
+
 	root.walkRules((rule) => {
 		rule.selectors = rule.selectors.map((selector) => {
 			switch (selector) {
@@ -65,7 +75,9 @@ function assertNoGlobalRules(root: Root): void {
 			return
 		}
 		for (const selector of rule.selectors) {
-			if (!selector.startsWith(SCOPE) && !selector.includes(".tw\\:")) {
+			const scoped =
+				selector.startsWith(SCOPE) || selector.startsWith(`:where(${SCOPE})`) || selector.includes(".tw\\:")
+			if (!scoped) {
 				leaked.push(selector)
 			}
 		}
