@@ -6,6 +6,7 @@ const envSchema = z.object({
 		error: "DATABASE_URL must be a valid postgres:// connection string",
 	}),
 	TALQO_API_PORT: z.coerce.number().int().positive().max(65535).default(3000),
+	NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -29,5 +30,8 @@ export const env: Env = {
 	},
 	get TALQO_API_PORT() {
 		return load().TALQO_API_PORT
+	},
+	get NODE_ENV() {
+		return load().NODE_ENV
 	},
 }

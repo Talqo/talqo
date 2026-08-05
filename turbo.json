@@ -23,7 +23,8 @@
 			"cache": false
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
 		},
 		"test:integration": {
 			"cache": false,
