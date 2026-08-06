@@ -66,3 +66,7 @@ export const grantResponseSchema = z.object({
 		grantedAt: z.date(),
 	}),
 })
+
+export const resetPasswordRequestSchema = z.object({
+	newPassword: passwordSchema,
+})
