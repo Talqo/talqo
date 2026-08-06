@@ -42,8 +42,10 @@ test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	await page.getByRole("link", { name: "Widget", exact: true }).click()
 	await page.getByLabel("Agent").click()
 	await page.getByRole("option", { name: "Docs helper 2" }).click()
+	const widgetCdnUrl = process.env.E2E_WIDGET_CDN_URL
+	if (!widgetCdnUrl) throw new Error("E2E_WIDGET_CDN_URL missing — playwright.config.ts provides it")
 	const snippet = page.locator("pre")
-	await expect(snippet).toContainText('src="http://localhost:5174/widget.js"')
+	await expect(snippet).toContainText(`src="${widgetCdnUrl}"`)
 	await expect(snippet).toContainText('data-talqo-agent="local-')
 	await expect(snippet).toContainText('data-talqo-language="en"')
 	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
