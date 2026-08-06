@@ -44,6 +44,3 @@ playwright-report/
 test-results/
 blob-report/
 playwright/.auth/
-
-# Local-only git hygiene rules
-.gitattributes

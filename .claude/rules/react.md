@@ -44,7 +44,6 @@ paths:
 - Define colors, radii, spacing, and semantic variants in the theme layer.
 - Use semantic tokens for UI intent: background, foreground, muted, primary, destructive, and border.
 - Keep component code free of one-off colors and ad hoc visual constants.
-- The design token source of truth is `packages/ui/src/styles/globals.css`: primitive palettes plus semantic tokens for light (`:root`) and dark (`.dark`). Add new intents there, not in components.
 ## Accessibility And UX
 
 - Add ARIA for behavior native HTML cannot express.

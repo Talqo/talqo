@@ -18,7 +18,5 @@ Run after changes:
 bun run quality:fix
 bun run typecheck
 bun test
-bun run i18n         # translation status/lint/extract check (web + widget)
-bun run i18n:fix     # after touching user-facing text, to resync locales
 bun run actions:check  # only if GH actions changed
 ```
