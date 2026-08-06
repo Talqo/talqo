@@ -7,6 +7,8 @@ import {
 } from "@/modules/identity/identity.service.ts"
 import { z } from "zod"
 
+import { PERMISSIONS } from "./roles.service.ts"
+
 const usernameSchema = z
 	.string()
 	.min(USERNAME_MIN_LENGTH)
@@ -46,4 +48,21 @@ export const redeemInvitationRequestSchema = z.object({
 
 export const redeemInvitationResponseSchema = z.object({
 	user: userResponseSchema,
+})
+
+export const createGrantRequestSchema = z.object({
+	userId: z.string().min(1),
+	permission: z.enum(PERMISSIONS),
+	agentId: z.string().min(1).optional(),
+})
+
+export const grantResponseSchema = z.object({
+	grant: z.object({
+		id: z.string(),
+		userId: z.string(),
+		permission: z.string(),
+		agentId: z.string().nullable(),
+		grantedBy: z.string().nullable(),
+		grantedAt: z.date(),
+	}),
 })

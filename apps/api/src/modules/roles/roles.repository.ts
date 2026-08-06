@@ -1,12 +1,14 @@
 import { db } from "@/db/client.ts"
 import { and, eq, gt, isNull } from "drizzle-orm"
 
-import { invitation, userRole } from "./roles.schema.ts"
+import { invitation, permissionGrant, userRole } from "./roles.schema.ts"
 
 export type UserRole = typeof userRole.$inferSelect
 export type NewUserRole = typeof userRole.$inferInsert
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert
+export type PermissionGrant = typeof permissionGrant.$inferSelect
+export type NewPermissionGrant = typeof permissionGrant.$inferInsert
 
 export async function adminExists(): Promise<boolean> {
 	const [row] = await db.select({ id: userRole.id }).from(userRole).where(eq(userRole.role, "admin")).limit(1)
@@ -46,4 +48,18 @@ export async function claimInvitation(tokenHash: string): Promise<Invitation | u
 
 export async function unclaimInvitation(id: string): Promise<void> {
 	await db.update(invitation).set({ redeemedAt: null }).where(eq(invitation.id, id))
+}
+
+export async function insertPermissionGrant(values: NewPermissionGrant): Promise<PermissionGrant> {
+	const [row] = await db.insert(permissionGrant).values(values).returning()
+	if (!row) throw new Error("insertPermissionGrant: insert returned no row")
+	return row
+}
+
+export async function deletePermissionGrant(id: string): Promise<void> {
+	await db.delete(permissionGrant).where(eq(permissionGrant.id, id))
+}
+
+export async function findGrantsForUser(userId: string): Promise<PermissionGrant[]> {
+	return db.select().from(permissionGrant).where(eq(permissionGrant.userId, userId))
 }

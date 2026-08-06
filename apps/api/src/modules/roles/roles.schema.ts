@@ -37,3 +37,26 @@ export const invitation = pgTable(
 	},
 	(table) => [index("invitation_invited_by_idx").on(table.invitedBy)],
 )
+
+export const permissionGrant = pgTable(
+	"permission_grant",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		// Free text, not a DB enum: each module that gains mutating routes later (agent,
+		// mcp, ...) owns and defines its own permission strings; roles only stores and
+		// checks them.
+		permission: text("permission").notNull(),
+		// No FK: the `agent` module/table doesn't exist in this codebase yet (out of scope
+		// for this plan). ERD.md models AGENT ||--o{ PERMISSION_GRANT : scopes
+		// conceptually; wire the real FK once `agent` ships its schema.
+		agentId: text("agent_id"),
+		// Nullable + set null (not cascade): deleting the granting admin's account must not
+		// silently revoke grants they made to other, unrelated users.
+		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
+		grantedAt: timestamp("granted_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+	},
+	(table) => [index("permission_grant_user_id_idx").on(table.userId)],
+)

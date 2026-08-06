@@ -8,6 +8,7 @@ erDiagram
     SESSION
     USER_ROLE
     INVITATION
+    PERMISSION_GRANT
     AUDIT_LOG
 
     AGENT
@@ -27,9 +28,11 @@ erDiagram
     USER ||--o{ SESSION : authenticates
     USER ||--o{ USER_ROLE : has
     USER ||--o{ INVITATION : sends
+    USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
     USER ||--o{ AGENT : configures
+    AGENT ||--o{ PERMISSION_GRANT : scopes
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
     AGENT ||--o{ FILE_EMBEDDING : embeds

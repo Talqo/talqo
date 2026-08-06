@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import {
 	bootstrapAdminRequestSchema,
+	createGrantRequestSchema,
 	redeemInvitationRequestSchema,
 	setupStatusResponseSchema,
 } from "./roles.contract.ts"
@@ -34,8 +35,8 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 	})
 	.post("/api/invitations", async (c) => {
 		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, 403)
+		if (!(await service.authorize(user.id, "users:invite"))) {
+			return c.json({ error: "Missing users:invite permission" }, 403)
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
@@ -55,4 +56,25 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 			if (isUniqueViolation(error)) return c.json({ error: "Username already in use" }, 409)
 			throw error
 		}
+	})
+	.post("/api/permission-grants", async (c) => {
+		const user = c.get("user")
+		if (!(await service.isAdmin(user.id))) {
+			return c.json({ error: "Admin access required" }, 403)
+		}
+
+		const body = createGrantRequestSchema.safeParse(await parseJsonBody(c))
+		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
+
+		const grant = await service.grantPermission({ ...body.data, grantedBy: user.id })
+		return c.json({ grant }, 201)
+	})
+	.delete("/api/permission-grants/:id", async (c) => {
+		const user = c.get("user")
+		if (!(await service.isAdmin(user.id))) {
+			return c.json({ error: "Admin access required" }, 403)
+		}
+
+		await service.revokePermission(c.req.param("id"))
+		return c.body(null, 204)
 	})
