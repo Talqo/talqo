@@ -5,6 +5,7 @@ Entities and relationships only — no columns or types. Column-level design is 
 ```mermaid
 erDiagram
     USER
+    SESSION
     USER_ROLE
     INVITATION
     AUDIT_LOG
@@ -23,6 +24,7 @@ erDiagram
     FILE_EMBEDDING
     USAGE_RECORD
 
+    USER ||--o{ SESSION : authenticates
     USER ||--o{ USER_ROLE : has
     USER ||--o{ INVITATION : sends
     USER ||--o{ AUDIT_LOG : performs

@@ -1,4 +1,5 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
+import type { Context } from "hono"
 
 import { env } from "@/config/env.ts"
 import { Hono } from "hono"
@@ -13,7 +14,17 @@ import {
 } from "./identity.contract.ts"
 import * as service from "./identity.service.ts"
 
-const SESSION_COOKIE = "session"
+const { SESSION_COOKIE } = service
+
+// c.req.json() throws a SyntaxError on malformed bodies; swallow it into `undefined` so
+// it flows into the existing schema.safeParse(...) -> 400 path instead of an uncaught 500.
+async function parseJsonBody(c: Context): Promise<unknown> {
+	try {
+		return await c.req.json()
+	} catch {
+		return undefined
+	}
+}
 
 function sessionCookieOptions() {
 	return {
@@ -37,7 +48,7 @@ function isUniqueViolation(error: unknown): boolean {
 
 export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 	.post("/api/auth/sign-in", async (c) => {
-		const body = signInRequestSchema.safeParse(await c.req.json())
+		const body = signInRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
 
 		try {
@@ -63,7 +74,7 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 		return c.json(sessionResponseSchema.parse({ user: result?.user ?? null }))
 	})
 	.patch("/api/me", async (c) => {
-		const body = updateAccountRequestSchema.safeParse(await c.req.json())
+		const body = updateAccountRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
 
 		try {
@@ -75,11 +86,13 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.patch("/api/me/password", async (c) => {
-		const body = changePasswordRequestSchema.safeParse(await c.req.json())
+		const body = changePasswordRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
 
 		try {
 			await service.changePassword(c.get("user").id, body.data.currentPassword, body.data.newPassword)
+			// changePassword invalidates all sessions for the user, including this request's.
+			deleteCookie(c, SESSION_COOKIE, { path: "/" })
 			return c.body(null, 204)
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {

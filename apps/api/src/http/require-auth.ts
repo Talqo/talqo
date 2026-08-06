@@ -8,14 +8,14 @@ export type AuthedVariables = {
 	user: PublicUser
 }
 
-const EXEMPT_PATHS = new Set(["/health", "/api/auth/sign-in", "/api/auth/session", "/api/auth/sign-out"])
+const EXEMPT_PATHS = new Set(["/health", ...identity.PUBLIC_AUTH_PATHS])
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (EXEMPT_PATHS.has(c.req.path)) {
 		return next()
 	}
 
-	const token = getCookie(c, "session")
+	const token = getCookie(c, identity.SESSION_COOKIE)
 	const session = token ? await identity.getSession(token) : null
 	if (!session) {
 		return c.json({ error: "Authentication required" }, 401)
