@@ -1,6 +1,7 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
 
 import * as identity from "@/modules/identity/identity.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 
@@ -8,7 +9,7 @@ export type AuthedVariables = {
 	user: PublicUser
 }
 
-const EXEMPT_PATHS = new Set(["/health", ...identity.PUBLIC_AUTH_PATHS])
+const EXEMPT_PATHS = new Set(["/health", ...identity.PUBLIC_AUTH_PATHS, ...roles.PUBLIC_SETUP_PATHS])
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (EXEMPT_PATHS.has(c.req.path)) {
