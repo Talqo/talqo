@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { getSetupStatus } from "@/api/client.ts"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/")({
-	component: Home,
+	beforeLoad: async () => {
+		const { needsSetup } = await getSetupStatus()
+		throw redirect({ to: needsSetup ? "/setup" : "/login" })
+	},
+	component: () => <p>Loading…</p>,
 })
-
-function Home() {
-	return <h1>Talqo</h1>
-}
