@@ -44,7 +44,6 @@ paths:
 - Define colors, radii, spacing, and semantic variants in the theme layer.
 - Use semantic tokens for UI intent: background, foreground, muted, primary, destructive, and border.
 - Keep component code free of one-off colors and ad hoc visual constants.
-
 ## Accessibility And UX
 
 - Add ARIA for behavior native HTML cannot express.

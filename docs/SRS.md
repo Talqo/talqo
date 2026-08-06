@@ -65,7 +65,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | Not started |
 | FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Not started |
-| FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Not started |
+| FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | In progress (minimize/reopen keeps session state; reload persistence pending) |
 | FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Not started |
 | FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Not started |
 | FR-1.6 | End user can rate individual agent responses with a thumbs up / thumbs down | Low | Not started |
@@ -86,7 +86,7 @@ Talqo is related to these repos:
 | FR-2.4 | Operator can change their account password | Medium | Not started |
 | FR-2.5 | Operator can update their account information (e.g. name, email) | Medium | Not started |
 | FR-2.6 | Operator can delete their account | Medium | Not started |
-| FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Not started |
+| FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | In progress (script-tag snippet; origin via VITE_WIDGET_CDN_URL) |
 | FR-2.8 | Operator can rotate the widget's public token to invalidate the old embed code | Medium | Not started |
 
 #### 3.2.2 API configuration (FR-2b)
@@ -100,10 +100,10 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can create a new agent with custom name | Medium | Not started |
-| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Not started |
-| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Not started |
-| FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | Not started |
+| FR-2.10 | Operator can create a new agent with custom name | Medium | In progress (dashboard UI, in-memory store) |
+| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | In progress (single raw prompt field, per v1) |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (dashboard UI; runtime enforcement pending) |
+| FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress (live widget-shell preview; no AI responses) |
 | FR-2.13a | Operator can delete an agent | Medium | Not started |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
@@ -121,18 +121,18 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.20 | Operator can set the widget's accent color via a hex color picker | Medium | Not started |
+| FR-2.20 | Operator can set the widget's accent color via a hex color picker | Medium | In progress (hex picker wired to embed; not persisted) |
 | FR-2.21 | Operator can toggle whether the widget displays a light/dark mode switch to end users | Low | Not started |
-| FR-2.22 | Operator can set the widget's display language | Low | Not started |
+| FR-2.22 | Operator can set the widget's display language | Low | In progress (embed setting; separate from operator UI language) |
 | FR-2.23 | Operator can set the agent's avatar image | Low | Not started |
-| FR-2.24 | Operator can set the widget's on-page position (e.g. bottom-right, bottom-left) | Low | Not started |
+| FR-2.24 | Operator can set the widget's on-page position (e.g. bottom-right, bottom-left) | Low | In progress (bottom-right/bottom-left wired to embed) |
 
 #### 3.2.6 Analytics (FR-2f)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | Not started |
-| FR-2.26 | Dashboard displays the total number of end-user questions over time | Medium | Not started |
+| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | In progress (mock statistics) |
+| FR-2.26 | Dashboard displays the total number of end-user questions over time | Medium | In progress (mock statistics; charts total messages) |
 | FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |
@@ -156,7 +156,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | Not started |
+| NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | In progress (built widget.js self-mounts from a script tag) |
 | NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app is expected to use a documentation framework (fumadocs is the leading candidate) | High | Not started |
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
@@ -187,8 +187,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-4.1 | Widget must be fully responsive and usable across screen sizes, including mobile devices | | High | Not started |
-| NFR-4.2 | Widget defaults to the end user's system color-scheme preference (light/dark); the operator may override it via configuration | | High | Not started |
+| NFR-4.1 | Widget must be fully responsive and usable across screen sizes, including mobile devices | | High | In progress (panel caps at viewport width) |
+| NFR-4.2 | Widget defaults to the end user's system color-scheme preference (light/dark); the operator may override it via configuration | | High | In progress (system default + data-talqo-theme override) |
 
 ### 4.5 Test Coverage (NFR-5)
 

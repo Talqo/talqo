@@ -1,0 +1,56 @@
+/* Embed build: utilities carry the tw: prefix so they can't restyle host
+   elements unless the host uses the same prefix; vite.config.ts strips and
+   scopes the remaining unprefixed global rules. */
+
+/* Preflight is stripped from the embed bundle, so the chat's button/input
+   normalization is replaced here. Coming first keeps the layer below tw:
+   utilities, and the @layer base removal at build leaves it untouched. */
+@layer talqo-reset {
+	:where(.talqo-widget) :where(button, input) {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		font: inherit;
+		color: inherit;
+	}
+}
+
+@import "./theme/tokens.css";
+@import "tailwindcss" prefix(tw);
+
+/* The embed applies theme=dark as a class on .talqo-widget, not via OS media. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+	--color-background: var(--talqo-background);
+	--color-foreground: var(--talqo-foreground);
+	--color-card: var(--talqo-card);
+	--color-card-foreground: var(--talqo-foreground);
+	--color-primary: var(--talqo-primary);
+	--color-primary-foreground: var(--talqo-primary-foreground);
+	--color-muted: var(--talqo-muted);
+	--color-muted-foreground: var(--talqo-muted-foreground);
+	--color-accent: var(--talqo-accent);
+	--color-accent-foreground: var(--talqo-accent-foreground);
+	--color-secondary: var(--talqo-secondary);
+	--color-secondary-foreground: var(--talqo-secondary-foreground);
+	--color-destructive: var(--talqo-destructive);
+	--color-border: var(--talqo-border);
+	--color-input: var(--talqo-input);
+	--color-ring: var(--talqo-ring);
+	--radius-md: var(--talqo-radius);
+}
+
+/* Minimal reset scoped to the widget only. */
+.talqo-widget,
+.talqo-widget *,
+.talqo-widget *::before,
+.talqo-widget *::after {
+	box-sizing: border-box;
+}
+
+.talqo-widget p,
+.talqo-widget h2 {
+	margin: 0;
+}

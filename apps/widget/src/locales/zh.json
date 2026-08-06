@@ -1,0 +1,11 @@
+{
+	"chatIcon": "聊天图标",
+	"close": "关闭",
+	"closeChat": "关闭聊天",
+	"defaultTitle": "AI 聊天",
+	"greeting": "你好！今天我能为您做些什么？",
+	"messageLabel": "消息",
+	"openChat": "打开聊天",
+	"placeholder": "输入消息...",
+	"send": "发送"
+}

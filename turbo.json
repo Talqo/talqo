@@ -20,13 +20,19 @@
 			"persistent": true
 		},
 		"e2e": {
-			"cache": false
+			"cache": false,
+			"dependsOn": ["@talqo/widget#build"]
 		},
 		"test": {
 			"dependsOn": ["^build"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
+		},
+		"i18n": {},
+		"i18n:fix": {},
+		"@talqo/widget#test": {
+			"dependsOn": ["^build", "build"]
 		}
 	}
 }
