@@ -13,12 +13,16 @@ function uniqueUsername(): string {
 	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
 }
 
-async function signIn(username: string, password: string): Promise<string> {
-	const response = await app.request("/api/auth/sign-in", {
+async function signInResponse(username: string, password: string): Promise<Response> {
+	return app.request("/api/auth/sign-in", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
 	})
+}
+
+async function signIn(username: string, password: string): Promise<string> {
+	const response = await signInResponse(username, password)
 	const setCookie = response.headers.get("set-cookie")
 	if (!setCookie) throw new Error("Expected a Set-Cookie header")
 	const [cookiePair] = setCookie.split(";")
@@ -276,5 +280,66 @@ describe("permission grants", () => {
 		// rather than relying on anything cached in the session.
 		const afterRevoke = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
 		expect(afterRevoke.status).toBe(403)
+	})
+})
+
+describe("admin password reset", () => {
+	it("lets an admin reset a member's password", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+
+		const response = await app.request(`/api/users/${member.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "admin-reset-password-123" }),
+		})
+
+		expect(response.status).toBe(204)
+		expect((await signInResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
+		expect((await signInResponse(memberUsername, "admin-reset-password-123")).status).toBe(200)
+	})
+
+	it("invalidates the target account's existing sessions once the reset happens", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const memberCookie = await signIn(memberUsername, DEFAULT_PASSWORD)
+		const memberSessionResponse = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
+		const { user: member } = (await memberSessionResponse.json()) as { user: { id: string } }
+
+		await app.request(`/api/users/${member.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "admin-reset-password-456" }),
+		})
+
+		const replayedSession = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
+		expect(await replayedSession.json()).toEqual({ user: null })
+	})
+
+	it("denies a non-admin attempting to reset another account's password", async () => {
+		const memberCookie = await createMemberSession()
+		const target = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+
+		const response = await app.request(`/api/users/${target.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: memberCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "attempted-takeover-password" }),
+		})
+
+		expect(response.status).toBe(403)
+	})
+
+	it("returns 404 when resetting the password of a nonexistent user", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+
+		const response = await app.request(`/api/users/${crypto.randomUUID()}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "does-not-matter-password" }),
+		})
+
+		expect(response.status).toBe(404)
 	})
 })

@@ -2,6 +2,7 @@ import type { AuthedVariables } from "@/http/require-auth.ts"
 
 import { parseJsonBody } from "@/http/json-body.ts"
 import { isUniqueViolation } from "@/lib/pg-error.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
 import { Hono } from "hono"
 import { z } from "zod"
 
@@ -9,6 +10,7 @@ import {
 	bootstrapAdminRequestSchema,
 	createGrantRequestSchema,
 	redeemInvitationRequestSchema,
+	resetPasswordRequestSchema,
 	setupStatusResponseSchema,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
@@ -77,4 +79,23 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 
 		await service.revokePermission(c.req.param("id"))
 		return c.body(null, 204)
+	})
+	.patch("/api/users/:userId/password", async (c) => {
+		const user = c.get("user")
+		if (!(await service.isAdmin(user.id))) {
+			return c.json({ error: "Admin access required" }, 403)
+		}
+
+		const body = resetPasswordRequestSchema.safeParse(await parseJsonBody(c))
+		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
+
+		try {
+			await identity.setPassword(c.req.param("userId"), body.data.newPassword)
+			return c.body(null, 204)
+		} catch (error) {
+			if (error instanceof identity.UserNotFoundError) {
+				return c.json({ error: error.message }, 404)
+			}
+			throw error
+		}
 	})

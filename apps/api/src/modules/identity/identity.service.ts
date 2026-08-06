@@ -25,6 +25,7 @@ export class InvalidCredentialsError extends Error {}
 export class InvalidPasswordError extends Error {}
 export class InvalidUsernameError extends Error {}
 export class InvalidPasswordFormatError extends Error {}
+export class UserNotFoundError extends Error {}
 
 export type PublicUser = Pick<User, "id" | "username">
 
@@ -100,7 +101,7 @@ export async function getSession(token: string): Promise<{ expiresAt: Date; user
 
 export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
 	const user = await repo.findUserById(userId)
-	if (!user) throw new Error(`changePassword: user ${userId} not found`)
+	if (!user) throw new UserNotFoundError(`changePassword: user ${userId} not found`)
 
 	const currentValid = await Bun.password.verify(currentPassword, user.passwordHash)
 	if (!currentValid) throw new InvalidPasswordError("Current password is incorrect")
@@ -112,6 +113,9 @@ export async function changePassword(userId: string, currentPassword: string, ne
 }
 
 export async function setPassword(userId: string, newPassword: string): Promise<void> {
+	const user = await repo.findUserById(userId)
+	if (!user) throw new UserNotFoundError(`setPassword: user ${userId} not found`)
+
 	assertValidPassword(newPassword)
 	const passwordHash = await Bun.password.hash(newPassword)
 	await repo.updatePasswordHash(userId, passwordHash)
@@ -121,7 +125,7 @@ export async function setPassword(userId: string, newPassword: string): Promise<
 export async function updateAccount(userId: string, input: { username: string }): Promise<PublicUser> {
 	assertValidUsername(input.username)
 	const user = await repo.updateUser(userId, input)
-	if (!user) throw new Error(`updateAccount: user ${userId} not found`)
+	if (!user) throw new UserNotFoundError(`updateAccount: user ${userId} not found`)
 	return toPublicUser(user)
 }
 
