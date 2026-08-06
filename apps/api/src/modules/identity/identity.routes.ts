@@ -1,7 +1,8 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
-import type { Context } from "hono"
 
 import { env } from "@/config/env.ts"
+import { parseJsonBody } from "@/http/json-body.ts"
+import { isUniqueViolation } from "@/lib/pg-error.ts"
 import { Hono } from "hono"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 import { z } from "zod"
@@ -16,16 +17,6 @@ import * as service from "./identity.service.ts"
 
 const { SESSION_COOKIE } = service
 
-// c.req.json() throws a SyntaxError on malformed bodies; swallow it into `undefined` so
-// it flows into the existing schema.safeParse(...) -> 400 path instead of an uncaught 500.
-async function parseJsonBody(c: Context): Promise<unknown> {
-	try {
-		return await c.req.json()
-	} catch {
-		return undefined
-	}
-}
-
 function sessionCookieOptions() {
 	return {
 		httpOnly: true,
@@ -33,17 +24,6 @@ function sessionCookieOptions() {
 		secure: env.NODE_ENV === "production",
 		path: "/",
 	}
-}
-
-function isUniqueViolation(error: unknown): boolean {
-	// drizzle-orm wraps the raw Postgres error (with its `code`) in a DrizzleQueryError's
-	// `.cause`, so the unique-violation code isn't on the caught error directly.
-	let current: unknown = error
-	for (let depth = 0; depth < 5 && current; depth += 1) {
-		if (typeof current === "object" && "code" in current && current.code === "23505") return true
-		current = current instanceof Error ? current.cause : undefined
-	}
-	return false
 }
 
 export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
