@@ -28,7 +28,8 @@
 		},
 		"e2e": {
 			"cache": false,
-			"dependsOn": ["@talqo/widget#build"]
+			"dependsOn": ["@talqo/widget#build"],
+			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
 		},
 		"test": {
 			"dependsOn": ["^build"],
