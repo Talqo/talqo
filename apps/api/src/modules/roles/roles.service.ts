@@ -10,6 +10,18 @@ const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/api/setup", "/api/invitations/redeem"]
 
+export const PERMISSIONS = ["users:invite"] as const
+export type Permission = (typeof PERMISSIONS)[number]
+
+export type PermissionGrant = {
+	agentId: string | null
+	grantedAt: Date
+	grantedBy: string | null
+	id: string
+	permission: Permission
+	userId: string
+}
+
 export class AdminAlreadyExistsError extends Error {}
 export class InvalidInvitationError extends Error {}
 
@@ -68,4 +80,45 @@ export async function redeemInvitation(input: {
 		await repo.unclaimInvitation(claimed.id)
 		throw error
 	}
+}
+
+export async function grantPermission(input: {
+	agentId?: string
+	grantedBy: string
+	permission: Permission
+	userId: string
+}): Promise<PermissionGrant> {
+	const row = await repo.insertPermissionGrant({
+		id: crypto.randomUUID(),
+		userId: input.userId,
+		permission: input.permission,
+		agentId: input.agentId ?? null,
+		grantedBy: input.grantedBy,
+	})
+	return { ...row, permission: input.permission }
+}
+
+export async function revokePermission(id: string): Promise<void> {
+	await repo.deletePermissionGrant(id)
+}
+
+// Pure and synchronous by design: the BOLA-sensitive decision (ADR-0009) lives in one
+// small, fully auditable function, separate from where the grants get fetched.
+export function can(
+	user: { isAdmin: boolean },
+	grants: { agentId: string | null; permission: string }[],
+	permission: Permission,
+	agentId?: string,
+): boolean {
+	if (user.isAdmin) return true
+	return grants.some(
+		(grant) => grant.permission === permission && (grant.agentId === null || grant.agentId === agentId),
+	)
+}
+
+export async function authorize(userId: string, permission: Permission, agentId?: string): Promise<boolean> {
+	// Fetched fresh on every call, never cached -- a revoked grant denies the very next
+	// request without needing to touch the user's session (see ADR-0010).
+	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
+	return can({ isAdmin: adminStatus }, grants, permission, agentId)
 }
