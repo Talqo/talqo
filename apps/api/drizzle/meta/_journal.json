@@ -15,6 +15,13 @@
 			"when": 1786037444613,
 			"tag": "0001_bizarre_microbe",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1786039648558,
+			"tag": "0002_tearful_yellowjacket",
+			"breakpoints": true
 		}
 	]
 }
