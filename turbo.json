@@ -30,6 +30,9 @@
 			"dependsOn": ["^typecheck"]
 		},
 		"i18n": {},
-		"i18n:fix": {}
+		"i18n:fix": {},
+		"@talqo/widget#test": {
+			"dependsOn": ["^build", "build"]
+		}
 	}
 }
