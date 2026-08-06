@@ -21,4 +21,20 @@ describe("roles routes", () => {
 
 		expect(response.status).toBe(400)
 	})
+
+	it("rejects an invitation redemption request missing required fields", async () => {
+		const response = await app.request("/api/invitations/redeem", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({}),
+		})
+
+		expect(response.status).toBe(400)
+	})
+
+	it("rejects an unauthenticated request to create an invitation", async () => {
+		const response = await app.request("/api/invitations", { method: "POST" })
+
+		expect(response.status).toBe(401)
+	})
 })

@@ -1,3 +1,5 @@
+import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
+
 import type { User } from "./identity.repository.ts"
 
 import * as repo from "./identity.repository.ts"
@@ -49,14 +51,6 @@ export function assertValidPassword(password: string): void {
 	}
 }
 
-function hashToken(token: string): string {
-	return new Bun.CryptoHasher("sha256").update(token).digest("hex")
-}
-
-function generateToken(): string {
-	return Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url")
-}
-
 export async function createAccount(input: { password: string; username: string }): Promise<PublicUser> {
 	assertValidUsername(input.username)
 	assertValidPassword(input.password)
@@ -80,11 +74,11 @@ export async function login(
 		throw new InvalidCredentialsError("Invalid username or password")
 	}
 
-	const token = generateToken()
+	const token = generateOpaqueToken()
 	const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
 	await repo.insertSession({
 		id: crypto.randomUUID(),
-		tokenHash: hashToken(token),
+		tokenHash: hashOpaqueToken(token),
 		userId: user.id,
 		expiresAt,
 		ipAddress: context.ipAddress,
@@ -95,11 +89,11 @@ export async function login(
 }
 
 export async function logout(token: string): Promise<void> {
-	await repo.deleteSessionByTokenHash(hashToken(token))
+	await repo.deleteSessionByTokenHash(hashOpaqueToken(token))
 }
 
 export async function getSession(token: string): Promise<{ expiresAt: Date; user: PublicUser } | null> {
-	const row = await repo.findSessionByTokenHash(hashToken(token))
+	const row = await repo.findSessionByTokenHash(hashOpaqueToken(token))
 	if (!row || row.session.expiresAt.getTime() <= Date.now()) return null
 	return { user: toPublicUser(row.user), expiresAt: row.session.expiresAt }
 }

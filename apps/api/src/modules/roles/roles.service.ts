@@ -1,13 +1,17 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
 
+import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
 import { isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 
 import * as repo from "./roles.repository.ts"
 
-export const PUBLIC_SETUP_PATHS = ["/api/setup"]
+const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
+
+export const PUBLIC_PATHS = ["/api/setup", "/api/invitations/redeem"]
 
 export class AdminAlreadyExistsError extends Error {}
+export class InvalidInvitationError extends Error {}
 
 export async function hasAdmin(): Promise<boolean> {
 	return repo.adminExists()
@@ -34,4 +38,34 @@ export async function bootstrapAdmin(input: { password: string; username: string
 
 export async function isAdmin(userId: string): Promise<boolean> {
 	return (await repo.findRoleForUser(userId)) === "admin"
+}
+
+export async function createInvitation(invitedBy: string): Promise<{ expiresAt: Date; token: string }> {
+	const token = generateOpaqueToken()
+	const expiresAt = new Date(Date.now() + INVITATION_DURATION_MS)
+	await repo.insertInvitation({
+		id: crypto.randomUUID(),
+		tokenHash: hashOpaqueToken(token),
+		invitedBy,
+		expiresAt,
+	})
+	return { token, expiresAt }
+}
+
+export async function redeemInvitation(input: {
+	password: string
+	token: string
+	username: string
+}): Promise<PublicUser> {
+	const claimed = await repo.claimInvitation(hashOpaqueToken(input.token))
+	if (!claimed) throw new InvalidInvitationError("Invitation is invalid, expired, or already used")
+
+	try {
+		return await identity.createAccount({ username: input.username, password: input.password })
+	} catch (error) {
+		// A recoverable failure (e.g. username taken) shouldn't burn a single-use invite --
+		// give the same link back its claim so the invitee can retry with a different username.
+		await repo.unclaimInvitation(claimed.id)
+		throw error
+	}
 }

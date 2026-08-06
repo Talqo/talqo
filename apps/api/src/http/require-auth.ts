@@ -9,7 +9,7 @@ export type AuthedVariables = {
 	user: PublicUser
 }
 
-const EXEMPT_PATHS = new Set(["/health", ...identity.PUBLIC_AUTH_PATHS, ...roles.PUBLIC_SETUP_PATHS])
+const EXEMPT_PATHS = new Set(["/health", ...identity.PUBLIC_AUTH_PATHS, ...roles.PUBLIC_PATHS])
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (EXEMPT_PATHS.has(c.req.path)) {
