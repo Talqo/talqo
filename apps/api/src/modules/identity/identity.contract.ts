@@ -1,10 +1,18 @@
 import { z } from "zod"
 
+import {
+	PASSWORD_MAX_LENGTH,
+	PASSWORD_MIN_LENGTH,
+	USERNAME_MAX_LENGTH,
+	USERNAME_MIN_LENGTH,
+	USERNAME_PATTERN,
+} from "./identity.service.ts"
+
 const usernameSchema = z
 	.string()
-	.min(3)
-	.max(32)
-	.regex(/^[a-zA-Z0-9_-]+$/, "Username may only contain letters, numbers, underscores, and hyphens")
+	.min(USERNAME_MIN_LENGTH)
+	.max(USERNAME_MAX_LENGTH)
+	.regex(USERNAME_PATTERN, "Username may only contain letters, numbers, underscores, and hyphens")
 
 export const userResponseSchema = z.object({
 	id: z.string(),
@@ -26,5 +34,5 @@ export const updateAccountRequestSchema = z.object({
 
 export const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1),
-	newPassword: z.string().min(8).max(128),
+	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
