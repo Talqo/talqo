@@ -18,5 +18,7 @@ Run after changes:
 bun run quality:fix
 bun run typecheck
 bun test
+bun run i18n
+bun run i18n:fix
 bun run actions:check  # only if GH actions changed
 ```
