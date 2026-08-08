@@ -16,7 +16,6 @@ export function isWidgetLanguage(value: unknown): value is WidgetLanguage {
 	return typeof value === "string" && Object.hasOwn(widgetLanguages, value as WidgetLanguage)
 }
 
-// Isolated instance: the host page may run its own i18next.
 export function createWidgetI18n(language: WidgetLanguage = "en"): I18nInstance {
 	const instance = createInstance()
 	instance.use(initReactI18next).init({

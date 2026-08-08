@@ -8,8 +8,6 @@ import svgr from "vite-plugin-svgr"
 
 const SCOPE = ".talqo-widget"
 
-// Embed CSS must not restyle the host page: strip preflight/@property rules
-// and scope the rest under .talqo-widget. Dev CSS is unscoped.
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
 
@@ -18,16 +16,10 @@ function scopeWidgetCss(css: string): string {
 			atRule.remove()
 		}
 	})
-	// @property registrations are global by definition and emitted for --tw-*
-	// variables; utilities still work via the initial values set under SCOPE.
 	root.walkAtRules("property", (atRule) => {
 		atRule.remove()
 	})
 
-	// With @property gone, --tw-* defaults depend on Tailwind's @supports
-	// fallback — but Chromium answers false for both its feature probes, and
-	// the defaults never materialize (border-style collapses to none). The
-	// rules are already scoped here, so the wrapper can go.
 	root.walkAtRules("supports", (atRule) => {
 		if (atRule.params.includes("-webkit-hyphens")) {
 			atRule.replaceWith(...(atRule.nodes ?? []))
@@ -60,8 +52,6 @@ function scopeWidgetCss(css: string): string {
 	return root.toString()
 }
 
-// @keyframes pass (their names are global by CSS nature); @font-face fails
-// closed until a scoped embedding story exists.
 function assertNoGlobalRules(root: Root): void {
 	const leaked: string[] = []
 	root.walkAtRules("font-face", () => {
@@ -96,8 +86,6 @@ function widgetCssPlugin(): Plugin {
 		configResolved: (config) => {
 			outDir = path.resolve(config.root, config.build.outDir)
 		},
-		// The CSS asset does not exist yet at generateBundle time in this Vite
-		// version (rolldown lib mode), so transform the written file instead.
 		closeBundle: async () => {
 			const assets = (await readdir(outDir)).filter((asset) => asset.endsWith(".css"))
 			if (assets.length === 0) {
@@ -114,8 +102,6 @@ function widgetCssPlugin(): Plugin {
 }
 
 export default defineConfig({
-	// Library builds do not define process.env: the embed must not crash on
-	// host pages evaluating React's CommonJS NODE_ENV guards.
 	define: {
 		"process.env.NODE_ENV": JSON.stringify("production"),
 	},

@@ -16,8 +16,6 @@ const navItems = [
 	{ to: "/dashboard/account", icon: User },
 ] as const
 
-// Translation keys stay static literals so i18next-cli extraction can
-// resolve them; no indirection through config-driven key strings.
 function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => string) {
 	switch (to) {
 		case "/dashboard":
@@ -38,8 +36,6 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 	return (
 		<Link
 			to={to}
-			// The index route must match exactly, otherwise every sub-page would
-			// highlight "Dashboard" as well.
 			activeOptions={{ exact: to === "/dashboard" }}
 			activeProps={{
 				className: "bg-sidebar-primary text-sidebar-primary-foreground",
@@ -117,7 +113,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
-			{/* Desktop sidebar */}
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
 				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">
 					{t("header.placeholderName")}

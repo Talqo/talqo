@@ -49,8 +49,6 @@ function ProfileCard({ operator }: { operator: Operator }) {
 	)
 }
 
-// Password change ships disabled until the account API exists — a working-
-// looking credential form with no backend behind it is a security liability.
 function PasswordCard() {
 	const { t } = useTranslation()
 
@@ -93,7 +91,6 @@ function PasswordCard() {
 	)
 }
 
-// Account deletion is equally gated on the account API.
 function DangerZoneCard() {
 	const { t } = useTranslation()
 

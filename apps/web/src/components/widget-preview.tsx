@@ -8,8 +8,6 @@ const PREVIEW_URL =
 	(import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined) ??
 	(import.meta.env.DEV ? "http://localhost:5174/preview.html" : undefined)
 
-// The widget fixes itself to the iframe corner, so the frame sits flush. It is
-// sized for the open panel plus the launcher and the widget's corner offset.
 const FRAME_WIDTH = 336
 
 const insetClasses: Record<WidgetPosition, string> = {

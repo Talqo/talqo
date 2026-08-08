@@ -9,8 +9,6 @@ export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
 
-// Reads the snippet's data-talqo-* attributes. currentScript is null for
-// defer/async or dynamic loads, so fall back to a lookup (single-widget pages).
 function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
@@ -41,15 +39,11 @@ function embedProps(): EmbeddedWidgetProps {
 	}
 }
 
-// The snippet carries no mount element, so the default path creates its own
-// root. An explicit target must exist — a missing one is a host-page error.
 function resolveMountElement(target: MountTarget): HTMLElement | null {
 	let element: Element | MountTarget | null
 	try {
 		element = typeof target === "string" ? document.querySelector(target) : target
 	} catch {
-		// An invalid selector (e.g. mount("foo")) takes the same warn path as a
-		// missing element instead of breaking the host page.
 		element = null
 	}
 	if (element instanceof HTMLElement || target !== DEFAULT_TARGET) {
@@ -62,7 +56,6 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET) {
-	// Resolve before unmounting so a bad target cannot tear down a live widget.
 	const element = resolveMountElement(target)
 	if (!element) {
 		console.warn(`TalqoWidget: mount target not found (${typeof target === "string" ? target : "element"})`)

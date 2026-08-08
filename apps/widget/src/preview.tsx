@@ -3,8 +3,6 @@ import { createRoot } from "react-dom/client"
 import { EmbeddedWidget } from "./embedded-widget"
 import { isWidgetLanguage } from "./lib/i18n"
 
-// Dashboard iframe preview of the widget; config arrives as URL params
-// (title, language, theme, accent, position).
 const params = new URLSearchParams(window.location.search)
 const language = params.get("language")
 const theme = params.get("theme")

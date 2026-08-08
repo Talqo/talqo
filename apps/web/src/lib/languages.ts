@@ -1,4 +1,3 @@
-// Dashboard UI languages; the widget app owns its own registry (apps/widget).
 export const dashboardLanguages = {
 	en: "English",
 	cs: "Čeština",

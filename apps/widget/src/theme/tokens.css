@@ -17,7 +17,6 @@
 	--talqo-radius: 0.75rem;
 }
 
-/* OS dark is the default; explicit .light/.dark classes override it (embed theme option). */
 @media (prefers-color-scheme: dark) {
 	.talqo-widget:not(.light) {
 		--talqo-primary: #2ea86a;

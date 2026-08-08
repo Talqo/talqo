@@ -12,8 +12,6 @@ export type AgentStats = {
 	}[]
 }
 
-// Seed stable mock stats per agent so refetches do not reshuffle the chart;
-// replace with the /agents/:id/stats endpoint when it exists.
 function seededRandom(seed: number) {
 	let state = seed
 	return () => {
@@ -32,8 +30,6 @@ function hashAgentId(agentId: string): number {
 	return hash
 }
 
-// Label in the same zone the buckets are built in (local); the real endpoint
-// must bucket and label in one declared zone.
 function formatLocalDate(date: Date): string {
 	const month = String(date.getMonth() + 1).padStart(2, "0")
 	const day = String(date.getDate()).padStart(2, "0")

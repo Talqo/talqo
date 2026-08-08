@@ -8,10 +8,9 @@ import { applyTheme, getInitialTheme, ThemeProvider } from "./lib/use-theme"
 import { routeTree } from "./routeTree.gen"
 
 import "@talqo/ui/globals.css"
-// eslint-disable-next-line import/no-unassigned-import -- initializes the dashboard i18next instance for side effects.
+// eslint-disable-next-line import/no-unassigned-import
 import "./lib/i18n"
 
-// Apply the persisted/system theme before first paint to avoid a flash of the wrong theme.
 applyTheme(getInitialTheme())
 
 const queryClient = new QueryClient()
@@ -19,7 +18,7 @@ const queryClient = new QueryClient()
 const router = createRouter({ routeTree })
 
 declare module "@tanstack/react-router" {
-	// eslint-disable-next-line typescript/consistent-type-definitions -- TanStack Router requires interface merging.
+	// eslint-disable-next-line typescript/consistent-type-definitions
 	interface Register {
 		router: typeof router
 	}
