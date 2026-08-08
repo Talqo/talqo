@@ -28,12 +28,22 @@ const DEMO_AGENTS: Agent[] = [
 	},
 ]
 
-let agents: Agent[] = import.meta.env.VITE_MOCK_AGENTS === "true" ? [...DEMO_AGENTS] : []
+// TODO(agents-api): this in-memory seed stands in for GET /agents, which does not
+// exist yet. Seed data (queryFn/initialData) and the create/update mutations below
+// all live one react-query cache away from the real endpoint — swap this function
+// for a fetch and delete initialData when the API lands; the hooks' signatures stay.
+function seedAgents(): Agent[] {
+	return import.meta.env.VITE_MOCK_AGENTS === "true" ? structuredClone(DEMO_AGENTS) : []
+}
 
 export function useAgents() {
 	return useQuery({
 		queryKey: agentsQueryKey,
-		queryFn: () => Promise.resolve(agents),
+		queryFn: () => Promise.resolve([] as Agent[]),
+		initialData: seedAgents,
+		// Seeded data counts as fetched at mount, so later cache updates from
+		// create/update mutations are treated as fresher and always win.
+		initialDataUpdatedAt: 0,
 		staleTime: Number.POSITIVE_INFINITY,
 	})
 }
@@ -56,31 +66,35 @@ export function useActiveAgent() {
 }
 
 export function useAgent(id: string) {
+	const queryClient = useQueryClient()
 	return useQuery({
 		queryKey: [...agentsQueryKey, id],
-		queryFn: () => Promise.resolve(agents.find((agent) => agent.id === id) ?? null),
+		queryFn: () => Promise.resolve(null as Agent | null),
+		// Seed the detail view from the list cache (which mutations keep current),
+		// falling back to the standalone seed for direct visits.
+		initialData: () => {
+			const agents = queryClient.getQueryData<Agent[]>(agentsQueryKey)
+			return agents?.find((agent) => agent.id === id) ?? seedAgents().find((agent) => agent.id === id) ?? null
+		},
+		initialDataUpdatedAt: () => queryClient.getQueryState(agentsQueryKey)?.dataUpdatedAt,
+		staleTime: Number.POSITIVE_INFINITY,
 	})
 }
 
-function useInvalidateAgents() {
+export function useCreateAgent() {
 	const queryClient = useQueryClient()
-	return () => queryClient.invalidateQueries({ queryKey: agentsQueryKey })
-}
-
-export function useUpdateAgent() {
-	const invalidate = useInvalidateAgents()
-	return (id: string, patch: Partial<Omit<Agent, "id">>) => {
-		agents = agents.map((agent) => (agent.id === id ? { ...agent, ...patch } : agent))
-		invalidate()
+	return (input: Omit<Agent, "id">) => {
+		const agent: Agent = { id: `local-${Date.now()}`, ...input }
+		queryClient.setQueryData<Agent[]>(agentsQueryKey, (current) => [...(current ?? []), agent])
+		return agent
 	}
 }
 
-export function useCreateAgent() {
-	const invalidate = useInvalidateAgents()
-	return (input: Omit<Agent, "id">) => {
-		const agent: Agent = { id: `local-${Date.now()}`, ...input }
-		agents = [...agents, agent]
-		invalidate()
-		return agent
+export function useUpdateAgent() {
+	const queryClient = useQueryClient()
+	return (id: string, patch: Partial<Omit<Agent, "id">>) => {
+		queryClient.setQueryData<Agent[]>(agentsQueryKey, (current) =>
+			(current ?? []).map((agent) => (agent.id === id ? Object.assign({}, agent, patch) : agent)),
+		)
 	}
 }

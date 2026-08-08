@@ -7,3 +7,4 @@ bun = true
 
 [test]
 pathIgnorePatterns = ["apps/e2e/**"]
+preload = ["./apps/widget/src/svg-stub.ts"]

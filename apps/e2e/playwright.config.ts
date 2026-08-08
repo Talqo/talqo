@@ -1,28 +1,18 @@
 import { defineConfig, devices } from "@playwright/test"
-import { spawnSync } from "node:child_process"
+
+import { getFreePort } from "./get-free-port"
 
 const isCI = Boolean(process.env.CI)
 
 // Config is loaded once by the test runner and again in each worker; the
 // worker inherits the runner's env, so resolving the port only when the URL
 // is unset keeps every process on the same value.
-function widgetOrigin(): string {
-	const configured = process.env.E2E_WIDGET_CDN_URL
-	if (configured) {
-		return new URL(configured).origin
-	}
-	const script =
-		'require("node:net").createServer().once("error",()=>process.exit(1)).listen(0,"127.0.0.1",function(){process.stdout.write(String(this.address().port)),this.close()})'
-	const probe = spawnSync(process.execPath, ["-e", script], { encoding: "utf8" })
-	if (probe.status !== 0 || !probe.stdout.trim()) {
-		throw new Error("e2e: failed to reserve a free port for the widget dev server")
-	}
-	return `http://localhost:${probe.stdout.trim()}`
-}
+const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
+	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
+	: `http://localhost:${await getFreePort()}`
 
-const origin = widgetOrigin()
-const widgetPreviewUrl = `${origin}/preview.html`
-process.env.E2E_WIDGET_CDN_URL = `${origin}/widget.js`
+const widgetPreviewUrl = `${widgetOrigin}/preview.html`
+process.env.E2E_WIDGET_CDN_URL = `${widgetOrigin}/widget.js`
 
 export default defineConfig({
 	forbidOnly: isCI,
@@ -54,10 +44,10 @@ export default defineConfig({
 			// The embed's dev build; vite reads the port from TALQO_WIDGET_PORT.
 			command: "bun run dev --host 127.0.0.1",
 			cwd: "../widget",
-			env: { TALQO_WIDGET_PORT: new URL(origin).port },
+			env: { TALQO_WIDGET_PORT: new URL(widgetOrigin).port },
 			reuseExistingServer: !isCI,
 			timeout: 120_000,
-			url: origin,
+			url: widgetOrigin,
 		},
 		{
 			command: "bun run dev --host 127.0.0.1 --port 4173",

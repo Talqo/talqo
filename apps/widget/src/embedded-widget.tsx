@@ -2,6 +2,9 @@ import { cn } from "@talqo/ui/lib/utils"
 import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
+import ChatIcon from "./assets/icons/chat.svg?react"
+import CloseIcon from "./assets/icons/close.svg?react"
+import SendIcon from "./assets/icons/send.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i18n"
 
@@ -146,22 +149,7 @@ function WidgetChat({
 							aria-label={t("closeChat")}
 							className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
 						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								aria-hidden="true"
-							>
-								<title>{t("close")}</title>
-								<path d="M18 6 6 18" />
-								<path d="m6 6 12 12" />
-							</svg>
+							<CloseIcon aria-hidden="true" />
 						</button>
 					</header>
 					<div className="tw:flex-1 tw:overflow-y-auto tw:p-3" aria-live="polite">
@@ -193,22 +181,7 @@ function WidgetChat({
 							aria-label={t("send")}
 							className="tw:shrink-0 tw:rounded-md tw:bg-primary tw:p-2 tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90"
 						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								aria-hidden="true"
-							>
-								<title>{t("send")}</title>
-								<path d="m22 2-7 20-4-9-9-4Z" />
-								<path d="M22 2 11 13" />
-							</svg>
+							<SendIcon aria-hidden="true" />
 						</button>
 					</form>
 				</div>
@@ -222,21 +195,7 @@ function WidgetChat({
 				aria-haspopup="dialog"
 				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="2"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					aria-hidden="true"
-				>
-					<title>{t("chatIcon")}</title>
-					<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-				</svg>
+				<ChatIcon aria-hidden="true" />
 			</button>
 		</div>
 	)

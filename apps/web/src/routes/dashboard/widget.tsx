@@ -24,9 +24,8 @@ export const Route = createFileRoute("/dashboard/widget")({
 
 const positions: EmbedPosition[] = ["bottom-right", "bottom-left"]
 
-// Languages the widget embed supports, pinned to the widget app registry
-// (apps/widget/src/lib/i18n.ts); apps never import from one another, so the
-// contract is declared here instead.
+// TODO(i18n): mirror of apps/widget/src/lib/i18n.ts languages — apps can't import
+// from one another, so keep in sync until the registry is shared.
 const embedLanguages = [
 	{ value: "en", label: "English" },
 	{ value: "cs", label: "Čeština" },
