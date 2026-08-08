@@ -14,8 +14,6 @@ import { useTranslation } from "react-i18next"
 import { buildEmbedSnippet, type EmbedPosition, widgetScriptUrl } from "./-embed-snippet"
 
 export const Route = createFileRoute("/dashboard/widget")({
-	// Selected agent lives in the URL so the page is shareable; see
-	// features/agents/agents-query.ts useActiveAgent.
 	validateSearch: (search: Record<string, unknown>) => ({
 		agent: typeof search.agent === "string" ? search.agent : undefined,
 	}),
@@ -44,8 +42,6 @@ function WidgetPage() {
 	const copyTimeout = useRef<number | undefined>(undefined)
 	const [accentColor, setAccentColor] = useState("#1a7f4b")
 	const [position, setPosition] = useState<EmbedPosition>("bottom-right")
-	// The widget's end-user language is embed configuration; it stays separate
-	// from the operator's dashboard UI language (lib/use-language).
 	const [widgetLanguage, setWidgetLanguage] = useState<EmbedLanguage>("en")
 
 	useEffect(() => {

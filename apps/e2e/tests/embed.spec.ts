@@ -3,9 +3,6 @@ import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"
 
-// Boots the real built widget.js + widget.css on a bare host page, like a
-// customer site would (a missing process define or a global-CSS regression
-// once crashed the boot silently).
 const DIST = path.resolve(__dirname, "../../widget/dist")
 const HOST_HTML_PATH = path.resolve(__dirname, "fixtures/host.html")
 
@@ -58,8 +55,6 @@ test("built widget boots, mounts, and stays styled on a bare host page", async (
 	const dialog = page.getByRole("dialog")
 	await expect(dialog).toBeVisible()
 
-	// Stripped preflight is replaced by the scoped reset: no UA chrome on icon
-	// buttons, and utilities still override it (input keeps its 1px border).
 	const closeButton = dialog.getByRole("button", { name: "Close chat" })
 	await expect(closeButton).toHaveCSS("border-top-width", "0px")
 	await expect(closeButton).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
@@ -67,11 +62,9 @@ test("built widget boots, mounts, and stays styled on a bare host page", async (
 	await expect(input).toHaveCSS("border-top-width", "1px")
 	await expect(input).toHaveCSS("border-top-style", "solid")
 
-	// Close via the in-dialog button; the launcher flips back to "Open chat".
 	await closeButton.click()
 	await expect(dialog).toBeHidden()
 
-	// Launcher acts as a toggle again.
 	await launcher.click()
 	await expect(dialog).toBeVisible()
 

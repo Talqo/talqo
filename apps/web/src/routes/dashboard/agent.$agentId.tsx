@@ -29,7 +29,6 @@ function AgentConfigPage() {
 	const [active, setActive] = useState(false)
 	const [saved, setSaved] = useState(false)
 
-	// Populate the form once the agent loads (or reloads after an external edit).
 	useEffect(() => {
 		if (agent) {
 			setName(agent.name)

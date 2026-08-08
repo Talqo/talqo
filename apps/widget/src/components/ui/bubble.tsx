@@ -2,8 +2,6 @@ import type { ComponentProps } from "react"
 
 import { cn } from "@talqo/ui/lib/utils"
 
-// Vendored from packages/ui: the embed build needs the tw: utility prefix,
-// which the shared unprefixed components cannot provide.
 const bubbleContentVariants = {
 	default: "tw:bg-primary tw:text-primary-foreground",
 	muted: "tw:bg-muted",

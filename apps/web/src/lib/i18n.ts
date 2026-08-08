@@ -6,8 +6,6 @@ import { initReactI18next } from "react-i18next"
 
 import { getStoredLanguage } from "./use-language"
 
-// Dashboard translations on the default i18next instance; the LanguageProvider
-// calls changeLanguage when the operator switches language.
 use(initReactI18next)
 init({
 	lng: getStoredLanguage(),

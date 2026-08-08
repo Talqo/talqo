@@ -1,5 +1,3 @@
-/* Preflight is stripped from the embed bundle (see vite.config.ts), so
-   button/input normalization is reintroduced here, scoped to the widget. */
 @layer talqo-reset {
 	:where(.talqo-widget) :where(button, input) {
 		margin: 0;
@@ -14,7 +12,6 @@
 @import "./theme/tokens.css";
 @import "tailwindcss" prefix(tw);
 
-/* The embed applies theme=dark as a class on .talqo-widget, not via OS media. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
@@ -37,7 +34,6 @@
 	--radius-md: var(--talqo-radius);
 }
 
-/* Minimal reset scoped to the widget only. */
 .talqo-widget,
 .talqo-widget *,
 .talqo-widget *::before,

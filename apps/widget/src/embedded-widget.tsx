@@ -22,8 +22,6 @@ export type EmbeddedWidgetProps = {
 	position?: WidgetPosition
 }
 
-// Fixed corner placement for snippet embeds. A programmatic mount without a
-// position stays in flow so the host controls layout.
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
@@ -32,13 +30,10 @@ const positionClasses: Record<WidgetPosition, string> = {
 type Message = {
 	id: number
 	from: "assistant" | "user"
-	// Seed messages carry an i18n key so they re-translate on language switch;
-	// user messages are plain text.
 	text?: string
 	i18nKey?: "greeting"
 }
 
-// i18n keys stay static literals so i18next-cli extraction can resolve them.
 function messageText(message: Message, t: (key: string) => string): string | undefined {
 	if (message.i18nKey === "greeting") {
 		return t("greeting")
@@ -46,12 +41,10 @@ function messageText(message: Message, t: (key: string) => string): string | und
 	return message.text
 }
 
-// URL-provided accent is interpolated into a CSS variable; only hex colors are allowed.
 function sanitizeAccent(accent: string | undefined): string | undefined {
 	return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : undefined
 }
 
-// Keep Tab cycling inside the open chat panel instead of leaking into the host page.
 function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement | null) {
 	if (event.key !== "Tab" || !container) {
 		return
@@ -92,9 +85,6 @@ function WidgetChat({
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
 
-	// Closing returns focus to the launcher. It stays clickable while the
-	// panel is open (the focus trap keeps keyboard users inside the panel),
-	// so it also acts as a toggle.
 	useEffect(() => {
 		if (wasOpen.current && !open) {
 			launcherRef.current?.focus()

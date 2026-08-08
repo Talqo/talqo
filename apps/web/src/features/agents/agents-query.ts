@@ -41,8 +41,6 @@ export function useAgents() {
 		queryKey: agentsQueryKey,
 		queryFn: () => Promise.resolve([] as Agent[]),
 		initialData: seedAgents,
-		// Seeded data counts as fetched at mount, so later cache updates from
-		// create/update mutations are treated as fresher and always win.
 		initialDataUpdatedAt: 0,
 		staleTime: Number.POSITIVE_INFINITY,
 	})
@@ -70,8 +68,6 @@ export function useAgent(id: string) {
 	return useQuery({
 		queryKey: [...agentsQueryKey, id],
 		queryFn: () => Promise.resolve(null as Agent | null),
-		// Seed the detail view from the list cache (which mutations keep current),
-		// falling back to the standalone seed for direct visits.
 		initialData: () => {
 			const agents = queryClient.getQueryData<Agent[]>(agentsQueryKey)
 			return agents?.find((agent) => agent.id === id) ?? seedAgents().find((agent) => agent.id === id) ?? null

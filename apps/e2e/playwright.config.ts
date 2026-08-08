@@ -4,9 +4,6 @@ import { getFreePort } from "./get-free-port"
 
 const isCI = Boolean(process.env.CI)
 
-// Config is loaded once by the test runner and again in each worker; the
-// worker inherits the runner's env, so resolving the port only when the URL
-// is unset keeps every process on the same value.
 const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
 	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
 	: `http://localhost:${await getFreePort()}`
@@ -41,7 +38,6 @@ export default defineConfig({
 			url: "http://127.0.0.1:3000/health",
 		},
 		{
-			// The embed's dev build; vite reads the port from TALQO_WIDGET_PORT.
 			command: "bun run dev --host 127.0.0.1",
 			cwd: "../widget",
 			env: { TALQO_WIDGET_PORT: new URL(widgetOrigin).port },
@@ -53,8 +49,6 @@ export default defineConfig({
 			command: "bun run dev --host 127.0.0.1 --port 4173",
 			cwd: "../web",
 			env: {
-				// The embed snippet and the live preview need the widget origin
-				// (see dashboard/-embed-snippet.ts, components/widget-preview.tsx).
 				VITE_WIDGET_CDN_URL: process.env.E2E_WIDGET_CDN_URL,
 				VITE_WIDGET_PREVIEW_URL: widgetPreviewUrl,
 			},

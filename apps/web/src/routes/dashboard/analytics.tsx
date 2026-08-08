@@ -12,8 +12,6 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { useAgentStats, type AgentStats } from "./-agent-stats-query"
 
 export const Route = createFileRoute("/dashboard/analytics")({
-	// Selected agent lives in the URL so the page is shareable; see
-	// features/agents/agents-query.ts useActiveAgent.
 	validateSearch: (search: Record<string, unknown>) => ({
 		agent: typeof search.agent === "string" ? search.agent : undefined,
 	}),
@@ -22,8 +20,6 @@ export const Route = createFileRoute("/dashboard/analytics")({
 
 const metricKeys = ["conversations", "messages", "tokens"] as const
 
-// Translation keys stay static literals so i18next-cli extraction can
-// resolve them; no template-built keys.
 function metricLabel(metric: (typeof metricKeys)[number], t: (key: string) => string): string {
 	switch (metric) {
 		case "conversations":

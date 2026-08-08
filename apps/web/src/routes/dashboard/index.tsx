@@ -10,8 +10,6 @@ const cards = [
 	{ to: "/dashboard/account", icon: User },
 ] as const
 
-// Translation keys stay static literals so i18next-cli extraction can
-// resolve them; no indirection through config-driven key strings.
 function cardCopy(to: (typeof cards)[number]["to"], t: (key: string) => string) {
 	switch (to) {
 		case "/dashboard/agents":
