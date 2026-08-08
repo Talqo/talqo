@@ -4,6 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { parse, type AtRule, type Root } from "postcss"
 import { defineConfig, type Plugin } from "vite"
+import svgr from "vite-plugin-svgr"
 
 const SCOPE = ".talqo-widget"
 
@@ -131,7 +132,7 @@ export default defineConfig({
 			},
 		},
 	},
-	plugins: [react(), tailwindcss(), widgetCssPlugin()],
+	plugins: [react(), svgr(), tailwindcss(), widgetCssPlugin()],
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src`,

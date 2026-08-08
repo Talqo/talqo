@@ -1,12 +1,9 @@
 import { cn } from "@talqo/ui/lib/utils"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export type WidgetPosition = "bottom-right" | "bottom-left"
 
-// The preview iframes the widget app's preview page (no cross-app imports; see
-// docs/architecture.md). A target must be configured via VITE_WIDGET_PREVIEW_URL
-// or the dev server; otherwise a notice is shown.
 const PREVIEW_URL =
 	(import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined) ??
 	(import.meta.env.DEV ? "http://localhost:5174/preview.html" : undefined)
@@ -57,8 +54,6 @@ function previewSrc({
 	return url.toString()
 }
 
-// Reloading the iframe on every accent keystroke flickers and re-runs the
-// widget boot, so src changes settle briefly before being applied.
 function useDebouncedValue<T>(value: T, delayMs: number): T {
 	const [debounced, setDebounced] = useState(value)
 	useEffect(() => {
@@ -68,9 +63,7 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 	return debounced
 }
 
-// Narrow preview cards are smaller than the fixed-size frame; scale the frame
-// down proportionally instead of clipping the panel.
-function useFrameScale(ref: React.RefObject<HTMLDivElement | null>): number {
+function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
 	const [scale, setScale] = useState(1)
 	useEffect(() => {
 		const frame = ref.current

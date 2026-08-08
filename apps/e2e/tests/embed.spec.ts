@@ -3,22 +3,20 @@ import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"
 
-// The production embed is the built bundle on a bare host page — the dashboard
-// snippet assertions elsewhere only check the snippet's text. This spec boots
-// the real built widget.js + widget.css like a customer site would; a missing
-// process define or a global-CSS regression once crashed the boot silently.
+// Boots the real built widget.js + widget.css on a bare host page, like a
+// customer site would (a missing process define or a global-CSS regression
+// once crashed the boot silently).
 const DIST = path.resolve(__dirname, "../../widget/dist")
-
-const HOST_HTML = `<!doctype html><html><head><link rel="stylesheet" href="/widget.css"></head>
-<body><p>host text</p><script src="/widget.js" data-talqo-agent="demo" data-talqo-position="bottom-right"></script></body></html>`
+const HOST_HTML_PATH = path.resolve(__dirname, "fixtures/host.html")
 
 let server: Server
 let baseURL: string
 
 test.beforeAll(async () => {
+	const hostHtml = await readFile(HOST_HTML_PATH, "utf8")
 	server = createServer((req, res) => {
 		if (req.url === "/") {
-			res.writeHead(200, { "content-type": "text/html" }).end(HOST_HTML)
+			res.writeHead(200, { "content-type": "text/html" }).end(hostHtml)
 			return
 		}
 		const file = req.url === "/widget.js" || req.url === "/widget.css" ? path.join(DIST, req.url.slice(1)) : null

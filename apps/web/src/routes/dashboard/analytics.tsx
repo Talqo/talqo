@@ -110,7 +110,6 @@ function AnalyticsPage() {
 	const { agents, isLoading, activeId, setSelectedId } = useActiveAgent()
 	const { data: stats, isLoading: statsLoading } = useAgentStats(activeId)
 	const { language } = useLanguage()
-	// Numbers and dates follow the operator's dashboard language, not a fixed locale.
 	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
 
 	return (

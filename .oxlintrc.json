@@ -1,12 +1,12 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"ignorePatterns": ["**/.source/**", "**/routeTree.gen.ts"],
+	"ignorePatterns": ["**/.source/**", "**/routeTree.gen.ts", "**/dist/**"],
+	"plugins": ["import", "oxc", "typescript", "unicorn"],
 	"categories": {
 		"correctness": "error",
 		"perf": "error",
 		"suspicious": "error"
 	},
-	"plugins": ["import", "oxc", "typescript", "unicorn"],
 	"rules": {
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
 		"no-restricted-imports": [
@@ -21,5 +21,48 @@
 			}
 		],
 		"typescript/consistent-type-definitions": ["error", "type"]
-	}
+	},
+	"overrides": [
+		{
+			"files": ["apps/**/*.tsx"],
+			"plugins": ["react"],
+			"rules": {
+				"react/react-in-jsx-scope": "off",
+				"react/iframe-missing-sandbox": "off",
+				"react/forbid-elements": [
+					"error",
+					{
+						"forbid": [
+							{
+								"element": "svg",
+								"message": "Keep SVG artwork in .svg files and import it (vite-plugin-svgr or an icon component)."
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"files": ["apps/widget/**"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"paths": [
+							{
+								"name": "lucide-react",
+								"message": "The embed bundle must stay lean: import icons from src/assets/icons via vite-plugin-svgr instead."
+							}
+						],
+						"patterns": [
+							{
+								"group": ["../**"],
+								"message": "Use @ alias imports instead of relative parent imports"
+							}
+						]
+					}
+				]
+			}
+		}
+	]
 }

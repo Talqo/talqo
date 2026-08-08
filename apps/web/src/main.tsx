@@ -3,7 +3,8 @@ import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
-import { applyTheme, getInitialTheme } from "./lib/use-theme"
+import { LanguageProvider } from "./lib/use-language"
+import { applyTheme, getInitialTheme, ThemeProvider } from "./lib/use-theme"
 import { routeTree } from "./routeTree.gen"
 
 import "@talqo/ui/globals.css"
@@ -32,8 +33,12 @@ if (!root) {
 
 createRoot(root).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-		</QueryClientProvider>
+		<ThemeProvider>
+			<LanguageProvider>
+				<QueryClientProvider client={queryClient}>
+					<RouterProvider router={router} />
+				</QueryClientProvider>
+			</LanguageProvider>
+		</ThemeProvider>
 	</StrictMode>,
 )

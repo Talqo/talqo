@@ -5,7 +5,7 @@ export type Operator = {
 	email: string
 }
 
-// Mock data until the operator profile API endpoint exists.
+// TODO(account-api): mock data until the operator profile API endpoint exists.
 const MOCK_OPERATOR: Operator = {
 	name: "Talqo Operator",
 	email: "operator@talqo.dev",
