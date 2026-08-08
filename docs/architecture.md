@@ -74,6 +74,7 @@ apps/api/
     |   `-- constants.ts             # optional constrained app constants
     |-- db/
     |   |-- client.ts                # shared connection construction
+    |   |-- migrate.ts               # centralized migration application
     |   `-- seed.ts                  # optional environment seed entry point
     |-- http/                         # optional cross-cutting HTTP capabilities
     |-- lib/                          # optional proven non-domain capabilities
@@ -163,6 +164,8 @@ module contracts + route metadata
 - `packages/api-client` is generated transport only. Generated files are never hand-edited.
 - `apps/web/src/api/client.ts` configures base URL, authentication, telemetry, request behavior, and app-level error translation. Optional `errors.ts` defines web-facing transport error normalization.
 - Generated code contains no TanStack Query keys, caching, retries, invalidation, optimistic updates, or UI error policy. The consuming route or extracted frontend feature owns that policy.
+
+**Temporary exception (owner: `apps/web/src/api/client.ts`; tracked in `build-plan.md` TASK-008; remove when TASK-008 lands):** this pipeline isn't implemented yet — no module emits OpenAPI route metadata, and `packages/api-client` doesn't exist. Until then, `apps/web/src/api/client.ts` is a small hand-rolled `fetch` wrapper with request/response types duplicated by hand from the API's `.contract.ts` files, not generated.
 
 ## Web
 

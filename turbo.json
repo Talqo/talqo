@@ -20,10 +20,17 @@
 			"persistent": true
 		},
 		"e2e": {
-			"cache": false
+			"cache": false,
+			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
+		},
+		"test:integration": {
+			"cache": false,
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
