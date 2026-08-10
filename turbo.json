@@ -16,7 +16,14 @@
 		},
 		"dev": {
 			"cache": false,
-			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT", "TALQO_WIDGET_PORT"],
+			"passThroughEnv": [
+				"DATABASE_URL",
+				"TALQO_API_PORT",
+				"TALQO_WEB_PORT",
+				"TALQO_WIDGET_PORT",
+				"VITE_WIDGET_CDN_URL",
+				"VITE_WIDGET_PREVIEW_URL"
+			],
 			"persistent": true
 		},
 		"e2e": {

@@ -28,10 +28,7 @@ const DEMO_AGENTS: Agent[] = [
 	},
 ]
 
-// TODO(agents-api): this in-memory seed stands in for GET /agents, which does not
-// exist yet. Seed data (queryFn/initialData) and the create/update mutations below
-// all live one react-query cache away from the real endpoint — swap this function
-// for a fetch and delete initialData when the API lands; the hooks' signatures stay.
+// TODO(agents-api): replace the in-memory seed with GET /agents when the endpoint lands.
 function seedAgents(): Agent[] {
 	return import.meta.env.VITE_MOCK_AGENTS === "true" ? structuredClone(DEMO_AGENTS) : []
 }

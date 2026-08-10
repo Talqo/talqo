@@ -4,7 +4,6 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 
 - When creating a PR, follow template inside `.github/pull_request_template.md`.
 - Follow [the architecture guide](docs/architecture.md) and the nearest `AGENTS.md`.
-- Put shared shadcn components and styles in `packages/ui`.
 - Every app owns its locales in `apps/*/src/locales/<lang>.json` with its own i18next instance; never share locale files. Extend all locale JSONs of one app together when adding or renaming a key, and keep key sets identical across languages. Call `t()` with literal keys so i18next-cli checks stay accurate; for dynamic picks, map from an explicit constant list.
 - Never hand-edit generated artifacts.
 - Record significant architectural decisions in `docs/adr`.
@@ -17,6 +16,6 @@ Run after changes:
 bun run quality:fix
 bun run typecheck
 bun test
-bun run i18n:fix  # extract autofix, then re-check status and lint
+bun run i18n:fix
 bun run actions:check  # only if GH actions changed
 ```
