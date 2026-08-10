@@ -1,12 +1,15 @@
 import { PageHeader } from "@/components/page-header"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { createFileRoute } from "@tanstack/react-router"
-import { type FormEvent, useState } from "react"
+import { useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+import { z } from "zod"
 
 import { type Operator, useOperator } from "./-account-query"
 
@@ -14,12 +17,32 @@ export const Route = createFileRoute("/dashboard/account")({
 	component: AccountPage,
 })
 
+const accountSchema = z.object({
+	name: z.string().min(1),
+	email: z.string().email(),
+})
+
+type AccountFormValues = z.infer<typeof accountSchema>
+
 function ProfileCard({ operator }: { operator: Operator }) {
 	const { t } = useTranslation()
 	const [saved, setSaved] = useState(false)
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault()
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors },
+	} = useForm<AccountFormValues>({
+		resolver: zodResolver(accountSchema),
+		defaultValues: { name: operator.name, email: operator.email },
+	})
+
+	useEffect(() => {
+		reset({ name: operator.name, email: operator.email })
+	}, [operator, reset])
+
+	function onValid() {
 		setSaved(true)
 	}
 
@@ -29,15 +52,22 @@ function ProfileCard({ operator }: { operator: Operator }) {
 				<CardTitle>{t("account.profile")}</CardTitle>
 				<CardDescription>{t("account.profileDescription")}</CardDescription>
 			</CardHeader>
-			<form onSubmit={handleSubmit}>
+			<form onSubmit={handleSubmit(onValid)}>
 				<CardContent className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="account-name">{t("account.name")}</Label>
-						<Input id="account-name" name="name" defaultValue={operator.name} required />
+						<Input id="account-name" aria-invalid={errors.name ? true : undefined} {...register("name")} />
+						{errors.name && <p className="text-destructive text-xs">{t("account.nameRequired")}</p>}
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="account-email">{t("account.email")}</Label>
-						<Input id="account-email" name="email" type="email" defaultValue={operator.email} required />
+						<Input
+							id="account-email"
+							type="email"
+							aria-invalid={errors.email ? true : undefined}
+							{...register("email")}
+						/>
+						{errors.email && <p className="text-destructive text-xs">{t("account.emailInvalid")}</p>}
 					</div>
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
 				</CardContent>

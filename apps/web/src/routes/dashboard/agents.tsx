@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/page-header"
+import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { useAgents, useCreateAgent, useUpdateAgent, type Agent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
@@ -18,7 +20,8 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Plus, Settings2 } from "lucide-react"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agents")({
@@ -38,20 +41,24 @@ function AgentsPage() {
 		})
 	}
 
-	function handleCreate(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault()
-		const form = new FormData(event.currentTarget)
-		const name = String(form.get("name") ?? "").trim()
-		const systemPrompt = String(form.get("systemPrompt") ?? "").trim()
-		if (!name || !systemPrompt) {
-			return
-		}
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors },
+	} = useForm<AgentFormValues>({
+		resolver: zodResolver(agentFormSchema),
+		defaultValues: { name: "", systemPrompt: "", wordBlacklist: "", active: true },
+	})
+
+	function onValid(values: AgentFormValues) {
 		createAgent({
-			name,
-			systemPrompt,
+			name: values.name.trim(),
+			systemPrompt: values.systemPrompt.trim(),
 			status: "active",
-			wordBlacklist: parseBlacklist(String(form.get("wordBlacklist") ?? "")),
+			wordBlacklist: parseBlacklist(values.wordBlacklist),
 		})
+		reset({ name: "", systemPrompt: "", wordBlacklist: "", active: true })
 		setDialogOpen(false)
 	}
 
@@ -71,27 +78,36 @@ function AgentsPage() {
 								<DialogTitle>{t("agents.create")}</DialogTitle>
 								<DialogDescription>{t("agents.createDescription")}</DialogDescription>
 							</DialogHeader>
-							<form onSubmit={handleCreate} className="space-y-4">
+							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="agent-name">{t("agentFields.name")}</Label>
-									<Input id="agent-name" name="name" placeholder={t("agentFields.namePlaceholder")} required />
+									<Input
+										id="agent-name"
+										placeholder={t("agentFields.namePlaceholder")}
+										aria-invalid={errors.name ? true : undefined}
+										{...register("name")}
+									/>
+									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
 								</div>
 								<div className="space-y-2">
 									<Label htmlFor="agent-system-prompt">{t("agentFields.systemPrompt")}</Label>
 									<Textarea
 										id="agent-system-prompt"
-										name="systemPrompt"
 										placeholder={t("agentFields.systemPromptPlaceholder")}
 										rows={4}
-										required
+										aria-invalid={errors.systemPrompt ? true : undefined}
+										{...register("systemPrompt")}
 									/>
+									{errors.systemPrompt && (
+										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
+									)}
 								</div>
 								<div className="space-y-2">
 									<Label htmlFor="agent-word-blacklist">{t("agentFields.wordBlacklist")}</Label>
 									<Input
 										id="agent-word-blacklist"
-										name="wordBlacklist"
 										placeholder={t("agentFields.blacklistPlaceholder")}
+										{...register("wordBlacklist")}
 									/>
 									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
 								</div>

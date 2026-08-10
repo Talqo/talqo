@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/page-header"
+import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { useAgent, useUpdateAgent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -10,7 +12,8 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
-import { type FormEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
@@ -23,28 +26,39 @@ function AgentConfigPage() {
 	const { data: agent, isLoading } = useAgent(agentId)
 	const updateAgent = useUpdateAgent()
 
-	const [name, setName] = useState("")
-	const [systemPrompt, setSystemPrompt] = useState("")
-	const [blacklist, setBlacklist] = useState("")
-	const [active, setActive] = useState(false)
 	const [saved, setSaved] = useState(false)
+
+	const {
+		register,
+		handleSubmit,
+		reset,
+		control,
+		watch,
+		formState: { errors },
+	} = useForm<AgentFormValues>({
+		resolver: zodResolver(agentFormSchema),
+		defaultValues: { name: "", systemPrompt: "", wordBlacklist: "", active: false },
+	})
+
+	const active = watch("active")
 
 	useEffect(() => {
 		if (agent) {
-			setName(agent.name)
-			setSystemPrompt(agent.systemPrompt)
-			setBlacklist(agent.wordBlacklist.join(", "))
-			setActive(agent.status === "active")
+			reset({
+				name: agent.name,
+				systemPrompt: agent.systemPrompt,
+				wordBlacklist: agent.wordBlacklist.join(", "),
+				active: agent.status === "active",
+			})
 		}
-	}, [agent])
+	}, [agent, reset])
 
-	function handleSave(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault()
+	function onValid(values: AgentFormValues) {
 		updateAgent(agentId, {
-			name: name.trim(),
-			systemPrompt: systemPrompt.trim(),
-			wordBlacklist: parseBlacklist(blacklist),
-			status: active ? "active" : "paused",
+			name: values.name.trim(),
+			systemPrompt: values.systemPrompt.trim(),
+			wordBlacklist: parseBlacklist(values.wordBlacklist),
+			status: values.active ? "active" : "paused",
 		})
 		setSaved(true)
 	}
@@ -72,35 +86,36 @@ function AgentConfigPage() {
 							<CardDescription>{t("agentConfig.cardDescription")}</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<form onSubmit={handleSave} className="space-y-4">
+							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="config-name">{t("agentFields.name")}</Label>
 									<Input
 										id="config-name"
-										value={name}
-										onChange={(event) => setName(event.target.value)}
 										placeholder={t("agentFields.namePlaceholder")}
-										required
+										aria-invalid={errors.name ? true : undefined}
+										{...register("name")}
 									/>
+									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
 								</div>
 								<div className="space-y-2">
 									<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
 									<Textarea
 										id="config-system-prompt"
-										value={systemPrompt}
-										onChange={(event) => setSystemPrompt(event.target.value)}
 										placeholder={t("agentFields.systemPromptPlaceholder")}
 										rows={5}
-										required
+										aria-invalid={errors.systemPrompt ? true : undefined}
+										{...register("systemPrompt")}
 									/>
+									{errors.systemPrompt && (
+										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
+									)}
 								</div>
 								<div className="space-y-2">
 									<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
 									<Input
 										id="config-blacklist"
-										value={blacklist}
-										onChange={(event) => setBlacklist(event.target.value)}
 										placeholder={t("agentFields.blacklistPlaceholder")}
+										{...register("wordBlacklist")}
 									/>
 									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
 									{agent.wordBlacklist.length > 0 && (
@@ -114,7 +129,13 @@ function AgentConfigPage() {
 									)}
 								</div>
 								<div className="flex items-center gap-2">
-									<Switch id="config-status" checked={active} onCheckedChange={setActive} />
+									<Controller
+										control={control}
+										name="active"
+										render={({ field }) => (
+											<Switch id="config-status" checked={field.value} onCheckedChange={field.onChange} />
+										)}
+									/>
 									<Label htmlFor="config-status">
 										{t(active ? "agentFields.statusActive" : "agentFields.statusPaused")}
 									</Label>
