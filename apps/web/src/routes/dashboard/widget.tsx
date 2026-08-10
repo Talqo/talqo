@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
 import { useActiveAgent } from "@/features/agents/agents-query"
+import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
@@ -22,17 +23,11 @@ export const Route = createFileRoute("/dashboard/widget")({
 
 const positions: EmbedPosition[] = ["bottom-right", "bottom-left"]
 
-// TODO(i18n): mirrors apps/widget/src/lib/i18n.ts until the registry is shared.
-const embedLanguages = [
-	{ value: "en", label: "English" },
-	{ value: "cs", label: "Čeština" },
-	{ value: "zh", label: "中文" },
-] as const
+const embedLanguages = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
-type EmbedLanguage = (typeof embedLanguages)[number]["value"]
+type EmbedLanguage = SupportedLanguage
 
-const isEmbedLanguage = (value: unknown): value is EmbedLanguage =>
-	typeof value === "string" && embedLanguages.some((option) => option.value === value)
+const isEmbedLanguage = isSupportedLanguage
 
 function WidgetPage() {
 	const { t } = useTranslation()
