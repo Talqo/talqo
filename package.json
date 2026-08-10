@@ -29,10 +29,10 @@
 		"@commitlint/config-conventional": "^21.2.0",
 		"@playwright/cli": "^0.1.18",
 		"husky": "^9.1.7",
-		"oxfmt": "0.61.0",
-		"oxlint": "1.76.0",
+		"oxfmt": "0.62.0",
+		"oxlint": "1.77.0",
 		"oxlint-tsgolint": "^7.0.2001",
-		"turbo": "2.10.8"
+		"turbo": "2.10.9"
 	},
 	"packageManager": "bun@1.3.14"
 }
