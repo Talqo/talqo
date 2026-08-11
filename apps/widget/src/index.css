@@ -1,0 +1,47 @@
+@layer talqo-reset {
+	:where(.talqo-widget) :where(button, input) {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		font: inherit;
+		color: inherit;
+	}
+}
+
+@import "./theme/tokens.css";
+@import "tailwindcss" prefix(tw);
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+	--color-background: var(--talqo-background);
+	--color-foreground: var(--talqo-foreground);
+	--color-card: var(--talqo-card);
+	--color-card-foreground: var(--talqo-foreground);
+	--color-primary: var(--talqo-primary);
+	--color-primary-foreground: var(--talqo-primary-foreground);
+	--color-muted: var(--talqo-muted);
+	--color-muted-foreground: var(--talqo-muted-foreground);
+	--color-accent: var(--talqo-accent);
+	--color-accent-foreground: var(--talqo-accent-foreground);
+	--color-secondary: var(--talqo-secondary);
+	--color-secondary-foreground: var(--talqo-secondary-foreground);
+	--color-destructive: var(--talqo-destructive);
+	--color-border: var(--talqo-border);
+	--color-input: var(--talqo-input);
+	--color-ring: var(--talqo-ring);
+	--radius-md: var(--talqo-radius);
+}
+
+.talqo-widget,
+.talqo-widget *,
+.talqo-widget *::before,
+.talqo-widget *::after {
+	box-sizing: border-box;
+}
+
+.talqo-widget p,
+.talqo-widget h2 {
+	margin: 0;
+}

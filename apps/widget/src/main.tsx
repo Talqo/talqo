@@ -1,9 +1,2 @@
-import { mountWidget } from "./widget"
-
-const root = document.querySelector("#root")
-
-if (!root) {
-	throw new Error("Root element not found")
-}
-
-mountWidget(root)
+// eslint-disable-next-line import/no-unassigned-import -- dev harness: importing widget.tsx executes the auto-mount into #talqo-widget.
+import "./widget"

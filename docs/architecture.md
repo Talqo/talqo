@@ -170,12 +170,14 @@ module contracts + route metadata
 
 ```text
 apps/web/src/
-|-- main.tsx
-|-- router.tsx
+|-- main.tsx                         # entry point; creates the router
 |-- routeTree.gen.ts                 # generated; never hand-edit
-|-- api/
+|-- api/                              # added with the first real endpoint
 |   |-- client.ts                    # configured generated API client
 |   `-- errors.ts                    # web transport-error normalization
+|-- components/                       # route-shared presentation
+|-- lib/                              # app-level UI infrastructure (i18n, theme, language stores)
+|-- locales/                          # dashboard translations (<lang>.json)
 |-- routes/                           # TanStack Router routes
 `-- features/
     `-- <feature>/                    # reusable user journey
@@ -202,7 +204,9 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
+- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
 - The widget consumes `packages/sdk` and never imports API app source.
+- Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 
 ## E2E Tests

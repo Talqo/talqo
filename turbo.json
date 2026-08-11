@@ -16,17 +16,30 @@
 		},
 		"dev": {
 			"cache": false,
-			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT", "TALQO_WIDGET_PORT"],
+			"passThroughEnv": [
+				"DATABASE_URL",
+				"TALQO_API_PORT",
+				"TALQO_WEB_PORT",
+				"TALQO_WIDGET_PORT",
+				"VITE_WIDGET_CDN_URL",
+				"VITE_WIDGET_PREVIEW_URL"
+			],
 			"persistent": true
 		},
 		"e2e": {
-			"cache": false
+			"cache": false,
+			"dependsOn": ["@talqo/widget#build"]
 		},
 		"test": {
 			"dependsOn": ["^build"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
+		},
+		"i18n": {},
+		"i18n:fix": {},
+		"@talqo/widget#test": {
+			"dependsOn": ["^build", "build"]
 		}
 	}
 }

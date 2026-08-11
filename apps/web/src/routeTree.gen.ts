@@ -10,33 +10,133 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as WidgetPreviewRouteImport } from './routes/widget-preview'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
+import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
+import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
+import { Route as DashboardWidgetRouteImport } from './routes/dashboard/widget'
+import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WidgetPreviewRoute = WidgetPreviewRouteImport.update({
+  id: '/widget-preview',
+  path: '/widget-preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAccountRoute = DashboardAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAgentsRoute = DashboardAgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardWidgetRoute = DashboardWidgetRouteImport.update({
+  id: '/widget',
+  path: '/widget',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
+  id: '/agent/$agentId',
+  path: '/agent/$agentId',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/widget-preview': typeof WidgetPreviewRoute
+  '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/widget': typeof DashboardWidgetRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/widget-preview': typeof WidgetPreviewRoute
+  '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/widget': typeof DashboardWidgetRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/widget-preview': typeof WidgetPreviewRoute
+  '/dashboard/account': typeof DashboardAccountRoute
+  '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/widget': typeof DashboardWidgetRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/widget-preview'
+    | '/dashboard/account'
+    | '/dashboard/agents'
+    | '/dashboard/analytics'
+    | '/dashboard/widget'
+    | '/dashboard/'
+    | '/dashboard/agent/$agentId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/widget-preview'
+    | '/dashboard/account'
+    | '/dashboard/agents'
+    | '/dashboard/analytics'
+    | '/dashboard/widget'
+    | '/dashboard'
+    | '/dashboard/agent/$agentId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/widget-preview'
+    | '/dashboard/account'
+    | '/dashboard/agents'
+    | '/dashboard/analytics'
+    | '/dashboard/widget'
+    | '/dashboard/'
+    | '/dashboard/agent/$agentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  WidgetPreviewRoute: typeof WidgetPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +148,91 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/widget-preview': {
+      id: '/widget-preview'
+      path: '/widget-preview'
+      fullPath: '/widget-preview'
+      preLoaderRoute: typeof WidgetPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/account': {
+      id: '/dashboard/account'
+      path: '/account'
+      fullPath: '/dashboard/account'
+      preLoaderRoute: typeof DashboardAccountRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/agents': {
+      id: '/dashboard/agents'
+      path: '/agents'
+      fullPath: '/dashboard/agents'
+      preLoaderRoute: typeof DashboardAgentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/analytics': {
+      id: '/dashboard/analytics'
+      path: '/analytics'
+      fullPath: '/dashboard/analytics'
+      preLoaderRoute: typeof DashboardAnalyticsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/widget': {
+      id: '/dashboard/widget'
+      path: '/widget'
+      fullPath: '/dashboard/widget'
+      preLoaderRoute: typeof DashboardWidgetRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/agent/$agentId': {
+      id: '/dashboard/agent/$agentId'
+      path: '/agent/$agentId'
+      fullPath: '/dashboard/agent/$agentId'
+      preLoaderRoute: typeof DashboardAgentAgentIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
+interface DashboardRouteRouteChildren {
+  DashboardAccountRoute: typeof DashboardAccountRoute
+  DashboardAgentsRoute: typeof DashboardAgentsRoute
+  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
+  DashboardWidgetRoute: typeof DashboardWidgetRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardAccountRoute: DashboardAccountRoute,
+  DashboardAgentsRoute: DashboardAgentsRoute,
+  DashboardAnalyticsRoute: DashboardAnalyticsRoute,
+  DashboardWidgetRoute: DashboardWidgetRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  WidgetPreviewRoute: WidgetPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

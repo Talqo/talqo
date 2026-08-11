@@ -6,18 +6,34 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test": "bun test",
+		"i18n": "i18next-cli status && i18next-cli lint --quiet && i18next-cli extract --ci --dry-run --quiet",
+		"i18n:fix": "i18next-cli extract --quiet && i18next-cli status && i18next-cli lint --quiet"
 	},
 	"dependencies": {
+		"@talqo/shared": "workspace:*",
+		"@talqo/ui": "workspace:*",
+		"clsx": "2.1.1",
+		"i18next": "^26.3.6",
 		"react": "19.2.8",
-		"react-dom": "19.2.8"
+		"react-dom": "19.2.8",
+		"react-i18next": "^17.0.11",
+		"tailwind-merge": "3.6.0"
 	},
 	"devDependencies": {
+		"@happy-dom/global-registrator": "^20.11.1",
+		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
+		"@types/bun": "^1.3.14",
 		"@types/react": "19.2.18",
 		"@types/react-dom": "19.2.4",
 		"@vitejs/plugin-react": "6.0.5",
+		"i18next-cli": "1.67.3",
+		"postcss": "^8.5.25",
+		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
-		"vite": "8.2.1"
+		"vite": "8.2.1",
+		"vite-plugin-svgr": "^5.2.0"
 	}
 }

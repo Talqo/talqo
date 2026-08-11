@@ -1,6 +1,15 @@
 import { defineConfig, devices } from "@playwright/test"
 
+import { getFreePort } from "./get-free-port"
+
 const isCI = Boolean(process.env.CI)
+
+const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
+	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
+	: `http://localhost:${await getFreePort()}`
+
+const widgetPreviewUrl = `${widgetOrigin}/preview.html`
+process.env.E2E_WIDGET_CDN_URL = `${widgetOrigin}/widget.js`
 
 export default defineConfig({
 	forbidOnly: isCI,
@@ -29,8 +38,20 @@ export default defineConfig({
 			url: "http://127.0.0.1:3000/health",
 		},
 		{
+			command: "bun run dev --host 127.0.0.1",
+			cwd: "../widget",
+			env: { TALQO_WIDGET_PORT: new URL(widgetOrigin).port },
+			reuseExistingServer: !isCI,
+			timeout: 120_000,
+			url: widgetOrigin,
+		},
+		{
 			command: "bun run dev --host 127.0.0.1 --port 4173",
 			cwd: "../web",
+			env: {
+				VITE_WIDGET_CDN_URL: process.env.E2E_WIDGET_CDN_URL,
+				VITE_WIDGET_PREVIEW_URL: widgetPreviewUrl,
+			},
 			reuseExistingServer: !isCI,
 			timeout: 120_000,
 			url: "http://127.0.0.1:4173",
