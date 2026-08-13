@@ -1,4 +1,4 @@
-import { signIn } from "@/api/client.ts"
+import { login } from "@/api/client.ts"
 import { ApiError } from "@/api/errors.ts"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -19,7 +19,7 @@ function LoginPage() {
 		setSubmitting(true)
 		setError(null)
 		try {
-			await signIn(input)
+			await login(input)
 			await navigate({ to: "/invitations" })
 		} catch (caught) {
 			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))

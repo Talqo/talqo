@@ -40,8 +40,8 @@ export function bootstrapAdmin(input: { password: string; username: string }): P
 	return request("/api/setup", { method: "POST", body: JSON.stringify(input) })
 }
 
-export function signIn(input: { password: string; username: string }): Promise<{ user: PublicUser }> {
-	return request("/api/auth/sign-in", { method: "POST", body: JSON.stringify(input) })
+export function login(input: { password: string; username: string }): Promise<{ user: PublicUser }> {
+	return request("/api/auth/login", { method: "POST", body: JSON.stringify(input) })
 }
 
 export function getSession(signal?: AbortSignal): Promise<{ user: PublicUser | null }> {

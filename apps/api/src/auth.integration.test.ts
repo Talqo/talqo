@@ -7,8 +7,8 @@ function uniqueUsername(): string {
 	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
 }
 
-async function signIn(username: string, password: string): Promise<string> {
-	const response = await app.request("/api/auth/sign-in", {
+async function login(username: string, password: string): Promise<string> {
+	const response = await app.request("/api/auth/login", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
@@ -33,7 +33,7 @@ describe("auth flow", () => {
 			body: JSON.stringify({ username: adminUsername, password: adminPassword }),
 		})
 		expect(bootstrapResponse.status).toBe(201)
-		const adminCookie = await signIn(adminUsername, adminPassword)
+		const adminCookie = await login(adminUsername, adminPassword)
 
 		// 2. Admin invites a member.
 		const inviteResponse = await app.request("/api/invitations", {
@@ -53,7 +53,7 @@ describe("auth flow", () => {
 		})
 		expect(redeemResponse.status).toBe(201)
 		const { user: member } = (await redeemResponse.json()) as { user: { id: string; username: string } }
-		const memberCookie = await signIn(memberUsername, memberPassword)
+		const memberCookie = await login(memberUsername, memberPassword)
 
 		// Before any grant, the member has no elevated access at all.
 		const beforeGrant = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
@@ -98,14 +98,14 @@ describe("auth flow", () => {
 		const staleSession = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
 		expect(await staleSession.json()).toEqual({ user: null })
 
-		const oldPasswordAttempt = await app.request("/api/auth/sign-in", {
+		const oldPasswordAttempt = await app.request("/api/auth/login", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ username: memberUsername, password: memberPassword }),
 		})
 		expect(oldPasswordAttempt.status).toBe(401)
 
-		const relogin = await app.request("/api/auth/sign-in", {
+		const relogin = await app.request("/api/auth/login", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ username: memberUsername, password: "member-reset-password-456" }),

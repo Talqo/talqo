@@ -8,8 +8,12 @@ import { z } from "zod"
 
 import {
 	bootstrapAdminRequestSchema,
+	bootstrapAdminResponseSchema,
 	createGrantRequestSchema,
+	createInvitationResponseSchema,
+	grantResponseSchema,
 	redeemInvitationRequestSchema,
+	redeemInvitationResponseSchema,
 	resetPasswordRequestSchema,
 	setupStatusResponseSchema,
 } from "./roles.contract.ts"
@@ -26,7 +30,7 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 
 		try {
 			const user = await service.bootstrapAdmin(body.data)
-			return c.json({ user }, 201)
+			return c.json(bootstrapAdminResponseSchema.parse({ user }), 201)
 		} catch (error) {
 			if (error instanceof service.AdminAlreadyExistsError) {
 				return c.json({ error: error.message }, 409)
@@ -42,7 +46,7 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
-		return c.json({ token, expiresAt }, 201)
+		return c.json(createInvitationResponseSchema.parse({ token, expiresAt }), 201)
 	})
 	.post("/api/invitations/redeem", async (c) => {
 		const body = redeemInvitationRequestSchema.safeParse(await parseJsonBody(c))
@@ -50,7 +54,7 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 
 		try {
 			const user = await service.redeemInvitation(body.data)
-			return c.json({ user }, 201)
+			return c.json(redeemInvitationResponseSchema.parse({ user }), 201)
 		} catch (error) {
 			if (error instanceof service.InvalidInvitationError) {
 				return c.json({ error: error.message }, 409)
@@ -70,7 +74,7 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 
 		try {
 			const grant = await service.grantPermission({ ...body.data, grantedBy: user.id })
-			return c.json({ grant }, 201)
+			return c.json(grantResponseSchema.parse({ grant }), 201)
 		} catch (error) {
 			if (isForeignKeyViolation(error)) return c.json({ error: "User not found" }, 404)
 			throw error

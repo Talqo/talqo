@@ -4,7 +4,7 @@ import { parseEnv } from "./env.ts"
 
 describe("parseEnv", () => {
 	it("accepts a valid configuration and defaults the port", () => {
-		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })
+		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" })
 
 		expect(env.DATABASE_URL).toBe("postgres://talqo:talqo@127.0.0.1:5432/talqo")
 		expect(env.TALQO_API_PORT).toBe(3000)
@@ -17,8 +17,12 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
+	it("rejects a missing NODE_ENV", () => {
+		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })).toThrow(/NODE_ENV/)
+	})
+
 	it("rejects a missing DATABASE_URL", () => {
-		expect(() => parseEnv({})).toThrow(/DATABASE_URL/)
+		expect(() => parseEnv({ NODE_ENV: "development" })).toThrow(/DATABASE_URL/)
 	})
 
 	it("rejects an invalid DATABASE_URL", () => {

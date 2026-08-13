@@ -19,7 +19,7 @@ export const userResponseSchema = z.object({
 	username: z.string(),
 })
 
-export const signInRequestSchema = z.object({
+export const loginRequestSchema = z.object({
 	username: z.string().min(1),
 	password: z.string().min(1),
 })

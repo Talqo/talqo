@@ -11,7 +11,7 @@ const DUMMY_PASSWORD_HASH =
 	"$argon2id$v=19$m=65536,t=2,p=1$w3rYKVUc1fpKckt77EcQqRf6du84Qh6GiLBmosTOV8M$SSJe6OCOtUC+ZpVOYRQ0/3VJER6dG7vPZxSEIXWyTAs"
 
 export const SESSION_COOKIE = "session"
-export const PUBLIC_AUTH_PATHS = ["/api/auth/sign-in", "/api/auth/session", "/api/auth/sign-out"]
+export const PUBLIC_AUTH_PATHS = ["/api/auth/login", "/api/auth/session", "/api/auth/logout"]
 
 export const USERNAME_MIN_LENGTH = 3
 export const USERNAME_MAX_LENGTH = 32

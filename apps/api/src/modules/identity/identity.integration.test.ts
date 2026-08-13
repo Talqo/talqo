@@ -17,8 +17,8 @@ function extractSessionCookie(response: Response): string {
 	return cookiePair
 }
 
-async function signIn(username: string, password: string) {
-	const response = await app.request("/api/auth/sign-in", {
+async function login(username: string, password: string) {
+	const response = await app.request("/api/auth/login", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
@@ -26,11 +26,11 @@ async function signIn(username: string, password: string) {
 	return response
 }
 
-async function createAndSignIn(password = DEFAULT_PASSWORD) {
+async function createAndLogin(password = DEFAULT_PASSWORD) {
 	const username = uniqueUsername()
 	await service.createAccount({ username, password })
 
-	const response = await signIn(username, password)
+	const response = await login(username, password)
 	const cookie = extractSessionCookie(response)
 	const { user } = (await response.json()) as { user: { id: string; username: string } }
 
@@ -39,7 +39,7 @@ async function createAndSignIn(password = DEFAULT_PASSWORD) {
 
 describe("identity", () => {
 	it("logs in and establishes an authenticated session", async () => {
-		const { cookie, user } = await createAndSignIn()
+		const { cookie, user } = await createAndLogin()
 
 		const response = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
 
@@ -47,23 +47,23 @@ describe("identity", () => {
 		expect(await response.json()).toEqual({ user })
 	})
 
-	it("rejects sign-in with the wrong password", async () => {
+	it("rejects login with the wrong password", async () => {
 		const username = uniqueUsername()
 		await service.createAccount({ username, password: DEFAULT_PASSWORD })
 
-		const response = await signIn(username, "wrong-password")
+		const response = await login(username, "wrong-password")
 
 		expect(response.status).toBe(401)
 	})
 
 	it("invalidates the session server-side on logout, not just client-side", async () => {
-		const { cookie } = await createAndSignIn()
+		const { cookie } = await createAndLogin()
 
-		const signOutResponse = await app.request("/api/auth/sign-out", {
+		const logoutResponse = await app.request("/api/auth/logout", {
 			method: "POST",
 			headers: { Cookie: cookie },
 		})
-		expect(signOutResponse.status).toBe(204)
+		expect(logoutResponse.status).toBe(204)
 
 		// Replay the pre-logout cookie directly -- proves server-side deletion, not just
 		// that a client would have dropped it.
@@ -72,7 +72,7 @@ describe("identity", () => {
 	})
 
 	it("requires the current password to change password", async () => {
-		const { cookie, username, password } = await createAndSignIn()
+		const { cookie, username, password } = await createAndLogin()
 
 		const wrongAttempt = await app.request("/api/me/password", {
 			method: "PATCH",
@@ -88,12 +88,12 @@ describe("identity", () => {
 		})
 		expect(correctAttempt.status).toBe(204)
 
-		expect((await signIn(username, password)).status).toBe(401)
-		expect((await signIn(username, "new-password-123")).status).toBe(200)
+		expect((await login(username, password)).status).toBe(401)
+		expect((await login(username, "new-password-123")).status).toBe(200)
 	})
 
 	it("updates account info", async () => {
-		const { cookie } = await createAndSignIn()
+		const { cookie } = await createAndLogin()
 		const newUsername = uniqueUsername()
 
 		const response = await app.request("/api/me", {
@@ -108,8 +108,8 @@ describe("identity", () => {
 	})
 
 	it("rejects updating account username to one already in use", async () => {
-		const existing = await createAndSignIn()
-		const { cookie } = await createAndSignIn()
+		const existing = await createAndLogin()
+		const { cookie } = await createAndLogin()
 
 		const response = await app.request("/api/me", {
 			method: "PATCH",
@@ -121,7 +121,7 @@ describe("identity", () => {
 	})
 
 	it("deletes the account and invalidates its session", async () => {
-		const { cookie, username, password } = await createAndSignIn()
+		const { cookie, username, password } = await createAndLogin()
 
 		const deleteResponse = await app.request("/api/me", { method: "DELETE", headers: { Cookie: cookie } })
 		expect(deleteResponse.status).toBe(204)
@@ -129,19 +129,19 @@ describe("identity", () => {
 		const sessionResponse = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
 		expect(await sessionResponse.json()).toEqual({ user: null })
 
-		expect((await signIn(username, password)).status).toBe(401)
+		expect((await login(username, password)).status).toBe(401)
 	})
 
 	it("setPassword rotates the password and invalidates existing sessions", async () => {
-		const { cookie, username, user } = await createAndSignIn()
+		const { cookie, username, user } = await createAndLogin()
 
 		await service.setPassword(user.id, "reset-password-456")
 
 		const sessionResponse = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
 		expect(await sessionResponse.json()).toEqual({ user: null })
 
-		expect((await signIn(username, DEFAULT_PASSWORD)).status).toBe(401)
-		expect((await signIn(username, "reset-password-456")).status).toBe(200)
+		expect((await login(username, DEFAULT_PASSWORD)).status).toBe(401)
+		expect((await login(username, "reset-password-456")).status).toBe(200)
 	})
 
 	it("rejects creating an account with a duplicate username", async () => {

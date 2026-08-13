@@ -9,8 +9,8 @@ import { z } from "zod"
 
 import {
 	changePasswordRequestSchema,
+	loginRequestSchema,
 	sessionResponseSchema,
-	signInRequestSchema,
 	updateAccountRequestSchema,
 } from "./identity.contract.ts"
 import * as service from "./identity.service.ts"
@@ -27,8 +27,8 @@ function sessionCookieOptions() {
 }
 
 export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
-	.post("/api/auth/sign-in", async (c) => {
-		const body = signInRequestSchema.safeParse(await parseJsonBody(c))
+	.post("/api/auth/login", async (c) => {
+		const body = loginRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
 
 		try {
@@ -42,7 +42,7 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
-	.post("/api/auth/sign-out", async (c) => {
+	.post("/api/auth/logout", async (c) => {
 		const token = getCookie(c, SESSION_COOKIE)
 		if (token) await service.logout(token)
 		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())

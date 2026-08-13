@@ -13,16 +13,16 @@ function uniqueUsername(): string {
 	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
 }
 
-async function signInResponse(username: string, password: string): Promise<Response> {
-	return app.request("/api/auth/sign-in", {
+async function loginResponse(username: string, password: string): Promise<Response> {
+	return app.request("/api/auth/login", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
 	})
 }
 
-async function signIn(username: string, password: string): Promise<string> {
-	const response = await signInResponse(username, password)
+async function login(username: string, password: string): Promise<string> {
+	const response = await loginResponse(username, password)
 	const setCookie = response.headers.get("set-cookie")
 	if (!setCookie) throw new Error("Expected a Set-Cookie header")
 	const [cookiePair] = setCookie.split(";")
@@ -34,13 +34,13 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	await sql`TRUNCATE TABLE user_role`
 	const username = uniqueUsername()
 	const admin = await service.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
-	return { cookie: await signIn(username, DEFAULT_PASSWORD), userId: admin.id }
+	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
 }
 
 async function createMemberSession(): Promise<string> {
 	const username = uniqueUsername()
 	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	return signIn(username, DEFAULT_PASSWORD)
+	return login(username, DEFAULT_PASSWORD)
 }
 
 describe("roles", () => {
@@ -247,7 +247,7 @@ describe("permission grants", () => {
 			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
 		})
 
-		const memberCookie = await signIn(memberUsername, DEFAULT_PASSWORD)
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 		const response = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
 
 		expect(response.status).toBe(201)
@@ -263,7 +263,7 @@ describe("permission grants", () => {
 			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
 		})
 		const { grant } = (await grantResponse.json()) as { grant: { id: string } }
-		const memberCookie = await signIn(memberUsername, DEFAULT_PASSWORD)
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
 		const beforeRevoke = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
 		expect(beforeRevoke.status).toBe(201)
@@ -294,15 +294,15 @@ describe("admin password reset", () => {
 		})
 
 		expect(response.status).toBe(204)
-		expect((await signInResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
-		expect((await signInResponse(memberUsername, "admin-reset-password-123")).status).toBe(200)
+		expect((await loginResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
+		expect((await loginResponse(memberUsername, "admin-reset-password-123")).status).toBe(200)
 	})
 
 	it("invalidates the target account's existing sessions once the reset happens", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
 		await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-		const memberCookie = await signIn(memberUsername, DEFAULT_PASSWORD)
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 		const memberSessionResponse = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
 		const { user: member } = (await memberSessionResponse.json()) as { user: { id: string } }
 
