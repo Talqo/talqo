@@ -1,11 +1,12 @@
-import type { FormEvent } from "react"
-
-import { useState } from "react"
+import { credentialsFormSchema, type CredentialsFormValues } from "@/features/authentication/credentials-schema.ts"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@talqo/shared"
+import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type CredentialsFormProps = {
 	error: string | null
-	onSubmit: (input: { password: string; username: string }) => Promise<void> | void
+	onSubmit: (input: CredentialsFormValues) => Promise<void> | void
 	passwordAutoComplete?: "current-password" | "new-password"
 	submitLabel: string
 	submitting: boolean
@@ -19,42 +20,42 @@ export function CredentialsForm({
 	submitting,
 }: CredentialsFormProps) {
 	const { t } = useTranslation()
-	const [username, setUsername] = useState("")
-	const [password, setPassword] = useState("")
-
-	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault()
-		await onSubmit({ username, password })
-	}
+	const {
+		register,
+		handleSubmit,
+		formState: { errors },
+	} = useForm<CredentialsFormValues>({ resolver: zodResolver(credentialsFormSchema) })
 
 	return (
-		<form onSubmit={handleSubmit}>
+		<form onSubmit={handleSubmit((values) => onSubmit(values))}>
 			<div>
 				<label htmlFor="username">{t("auth.credentialsForm.username")}</label>
 				<input
 					id="username"
-					name="username"
-					value={username}
-					onChange={(event) => setUsername(event.target.value)}
-					required
-					minLength={3}
-					maxLength={32}
 					autoComplete="username"
+					aria-invalid={errors.username ? true : undefined}
+					{...register("username")}
 				/>
+				{errors.username && (
+					<p role="alert">
+						{t("auth.credentialsForm.usernameError", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+					</p>
+				)}
 			</div>
 			<div>
 				<label htmlFor="password">{t("auth.credentialsForm.password")}</label>
 				<input
 					id="password"
-					name="password"
 					type="password"
-					value={password}
-					onChange={(event) => setPassword(event.target.value)}
-					required
-					minLength={8}
-					maxLength={128}
 					autoComplete={passwordAutoComplete}
+					aria-invalid={errors.password ? true : undefined}
+					{...register("password")}
 				/>
+				{errors.password && (
+					<p role="alert">
+						{t("auth.credentialsForm.passwordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH })}
+					</p>
+				)}
 			</div>
 			{error ? <p role="alert">{error}</p> : null}
 			<button type="submit" disabled={submitting}>

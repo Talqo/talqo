@@ -1,4 +1,11 @@
 import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
+import {
+	PASSWORD_MAX_LENGTH,
+	PASSWORD_MIN_LENGTH,
+	USERNAME_MAX_LENGTH,
+	USERNAME_MIN_LENGTH,
+	USERNAME_PATTERN,
+} from "@talqo/shared"
 
 import type { User } from "./identity.repository.ts"
 
@@ -13,11 +20,7 @@ const DUMMY_PASSWORD_HASH =
 export const SESSION_COOKIE = "session"
 export const PUBLIC_AUTH_PATHS = ["/api/auth/login", "/api/auth/session", "/api/auth/logout"]
 
-export const USERNAME_MIN_LENGTH = 3
-export const USERNAME_MAX_LENGTH = 32
-export const USERNAME_PATTERN = /^[a-zA-Z0-9_-]+$/
-export const PASSWORD_MIN_LENGTH = 8
-export const PASSWORD_MAX_LENGTH = 128
+export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN }
 
 export class InvalidCredentialsError extends Error {}
 export class InvalidPasswordError extends Error {}
@@ -92,8 +95,17 @@ export async function logout(token: string): Promise<void> {
 }
 
 export async function getSession(token: string): Promise<{ expiresAt: Date; user: PublicUser } | null> {
-	const row = await repo.findSessionByTokenHash(hashOpaqueToken(token))
-	if (!row || row.session.expiresAt.getTime() <= Date.now()) return null
+	const tokenHash = hashOpaqueToken(token)
+	const row = await repo.findSessionByTokenHash(tokenHash)
+	if (!row) return null
+
+	if (row.session.expiresAt.getTime() <= Date.now()) {
+		// Opportunistic purge: an expired session is dead weight the moment it's read, so
+		// clean it up here instead of leaving it for a separate cleanup job that doesn't exist.
+		await repo.deleteSessionByTokenHash(tokenHash)
+		return null
+	}
+
 	return { user: toPublicUser(row.user), expiresAt: row.session.expiresAt }
 }
 

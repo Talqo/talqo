@@ -2,10 +2,7 @@ import { describe, expect, it } from "bun:test"
 
 import { app } from "./app.ts"
 import { sql } from "./db/client.ts"
-
-function uniqueUsername(): string {
-	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
-}
+import { DEFAULT_PASSWORD, uniqueUsername } from "./test-helpers.ts"
 
 async function login(username: string, password: string): Promise<string> {
 	const response = await app.request("/api/auth/login", {
@@ -26,7 +23,7 @@ describe("auth flow", () => {
 
 		// 1. Bootstrap the sole admin.
 		const adminUsername = uniqueUsername()
-		const adminPassword = "correct-horse-battery-staple"
+		const adminPassword = DEFAULT_PASSWORD
 		const bootstrapResponse = await app.request("/api/setup", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },

@@ -76,7 +76,9 @@
 		},
 		"credentialsForm": {
 			"password": "Heslo",
-			"username": "Uživatelské jméno"
+			"passwordError": "Heslo musí mít {{min}}-{{max}} znaků.",
+			"username": "Uživatelské jméno",
+			"usernameError": "Uživatelské jméno musí mít {{min}}-{{max}} znaků a smí obsahovat pouze písmena, číslice, podtržítka a spojovníky."
 		},
 		"errorFallback": "Něco se pokazilo. Zkuste to prosím znovu.",
 		"invitations": {

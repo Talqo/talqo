@@ -1,13 +1,10 @@
 import { app } from "@/app.ts"
+import { hashOpaqueToken } from "@/lib/opaque-token.ts"
+import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { describe, expect, it } from "bun:test"
 
+import * as repo from "./identity.repository.ts"
 import * as service from "./identity.service.ts"
-
-const DEFAULT_PASSWORD = "correct-horse-battery-staple"
-
-function uniqueUsername(): string {
-	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
-}
 
 function extractSessionCookie(response: Response): string {
 	const setCookie = response.headers.get("set-cookie")
@@ -142,6 +139,22 @@ describe("identity", () => {
 
 		expect((await login(username, DEFAULT_PASSWORD)).status).toBe(401)
 		expect((await login(username, "reset-password-456")).status).toBe(200)
+	})
+
+	it("purges an expired session from the database on read, not just rejecting it", async () => {
+		const username = uniqueUsername()
+		const user = await service.createAccount({ username, password: DEFAULT_PASSWORD })
+		const token = crypto.randomUUID()
+		const tokenHash = hashOpaqueToken(token)
+		await repo.insertSession({
+			id: crypto.randomUUID(),
+			tokenHash,
+			userId: user.id,
+			expiresAt: new Date(Date.now() - 1000),
+		})
+
+		expect(await service.getSession(token)).toBeNull()
+		expect(await repo.findSessionByTokenHash(tokenHash)).toBeUndefined()
 	})
 
 	it("rejects creating an account with a duplicate username", async () => {

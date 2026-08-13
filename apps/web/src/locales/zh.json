@@ -76,7 +76,9 @@
 		},
 		"credentialsForm": {
 			"password": "密码",
-			"username": "用户名"
+			"passwordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
+			"username": "用户名",
+			"usernameError": "用户名长度必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。"
 		},
 		"errorFallback": "出现了一些问题，请重试。",
 		"invitations": {

@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./credentials": "./src/credentials.ts",
 		"./languages": "./src/languages.ts"
 	},
 	"scripts": {

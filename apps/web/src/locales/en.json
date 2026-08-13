@@ -76,7 +76,9 @@
 		},
 		"credentialsForm": {
 			"password": "Password",
-			"username": "Username"
+			"passwordError": "Password must be {{min}}-{{max}} characters.",
+			"username": "Username",
+			"usernameError": "Username must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens."
 		},
 		"errorFallback": "Something went wrong. Please try again.",
 		"invitations": {

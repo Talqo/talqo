@@ -2,16 +2,11 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
+import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { describe, expect, it } from "bun:test"
 
 import * as repo from "./roles.repository.ts"
 import * as service from "./roles.service.ts"
-
-const DEFAULT_PASSWORD = "correct-horse-battery-staple"
-
-function uniqueUsername(): string {
-	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
-}
 
 async function loginResponse(username: string, password: string): Promise<Response> {
 	return app.request("/api/auth/login", {
