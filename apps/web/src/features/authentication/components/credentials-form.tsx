@@ -27,7 +27,7 @@ export function CredentialsForm({
 	} = useForm<CredentialsFormValues>({ resolver: zodResolver(credentialsFormSchema) })
 
 	return (
-		<form onSubmit={handleSubmit((values) => onSubmit(values))}>
+		<form onSubmit={handleSubmit(onSubmit)}>
 			<div>
 				<label htmlFor="username">{t("auth.credentialsForm.username")}</label>
 				<input
