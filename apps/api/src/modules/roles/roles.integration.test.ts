@@ -97,9 +97,7 @@ describe("roles", () => {
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
 		const userB = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-2" })
 
-		// Bypasses roles.service.bootstrapAdmin's application-level hasAdmin() check by
-		// inserting through the repository directly, to prove the DB's partial unique
-		// index -- not just app code -- rejects a second admin row.
+		// Inserts directly via the repo, bypassing bootstrapAdmin's check, to prove the DB constraint itself rejects it.
 		await repo.insertUserRole({ id: crypto.randomUUID(), userId: userA.id, role: "admin" })
 		await expect(repo.insertUserRole({ id: crypto.randomUUID(), userId: userB.id, role: "admin" })).rejects.toThrow()
 	})

@@ -6,9 +6,7 @@ import * as repo from "./identity.repository.ts"
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
-// A real, valid argon2id hash with no corresponding account. Verified against on a
-// login attempt for an unknown username, so response timing doesn't reveal whether the
-// account exists.
+// Real argon2id hash with no account, checked on unknown usernames so timing doesn't leak existence.
 const DUMMY_PASSWORD_HASH =
 	"$argon2id$v=19$m=65536,t=2,p=1$w3rYKVUc1fpKckt77EcQqRf6du84Qh6GiLBmosTOV8M$SSJe6OCOtUC+ZpVOYRQ0/3VJER6dG7vPZxSEIXWyTAs"
 

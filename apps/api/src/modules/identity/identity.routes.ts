@@ -45,7 +45,7 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 	.post("/api/auth/sign-out", async (c) => {
 		const token = getCookie(c, SESSION_COOKIE)
 		if (token) await service.logout(token)
-		deleteCookie(c, SESSION_COOKIE, { path: "/" })
+		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 		return c.body(null, 204)
 	})
 	.get("/api/auth/session", async (c) => {
@@ -72,7 +72,7 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 		try {
 			await service.changePassword(c.get("user").id, body.data.currentPassword, body.data.newPassword)
 			// changePassword invalidates all sessions for the user, including this request's.
-			deleteCookie(c, SESSION_COOKIE, { path: "/" })
+			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 			return c.body(null, 204)
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {
@@ -83,6 +83,6 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 	})
 	.delete("/api/me", async (c) => {
 		await service.deleteAccount(c.get("user").id)
-		deleteCookie(c, SESSION_COOKIE, { path: "/" })
+		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 		return c.body(null, 204)
 	})

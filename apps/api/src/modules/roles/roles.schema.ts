@@ -20,6 +20,7 @@ export const userRole = pgTable(
 		uniqueIndex("user_role_admin_unique_idx")
 			.on(table.role)
 			.where(sql`${table.role} = 'admin'`),
+		index("user_role_user_id_idx").on(table.userId),
 	],
 )
 
@@ -45,13 +46,9 @@ export const permissionGrant = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		// Free text, not a DB enum: each module that gains mutating routes later (agent,
-		// mcp, ...) owns and defines its own permission strings; roles only stores and
-		// checks them.
+		// Free text, not a DB enum: each module with mutating routes owns its own permission strings.
 		permission: text("permission").notNull(),
-		// No FK: the `agent` module/table doesn't exist in this codebase yet (out of scope
-		// for this plan). ERD.md models AGENT ||--o{ PERMISSION_GRANT : scopes
-		// conceptually; wire the real FK once `agent` ships its schema.
+		// No FK: `agent` doesn't exist in this codebase yet -- wire it once `agent` ships.
 		agentId: text("agent_id"),
 		// Nullable + set null (not cascade): deleting the granting admin's account must not
 		// silently revoke grants they made to other, unrelated users.

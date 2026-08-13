@@ -1,7 +1,7 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
 import { parseJsonBody } from "@/http/json-body.ts"
-import { isUniqueViolation } from "@/lib/pg-error.ts"
+import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { Hono } from "hono"
 import { z } from "zod"
@@ -68,8 +68,13 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 		const body = createGrantRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, 400)
 
-		const grant = await service.grantPermission({ ...body.data, grantedBy: user.id })
-		return c.json({ grant }, 201)
+		try {
+			const grant = await service.grantPermission({ ...body.data, grantedBy: user.id })
+			return c.json({ grant }, 201)
+		} catch (error) {
+			if (isForeignKeyViolation(error)) return c.json({ error: "User not found" }, 404)
+			throw error
+		}
 	})
 	.delete("/api/permission-grants/:id", async (c) => {
 		const user = c.get("user")

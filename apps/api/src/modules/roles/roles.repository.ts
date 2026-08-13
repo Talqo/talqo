@@ -33,9 +33,7 @@ export async function insertInvitation(values: NewInvitation): Promise<Invitatio
 }
 
 export async function claimInvitation(tokenHash: string): Promise<Invitation | undefined> {
-	// A conditional UPDATE, not a read-then-write: Postgres's row lock makes this the
-	// atomic single-use claim, so two concurrent redemptions of the same token can't both
-	// succeed.
+	// Conditional UPDATE, not read-then-write: Postgres's row lock makes this an atomic single-use claim.
 	const [row] = await db
 		.update(invitation)
 		.set({ redeemedAt: new Date() })

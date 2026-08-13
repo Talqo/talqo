@@ -67,9 +67,7 @@ describe("auth flow", () => {
 		})
 		expect(grantResponse.status).toBe(201)
 
-		// 5. Member's access reflects exactly that grant: the granted action succeeds,
-		// but admin-only actions the grant does not cover still fail -- no accidental
-		// elevation beyond the single permission that was actually assigned.
+		// 5. Member's access reflects exactly that grant: granted action succeeds, uncovered admin-only actions still fail.
 		const afterGrant = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
 		expect(afterGrant.status).toBe(201)
 
