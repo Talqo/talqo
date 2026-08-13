@@ -68,6 +68,36 @@
 		"tokens": "令牌数",
 		"usageOverTime": "使用量趋势"
 	},
+	"auth": {
+		"acceptInvite": {
+			"heading": "完成您的账户设置",
+			"missingToken": "此邀请链接缺少令牌。",
+			"submit": "创建账户"
+		},
+		"credentialsForm": {
+			"password": "密码",
+			"username": "用户名"
+		},
+		"errorFallback": "出现了一些问题，请重试。",
+		"invitations": {
+			"create": "创建邀请",
+			"expiresLabel": "（{{date}} 过期）",
+			"heading": "邀请成员",
+			"linkLabel": "邀请链接：",
+			"loginLink": "登录",
+			"loginRequired": "您需要登录才能邀请成员。"
+		},
+		"loading": "正在加载…",
+		"login": {
+			"heading": "登录",
+			"submit": "登录"
+		},
+		"setup": {
+			"description": "这是 Talqo 首次运行。请创建唯一的管理员账户以继续。",
+			"heading": "创建管理员账户",
+			"submit": "创建管理员账户"
+		}
+	},
 	"dashboard": {
 		"cards": {
 			"account": {

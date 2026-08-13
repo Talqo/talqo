@@ -3,12 +3,14 @@ import { ApiError } from "@/api/errors.ts"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/setup")({
 	component: SetupPage,
 })
 
 function SetupPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const [error, setError] = useState<string | null>(null)
 	const [submitting, setSubmitting] = useState(false)
@@ -20,7 +22,7 @@ function SetupPage() {
 			await bootstrapAdmin(input)
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : "Something went wrong. Please try again.")
+			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
 		} finally {
 			setSubmitting(false)
 		}
@@ -28,12 +30,12 @@ function SetupPage() {
 
 	return (
 		<main>
-			<h1>Create the admin account</h1>
-			<p>This is the first time Talqo has run. Create the sole admin account to continue.</p>
+			<h1>{t("auth.setup.heading")}</h1>
+			<p>{t("auth.setup.description")}</p>
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
-				submitLabel="Create admin account"
+				submitLabel={t("auth.setup.submit")}
 				submitting={submitting}
 			/>
 		</main>

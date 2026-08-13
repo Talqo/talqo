@@ -3,6 +3,7 @@ import { ApiError } from "@/api/errors.ts"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/accept-invite")({
 	validateSearch: (search: Record<string, unknown>): { token: string } => ({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/accept-invite")({
 })
 
 function AcceptInvitePage() {
+	const { t } = useTranslation()
 	const { token } = Route.useSearch()
 	const navigate = useNavigate()
 	const [error, setError] = useState<string | null>(null)
@@ -24,7 +26,7 @@ function AcceptInvitePage() {
 			await redeemInvitation({ token, ...input })
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : "Something went wrong. Please try again.")
+			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
 		} finally {
 			setSubmitting(false)
 		}
@@ -33,15 +35,20 @@ function AcceptInvitePage() {
 	if (!token) {
 		return (
 			<main>
-				<p role="alert">This invitation link is missing its token.</p>
+				<p role="alert">{t("auth.acceptInvite.missingToken")}</p>
 			</main>
 		)
 	}
 
 	return (
 		<main>
-			<h1>Complete your account</h1>
-			<CredentialsForm error={error} onSubmit={handleSubmit} submitLabel="Create account" submitting={submitting} />
+			<h1>{t("auth.acceptInvite.heading")}</h1>
+			<CredentialsForm
+				error={error}
+				onSubmit={handleSubmit}
+				submitLabel={t("auth.acceptInvite.submit")}
+				submitting={submitting}
+			/>
 		</main>
 	)
 }

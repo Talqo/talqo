@@ -3,12 +3,14 @@ import { ApiError } from "@/api/errors.ts"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/login")({
 	component: LoginPage,
 })
 
 function LoginPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const [error, setError] = useState<string | null>(null)
 	const [submitting, setSubmitting] = useState(false)
@@ -20,7 +22,7 @@ function LoginPage() {
 			await signIn(input)
 			await navigate({ to: "/invitations" })
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : "Something went wrong. Please try again.")
+			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
 		} finally {
 			setSubmitting(false)
 		}
@@ -28,12 +30,12 @@ function LoginPage() {
 
 	return (
 		<main>
-			<h1>Log in</h1>
+			<h1>{t("auth.login.heading")}</h1>
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
 				passwordAutoComplete="current-password"
-				submitLabel="Log in"
+				submitLabel={t("auth.login.submit")}
 				submitting={submitting}
 			/>
 		</main>

@@ -68,6 +68,36 @@
 		"tokens": "Tokens",
 		"usageOverTime": "Usage over time"
 	},
+	"auth": {
+		"acceptInvite": {
+			"heading": "Complete your account",
+			"missingToken": "This invitation link is missing its token.",
+			"submit": "Create account"
+		},
+		"credentialsForm": {
+			"password": "Password",
+			"username": "Username"
+		},
+		"errorFallback": "Something went wrong. Please try again.",
+		"invitations": {
+			"create": "Create invitation",
+			"expiresLabel": "(expires {{date}})",
+			"heading": "Invite a member",
+			"linkLabel": "Invitation link:",
+			"loginLink": "Log in",
+			"loginRequired": "You need to log in to invite a member."
+		},
+		"loading": "Loading…",
+		"login": {
+			"heading": "Log in",
+			"submit": "Log in"
+		},
+		"setup": {
+			"description": "This is the first time Talqo has run. Create the sole admin account to continue.",
+			"heading": "Create the admin account",
+			"submit": "Create admin account"
+		}
+	},
 	"dashboard": {
 		"cards": {
 			"account": {

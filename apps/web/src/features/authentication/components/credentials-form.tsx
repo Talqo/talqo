@@ -1,6 +1,7 @@
 import type { FormEvent } from "react"
 
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 type CredentialsFormProps = {
 	error: string | null
@@ -17,6 +18,7 @@ export function CredentialsForm({
 	submitLabel,
 	submitting,
 }: CredentialsFormProps) {
+	const { t } = useTranslation()
 	const [username, setUsername] = useState("")
 	const [password, setPassword] = useState("")
 
@@ -28,7 +30,7 @@ export function CredentialsForm({
 	return (
 		<form onSubmit={handleSubmit}>
 			<div>
-				<label htmlFor="username">Username</label>
+				<label htmlFor="username">{t("auth.credentialsForm.username")}</label>
 				<input
 					id="username"
 					name="username"
@@ -41,7 +43,7 @@ export function CredentialsForm({
 				/>
 			</div>
 			<div>
-				<label htmlFor="password">Password</label>
+				<label htmlFor="password">{t("auth.credentialsForm.password")}</label>
 				<input
 					id="password"
 					name="password"

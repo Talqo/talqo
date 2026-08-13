@@ -4,12 +4,14 @@ import { createInvitation, getSession } from "@/api/client.ts"
 import { ApiError } from "@/api/errors.ts"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/invitations")({
 	component: InvitationsPage,
 })
 
 function InvitationsPage() {
+	const { t } = useTranslation()
 	const [user, setUser] = useState<PublicUser | null | undefined>(undefined)
 	const [invite, setInvite] = useState<{ expiresAt: string; token: string } | null>(null)
 	const [error, setError] = useState<string | null>(null)
@@ -30,19 +32,20 @@ function InvitationsPage() {
 		try {
 			setInvite(await createInvitation())
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : "Something went wrong. Please try again.")
+			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
 		} finally {
 			setSubmitting(false)
 		}
 	}
 
-	if (user === undefined) return <p>Loading…</p>
+	if (user === undefined) return <p>{t("auth.loading")}</p>
 
 	if (user === null) {
 		return (
 			<main>
+				<p>{t("auth.invitations.loginRequired")}</p>
 				<p>
-					You need to <Link to="/login">log in</Link> to invite a member.
+					<Link to="/login">{t("auth.invitations.loginLink")}</Link>
 				</p>
 			</main>
 		)
@@ -50,15 +53,15 @@ function InvitationsPage() {
 
 	return (
 		<main>
-			<h1>Invite a member</h1>
+			<h1>{t("auth.invitations.heading")}</h1>
 			<button type="button" onClick={handleCreate} disabled={submitting}>
-				Create invitation
+				{t("auth.invitations.create")}
 			</button>
 			{error ? <p role="alert">{error}</p> : null}
 			{invite ? (
 				<p>
-					Invitation link: <code>/accept-invite?token={invite.token}</code> (expires{" "}
-					{new Date(invite.expiresAt).toLocaleString()})
+					{t("auth.invitations.linkLabel")} <code>/accept-invite?token={invite.token}</code>{" "}
+					{t("auth.invitations.expiresLabel", { date: new Date(invite.expiresAt).toLocaleString() })}
 				</p>
 			) : null}
 		</main>

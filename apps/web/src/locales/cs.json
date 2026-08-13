@@ -68,6 +68,36 @@
 		"tokens": "Tokeny",
 		"usageOverTime": "Využití v čase"
 	},
+	"auth": {
+		"acceptInvite": {
+			"heading": "Dokončete svůj účet",
+			"missingToken": "Tomuto pozvánkovému odkazu chybí token.",
+			"submit": "Vytvořit účet"
+		},
+		"credentialsForm": {
+			"password": "Heslo",
+			"username": "Uživatelské jméno"
+		},
+		"errorFallback": "Něco se pokazilo. Zkuste to prosím znovu.",
+		"invitations": {
+			"create": "Vytvořit pozvánku",
+			"expiresLabel": "(vyprší {{date}})",
+			"heading": "Pozvat člena",
+			"linkLabel": "Odkaz na pozvánku:",
+			"loginLink": "Přihlásit se",
+			"loginRequired": "Pro pozvání člena se musíte přihlásit."
+		},
+		"loading": "Načítání…",
+		"login": {
+			"heading": "Přihlášení",
+			"submit": "Přihlásit se"
+		},
+		"setup": {
+			"description": "Toto je první spuštění Talqo. Pro pokračování vytvořte jediný účet administrátora.",
+			"heading": "Vytvořit účet administrátora",
+			"submit": "Vytvořit účet administrátora"
+		}
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
