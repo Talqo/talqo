@@ -45,17 +45,31 @@ function sanitizeAccent(accent: string | undefined): string | undefined {
 	return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : undefined
 }
 
+const HEX_RADIX = 16
+const RED_START = 1
+const RED_END = 3
+const GREEN_START = 3
+const GREEN_END = 5
+const BLUE_START = 5
+const BLUE_END = 7
+const RED_LUMINANCE_WEIGHT = 0.299
+const GREEN_LUMINANCE_WEIGHT = 0.587
+const BLUE_LUMINANCE_WEIGHT = 0.114
+const MAX_COLOR_CHANNEL = 255
+const LIGHT_ACCENT_THRESHOLD = 0.6
+
 // Derive a contrast-safe foreground from the accent's luminance; a light accent
 // needs dark text rather than the default white --talqo-primary-foreground.
 function accentForeground(accent: string | undefined): string | undefined {
 	if (!accent) {
 		return undefined
 	}
-	const r = Number.parseInt(accent.slice(1, 3), 16)
-	const g = Number.parseInt(accent.slice(3, 5), 16)
-	const b = Number.parseInt(accent.slice(5, 7), 16)
-	const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-	return luminance > 0.6 ? "#1a2e23" : "#ffffff"
+	const r = Number.parseInt(accent.slice(RED_START, RED_END), HEX_RADIX)
+	const g = Number.parseInt(accent.slice(GREEN_START, GREEN_END), HEX_RADIX)
+	const b = Number.parseInt(accent.slice(BLUE_START, BLUE_END), HEX_RADIX)
+	const luminance =
+		(RED_LUMINANCE_WEIGHT * r + GREEN_LUMINANCE_WEIGHT * g + BLUE_LUMINANCE_WEIGHT * b) / MAX_COLOR_CHANNEL
+	return luminance > LIGHT_ACCENT_THRESHOLD ? "#1a2e23" : "#ffffff"
 }
 
 function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement | null) {

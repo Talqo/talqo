@@ -6,6 +6,7 @@ import * as identity from "@/modules/identity/identity.service.ts"
 
 import * as repo from "./roles.repository.ts"
 
+// eslint-disable-next-line no-magic-numbers
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/api/setup", "/api/invitations/redeem"]
@@ -118,7 +119,7 @@ export function can(
 
 export async function authorize(userId: string, permission: Permission, agentId?: string): Promise<boolean> {
 	// Fetched fresh on every call, never cached -- a revoked grant denies the very next
-	// request without needing to touch the user's session (see ADR-0010).
+	// request without needing to touch the user's session (see ADR-0008).
 	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
 	return can({ isAdmin: adminStatus }, grants, permission, agentId)
 }

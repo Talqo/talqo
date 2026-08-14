@@ -1,5 +1,6 @@
 import { login } from "@/api/client.ts"
 import { ApiError } from "@/api/errors.ts"
+import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
@@ -29,8 +30,7 @@ function LoginPage() {
 	}
 
 	return (
-		<main>
-			<h1>{t("auth.login.heading")}</h1>
+		<AuthShell title={t("auth.login.heading")} description={t("auth.login.description")}>
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
@@ -38,6 +38,6 @@ function LoginPage() {
 				submitLabel={t("auth.login.submit")}
 				submitting={submitting}
 			/>
-		</main>
+		</AuthShell>
 	)
 }

@@ -1,5 +1,7 @@
 import { ApiError } from "./errors.ts"
 
+const NO_CONTENT_STATUS = 204
+
 export type PublicUser = {
 	id: string
 	username: string
@@ -21,7 +23,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 		headers: { "Content-Type": "application/json", ...init?.headers },
 	})
 
-	if (response.status === 204) return undefined as T
+	if (response.status === NO_CONTENT_STATUS) return undefined as T
 
 	const body: unknown = await response.json().catch(() => undefined)
 

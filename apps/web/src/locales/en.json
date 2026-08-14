@@ -70,6 +70,7 @@
 	},
 	"auth": {
 		"acceptInvite": {
+			"description": "Choose your credentials to join this Talqo workspace.",
 			"heading": "Complete your account",
 			"missingToken": "This invitation link is missing its token.",
 			"submit": "Create account"
@@ -82,15 +83,21 @@
 		},
 		"errorFallback": "Something went wrong. Please try again.",
 		"invitations": {
+			"copied": "Invitation link copied.",
+			"copy": "Copy invitation link",
+			"copyFailed": "The invitation link could not be copied. Select it and copy it manually.",
 			"create": "Create invitation",
+			"description": "Create a secure, single-use link for a new member.",
 			"expiresLabel": "(expires {{date}})",
 			"heading": "Invite a member",
 			"linkLabel": "Invitation link:",
 			"loginLink": "Log in",
-			"loginRequired": "You need to log in to invite a member."
+			"loginRequired": "You need to log in to invite a member.",
+			"permissionDenied": "Your account does not have permission to invite members."
 		},
 		"loading": "Loading…",
 		"login": {
+			"description": "Use your Talqo credentials to continue.",
 			"heading": "Log in",
 			"submit": "Log in"
 		},
@@ -99,6 +106,9 @@
 			"heading": "Create the admin account",
 			"submit": "Create admin account"
 		}
+	},
+	"common": {
+		"appName": "Talqo"
 	},
 	"dashboard": {
 		"cards": {

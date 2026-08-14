@@ -10,7 +10,7 @@
 		"db:seed": "bun run src/db/seed.ts",
 		"dev": "bun --watch src/index.ts",
 		"test": "bun test --path-ignore-patterns '**/*.integration.test.ts'",
-		"test:integration": "bun test integration.test.ts",
+		"test:integration": "bun ../../scripts/test-integration.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

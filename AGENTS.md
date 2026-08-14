@@ -17,6 +17,7 @@ bun run quality:fix
 bun run typecheck
 bun test
 bun run i18n:fix
-bun run test:integration  # only if apps/api DB-backed code changed, needs Postgres (see apps/api/.env.example)
+bun run test:integration
+bun run e2e
 bun run actions:check  # only if GH actions changed
 ```

@@ -9,6 +9,18 @@
 	},
 	"rules": {
 		"import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+		"no-magic-numbers": [
+			"error",
+			{
+				"ignore": [-1, 0, 1],
+				"ignoreArrayIndexes": true,
+				"ignoreDefaultValues": true,
+				"ignoreEnums": true,
+				"ignoreNumericLiteralTypes": true,
+				"ignoreReadonlyClassProperties": true,
+				"ignoreTypeIndexes": true
+			}
+		],
 		"no-restricted-imports": [
 			"error",
 			{
@@ -23,6 +35,12 @@
 		"typescript/consistent-type-definitions": ["error", "type"]
 	},
 	"overrides": [
+		{
+			"files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/test-helpers.ts", ".claude/skills/**/*.ts"],
+			"rules": {
+				"no-magic-numbers": "off"
+			}
+		},
 		{
 			"files": ["apps/**/*.tsx"],
 			"plugins": ["react"],

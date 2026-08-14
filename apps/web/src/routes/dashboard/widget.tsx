@@ -12,6 +12,8 @@ import { Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+const COPY_FEEDBACK_MS = 2000
+
 import { buildEmbedSnippet, type EmbedPosition, widgetScriptUrl } from "./-embed-snippet"
 
 export const Route = createFileRoute("/dashboard/widget")({
@@ -60,7 +62,7 @@ function WidgetPage() {
 			await navigator.clipboard.writeText(snippet)
 			setCopied(true)
 			window.clearTimeout(copyTimeout.current)
-			copyTimeout.current = window.setTimeout(() => setCopied(false), 2000)
+			copyTimeout.current = window.setTimeout(() => setCopied(false), COPY_FEEDBACK_MS)
 		} catch {
 			setCopied(false)
 		}

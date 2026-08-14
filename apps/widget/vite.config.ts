@@ -7,6 +7,8 @@ import { defineConfig, type Plugin } from "vite"
 import svgr from "vite-plugin-svgr"
 
 const SCOPE = ".talqo-widget"
+const DEFAULT_WIDGET_PORT = 5174
+const MAX_LEAKED_SELECTORS = 5
 
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
@@ -74,7 +76,7 @@ function assertNoGlobalRules(root: Root): void {
 		}
 	})
 	if (leaked.length > 0) {
-		throw new Error(`widgetCss: global CSS survived scoping: ${leaked.slice(0, 5).join(", ")}`)
+		throw new Error(`widgetCss: global CSS survived scoping: ${leaked.slice(0, MAX_LEAKED_SELECTORS).join(", ")}`)
 	}
 }
 
@@ -126,7 +128,7 @@ export default defineConfig({
 	},
 	server: {
 		host: "0.0.0.0",
-		port: Number(process.env.TALQO_WIDGET_PORT ?? 5174),
+		port: Number(process.env.TALQO_WIDGET_PORT ?? DEFAULT_WIDGET_PORT),
 		strictPort: true,
 	},
 })

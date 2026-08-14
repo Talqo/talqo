@@ -165,8 +165,6 @@ module contracts + route metadata
 - `apps/web/src/api/client.ts` configures base URL, authentication, telemetry, request behavior, and app-level error translation. Optional `errors.ts` defines web-facing transport error normalization.
 - Generated code contains no TanStack Query keys, caching, retries, invalidation, optimistic updates, or UI error policy. The consuming route or extracted frontend feature owns that policy.
 
-**Temporary exception (owner: `apps/web/src/api/client.ts`; tracked in `build-plan.md` TASK-008; remove when TASK-008 lands):** this pipeline isn't implemented yet — no module emits OpenAPI route metadata, and `packages/api-client` doesn't exist. Until then, `apps/web/src/api/client.ts` is a small hand-rolled `fetch` wrapper with request/response types duplicated by hand from the API's `.contract.ts` files, not generated.
-
 ## Web
 
 `apps/web` is a client-rendered API consumer. This logical boundary does not require separate deployment images; static web assets and the API may be packaged together.

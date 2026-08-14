@@ -1,11 +1,14 @@
 import { z } from "zod"
 
+const DEFAULT_API_PORT = 3000
+const MAX_PORT = 65_535
+
 const envSchema = z.object({
 	DATABASE_URL: z.url({
 		protocol: /^postgres(ql)?$/,
 		error: "DATABASE_URL must be a valid postgres:// connection string",
 	}),
-	TALQO_API_PORT: z.coerce.number().int().positive().max(65535).default(3000),
+	TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
 	NODE_ENV: z.enum(["development", "production", "test"]),
 })
 

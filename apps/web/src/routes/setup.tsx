@@ -1,5 +1,6 @@
 import { bootstrapAdmin } from "@/api/client.ts"
 import { ApiError } from "@/api/errors.ts"
+import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
@@ -29,15 +30,13 @@ function SetupPage() {
 	}
 
 	return (
-		<main>
-			<h1>{t("auth.setup.heading")}</h1>
-			<p>{t("auth.setup.description")}</p>
+		<AuthShell title={t("auth.setup.heading")} description={t("auth.setup.description")}>
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
 				submitLabel={t("auth.setup.submit")}
 				submitting={submitting}
 			/>
-		</main>
+		</AuthShell>
 	)
 }

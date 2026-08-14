@@ -18,6 +18,7 @@
 			"cache": false,
 			"passThroughEnv": [
 				"DATABASE_URL",
+				"NODE_ENV",
 				"TALQO_API_PORT",
 				"TALQO_WEB_PORT",
 				"TALQO_WIDGET_PORT",

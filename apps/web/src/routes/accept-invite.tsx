@@ -1,5 +1,6 @@
 import { redeemInvitation } from "@/api/client.ts"
 import { ApiError } from "@/api/errors.ts"
+import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
@@ -34,21 +35,22 @@ function AcceptInvitePage() {
 
 	if (!token) {
 		return (
-			<main>
-				<p role="alert">{t("auth.acceptInvite.missingToken")}</p>
-			</main>
+			<AuthShell title={t("auth.acceptInvite.heading")}>
+				<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+					{t("auth.acceptInvite.missingToken")}
+				</p>
+			</AuthShell>
 		)
 	}
 
 	return (
-		<main>
-			<h1>{t("auth.acceptInvite.heading")}</h1>
+		<AuthShell title={t("auth.acceptInvite.heading")} description={t("auth.acceptInvite.description")}>
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
 				submitLabel={t("auth.acceptInvite.submit")}
 				submitting={submitting}
 			/>
-		</main>
+		</AuthShell>
 	)
 }

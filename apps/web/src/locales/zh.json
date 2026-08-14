@@ -70,6 +70,7 @@
 	},
 	"auth": {
 		"acceptInvite": {
+			"description": "设置登录凭据以加入此 Talqo 工作区。",
 			"heading": "完成您的账户设置",
 			"missingToken": "此邀请链接缺少令牌。",
 			"submit": "创建账户"
@@ -82,15 +83,21 @@
 		},
 		"errorFallback": "出现了一些问题，请重试。",
 		"invitations": {
+			"copied": "邀请链接已复制。",
+			"copy": "复制邀请链接",
+			"copyFailed": "无法复制邀请链接。请选中链接并手动复制。",
 			"create": "创建邀请",
+			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
 			"linkLabel": "邀请链接：",
 			"loginLink": "登录",
-			"loginRequired": "您需要登录才能邀请成员。"
+			"loginRequired": "您需要登录才能邀请成员。",
+			"permissionDenied": "您的账户没有邀请成员的权限。"
 		},
 		"loading": "正在加载…",
 		"login": {
+			"description": "使用您的 Talqo 登录凭据继续。",
 			"heading": "登录",
 			"submit": "登录"
 		},
@@ -99,6 +106,9 @@
 			"heading": "创建管理员账户",
 			"submit": "创建管理员账户"
 		}
+	},
+	"common": {
+		"appName": "Talqo"
 	},
 	"dashboard": {
 		"cards": {

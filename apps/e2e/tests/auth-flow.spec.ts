@@ -20,9 +20,10 @@ test("admin bootstraps the app, invites a member, and the member logs in", async
 	await expect(page).toHaveURL("/invitations")
 
 	await page.getByRole("button", { name: "Create invitation" }).click()
-	const inviteText = await page.getByText(/Invitation link:/).textContent()
-	const token = inviteText?.match(/token=(\S+)/)?.[1]
-	if (!token) throw new Error(`Could not find an invitation token on the page: ${inviteText}`)
+	const inviteUrl = await page.getByLabel("Invitation link:").inputValue()
+	expect(inviteUrl).toMatch(/^https?:\/\//)
+	const token = new URL(inviteUrl).searchParams.get("token")
+	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
 
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
