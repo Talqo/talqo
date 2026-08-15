@@ -42,9 +42,10 @@
 			}
 		},
 		{
-			"files": ["apps/**/*.tsx"],
+			"files": ["apps/**/*.tsx", "packages/**/*.tsx"],
 			"plugins": ["react"],
 			"rules": {
+				"react/function-component-definition": ["error", { "namedComponents": "function-declaration" }],
 				"react/react-in-jsx-scope": "off",
 				"react/iframe-missing-sandbox": "off",
 				"react/forbid-elements": [

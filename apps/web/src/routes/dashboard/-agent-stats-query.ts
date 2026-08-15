@@ -52,6 +52,7 @@ function formatLocalDate(date: Date): string {
 	return `${date.getFullYear()}-${month}-${day}`
 }
 
+// TODO(agent-stats-api): Remove this deterministic mock generator when the real analytics endpoint exists.
 function createMockStats(agentId: string): AgentStats {
 	const random = seededRandom(hashAgentId(agentId))
 	const history: AgentStats["history"] = []

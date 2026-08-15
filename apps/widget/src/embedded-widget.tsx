@@ -222,7 +222,7 @@ function WidgetChat({
 	)
 }
 
-export const EmbeddedWidget = ({ title, language = "en", agentId, theme, accent, position }: EmbeddedWidgetProps) => {
+export function EmbeddedWidget({ title, language = "en", agentId, theme, accent, position }: EmbeddedWidgetProps) {
 	const [i18n] = useState(() => createWidgetI18n(isWidgetLanguage(language) ? language : "en"))
 
 	useEffect(() => {
