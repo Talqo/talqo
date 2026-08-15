@@ -68,6 +68,50 @@
 		"tokens": "Tokeny",
 		"usageOverTime": "Využití v čase"
 	},
+	"auth": {
+		"acceptInvite": {
+			"description": "Zvolte si přihlašovací údaje a připojte se k tomuto pracovnímu prostoru Talqo.",
+			"heading": "Dokončete svůj účet",
+			"missingToken": "Tomuto pozvánkovému odkazu chybí token.",
+			"submit": "Vytvořit účet"
+		},
+		"credentialsForm": {
+			"confirmPassword": "Potvrďte heslo",
+			"password": "Heslo",
+			"passwordError": "Heslo musí mít {{min}}-{{max}} znaků.",
+			"passwordMismatchError": "Hesla se neshodují.",
+			"username": "Uživatelské jméno",
+			"usernameError": "Uživatelské jméno musí mít {{min}}-{{max}} znaků a smí obsahovat pouze písmena, číslice, podtržítka a spojovníky."
+		},
+		"errorFallback": "Něco se pokazilo. Zkuste to prosím znovu.",
+		"invitations": {
+			"copied": "Odkaz na pozvánku byl zkopírován.",
+			"copy": "Kopírovat odkaz na pozvánku",
+			"copyFailed": "Odkaz na pozvánku se nepodařilo zkopírovat. Vyberte jej a zkopírujte ručně.",
+			"create": "Vytvořit pozvánku",
+			"description": "Vytvořte bezpečný jednorázový odkaz pro nového člena.",
+			"expiresLabel": "(vyprší {{date}})",
+			"heading": "Pozvat člena",
+			"linkLabel": "Odkaz na pozvánku:",
+			"loginLink": "Přihlásit se",
+			"loginRequired": "Pro pozvání člena se musíte přihlásit.",
+			"permissionDenied": "Váš účet nemá oprávnění zvát členy."
+		},
+		"loading": "Načítání…",
+		"login": {
+			"description": "Pokračujte pomocí svých přihlašovacích údajů Talqo.",
+			"heading": "Přihlášení",
+			"submit": "Přihlásit se"
+		},
+		"setup": {
+			"description": "Toto je první spuštění Talqo. Pro pokračování vytvořte jediný účet administrátora.",
+			"heading": "Vytvořit účet administrátora",
+			"submit": "Vytvořit účet administrátora"
+		}
+	},
+	"common": {
+		"appName": "Talqo"
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
@@ -93,6 +137,7 @@
 	},
 	"header": {
 		"language": "Jazyk",
+		"logout": "Odhlásit se",
 		"placeholderName": "Jméno účtu",
 		"toDarkTheme": "Přepnout na tmavý motiv",
 		"toggleNavigation": "Přepnout navigaci",
@@ -103,6 +148,7 @@
 		"agents": "Agenti",
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
+		"invitations": "Pozvánky",
 		"widget": "Widget"
 	},
 	"widgetSetup": {

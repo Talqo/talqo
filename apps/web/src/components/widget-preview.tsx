@@ -2,6 +2,8 @@ import { cn } from "@talqo/ui/lib/utils"
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+const PREVIEW_DEBOUNCE_MS = 300
+
 export type WidgetPosition = "bottom-right" | "bottom-left"
 
 const PREVIEW_URL =
@@ -84,7 +86,7 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
 export function WidgetPreview({ accent, position = "bottom-right", language, title }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const src = useMemo(() => previewSrc({ accent, language, title, position }), [accent, language, title, position])
-	const debouncedSrc = useDebouncedValue(src, 300)
+	const debouncedSrc = useDebouncedValue(src, PREVIEW_DEBOUNCE_MS)
 	const frameRef = useRef<HTMLDivElement>(null)
 	const scale = useFrameScale(frameRef)
 

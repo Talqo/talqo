@@ -79,13 +79,14 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.1 | On first deployment run, the operator is redirected to an admin setup page and must create the sole admin account before the dashboard becomes otherwise usable | High | Not started |
-| FR-2.2 | Operator can register a new operator user account | High | Not started |
-| FR-2.3 | Operator can log in and log out of the dashboard | High | Not started |
-| FR-2.3a | Operator can log in via SSO (e.g. Google) as an alternative to email/password credentials | Medium | Not started |
-| FR-2.4 | Operator can change their account password | Medium | Not started |
-| FR-2.5 | Operator can update their account information (e.g. name, email) | Medium | Not started |
-| FR-2.6 | Operator can delete their account | Medium | Not started |
+| FR-2.1 | On first deployment run, the operator is redirected to an admin setup page and must create the sole admin account before the dashboard becomes otherwise usable | High | Done |
+| FR-2.2 | Operator can register a new operator user account | High | Done |
+| FR-2.3 | Operator can log in and log out of the dashboard | High | Done |
+| FR-2.3a | Operator can log in via SSO (e.g. Google) as an alternative to username/password credentials | Medium | Not started |
+| FR-2.4 | Operator can change their account password | Medium | Done |
+| FR-2.4a | Admin can reset another operator account's password (no self-service password recovery exists, since there is no self-registration or email flow) | Medium | Done |
+| FR-2.5 | Operator can update their account information (username) | Medium | Done |
+| FR-2.6 | Operator can delete their account | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | In progress (script-tag snippet; origin via VITE_WIDGET_CDN_URL) |
 | FR-2.8 | Operator can rotate the widget's public token to invalidate the old embed code | Medium | Not started |
 

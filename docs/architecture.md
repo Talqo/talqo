@@ -74,6 +74,7 @@ apps/api/
     |   `-- constants.ts             # optional constrained app constants
     |-- db/
     |   |-- client.ts                # shared connection construction
+    |   |-- migrate.ts               # centralized migration application
     |   `-- seed.ts                  # optional environment seed entry point
     |-- http/                         # optional cross-cutting HTTP capabilities
     |-- lib/                          # optional proven non-domain capabilities

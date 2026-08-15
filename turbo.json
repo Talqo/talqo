@@ -18,6 +18,7 @@
 			"cache": false,
 			"passThroughEnv": [
 				"DATABASE_URL",
+				"NODE_ENV",
 				"TALQO_API_PORT",
 				"TALQO_WEB_PORT",
 				"TALQO_WIDGET_PORT",
@@ -28,10 +29,17 @@
 		},
 		"e2e": {
 			"cache": false,
-			"dependsOn": ["@talqo/widget#build"]
+			"dependsOn": ["@talqo/widget#build"],
+			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
+		},
+		"test:integration": {
+			"cache": false,
+			"dependsOn": ["^build"],
+			"passThroughEnv": ["DATABASE_URL"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]

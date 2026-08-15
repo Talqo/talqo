@@ -68,6 +68,50 @@
 		"tokens": "Tokens",
 		"usageOverTime": "Usage over time"
 	},
+	"auth": {
+		"acceptInvite": {
+			"description": "Choose your credentials to join this Talqo workspace.",
+			"heading": "Complete your account",
+			"missingToken": "This invitation link is missing its token.",
+			"submit": "Create account"
+		},
+		"credentialsForm": {
+			"confirmPassword": "Confirm password",
+			"password": "Password",
+			"passwordError": "Password must be {{min}}-{{max}} characters.",
+			"passwordMismatchError": "Passwords do not match.",
+			"username": "Username",
+			"usernameError": "Username must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens."
+		},
+		"errorFallback": "Something went wrong. Please try again.",
+		"invitations": {
+			"copied": "Invitation link copied.",
+			"copy": "Copy invitation link",
+			"copyFailed": "The invitation link could not be copied. Select it and copy it manually.",
+			"create": "Create invitation",
+			"description": "Create a secure, single-use link for a new member.",
+			"expiresLabel": "(expires {{date}})",
+			"heading": "Invite a member",
+			"linkLabel": "Invitation link:",
+			"loginLink": "Log in",
+			"loginRequired": "You need to log in to invite a member.",
+			"permissionDenied": "Your account does not have permission to invite members."
+		},
+		"loading": "Loading…",
+		"login": {
+			"description": "Use your Talqo credentials to continue.",
+			"heading": "Log in",
+			"submit": "Log in"
+		},
+		"setup": {
+			"description": "This is the first time Talqo has run. Create the sole admin account to continue.",
+			"heading": "Create the admin account",
+			"submit": "Create admin account"
+		}
+	},
+	"common": {
+		"appName": "Talqo"
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
@@ -93,6 +137,7 @@
 	},
 	"header": {
 		"language": "Language",
+		"logout": "Log out",
 		"placeholderName": "Account name",
 		"toDarkTheme": "Switch to dark theme",
 		"toggleNavigation": "Toggle navigation",
@@ -103,6 +148,7 @@
 		"agents": "Agents",
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
+		"invitations": "Invitations",
 		"widget": "Widget"
 	},
 	"widgetSetup": {

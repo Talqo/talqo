@@ -1,16 +1,15 @@
-import { dashboardLanguages, isDashboardLanguage } from "@/lib/languages"
-import { useLanguage } from "@/lib/use-language"
-import { useTheme } from "@/lib/use-theme"
+import { logout } from "@/api/client.ts"
+import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
-import { Link } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, Menu, MessageSquare, Moon, Sun, User, X } from "lucide-react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, MessageSquare, User, UserPlus, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 const navItems = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot },
+	{ to: "/dashboard/invitations", icon: UserPlus },
 	{ to: "/dashboard/widget", icon: MessageSquare },
 	{ to: "/dashboard/analytics", icon: BarChart3 },
 	{ to: "/dashboard/account", icon: User },
@@ -22,6 +21,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.dashboard")
 		case "/dashboard/agents":
 			return t("nav.agents")
+		case "/dashboard/invitations":
+			return t("nav.invitations")
 		case "/dashboard/widget":
 			return t("nav.widget")
 		case "/dashboard/analytics":
@@ -62,47 +63,26 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	)
 }
 
-function ThemeToggle() {
+function LogoutButton() {
 	const { t } = useTranslation()
-	const { theme, toggleTheme } = useTheme()
-	return (
-		<Button
-			variant="ghost"
-			size="icon"
-			onClick={toggleTheme}
-			aria-label={theme === "dark" ? t("header.toLightTheme") : t("header.toDarkTheme")}
-		>
-			{theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-		</Button>
-	)
-}
+	const navigate = useNavigate()
+	const [submitting, setSubmitting] = useState(false)
 
-function LanguageSelect() {
-	const { t } = useTranslation()
-	const { language, setLanguage } = useLanguage()
+	async function handleLogout() {
+		setSubmitting(true)
+		try {
+			await logout()
+			await navigate({ to: "/login" })
+		} finally {
+			setSubmitting(false)
+		}
+	}
+
 	return (
-		<Select
-			value={language}
-			onValueChange={(value) => {
-				if (isDashboardLanguage(value)) {
-					setLanguage(value)
-				}
-			}}
-		>
-			<SelectTrigger
-				className="hover:bg-muted w-auto justify-center border-0 px-4 [&>svg]:hidden"
-				aria-label={t("header.language") + ": " + dashboardLanguages[language]}
-			>
-				{language}
-			</SelectTrigger>
-			<SelectContent align="end">
-				{Object.entries(dashboardLanguages).map(([value, label]) => (
-					<SelectItem key={value} value={value} className="py-2.5 pl-3.5">
-						{label}
-					</SelectItem>
-				))}
-			</SelectContent>
-		</Select>
+		<Button variant="ghost" size="sm" onClick={handleLogout} disabled={submitting}>
+			<LogOut className="size-4" />
+			{t("header.logout")}
+		</Button>
 	)
 }
 
@@ -137,6 +117,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
 						<ThemeToggle />
+						<LogoutButton />
 					</div>
 				</header>
 				{mobileOpen && (

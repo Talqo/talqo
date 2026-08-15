@@ -58,8 +58,8 @@ graph LR
 
 | Module | Owns (tables) | Responsibility |
 |---|---|---|
-| `identity` | `USER` | Who a person is: login credentials. No knowledge of roles. |
-| `roles` | `USER_ROLE`, `INVITATION` | RBAC role assignment and invite flow — owns "who can do what." |
+| `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
+| `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and per-user/per-agent permission grants — owns "who can do what." |
 | `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |

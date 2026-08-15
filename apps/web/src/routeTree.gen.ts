@@ -10,12 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as InvitationsRouteImport } from './routes/invitations'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as WidgetPreviewRouteImport } from './routes/widget-preview'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
+import { Route as DashboardInvitationsRouteImport } from './routes/dashboard/invitations'
 import { Route as DashboardWidgetRouteImport } from './routes/dashboard/widget'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 
@@ -24,9 +29,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcceptInviteRoute = AcceptInviteRouteImport.update({
+  id: '/accept-invite',
+  path: '/accept-invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationsRoute = InvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WidgetPreviewRoute = WidgetPreviewRouteImport.update({
@@ -54,6 +79,11 @@ const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardInvitationsRoute = DashboardInvitationsRouteImport.update({
+  id: '/invitations',
+  path: '/invitations',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardWidgetRoute = DashboardWidgetRouteImport.update({
   id: '/widget',
   path: '/widget',
@@ -68,20 +98,30 @@ const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/accept-invite': typeof AcceptInviteRoute
+  '/invitations': typeof InvitationsRoute
+  '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accept-invite': typeof AcceptInviteRoute
+  '/invitations': typeof InvitationsRoute
+  '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -90,10 +130,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
+  '/accept-invite': typeof AcceptInviteRoute
+  '/invitations': typeof InvitationsRoute
+  '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
+  '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -103,20 +148,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/accept-invite'
+    | '/invitations'
+    | '/login'
+    | '/setup'
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/analytics'
+    | '/dashboard/invitations'
     | '/dashboard/widget'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accept-invite'
+    | '/invitations'
+    | '/login'
+    | '/setup'
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/analytics'
+    | '/dashboard/invitations'
     | '/dashboard/widget'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
@@ -124,10 +179,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/accept-invite'
+    | '/invitations'
+    | '/login'
+    | '/setup'
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/analytics'
+    | '/dashboard/invitations'
     | '/dashboard/widget'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
@@ -136,6 +196,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
+  AcceptInviteRoute: typeof AcceptInviteRoute
+  InvitationsRoute: typeof InvitationsRoute
+  LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRoute
   WidgetPreviewRoute: typeof WidgetPreviewRoute
 }
 
@@ -148,11 +212,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitations': {
+      id: '/invitations'
+      path: '/invitations'
+      fullPath: '/invitations'
+      preLoaderRoute: typeof InvitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/widget-preview': {
@@ -190,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAnalyticsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/invitations': {
+      id: '/dashboard/invitations'
+      path: '/invitations'
+      fullPath: '/dashboard/invitations'
+      preLoaderRoute: typeof DashboardInvitationsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/widget': {
       id: '/dashboard/widget'
       path: '/widget'
@@ -211,6 +310,7 @@ interface DashboardRouteRouteChildren {
   DashboardAccountRoute: typeof DashboardAccountRoute
   DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
+  DashboardInvitationsRoute: typeof DashboardInvitationsRoute
   DashboardWidgetRoute: typeof DashboardWidgetRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
@@ -220,6 +320,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAccountRoute: DashboardAccountRoute,
   DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
+  DashboardInvitationsRoute: DashboardInvitationsRoute,
   DashboardWidgetRoute: DashboardWidgetRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
@@ -232,6 +333,10 @@ const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
+  AcceptInviteRoute: AcceptInviteRoute,
+  InvitationsRoute: InvitationsRoute,
+  LoginRoute: LoginRoute,
+  SetupRoute: SetupRoute,
   WidgetPreviewRoute: WidgetPreviewRoute,
 }
 export const routeTree = rootRouteImport

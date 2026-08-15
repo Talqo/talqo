@@ -68,6 +68,50 @@
 		"tokens": "令牌数",
 		"usageOverTime": "使用量趋势"
 	},
+	"auth": {
+		"acceptInvite": {
+			"description": "设置登录凭据以加入此 Talqo 工作区。",
+			"heading": "完成您的账户设置",
+			"missingToken": "此邀请链接缺少令牌。",
+			"submit": "创建账户"
+		},
+		"credentialsForm": {
+			"confirmPassword": "确认密码",
+			"password": "密码",
+			"passwordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
+			"passwordMismatchError": "两次输入的密码不一致。",
+			"username": "用户名",
+			"usernameError": "用户名长度必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。"
+		},
+		"errorFallback": "出现了一些问题，请重试。",
+		"invitations": {
+			"copied": "邀请链接已复制。",
+			"copy": "复制邀请链接",
+			"copyFailed": "无法复制邀请链接。请选中链接并手动复制。",
+			"create": "创建邀请",
+			"description": "为新成员创建安全的一次性链接。",
+			"expiresLabel": "（{{date}} 过期）",
+			"heading": "邀请成员",
+			"linkLabel": "邀请链接：",
+			"loginLink": "登录",
+			"loginRequired": "您需要登录才能邀请成员。",
+			"permissionDenied": "您的账户没有邀请成员的权限。"
+		},
+		"loading": "正在加载…",
+		"login": {
+			"description": "使用您的 Talqo 登录凭据继续。",
+			"heading": "登录",
+			"submit": "登录"
+		},
+		"setup": {
+			"description": "这是 Talqo 首次运行。请创建唯一的管理员账户以继续。",
+			"heading": "创建管理员账户",
+			"submit": "创建管理员账户"
+		}
+	},
+	"common": {
+		"appName": "Talqo"
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
@@ -93,6 +137,7 @@
 	},
 	"header": {
 		"language": "语言",
+		"logout": "退出登录",
 		"placeholderName": "账户名称",
 		"toDarkTheme": "切换到深色主题",
 		"toggleNavigation": "切换导航",
@@ -103,6 +148,7 @@
 		"agents": "智能体",
 		"analytics": "分析",
 		"dashboard": "仪表盘",
+		"invitations": "邀请",
 		"widget": "聊天组件"
 	},
 	"widgetSetup": {

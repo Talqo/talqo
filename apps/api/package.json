@@ -5,11 +5,16 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build src/index.ts --outdir dist --target bun",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "bun run src/db/migrate.ts",
+		"db:seed": "bun run src/db/seed.ts",
 		"dev": "bun --watch src/index.ts",
-		"test": "bun test",
+		"test": "bun test --path-ignore-patterns '**/*.integration.test.ts'",
+		"test:integration": "bun ../../scripts/test-integration.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@talqo/shared": "workspace:*",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.13.1",
 		"postgres": "3.4.9",

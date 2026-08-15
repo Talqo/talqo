@@ -9,15 +9,19 @@ const [apiPort, webPort, widgetPort] = reservations.map(({ port }) => String(por
 await $`docker compose up --detach --wait --wait-timeout 30 postgres`.cwd(root)
 const address = await $`docker compose port postgres 5432`.cwd(root).quiet().text()
 const databasePort = address.trim().split(":").at(-1)
+const databaseUrl = `postgres://talqo:talqo@127.0.0.1:${databasePort}/talqo`
+const devEnv = { ...Bun.env, DATABASE_URL: databaseUrl, NODE_ENV: "development" }
 
 for (const reservation of reservations) reservation.stop(true)
+
+await $`bun run db:migrate`.cwd(`${root}/apps/api`).env(devEnv)
+
 const turbo = Bun.spawn(
 	["turbo", "run", "dev", "--filter=@talqo/api", "--filter=@talqo/web", "--filter=@talqo/widget", "--ui=tui"],
 	{
 		cwd: root,
 		env: {
-			...Bun.env,
-			DATABASE_URL: `postgres://talqo:talqo@127.0.0.1:${databasePort}/talqo`,
+			...devEnv,
 			TALQO_API_PORT: apiPort,
 			TALQO_WEB_PORT: webPort,
 			TALQO_WIDGET_PORT: widgetPort,
