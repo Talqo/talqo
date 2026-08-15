@@ -21,7 +21,7 @@ function LoginPage() {
 		setError(null)
 		try {
 			await login(input)
-			await navigate({ to: "/invitations" })
+			await navigate({ to: "/dashboard" })
 		} catch (caught) {
 			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
 		} finally {

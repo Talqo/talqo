@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test"
 
+test("root redirects to login when setup status is unavailable", async ({ page }) => {
+	await page.route("**/api/setup", (route) =>
+		route.fulfill({ body: JSON.stringify({ error: "unavailable" }), contentType: "application/json", status: 500 }),
+	)
+
+	await page.goto("/")
+	await expect(page).toHaveURL("/login")
+})
+
 test("admin bootstraps the app, invites a member, and the member logs in", async ({ page }) => {
 	const adminUsername = `admin_${Date.now()}`
 	const adminPassword = "correct-horse-battery-staple"
@@ -17,13 +26,34 @@ test("admin bootstraps the app, invites a member, and the member logs in", async
 	await page.getByLabel("Username").fill(adminUsername)
 	await page.getByLabel("Password").fill(adminPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/invitations")
+	await expect(page).toHaveURL("/dashboard")
+
+	await page.getByRole("link", { name: "Invitations" }).click()
+	await expect(page).toHaveURL("/dashboard/invitations")
+	await expect(page.getByRole("heading", { name: "Invite a member" })).toBeVisible()
 
 	await page.getByRole("button", { name: "Create invitation" }).click()
 	const inviteUrl = await page.getByLabel("Invitation link:").inputValue()
 	expect(inviteUrl).toMatch(/^https?:\/\//)
 	const token = new URL(inviteUrl).searchParams.get("token")
 	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
+
+	await page.evaluate(() => {
+		let attempts = 0
+		Object.defineProperty(window.navigator.clipboard, "writeText", {
+			configurable: true,
+			value: async () => {
+				attempts += 1
+				if (attempts === 1) throw new Error("Clipboard denied")
+			},
+		})
+	})
+	const copyButton = page.getByRole("button", { name: "Copy invitation link" })
+	await copyButton.click()
+	await expect(page.getByRole("alert")).toContainText("The invitation link could not be copied")
+	await copyButton.click()
+	await expect(page.getByRole("alert")).toHaveCount(0)
+	await expect(page.getByText("Invitation link copied.")).toBeVisible()
 
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
@@ -38,6 +68,6 @@ test("admin bootstraps the app, invites a member, and the member logs in", async
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password").fill(memberPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/invitations")
-	await expect(page.getByRole("button", { name: "Create invitation" })).toBeVisible()
+	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 })

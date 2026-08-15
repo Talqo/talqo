@@ -4,13 +4,14 @@ import { useTheme } from "@/lib/use-theme"
 import { Button } from "@talqo/ui/components/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
 import { Link } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, Menu, MessageSquare, Moon, Sun, User, X } from "lucide-react"
+import { BarChart3, Bot, LayoutDashboard, Menu, MessageSquare, Moon, Sun, User, UserPlus, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 const navItems = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot },
+	{ to: "/dashboard/invitations", icon: UserPlus },
 	{ to: "/dashboard/widget", icon: MessageSquare },
 	{ to: "/dashboard/analytics", icon: BarChart3 },
 	{ to: "/dashboard/account", icon: User },
@@ -22,6 +23,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.dashboard")
 		case "/dashboard/agents":
 			return t("nav.agents")
+		case "/dashboard/invitations":
+			return t("nav.invitations")
 		case "/dashboard/widget":
 			return t("nav.widget")
 		case "/dashboard/analytics":
