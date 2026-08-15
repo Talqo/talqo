@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { useTranslation } from "react-i18next"
 
@@ -13,7 +14,11 @@ export function AuthShell({ children, description, title }: AuthShellProps) {
 	const { t } = useTranslation()
 
 	return (
-		<main className="bg-background text-foreground flex min-h-screen items-center justify-center p-4 sm:p-8">
+		<main className="bg-background text-foreground relative flex min-h-screen items-center justify-center p-4 sm:p-8">
+			<div className="absolute top-4 right-4 flex items-center gap-2">
+				<LanguageSelect />
+				<ThemeToggle />
+			</div>
 			<div className="w-full max-w-md space-y-5">
 				<div className="flex items-center justify-center gap-2" aria-label={t("common.appName")}>
 					<span className="bg-primary size-2.5 rounded-full" />

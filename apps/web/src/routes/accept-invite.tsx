@@ -48,6 +48,7 @@ function AcceptInvitePage() {
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
+				requireConfirmation={true}
 				submitLabel={t("auth.acceptInvite.submit")}
 				submitting={submitting}
 			/>

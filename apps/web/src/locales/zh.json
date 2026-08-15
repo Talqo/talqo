@@ -76,8 +76,10 @@
 			"submit": "创建账户"
 		},
 		"credentialsForm": {
+			"confirmPassword": "确认密码",
 			"password": "密码",
 			"passwordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
+			"passwordMismatchError": "两次输入的密码不一致。",
 			"username": "用户名",
 			"usernameError": "用户名长度必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。"
 		},
@@ -135,6 +137,7 @@
 	},
 	"header": {
 		"language": "语言",
+		"logout": "退出登录",
 		"placeholderName": "账户名称",
 		"toDarkTheme": "切换到深色主题",
 		"toggleNavigation": "切换导航",

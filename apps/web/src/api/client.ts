@@ -46,6 +46,10 @@ export function login(input: { password: string; username: string }): Promise<{ 
 	return request("/api/auth/login", { method: "POST", body: JSON.stringify(input) })
 }
 
+export function logout(): Promise<void> {
+	return request("/api/auth/logout", { method: "POST" })
+}
+
 export function getSession(signal?: AbortSignal): Promise<{ user: PublicUser | null }> {
 	return request("/api/auth/session", { signal })
 }

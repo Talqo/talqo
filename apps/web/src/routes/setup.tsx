@@ -34,6 +34,7 @@ function SetupPage() {
 			<CredentialsForm
 				error={error}
 				onSubmit={handleSubmit}
+				requireConfirmation={true}
 				submitLabel={t("auth.setup.submit")}
 				submitting={submitting}
 			/>

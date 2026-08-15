@@ -1,4 +1,8 @@
-import { credentialsFormSchema, type CredentialsFormValues } from "@/features/authentication/credentials-schema.ts"
+import {
+	credentialsFormSchema,
+	registrationFormSchema,
+	type CredentialsFormValues,
+} from "@/features/authentication/credentials-schema.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
@@ -11,6 +15,7 @@ type CredentialsFormProps = {
 	error: string | null
 	onSubmit: (input: CredentialsFormValues) => Promise<void> | void
 	passwordAutoComplete?: "current-password" | "new-password"
+	requireConfirmation?: boolean
 	submitLabel: string
 	submitting: boolean
 }
@@ -19,6 +24,7 @@ export function CredentialsForm({
 	error,
 	onSubmit,
 	passwordAutoComplete = "new-password",
+	requireConfirmation = false,
 	submitLabel,
 	submitting,
 }: CredentialsFormProps) {
@@ -27,10 +33,15 @@ export function CredentialsForm({
 		register,
 		handleSubmit,
 		formState: { errors },
-	} = useForm<CredentialsFormValues>({ resolver: zodResolver(credentialsFormSchema) })
+	} = useForm<CredentialsFormValues>({
+		resolver: zodResolver(requireConfirmation ? registrationFormSchema : credentialsFormSchema),
+	})
 
 	return (
-		<form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+		<form
+			className="space-y-4"
+			onSubmit={handleSubmit((input) => onSubmit({ password: input.password, username: input.username }))}
+		>
 			<div className="space-y-2">
 				<Label htmlFor="username">{t("auth.credentialsForm.username")}</Label>
 				<Input
@@ -62,6 +73,24 @@ export function CredentialsForm({
 					</p>
 				)}
 			</div>
+			{requireConfirmation ? (
+				<div className="space-y-2">
+					<Label htmlFor="confirmPassword">{t("auth.credentialsForm.confirmPassword")}</Label>
+					<Input
+						id="confirmPassword"
+						type="password"
+						autoComplete="new-password"
+						aria-invalid={errors.confirmPassword ? true : undefined}
+						aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+						{...register("confirmPassword")}
+					/>
+					{errors.confirmPassword && (
+						<p id="confirm-password-error" className="text-destructive text-xs" role="alert">
+							{t("auth.credentialsForm.passwordMismatchError")}
+						</p>
+					)}
+				</div>
+			) : null}
 			{error ? (
 				<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
 					{error}
