@@ -16,7 +16,7 @@
 	"dependencies": {
 		"@talqo/shared": "workspace:*",
 		"drizzle-orm": "0.45.2",
-		"hono": "4.13.1",
+		"hono": "4.13.2",
 		"postgres": "3.4.9",
 		"zod": "4.4.3"
 	},
