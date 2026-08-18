@@ -101,18 +101,18 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can create a new agent with custom name | Medium | In progress (dashboard UI, in-memory store) |
-| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | In progress (single raw prompt field, per v1) |
-| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (dashboard UI; runtime enforcement pending) |
+| FR-2.10 | Operator can create a new agent with custom name | Medium | Done (API + dashboard) |
+| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done (single raw prompt field, per v1) |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (API + dashboard; runtime enforcement pending) |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress (live widget-shell preview; no AI responses) |
-| FR-2.13a | Operator can delete an agent | Medium | Not started |
+| FR-2.13a | Operator can delete an agent | Medium | In progress (API endpoint done, incl. removal of the agent's uploaded files from disk; dashboard delete control pending) |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Not started |
-| FR-2.15 | Operator can delete files from the knowledge base | Medium | Not started |
+| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | In progress (upload done: PDF/TXT/MD/DOCX up to 10 MB, stored on the local filesystem; embedding and chat-time retrieval pending) |
+| FR-2.15 | Operator can delete files from the knowledge base | Medium | Done |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
 | FR-2.17 | Operator can configure the embedding model used to index knowledge base content (with provider-specific defaults) | Medium | Not started |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |

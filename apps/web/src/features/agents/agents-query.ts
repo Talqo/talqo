@@ -1,45 +1,16 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import * as api from "@/api/client"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
-export type Agent = {
-	id: string
-	name: string
-	status: "active" | "paused"
-	systemPrompt: string
-	wordBlacklist: string[]
-}
+export type Agent = api.Agent
+export type AgentFile = api.AgentFile
 
 const agentsQueryKey = ["agents"] as const
-
-const DEMO_AGENTS: Agent[] = [
-	{
-		id: "demo-1",
-		name: "Demo agent 1",
-		status: "active",
-		systemPrompt: "Demo system prompt.",
-		wordBlacklist: ["spam", "abuse"],
-	},
-	{
-		id: "demo-2",
-		name: "Demo agent 2",
-		status: "paused",
-		systemPrompt: "Demo system prompt.",
-		wordBlacklist: [],
-	},
-]
-
-// TODO(agents-api): replace the in-memory seed with GET /agents when the endpoint lands.
-function seedAgents(): Agent[] {
-	return import.meta.env.VITE_MOCK_AGENTS === "true" ? structuredClone(DEMO_AGENTS) : []
-}
 
 export function useAgents() {
 	return useQuery({
 		queryKey: agentsQueryKey,
-		queryFn: () => Promise.resolve([] as Agent[]),
-		initialData: seedAgents,
-		initialDataUpdatedAt: 0,
-		staleTime: Number.POSITIVE_INFINITY,
+		queryFn: ({ signal }) => api.getAgents(signal).then(({ agents }) => agents),
 	})
 }
 
@@ -61,33 +32,77 @@ export function useActiveAgent() {
 }
 
 export function useAgent(id: string) {
-	const queryClient = useQueryClient()
 	return useQuery({
 		queryKey: [...agentsQueryKey, id],
-		queryFn: () => Promise.resolve(null as Agent | null),
-		initialData: () => {
-			const agents = queryClient.getQueryData<Agent[]>(agentsQueryKey)
-			return agents?.find((agent) => agent.id === id) ?? seedAgents().find((agent) => agent.id === id) ?? null
-		},
-		initialDataUpdatedAt: () => queryClient.getQueryState(agentsQueryKey)?.dataUpdatedAt,
-		staleTime: Number.POSITIVE_INFINITY,
+		queryFn: ({ signal }) => api.getAgent(id, signal).then(({ agent }) => agent),
+		retry: false,
 	})
 }
 
-export function useCreateAgent() {
+export function useAgentFiles(agentId: string) {
+	return useQuery({
+		queryKey: [...agentsQueryKey, agentId, "files"],
+		queryFn: ({ signal }) => api.getAgentFiles(agentId, signal).then(({ files }) => files),
+	})
+}
+
+function useInvalidateAgents() {
 	const queryClient = useQueryClient()
-	return (input: Omit<Agent, "id">) => {
-		const agent: Agent = { id: `local-${Date.now()}`, ...input }
-		queryClient.setQueryData<Agent[]>(agentsQueryKey, (current) => [...(current ?? []), agent])
-		return agent
-	}
+	return () => void queryClient.invalidateQueries({ queryKey: agentsQueryKey })
+}
+
+// The create endpoint accepts only a name; the rest of the form is applied as a follow-up patch.
+export function useCreateAgent() {
+	const invalidate = useInvalidateAgents()
+	return useMutation({
+		mutationFn: (input: Omit<Agent, "avatarUrl" | "id">) =>
+			api.createAgent({ name: input.name }).then(({ agent }) =>
+				api
+					.updateAgent(agent.id, {
+						systemPrompt: input.systemPrompt,
+						wordBlacklist: input.wordBlacklist,
+						active: input.status === "active",
+					})
+					.then(({ agent: updated }) => updated),
+			),
+		onSuccess: invalidate,
+	})
 }
 
 export function useUpdateAgent() {
-	const queryClient = useQueryClient()
-	return (id: string, patch: Partial<Omit<Agent, "id">>) => {
-		queryClient.setQueryData<Agent[]>(agentsQueryKey, (current) =>
-			(current ?? []).map((agent) => (agent.id === id ? Object.assign({}, agent, patch) : agent)),
-		)
-	}
+	const invalidate = useInvalidateAgents()
+	return useMutation({
+		mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Agent, "avatarUrl" | "id">> }) => {
+			const { status, ...rest } = patch
+			return api
+				.updateAgent(id, { ...rest, ...(status ? { active: status === "active" } : {}) })
+				.then(({ agent }) => agent)
+		},
+		onSuccess: invalidate,
+	})
+}
+
+export function useUploadAgentFile() {
+	const invalidate = useInvalidateAgents()
+	return useMutation({
+		mutationFn: ({ agentId, file }: { agentId: string; file: File }) => api.uploadAgentFile(agentId, file),
+		onSuccess: invalidate,
+	})
+}
+
+export function useRenameAgentFile() {
+	const invalidate = useInvalidateAgents()
+	return useMutation({
+		mutationFn: ({ agentId, fileId, name }: { agentId: string; fileId: string; name: string }) =>
+			api.renameAgentFile(agentId, fileId, name),
+		onSuccess: invalidate,
+	})
+}
+
+export function useDeleteAgentFile() {
+	const invalidate = useInvalidateAgents()
+	return useMutation({
+		mutationFn: ({ agentId, fileId }: { agentId: string; fileId: string }) => api.deleteAgentFile(agentId, fileId),
+		onSuccess: invalidate,
+	})
 }

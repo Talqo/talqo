@@ -8,6 +8,13 @@
 			"when": 1786653172579,
 			"tag": "0000_fair_photon",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1786989092649,
+			"tag": "0001_aromatic_blackheart",
+			"breakpoints": true
 		}
 	]
 }

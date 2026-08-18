@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 
+import { E2E_ADMIN } from "./helpers"
+
 test("auth screens expose theme and language controls", async ({ page }) => {
 	await page.goto("/login")
 
@@ -22,8 +24,10 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 })
 
 test("admin bootstraps the app, invites a member, and the member logs in", async ({ page }) => {
-	const adminUsername = `admin_${Date.now()}`
-	const adminPassword = "correct-horse-battery-staple"
+	// Shared admin from helpers.ts: this spec owns the bootstrap and later dashboard specs
+	// log in as the same account.
+	const adminUsername = E2E_ADMIN.username
+	const adminPassword = E2E_ADMIN.password
 
 	// Before any admin exists, the dashboard redirects to setup.
 	await page.goto("/")
@@ -89,9 +93,9 @@ test("admin bootstraps the app, invites a member, and the member logs in", async
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 
-	// Logging out removes access client-side so a stale UI cannot keep acting on the member session.
+	// Logging out removes access: the dashboard guard bounces unauthenticated visits to login.
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/invitations")
-	await expect(page.getByText("You need to log in to invite a member.")).toBeVisible()
+	await expect(page).toHaveURL("/login")
 })

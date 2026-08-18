@@ -1,24 +1,232 @@
 import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { useAgent, useUpdateAgent } from "@/features/agents/agents-query"
+import {
+	useAgent,
+	useAgentFiles,
+	useDeleteAgentFile,
+	useRenameAgentFile,
+	useUpdateAgent,
+	useUploadAgentFile,
+} from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ArrowLeft, Pencil, Trash2, Upload } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+
+const MAX_FILE_SIZE_MB = 10
+const BYTES_PER_KB = 1024
+// eslint-disable-next-line no-magic-numbers
+const BYTES_PER_MB = 1024 * BYTES_PER_KB
+
+function formatSize(sizeBytes: number): string {
+	if (sizeBytes < BYTES_PER_MB) return `${Math.max(1, Math.round(sizeBytes / BYTES_PER_KB))} KB`
+	return `${(sizeBytes / BYTES_PER_MB).toFixed(1)} MB`
+}
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
 	component: AgentConfigPage,
 })
+
+function ContextFilesCard({ agentId }: { agentId: string }) {
+	const { t } = useTranslation()
+	const { data: files, isLoading } = useAgentFiles(agentId)
+	const uploadFile = useUploadAgentFile()
+	const renameFile = useRenameAgentFile()
+	const deleteFile = useDeleteAgentFile()
+	const fileInput = useRef<HTMLInputElement>(null)
+	const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
+	const [pendingRename, setPendingRename] = useState<{ id: string; name: string } | null>(null)
+	const [renameValue, setRenameValue] = useState("")
+	const [dragging, setDragging] = useState(false)
+
+	function openRename(file: { id: string; name: string }) {
+		setPendingRename(file)
+		setRenameValue(file.name)
+	}
+
+	function uploadFiles(dropped: Iterable<File>) {
+		for (const file of dropped) uploadFile.mutate({ agentId, file })
+	}
+
+	function onFilePicked(event: React.ChangeEvent<HTMLInputElement>) {
+		if (event.target.files) uploadFiles(event.target.files)
+		event.target.value = ""
+	}
+
+	function onDrop(event: React.DragEvent<HTMLDivElement>) {
+		event.preventDefault()
+		setDragging(false)
+		if (!uploadFile.isPending) uploadFiles(event.dataTransfer.files)
+	}
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>{t("agentConfig.files.title")}</CardTitle>
+				<CardDescription>{t("agentConfig.files.description")}</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<input
+					ref={fileInput}
+					type="file"
+					accept=".pdf,.txt,.md,.docx"
+					multiple
+					className="hidden"
+					onChange={onFilePicked}
+				/>
+				<div
+					role="button"
+					tabIndex={0}
+					aria-label={t("agentConfig.files.upload")}
+					aria-disabled={uploadFile.isPending}
+					className={`flex flex-col items-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-center transition-colors ${
+						dragging ? "border-primary bg-primary/5" : "border-border"
+					} ${uploadFile.isPending ? "cursor-not-allowed opacity-60" : "hover:border-primary/50 cursor-pointer"}`}
+					onClick={() => !uploadFile.isPending && fileInput.current?.click()}
+					onKeyDown={(event) => {
+						if (!uploadFile.isPending && (event.key === "Enter" || event.key === " ")) fileInput.current?.click()
+					}}
+					onDragOver={(event) => {
+						event.preventDefault()
+						if (!uploadFile.isPending) setDragging(true)
+					}}
+					onDragLeave={() => setDragging(false)}
+					onDrop={onDrop}
+				>
+					<Upload className="text-muted-foreground size-6" />
+					<p className="text-sm font-medium">
+						{uploadFile.isPending ? t("agentConfig.files.uploading") : t("agentConfig.files.dropzone")}
+					</p>
+					<p className="text-muted-foreground text-xs">
+						{t("agentConfig.files.acceptedTypes", { maxSize: MAX_FILE_SIZE_MB })}
+					</p>
+				</div>
+				{uploadFile.isError && (
+					<p className="text-destructive text-xs">
+						{t("agentConfig.files.uploadError", { message: uploadFile.error.message })}
+					</p>
+				)}
+				{isLoading ? (
+					<p className="text-muted-foreground text-sm">{t("agentConfig.files.loading")}</p>
+				) : !files?.length ? (
+					<p className="text-muted-foreground text-sm">{t("agentConfig.files.empty")}</p>
+				) : (
+					<ul className="divide-y overflow-hidden rounded-md border">
+						{files.map((file) => (
+							<li key={file.id} className="flex items-center justify-between gap-3 px-3 py-2">
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium" title={file.name}>
+										{file.name}
+									</p>
+									<p className="text-muted-foreground text-xs whitespace-nowrap">
+										{formatSize(file.sizeBytes)} · {new Date(file.createdAt).toLocaleDateString()}
+									</p>
+								</div>
+								<div className="flex shrink-0 items-center gap-1">
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={t("agentConfig.files.rename")}
+										onClick={() => openRename({ id: file.id, name: file.name })}
+									>
+										<Pencil className="size-4" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="icon"
+										aria-label={t("agentConfig.files.delete")}
+										onClick={() => setPendingDelete({ id: file.id, name: file.name })}
+									>
+										<Trash2 className="text-destructive size-4" />
+									</Button>
+								</div>
+							</li>
+						))}
+					</ul>
+				)}
+			</CardContent>
+
+			<Dialog open={pendingRename !== null} onOpenChange={(open) => !open && setPendingRename(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t("agentConfig.files.rename")}</DialogTitle>
+						<DialogDescription>{t("agentConfig.files.renameDescription")}</DialogDescription>
+					</DialogHeader>
+					<form
+						className="space-y-4"
+						onSubmit={(event) => {
+							event.preventDefault()
+							if (!pendingRename || !renameValue.trim()) return
+							renameFile.mutate(
+								{ agentId, fileId: pendingRename.id, name: renameValue.trim() },
+								{ onSuccess: () => setPendingRename(null) },
+							)
+						}}
+					>
+						<div className="space-y-2">
+							<Label htmlFor="rename-file">{t("agentConfig.files.renameLabel")}</Label>
+							<Input
+								id="rename-file"
+								value={renameValue}
+								onChange={(event) => setRenameValue(event.target.value)}
+								aria-invalid={renameValue.trim() ? undefined : true}
+							/>
+							<p className="text-muted-foreground text-xs">{t("agentConfig.files.renameExtensionNote")}</p>
+							{renameFile.isError && <p className="text-destructive text-xs">{renameFile.error.message}</p>}
+						</div>
+						<DialogFooter>
+							<Button type="submit" disabled={renameFile.isPending || !renameValue.trim()}>
+								{t("agentConfig.files.renameSave")}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={pendingDelete !== null} onOpenChange={(open) => !open && setPendingDelete(null)}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t("agentConfig.files.delete")}</DialogTitle>
+						{/* pr-8 keeps long names clear of the absolute-positioned close button. */}
+						<DialogDescription className="pr-8">
+							{t("agentConfig.files.deleteConfirm", { name: pendingDelete?.name ?? "" })}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button
+							variant="destructive"
+							disabled={deleteFile.isPending}
+							onClick={() =>
+								pendingDelete &&
+								deleteFile.mutate({ agentId, fileId: pendingDelete.id }, { onSuccess: () => setPendingDelete(null) })
+							}
+						>
+							{t("agentConfig.files.delete")}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</Card>
+	)
+}
 
 function AgentConfigPage() {
 	const { t } = useTranslation()
@@ -54,13 +262,18 @@ function AgentConfigPage() {
 	}, [agent, reset])
 
 	function onValid(values: AgentFormValues) {
-		updateAgent(agentId, {
-			name: values.name.trim(),
-			systemPrompt: values.systemPrompt.trim(),
-			wordBlacklist: parseBlacklist(values.wordBlacklist),
-			status: values.active ? "active" : "paused",
-		})
-		setSaved(true)
+		updateAgent.mutate(
+			{
+				id: agentId,
+				patch: {
+					name: values.name.trim(),
+					systemPrompt: values.systemPrompt.trim(),
+					wordBlacklist: parseBlacklist(values.wordBlacklist),
+					status: values.active ? "active" : "paused",
+				},
+			},
+			{ onSuccess: () => setSaved(true) },
+		)
 	}
 
 	return (
@@ -147,6 +360,7 @@ function AgentConfigPage() {
 							</form>
 						</CardContent>
 					</Card>
+					<ContextFilesCard agentId={agentId} />
 				</>
 			)}
 		</div>

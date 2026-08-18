@@ -68,7 +68,9 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
-	return <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
+	// min-w-0: long unbroken content (e.g. a file name in the description) would otherwise
+	// force the grid column wider than the popup.
+	return <div data-slot="dialog-header" className={cn("flex min-w-0 flex-col gap-2", className)} {...props} />
 }
 
 function DialogFooter({
@@ -109,7 +111,7 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
 		<DialogPrimitive.Description
 			data-slot="dialog-description"
 			className={cn(
-				"text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3",
+				"text-muted-foreground *:[a]:hover:text-foreground text-sm wrap-break-word *:[a]:underline *:[a]:underline-offset-3",
 				className,
 			)}
 			{...props}

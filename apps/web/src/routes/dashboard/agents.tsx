@@ -36,8 +36,9 @@ function AgentsPage() {
 	const updateAgent = useUpdateAgent()
 
 	function toggleStatus(agent: Agent) {
-		updateAgent(agent.id, {
-			status: agent.status === "active" ? "paused" : "active",
+		updateAgent.mutate({
+			id: agent.id,
+			patch: { status: agent.status === "active" ? "paused" : "active" },
 		})
 	}
 
@@ -52,14 +53,20 @@ function AgentsPage() {
 	})
 
 	function onValid(values: AgentFormValues) {
-		createAgent({
-			name: values.name.trim(),
-			systemPrompt: values.systemPrompt.trim(),
-			status: "active",
-			wordBlacklist: parseBlacklist(values.wordBlacklist),
-		})
-		reset({ name: "", systemPrompt: "", wordBlacklist: "", active: true })
-		setDialogOpen(false)
+		createAgent.mutate(
+			{
+				name: values.name.trim(),
+				systemPrompt: values.systemPrompt.trim(),
+				status: "active",
+				wordBlacklist: parseBlacklist(values.wordBlacklist),
+			},
+			{
+				onSuccess: () => {
+					reset({ name: "", systemPrompt: "", wordBlacklist: "", active: true })
+					setDialogOpen(false)
+				},
+			},
+		)
 	}
 
 	return (
