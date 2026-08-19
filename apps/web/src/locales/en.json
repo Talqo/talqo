@@ -118,7 +118,9 @@
 		}
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "Hide password",
+		"showPassword": "Show password"
 	},
 	"dashboard": {
 		"cards": {

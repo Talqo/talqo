@@ -5,8 +5,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
-import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { PasswordInput } from "@talqo/ui/components/password-input"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -29,12 +29,13 @@ export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }:
 		<form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
 			<div className="space-y-2">
 				<Label htmlFor="current-password">{t("account.currentPassword")}</Label>
-				<Input
+				<PasswordInput
 					id="current-password"
-					type="password"
 					autoComplete="current-password"
 					aria-invalid={errors.currentPassword ? true : undefined}
 					aria-describedby={errors.currentPassword ? "current-password-error" : undefined}
+					hideLabel={t("common.hidePassword")}
+					showLabel={t("common.showPassword")}
 					{...register("currentPassword")}
 				/>
 				{errors.currentPassword && (
@@ -45,12 +46,13 @@ export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }:
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="new-password">{t("account.newPassword")}</Label>
-				<Input
+				<PasswordInput
 					id="new-password"
-					type="password"
 					autoComplete="new-password"
 					aria-invalid={errors.newPassword ? true : undefined}
 					aria-describedby={errors.newPassword ? "new-password-error" : undefined}
+					hideLabel={t("common.hidePassword")}
+					showLabel={t("common.showPassword")}
 					{...register("newPassword")}
 				/>
 				{errors.newPassword && (
@@ -61,12 +63,13 @@ export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }:
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="confirm-new-password">{t("account.confirmNewPassword")}</Label>
-				<Input
+				<PasswordInput
 					id="confirm-new-password"
-					type="password"
 					autoComplete="new-password"
 					aria-invalid={errors.confirmPassword ? true : undefined}
 					aria-describedby={errors.confirmPassword ? "confirm-new-password-error" : undefined}
+					hideLabel={t("common.hidePassword")}
+					showLabel={t("common.showPassword")}
 					{...register("confirmPassword")}
 				/>
 				{errors.confirmPassword && (
