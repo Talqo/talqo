@@ -21,9 +21,10 @@ export default defineConfig({
 	fullyParallel: false,
 	outputDir: "test-results",
 	projects: [
-		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
-		{ name: "firefox", use: { ...devices["Desktop Firefox"] } },
-		{ name: "webkit", use: { ...devices["Desktop Safari"] } },
+		{ name: "setup", testMatch: /.*\.setup\.ts/, use: { ...devices["Desktop Chrome"] } },
+		{ dependencies: ["setup"], name: "chromium", use: { ...devices["Desktop Chrome"] } },
+		{ dependencies: ["setup"], name: "firefox", use: { ...devices["Desktop Firefox"] } },
+		{ dependencies: ["setup"], name: "webkit", use: { ...devices["Desktop Safari"] } },
 	],
 	reporter: isCI ? [["line"], ["html", { open: "never" }]] : "list",
 	retries: isCI ? CI_RETRIES : 0,
