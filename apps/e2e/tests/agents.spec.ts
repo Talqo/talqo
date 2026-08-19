@@ -157,13 +157,10 @@ test("switching accounts does not reuse cached agent permissions", async ({ page
 	releasePermissions?.()
 })
 
-test("account security controls stay disabled until the account API exists", async ({ page }) => {
+test("account deletion stays disabled until the account deletion API exists", async ({ page }) => {
 	await logIn(page, OPERATOR)
 	await page.goto("/dashboard/account")
 	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
-	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(2)
-	await expect(page.getByLabel("Current password")).toBeDisabled()
-	await expect(page.getByLabel("New password", { exact: true })).toBeDisabled()
-	await expect(page.getByRole("button", { name: "Change password" })).toBeDisabled()
+	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(1)
 	await expect(page.getByRole("button", { name: "Delete account" })).toBeDisabled()
 })

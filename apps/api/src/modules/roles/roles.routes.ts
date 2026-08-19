@@ -14,6 +14,7 @@ import {
 	createPermissionGrantRoute,
 	getAccessRoute,
 	getSetupStatusRoute,
+	getUsersRoute,
 	grantResponseSchema,
 	myPermissionsRoute,
 	myPermissionsResponseSchema,
@@ -22,6 +23,7 @@ import {
 	resetUserPasswordRoute,
 	revokePermissionGrantRoute,
 	setupStatusResponseSchema,
+	userListResponseSchema,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
@@ -108,14 +110,28 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 	return c.json(myPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
 })
 
+rolesRoutes.openapi(getUsersRoute, async (c) => {
+	if (!(await service.isAdmin(c.get("user").id))) {
+		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	}
+
+	const users = await identity.listUsers()
+	return c.json(userListResponseSchema.parse({ users }), HTTP_STATUS.OK)
+})
+
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
 	if (!(await service.isAdmin(user.id))) {
 		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
 	}
 
+	const targetUserId = c.req.valid("param").userId
+	if (targetUserId === user.id) {
+		return c.json({ error: "Use account settings to change your own password" }, HTTP_STATUS.BAD_REQUEST)
+	}
+
 	try {
-		await identity.setPassword(c.req.valid("param").userId, c.req.valid("json").newPassword)
+		await identity.setPassword(targetUserId, c.req.valid("json").newPassword)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	} catch (error) {
 		if (error instanceof identity.UserNotFoundError) {

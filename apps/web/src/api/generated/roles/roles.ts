@@ -25,6 +25,7 @@ import type { CreatePermissionGrantBody } from "../models/roles/createPermission
 import type { GetAccess200 } from "../models/roles/getAccess200.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
+import type { ListUsers200 } from "../models/roles/listUsers200.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
 import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
@@ -840,6 +841,98 @@ export function useGetMyPermissions<
 	fetch?: RequestInit
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 	const queryOptions = getGetMyPermissionsQueryOptions(options)
+
+	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
+export type listUsersResponse200 = {
+	data: ListUsers200
+	status: 200
+}
+
+export type listUsersResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type listUsersResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type listUsersResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type listUsersResponseSuccess = listUsersResponse200 & {
+	headers: Headers
+}
+export type listUsersResponseError = (listUsersResponse401 | listUsersResponse403 | listUsersResponse500) & {
+	headers: Headers
+}
+
+export const getListUsersUrl = () => {
+	return `/api/users`
+}
+
+export const listUsers = async (options?: RequestInit): Promise<listUsersResponseSuccess> => {
+	const res = await fetch(getListUsersUrl(), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: listUsersResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: listUsersResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: listUsersResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as listUsersResponseSuccess
+}
+
+export const getListUsersQueryKey = () => {
+	return [`/api/users`] as const
+}
+
+export const getListUsersQueryOptions = <
+	TData = Awaited<ReturnType<typeof listUsers>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
+	fetch?: RequestInit
+}) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getListUsersQueryKey()
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof listUsers>>> = ({ signal }) =>
+		listUsers({ signal, ...fetchOptions })
+
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof listUsers>>,
+		TError,
+		TData
+	> & { queryKey: QueryKey }
+}
+
+export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
+export type ListUsersQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+
+export function useListUsers<
+	TData = Awaited<ReturnType<typeof listUsers>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
+	fetch?: RequestInit
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getListUsersQueryOptions(options)
 
 	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
 

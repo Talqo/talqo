@@ -27,10 +27,12 @@ const usernameSchema = z
 
 const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH)
 
+// Mirrors identity.contract.ts's userResponseSchema: cross-module imports are service.ts-only here.
 const userResponseSchema = z
 	.object({
 		id: z.string(),
 		username: z.string(),
+		mustChangePassword: z.boolean(),
 	})
 	.openapi("RoleUser")
 
@@ -101,6 +103,10 @@ export const myPermissionsRoute = createRoute({
 
 export const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
+})
+
+export const userListResponseSchema = z.object({
+	users: z.array(userResponseSchema),
 })
 
 export const accessResponseSchema = z.object({
@@ -226,6 +232,20 @@ export const revokePermissionGrantRoute = createRoute({
 	request: { params: permissionGrantParamsSchema },
 	responses: {
 		204: noContentResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const getUsersRoute = createRoute({
+	method: "get",
+	path: "/users",
+	operationId: "listUsers",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	responses: {
+		200: { content: { "application/json": { schema: userListResponseSchema } }, description: "All users" },
 		401: unauthorizedResponse,
 		403: forbiddenResponse,
 		500: internalServerErrorResponse,

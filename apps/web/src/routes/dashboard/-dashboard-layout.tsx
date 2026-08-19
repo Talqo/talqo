@@ -1,5 +1,5 @@
 import { useLogout } from "@/api/generated/identity/identity.ts"
-import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { useGetAccess, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
@@ -14,18 +14,20 @@ import {
 	Settings2,
 	User,
 	UserPlus,
+	Users,
 	X,
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "agentRead" | "invite" | "providerManage"
+type NavRequirement = "admin" | "agentRead" | "invite" | "providerManage"
 
 type NavItem = {
 	to:
 		| "/dashboard"
 		| "/dashboard/agents"
 		| "/dashboard/invitations"
+		| "/dashboard/users"
 		| "/dashboard/widget"
 		| "/dashboard/analytics"
 		| "/dashboard/ai-configuration"
@@ -38,6 +40,7 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/invitations", icon: UserPlus, requires: "invite" },
+	{ to: "/dashboard/users", icon: Users, requires: "admin" },
 	{ to: "/dashboard/widget", icon: MessageSquare, requires: "agentRead" },
 	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
@@ -52,6 +55,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.agents")
 		case "/dashboard/invitations":
 			return t("nav.invitations")
+		case "/dashboard/users":
+			return t("nav.users")
 		case "/dashboard/widget":
 			return t("nav.widget")
 		case "/dashboard/analytics":
@@ -63,7 +68,7 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 	}
 }
 
-function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
+function allowedNavItems(permissions: string[] | undefined, isAdmin: boolean): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
 	const canInvite = permissions?.includes("users:invite") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
@@ -71,6 +76,7 @@ function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] 
 		if (item.requires === "agentRead") return canReadAgents
 		if (item.requires === "invite") return canInvite
 		if (item.requires === "providerManage") return canManageProvider
+		if (item.requires === "admin") return isAdmin
 		return true
 	})
 }
@@ -98,7 +104,8 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
 	const permissions = useGetMyPermissions().data?.data.permissions
-	const items = allowedNavItems(permissions)
+	const isAdmin = useGetAccess().data?.data.isAdmin ?? false
+	const items = allowedNavItems(permissions, isAdmin)
 	return (
 		<nav className={className}>
 			{items.map((item) => (
