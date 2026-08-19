@@ -25,7 +25,6 @@
 		"backToAgents": "返回智能体列表",
 		"cardDescription": "更改会保存到服务器，并在整个仪表盘中生效。",
 		"cardTitle": "智能体配置",
-		"cardTitle": "智能体配置",
 		"files": {
 			"acceptedTypes": "支持的格式：PDF、TXT、MD、DOCX，最大 10 MB。",
 			"delete": "删除",
