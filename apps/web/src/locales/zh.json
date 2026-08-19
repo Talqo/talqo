@@ -217,7 +217,9 @@
 		"termsLabel": "屏蔽词条"
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "隐藏密码",
+		"showPassword": "显示密码"
 	},
 	"dashboard": {
 		"cards": {

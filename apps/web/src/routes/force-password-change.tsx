@@ -7,8 +7,8 @@ import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
-import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { PasswordInput } from "@talqo/ui/components/password-input"
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -52,12 +52,13 @@ function ForcePasswordChangePage() {
 			<form className="space-y-4" onSubmit={handleSubmit(onValid)}>
 				<div className="space-y-2">
 					<Label htmlFor="new-password">{t("account.newPassword")}</Label>
-					<Input
+					<PasswordInput
 						id="new-password"
-						type="password"
 						autoComplete="new-password"
 						aria-invalid={errors.newPassword ? true : undefined}
 						aria-describedby={errors.newPassword ? "new-password-error" : undefined}
+						hideLabel={t("common.hidePassword")}
+						showLabel={t("common.showPassword")}
 						{...register("newPassword")}
 					/>
 					{errors.newPassword && (
@@ -68,12 +69,13 @@ function ForcePasswordChangePage() {
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="confirm-new-password">{t("account.confirmNewPassword")}</Label>
-					<Input
+					<PasswordInput
 						id="confirm-new-password"
-						type="password"
 						autoComplete="new-password"
 						aria-invalid={errors.confirmPassword ? true : undefined}
 						aria-describedby={errors.confirmPassword ? "confirm-new-password-error" : undefined}
+						hideLabel={t("common.hidePassword")}
+						showLabel={t("common.showPassword")}
 						{...register("confirmPassword")}
 					/>
 					{errors.confirmPassword && (

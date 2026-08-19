@@ -217,7 +217,9 @@
 		"termsLabel": "Blokované pojmy"
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "Skrýt heslo",
+		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
 		"cards": {

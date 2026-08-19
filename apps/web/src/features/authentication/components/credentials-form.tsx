@@ -9,6 +9,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME
 import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { PasswordInput } from "@talqo/ui/components/password-input"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -68,12 +69,13 @@ export function CredentialsForm({
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="password">{t("auth.credentialsForm.password")}</Label>
-				<Input
+				<PasswordInput
 					id="password"
-					type="password"
 					autoComplete={passwordAutoComplete}
 					aria-invalid={errors.password ? true : undefined}
 					aria-describedby={errors.password ? "password-error" : undefined}
+					hideLabel={t("common.hidePassword")}
+					showLabel={t("common.showPassword")}
 					{...register("password")}
 				/>
 				{errors.password && (
@@ -85,12 +87,13 @@ export function CredentialsForm({
 			{requireConfirmation ? (
 				<div className="space-y-2">
 					<Label htmlFor="confirmPassword">{t("auth.credentialsForm.confirmPassword")}</Label>
-					<Input
+					<PasswordInput
 						id="confirmPassword"
-						type="password"
 						autoComplete="new-password"
 						aria-invalid={errors.confirmPassword ? true : undefined}
 						aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+						hideLabel={t("common.hidePassword")}
+						showLabel={t("common.showPassword")}
 						{...register("confirmPassword")}
 					/>
 					{errors.confirmPassword && (
