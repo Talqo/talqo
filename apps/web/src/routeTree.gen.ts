@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as ForcePasswordChangeRouteImport } from './routes/force-password-change'
 import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SetupRouteImport } from './routes/setup'
@@ -21,6 +22,7 @@ import { Route as DashboardAccountRouteImport } from './routes/dashboard/account
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
 import { Route as DashboardInvitationsRouteImport } from './routes/dashboard/invitations'
+import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardWidgetRouteImport } from './routes/dashboard/widget'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 
@@ -37,6 +39,11 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForcePasswordChangeRoute = ForcePasswordChangeRouteImport.update({
+  id: '/force-password-change',
+  path: '/force-password-change',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvitationsRoute = InvitationsRouteImport.update({
@@ -84,6 +91,11 @@ const DashboardInvitationsRoute = DashboardInvitationsRouteImport.update({
   path: '/invitations',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardUsersRoute = DashboardUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardWidgetRoute = DashboardWidgetRouteImport.update({
   id: '/widget',
   path: '/widget',
@@ -99,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
+  '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
@@ -107,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -114,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
@@ -122,6 +137,7 @@ export interface FileRoutesByTo {
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -131,6 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
+  '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
@@ -139,6 +156,7 @@ export interface FileRoutesById {
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -149,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/accept-invite'
+    | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
@@ -157,6 +176,7 @@ export interface FileRouteTypes {
     | '/dashboard/agents'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
+    | '/dashboard/users'
     | '/dashboard/widget'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
@@ -164,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/accept-invite'
+    | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
@@ -172,6 +193,7 @@ export interface FileRouteTypes {
     | '/dashboard/agents'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
+    | '/dashboard/users'
     | '/dashboard/widget'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
@@ -180,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/accept-invite'
+    | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
@@ -188,6 +211,7 @@ export interface FileRouteTypes {
     | '/dashboard/agents'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
+    | '/dashboard/users'
     | '/dashboard/widget'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
@@ -197,6 +221,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AcceptInviteRoute: typeof AcceptInviteRoute
+  ForcePasswordChangeRoute: typeof ForcePasswordChangeRoute
   InvitationsRoute: typeof InvitationsRoute
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
@@ -224,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/force-password-change': {
+      id: '/force-password-change'
+      path: '/force-password-change'
+      fullPath: '/force-password-change'
+      preLoaderRoute: typeof ForcePasswordChangeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invitations': {
@@ -289,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInvitationsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/users': {
+      id: '/dashboard/users'
+      path: '/users'
+      fullPath: '/dashboard/users'
+      preLoaderRoute: typeof DashboardUsersRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/widget': {
       id: '/dashboard/widget'
       path: '/widget'
@@ -311,6 +350,7 @@ interface DashboardRouteRouteChildren {
   DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardInvitationsRoute: typeof DashboardInvitationsRoute
+  DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardWidgetRoute: typeof DashboardWidgetRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
@@ -321,6 +361,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardInvitationsRoute: DashboardInvitationsRoute,
+  DashboardUsersRoute: DashboardUsersRoute,
   DashboardWidgetRoute: DashboardWidgetRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
@@ -334,6 +375,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
+  ForcePasswordChangeRoute: ForcePasswordChangeRoute,
   InvitationsRoute: InvitationsRoute,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,

@@ -10,6 +10,7 @@ import { z } from "zod"
 
 import {
 	changePasswordRequestSchema,
+	forcedPasswordChangeRequestSchema,
 	loginRequestSchema,
 	sessionResponseSchema,
 	updateAccountRequestSchema,
@@ -78,6 +79,22 @@ export const identityRoutes = new Hono<{ Variables: AuthedVariables }>()
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {
 				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+			}
+			throw error
+		}
+	})
+	.patch("/api/me/password/forced", async (c) => {
+		const body = forcedPasswordChangeRequestSchema.safeParse(await parseJsonBody(c))
+		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
+
+		try {
+			await service.completeForcedPasswordChange(c.get("user").id, body.data.newPassword)
+			// completeForcedPasswordChange invalidates all sessions for the user, including this request's.
+			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
+			return c.body(null, HTTP_STATUS.NO_CONTENT)
+		} catch (error) {
+			if (error instanceof service.PasswordChangeNotRequiredError) {
+				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
 			}
 			throw error
 		}

@@ -1,6 +1,7 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
 import { parseJsonBody } from "@/http/json-body.ts"
+import { requireAdmin } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -13,10 +14,12 @@ import {
 	createGrantRequestSchema,
 	createInvitationResponseSchema,
 	grantResponseSchema,
+	myRoleResponseSchema,
 	redeemInvitationRequestSchema,
 	redeemInvitationResponseSchema,
 	resetPasswordRequestSchema,
 	setupStatusResponseSchema,
+	userListResponseSchema,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
@@ -64,12 +67,12 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
-	.post("/api/permission-grants", async (c) => {
+	.get("/api/me/role", async (c) => {
+		const isAdmin = await service.isAdmin(c.get("user").id)
+		return c.json(myRoleResponseSchema.parse({ isAdmin }))
+	})
+	.post("/api/permission-grants", requireAdmin, async (c) => {
 		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
-		}
-
 		const body = createGrantRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
 
@@ -81,26 +84,25 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
-	.delete("/api/permission-grants/:id", async (c) => {
-		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
-		}
-
+	.delete("/api/permission-grants/:id", requireAdmin, async (c) => {
 		await service.revokePermission(c.req.param("id"))
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
-	.patch("/api/users/:userId/password", async (c) => {
-		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	.get("/api/users", requireAdmin, async (c) => {
+		const users = await identity.listUsers()
+		return c.json(userListResponseSchema.parse({ users }))
+	})
+	.patch("/api/users/:userId/password", requireAdmin, async (c) => {
+		const targetUserId = c.req.param("userId")
+		if (targetUserId === c.get("user").id) {
+			return c.json({ error: "Use account settings to change your own password" }, HTTP_STATUS.BAD_REQUEST)
 		}
 
 		const body = resetPasswordRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
 
 		try {
-			await identity.setPassword(c.req.param("userId"), body.data.newPassword)
+			await identity.setPassword(targetUserId, body.data.newPassword)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof identity.UserNotFoundError) {

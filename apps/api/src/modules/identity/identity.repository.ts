@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { eq } from "drizzle-orm"
+import { asc, eq } from "drizzle-orm"
 
 import { session, user } from "./identity.schema.ts"
 
@@ -24,6 +24,10 @@ export async function findUserById(id: string): Promise<User | undefined> {
 	return row
 }
 
+export async function listUsers(): Promise<User[]> {
+	return db.select().from(user).orderBy(asc(user.username))
+}
+
 export async function updateUser(id: string, values: Partial<Pick<NewUser, "username">>): Promise<User | undefined> {
 	const [row] = await db
 		.update(user)
@@ -33,8 +37,8 @@ export async function updateUser(id: string, values: Partial<Pick<NewUser, "user
 	return row
 }
 
-export async function updatePasswordHash(id: string, passwordHash: string): Promise<void> {
-	await db.update(user).set({ passwordHash, updatedAt: new Date() }).where(eq(user.id, id))
+export async function updatePasswordHash(id: string, passwordHash: string, mustChangePassword: boolean): Promise<void> {
+	await db.update(user).set({ passwordHash, mustChangePassword, updatedAt: new Date() }).where(eq(user.id, id))
 }
 
 export async function deleteUser(id: string): Promise<void> {

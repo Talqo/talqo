@@ -1,11 +1,14 @@
+import { changePassword } from "@/api/client.ts"
+import { ApiError } from "@/api/errors.ts"
 import { PageHeader } from "@/components/page-header"
+import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -81,42 +84,37 @@ function ProfileCard({ operator }: { operator: Operator }) {
 
 function PasswordCard() {
 	const { t } = useTranslation()
+	const navigate = useNavigate()
+	const [error, setError] = useState<string | null>(null)
+	const [submitting, setSubmitting] = useState(false)
+
+	async function handleSubmit(input: { confirmPassword: string; currentPassword: string; newPassword: string }) {
+		setSubmitting(true)
+		setError(null)
+		try {
+			await changePassword({ currentPassword: input.currentPassword, newPassword: input.newPassword })
+			// The server already invalidated this session as part of the password change.
+			await navigate({ to: "/login" })
+		} catch (caught) {
+			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
+			setSubmitting(false)
+		}
+	}
 
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center gap-2">
-					<CardTitle>{t("account.changePassword")}</CardTitle>
-					<Badge variant="secondary">{t("account.comingSoon")}</Badge>
-				</div>
+				<CardTitle>{t("account.changePassword")}</CardTitle>
 				<CardDescription>{t("account.changePasswordDescription")}</CardDescription>
 			</CardHeader>
-			<fieldset disabled>
-				<CardContent className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="account-current-password">{t("account.currentPassword")}</Label>
-						<Input
-							id="account-current-password"
-							name="currentPassword"
-							type="password"
-							autoComplete="current-password"
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="account-new-password">{t("account.newPassword")}</Label>
-						<Input id="account-new-password" name="newPassword" type="password" autoComplete="new-password" />
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="account-confirm-password">{t("account.confirmNewPassword")}</Label>
-						<Input id="account-confirm-password" name="confirmPassword" type="password" autoComplete="new-password" />
-					</div>
-				</CardContent>
-				<CardFooter>
-					<Button type="button" disabled>
-						{t("account.changePassword")}
-					</Button>
-				</CardFooter>
-			</fieldset>
+			<CardContent>
+				<ChangePasswordForm
+					error={error}
+					onSubmit={handleSubmit}
+					submitLabel={t("account.changePassword")}
+					submitting={submitting}
+				/>
+			</CardContent>
 		</Card>
 	)
 }

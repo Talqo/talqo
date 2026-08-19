@@ -28,11 +28,12 @@ export class InvalidPasswordError extends Error {}
 export class InvalidUsernameError extends Error {}
 export class InvalidPasswordFormatError extends Error {}
 export class UserNotFoundError extends Error {}
+export class PasswordChangeNotRequiredError extends Error {}
 
-export type PublicUser = Pick<User, "id" | "username">
+export type PublicUser = Pick<User, "id" | "mustChangePassword" | "username">
 
 export function toPublicUser(user: User): PublicUser {
-	return { id: user.id, username: user.username }
+	return { id: user.id, username: user.username, mustChangePassword: user.mustChangePassword }
 }
 
 export function assertValidUsername(username: string): void {
@@ -110,6 +111,13 @@ export async function getSession(token: string): Promise<{ expiresAt: Date; user
 	return { user: toPublicUser(row.user), expiresAt: row.session.expiresAt }
 }
 
+async function rotatePassword(userId: string, newPassword: string, mustChangePassword: boolean): Promise<void> {
+	assertValidPassword(newPassword)
+	const passwordHash = await Bun.password.hash(newPassword)
+	await repo.updatePasswordHash(userId, passwordHash, mustChangePassword)
+	await repo.deleteAllSessionsForUser(userId)
+}
+
 export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`changePassword: user ${userId} not found`)
@@ -117,20 +125,31 @@ export async function changePassword(userId: string, currentPassword: string, ne
 	const currentValid = await Bun.password.verify(currentPassword, user.passwordHash)
 	if (!currentValid) throw new InvalidPasswordError("Current password is incorrect")
 
-	assertValidPassword(newPassword)
-	const passwordHash = await Bun.password.hash(newPassword)
-	await repo.updatePasswordHash(userId, passwordHash)
-	await repo.deleteAllSessionsForUser(userId)
+	await rotatePassword(userId, newPassword, false)
 }
 
+// Skips the current-password proof: safe only because mustChangePassword is server-set, never caller-set.
+export async function completeForcedPasswordChange(userId: string, newPassword: string): Promise<void> {
+	const user = await repo.findUserById(userId)
+	if (!user) throw new UserNotFoundError(`completeForcedPasswordChange: user ${userId} not found`)
+	if (!user.mustChangePassword) {
+		throw new PasswordChangeNotRequiredError("No password change is currently required")
+	}
+
+	await rotatePassword(userId, newPassword, false)
+}
+
+// An admin knowing this password should never be a durable state, hence mustChangePassword=true.
 export async function setPassword(userId: string, newPassword: string): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`setPassword: user ${userId} not found`)
 
-	assertValidPassword(newPassword)
-	const passwordHash = await Bun.password.hash(newPassword)
-	await repo.updatePasswordHash(userId, passwordHash)
-	await repo.deleteAllSessionsForUser(userId)
+	await rotatePassword(userId, newPassword, true)
+}
+
+export async function listUsers(): Promise<PublicUser[]> {
+	const users = await repo.listUsers()
+	return users.map(toPublicUser)
 }
 
 export async function updateAccount(userId: string, input: { username: string }): Promise<PublicUser> {
