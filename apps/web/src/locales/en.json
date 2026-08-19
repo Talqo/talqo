@@ -26,7 +26,7 @@
 		"cardDescription": "Changes are saved to the server and reflected across the dashboard.",
 		"cardTitle": "Agent configuration",
 		"files": {
-			"acceptedTypes": "Accepted formats: PDF, TXT, MD, DOCX up to 10 MB.",
+			"acceptedTypes": "Accepted formats: PDF, TXT, MD, DOCX up to {{maxSize}} MB.",
 			"delete": "Delete",
 			"deleteConfirm": "Delete file \"{{name}}\"? The agent will no longer use it as context.",
 			"description": "Files the agent uses as context when responding.",

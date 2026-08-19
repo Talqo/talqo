@@ -26,7 +26,7 @@
 		"cardDescription": "Změny se ukládají na server a projeví se v celém přehledu.",
 		"cardTitle": "Konfigurace agenta",
 		"files": {
-			"acceptedTypes": "Podporované formáty: PDF, TXT, MD, DOCX do 10 MB.",
+			"acceptedTypes": "Podporované formáty: PDF, TXT, MD, DOCX do {{maxSize}} MB.",
 			"delete": "Smazat",
 			"deleteConfirm": "Smazat soubor \"{{name}}\"? Agent ho přestane používat jako kontext.",
 			"description": "Soubory, které agent používá jako kontext při odpovídání.",
