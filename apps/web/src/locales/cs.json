@@ -64,7 +64,8 @@
 			"noResults": "Žádné odpovídající modely",
 			"retry": "Zkusit znovu",
 			"showModels": "Zobrazit návrhy modelů",
-			"unavailable": "Seznam modelů se nepodařilo načíst. Zadejte přesné ID modelu."
+			"unavailable": "Seznam modelů se nepodařilo načíst. Zadejte přesné ID modelu.",
+			"unavailableStored": "Seznam modelů se nepodařilo obnovit s uloženým připojením. Zadejte přihlašovací údaje znovu, nebo to zkuste znovu."
 		},
 		"embeddingDescription": "Vyberte model pro vytváření embeddingů znalostí.",
 		"embeddingTitle": "Embeddingy",

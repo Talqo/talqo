@@ -34,6 +34,17 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await page.reload()
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 	await expect(textCard.getByLabel("API key")).toHaveAttribute("placeholder", /Configured/)
+
+	await expect(textCard.getByRole("button", { name: "Show model suggestions" })).toBeVisible()
+	await textCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await expect(page.getByRole("option", { name: "chat-model" })).toBeVisible()
+	await page.keyboard.press("Escape")
+
+	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await expect(page.getByRole("option", { name: "embedding-model" })).toBeVisible()
+	await page.keyboard.press("Escape")
+
+	await expect(page.getByText("The model list could not be loaded")).toHaveCount(0)
 })
 
 test("ungranted operator cannot discover or open AI configuration", async ({ page }) => {

@@ -6,6 +6,7 @@ import type {
 	RoleConfigurationInput,
 } from "@/api/client.ts"
 import type { AiConfigurationFormValues } from "@/features/ai-configuration/ai-configuration-form"
+import type { DiscoveryContext } from "@/features/ai-configuration/discovery-readiness.ts"
 
 import { getAccess } from "@/api/client.ts"
 import { PageHeader } from "@/components/page-header"
@@ -19,6 +20,7 @@ import {
 	useAiProviders,
 	useSaveAiProviderConfiguration,
 } from "@/features/ai-configuration/ai-configuration-query"
+import { storedCredentialsMatch } from "@/features/ai-configuration/discovery-readiness.ts"
 import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplete"
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
 import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
@@ -161,7 +163,9 @@ function ModelField({
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
-	const discovery = useModelDiscovery({ provider, value, stored, storedCredentialRole })
+	const context: DiscoveryContext = { provider, value, stored }
+	const discovery = useModelDiscovery({ ...context, storedCredentialRole })
+	const refreshWithStoredCredentials = storedCredentialsMatch(context)
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={`${role}-model`}>{label}</Label>
@@ -177,7 +181,9 @@ function ModelField({
 			/>
 			{discovery.failed && (
 				<p className="text-muted-foreground text-xs">
-					{t("aiConfiguration.discovery.unavailable")}{" "}
+					{refreshWithStoredCredentials
+						? t("aiConfiguration.discovery.unavailableStored")
+						: t("aiConfiguration.discovery.unavailable")}{" "}
 					<button type="button" className="text-foreground underline underline-offset-2" onClick={discovery.retry}>
 						{t("aiConfiguration.discovery.retry")}
 					</button>

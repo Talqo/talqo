@@ -64,7 +64,8 @@
 			"noResults": "No matching models",
 			"retry": "Try again",
 			"showModels": "Show model suggestions",
-			"unavailable": "The model list could not be loaded. Enter the exact model ID."
+			"unavailable": "The model list could not be loaded. Enter the exact model ID.",
+			"unavailableStored": "The model list could not be refreshed with the saved connection. Re-enter the credentials or try again."
 		},
 		"embeddingDescription": "Choose the model used to create knowledge embeddings.",
 		"embeddingTitle": "Embeddings",
