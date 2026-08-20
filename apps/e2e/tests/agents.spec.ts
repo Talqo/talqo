@@ -55,24 +55,6 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	await expect(refreshDialog.getByText(/stops working/)).toBeVisible()
 	await refreshDialog.getByRole("button", { name: "Refresh token" }).click()
 	await expect(tokenInput).not.toHaveValue(firstToken)
-	const rotatedToken = await tokenInput.inputValue()
-
-	// Widget setup resolves the rotated embed token into the embed snippet.
-	await page.getByRole("link", { name: "Widget", exact: true }).click()
-	await page.getByLabel("Agent").click()
-	await page.getByRole("option", { name: "Docs helper" }).click()
-	const widgetCdnUrl = process.env.E2E_WIDGET_CDN_URL
-	if (!widgetCdnUrl) throw new Error("E2E_WIDGET_CDN_URL missing — playwright.config.ts provides it")
-	const snippet = page.locator("pre")
-	await expect(snippet).toContainText(`src="${widgetCdnUrl}"`)
-	await expect(snippet).toContainText(`data-talqo-embed-token="${rotatedToken}"`)
-	await expect(snippet).not.toContainText("data-talqo-agent")
-	await expect(snippet).toContainText('data-talqo-language="en"')
-	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
-	await page.getByLabel("Position").click()
-	await page.getByRole("option", { name: "Bottom left" }).click()
-	await expect(snippet).toContainText('data-talqo-position="bottom-left"')
-	await expect(page.locator("iframe")).toHaveAttribute("src", /position=bottom-left/)
 
 	// Analytics resolves the same persisted agent.
 	await page.getByRole("link", { name: "Analytics", exact: true }).click()
@@ -101,7 +83,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await logIn(page, VIEWER)
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await expect(page.getByRole("link", { name: "Widget", exact: true })).toBeVisible()
+	await expect(page.getByRole("link", { name: "Widgets", exact: true })).toBeVisible()
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
 	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
 
@@ -123,7 +105,7 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await logIn(page, MEMBER)
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
-	await expect(page.getByRole("link", { name: "Widget", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: "Widgets", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
 

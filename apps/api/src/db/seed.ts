@@ -16,7 +16,12 @@ const TEST_USERS = {
 	viewer: "e2e_viewer",
 } as const
 
-export async function seed(): Promise<void> {
+export type SeedResult = {
+	operator: { password: string; username: string }
+	widgetToken: string
+}
+
+export async function seed(): Promise<SeedResult | null> {
 	// Dependents first: module tables must be clear before identity truncates `user`.
 	await widget.reset()
 	await agent.reset()
@@ -37,14 +42,19 @@ export async function seed(): Promise<void> {
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:manage", userId: granted.id })
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:read", userId: viewer.id })
 		const { agentId } = await agent.seed()
-		await widget.seed(agentId)
+		const { publicToken } = await widget.seed(agentId)
+		return { operator: { username: TEST_USERS.granted, password: TEST_PASSWORD }, widgetToken: publicToken }
 	}
+
+	return null
 }
 
 if (import.meta.main) {
 	try {
-		await seed()
-		console.log("Database seeded")
+		const result = await seed()
+		// One JSON line for scripts/test-e2e.ts to hand to Playwright, so apps/e2e never
+		// has to import API source or restate the seeded records itself.
+		console.log(result ? JSON.stringify(result) : "Database seeded")
 	} finally {
 		await sql.end()
 	}
