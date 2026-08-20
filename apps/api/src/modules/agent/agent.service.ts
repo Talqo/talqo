@@ -1,4 +1,4 @@
-import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { isRestrictViolation } from "@/lib/pg-error.ts"
 
 import * as repo from "./agent.repository.ts"
 
@@ -97,7 +97,7 @@ export async function deleteAgent(id: string): Promise<void> {
 	} catch (error) {
 		// `widget.agent_id` is ON DELETE RESTRICT: widgets already embedded on customer
 		// sites must be reassigned or removed first rather than breaking silently.
-		if (isForeignKeyViolation(error)) {
+		if (isRestrictViolation(error)) {
 			throw new AgentInUseError("Agent still serves one or more widgets")
 		}
 		throw error
