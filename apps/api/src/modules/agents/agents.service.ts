@@ -106,6 +106,8 @@ export async function uploadFile(
 
 export async function deleteFile(agentId: string, name: string, ownerId: string): Promise<void> {
 	await requireOwnedAgent(agentId, ownerId)
+	// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
+	validateNameForDisk(name)
 	await files.remove(agentId, name)
 }
 
@@ -117,6 +119,7 @@ export async function renameFile(
 	newName: string,
 ): Promise<PublicAgentFile> {
 	await requireOwnedAgent(agentId, ownerId)
+	validateNameForDisk(name)
 	const trimmed = newName.trim()
 	if (!trimmed) throw new InvalidFileError("File name must not be empty")
 	const ext = extname(name).toLowerCase()

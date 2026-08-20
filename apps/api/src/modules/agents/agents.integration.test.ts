@@ -3,7 +3,7 @@ import { env } from "@/config/env.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { describe, expect, it } from "bun:test"
-import { readdir } from "node:fs/promises"
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 type AgentBody = {
@@ -241,6 +241,31 @@ describe("agents", () => {
 		for (const response of responses) {
 			expect(response.status).toBe(400)
 		}
+	})
+
+	it("rejects URL-encoded path traversal in file delete and rename names", async () => {
+		const { cookie } = await createAndLogin()
+		const agent = await createAgent(cookie, uniqueAgentName())
+
+		// Guard: a real file outside the agent dir must survive all attempts.
+		await mkdir(env.TALQO_UPLOAD_DIR, { recursive: true })
+		const guardPath = join(env.TALQO_UPLOAD_DIR, "guard.txt")
+		await writeFile(guardPath, "must survive")
+
+		const encoded = encodeURIComponent("../../guard.txt")
+		const [deleteResp, renameResp] = await Promise.all([
+			app.request(`/api/agents/${agent.id}/files/${encoded}`, { method: "DELETE", headers: { Cookie: cookie } }),
+			app.request(`/api/agents/${agent.id}/files/${encoded}`, {
+				method: "PATCH",
+				headers: { Cookie: cookie, "Content-Type": "application/json" },
+				body: JSON.stringify({ name: "renamed.txt" }),
+			}),
+		])
+		expect(deleteResp.status).toBe(400)
+		expect(renameResp.status).toBe(400)
+
+		// Defense-in-depth: even though 400 was returned, verify nothing outside the agent dir was touched.
+		expect(await readFile(guardPath, "utf8")).toBe("must survive")
 	})
 
 	it("rejects files over the size limit", async () => {

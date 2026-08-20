@@ -139,6 +139,9 @@ export const agentsRoutes = new Hono<{ Variables: AuthedVariables }>()
 			if (error instanceof service.AgentNotFoundError || error instanceof files.FileNotFoundError) {
 				return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
 			}
+			if (error instanceof service.InvalidFileError) {
+				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+			}
 			throw error
 		}
 	})
