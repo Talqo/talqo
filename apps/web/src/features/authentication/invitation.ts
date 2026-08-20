@@ -1,4 +1,4 @@
-import { ApiError } from "@/api/errors.ts"
+import { normalizeApiError } from "@/api/errors.ts"
 
 const FORBIDDEN_STATUS = 403
 
@@ -20,6 +20,7 @@ export function getInvitationErrorMessage(
 	error: unknown,
 	messages: { fallback: string; permissionDenied: string },
 ): string {
-	if (!(error instanceof ApiError)) return messages.fallback
-	return error.status === FORBIDDEN_STATUS ? messages.permissionDenied : error.message
+	const apiError = normalizeApiError(error)
+	if (!apiError) return messages.fallback
+	return apiError.status === FORBIDDEN_STATUS ? messages.permissionDenied : apiError.message
 }

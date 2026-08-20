@@ -8,7 +8,7 @@ This change migrates every existing API route and every existing handwritten web
 
 ## Decisions
 
-- Generate OpenAPI 3.1.1 from API-owned Zod 4 contracts with `@hono/zod-openapi` 1.6.1 and `OpenAPIHono`.
+- Generate OpenAPI 3.1.1 from API-owned Zod 4 contracts with `@hono/zod-openapi` 1.6.0 and `OpenAPIHono`. Version 1.6.1 was not eligible under the repository's 24-hour minimum package age during implementation.
 - Generate a web-specific TanStack Query fetch client and Zod schemas with Orval 8.24.0.
 - Commit both `apps/api/openapi.json` and `apps/web/src/api/generated/`.
 - Keep the OpenAPI document as a repository artifact; do not serve it from the running API.
@@ -65,6 +65,8 @@ One repository-owned Orval configuration consumes `apps/api/openapi.json` and wr
 - deterministic tag-based output and cleaning limited to generated directories.
 
 The built-in fetch implementation is used instead of a custom mutator. Current Orval custom mutators bypass built-in response validation, so introducing one would undermine the validation goal.
+
+Orval 8.24 loses Zod value-import metadata when React Query wraps its fetch output. Generation applies a narrow postprocessor that promotes generated model imports to value imports. This workaround owns no handwritten client behavior and must be removed when unchanged Orval output typechecks with fetch response validation.
 
 The existing handwritten endpoint functions and duplicated response/request types in `apps/web/src/api/client.ts` are removed. Web call sites consume generated hooks and generated key factories directly. Global defaults remain in the app's `QueryClient`; call sites may supply operation-specific options. Mutation owners explicitly invalidate the generated keys affected by successful writes. Generated code contains no localized messages or UI error presentation.
 

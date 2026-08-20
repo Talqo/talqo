@@ -1,11 +1,21 @@
 import {
+	badRequestResponse,
+	conflictResponse,
+	forbiddenResponse,
+	internalServerErrorResponse,
+	noContentResponse,
+	notFoundResponse,
+	sessionSecurity,
+	unauthorizedResponse,
+} from "@/http/openapi.ts"
+import {
 	PASSWORD_MAX_LENGTH,
 	PASSWORD_MIN_LENGTH,
 	USERNAME_MAX_LENGTH,
 	USERNAME_MIN_LENGTH,
 	USERNAME_PATTERN,
 } from "@/modules/identity/identity.service.ts"
-import { z } from "zod"
+import { createRoute, z } from "@hono/zod-openapi"
 
 import { PERMISSIONS } from "./roles.service.ts"
 
@@ -17,10 +27,12 @@ const usernameSchema = z
 
 const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH)
 
-const userResponseSchema = z.object({
-	id: z.string(),
-	username: z.string(),
-})
+const userResponseSchema = z
+	.object({
+		id: z.string(),
+		username: z.string(),
+	})
+	.openapi("RoleUser")
 
 export const setupStatusResponseSchema = z.object({
 	needsSetup: z.boolean(),
@@ -37,7 +49,7 @@ export const bootstrapAdminResponseSchema = z.object({
 
 export const createInvitationResponseSchema = z.object({
 	token: z.string(),
-	expiresAt: z.date(),
+	expiresAt: z.iso.datetime(),
 })
 
 export const redeemInvitationRequestSchema = z.object({
@@ -63,10 +75,138 @@ export const grantResponseSchema = z.object({
 		permission: z.string(),
 		agentId: z.string().nullable(),
 		grantedBy: z.string().nullable(),
-		grantedAt: z.date(),
+		grantedAt: z.iso.datetime(),
 	}),
 })
 
 export const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
+})
+
+const permissionGrantParamsSchema = z.object({
+	id: z.string().openapi({ param: { name: "id", in: "path" } }),
+})
+
+const userParamsSchema = z.object({
+	userId: z.string().openapi({ param: { name: "userId", in: "path" } }),
+})
+
+export const getSetupStatusRoute = createRoute({
+	method: "get",
+	path: "/api/setup",
+	operationId: "getSetupStatus",
+	tags: ["Roles"],
+	responses: {
+		200: { content: { "application/json": { schema: setupStatusResponseSchema } }, description: "Setup status" },
+		500: internalServerErrorResponse,
+	},
+})
+
+export const bootstrapAdminRoute = createRoute({
+	method: "post",
+	path: "/api/setup",
+	operationId: "bootstrapAdmin",
+	tags: ["Roles"],
+	request: {
+		body: { content: { "application/json": { schema: bootstrapAdminRequestSchema } }, required: true },
+	},
+	responses: {
+		201: {
+			content: { "application/json": { schema: bootstrapAdminResponseSchema } },
+			description: "Admin created",
+		},
+		400: badRequestResponse,
+		409: conflictResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const createInvitationRoute = createRoute({
+	method: "post",
+	path: "/api/invitations",
+	operationId: "createInvitation",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	responses: {
+		201: {
+			content: { "application/json": { schema: createInvitationResponseSchema } },
+			description: "Invitation created",
+		},
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const redeemInvitationRoute = createRoute({
+	method: "post",
+	path: "/api/invitations/redeem",
+	operationId: "redeemInvitation",
+	tags: ["Roles"],
+	request: {
+		body: { content: { "application/json": { schema: redeemInvitationRequestSchema } }, required: true },
+	},
+	responses: {
+		201: {
+			content: { "application/json": { schema: redeemInvitationResponseSchema } },
+			description: "Invitation redeemed",
+		},
+		400: badRequestResponse,
+		409: conflictResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const createPermissionGrantRoute = createRoute({
+	method: "post",
+	path: "/api/permission-grants",
+	operationId: "createPermissionGrant",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	request: {
+		body: { content: { "application/json": { schema: createGrantRequestSchema } }, required: true },
+	},
+	responses: {
+		201: { content: { "application/json": { schema: grantResponseSchema } }, description: "Permission granted" },
+		400: badRequestResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const revokePermissionGrantRoute = createRoute({
+	method: "delete",
+	path: "/api/permission-grants/{id}",
+	operationId: "revokePermissionGrant",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	request: { params: permissionGrantParamsSchema },
+	responses: {
+		204: noContentResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const resetUserPasswordRoute = createRoute({
+	method: "patch",
+	path: "/api/users/{userId}/password",
+	operationId: "resetUserPassword",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	request: {
+		params: userParamsSchema,
+		body: { content: { "application/json": { schema: resetPasswordRequestSchema } }, required: true },
+	},
+	responses: {
+		204: noContentResponse,
+		400: badRequestResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
 })

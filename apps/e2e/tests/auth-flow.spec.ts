@@ -83,6 +83,7 @@ test("admin bootstraps the app, invites a member, and the member logs in", async
 
 	// An invited member can accept their invitation and log in.
 	await expect(page).toHaveURL("/login")
+	await expect(page.getByLabel("Confirm password")).toHaveCount(0)
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
 	await page.getByRole("button", { name: "Log in" }).click()

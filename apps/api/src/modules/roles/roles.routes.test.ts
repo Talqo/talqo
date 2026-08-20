@@ -10,6 +10,7 @@ describe("roles routes", () => {
 		})
 
 		expect(response.status).toBe(400)
+		expect(await response.json()).toEqual({ error: "Malformed JSON body" })
 	})
 
 	it("rejects a bootstrap request missing required fields", async () => {
@@ -20,6 +21,7 @@ describe("roles routes", () => {
 		})
 
 		expect(response.status).toBe(400)
+		expect(await response.json()).toEqual({ error: expect.any(String) })
 	})
 
 	it("rejects an invitation redemption request missing required fields", async () => {

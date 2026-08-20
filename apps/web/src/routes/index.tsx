@@ -1,4 +1,4 @@
-import { getSetupStatus } from "@/api/client.ts"
+import { getSetupStatus } from "@/api/generated/roles/roles.ts"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
@@ -7,8 +7,8 @@ export const Route = createFileRoute("/")({
 	beforeLoad: async () => {
 		let needsSetup = false
 		try {
-			const status = await getSetupStatus()
-			needsSetup = status.needsSetup
+			const response = await getSetupStatus()
+			needsSetup = response.data.needsSetup
 		} catch {
 			throw redirect({ to: "/login" })
 		}
