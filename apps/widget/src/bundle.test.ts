@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 
+import { fetchCalledDuring } from "./test-fetch.ts"
+
 await import("./test-setup")
 
 describe("built embed bundle", () => {
@@ -12,5 +14,12 @@ describe("built embed bundle", () => {
 		const globalScope = window as { TalqoWidget?: { mount: unknown; unmount: unknown } }
 		expect(typeof globalScope.TalqoWidget).toBe("object")
 		expect(document.querySelector("#talqo-widget")).not.toBeNull()
+	})
+
+	// A host page with no Talqo snippet must not see a stray request from the bundle.
+	test("makes no network request when the page carries no embed snippet", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+
+		expect(fetchCalledDuring(() => new Function(code)())).toBe(false)
 	})
 })

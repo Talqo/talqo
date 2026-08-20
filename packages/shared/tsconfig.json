@@ -1,7 +1,4 @@
 {
-	"extends": "@talqo/typescript-config/base.json",
-	"compilerOptions": {
-		"types": []
-	},
+	"extends": "@talqo/typescript-config/bun.json",
 	"include": ["src/**/*.ts"]
 }

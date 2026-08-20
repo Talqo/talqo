@@ -11,7 +11,7 @@ const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/api/setup", "/api/invitations/redeem"]
 
-export const PERMISSIONS = ["users:invite"] as const
+export const PERMISSIONS = ["users:invite", "agents:write"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
 export type PermissionGrant = {

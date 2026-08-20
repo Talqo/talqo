@@ -1,3 +1,7 @@
+// FK-only import (the one schema-to-schema exception). Note the direction: `roles`
+// declares a foreign key into `agent`, while `agent.routes.ts` calls `roles.service.ts`
+// at runtime. Those are separate graphs -- neither is a cycle.
+import { agent } from "@/modules/agent/agent.schema.ts"
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
 import { index, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
@@ -48,8 +52,9 @@ export const permissionGrant = pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		// Free text, not a DB enum: each module with mutating routes owns its own permission strings.
 		permission: text("permission").notNull(),
-		// No FK: `agent` doesn't exist in this codebase yet -- wire it once `agent` ships.
-		agentId: text("agent_id"),
+		// Cascade: revoking access to a deleted agent is meaningless, and a dangling
+		// scoped grant would silently widen to nothing rather than fail loudly.
+		agentId: text("agent_id").references(() => agent.id, { onDelete: "cascade" }),
 		// Nullable + set null (not cascade): deleting the granting admin's account must not
 		// silently revoke grants they made to other, unrelated users.
 		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),

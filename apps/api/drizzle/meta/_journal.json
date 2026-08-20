@@ -8,6 +8,20 @@
 			"when": 1786653172579,
 			"tag": "0000_fair_photon",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1787162416940,
+			"tag": "0001_sturdy_spectrum",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1787162708151,
+			"tag": "0002_powerful_richard_fisk",
+			"breakpoints": true
 		}
 	]
 }

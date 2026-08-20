@@ -6,13 +6,16 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./credentials": "./src/credentials.ts",
-		"./languages": "./src/languages.ts"
+		"./languages": "./src/languages.ts",
+		"./widget-appearance": "./src/widget-appearance.ts"
 	},
 	"scripts": {
+		"test": "bun test",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
+		"@types/bun": "1.3.14",
 		"typescript": "7.0.2"
 	}
 }

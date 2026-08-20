@@ -1,6 +1,7 @@
 // Postgres error codes (https://www.postgresql.org/docs/current/errcodes-appendix.html)
 const UNIQUE_VIOLATION = "23505"
 const FOREIGN_KEY_VIOLATION = "23503"
+const RESTRICT_VIOLATION = "23001"
 const MAX_CAUSE_DEPTH = 5
 
 function hasPgErrorCode(error: unknown, code: string): boolean {
@@ -19,4 +20,12 @@ export function isUniqueViolation(error: unknown): boolean {
 
 export function isForeignKeyViolation(error: unknown): boolean {
 	return hasPgErrorCode(error, FOREIGN_KEY_VIOLATION)
+}
+
+/**
+ * Raised when ON DELETE RESTRICT blocks a delete because rows still reference the target.
+ * Distinct from the 23503 an insert or update raises when the parent row is missing.
+ */
+export function isRestrictViolation(error: unknown): boolean {
+	return hasPgErrorCode(error, RESTRICT_VIOLATION)
 }
