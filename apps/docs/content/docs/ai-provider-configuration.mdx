@@ -7,7 +7,7 @@ Talqo uses operator-owned provider credentials. Users with the `ai_provider:mana
 
 ## Deployment secret
 
-Set `APP_SECRET` before starting the API. It must be base64url-encoded and decode to at least 32 random bytes:
+Set `APP_SECRET` before running database migrations or starting the API. The API refuses to boot without it. It must be base64url-encoded and decode to at least 32 random bytes:
 
 ```sh
 openssl rand -base64 32 | tr '+/' '-_' | tr -d '='

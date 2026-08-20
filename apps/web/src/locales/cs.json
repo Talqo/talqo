@@ -99,6 +99,7 @@
 		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
 		"textDescription": "Vyberte model používaný pro odpovědi v konverzacích.",
 		"textTitle": "Generování textu",
+		"unusableWarning": "Uložené přihlašovací údaje již nelze dešifrovat. Zadejte a uložte přihlašovací údaje znovu.",
 		"validationError": "Před uložením vyberte oba poskytovatele a ID modelů."
 	},
 	"analytics": {

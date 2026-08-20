@@ -99,6 +99,7 @@
 		"subheading": "Connect text and embedding models for this Talqo deployment.",
 		"textDescription": "Choose the model used to answer conversations.",
 		"textTitle": "Text generation",
+		"unusableWarning": "Stored credentials can no longer be decrypted. Re-enter and save the provider credentials.",
 		"validationError": "Choose both providers and model IDs before saving."
 	},
 	"analytics": {

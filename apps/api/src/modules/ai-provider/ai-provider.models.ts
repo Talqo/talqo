@@ -12,6 +12,7 @@ import { DefaultAzureCredential } from "@azure/identity"
 import type { AiProviderId, AiProviderRole, AuthMode } from "./ai-provider.registry.ts"
 
 import { getProviderDefinition } from "./ai-provider.registry.ts"
+import { assertHttpBaseUrl } from "./endpoint-policy.ts"
 
 type ModelConfiguration = {
 	authMode: AuthMode
@@ -22,8 +23,10 @@ type ModelConfiguration = {
 	settings: Record<string, string>
 }
 
-function azureTokenProvider(): () => Promise<string> {
-	const credential = new DefaultAzureCredential()
+let defaultAzureCredential: DefaultAzureCredential | undefined
+
+function azureTokenProvider(credentialFactory: () => DefaultAzureCredential): () => Promise<string> {
+	const credential = credentialFactory()
 	return async () => {
 		const token = await credential.getToken("https://cognitiveservices.azure.com/.default")
 		if (!token) throw new Error("Azure deployment identity did not provide an access token")
@@ -31,13 +34,20 @@ function azureTokenProvider(): () => Promise<string> {
 	}
 }
 
-export function createProviderModel(configuration: ModelConfiguration): LanguageModelV4 | EmbeddingModelV4 {
+export function createProviderModel(
+	configuration: ModelConfiguration,
+	dependencies: { defaultAzureCredential: () => DefaultAzureCredential } = {
+		defaultAzureCredential: () => (defaultAzureCredential ??= new DefaultAzureCredential()),
+	},
+): LanguageModelV4 | EmbeddingModelV4 {
 	const definition = getProviderDefinition(configuration.providerId)
 	if (!definition.roles.includes(configuration.role)) {
 		throw new Error(`${configuration.providerId} does not support ${configuration.role}`)
 	}
 
 	const credentials = configuration.credentials ?? {}
+	const configuredBaseUrl = configuration.settings.baseURL
+	const validatedBaseUrl = configuredBaseUrl ? assertHttpBaseUrl(configuredBaseUrl).toString() : undefined
 	let provider
 	switch (configuration.providerId) {
 		case "openai":
@@ -49,15 +59,16 @@ export function createProviderModel(configuration: ModelConfiguration): Language
 			provider = createGoogle({ apiKey: credentials.apiKey })
 			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
 		case "mistral":
-			provider = createMistral({ apiKey: credentials.apiKey, baseURL: configuration.settings.baseURL })
+			provider = createMistral({ apiKey: credentials.apiKey, baseURL: validatedBaseUrl })
 			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
 		case "azure":
+			if (!validatedBaseUrl) throw new Error("Azure base URL is required")
 			provider = createAzure({
-				baseURL: configuration.settings.baseURL,
+				baseURL: validatedBaseUrl,
 				apiVersion: configuration.settings.apiVersion,
 				...(configuration.authMode === "static"
 					? { apiKey: credentials.apiKey }
-					: { tokenProvider: azureTokenProvider() }),
+					: { tokenProvider: azureTokenProvider(dependencies.defaultAzureCredential) }),
 			})
 			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
 		case "amazon-bedrock":
@@ -73,9 +84,10 @@ export function createProviderModel(configuration: ModelConfiguration): Language
 			})
 			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
 		case "openai-compatible":
+			if (!validatedBaseUrl) throw new Error("OpenAI-compatible base URL is required")
 			provider = createOpenAICompatible({
 				name: "openai-compatible",
-				baseURL: configuration.settings.baseURL ?? "",
+				baseURL: validatedBaseUrl,
 				apiKey: credentials.apiKey,
 			})
 			return configuration.role === "text"

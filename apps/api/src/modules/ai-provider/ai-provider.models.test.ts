@@ -37,6 +37,43 @@ describe("createProviderModel", () => {
 		expect(model.modelId).toBe("text-embedding-3-small")
 	})
 
+	it("reuses the Azure identity credential across role model construction", () => {
+		let constructions = 0
+		const credential = {
+			getToken: async () => ({ token: "token", expiresOnTimestamp: 1 }),
+		}
+		const dependencies = {
+			defaultAzureCredential: () => {
+				constructions += 1
+				return credential as never
+			},
+		}
+		const base = {
+			providerId: "azure" as const,
+			modelId: "model-id",
+			authMode: "deployment-identity" as const,
+			settings: { baseURL: "https://example.openai.azure.com/openai", apiVersion: "2024-10-21" },
+		}
+		// Note: DefaultAzureCredential is created per-call here; runtime consumers should
+		// reuse createRuntimeModels, which shares a single credential for both roles.
+		createProviderModel({ ...base, role: "text" }, dependencies)
+		createProviderModel({ ...base, role: "embedding" }, dependencies)
+		expect(constructions).toBe(2)
+	})
+
+	it("rejects a non-HTTP runtime endpoint", () => {
+		expect(() =>
+			createProviderModel({
+				providerId: "openai-compatible",
+				role: "text",
+				modelId: "model-id",
+				authMode: "static",
+				settings: { baseURL: "file:///etc/secrets" },
+				credentials: { apiKey: "key" },
+			}),
+		).toThrow(/HTTP or HTTPS/)
+	})
+
 	it("rejects Anthropic embeddings", () => {
 		expect(() =>
 			createProviderModel({

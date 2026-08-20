@@ -284,6 +284,7 @@ function AiConfigurationPage() {
 			</p>
 		)
 
+	const configuration = configurationQuery.data
 	const providers = providersQuery.data.providers
 	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
 
@@ -314,6 +315,14 @@ function AiConfigurationPage() {
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
 			<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
+			{configuration.health === "unusable" && (
+				<p
+					role="alert"
+					className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border p-3 text-sm"
+				>
+					{t("aiConfiguration.unusableWarning")}
+				</p>
+			)}
 			<form onSubmit={handleSubmit(onValid)} className="space-y-6">
 				<Card>
 					<CardHeader>

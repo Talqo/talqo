@@ -49,6 +49,39 @@ describe("discoverModels", () => {
 		expect(requestedUrl).toBe("http://models.internal/v1/models")
 	})
 
+	it("rejects a non-HTTP provider endpoint before sending credentials", async () => {
+		let requestedUrl = ""
+		const fetcher: ModelDiscoveryFetch = async (input) => {
+			requestedUrl = String(input)
+			return new Response(JSON.stringify({ data: [] }))
+		}
+
+		await expect(
+			discoverModels(
+				{
+					providerId: "openai-compatible",
+					authMode: "static",
+					settings: { baseURL: "file:///etc/secrets" },
+					credentials: { apiKey: "sk-sent" },
+				},
+				fetcher,
+			),
+		).rejects.toMatchObject({ code: "provider-error" })
+		expect(requestedUrl).toBe("")
+	})
+
+	it("limits streamed provider response bodies by bytes", async () => {
+		const oversized = new TextEncoder().encode("x".repeat(1_000_001))
+		const fetcher: ModelDiscoveryFetch = async () => new Response(new Blob([oversized]))
+
+		await expect(
+			discoverModels(
+				{ providerId: "openai", authMode: "static", settings: {}, credentials: { apiKey: "sk-test" } },
+				fetcher,
+			),
+		).rejects.toMatchObject({ code: "provider-error" })
+	})
+
 	it("returns a stable unauthorized error without provider response details", async () => {
 		try {
 			await discoverModels(

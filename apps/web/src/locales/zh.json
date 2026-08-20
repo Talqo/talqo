@@ -99,6 +99,7 @@
 		"subheading": "为此 Talqo 部署连接文本和嵌入模型。",
 		"textDescription": "选择用于回复对话的模型。",
 		"textTitle": "文本生成",
+		"unusableWarning": "无法解密已存储的凭据。请重新输入并保存提供商凭据。",
 		"validationError": "保存前请选择两个提供商和模型 ID。"
 	},
 	"analytics": {
