@@ -15,7 +15,9 @@ const envSchema = z.object({
 		error: "DATABASE_URL must be a valid postgres:// connection string",
 	}),
 	TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
-	TALQO_UPLOAD_DIR: z.string().min(1).default("data/uploads"),
+	// Dev default only. Production sets TALQO_UPLOAD_DIR to whatever persistent path
+	// its deployment provides (the env var is the contract; the path is ops' decision).
+	TALQO_UPLOAD_DIR: z.string().min(1).default("/tmp/talqo-uploads"),
 	TALQO_MAX_FILE_SIZE_MB: z.coerce.number().int().positive().default(DEFAULT_MAX_FILE_SIZE_MB),
 	TALQO_MAX_FILE_NAME_LENGTH: z.coerce
 		.number()

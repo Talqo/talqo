@@ -14,6 +14,7 @@ export type StoredFile = {
 
 export class FileExistsError extends Error {}
 export class FileNotFoundError extends Error {}
+export class ContextNotFoundError extends Error {}
 export class InvalidNameError extends Error {}
 
 export function validateName(name: string): void {
@@ -25,8 +26,8 @@ export function validateName(name: string): void {
 	}
 }
 
-function agentDir(agentId: string): string {
-	return join(env.TALQO_UPLOAD_DIR, agentId)
+function contextDir(contextId: string): string {
+	return join(env.TALQO_UPLOAD_DIR, contextId)
 }
 
 function buildFile(name: string, stats: { size: number; birthtime: Date; mtime: Date }): StoredFile {
@@ -35,25 +36,37 @@ function buildFile(name: string, stats: { size: number; birthtime: Date; mtime: 
 	return { name, sizeBytes: stats.size, createdAt }
 }
 
-export async function list(agentId: string): Promise<StoredFile[]> {
-	const dir = agentDir(agentId)
-	let entries: string[]
+// A context id is unguessable (UUID), but check existence on every access anyway:
+// once a directory is deleted (context retired, manual cleanup) requests must 404, not resurrect it.
+export async function exists(contextId: string): Promise<boolean> {
 	try {
-		entries = await readdir(dir)
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
-		throw error
+		const s = await stat(contextDir(contextId))
+		return s.isDirectory()
+	} catch {
+		return false
 	}
+}
+
+export async function requireContext(contextId: string): Promise<void> {
+	if (!(await exists(contextId))) throw new ContextNotFoundError(`Context ${contextId} not found`)
+}
+
+export async function create(contextId: string): Promise<void> {
+	await mkdir(contextDir(contextId), { recursive: true })
+}
+
+export async function list(contextId: string): Promise<StoredFile[]> {
+	const dir = contextDir(contextId)
+	const entries = await readdir(dir) // throws ENOENT if the dir is gone: caller's requireContext already checks
 	const files = await Promise.all(entries.map(async (name) => buildFile(name, await stat(join(dir, name)))))
 	return files.toSorted((a, b) => a.name.localeCompare(b.name))
 }
 
-export async function put(agentId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
-	const dir = agentDir(agentId)
-	await mkdir(dir, { recursive: true })
+export async function put(contextId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
+	const dir = contextDir(contextId)
 	const path = join(dir, name)
 	try {
-		// wx fails if the file already exists: names are unique per agent directory.
+		// wx fails if the file already exists: names are unique per context directory.
 		await writeFile(path, Buffer.from(data), { flag: "wx" })
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new FileExistsError(`File ${name} already exists`)
@@ -63,8 +76,8 @@ export async function put(agentId: string, name: string, data: ArrayBuffer): Pro
 }
 
 // COPYFILE_EXCL must succeed before removing the source: otherwise renaming to an existing name would clobber it.
-export async function renameFile(agentId: string, oldName: string, newName: string): Promise<StoredFile> {
-	const dir = agentDir(agentId)
+export async function renameFile(contextId: string, oldName: string, newName: string): Promise<StoredFile> {
+	const dir = contextDir(contextId)
 	const source = join(dir, oldName)
 	const target = join(dir, newName)
 	try {
@@ -79,15 +92,15 @@ export async function renameFile(agentId: string, oldName: string, newName: stri
 	return buildFile(newName, await stat(target))
 }
 
-export async function remove(agentId: string, name: string): Promise<void> {
+export async function remove(contextId: string, name: string): Promise<void> {
 	try {
-		await unlink(join(agentDir(agentId), name))
+		await unlink(join(contextDir(contextId), name))
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new FileNotFoundError(`File ${name} not found`)
 		throw error
 	}
 }
 
-export async function removeAgentDir(agentId: string): Promise<void> {
-	await rm(agentDir(agentId), { force: true, recursive: true })
+export async function removeContextDir(contextId: string): Promise<void> {
+	await rm(contextDir(contextId), { force: true, recursive: true })
 }

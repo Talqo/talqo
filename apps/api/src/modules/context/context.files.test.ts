@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 
-import { InvalidNameError, validateName } from "./agents.files.ts"
+import { InvalidNameError, validateName } from "./context.files.ts"
 
 describe("validateName", () => {
 	it.each(["context.txt", "Refund Policy.md", "číselník.pdf", ".hidden.md"])("accepts %s", (name) => {
