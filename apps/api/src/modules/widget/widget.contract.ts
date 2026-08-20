@@ -1,10 +1,8 @@
-import { supportedLanguages } from "@talqo/shared/languages"
+import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import { WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
 import { z } from "zod"
 
 import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
-
-const languages = Object.keys(supportedLanguages) as [string, ...string[]]
 
 // Six-digit hex only: the widget writes these straight into CSS custom properties,
 // where any other notation would need normalising first.
@@ -20,7 +18,7 @@ const appearanceSchema = z
 		position: z.enum(WIDGET_POSITIONS),
 		theme: z.enum(WIDGET_THEMES),
 		themeToggle: z.boolean(),
-		language: z.enum(languages),
+		language: z.enum(SUPPORTED_LANGUAGES),
 	})
 	// Identical members of a pair render invisible text. Contrast beyond that is the
 	// operator's call -- the dashboard warns rather than blocking their brand colors.
