@@ -1,4 +1,5 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
+import type { Context } from "hono"
 
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson } from "@/http/json-body.ts"
@@ -27,12 +28,19 @@ app.use("*", rejectMalformedJson)
 app.use("*", requireAuth)
 app.route("/", identityRoutes)
 app.route("/", rolesRoutes)
-app.onError((error, context) => {
+// Mirrors Hono's default errorHandler pass-through for response-carrying errors,
+// hardened by validating the produced value is a real Response, and keeps a
+// generic body with the original error logged for everything else.
+export function handleError(error: Error, context: Context): Response {
 	if ("getResponse" in error && typeof error.getResponse === "function") {
-		const response = error.getResponse() as Response
-		return context.newResponse(response.body, response)
+		const response: unknown = error.getResponse()
+		if (response instanceof Response) {
+			return context.newResponse(response.body, response)
+		}
 	}
 
 	console.error(error)
 	return context.json({ error: "Internal server error" }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
-})
+}
+
+app.onError(handleError)

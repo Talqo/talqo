@@ -36,4 +36,14 @@ import {
   Login200
 } from '../models/identity/login200.zod';`)
 	})
+
+	it("tolerates irregular whitespace around the from keyword", () => {
+		const source = `import type {
+  Login200
+}  from   "../models/identity/login200.zod"`
+
+		expect(promoteZodImports(source)).toBe(`import {
+  Login200
+}  from   "../models/identity/login200.zod"`)
+	})
 })

@@ -6,7 +6,7 @@ export function promoteZodImports(source: string): string {
 
 	for (const [index, line] of lines.entries()) {
 		if (line.startsWith("import type {")) importStart = index
-		if (importStart === undefined || !/} from ["']/.test(line)) continue
+		if (importStart === undefined || !/}\s+from\s+["']/.test(line)) continue
 
 		if (/from ["']\.\.\/models(?:\/|["'])/.test(line)) {
 			lines[importStart] = lines[importStart]?.replace("import type", "import") ?? lines[importStart]

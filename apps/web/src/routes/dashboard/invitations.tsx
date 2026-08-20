@@ -30,7 +30,6 @@ function InvitationsPage() {
 
 	async function handleCreate() {
 		setError(null)
-		createInvitation.reset()
 		setCopied(false)
 		try {
 			await createInvitation.mutateAsync()
@@ -63,7 +62,8 @@ function InvitationsPage() {
 		)
 	}
 
-	if (session.isError || session.data.data.user === null) {
+	const user = session.data?.data.user
+	if (!user) {
 		return (
 			<div className="mx-auto max-w-2xl space-y-6">
 				<PageHeader title={t("auth.invitations.heading")} description={t("auth.invitations.description")} />

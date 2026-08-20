@@ -6,6 +6,13 @@ import {
 	bootstrapAdminBodyUsernameRegExp,
 } from "@/api/generated/models/roles/bootstrapAdminBody.zod.ts"
 import {
+	redeemInvitationBodyPasswordMax,
+	redeemInvitationBodyPasswordMin,
+	redeemInvitationBodyUsernameMax,
+	redeemInvitationBodyUsernameMin,
+	redeemInvitationBodyUsernameRegExp,
+} from "@/api/generated/models/roles/redeemInvitationBody.zod.ts"
+import {
 	PASSWORD_MAX_LENGTH,
 	PASSWORD_MIN_LENGTH,
 	USERNAME_MAX_LENGTH,
@@ -30,6 +37,12 @@ describe("generated wire schema", () => {
 		expect(bootstrapAdminBodyUsernameRegExp.source).toBe(USERNAME_PATTERN.source)
 		expect(bootstrapAdminBodyPasswordMin).toBe(PASSWORD_MIN_LENGTH)
 		expect(bootstrapAdminBodyPasswordMax).toBe(PASSWORD_MAX_LENGTH)
+
+		expect(redeemInvitationBodyUsernameMin).toBe(USERNAME_MIN_LENGTH)
+		expect(redeemInvitationBodyUsernameMax).toBe(USERNAME_MAX_LENGTH)
+		expect(redeemInvitationBodyUsernameRegExp.source).toBe(USERNAME_PATTERN.source)
+		expect(redeemInvitationBodyPasswordMin).toBe(PASSWORD_MIN_LENGTH)
+		expect(redeemInvitationBodyPasswordMax).toBe(PASSWORD_MAX_LENGTH)
 	})
 })
 
