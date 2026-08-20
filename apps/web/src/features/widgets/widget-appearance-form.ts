@@ -1,4 +1,4 @@
-import { supportedLanguages } from "@talqo/shared/languages"
+import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import {
 	DEFAULT_WIDGET_APPEARANCE,
 	WIDGET_POSITIONS,
@@ -8,8 +8,6 @@ import {
 import { z } from "zod"
 
 import type { Widget } from "./widget-client.ts"
-
-const languages = Object.keys(supportedLanguages) as [string, ...string[]]
 
 // Mirrors apps/api/src/modules/widget/widget.contract.ts. Kept separate on purpose:
 // the API's job is to reject, this one's is to guide the operator while they type.
@@ -25,7 +23,7 @@ export const widgetFormSchema = z.object({
 	position: z.enum(WIDGET_POSITIONS),
 	theme: z.enum(WIDGET_THEMES),
 	themeToggle: z.boolean(),
-	language: z.enum(languages),
+	language: z.enum(SUPPORTED_LANGUAGES),
 })
 
 export type WidgetFormValues = z.infer<typeof widgetFormSchema>
