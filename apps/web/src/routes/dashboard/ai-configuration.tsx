@@ -298,12 +298,12 @@ function CredentialsSection({
 
 	if (configured && !replacing) {
 		return (
-			<div className="bg-muted/40 border-border flex items-center justify-between rounded-lg border px-2.5 py-2">
+			<div className="bg-muted/40 border-border flex h-9 items-center justify-between rounded-lg border pr-1.5 pl-3">
 				<p className="text-muted-foreground flex items-center gap-2 text-sm">
 					<LockIcon className="size-3.5" />
 					{t("aiConfiguration.savedCredentials")}
 				</p>
-				<Button type="button" variant="ghost" className="h-7 px-2" onClick={() => setReplacing(true)}>
+				<Button type="button" variant="ghost" className="h-7 px-2.5 text-xs" onClick={() => setReplacing(true)}>
 					<PencilLineIcon data-icon="inline-start" />
 					{t("aiConfiguration.replaceCredentials")}
 				</Button>
