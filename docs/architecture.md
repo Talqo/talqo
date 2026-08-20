@@ -38,7 +38,7 @@ Conventions have three sources. Preserve upstream conventions unless a documente
 | Source | Conventions |
 | --- | --- |
 | Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/` |
-| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/client.ts`; `packages/api-client`; `apps/e2e` |
+| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e` |
 | Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
 
 Role suffixes and boundary rules in this document are Talqo conventions, not framework requirements.
@@ -54,8 +54,8 @@ packages -X-> apps
 
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
-- `packages/api-client` is generated transport-only code. It contains no authentication policy, telemetry policy, error presentation, TanStack Query options, or handwritten domain logic.
-- `packages/sdk` is the public browser SDK. It consumes `packages/api-client`; the widget consumes the SDK.
+- Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
+- `packages/sdk` is the public browser SDK. It generates or owns transport appropriate to its public API; the widget consumes the SDK.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -154,16 +154,17 @@ The flow is one-way and deterministic:
 ```text
 module contracts + route metadata
   -> API-owned OpenAPI document
-  -> generated clients
+  -> consumer-specific generated clients
   -> dashboard + widget + SDK + integrations
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
-- Select and pin the generator before documenting artifact paths or generated file layout. Preserve the selected generator's output structure rather than wrapping or reorganizing generated files.
+- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates the committed web client under `apps/web/src/api/generated`.
+- Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
-- `packages/api-client` is generated transport only. Generated files are never hand-edited.
-- `apps/web/src/api/client.ts` configures base URL, authentication, telemetry, request behavior, and app-level error translation. Optional `errors.ts` defines web-facing transport error normalization.
-- Generated code contains no TanStack Query keys, caching, retries, invalidation, optimistic updates, or UI error policy. The consuming route or extracted frontend feature owns that policy.
+- Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
+- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas. `apps/web/src/api/errors.ts` owns web-facing error normalization.
+- Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 
 ## Web
 
@@ -173,8 +174,8 @@ module contracts + route metadata
 apps/web/src/
 |-- main.tsx                         # entry point; creates the router
 |-- routeTree.gen.ts                 # generated; never hand-edit
-|-- api/                              # added with the first real endpoint
-|   |-- client.ts                    # configured generated API client
+|-- api/
+|   |-- generated/                   # Orval output; never hand-edit
 |   `-- errors.ts                    # web transport-error normalization
 |-- components/                       # route-shared presentation
 |-- lib/                              # app-level UI infrastructure (i18n, theme, language stores)
@@ -197,7 +198,8 @@ apps/web/src/
 
 ### Query And Forms
 
-- Routes or features own query keys, cache policy, invalidation, and forms; generated clients own transport only.
+- Generated Orval code owns mechanical query hooks and key factories. Routes or features own cache policy, invalidation decisions, and forms.
+- Generated request Zod schemas are baseline wire validation. App-owned form schemas may derive from them to add coercion, localized messages, UI-only fields, and cross-field rules.
 - The API remains authoritative. Browser caches and client validation never replace server validation or domain behavior.
 
 ## Widget

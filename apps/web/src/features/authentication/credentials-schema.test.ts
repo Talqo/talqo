@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
 
-import { credentialsFormSchema, registrationFormSchema } from "./credentials-schema.ts"
+import {
+	credentialsFormSchema,
+	invitationRegistrationFormSchema,
+	registrationFormSchema,
+} from "./credentials-schema.ts"
 
 const username = "admin_user"
 const password = "correct-horse-battery-staple"
@@ -25,6 +29,18 @@ describe("registrationFormSchema", () => {
 
 	test("accepts matching password confirmation", () => {
 		const result = registrationFormSchema.safeParse({
+			confirmPassword: password,
+			password,
+			username,
+		})
+
+		expect(result.success).toBe(true)
+	})
+})
+
+describe("invitationRegistrationFormSchema", () => {
+	test("derives an invitation form without requiring its URL token", () => {
+		const result = invitationRegistrationFormSchema.safeParse({
 			confirmPassword: password,
 			password,
 			username,

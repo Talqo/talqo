@@ -1,36 +1,34 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
-import { parseJsonBody } from "@/http/json-body.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import { Hono } from "hono"
-import { z } from "zod"
+import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
-	bootstrapAdminRequestSchema,
+	bootstrapAdminRoute,
 	bootstrapAdminResponseSchema,
-	createGrantRequestSchema,
+	createInvitationRoute,
 	createInvitationResponseSchema,
+	createPermissionGrantRoute,
+	getSetupStatusRoute,
 	grantResponseSchema,
-	redeemInvitationRequestSchema,
+	redeemInvitationRoute,
 	redeemInvitationResponseSchema,
-	resetPasswordRequestSchema,
+	resetUserPasswordRoute,
+	revokePermissionGrantRoute,
 	setupStatusResponseSchema,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
-export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
-	.get("/api/setup", async (c) => {
+export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
-		return c.json(setupStatusResponseSchema.parse({ needsSetup }))
+		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
 	})
-	.post("/api/setup", async (c) => {
-		const body = bootstrapAdminRequestSchema.safeParse(await parseJsonBody(c))
-		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
-
+	.openapi(bootstrapAdminRoute, async (c) => {
 		try {
-			const user = await service.bootstrapAdmin(body.data)
+			const user = await service.bootstrapAdmin(c.req.valid("json"))
 			return c.json(bootstrapAdminResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.AdminAlreadyExistsError) {
@@ -40,21 +38,21 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
-	.post("/api/invitations", async (c) => {
+	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.authorize(user.id, "users:invite"))) {
 			return c.json({ error: "Missing users:invite permission" }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
-		return c.json(createInvitationResponseSchema.parse({ token, expiresAt }), HTTP_STATUS.CREATED)
+		return c.json(
+			createInvitationResponseSchema.parse({ token, expiresAt: expiresAt.toISOString() }),
+			HTTP_STATUS.CREATED,
+		)
 	})
-	.post("/api/invitations/redeem", async (c) => {
-		const body = redeemInvitationRequestSchema.safeParse(await parseJsonBody(c))
-		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
-
+	.openapi(redeemInvitationRoute, async (c) => {
 		try {
-			const user = await service.redeemInvitation(body.data)
+			const user = await service.redeemInvitation(c.req.valid("json"))
 			return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.InvalidInvitationError) {
@@ -64,43 +62,40 @@ export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
-	.post("/api/permission-grants", async (c) => {
+	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
 			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
-		const body = createGrantRequestSchema.safeParse(await parseJsonBody(c))
-		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
-
 		try {
-			const grant = await service.grantPermission({ ...body.data, grantedBy: user.id })
-			return c.json(grantResponseSchema.parse({ grant }), HTTP_STATUS.CREATED)
+			const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
+			return c.json(
+				grantResponseSchema.parse({ grant: { ...grant, grantedAt: grant.grantedAt.toISOString() } }),
+				HTTP_STATUS.CREATED,
+			)
 		} catch (error) {
 			if (isForeignKeyViolation(error)) return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND)
 			throw error
 		}
 	})
-	.delete("/api/permission-grants/:id", async (c) => {
+	.openapi(revokePermissionGrantRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
 			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
-		await service.revokePermission(c.req.param("id"))
+		await service.revokePermission(c.req.valid("param").id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
-	.patch("/api/users/:userId/password", async (c) => {
+	.openapi(resetUserPasswordRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
 			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
-		const body = resetPasswordRequestSchema.safeParse(await parseJsonBody(c))
-		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
-
 		try {
-			await identity.setPassword(c.req.param("userId"), body.data.newPassword)
+			await identity.setPassword(c.req.valid("param").userId, c.req.valid("json").newPassword)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof identity.UserNotFoundError) {

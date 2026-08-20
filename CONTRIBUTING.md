@@ -29,7 +29,7 @@ Use the [architecture guide](docs/architecture.md) for detailed boundaries and c
 | Product-neutral, reused presentation | `packages/ui` |
 | Internal engineering documentation and ADRs | Root `docs` and `docs/adr` |
 | Public product documentation | `apps/docs` |
-| Generated API transport client | `packages/api-client` |
+| Generated dashboard API client | `apps/web/src/api/generated` |
 | Critical cross-system browser journey | `apps/e2e/tests/<journey>.spec.ts` |
 
 ## Boundaries

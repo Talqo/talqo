@@ -1,5 +1,6 @@
 import {
 	credentialsFormSchema,
+	invitationRegistrationFormSchema,
 	registrationFormSchema,
 	type CredentialsFormValues,
 } from "@/features/authentication/credentials-schema.ts"
@@ -13,6 +14,7 @@ import { useTranslation } from "react-i18next"
 
 type CredentialsFormProps = {
 	error: string | null
+	invitationRegistration?: boolean
 	onSubmit: (input: CredentialsFormValues) => Promise<void> | void
 	passwordAutoComplete?: "current-password" | "new-password"
 	requireConfirmation?: boolean
@@ -22,6 +24,7 @@ type CredentialsFormProps = {
 
 export function CredentialsForm({
 	error,
+	invitationRegistration = false,
 	onSubmit,
 	passwordAutoComplete = "new-password",
 	requireConfirmation = false,
@@ -34,7 +37,13 @@ export function CredentialsForm({
 		handleSubmit,
 		formState: { errors },
 	} = useForm<CredentialsFormValues>({
-		resolver: zodResolver(requireConfirmation ? registrationFormSchema : credentialsFormSchema),
+		resolver: zodResolver(
+			requireConfirmation
+				? invitationRegistration
+					? invitationRegistrationFormSchema
+					: registrationFormSchema
+				: credentialsFormSchema,
+		),
 	})
 
 	return (

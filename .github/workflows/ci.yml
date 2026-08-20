@@ -58,6 +58,8 @@ jobs:
         run: bun ci
       - name: Run quality checks
         run: bun run quality
+      - name: Check generated API contracts
+        run: bun run contracts:check
 
   typecheck:
     name: Typecheck

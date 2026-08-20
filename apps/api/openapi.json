@@ -1,0 +1,951 @@
+{
+	"openapi": "3.1.1",
+	"info": {
+		"title": "Talqo API",
+		"version": "0.0.1"
+	},
+	"components": {
+		"securitySchemes": {
+			"SessionCookie": {
+				"in": "cookie",
+				"name": "session",
+				"type": "apiKey"
+			}
+		},
+		"schemas": {
+			"HealthResponse": {
+				"type": "object",
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": ["ok"]
+					}
+				},
+				"required": ["status"]
+			},
+			"ErrorResponse": {
+				"type": "object",
+				"properties": {
+					"error": {
+						"type": "string"
+					}
+				},
+				"required": ["error"]
+			},
+			"User": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					}
+				},
+				"required": ["id", "username"]
+			},
+			"RoleUser": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					}
+				},
+				"required": ["id", "username"]
+			}
+		},
+		"parameters": {}
+	},
+	"paths": {
+		"/health": {
+			"get": {
+				"operationId": "getHealth",
+				"tags": ["Health"],
+				"responses": {
+					"200": {
+						"description": "API is healthy",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HealthResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/auth/login": {
+			"post": {
+				"operationId": "login",
+				"tags": ["Identity"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"username": {
+										"type": "string",
+										"minLength": 1
+									},
+									"password": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": ["username", "password"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Authenticated user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/User"
+										}
+									},
+									"required": ["user"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/auth/logout": {
+			"post": {
+				"operationId": "logout",
+				"tags": ["Identity"],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/auth/session": {
+			"get": {
+				"operationId": "getSession",
+				"tags": ["Identity"],
+				"responses": {
+					"200": {
+						"description": "Current session",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"anyOf": [
+												{
+													"$ref": "#/components/schemas/User"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": ["user"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/me": {
+			"patch": {
+				"operationId": "updateAccount",
+				"tags": ["Identity"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"username": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 32,
+										"pattern": "^[a-zA-Z0-9_-]+$"
+									}
+								},
+								"required": ["username"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Updated user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/User"
+										}
+									},
+									"required": ["user"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteAccount",
+				"tags": ["Identity"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/me/password": {
+			"patch": {
+				"operationId": "changePassword",
+				"tags": ["Identity"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"currentPassword": {
+										"type": "string",
+										"minLength": 1
+									},
+									"newPassword": {
+										"type": "string",
+										"minLength": 8,
+										"maxLength": 128
+									}
+								},
+								"required": ["currentPassword", "newPassword"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/setup": {
+			"get": {
+				"operationId": "getSetupStatus",
+				"tags": ["Roles"],
+				"responses": {
+					"200": {
+						"description": "Setup status",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"needsSetup": {
+											"type": "boolean"
+										}
+									},
+									"required": ["needsSetup"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"operationId": "bootstrapAdmin",
+				"tags": ["Roles"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"username": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 32,
+										"pattern": "^[a-zA-Z0-9_-]+$"
+									},
+									"password": {
+										"type": "string",
+										"minLength": 8,
+										"maxLength": 128
+									}
+								},
+								"required": ["username", "password"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Admin created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/RoleUser"
+										}
+									},
+									"required": ["user"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/invitations": {
+			"post": {
+				"operationId": "createInvitation",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "Invitation created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"token": {
+											"type": "string"
+										},
+										"expiresAt": {
+											"type": "string",
+											"format": "date-time"
+										}
+									},
+									"required": ["token", "expiresAt"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/invitations/redeem": {
+			"post": {
+				"operationId": "redeemInvitation",
+				"tags": ["Roles"],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"token": {
+										"type": "string",
+										"minLength": 1
+									},
+									"username": {
+										"type": "string",
+										"minLength": 3,
+										"maxLength": 32,
+										"pattern": "^[a-zA-Z0-9_-]+$"
+									},
+									"password": {
+										"type": "string",
+										"minLength": 8,
+										"maxLength": 128
+									}
+								},
+								"required": ["token", "username", "password"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Invitation redeemed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"user": {
+											"$ref": "#/components/schemas/RoleUser"
+										}
+									},
+									"required": ["user"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/permission-grants": {
+			"post": {
+				"operationId": "createPermissionGrant",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"userId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"permission": {
+										"type": "string",
+										"enum": ["users:invite"]
+									},
+									"agentId": {
+										"type": "string",
+										"minLength": 1
+									}
+								},
+								"required": ["userId", "permission"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Permission granted",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"grant": {
+											"type": "object",
+											"properties": {
+												"id": {
+													"type": "string"
+												},
+												"userId": {
+													"type": "string"
+												},
+												"permission": {
+													"type": "string"
+												},
+												"agentId": {
+													"type": ["string", "null"]
+												},
+												"grantedBy": {
+													"type": ["string", "null"]
+												},
+												"grantedAt": {
+													"type": "string",
+													"format": "date-time"
+												}
+											},
+											"required": ["id", "userId", "permission", "agentId", "grantedBy", "grantedAt"]
+										}
+									},
+									"required": ["grant"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/permission-grants/{id}": {
+			"delete": {
+				"operationId": "revokePermissionGrant",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "id",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/users/{userId}/password": {
+			"patch": {
+				"operationId": "resetUserPassword",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "userId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"newPassword": {
+										"type": "string",
+										"minLength": 8,
+										"maxLength": 128
+									}
+								},
+								"required": ["newPassword"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"webhooks": {}
+}

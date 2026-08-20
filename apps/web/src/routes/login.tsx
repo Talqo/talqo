@@ -1,7 +1,9 @@
-import { login } from "@/api/client.ts"
-import { ApiError } from "@/api/errors.ts"
+import { normalizeApiError } from "@/api/errors.ts"
+import { useLogin } from "@/api/generated/identity/identity.ts"
+import { clearSessionCache } from "@/api/session-cache.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -13,19 +15,18 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
+	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
-	const [submitting, setSubmitting] = useState(false)
+	const login = useLogin()
 
 	async function handleSubmit(input: { password: string; username: string }) {
-		setSubmitting(true)
 		setError(null)
 		try {
-			await login(input)
+			await login.mutateAsync({ data: input })
+			clearSessionCache(queryClient)
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
-		} finally {
-			setSubmitting(false)
+			setError(normalizeApiError(caught)?.message ?? t("auth.errorFallback"))
 		}
 	}
 
@@ -36,7 +37,7 @@ function LoginPage() {
 				onSubmit={handleSubmit}
 				passwordAutoComplete="current-password"
 				submitLabel={t("auth.login.submit")}
-				submitting={submitting}
+				submitting={login.isPending}
 			/>
 		</AuthShell>
 	)
