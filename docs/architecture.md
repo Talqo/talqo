@@ -113,6 +113,13 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
 
+### Public Endpoints
+
+- Authentication is deny-by-default in `http/require-auth.ts`. A module opens a route by exporting it: a fixed path in `PUBLIC_PATHS`, or an anchored regular expression in `PUBLIC_PATH_PATTERNS` when the path carries a parameter.
+- Patterns are anchored at both ends and match a single segment. A public resource lives under its own top-level path, never nested inside an authenticated namespace, so a pattern mistake cannot widen into a mutating route. `GET /api/widget-config/:token` is public; `/api/widgets/*` is not.
+- CORS is scoped to the specific public path and registered before `requireAuth`, since a preflight that reaches the auth gate is rejected before the real request. Wildcard origins are permitted only where credentials are not, and never over cookie-authenticated routes.
+- Each public route carries a `<module>.routes.test.ts` case asserting both that it is reachable unauthenticated and that its authenticated siblings still return 401.
+
 ### Persistence And Migrations
 
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
@@ -206,7 +213,9 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
+- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe: URL parameters carry the initial appearance, and a versioned `talqo-preview` `postMessage` channel carries live updates (ADR-0012). Both apps declare the message shape independently — `apps/web` never imports widget source.
+- The embed snippet carries identity only (`data-talqo-widget`, optional `data-talqo-api`). The widget fetches its appearance from the public config endpoint at boot and applies `data-talqo-*` appearance attributes over it as a per-page override (ADR-0011).
+- Widget theme tokens derive from four operator colors via `color-mix()` (ADR-0010). Widget CSS must never register a custom property with `@property`: the build strips those rules and then fails if any survive.
 - The widget consumes `packages/sdk` and never imports API app source.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.

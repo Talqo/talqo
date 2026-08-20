@@ -12,6 +12,7 @@ erDiagram
     AUDIT_LOG
 
     AGENT
+    WIDGET
     BLACKLIST_WORD
     AGENT_IP_RATE_LIMIT
 
@@ -31,6 +32,7 @@ erDiagram
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
+    AGENT ||--o{ WIDGET : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
     AGENT ||--o{ FILE_EMBEDDING : embeds
