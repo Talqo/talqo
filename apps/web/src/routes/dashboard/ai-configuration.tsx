@@ -32,6 +32,7 @@ import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute, redirect } from "@tanstack/react-router"
+import { LockIcon, PencilLineIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -265,23 +266,82 @@ function ConnectionFields({
 				</div>
 			))}
 
-			{value.authMode === "static" &&
-				!disabled &&
-				provider.credentialFields.map((field) => (
-					<div className="space-y-2" key={field}>
-						<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
-						<Input
-							id={`${role}-${field}`}
-							type="password"
-							autoComplete="off"
-							placeholder={stored?.hasCredentials ? t("aiConfiguration.configured") : undefined}
-							value={value.credentials[field] ?? ""}
-							onChange={(event) =>
-								onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
-							}
-						/>
-					</div>
-				))}
+			{value.authMode === "static" && !disabled && (
+				<CredentialsSection role={role} provider={provider} value={value} onChange={onChange} stored={stored} />
+			)}
+		</>
+	)
+}
+
+function CredentialsSection({
+	role,
+	provider,
+	value,
+	onChange,
+	stored,
+}: {
+	role: "text" | "embedding"
+	provider: ProviderMetadata
+	value: RoleValue
+	onChange: (value: RoleValue) => void
+	stored: RedactedRoleConfiguration | null
+}) {
+	const { t } = useTranslation()
+	const configured = storedCredentialsMatch({ provider, value, stored })
+	const [replacing, setReplacing] = useState(false)
+	const contextSignature = JSON.stringify([value.providerId, value.authMode, value.settings, provider.id])
+	useEffect(() => {
+		setReplacing(false)
+	}, [contextSignature])
+
+	if (provider.credentialFields.length === 0) return null
+
+	if (configured && !replacing) {
+		return (
+			<div className="bg-muted/40 border-border flex items-center justify-between rounded-lg border px-2.5 py-2">
+				<p className="text-muted-foreground flex items-center gap-2 text-sm">
+					<LockIcon className="size-3.5" />
+					{t("aiConfiguration.savedCredentials")}
+				</p>
+				<Button type="button" variant="ghost" className="h-7 px-2" onClick={() => setReplacing(true)}>
+					<PencilLineIcon data-icon="inline-start" />
+					{t("aiConfiguration.replaceCredentials")}
+				</Button>
+			</div>
+		)
+	}
+
+	return (
+		<>
+			{configured && (
+				<p className="text-muted-foreground flex items-center justify-between gap-2 text-xs">
+					<span>{t("aiConfiguration.keepCredentialsNote")}</span>
+					<button
+						type="button"
+						className="text-foreground shrink-0 underline underline-offset-2"
+						onClick={() => {
+							setReplacing(false)
+							onChange({ ...value, credentials: {} })
+						}}
+					>
+						{t("aiConfiguration.keepSavedCredentials")}
+					</button>
+				</p>
+			)}
+			{provider.credentialFields.map((field) => (
+				<div className="space-y-2" key={field}>
+					<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
+					<Input
+						id={`${role}-${field}`}
+						type="password"
+						autoComplete="off"
+						value={value.credentials[field] ?? ""}
+						onChange={(event) =>
+							onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
+						}
+					/>
+				</div>
+			))}
 		</>
 	)
 }

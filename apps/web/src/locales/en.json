@@ -59,7 +59,6 @@
 			"deploymentIdentity": "Deployment identity",
 			"static": "Static credentials"
 		},
-		"configured": "Configured; leave blank to keep",
 		"discovery": {
 			"noResults": "No matching models",
 			"retry": "Try again",
@@ -84,6 +83,8 @@
 			"textModel": "Text model"
 		},
 		"heading": "AI configuration",
+		"keepCredentialsNote": "Enter new credentials, or keep the saved ones.",
+		"keepSavedCredentials": "Keep saved credentials",
 		"loadError": "AI configuration could not be loaded.",
 		"loading": "Loading AI configuration…",
 		"providers": {
@@ -95,10 +96,12 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "OpenAI-compatible"
 		},
+		"replaceCredentials": "Replace",
 		"sameProviderNote": "Shares the connection from Text generation.",
 		"sameProviderUnavailable": "The text provider has no embedding API. Choose a different provider for embeddings.",
 		"save": "Save configuration",
 		"saved": "Configuration saved",
+		"savedCredentials": "Saved credentials",
 		"saving": "Saving…",
 		"subheading": "Connect text and embedding models for this Talqo deployment.",
 		"tabs": {

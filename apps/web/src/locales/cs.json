@@ -59,7 +59,6 @@
 			"deploymentIdentity": "Identita nasazení",
 			"static": "Statické přihlašovací údaje"
 		},
-		"configured": "Nakonfigurováno; ponechte prázdné pro zachování",
 		"discovery": {
 			"noResults": "Žádné odpovídající modely",
 			"retry": "Zkusit znovu",
@@ -84,6 +83,8 @@
 			"textModel": "Textový model"
 		},
 		"heading": "Konfigurace AI",
+		"keepCredentialsNote": "Zadejte nové přihlašovací údaje, nebo ponechte uložené.",
+		"keepSavedCredentials": "Ponechat uložené přihlašovací údaje",
 		"loadError": "Konfiguraci AI se nepodařilo načíst.",
 		"loading": "Načítání konfigurace AI…",
 		"providers": {
@@ -95,10 +96,12 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "Kompatibilní s OpenAI"
 		},
+		"replaceCredentials": "Nahradit",
 		"sameProviderNote": "Sdílí připojení z části Generování textu.",
 		"sameProviderUnavailable": "Textový poskytovatel nemá embeddingové API. Pro embeddingy zvolte jiného poskytovatele.",
 		"save": "Uložit konfiguraci",
 		"saved": "Konfigurace uložena",
+		"savedCredentials": "Uložené přihlašovací údaje",
 		"saving": "Ukládání…",
 		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
 		"tabs": {

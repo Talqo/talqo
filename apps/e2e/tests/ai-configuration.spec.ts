@@ -33,7 +33,10 @@ test("granted operator configures text and embedding models", async ({ page }) =
 
 	await page.reload()
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
-	await expect(textCard.getByLabel("API key")).toHaveAttribute("placeholder", /Configured/)
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")
+	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
+	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
+	await expect(textCard.getByLabel("API key")).toHaveCount(0)
 
 	await expect(textCard.getByRole("button", { name: "Show model suggestions" })).toBeVisible()
 	await textCard.getByRole("button", { name: "Show model suggestions" }).click()
