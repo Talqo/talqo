@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header"
+import { useCreateAgent, useUpdateAgent } from "@/features/agents/agent-mutation"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { useAgents, useCreateAgent, useUpdateAgent, type Agent } from "@/features/agents/agents-query"
+import { useAgents, type Agent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
@@ -30,15 +31,13 @@ export const Route = createFileRoute("/dashboard/agents")({
 
 function AgentsPage() {
 	const { t } = useTranslation()
-	const { data: agents, isLoading } = useAgents()
+	const { data: agents, isLoading, isError } = useAgents()
 	const [dialogOpen, setDialogOpen] = useState(false)
 	const createAgent = useCreateAgent()
 	const updateAgent = useUpdateAgent()
 
 	function toggleStatus(agent: Agent) {
-		updateAgent(agent.id, {
-			status: agent.status === "active" ? "paused" : "active",
-		})
+		updateAgent.mutate({ id: agent.id, status: agent.status === "active" ? "paused" : "active" })
 	}
 
 	const {
@@ -51,13 +50,18 @@ function AgentsPage() {
 		defaultValues: { name: "", systemPrompt: "", wordBlacklist: "", active: true },
 	})
 
-	function onValid(values: AgentFormValues) {
-		createAgent({
-			name: values.name.trim(),
-			systemPrompt: values.systemPrompt.trim(),
-			status: "active",
-			wordBlacklist: parseBlacklist(values.wordBlacklist),
-		})
+	async function onValid(values: AgentFormValues) {
+		try {
+			await createAgent.mutateAsync({
+				name: values.name.trim(),
+				systemPrompt: values.systemPrompt.trim(),
+				status: "active",
+				wordBlacklist: parseBlacklist(values.wordBlacklist),
+			})
+		} catch {
+			// Surfaced in the dialog from createAgent.error; keep the draft for a retry.
+			return
+		}
 		reset({ name: "", systemPrompt: "", wordBlacklist: "", active: true })
 		setDialogOpen(false)
 	}
@@ -111,8 +115,15 @@ function AgentsPage() {
 									/>
 									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
 								</div>
+								{createAgent.isError && (
+									<p role="alert" className="text-destructive text-sm">
+										{t("agents.createError")}
+									</p>
+								)}
 								<DialogFooter>
-									<Button type="submit">{t("agents.create")}</Button>
+									<Button type="submit" disabled={createAgent.isPending}>
+										{createAgent.isPending ? t("agents.creating") : t("agents.create")}
+									</Button>
 								</DialogFooter>
 							</form>
 						</DialogContent>
@@ -120,8 +131,18 @@ function AgentsPage() {
 				}
 			/>
 
+			{updateAgent.isError && (
+				<p role="alert" className="text-destructive text-sm">
+					{t("agents.statusError")}
+				</p>
+			)}
+
 			{isLoading ? (
 				<p className="text-muted-foreground">{t("agents.loading")}</p>
+			) : isError ? (
+				<p role="alert" className="text-destructive">
+					{t("agents.loadError")}
+				</p>
 			) : !agents?.length ? (
 				<p className="text-muted-foreground">{t("agents.empty")}</p>
 			) : (

@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header"
+import { useUpdateAgent } from "@/features/agents/agent-mutation"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { useAgent, useUpdateAgent } from "@/features/agents/agents-query"
+import { useAgent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
@@ -12,7 +13,7 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -23,10 +24,8 @@ export const Route = createFileRoute("/dashboard/agent/$agentId")({
 function AgentConfigPage() {
 	const { t } = useTranslation()
 	const { agentId } = Route.useParams()
-	const { data: agent, isLoading } = useAgent(agentId)
+	const { data: agent, isLoading, isError } = useAgent(agentId)
 	const updateAgent = useUpdateAgent()
-
-	const [saved, setSaved] = useState(false)
 
 	const {
 		register,
@@ -54,13 +53,13 @@ function AgentConfigPage() {
 	}, [agent, reset])
 
 	function onValid(values: AgentFormValues) {
-		updateAgent(agentId, {
+		updateAgent.mutate({
+			id: agentId,
 			name: values.name.trim(),
 			systemPrompt: values.systemPrompt.trim(),
 			wordBlacklist: parseBlacklist(values.wordBlacklist),
 			status: values.active ? "active" : "paused",
 		})
-		setSaved(true)
 	}
 
 	return (
@@ -72,7 +71,7 @@ function AgentConfigPage() {
 
 			{isLoading ? (
 				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
-			) : !agent ? (
+			) : isError || !agent ? (
 				<p className="text-muted-foreground">{t("agentConfig.notFound")}</p>
 			) : (
 				<>
@@ -140,9 +139,18 @@ function AgentConfigPage() {
 										{t(active ? "agentFields.statusActive" : "agentFields.statusPaused")}
 									</Label>
 								</div>
+								{updateAgent.isError && (
+									<p role="alert" className="text-destructive text-sm">
+										{t("agentConfig.saveError")}
+									</p>
+								)}
 								<div className="flex items-center gap-3 pt-2">
-									<Button type="submit">{t("agentConfig.save")}</Button>
-									{saved && <span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>}
+									<Button type="submit" disabled={updateAgent.isPending}>
+										{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
+									</Button>
+									{updateAgent.isSuccess && !updateAgent.isPending && (
+										<span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>
+									)}
 								</div>
 							</form>
 						</CardContent>

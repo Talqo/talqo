@@ -10,7 +10,7 @@ const navItems = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot },
 	{ to: "/dashboard/invitations", icon: UserPlus },
-	{ to: "/dashboard/widget", icon: MessageSquare },
+	{ to: "/dashboard/widgets", icon: MessageSquare },
 	{ to: "/dashboard/analytics", icon: BarChart3 },
 	{ to: "/dashboard/account", icon: User },
 ] as const
@@ -23,8 +23,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.agents")
 		case "/dashboard/invitations":
 			return t("nav.invitations")
-		case "/dashboard/widget":
-			return t("nav.widget")
+		case "/dashboard/widgets":
+			return t("nav.widgets")
 		case "/dashboard/analytics":
 			return t("nav.analytics")
 		case "/dashboard/account":
