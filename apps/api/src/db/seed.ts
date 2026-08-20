@@ -4,6 +4,7 @@ import * as identity from "@/modules/identity/identity.seed.ts"
 import * as identityService from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
 import * as rolesService from "@/modules/roles/roles.service.ts"
+import * as widget from "@/modules/widget/widget.seed.ts"
 
 import { sql } from "./client.ts"
 
@@ -17,6 +18,7 @@ const TEST_USERS = {
 
 export async function seed(): Promise<void> {
 	// Dependents first: module tables must be clear before identity truncates `user`.
+	await widget.reset()
 	await agent.reset()
 	await aiProvider.reset()
 	await roles.reset()
@@ -34,7 +36,8 @@ export async function seed(): Promise<void> {
 		})
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:manage", userId: granted.id })
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:read", userId: viewer.id })
-		await agent.seed()
+		const { agentId } = await agent.seed()
+		await widget.seed(agentId)
 	}
 }
 

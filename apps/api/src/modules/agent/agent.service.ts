@@ -3,13 +3,14 @@ export const SYSTEM_PROMPT_MAX_LENGTH = 20_000
 export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
 
-import { isUniqueViolation } from "@/lib/pg-error.ts"
+import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 
 import * as repo from "./agent.repository.ts"
 
 export class InvalidAgentInputError extends Error {}
 export class AgentNotFoundError extends Error {}
 export class DuplicateAgentNameError extends Error {}
+export class AgentInUseError extends Error {}
 
 function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 	return {
@@ -130,7 +131,16 @@ export async function refreshEmbedToken(id: string): Promise<Agent> {
 }
 
 export async function deleteAgent(id: string): Promise<void> {
-	if (!(await repo.deleteById(id))) {
-		throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
+	try {
+		if (!(await repo.deleteById(id))) {
+			throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
+		}
+	} catch (error) {
+		// `widget.agent_id` is ON DELETE RESTRICT: widgets already embedded on customer
+		// sites must be reassigned or removed first rather than breaking silently.
+		if (isForeignKeyViolation(error)) {
+			throw new AgentInUseError("Agent still serves one or more widgets")
+		}
+		throw error
 	}
 }

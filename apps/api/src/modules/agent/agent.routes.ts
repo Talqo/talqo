@@ -26,6 +26,9 @@ function mapDomainError(error: unknown): { body: { error: string }; status: numb
 	if (error instanceof service.DuplicateAgentNameError) {
 		return { body: { error: error.message }, status: HTTP_STATUS.CONFLICT }
 	}
+	if (error instanceof service.AgentInUseError) {
+		return { body: { error: error.message }, status: HTTP_STATUS.CONFLICT }
+	}
 	return null
 }
 
