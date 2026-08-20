@@ -8,8 +8,9 @@ export function widgetScriptUrl(): string | undefined {
 	return import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
 }
 
+/** The snippet is rendered for copy-paste into a host page, so it must survive as literal text. */
 function escapeAttribute(value: string): string {
-	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;")
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
 /**
