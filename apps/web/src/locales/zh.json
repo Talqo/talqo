@@ -29,8 +29,8 @@
 		"loading": "正在加载智能体…",
 		"notFound": "未找到智能体，可能已被删除。",
 		"save": "保存更改",
-		"saveError": "无法保存更改。请重试。",
 		"saved": "刚刚已保存。",
+		"saveError": "无法保存更改。请重试。",
 		"saving": "保存中…",
 		"subheading": "更新智能体的名称、行为、屏蔽词和状态。"
 	},
@@ -146,8 +146,8 @@
 		"logout": "退出登录",
 		"placeholderName": "账户名称",
 		"toDarkTheme": "切换到深色主题",
-		"toLightTheme": "切换到浅色主题",
-		"toggleNavigation": "切换导航"
+		"toggleNavigation": "切换导航",
+		"toLightTheme": "切换到浅色主题"
 	},
 	"nav": {
 		"account": "账户",
@@ -191,8 +191,8 @@
 		"loading": "正在加载智能体…",
 		"nameLabel": "名称",
 		"namePlaceholder": "营销站点",
-		"noWidgets": "尚无挂件。创建一个即可获得嵌入代码。",
 		"notFound": "未找到该挂件。它可能已被删除。",
+		"noWidgets": "尚无挂件。创建一个即可获得嵌入代码。",
 		"openFullPreview": "打开全屏预览",
 		"position": "位置",
 		"positionBottomLeft": "左下",
@@ -200,8 +200,8 @@
 		"previewSiteLabel": "your-site.com",
 		"previewUnavailable": "此部署未配置实时预览。",
 		"save": "保存更改",
-		"saveError": "无法保存更改。请重试。",
 		"saved": "刚刚已保存。",
+		"saveError": "无法保存更改。请重试。",
 		"saving": "保存中…",
 		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
 		"selectAgent": "选择智能体",

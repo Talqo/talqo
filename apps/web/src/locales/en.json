@@ -29,8 +29,8 @@
 		"loading": "Loading agent…",
 		"notFound": "Agent not found. It may have been removed.",
 		"save": "Save changes",
-		"saveError": "Could not save changes. Try again.",
 		"saved": "Saved just now.",
+		"saveError": "Could not save changes. Try again.",
 		"saving": "Saving…",
 		"subheading": "Update the agent's name, behavior, blocked words, and status."
 	},
@@ -146,8 +146,8 @@
 		"logout": "Log out",
 		"placeholderName": "Account name",
 		"toDarkTheme": "Switch to dark theme",
-		"toLightTheme": "Switch to light theme",
-		"toggleNavigation": "Toggle navigation"
+		"toggleNavigation": "Toggle navigation",
+		"toLightTheme": "Switch to light theme"
 	},
 	"nav": {
 		"account": "Account",
@@ -191,8 +191,8 @@
 		"loading": "Loading agents…",
 		"nameLabel": "Name",
 		"namePlaceholder": "Marketing site",
-		"noWidgets": "No widgets yet. Create one to get an embed snippet.",
 		"notFound": "Widget not found. It may have been removed.",
+		"noWidgets": "No widgets yet. Create one to get an embed snippet.",
 		"openFullPreview": "Open full-screen preview",
 		"position": "Position",
 		"positionBottomLeft": "Bottom left",
@@ -200,8 +200,8 @@
 		"previewSiteLabel": "your-site.com",
 		"previewUnavailable": "Live preview is not configured for this deployment.",
 		"save": "Save changes",
-		"saveError": "Could not save changes. Try again.",
 		"saved": "Saved just now.",
+		"saveError": "Could not save changes. Try again.",
 		"saving": "Saving…",
 		"scriptUrlMissing": "Set VITE_WIDGET_CDN_URL to the widget.js origin to generate the embed snippet.",
 		"selectAgent": "Select an agent",
