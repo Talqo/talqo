@@ -49,9 +49,9 @@ describe("agent lifecycle", () => {
 	})
 
 	it("raises a typed error for an unknown agent", async () => {
-		expect(service.getAgent(crypto.randomUUID())).rejects.toThrow(service.AgentNotFoundError)
-		expect(service.updateAgent(crypto.randomUUID(), { name: "x" })).rejects.toThrow(service.AgentNotFoundError)
-		expect(service.deleteAgent(crypto.randomUUID())).rejects.toThrow(service.AgentNotFoundError)
+		await expect(service.getAgent(crypto.randomUUID())).rejects.toThrow(service.AgentNotFoundError)
+		await expect(service.updateAgent(crypto.randomUUID(), { name: "x" })).rejects.toThrow(service.AgentNotFoundError)
+		await expect(service.deleteAgent(crypto.randomUUID())).rejects.toThrow(service.AgentNotFoundError)
 	})
 
 	it("deletes an agent", async () => {
