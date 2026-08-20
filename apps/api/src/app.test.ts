@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, spyOn } from "bun:test"
 
 import { app } from "./app.ts"
 import { createOpenApiDocument } from "./openapi.ts"
@@ -9,6 +9,52 @@ describe("api", () => {
 
 		expect(response.status).toBe(200)
 		expect(await response.json()).toEqual({ status: "ok" })
+	})
+
+	it("rejects malformed JSON bodies with a shared error shape", async () => {
+		const response = await app.request("/api/auth/login", {
+			body: "{",
+			headers: { "Content-Type": "application/json" },
+			method: "POST",
+		})
+
+		expect(response.status).toBe(400)
+		expect(await response.json()).toEqual({ error: "Malformed JSON body" })
+	})
+
+	it("accepts an empty JSON-typed body on the bodyless logout route", async () => {
+		const response = await app.request("/api/auth/logout", {
+			headers: { "Content-Length": "0", "Content-Type": "application/json" },
+			method: "POST",
+		})
+
+		expect(response.status).toBe(204)
+	})
+
+	it("logs unexpected errors and keeps the response generic", async () => {
+		using _ = spyOn(console, "error").mockImplementation(() => {})
+
+		let response: Response | undefined
+		const context = {
+			json: (data: unknown, status: number) => {
+				response = new Response(JSON.stringify(data), {
+					headers: { "Content-Type": "application/json" },
+					status,
+				})
+				return response
+			},
+			newResponse: (body: ConstructorParameters<typeof Response>[0], source: Response) =>
+				new Response(body, { headers: source.headers, status: source.status }),
+		}
+
+		type ErrorHandler = (error: Error, context: unknown) => unknown
+		const errorHandler = (app as unknown as { errorHandler: ErrorHandler }).errorHandler
+
+		errorHandler(new Error("boom"), context)
+
+		expect(response?.status).toBe(500)
+		expect(await response?.json()).toEqual({ error: "Internal server error" })
+		expect(console.error).toHaveBeenCalled()
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
