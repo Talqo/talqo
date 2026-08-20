@@ -58,14 +58,11 @@ function WidgetDetailPage() {
 
 	const { register, handleSubmit, reset, control, watch, formState } = useForm<WidgetFormValues>({
 		resolver: zodResolver(widgetFormSchema),
-		defaultValues: widget ? toFormValues(widget) : undefined,
+		// Server state flows in through `values`, and keepDirtyValues protects fields the
+		// operator has already edited: a background refetch must never discard their typing.
+		values: widget ? toFormValues(widget) : undefined,
+		resetOptions: { keepDirtyValues: true },
 	})
-
-	useEffect(() => {
-		if (widget) {
-			reset(toFormValues(widget))
-		}
-	}, [widget, reset])
 
 	useEffect(() => {
 		return () => window.clearTimeout(copyTimeout.current)
@@ -99,11 +96,16 @@ function WidgetDetailPage() {
 	}
 
 	function onValid(submitted: WidgetFormValues) {
-		updateWidget.mutate({
-			name: submitted.name.trim(),
-			agentId: submitted.agentId,
-			appearance: toAppearance(submitted),
-		})
+		updateWidget.mutate(
+			{
+				name: submitted.name.trim(),
+				agentId: submitted.agentId,
+				appearance: toAppearance(submitted),
+			},
+			// Re-sync once the save lands so the server's stored values show through and
+			// the fields go clean again.
+			{ onSuccess: (saved) => reset(toFormValues(saved)) },
+		)
 	}
 
 	if (isLoading) {

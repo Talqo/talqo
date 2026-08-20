@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/page-header"
 import { useUpdateAgent } from "@/features/agents/agent-mutation"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { useAgent } from "@/features/agents/agents-query"
+import { type Agent, useAgent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
@@ -13,13 +13,21 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
-import { useEffect } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
 	component: AgentConfigPage,
 })
+
+function toFormValues(agent: Agent): AgentFormValues {
+	return {
+		name: agent.name,
+		systemPrompt: agent.systemPrompt,
+		wordBlacklist: agent.wordBlacklist.join(", "),
+		active: agent.status === "active",
+	}
+}
 
 function AgentConfigPage() {
 	const { t } = useTranslation()
@@ -37,29 +45,27 @@ function AgentConfigPage() {
 	} = useForm<AgentFormValues>({
 		resolver: zodResolver(agentFormSchema),
 		defaultValues: { name: "", systemPrompt: "", wordBlacklist: "", active: false },
+		// Server state flows in through `values`, and keepDirtyValues protects fields the
+		// operator has already edited: a background refetch must never discard their typing.
+		values: agent ? toFormValues(agent) : undefined,
+		resetOptions: { keepDirtyValues: true },
 	})
 
 	const active = watch("active")
 
-	useEffect(() => {
-		if (agent) {
-			reset({
-				name: agent.name,
-				systemPrompt: agent.systemPrompt,
-				wordBlacklist: agent.wordBlacklist.join(", "),
-				active: agent.status === "active",
-			})
-		}
-	}, [agent, reset])
-
 	function onValid(values: AgentFormValues) {
-		updateAgent.mutate({
-			id: agentId,
-			name: values.name.trim(),
-			systemPrompt: values.systemPrompt.trim(),
-			wordBlacklist: parseBlacklist(values.wordBlacklist),
-			status: values.active ? "active" : "paused",
-		})
+		updateAgent.mutate(
+			{
+				id: agentId,
+				name: values.name.trim(),
+				systemPrompt: values.systemPrompt.trim(),
+				wordBlacklist: parseBlacklist(values.wordBlacklist),
+				status: values.active ? "active" : "paused",
+			},
+			// Re-sync once the save lands so the server's normalized values show through
+			// and the fields go clean again.
+			{ onSuccess: (saved) => reset(toFormValues(saved)) },
+		)
 	}
 
 	return (
