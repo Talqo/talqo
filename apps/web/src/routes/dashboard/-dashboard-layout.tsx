@@ -28,7 +28,7 @@ type NavItem = {
 		| "/dashboard/agents"
 		| "/dashboard/invitations"
 		| "/dashboard/users"
-		| "/dashboard/widget"
+		| "/dashboard/widgets"
 		| "/dashboard/analytics"
 		| "/dashboard/ai-configuration"
 		| "/dashboard/account"
@@ -41,7 +41,7 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/invitations", icon: UserPlus, requires: "invite" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
-	{ to: "/dashboard/widget", icon: MessageSquare, requires: "agentRead" },
+	{ to: "/dashboard/widgets", icon: MessageSquare, requires: "agentRead" },
 	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
@@ -57,8 +57,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.invitations")
 		case "/dashboard/users":
 			return t("nav.users")
-		case "/dashboard/widget":
-			return t("nav.widget")
+		case "/dashboard/widgets":
+			return t("nav.widgets")
 		case "/dashboard/analytics":
 			return t("nav.analytics")
 		case "/dashboard/ai-configuration":

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 
 const cards = [
 	{ to: "/dashboard/agents", icon: Bot, requiresRead: true },
-	{ to: "/dashboard/widget", icon: MessageSquare, requiresRead: true },
+	{ to: "/dashboard/widgets", icon: MessageSquare, requiresRead: true },
 	{ to: "/dashboard/analytics", icon: BarChart3, requiresRead: true },
 	{ to: "/dashboard/account", icon: User, requiresRead: false },
 ] as const
@@ -15,7 +15,7 @@ function cardCopy(to: (typeof cards)[number]["to"], t: (key: string) => string) 
 	switch (to) {
 		case "/dashboard/agents":
 			return { title: t("dashboard.cards.agents.title"), description: t("dashboard.cards.agents.description") }
-		case "/dashboard/widget":
+		case "/dashboard/widgets":
 			return { title: t("dashboard.cards.widget.title"), description: t("dashboard.cards.widget.description") }
 		case "/dashboard/analytics":
 			return { title: t("dashboard.cards.analytics.title"), description: t("dashboard.cards.analytics.description") }
