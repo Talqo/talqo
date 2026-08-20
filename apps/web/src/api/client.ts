@@ -105,7 +105,13 @@ export function deleteAgent(id: string): Promise<void> {
 	return request(`/api/agents/${id}`, { method: "DELETE" })
 }
 
-export function getAgentFiles(agentId: string, signal?: AbortSignal): Promise<{ files: AgentFile[] }> {
+export type AgentFilesResponse = {
+	files: AgentFile[]
+	maxNameLength: number
+	maxSizeBytes: number
+}
+
+export function getAgentFiles(agentId: string, signal?: AbortSignal): Promise<AgentFilesResponse> {
 	return request(`/api/agents/${agentId}/files`, { signal })
 }
 

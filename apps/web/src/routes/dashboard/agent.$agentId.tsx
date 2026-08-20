@@ -31,7 +31,6 @@ import { useEffect, useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-const MAX_FILE_SIZE_MB = 10
 const BYTES_PER_KB = 1024
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * BYTES_PER_KB
@@ -47,7 +46,10 @@ export const Route = createFileRoute("/dashboard/agent/$agentId")({
 
 function ContextFilesCard({ agentId }: { agentId: string }) {
 	const { t } = useTranslation()
-	const { data: files, isLoading } = useAgentFiles(agentId)
+	const { data: filesData, isLoading } = useAgentFiles(agentId)
+	const files = filesData?.files
+	const maxSizeMB = filesData ? filesData.maxSizeBytes / BYTES_PER_MB : undefined
+	const maxNameLength = filesData?.maxNameLength
 	const uploadFile = useUploadAgentFile()
 	const renameFile = useRenameAgentFile()
 	const deleteFile = useDeleteAgentFile()
@@ -116,7 +118,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 						{uploadFile.isPending ? t("agentConfig.files.uploading") : t("agentConfig.files.dropzone")}
 					</p>
 					<p className="text-muted-foreground text-xs">
-						{t("agentConfig.files.acceptedTypes", { maxSize: MAX_FILE_SIZE_MB })}
+						{maxSizeMB !== undefined && t("agentConfig.files.acceptedTypes", { maxSize: maxSizeMB })}
 					</p>
 				</div>
 				{uploadFile.isError && (
@@ -182,11 +184,12 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 						}}
 					>
 						<div className="space-y-2">
-							<Label htmlFor="rename-file">{t("agentConfig.files.renameLabel")}</Label>
+							<Label htmlFor="rename-file">{t("agentConfig.files.renameLabel", { maxLength: maxNameLength })}</Label>
 							<Input
 								id="rename-file"
 								value={renameValue}
 								onChange={(event) => setRenameValue(event.target.value)}
+								maxLength={maxNameLength}
 								aria-invalid={renameValue.trim() ? undefined : true}
 							/>
 							<p className="text-muted-foreground text-xs">{t("agentConfig.files.renameExtensionNote")}</p>

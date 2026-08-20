@@ -212,11 +212,11 @@ describe("agents", () => {
 		const { cookie } = await createAndLogin()
 		const agent = await createAgent(cookie, uniqueAgentName())
 
-		// 11 MB string crosses the 10 MB limit without allocating a large binary blob.
+		// One byte over the configured limit rejects without allocating a large binary blob.
 		const tooBig = await app.request(`/api/agents/${agent.id}/files`, {
 			method: "POST",
 			headers: { Cookie: cookie },
-			body: uploadForm("x".repeat(11 * 1024 * 1024)),
+			body: uploadForm("x".repeat(env.TALQO_MAX_FILE_SIZE_MB * 1024 * 1024 + 1)),
 		})
 		expect(tooBig.status).toBe(400)
 	})

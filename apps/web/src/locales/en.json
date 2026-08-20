@@ -36,7 +36,7 @@
 			"rename": "Rename",
 			"renameDescription": "Change the display name of the file.",
 			"renameExtensionNote": "The original file extension is preserved.",
-			"renameLabel": "File name",
+			"renameLabel": "File name (max {{maxLength}} characters)",
 			"renameSave": "Rename",
 			"title": "Context files",
 			"upload": "Upload file",

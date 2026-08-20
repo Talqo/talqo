@@ -1,13 +1,10 @@
-import { env } from "@/config/env.ts"
+import { BYTES_PER_MB, env } from "@/config/env.ts"
 import { mkdir, unlink } from "node:fs/promises"
 import { extname, join } from "node:path"
 
 import type { Agent, AgentFile } from "./agents.repository.ts"
 
 import * as repo from "./agents.repository.ts"
-
-// eslint-disable-next-line no-magic-numbers
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 // Extension allowlist. The client-declared MIME type is stored for future serving but NOT
 // used for validation: browsers label sniffed text content as text/plain regardless of the
@@ -92,10 +89,17 @@ export async function deleteAgent(id: string, ownerId: string): Promise<void> {
 	await Promise.all(files.map((file) => deleteFromDisk(file.storedName)))
 }
 
-export async function listFiles(agentId: string, ownerId: string): Promise<PublicAgentFile[]> {
+export async function listFiles(
+	agentId: string,
+	ownerId: string,
+): Promise<{ files: PublicAgentFile[]; maxNameLength: number; maxSizeBytes: number }> {
 	await requireOwnedAgent(agentId, ownerId)
 	const files = await repo.listAgentFiles(agentId)
-	return files.map(toPublicAgentFile)
+	return {
+		files: files.map(toPublicAgentFile),
+		maxSizeBytes: env.TALQO_MAX_FILE_SIZE_MB * BYTES_PER_MB,
+		maxNameLength: env.TALQO_MAX_FILE_NAME_LENGTH,
+	}
 }
 
 export async function uploadFile(
@@ -162,8 +166,8 @@ function validateFile(file: { name: string; size: number; type: string }): void 
 	if (!ALLOWED_EXTENSIONS.includes(ext)) {
 		throw new InvalidFileError(`File type ${ext || "(none)"} is not allowed; use PDF, TXT, MD, or DOCX`)
 	}
-	if (file.size > MAX_FILE_SIZE_BYTES) {
-		throw new InvalidFileError("File exceeds the 10 MB size limit")
+	if (file.size > env.TALQO_MAX_FILE_SIZE_MB * BYTES_PER_MB) {
+		throw new InvalidFileError(`File exceeds the ${env.TALQO_MAX_FILE_SIZE_MB} MB size limit`)
 	}
 }
 

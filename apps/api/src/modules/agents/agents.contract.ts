@@ -1,3 +1,4 @@
+import { env } from "@/config/env.ts"
 import { z } from "zod"
 
 export const agentResponseSchema = z.object({
@@ -36,10 +37,10 @@ export const agentFileResponseSchema = z.object({
 
 export const agentFilesResponseSchema = z.object({
 	files: z.array(agentFileResponseSchema),
+	maxSizeBytes: z.number().int().positive(),
+	maxNameLength: z.number().int().positive(),
 })
 
-const MAX_FILE_NAME_LENGTH = 255
-
 export const renameAgentFileRequestSchema = z.object({
-	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
+	name: z.string().min(1).max(env.TALQO_MAX_FILE_NAME_LENGTH),
 })

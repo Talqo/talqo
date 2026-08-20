@@ -73,8 +73,8 @@ export const agentsRoutes = new Hono<{ Variables: AuthedVariables }>()
 	})
 	.get("/api/agents/:id/files", async (c) => {
 		try {
-			const files = await service.listFiles(c.req.param("id"), c.get("user").id)
-			return c.json(agentFilesResponseSchema.parse({ files }))
+			const result = await service.listFiles(c.req.param("id"), c.get("user").id)
+			return c.json(agentFilesResponseSchema.parse(result))
 		} catch (error) {
 			if (error instanceof service.AgentNotFoundError) {
 				return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)

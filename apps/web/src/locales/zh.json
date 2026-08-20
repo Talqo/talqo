@@ -36,7 +36,7 @@
 			"rename": "重命名",
 			"renameDescription": "更改文件的显示名称。",
 			"renameExtensionNote": "原始文件扩展名将保留。",
-			"renameLabel": "文件名",
+			"renameLabel": "文件名（最多 {{maxLength}} 个字符）",
 			"renameSave": "重命名",
 			"title": "上下文文件",
 			"upload": "上传文件",

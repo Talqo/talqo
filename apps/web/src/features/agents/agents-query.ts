@@ -42,7 +42,7 @@ export function useAgent(id: string) {
 export function useAgentFiles(agentId: string) {
 	return useQuery({
 		queryKey: [...agentsQueryKey, agentId, "files"],
-		queryFn: ({ signal }) => api.getAgentFiles(agentId, signal).then(({ files }) => files),
+		queryFn: ({ signal }) => api.getAgentFiles(agentId, signal),
 	})
 }
 
