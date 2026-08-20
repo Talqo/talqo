@@ -22,9 +22,17 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 	type: "apiKey",
 })
 
-app.openapi(getHealthRoute, (context) => context.json({ status: "ok" }, HTTP_STATUS.OK))
+app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
 app.use("*", rejectMalformedJson)
 app.use("*", requireAuth)
 app.route("/", identityRoutes)
 app.route("/", rolesRoutes)
-app.onError((_error, context) => context.json({ error: "Internal server error" }, HTTP_STATUS.INTERNAL_SERVER_ERROR))
+app.onError((error, context) => {
+	if ("getResponse" in error && typeof error.getResponse === "function") {
+		const response = error.getResponse() as Response
+		return context.newResponse(response.body, response)
+	}
+
+	console.error(error)
+	return context.json({ error: "Internal server error" }, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+})
