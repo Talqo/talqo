@@ -19,11 +19,11 @@ Back up this value separately from the database. Changing or losing it makes sto
 
 Talqo supports OpenAI, Anthropic, Google Gemini, Mistral, Azure OpenAI, Amazon Bedrock, and OpenAI-compatible endpoints. Azure OpenAI and Amazon Bedrock accept static credentials or the API process's deployment identity. Anthropic provides text models only, so its text configuration requires a separate embedding provider.
 
-When both roles use the same provider account, enable **Use text provider credentials**. Talqo stores only one encrypted credential set in that configuration.
+When both roles use the same provider account, the embeddings section shares the connection from Text generation by default, so Talqo stores only one encrypted credential set. Switch to **Different provider** to configure a separate account or provider for embeddings.
 
 ## Model selection
 
-Choose **Load models** after entering provider settings. Talqo displays model identifiers returned by the provider without classifying them as text or embedding models. Select the correct type for each role. If discovery is unsupported, fails, or returns no models, enter the exact model identifier manually.
+After you complete a provider's connection settings, Talqo automatically loads the available model identifiers and offers them as suggestions in the model field. Providers return identifiers without classifying them as text or embedding models, so select the correct type for each role. If the list cannot be loaded or the provider does not support discovery, enter the exact model identifier manually.
 
 ## OpenAI-compatible endpoints
 

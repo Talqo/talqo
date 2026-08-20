@@ -17,19 +17,21 @@ import {
 import {
 	useAiProviderConfiguration,
 	useAiProviders,
-	useDiscoverAiProviderModels,
 	useSaveAiProviderConfiguration,
 } from "@/features/ai-configuration/ai-configuration-query"
+import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplete"
+import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
+import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
-import { Switch } from "@talqo/ui/components/switch"
+import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute, redirect } from "@tanstack/react-router"
-import { useEffect, useId, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { useEffect, useState } from "react"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/ai-configuration")({
@@ -93,7 +95,99 @@ function authModeLabel(mode: AiProviderAuthMode, t: (key: string) => string): st
 	return mode === "static" ? t("aiConfiguration.auth.static") : t("aiConfiguration.auth.deploymentIdentity")
 }
 
-function RoleFields({
+function ProviderSelect({
+	id,
+	providers,
+	value,
+	onChange,
+	disabled = false,
+}: {
+	id: string
+	providers: ProviderMetadata[]
+	value: AiProviderId
+	onChange: (providerId: AiProviderId) => void
+	disabled?: boolean
+}) {
+	const { t } = useTranslation()
+	return (
+		<Select value={value} onValueChange={(next) => onChange(next as AiProviderId)} disabled={disabled}>
+			<SelectTrigger id={id} className="w-full">
+				<SelectValue>
+					{(providerId: AiProviderId) => {
+						const provider = providers.find((item) => item.id === providerId)
+						if (!provider) return null
+						return (
+							<span className="flex items-center gap-2">
+								<ProviderBrand providerId={provider.id} />
+								{providerLabel(provider.id, t)}
+							</span>
+						)
+					}}
+				</SelectValue>
+			</SelectTrigger>
+			<SelectContent>
+				{providers.map((item) => (
+					<SelectItem key={item.id} value={item.id}>
+						<span className="flex items-center gap-2">
+							<ProviderBrand providerId={item.id} />
+							{providerLabel(item.id, t)}
+						</span>
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	)
+}
+
+function ModelField({
+	role,
+	label,
+	modelId,
+	onModelChange,
+	provider,
+	value,
+	stored,
+	storedCredentialRole,
+	disabled = false,
+}: {
+	role: "text" | "embedding"
+	label: string
+	modelId: string
+	onModelChange: (modelId: string) => void
+	provider: ProviderMetadata
+	value: Pick<RoleValue, "authMode" | "settings" | "credentials">
+	stored: RedactedRoleConfiguration | null
+	storedCredentialRole: "text" | "embedding"
+	disabled?: boolean
+}) {
+	const { t } = useTranslation()
+	const discovery = useModelDiscovery({ provider, value, stored, storedCredentialRole })
+	return (
+		<div className="space-y-2">
+			<Label htmlFor={`${role}-model`}>{label}</Label>
+			<ModelAutocomplete
+				id={`${role}-model`}
+				value={modelId}
+				onChange={onModelChange}
+				models={discovery.models}
+				loading={discovery.loading}
+				disabled={disabled}
+				emptyLabel={t("aiConfiguration.discovery.noResults")}
+				triggerLabel={t("aiConfiguration.discovery.showModels")}
+			/>
+			{discovery.failed && (
+				<p className="text-muted-foreground text-xs">
+					{t("aiConfiguration.discovery.unavailable")}{" "}
+					<button type="button" className="text-foreground underline underline-offset-2" onClick={discovery.retry}>
+						{t("aiConfiguration.discovery.retry")}
+					</button>
+				</p>
+			)}
+		</div>
+	)
+}
+
+function ConnectionFields({
 	role,
 	value,
 	onChange,
@@ -110,60 +204,25 @@ function RoleFields({
 }) {
 	const { t } = useTranslation()
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
-	const discover = useDiscoverAiProviderModels()
-	const [models, setModels] = useState<string[] | null>(null)
-	const [manual, setManual] = useState(false)
-	const listId = useId()
-
 	if (!provider) return null
-
-	async function loadModels() {
-		setManual(false)
-		try {
-			const credentials = Object.fromEntries(Object.entries(value.credentials).filter(([, item]) => item.trim()))
-			const result = await discover.mutateAsync({
-				providerId: value.providerId,
-				authMode: value.authMode,
-				settings: value.settings,
-				credentials: Object.keys(credentials).length ? credentials : undefined,
-				storedCredentialRole: Object.keys(credentials).length ? undefined : role,
-			})
-			setModels(result.models)
-			if (result.models.length === 0) setManual(true)
-		} catch {
-			setModels(null)
-			setManual(true)
-		}
-	}
 
 	function selectProvider(providerId: AiProviderId) {
 		const next = providers.find((item) => item.id === providerId)
 		if (!next) return
-		setModels(null)
-		setManual(false)
 		onChange({ providerId, modelId: "", authMode: next.authModes[0] ?? "static", settings: {}, credentials: {} })
 	}
 
 	return (
-		<div className="space-y-4">
+		<>
 			<div className="space-y-2">
 				<Label htmlFor={`${role}-provider`}>{t("aiConfiguration.fields.provider")}</Label>
-				<Select
+				<ProviderSelect
+					id={`${role}-provider`}
+					providers={providers}
 					value={value.providerId}
-					onValueChange={(next) => selectProvider(next as AiProviderId)}
+					onChange={selectProvider}
 					disabled={disabled}
-				>
-					<SelectTrigger id={`${role}-provider`} className="w-full">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{providers.map((item) => (
-							<SelectItem key={item.id} value={item.id}>
-								{providerLabel(item.id, t)}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				/>
 			</div>
 
 			{provider.authModes.length > 1 && (
@@ -217,38 +276,37 @@ function RoleFields({
 						/>
 					</div>
 				))}
+		</>
+	)
+}
 
-			<div className="space-y-2">
-				<div className="flex items-center justify-between gap-3">
-					<Label htmlFor={`${role}-model`}>
-						{role === "text" ? t("aiConfiguration.fields.textModel") : t("aiConfiguration.fields.embeddingModel")}
-					</Label>
-					<Button type="button" variant="outline" size="sm" onClick={loadModels} disabled={discover.isPending}>
-						{discover.isPending ? t("aiConfiguration.loadingModels") : t("aiConfiguration.loadModels")}
-					</Button>
-				</div>
-				<Input
-					id={`${role}-model`}
-					list={models && models.length ? listId : undefined}
-					readOnly={!manual && models === null && !value.modelId}
-					value={value.modelId}
-					onChange={(event) => onChange({ ...value, modelId: event.target.value })}
-					placeholder={manual ? t("aiConfiguration.fields.manualModel") : undefined}
-				/>
-				{models && (
-					<datalist id={listId}>
-						{models.map((model) => (
-							<option key={model} value={model} />
-						))}
-					</datalist>
-				)}
-				{manual && <p className="text-muted-foreground text-xs">{t("aiConfiguration.manualModelHelp")}</p>}
-				{discover.isError && (
-					<p role="alert" className="text-destructive text-xs">
-						{discover.error.message}
-					</p>
-				)}
-			</div>
+function RoleFields(props: {
+	role: "text" | "embedding"
+	value: RoleValue
+	onChange: (value: RoleValue) => void
+	providers: ProviderMetadata[]
+	stored: RedactedRoleConfiguration | null
+	disabled?: boolean
+}) {
+	const { t } = useTranslation()
+	const { role, value, onChange, providers, stored, disabled = false } = props
+	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
+	if (!provider) return null
+
+	return (
+		<div className="space-y-4">
+			<ConnectionFields {...props} />
+			<ModelField
+				role={role}
+				label={role === "text" ? t("aiConfiguration.fields.textModel") : t("aiConfiguration.fields.embeddingModel")}
+				modelId={value.modelId}
+				onModelChange={(modelId) => onChange({ ...value, modelId })}
+				provider={provider}
+				value={value}
+				stored={stored}
+				storedCredentialRole={role}
+				disabled={disabled}
+			/>
 		</div>
 	)
 }
@@ -275,6 +333,8 @@ function AiConfigurationPage() {
 		if (configurationQuery.data) reset(configurationToFormValues(configurationQuery.data))
 	}, [configurationQuery.data, reset])
 
+	const watchedTextRole = useWatch({ control, name: "text" })
+
 	if (providersQuery.isLoading || configurationQuery.isLoading)
 		return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>
 	if (!providersQuery.data || !configurationQuery.data)
@@ -294,22 +354,30 @@ function AiConfigurationPage() {
 		setSaved(true)
 	}
 
-	function syncText(next: RoleValue) {
+	function onTextChange(next: RoleValue) {
 		const embedding = getValues("embedding")
-		if (embedding.credentialSource === "text") {
-			const supportsEmbedding = embeddingProviders.some(({ id }) => id === next.providerId)
-			if (supportsEmbedding) {
-				setValue("embedding", {
-					...embedding,
-					providerId: next.providerId,
-					authMode: next.authMode,
-					settings: next.settings,
-					credentials: next.credentials,
-				})
-			} else {
-				setValue("embedding.credentialSource", "separate")
-			}
+		if (embedding.credentialSource !== "text") return
+		const nextProvider = providers.find((provider) => provider.id === next.providerId)
+		if (nextProvider?.roles.includes("embedding")) {
+			setValue("embedding", {
+				...embedding,
+				providerId: next.providerId,
+				authMode: next.authMode,
+				settings: next.settings,
+				credentials: next.credentials,
+			})
+			return
 		}
+		const fallback = embeddingProviders.find((provider) => provider.id !== next.providerId) ?? embeddingProviders[0]
+		if (!fallback) return
+		setValue("embedding", {
+			providerId: fallback.id,
+			modelId: embedding.modelId,
+			authMode: fallback.authModes[0] ?? "static",
+			settings: {},
+			credentials: {},
+			credentialSource: "separate",
+		})
 	}
 
 	return (
@@ -339,10 +407,10 @@ function AiConfigurationPage() {
 									value={field.value}
 									onChange={(next) => {
 										field.onChange(next)
-										syncText(next)
+										onTextChange(next)
 									}}
 									providers={providers}
-									stored={configurationQuery.data.text}
+									stored={configuration.text}
 								/>
 							)}
 						/>
@@ -354,48 +422,87 @@ function AiConfigurationPage() {
 						<CardTitle>{t("aiConfiguration.embeddingTitle")}</CardTitle>
 						<CardDescription>{t("aiConfiguration.embeddingDescription")}</CardDescription>
 					</CardHeader>
-					<CardContent className="space-y-4">
+					<CardContent>
 						<Controller
 							control={control}
 							name="embedding"
-							render={({ field }) => (
-								<>
-									<div className="flex items-center gap-2">
-										<Switch
-											id="reuse-text-credentials"
-											checked={field.value.credentialSource === "text"}
-											onCheckedChange={(checked) => {
-												const text = getValues("text")
-												field.onChange(
-													checked
-														? {
-																...field.value,
-																providerId: text.providerId,
-																authMode: text.authMode,
-																settings: text.settings,
-																credentials: text.credentials,
-																credentialSource: "text",
-															}
-														: {
-																...field.value,
-																credentialSource:
-																	field.value.authMode === "deployment-identity" ? "deployment-identity" : "separate",
-															},
-												)
+							render={({ field }) => {
+								const textRole = watchedTextRole
+								const textProvider = providers.find((provider) => provider.id === textRole.providerId)
+								const canReuse = textProvider?.roles.includes("embedding") ?? false
+								const sameProvider = field.value.credentialSource === "text"
+								return (
+									<div className="space-y-4">
+										<Tabs
+											value={sameProvider ? "same" : "different"}
+											onValueChange={(next) => {
+												if (next === "same") {
+													if (!textProvider) return
+													field.onChange({
+														...field.value,
+														providerId: textRole.providerId,
+														authMode: textRole.authMode,
+														settings: textRole.settings,
+														credentials: textRole.credentials,
+														credentialSource: "text",
+													})
+													return
+												}
+												if (sameProvider) {
+													field.onChange({
+														...field.value,
+														settings: {},
+														credentials: {},
+														credentialSource: "separate",
+													})
+													return
+												}
+												field.onChange({
+													...field.value,
+													credentialSource:
+														field.value.authMode === "deployment-identity" ? "deployment-identity" : "separate",
+												})
 											}}
-										/>
-										<Label htmlFor="reuse-text-credentials">{t("aiConfiguration.reuseCredentials")}</Label>
+										>
+											<TabsList>
+												<TabsTrigger value="same" disabled={!canReuse}>
+													{t("aiConfiguration.tabs.sameProvider")}
+												</TabsTrigger>
+												<TabsTrigger value="different">{t("aiConfiguration.tabs.differentProvider")}</TabsTrigger>
+											</TabsList>
+										</Tabs>
+										{!canReuse && (
+											<p className="text-muted-foreground text-xs">{t("aiConfiguration.sameProviderUnavailable")}</p>
+										)}
+										{sameProvider && textProvider ? (
+											<div className="space-y-4">
+												<p className="text-muted-foreground flex items-center gap-2 text-sm">
+													<ProviderBrand providerId={textProvider.id} />
+													{t("aiConfiguration.sameProviderNote")}
+												</p>
+												<ModelField
+													role="embedding"
+													label={t("aiConfiguration.fields.embeddingModel")}
+													modelId={field.value.modelId}
+													onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
+													provider={textProvider}
+													value={textRole}
+													stored={configuration.text}
+													storedCredentialRole="text"
+												/>
+											</div>
+										) : (
+											<RoleFields
+												role="embedding"
+												value={field.value}
+												onChange={field.onChange}
+												providers={embeddingProviders}
+												stored={configuration.embedding}
+											/>
+										)}
 									</div>
-									<RoleFields
-										role="embedding"
-										value={field.value}
-										onChange={(next) => field.onChange({ ...field.value, ...next })}
-										providers={embeddingProviders}
-										stored={configurationQuery.data.embedding}
-										disabled={field.value.credentialSource === "text"}
-									/>
-								</>
-							)}
+								)
+							}}
 						/>
 					</CardContent>
 				</Card>

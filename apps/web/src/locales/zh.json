@@ -60,6 +60,12 @@
 			"static": "静态凭据"
 		},
 		"configured": "已配置；留空以保留",
+		"discovery": {
+			"noResults": "没有匹配的模型",
+			"retry": "重试",
+			"showModels": "显示模型建议",
+			"unavailable": "无法加载模型列表。请输入准确的模型 ID。"
+		},
 		"embeddingDescription": "选择用于生成知识嵌入的模型。",
 		"embeddingTitle": "嵌入",
 		"fields": {
@@ -69,7 +75,6 @@
 			"authentication": "身份验证",
 			"baseURL": "基础 URL",
 			"embeddingModel": "嵌入模型",
-			"manualModel": "输入模型 ID",
 			"project": "项目",
 			"provider": "提供商",
 			"region": "区域",
@@ -80,9 +85,6 @@
 		"heading": "AI 配置",
 		"loadError": "无法加载 AI 配置。",
 		"loading": "正在加载 AI 配置…",
-		"loadingModels": "正在加载…",
-		"loadModels": "加载模型",
-		"manualModelHelp": "模型发现不可用。请输入提供商的准确模型 ID。",
 		"providers": {
 			"amazonBedrock": "Amazon Bedrock",
 			"anthropic": "Anthropic",
@@ -92,11 +94,16 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "OpenAI 兼容"
 		},
-		"reuseCredentials": "使用文本提供商凭据",
+		"sameProviderNote": "共享“文本生成”中的连接。",
+		"sameProviderUnavailable": "文本提供商没有嵌入 API。请为嵌入选择其他提供商。",
 		"save": "保存配置",
 		"saved": "配置已保存",
 		"saving": "正在保存…",
 		"subheading": "为此 Talqo 部署连接文本和嵌入模型。",
+		"tabs": {
+			"differentProvider": "其他提供商",
+			"sameProvider": "与文本提供商相同"
+		},
 		"textDescription": "选择用于回复对话的模型。",
 		"textTitle": "文本生成",
 		"unusableWarning": "无法解密已存储的凭据。请重新输入并保存提供商凭据。",

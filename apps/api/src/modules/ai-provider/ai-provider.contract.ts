@@ -44,6 +44,7 @@ export const providerMetadataResponseSchema = z.object({
 			requiredSettingFields: z.array(z.string()),
 			credentialFields: z.array(z.string()),
 			requiredCredentialFields: z.array(z.string()),
+			discovery: z.boolean(),
 		}),
 	),
 })

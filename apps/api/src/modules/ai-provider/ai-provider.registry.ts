@@ -24,6 +24,7 @@ export type CredentialField = (typeof CREDENTIAL_FIELDS)[number]
 export type ProviderDefinition = {
 	authModes: readonly AuthMode[]
 	credentialFields: readonly CredentialField[]
+	discovery: boolean
 	id: AiProviderId
 	requiredCredentialFields: readonly CredentialField[]
 	requiredSettingFields: readonly SettingField[]
@@ -40,6 +41,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: [],
 		requiredCredentialFields: ["apiKey"],
+		discovery: true,
 	},
 	{
 		id: "anthropic",
@@ -49,6 +51,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: [],
 		requiredCredentialFields: ["apiKey"],
+		discovery: true,
 	},
 	{
 		id: "google",
@@ -58,6 +61,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: [],
 		requiredCredentialFields: ["apiKey"],
+		discovery: true,
 	},
 	{
 		id: "mistral",
@@ -67,6 +71,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: [],
 		requiredCredentialFields: ["apiKey"],
+		discovery: true,
 	},
 	{
 		id: "azure",
@@ -76,6 +81,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: ["baseURL"],
 		requiredCredentialFields: ["apiKey"],
+		discovery: false,
 	},
 	{
 		id: "amazon-bedrock",
@@ -85,6 +91,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["accessKeyId", "secretAccessKey", "sessionToken"],
 		requiredSettingFields: ["region"],
 		requiredCredentialFields: ["accessKeyId", "secretAccessKey"],
+		discovery: false,
 	},
 	{
 		id: "openai-compatible",
@@ -94,6 +101,7 @@ export const PROVIDER_DEFINITIONS = [
 		credentialFields: ["apiKey"],
 		requiredSettingFields: ["baseURL"],
 		requiredCredentialFields: ["apiKey"],
+		discovery: true,
 	},
 ] as const satisfies readonly ProviderDefinition[]
 

@@ -13,18 +13,21 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await page.getByRole("link", { name: "AI configuration" }).click()
 
 	const cards = page.locator("[data-slot=card]")
-	const textCard = cards.filter({ hasText: "Text generation" })
-	const embeddingCard = cards.filter({ hasText: "Embeddings" })
+	const textCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Text generation" }) })
+	const embeddingCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Embeddings" }) })
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
 	await textCard.getByLabel("Base URL").fill(process.env.E2E_PROVIDER_URL ?? "")
 	await textCard.getByLabel("API key").fill("test-key")
-	await textCard.getByRole("button", { name: "Load models" }).click()
-	await textCard.getByLabel("Text model").fill("chat-model")
 
-	await expect(embeddingCard.getByRole("button", { name: "Load models" })).toBeEnabled()
-	await embeddingCard.getByRole("button", { name: "Load models" }).click()
-	await embeddingCard.getByLabel("Embedding model").fill("embedding-model")
+	await textCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await page.getByRole("option", { name: "chat-model" }).click()
+	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
+
+	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await page.getByRole("option", { name: "embedding-model" }).click()
+	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
+
 	await page.getByRole("button", { name: "Save configuration" }).click()
 	await expect(page.getByText("Configuration saved")).toBeVisible()
 
