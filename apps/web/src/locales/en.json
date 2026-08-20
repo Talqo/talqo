@@ -5,6 +5,7 @@
 		"comingSoon": "Coming soon",
 		"confirmNewPassword": "Confirm new password",
 		"currentPassword": "Current password",
+		"currentPasswordRequired": "Enter your current password.",
 		"dangerDescription": "Deleting your account removes all agents and analytics data.",
 		"dangerZone": "Danger zone",
 		"deleteAccount": "Delete account",
@@ -15,6 +16,8 @@
 		"name": "Name",
 		"nameRequired": "Name is required.",
 		"newPassword": "New password",
+		"newPasswordError": "Password must be {{min}}-{{max}} characters.",
+		"passwordMismatchError": "Passwords do not match.",
 		"profile": "Profile",
 		"profileDescription": "Your operator name and email.",
 		"profileSaved": "Profile changes will be persisted in a later iteration.",
@@ -84,6 +87,11 @@
 			"usernameError": "Username must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens."
 		},
 		"errorFallback": "Something went wrong. Please try again.",
+		"forcePasswordChange": {
+			"description": "You must set a new password before continuing.",
+			"heading": "Set a new password",
+			"submit": "Set new password"
+		},
 		"invitations": {
 			"copied": "Invitation link copied.",
 			"copy": "Copy invitation link",
@@ -110,7 +118,9 @@
 		}
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "Hide password",
+		"showPassword": "Show password"
 	},
 	"dashboard": {
 		"cards": {
@@ -149,7 +159,23 @@
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
 		"invitations": "Invitations",
+		"users": "Users",
 		"widget": "Widget"
+	},
+	"users": {
+		"copy": "Copy generated password",
+		"copyFailed": "The password could not be copied. Select it and copy it manually.",
+		"forbidden": "You need admin access to view users.",
+		"generate": "Generate",
+		"heading": "Users",
+		"loading": "Loading users…",
+		"pendingChange": "Pending password change",
+		"resetDialogDescription": "Set a new password for this account.",
+		"resetDialogTitle": "Reset password for {{username}}",
+		"resetPassword": "Reset password",
+		"resetSuccess": "Password reset.",
+		"resetWarning": "This immediately signs them out everywhere and forces a password change on next login.",
+		"subheading": "View accounts and reset passwords."
 	},
 	"widgetSetup": {
 		"accentColor": "Accent color",

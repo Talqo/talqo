@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 
+import { adminPassword, adminUsername, loginViaForm } from "./auth-helpers.ts"
+
 test("auth screens expose theme and language controls", async ({ page }) => {
 	await page.goto("/login")
 
@@ -21,77 +23,85 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 	await expect(page).toHaveURL("/login")
 })
 
-test("admin bootstraps the app, invites a member, and the member logs in", async ({ page }) => {
-	const adminUsername = `admin_${Date.now()}`
-	const adminPassword = "correct-horse-battery-staple"
+test("a member changes their own password, and an admin's reset forces the member through a new one", async ({
+	page,
+}) => {
+	const memberUsername = `member_${Date.now()}`
+	const memberOriginalPassword = "member-original-password"
+	const memberSelfChosenPassword = "member-self-chosen-password"
+	const adminResetPassword = "admin-reset-password-000"
 
-	// Before any admin exists, the dashboard redirects to setup.
-	await page.goto("/")
-	await expect(page).toHaveURL("/setup")
-
-	await page.getByLabel("Username").fill(adminUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
-	await page.getByLabel("Confirm password").fill("different-password")
-	await page.getByRole("button", { name: "Create admin account" }).click()
-	await expect(page.getByRole("alert")).toContainText("Passwords do not match.")
-	await page.getByLabel("Confirm password").fill(adminPassword)
-	await page.getByRole("button", { name: "Create admin account" }).click()
-
-	// Completing setup logs the new admin in.
-	await expect(page).toHaveURL("/login")
-	await expect(page.getByLabel("Confirm password")).toHaveCount(0)
-	await page.getByLabel("Username").fill(adminUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+	// The admin account was already bootstrapped by auth.setup.ts (one admin, ever).
+	await page.goto("/login")
+	await loginViaForm(page, adminUsername, adminPassword)
 	await expect(page).toHaveURL("/dashboard")
 
 	await page.getByRole("link", { name: "Invitations" }).click()
-	await expect(page).toHaveURL("/dashboard/invitations")
-	await expect(page.getByRole("heading", { name: "Invite a member" })).toBeVisible()
-
 	await page.getByRole("button", { name: "Create invitation" }).click()
 	const inviteUrl = await page.getByLabel("Invitation link:").inputValue()
-	expect(inviteUrl).toMatch(/^https?:\/\//)
 	const token = new URL(inviteUrl).searchParams.get("token")
 	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
-
-	await page.evaluate(() => {
-		let attempts = 0
-		Object.defineProperty(window.navigator.clipboard, "writeText", {
-			configurable: true,
-			value: async () => {
-				attempts += 1
-				if (attempts === 1) throw new Error("Clipboard denied")
-			},
-		})
-	})
-	const copyButton = page.getByRole("button", { name: "Copy invitation link" })
-	await copyButton.click()
-	await expect(page.getByRole("alert")).toContainText("The invitation link could not be copied")
-	await copyButton.click()
-	await expect(page.getByRole("alert")).toHaveCount(0)
-	await expect(page.getByText("Invitation link copied.")).toBeVisible()
-
-	const memberUsername = `member_${Date.now()}`
-	const memberPassword = "member-original-password"
+	await page.getByRole("button", { name: "Log out" }).click()
 
 	await page.goto(`/accept-invite?token=${token}`)
 	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
-	await page.getByLabel("Confirm password").fill(memberPassword)
+	await page.getByLabel("Password", { exact: true }).fill(memberOriginalPassword)
+	await page.getByLabel("Confirm password").fill(memberOriginalPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
-
-	// An invited member can accept their invitation and log in.
 	await expect(page).toHaveURL("/login")
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+
+	// The member changes their own password; the server invalidates the session, landing back on login.
+	await loginViaForm(page, memberUsername, memberOriginalPassword)
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
-
-	// Logging out removes access client-side so a stale UI cannot keep acting on the member session.
-	await page.getByRole("button", { name: "Log out" }).click()
+	await page.getByRole("link", { name: "Account" }).click()
+	await page.getByLabel("Current password").fill(memberOriginalPassword)
+	await page.getByLabel("New password", { exact: true }).fill(memberSelfChosenPassword)
+	await page.getByLabel("Confirm new password").fill(memberSelfChosenPassword)
+	await page.getByRole("button", { name: "Change password" }).click()
 	await expect(page).toHaveURL("/login")
-	await page.goto("/dashboard/invitations")
-	await expect(page.getByText("You need to log in to invite a member.")).toBeVisible()
+
+	await loginViaForm(page, memberUsername, memberSelfChosenPassword)
+	await expect(page).toHaveURL("/dashboard")
+	await page.getByRole("button", { name: "Log out" }).click()
+
+	// The admin resets the member's password from the Users page.
+	await loginViaForm(page, adminUsername, adminPassword)
+	await page.getByRole("link", { name: "Users" }).click()
+	await expect(page).toHaveURL("/dashboard/users")
+
+	const adminRow = page.locator("[data-slot=card]", { hasText: adminUsername })
+	await expect(adminRow.getByRole("button", { name: "Reset password" })).toBeDisabled()
+
+	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
+	await expect(memberRow.getByText("Pending password change")).toHaveCount(0)
+	await memberRow.getByRole("button", { name: "Reset password" }).click()
+	const dialog = page.getByRole("dialog")
+	await dialog.getByLabel("New password").fill(adminResetPassword)
+	await dialog.getByLabel("Confirm new password").fill(adminResetPassword)
+	await dialog.getByRole("button", { name: "Reset password" }).click()
+	await expect(page.getByText("Password reset.")).toBeVisible()
+	await expect(memberRow.getByText("Pending password change")).toBeVisible()
+	await page.getByRole("button", { name: "Log out" }).click()
+
+	// The member's old password no longer works, and the admin-set one forces a new-password screen.
+	await loginViaForm(page, memberUsername, memberSelfChosenPassword)
+	await expect(page.getByRole("alert")).toBeVisible()
+	await expect(page).toHaveURL("/login")
+
+	await loginViaForm(page, memberUsername, adminResetPassword)
+	await expect(page).toHaveURL("/force-password-change")
+
+	// Navigating straight to a dashboard route mid-flow bounces back to the forced screen.
+	await page.goto("/dashboard/agents")
+	await expect(page).toHaveURL("/force-password-change")
+
+	// No current-password field here: logging in with the admin-set password is itself the proof.
+	const memberFinalPassword = "member-final-chosen-password"
+	await page.getByLabel("New password", { exact: true }).fill(memberFinalPassword)
+	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
+	await page.getByRole("button", { name: "Set new password" }).click()
+	await expect(page).toHaveURL("/login")
+
+	await loginViaForm(page, memberUsername, memberFinalPassword)
+	await expect(page).toHaveURL("/dashboard")
 })

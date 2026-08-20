@@ -37,4 +37,16 @@ describe("roles routes", () => {
 
 		expect(response.status).toBe(401)
 	})
+
+	it("rejects an unauthenticated request to list users", async () => {
+		const response = await app.request("/api/users")
+
+		expect(response.status).toBe(401)
+	})
+
+	it("rejects an unauthenticated request for the caller's own role", async () => {
+		const response = await app.request("/api/me/role")
+
+		expect(response.status).toBe(401)
+	})
 })

@@ -2,7 +2,7 @@ import { logout } from "@/api/client.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, MessageSquare, User, UserPlus, X } from "lucide-react"
+import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, MessageSquare, User, UserPlus, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -10,6 +10,7 @@ const navItems = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot },
 	{ to: "/dashboard/invitations", icon: UserPlus },
+	{ to: "/dashboard/users", icon: Users },
 	{ to: "/dashboard/widget", icon: MessageSquare },
 	{ to: "/dashboard/analytics", icon: BarChart3 },
 	{ to: "/dashboard/account", icon: User },
@@ -23,6 +24,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.agents")
 		case "/dashboard/invitations":
 			return t("nav.invitations")
+		case "/dashboard/users":
+			return t("nav.users")
 		case "/dashboard/widget":
 			return t("nav.widget")
 		case "/dashboard/analytics":
@@ -53,12 +56,14 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 	)
 }
 
-function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
+function NavList({ className, isAdmin, onNavigate }: { className: string; isAdmin: boolean; onNavigate: () => void }) {
 	return (
 		<nav className={className}>
-			{navItems.map((item) => (
-				<NavLink key={item.to} {...item} onNavigate={onNavigate} />
-			))}
+			{navItems
+				.filter((item) => item.to !== "/dashboard/users" || isAdmin)
+				.map((item) => (
+					<NavLink key={item.to} {...item} onNavigate={onNavigate} />
+				))}
 		</nav>
 	)
 }
@@ -86,7 +91,7 @@ function LogoutButton() {
 	)
 }
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children, isAdmin }: { children: React.ReactNode; isAdmin: boolean }) {
 	const { t } = useTranslation()
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const closeMobile = () => setMobileOpen(false)
@@ -97,7 +102,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">
 					{t("header.placeholderName")}
 				</div>
-				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
+				<NavList className="flex flex-1 flex-col gap-1" isAdmin={isAdmin} onNavigate={closeMobile} />
 			</aside>
 
 			<div className="flex min-h-screen flex-1 flex-col">
@@ -123,6 +128,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				{mobileOpen && (
 					<NavList
 						className="border-border bg-sidebar flex flex-col gap-1 border-b p-4 md:hidden"
+						isAdmin={isAdmin}
 						onNavigate={closeMobile}
 					/>
 				)}

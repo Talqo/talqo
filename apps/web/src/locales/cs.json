@@ -5,6 +5,7 @@
 		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
+		"currentPasswordRequired": "Zadejte své současné heslo.",
 		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
 		"dangerZone": "Nebezpečná zóna",
 		"deleteAccount": "Smazat účet",
@@ -15,6 +16,8 @@
 		"name": "Jméno",
 		"nameRequired": "Jméno je povinné.",
 		"newPassword": "Nové heslo",
+		"newPasswordError": "Heslo musí mít {{min}}-{{max}} znaků.",
+		"passwordMismatchError": "Hesla se neshodují.",
 		"profile": "Profil",
 		"profileDescription": "Vaše jméno a e-mail operátora.",
 		"profileSaved": "Změny profilu budou trvale uloženy v pozdější iteraci.",
@@ -84,6 +87,11 @@
 			"usernameError": "Uživatelské jméno musí mít {{min}}-{{max}} znaků a smí obsahovat pouze písmena, číslice, podtržítka a spojovníky."
 		},
 		"errorFallback": "Něco se pokazilo. Zkuste to prosím znovu.",
+		"forcePasswordChange": {
+			"description": "Před pokračováním musíte nastavit nové heslo.",
+			"heading": "Nastavit nové heslo",
+			"submit": "Nastavit nové heslo"
+		},
 		"invitations": {
 			"copied": "Odkaz na pozvánku byl zkopírován.",
 			"copy": "Kopírovat odkaz na pozvánku",
@@ -110,7 +118,9 @@
 		}
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "Skrýt heslo",
+		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
 		"cards": {
@@ -149,7 +159,23 @@
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"invitations": "Pozvánky",
+		"users": "Uživatelé",
 		"widget": "Widget"
+	},
+	"users": {
+		"copy": "Kopírovat vygenerované heslo",
+		"copyFailed": "Heslo se nepodařilo zkopírovat. Vyberte ho a zkopírujte ručně.",
+		"forbidden": "Pro zobrazení uživatelů potřebujete přístup správce.",
+		"generate": "Vygenerovat",
+		"heading": "Uživatelé",
+		"loading": "Načítání uživatelů…",
+		"pendingChange": "Čeká na změnu hesla",
+		"resetDialogDescription": "Nastavte nové heslo pro tento účet.",
+		"resetDialogTitle": "Resetovat heslo pro {{username}}",
+		"resetPassword": "Resetovat heslo",
+		"resetSuccess": "Heslo bylo resetováno.",
+		"resetWarning": "Tímto se uživatel okamžitě odhlásí ze všech relací a při dalším přihlášení bude muset nastavit nové heslo.",
+		"subheading": "Zobrazte účty a resetujte hesla."
 	},
 	"widgetSetup": {
 		"accentColor": "Akcentová barva",

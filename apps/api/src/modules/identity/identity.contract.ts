@@ -17,6 +17,7 @@ const usernameSchema = z
 export const userResponseSchema = z.object({
 	id: z.string(),
 	username: z.string(),
+	mustChangePassword: z.boolean(),
 })
 
 export const loginRequestSchema = z.object({
@@ -34,5 +35,9 @@ export const updateAccountRequestSchema = z.object({
 
 export const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1),
+	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+})
+
+export const forcedPasswordChangeRequestSchema = z.object({
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })

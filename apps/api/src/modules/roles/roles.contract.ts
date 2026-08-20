@@ -17,9 +17,11 @@ const usernameSchema = z
 
 const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH)
 
+// Mirrors identity.contract.ts's userResponseSchema: cross-module imports are service.ts-only here.
 const userResponseSchema = z.object({
 	id: z.string(),
 	username: z.string(),
+	mustChangePassword: z.boolean(),
 })
 
 export const setupStatusResponseSchema = z.object({
@@ -69,4 +71,12 @@ export const grantResponseSchema = z.object({
 
 export const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
+})
+
+export const userListResponseSchema = z.object({
+	users: z.array(userResponseSchema),
+})
+
+export const myRoleResponseSchema = z.object({
+	isAdmin: z.boolean(),
 })

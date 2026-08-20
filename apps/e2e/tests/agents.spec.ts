@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test"
 
+import { adminPassword, adminUsername } from "./auth-helpers.ts"
+
+// `page.request` shares its cookie jar with `page.goto`, so logging in here authenticates navigation too.
+test.beforeEach(async ({ page }) => {
+	await page.request.post("/api/auth/login", { data: { username: adminUsername, password: adminPassword } })
+})
+
 test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	await page.goto("/dashboard/agents")
 	await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible()
@@ -47,12 +54,9 @@ test("agent journey: create, configure, pause, and embed", async ({ page }) => {
 	await expect(page.locator("iframe")).toHaveAttribute("src", /position=bottom-left/)
 })
 
-test("account security controls stay disabled until the account API exists", async ({ page }) => {
+test("account danger zone stays disabled until the account deletion API is wired up", async ({ page }) => {
 	await page.goto("/dashboard/account")
 	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
-	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(2)
-	await expect(page.getByLabel("Current password")).toBeDisabled()
-	await expect(page.getByLabel("New password", { exact: true })).toBeDisabled()
-	await expect(page.getByRole("button", { name: "Change password" })).toBeDisabled()
+	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(1)
 	await expect(page.getByRole("button", { name: "Delete account" })).toBeDisabled()
 })

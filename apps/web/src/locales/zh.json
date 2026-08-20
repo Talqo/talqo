@@ -5,6 +5,7 @@
 		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
+		"currentPasswordRequired": "请输入当前密码。",
 		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
 		"dangerZone": "危险区域",
 		"deleteAccount": "删除账户",
@@ -15,6 +16,8 @@
 		"name": "姓名",
 		"nameRequired": "姓名为必填项。",
 		"newPassword": "新密码",
+		"newPasswordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
+		"passwordMismatchError": "两次输入的密码不一致。",
 		"profile": "个人资料",
 		"profileDescription": "您的操作员姓名和邮箱。",
 		"profileSaved": "个人资料更改将在后续迭代中持久保存。",
@@ -84,6 +87,11 @@
 			"usernameError": "用户名长度必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。"
 		},
 		"errorFallback": "出现了一些问题，请重试。",
+		"forcePasswordChange": {
+			"description": "请先设置新密码才能继续。",
+			"heading": "设置新密码",
+			"submit": "设置新密码"
+		},
 		"invitations": {
 			"copied": "邀请链接已复制。",
 			"copy": "复制邀请链接",
@@ -110,7 +118,9 @@
 		}
 	},
 	"common": {
-		"appName": "Talqo"
+		"appName": "Talqo",
+		"hidePassword": "隐藏密码",
+		"showPassword": "显示密码"
 	},
 	"dashboard": {
 		"cards": {
@@ -149,7 +159,23 @@
 		"analytics": "分析",
 		"dashboard": "仪表盘",
 		"invitations": "邀请",
+		"users": "用户",
 		"widget": "聊天组件"
+	},
+	"users": {
+		"copy": "复制生成的密码",
+		"copyFailed": "无法复制密码，请手动选择并复制。",
+		"forbidden": "您需要管理员权限才能查看用户。",
+		"generate": "生成",
+		"heading": "用户",
+		"loading": "正在加载用户…",
+		"pendingChange": "待修改密码",
+		"resetDialogDescription": "为该账户设置新密码。",
+		"resetDialogTitle": "重置 {{username}} 的密码",
+		"resetPassword": "重置密码",
+		"resetSuccess": "密码已重置。",
+		"resetWarning": "这将立即使该用户在所有设备上退出登录，并要求其在下次登录时设置新密码。",
+		"subheading": "查看账户并重置密码。"
 	},
 	"widgetSetup": {
 		"accentColor": "强调色",

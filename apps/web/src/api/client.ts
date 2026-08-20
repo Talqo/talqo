@@ -5,6 +5,7 @@ const NO_CONTENT_STATUS = 204
 export type PublicUser = {
 	id: string
 	username: string
+	mustChangePassword: boolean
 }
 
 function isErrorBody(body: unknown): body is { error: string } {
@@ -64,4 +65,24 @@ export function redeemInvitation(input: {
 	username: string
 }): Promise<{ user: PublicUser }> {
 	return request("/api/invitations/redeem", { method: "POST", body: JSON.stringify(input) })
+}
+
+export function changePassword(input: { currentPassword: string; newPassword: string }): Promise<void> {
+	return request("/api/me/password", { method: "PATCH", body: JSON.stringify(input) })
+}
+
+export function completeForcedPasswordChange(newPassword: string): Promise<void> {
+	return request("/api/me/password/forced", { method: "PATCH", body: JSON.stringify({ newPassword }) })
+}
+
+export function listUsers(signal?: AbortSignal): Promise<{ users: PublicUser[] }> {
+	return request("/api/users", { signal })
+}
+
+export function getMyRole(signal?: AbortSignal): Promise<{ isAdmin: boolean }> {
+	return request("/api/me/role", { signal })
+}
+
+export function resetUserPassword(userId: string, newPassword: string): Promise<void> {
+	return request(`/api/users/${userId}/password`, { method: "PATCH", body: JSON.stringify({ newPassword }) })
 }
