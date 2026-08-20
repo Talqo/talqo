@@ -108,8 +108,17 @@ test("widget derives its surfaces from the fetched palette", async ({ page }) =>
 	await page.getByRole("button", { name: "Open chat" }).click()
 
 	// color-mix() at work: the panel is a near-background surface, not the raw
-	// foreground the no-color-mix fallback would produce.
-	await expect(page.getByRole("dialog")).toHaveCSS("background-color", /rgb\(2[45]\d, 2[45]\d, 2[45]\d\)/)
+	// foreground the no-color-mix fallback would produce. Read back through a canvas
+	// because Chromium serializes a color-mix() result in its mixing space, not as rgb().
+	const channels = await page.getByRole("dialog").evaluate((panel) => {
+		const context = document.createElement("canvas").getContext("2d")
+		if (!context) throw new Error("canvas 2d context unavailable")
+		context.fillStyle = getComputedStyle(panel).backgroundColor
+		context.fillRect(0, 0, 1, 1)
+		return context.getImageData(0, 0, 1, 1).data.slice(0, 3)
+	})
+
+	expect(Math.min(...channels)).toBeGreaterThanOrEqual(240)
 })
 
 test("widget still renders in default colors when its token is unknown", async ({ page }) => {

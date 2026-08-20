@@ -33,7 +33,8 @@ test("operator customizes a widget and the preview follows without reloading", a
 	// The frame must not navigate: appearance travels over postMessage, not the URL.
 	const initialSrc = await page.locator("iframe").getAttribute("src")
 
-	await page.getByLabel("Brand color hex value").fill("#b91c1c")
+	// Exact: "Text on brand color hex value" also contains this label as a substring.
+	await page.getByLabel("Brand color hex value", { exact: true }).fill("#b91c1c")
 	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
 	expect(await page.locator("iframe").getAttribute("src")).toBe(initialSrc)
 

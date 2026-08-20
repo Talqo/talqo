@@ -80,17 +80,17 @@ describe("widget lifecycle", () => {
 		const agentId = await createAgent()
 		const created = await service.createWidget({ agentId, name: "Marketing site" })
 
-		expect(service.createWidget({ agentId: crypto.randomUUID(), name: "Orphan" })).rejects.toThrow(
+		await expect(service.createWidget({ agentId: crypto.randomUUID(), name: "Orphan" })).rejects.toThrow(
 			service.UnknownAgentError,
 		)
-		expect(service.updateWidget(created.id, { agentId: crypto.randomUUID() })).rejects.toThrow(
+		await expect(service.updateWidget(created.id, { agentId: crypto.randomUUID() })).rejects.toThrow(
 			service.UnknownAgentError,
 		)
 	})
 
 	it("raises a typed error for an unknown widget", async () => {
-		expect(service.getWidget(crypto.randomUUID())).rejects.toThrow(service.WidgetNotFoundError)
-		expect(service.deleteWidget(crypto.randomUUID())).rejects.toThrow(service.WidgetNotFoundError)
+		await expect(service.getWidget(crypto.randomUUID())).rejects.toThrow(service.WidgetNotFoundError)
+		await expect(service.deleteWidget(crypto.randomUUID())).rejects.toThrow(service.WidgetNotFoundError)
 	})
 })
 
@@ -99,7 +99,7 @@ describe("agent deletion", () => {
 		const agentId = await createAgent()
 		await service.createWidget({ agentId, name: "Marketing site" })
 
-		expect(agent.deleteAgent(agentId)).rejects.toThrow(agent.AgentInUseError)
+		await expect(agent.deleteAgent(agentId)).rejects.toThrow(agent.AgentInUseError)
 	})
 
 	it("allows deletion once the last widget is removed", async () => {
@@ -108,7 +108,7 @@ describe("agent deletion", () => {
 
 		await service.deleteWidget(created.id)
 
-		expect(agent.deleteAgent(agentId)).resolves.toBeUndefined()
+		await expect(agent.deleteAgent(agentId)).resolves.toBeUndefined()
 	})
 })
 
@@ -125,7 +125,13 @@ describe("public config lookup", () => {
 	})
 
 	it("rejects an unknown token", async () => {
-		expect(service.getConfigByToken("nope")).rejects.toThrow(service.WidgetNotFoundError)
+		await expect(service.getConfigByToken("nope")).rejects.toThrow(service.WidgetNotFoundError)
+	})
+
+	// 404 rather than 401: the exemption fired and the lookup simply missed. Needs a real
+	// database, so it cannot live beside the route unit tests.
+	it("is reachable without a session so embedded widgets can boot", async () => {
+		expect((await app.request("/api/widget-config/not-a-real-token")).status).toBe(404)
 	})
 
 	it("serves the updated appearance to already-embedded widgets", async () => {

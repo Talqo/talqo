@@ -2,13 +2,6 @@ import { app } from "@/app.ts"
 import { describe, expect, it } from "bun:test"
 
 describe("public widget config endpoint", () => {
-	it("is reachable without a session so embedded widgets can boot", async () => {
-		const response = await app.request("/api/widget-config/not-a-real-token")
-
-		// 404 rather than 401: the exemption fired and the lookup simply missed.
-		expect(response.status).toBe(404)
-	})
-
 	it("answers a CORS preflight, proving cors runs ahead of the auth gate", async () => {
 		const response = await app.request("/api/widget-config/any-token", {
 			method: "OPTIONS",

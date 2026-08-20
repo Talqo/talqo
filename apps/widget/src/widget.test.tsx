@@ -1,6 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test"
 
+import { fetchCalledDuring } from "./test-fetch.ts"
+
 const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
+
+/** mount() commits outside act(), so the rendered root appears on a later tick. */
+async function widgetRoot(): Promise<HTMLElement> {
+	for (let attempt = 0; attempt < 50; attempt += 1) {
+		const element = document.querySelector(".talqo-widget")
+		if (element instanceof HTMLElement) return element
+		// eslint-disable-next-line no-await-in-loop -- sequential by design: each tick hands React a chance to commit.
+		await new Promise((resolve) => setTimeout(resolve, 1))
+	}
+	throw new Error("widget root never rendered")
+}
 
 describe("widget mount", () => {
 	beforeEach(() => {
@@ -35,27 +48,15 @@ describe("widget mount", () => {
 	})
 
 	// No embed script carries a token in this harness, so there is nothing to fetch and
-	// the widget must paint straight away rather than sitting invisible forever.
-	test("paints immediately when there is no widget token to fetch", () => {
+	// the widget must paint visible rather than sitting hidden behind a request that
+	// will never come. mount() renders outside act(), so the commit lands a tick later.
+	test("paints visible when there is no widget token to fetch", async () => {
 		mount()
-		const widget = document.querySelector(".talqo-widget")
-		expect(widget).not.toBeNull()
-		expect((widget as HTMLElement).style.visibility).toBe("")
+
+		expect((await widgetRoot()).style.visibility).toBe("")
 	})
 
 	test("does not reach the network without a widget token", () => {
-		let called = false
-		const original = globalThis.fetch
-		globalThis.fetch = (() => {
-			called = true
-			return Promise.reject(new Error("unexpected fetch"))
-		}) as typeof fetch
-
-		try {
-			mount()
-			expect(called).toBe(false)
-		} finally {
-			globalThis.fetch = original
-		}
+		expect(fetchCalledDuring(() => mount())).toBe(false)
 	})
 })
