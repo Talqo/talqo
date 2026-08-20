@@ -64,7 +64,8 @@
 			"noResults": "没有匹配的模型",
 			"retry": "重试",
 			"showModels": "显示模型建议",
-			"unavailable": "无法加载模型列表。请输入准确的模型 ID。"
+			"unavailable": "无法加载模型列表。请输入准确的模型 ID。",
+			"unavailableStored": "无法使用已保存的连接刷新模型列表。请重新输入凭据或重试。"
 		},
 		"embeddingDescription": "选择用于生成知识嵌入的模型。",
 		"embeddingTitle": "嵌入",

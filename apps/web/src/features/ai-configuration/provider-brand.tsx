@@ -3,13 +3,20 @@ import type { AiProviderId } from "@/api/client.ts"
 import { cn } from "@talqo/ui/lib/utils"
 import { Plug } from "lucide-react"
 
-const BRANDS: Partial<Record<AiProviderId, { mark: string; className: string }>> = {
-	openai: { mark: "O", className: "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" },
-	anthropic: { mark: "A", className: "bg-[#c96142] text-white dark:bg-[#d97757]" },
-	google: { mark: "G", className: "bg-[#3b78e7] text-white" },
-	mistral: { mark: "M", className: "bg-[#ff7000] text-white" },
-	azure: { mark: "Az", className: "bg-[#0a6ed1] text-white" },
-	"amazon-bedrock": { mark: "BR", className: "bg-[#f59c1f] text-zinc-900" },
+import amazonwebservicesLogo from "./logos/amazonwebservices.svg"
+import anthropicLogo from "./logos/anthropic.svg"
+import googlegeminiLogo from "./logos/googlegemini.svg"
+import microsoftazureLogo from "./logos/microsoftazure.svg"
+import mistralaiLogo from "./logos/mistralai.svg"
+import openaiLogo from "./logos/openai.svg"
+
+const LOGOS: Partial<Record<AiProviderId, { src: string; label: string }>> = {
+	openai: { src: openaiLogo, label: "OpenAI" },
+	anthropic: { src: anthropicLogo, label: "Anthropic" },
+	google: { src: googlegeminiLogo, label: "Google Gemini" },
+	mistral: { src: mistralaiLogo, label: "Mistral AI" },
+	azure: { src: microsoftazureLogo, label: "Microsoft Azure" },
+	"amazon-bedrock": { src: amazonwebservicesLogo, label: "Amazon Web Services" },
 }
 
 export function ProviderBrand({ providerId, className }: { providerId: AiProviderId; className?: string }) {
@@ -26,17 +33,16 @@ export function ProviderBrand({ providerId, className }: { providerId: AiProvide
 			</span>
 		)
 	}
-	const brand = BRANDS[providerId]
+	const logo = LOGOS[providerId]
+	if (!logo) return null
 	return (
 		<span
-			aria-hidden
 			className={cn(
-				"inline-flex size-5 shrink-0 items-center justify-center rounded-md text-[10px] leading-none font-semibold tracking-tight",
-				brand?.className,
+				"border-border inline-flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white p-0.5 shadow-xs",
 				className,
 			)}
 		>
-			{brand?.mark}
+			<img src={logo.src} alt={logo.label} className="max-h-full max-w-full object-contain" />
 		</span>
 	)
 }
