@@ -27,6 +27,7 @@ export type ProviderMetadata = {
 	requiredSettingFields: string[]
 	credentialFields: string[]
 	requiredCredentialFields: string[]
+	discovery: boolean
 }
 
 export type RedactedRoleConfiguration = {

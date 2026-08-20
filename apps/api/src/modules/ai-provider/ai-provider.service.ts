@@ -130,6 +130,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				requiredSettingFields: [...provider.requiredSettingFields],
 				credentialFields: [...provider.credentialFields],
 				requiredCredentialFields: [...provider.requiredCredentialFields],
+				discovery: provider.discovery,
 			}))
 		},
 		async getConfiguration(userId: string): Promise<RedactedConfiguration> {

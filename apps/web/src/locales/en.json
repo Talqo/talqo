@@ -60,6 +60,12 @@
 			"static": "Static credentials"
 		},
 		"configured": "Configured; leave blank to keep",
+		"discovery": {
+			"noResults": "No matching models",
+			"retry": "Try again",
+			"showModels": "Show model suggestions",
+			"unavailable": "The model list could not be loaded. Enter the exact model ID."
+		},
 		"embeddingDescription": "Choose the model used to create knowledge embeddings.",
 		"embeddingTitle": "Embeddings",
 		"fields": {
@@ -69,7 +75,6 @@
 			"authentication": "Authentication",
 			"baseURL": "Base URL",
 			"embeddingModel": "Embedding model",
-			"manualModel": "Enter model ID",
 			"project": "Project",
 			"provider": "Provider",
 			"region": "Region",
@@ -80,9 +85,6 @@
 		"heading": "AI configuration",
 		"loadError": "AI configuration could not be loaded.",
 		"loading": "Loading AI configuration…",
-		"loadingModels": "Loading…",
-		"loadModels": "Load models",
-		"manualModelHelp": "Model discovery is unavailable. Enter the exact provider model ID.",
 		"providers": {
 			"amazonBedrock": "Amazon Bedrock",
 			"anthropic": "Anthropic",
@@ -92,11 +94,16 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "OpenAI-compatible"
 		},
-		"reuseCredentials": "Use text provider credentials",
+		"sameProviderNote": "Shares the connection from Text generation.",
+		"sameProviderUnavailable": "The text provider has no embedding API. Choose a different provider for embeddings.",
 		"save": "Save configuration",
 		"saved": "Configuration saved",
 		"saving": "Saving…",
 		"subheading": "Connect text and embedding models for this Talqo deployment.",
+		"tabs": {
+			"differentProvider": "Different provider",
+			"sameProvider": "Same as text provider"
+		},
 		"textDescription": "Choose the model used to answer conversations.",
 		"textTitle": "Text generation",
 		"unusableWarning": "Stored credentials can no longer be decrypted. Re-enter and save the provider credentials.",

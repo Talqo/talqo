@@ -60,6 +60,12 @@
 			"static": "Statické přihlašovací údaje"
 		},
 		"configured": "Nakonfigurováno; ponechte prázdné pro zachování",
+		"discovery": {
+			"noResults": "Žádné odpovídající modely",
+			"retry": "Zkusit znovu",
+			"showModels": "Zobrazit návrhy modelů",
+			"unavailable": "Seznam modelů se nepodařilo načíst. Zadejte přesné ID modelu."
+		},
 		"embeddingDescription": "Vyberte model pro vytváření embeddingů znalostí.",
 		"embeddingTitle": "Embeddingy",
 		"fields": {
@@ -69,7 +75,6 @@
 			"authentication": "Ověření",
 			"baseURL": "Základní URL",
 			"embeddingModel": "Embeddingový model",
-			"manualModel": "Zadejte ID modelu",
 			"project": "Projekt",
 			"provider": "Poskytovatel",
 			"region": "Region",
@@ -80,9 +85,6 @@
 		"heading": "Konfigurace AI",
 		"loadError": "Konfiguraci AI se nepodařilo načíst.",
 		"loading": "Načítání konfigurace AI…",
-		"loadingModels": "Načítání…",
-		"loadModels": "Načíst modely",
-		"manualModelHelp": "Vyhledání modelů není dostupné. Zadejte přesné ID modelu poskytovatele.",
 		"providers": {
 			"amazonBedrock": "Amazon Bedrock",
 			"anthropic": "Anthropic",
@@ -92,11 +94,16 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "Kompatibilní s OpenAI"
 		},
-		"reuseCredentials": "Použít přihlašovací údaje textového poskytovatele",
+		"sameProviderNote": "Sdílí připojení z části Generování textu.",
+		"sameProviderUnavailable": "Textový poskytovatel nemá embeddingové API. Pro embeddingy zvolte jiného poskytovatele.",
 		"save": "Uložit konfiguraci",
 		"saved": "Konfigurace uložena",
 		"saving": "Ukládání…",
 		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
+		"tabs": {
+			"differentProvider": "Jiný poskytovatel",
+			"sameProvider": "Stejný jako textový poskytovatel"
+		},
 		"textDescription": "Vyberte model používaný pro odpovědi v konverzacích.",
 		"textTitle": "Generování textu",
 		"unusableWarning": "Uložené přihlašovací údaje již nelze dešifrovat. Zadejte a uložte přihlašovací údaje znovu.",
