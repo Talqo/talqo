@@ -8,8 +8,8 @@ This change migrates every existing API route and every existing handwritten web
 
 ## Decisions
 
-- Generate OpenAPI 3.1.1 from API-owned Zod 4 contracts with `@hono/zod-openapi` and `OpenAPIHono`.
-- Generate a web-specific TanStack Query fetch client and Zod schemas with a pinned Orval version.
+- Generate OpenAPI 3.1.1 from API-owned Zod 4 contracts with `@hono/zod-openapi` 1.6.1 and `OpenAPIHono`.
+- Generate a web-specific TanStack Query fetch client and Zod schemas with Orval 8.24.0.
 - Commit both `apps/api/openapi.json` and `apps/web/src/api/generated/`.
 - Keep the OpenAPI document as a repository artifact; do not serve it from the running API.
 - Make contributors responsible for regeneration. CI only compares fresh temporary output with committed artifacts and reports stale files.
@@ -47,7 +47,7 @@ A reusable transport error schema defines the existing JSON shape:
 { "error": "Human-readable message" }
 ```
 
-Each operation declares only the statuses it deliberately produces. Authentication middleware, request validation, authorization failures, domain conflicts, not-found responses, and the unhandled-error boundary return the documented JSON shape where applicable. Empty successful responses remain explicit `204` responses with no body.
+Each operation declares the statuses it deliberately produces and the shared unexpected `500` fallback. Authentication middleware, request validation, authorization failures, domain conflicts, not-found responses, and the unhandled-error boundary return the documented JSON shape. Empty successful responses remain explicit `204` responses with no body.
 
 All current routes, including `/health`, appear in the generated document. Stable operation IDs are mandatory and unique because they control generated symbol names. Module tags are stable and control Orval's generated grouping.
 
