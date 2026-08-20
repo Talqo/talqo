@@ -107,6 +107,7 @@ jobs:
       - name: Run tests
         run: bun run test
         env:
+          APP_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
           DATABASE_URL: postgres://talqo:talqo@localhost:5432/talqo
           NODE_ENV: test
 
@@ -172,6 +173,7 @@ jobs:
       - name: Run integration tests
         run: bun run test:integration
         env:
+          APP_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
           DATABASE_URL: postgres://talqo:talqo@localhost:5432/talqo
           NODE_ENV: test
 

@@ -25,6 +25,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
+| Vercel AI SDK | Text and embedding provider interfaces | [ADR-0010](adr/0010-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
@@ -132,6 +133,14 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
+
+### AI Providers
+
+- `ai-provider` owns deployment-wide text and embedding model selection, provider credentials, model discovery, and Vercel AI SDK adapter construction.
+- Its registry is the source of supported provider IDs, provider-level roles, authentication modes, and required fields.
+- Stored credentials use authenticated field encryption derived from `APP_SECRET`; administrative responses are redacted.
+- Provider model lists are availability lists only. Talqo stores the operator's selected identifier without classifying its model type.
+- OpenAI-compatible endpoints may target private networks, so `ai_provider:manage` is a privileged permission and adapter requests enforce protocol, redirect, timeout, response-size, and error-redaction safeguards.
 
 ## Shared Code Decisions
 

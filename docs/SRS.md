@@ -45,13 +45,12 @@ Talqo is related to these repos:
 
 - Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple agents — e.g. one per website, or multiple agents on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
 - Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1). The admin can assign granular permissions to other registered accounts. There is no superadmin.
-- The operator must supply their own AI provider API key; there is no platform-funded default key.
+- The operator must supply their own AI provider authentication source; there is no platform-funded default.
 
 ### 2.4 Assumptions & Dependencies
 
 - `talqo-deploy` is expected to consume the container images `talqo` publishes (NFR-1.3a) — `talqo` does not need to provide its own orchestration.
-- An external database is available at deploy time; PostgreSQL is not required, but the
-  database must support vector similarity search for knowledge-base embeddings (FR-2.17).
+- PostgreSQL is available at deploy time and provides the authoritative relational datastore and vector similarity support for knowledge-base embeddings (FR-2.17).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
 - Uploaded knowledge-base files (FR-2.14) are stored on the local filesystem.
 
@@ -94,7 +93,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | Operator must configure their own AI provider API endpoint and API key before the agent can respond to end users | High | Not started |
+| FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (dashboard, encrypted persistence, provider adapters, and runtime factories done; conversation responses pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
 
 #### 3.2.3 Agent configuration (FR-2c)
@@ -114,7 +113,7 @@ Talqo is related to these repos:
 | FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Not started |
 | FR-2.15 | Operator can delete files from the knowledge base | Medium | Not started |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
-| FR-2.17 | Operator can configure the embedding model used to index knowledge base content (with provider-specific defaults) | Medium | Not started |
+| FR-2.17 | Operator can explicitly configure the provider and embedding model identifier used to index knowledge base content | Medium | Done |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |
 | FR-2.19 | Operator can verify MCP server connectivity and view available tools before or after enabling | Medium | Not started |
 
@@ -158,11 +157,11 @@ Talqo is related to these repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | In progress (built widget.js self-mounts from a script tag) |
-| NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app is expected to use a documentation framework (fumadocs is the leading candidate) | High | Not started |
+| NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app uses Fumadocs | High | In progress (AI provider configuration reference added) |
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
 | NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
-| NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection — including a randomly-generated password — is supplied via environment variables at deploy time, validated at startup, failing fast if missing or invalid | High | Not started |
+| NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection and `APP_SECRET` are supplied via environment variables at deploy time and validated at startup | High | In progress (AI provider configuration done) |
 
 ### 4.2 Safety & Content Policy (NFR-2)
 
@@ -177,7 +176,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-3.1 | The operator's AI provider API key must be stored encrypted at rest and never exposed to the frontend | | High | Not started |
+| NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
 | NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Not started |
 | NFR-3.3 | SDK and widget endpoints authenticate using the instance's public token | Related to FR-3.4 | High | Not started |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |

@@ -54,6 +54,53 @@
 		"loading": "Načítání agentů…",
 		"subheading": "Spravujte své agenty a jejich chování."
 	},
+	"aiConfiguration": {
+		"auth": {
+			"deploymentIdentity": "Identita nasazení",
+			"static": "Statické přihlašovací údaje"
+		},
+		"configured": "Nakonfigurováno; ponechte prázdné pro zachování",
+		"embeddingDescription": "Vyberte model pro vytváření embeddingů znalostí.",
+		"embeddingTitle": "Embeddingy",
+		"fields": {
+			"accessKeyId": "ID přístupového klíče",
+			"apiKey": "API klíč",
+			"apiVersion": "Verze API",
+			"authentication": "Ověření",
+			"baseURL": "Základní URL",
+			"embeddingModel": "Embeddingový model",
+			"manualModel": "Zadejte ID modelu",
+			"project": "Projekt",
+			"provider": "Poskytovatel",
+			"region": "Region",
+			"secretAccessKey": "Tajný přístupový klíč",
+			"sessionToken": "Token relace",
+			"textModel": "Textový model"
+		},
+		"heading": "Konfigurace AI",
+		"loadError": "Konfiguraci AI se nepodařilo načíst.",
+		"loading": "Načítání konfigurace AI…",
+		"loadingModels": "Načítání…",
+		"loadModels": "Načíst modely",
+		"manualModelHelp": "Vyhledání modelů není dostupné. Zadejte přesné ID modelu poskytovatele.",
+		"providers": {
+			"amazonBedrock": "Amazon Bedrock",
+			"anthropic": "Anthropic",
+			"azure": "Azure OpenAI",
+			"google": "Google Gemini",
+			"mistral": "Mistral",
+			"openai": "OpenAI",
+			"openaiCompatible": "Kompatibilní s OpenAI"
+		},
+		"reuseCredentials": "Použít přihlašovací údaje textového poskytovatele",
+		"save": "Uložit konfiguraci",
+		"saved": "Konfigurace uložena",
+		"saving": "Ukládání…",
+		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
+		"textDescription": "Vyberte model používaný pro odpovědi v konverzacích.",
+		"textTitle": "Generování textu",
+		"validationError": "Před uložením vyberte oba poskytovatele a ID modelů."
+	},
 	"analytics": {
 		"conversations": "Konverzace",
 		"dailyTotals": "Denní součty za posledních 30 dní.",
@@ -146,6 +193,7 @@
 	"nav": {
 		"account": "Účet",
 		"agents": "Agenti",
+		"aiConfiguration": "Konfigurace AI",
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"invitations": "Pozvánky",

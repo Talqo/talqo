@@ -2,8 +2,17 @@ import { z } from "zod"
 
 const DEFAULT_API_PORT = 3000
 const MAX_PORT = 65_535
+const MIN_APP_SECRET_BYTES = 32
+
+const appSecretSchema = z
+	.string()
+	.regex(/^[A-Za-z0-9_-]+$/, "APP_SECRET must be base64url encoded")
+	.refine((value) => Buffer.from(value, "base64url").byteLength >= MIN_APP_SECRET_BYTES, {
+		error: `APP_SECRET must decode to at least ${MIN_APP_SECRET_BYTES} bytes`,
+	})
 
 const envSchema = z.object({
+	APP_SECRET: appSecretSchema,
 	DATABASE_URL: z.url({
 		protocol: /^postgres(ql)?$/,
 		error: "DATABASE_URL must be a valid postgres:// connection string",
@@ -28,6 +37,9 @@ function load(): Env {
 }
 
 export const env: Env = {
+	get APP_SECRET() {
+		return load().APP_SECRET
+	},
 	get DATABASE_URL() {
 		return load().DATABASE_URL
 	},
