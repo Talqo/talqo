@@ -45,3 +45,6 @@ playwright-report/
 test-results/
 blob-report/
 playwright/.auth/
+
+# Uploaded agent files (local filesystem storage)
+data/

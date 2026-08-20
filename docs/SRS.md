@@ -53,7 +53,7 @@ Talqo is related to these repos:
 - An external database is available at deploy time; PostgreSQL is not required, but the
   database must support vector similarity search for knowledge-base embeddings (FR-2.17).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
-- Uploaded knowledge-base files (FR-2.14) are stored on the local filesystem.
+- Uploaded knowledge-base files (FR-2.14) are stored on the local filesystem under one directory per context id (an opaque UUID); file names (validated, kept on disk) double as identifiers — there is no file metadata table. When the agents module lands it adopts these directories as its per-agent storage by relabeling the path segment.
 
 ## 3. Functional Requirements
 
@@ -111,8 +111,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Not started |
-| FR-2.15 | Operator can delete files from the knowledge base | Medium | Not started |
+| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | In progress (upload/list/rename/delete API done: PDF/TXT/MD/DOCX up to an env-configurable size, stored on the local filesystem under a random context id until the agents module provides the namespace; embedding and chat-time retrieval pending) |
+| FR-2.15 | Operator can delete files from the knowledge base | Medium | In progress (API done; dashboard control rides with the agents module) |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
 | FR-2.17 | Operator can configure the embedding model used to index knowledge base content (with provider-specific defaults) | Medium | Not started |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |

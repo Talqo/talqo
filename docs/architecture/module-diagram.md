@@ -63,7 +63,7 @@ graph LR
 | `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, and content policy. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
-| `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. |
+| `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. Context files land in upload directories (`<uploadDir>/<contextId>/`) before the agents module claims them as per-agent storage; knowledge reads them as embedding input. |
 | `conversation` | `END_USER_SESSION`, `CONVERSATION`, `MESSAGE` | Chat runtime; orchestrates a reply using agent config, the AI provider, MCP tools, and knowledge. |
 | `usage` | `USAGE_RECORD` | Meters tokens/cost per message; enforces usage limits. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
