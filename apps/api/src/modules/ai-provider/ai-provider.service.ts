@@ -59,6 +59,7 @@ function resolveEnvelope(
 	input: {
 		credentials?: Record<string, string>
 		existing?: StoredTextConfiguration
+		existingCredentials?: boolean
 		providerId: string
 		role: "text" | "embedding"
 		settings: Record<string, string>
@@ -73,8 +74,11 @@ function resolveEnvelope(
 		}
 		return vault.encrypt(input.credentials, { configId: CONFIG_ID, providerId: input.providerId, role: input.role })
 	}
-	if (input.existing && sameContext(input.existing, input)) return input.existing.credentials
-	throw new InvalidConfigurationError(`${input.providerId} credentials are required`)
+	if (input.existing && sameContext(input.existing, input)) {
+		if (!input.existing.credentials) throw new InvalidConfigurationError(`${input.providerId} credentials are required`)
+		return input.existing.credentials
+	}
+	throw new InvalidConfigurationError(`${input.providerId} credentials are required for the selected credential source`)
 }
 
 function redact(configuration: StoredConfiguration | undefined, vault: Vault): RedactedConfiguration {
@@ -134,22 +138,23 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 		},
 		async saveConfiguration(userId: string, input: SaveConfigurationInput): Promise<RedactedConfiguration> {
 			await requirePermission(userId)
+			const existing = await dependencies.repository.find()
 			try {
-				validateConfigurationInput(input)
+				validateConfigurationInput(input, {
+					text: existing?.text ? { credentials: existing.text.credentials !== null } : undefined,
+					embedding: existing?.embedding ? { credentials: existing.embedding.credentials !== null } : undefined,
+				})
 			} catch (error) {
 				throw new InvalidConfigurationError(error instanceof Error ? error.message : "Invalid configuration")
 			}
-			const existing = await dependencies.repository.find()
-			const textCredentials = resolveEnvelope(
-				{ ...input.text, existing: existing?.text, role: "text" },
-				dependencies.vault,
-			)
+			const existingInput = {
+				text: { ...input.text, existing: existing?.text },
+				embedding: { ...input.embedding, existing: existing?.embedding },
+			}
+			const textCredentials = resolveEnvelope({ ...existingInput.text, role: "text" }, dependencies.vault)
 			let embeddingCredentials: CredentialEnvelope | null = null
 			if (input.embedding.credentialSource === "separate") {
-				embeddingCredentials = resolveEnvelope(
-					{ ...input.embedding, existing: existing?.embedding, role: "embedding" },
-					dependencies.vault,
-				)
+				embeddingCredentials = resolveEnvelope({ ...existingInput.embedding, role: "embedding" }, dependencies.vault)
 			}
 			const embedding: StoredEmbeddingConfiguration = {
 				providerId: input.embedding.providerId,

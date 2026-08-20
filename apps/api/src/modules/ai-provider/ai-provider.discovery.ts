@@ -3,6 +3,8 @@ import { z } from "zod"
 
 import type { DiscoverModelsInput } from "./ai-provider.contract.ts"
 
+import { assertHttpBaseUrl } from "./endpoint-policy.ts"
+
 const MAX_RESPONSE_BYTES = 1_000_000
 const DISCOVERY_TIMEOUT_MS = 10_000
 
@@ -49,10 +51,23 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	const contentLength = Number(response.headers.get("content-length") ?? 0)
 	if (contentLength > MAX_RESPONSE_BYTES)
 		throw new ModelDiscoveryError("provider-error", "Provider response is too large")
-	const body = await response.text()
-	if (Buffer.byteLength(body) > MAX_RESPONSE_BYTES) {
-		throw new ModelDiscoveryError("provider-error", "Provider response is too large")
+
+	let bytes = 0
+	const chunks: Uint8Array[] = []
+	if (response.body) {
+		const reader = response.body.getReader()
+		for (;;) {
+			const { done, value } = await reader.read() // oxlint-disable-line no-await-in-loop -- sequential stream read requires await
+			if (done) break
+			bytes += value.byteLength
+			if (bytes > MAX_RESPONSE_BYTES) {
+				reader.cancel().catch(() => undefined)
+				throw new ModelDiscoveryError("provider-error", "Provider response is too large")
+			}
+			chunks.push(value)
+		}
 	}
+	const body = Buffer.concat(chunks).toString("utf8")
 	try {
 		return JSON.parse(body) as unknown
 	} catch {
@@ -93,6 +108,11 @@ export async function discoverModels(
 					? (input.settings.baseURL ?? "https://api.mistral.ai/v1")
 					: input.settings.baseURL
 	if (!baseURL) throw new ModelDiscoveryError("provider-error", "Provider base URL is required")
+	try {
+		assertHttpBaseUrl(baseURL)
+	} catch {
+		throw new ModelDiscoveryError("provider-error", "Provider base URL must use HTTP or HTTPS")
+	}
 
 	const headers: Record<string, string> =
 		input.providerId === "anthropic"

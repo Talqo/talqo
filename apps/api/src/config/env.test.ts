@@ -49,6 +49,26 @@ describe("parseEnv", () => {
 		).toThrow(/APP_SECRET/)
 	})
 
+	it("rejects the documented placeholder APP_SECRET", () => {
+		expect(() =>
+			parseEnv({
+				APP_SECRET: "generate-me",
+				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+				NODE_ENV: "development",
+			}),
+		).toThrow(/APP_SECRET/)
+	})
+
+	it("rejects zero-filled APP_SECRET in production", () => {
+		expect(() =>
+			parseEnv({
+				APP_SECRET: Buffer.alloc(32).toString("base64url"),
+				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+				NODE_ENV: "production",
+			}),
+		).toThrow(/APP_SECRET/)
+	})
+
 	it("rejects a missing NODE_ENV", () => {
 		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })).toThrow(/NODE_ENV/)
 	})

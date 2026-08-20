@@ -75,4 +75,20 @@ describe("validateConfigurationInput", () => {
 			}),
 		).toThrow(/credentials are required/)
 	})
+
+	it("rejects undeclared plaintext settings", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 1,
+				text: { ...text, settings: { apiKey: "sk-inline-secret" }, credentials: { apiKey: "sk-text" } },
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "text",
+				},
+			}),
+		).toThrow(/unsupported settings|does not support setting/)
+	})
 })

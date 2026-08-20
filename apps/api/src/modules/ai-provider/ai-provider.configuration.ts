@@ -12,10 +12,18 @@ function assertNonEmptyFields(
 	}
 }
 
+function assertAllowedSettings(providerId: string, settings: Record<string, string>): void {
+	const provider = getProviderDefinition(providerId)
+	for (const key of Object.keys(settings)) {
+		if (!provider.settingFields.includes(key as (typeof provider.settingFields)[number])) {
+			throw new Error(`${providerId} does not support setting: ${key}`)
+		}
+	}
+}
+
 function assertRole(
 	role: "text" | "embedding",
-	input: SaveConfigurationInput["text"] | SaveConfigurationInput["embedding"],
-	expectedRevision: number,
+	input: (SaveConfigurationInput["text"] | SaveConfigurationInput["embedding"]) & { existingCredentials?: boolean },
 	requireStaticCredentials: boolean,
 ): void {
 	const provider = getProviderDefinition(input.providerId)
@@ -24,7 +32,8 @@ function assertRole(
 		throw new Error(`${input.providerId} does not support ${input.authMode} authentication`)
 	}
 	assertNonEmptyFields(input.settings, provider.requiredSettingFields, `${input.providerId} setting`)
-	if (requireStaticCredentials && input.authMode === "static" && expectedRevision === 0) {
+	assertAllowedSettings(input.providerId, input.settings)
+	if (requireStaticCredentials && input.authMode === "static" && !input.existingCredentials) {
 		assertNonEmptyFields(input.credentials, provider.requiredCredentialFields, `${input.providerId} credentials`)
 	}
 }
@@ -35,9 +44,16 @@ function sameRecord(left: Record<string, string>, right: Record<string, string>)
 	return JSON.stringify(leftEntries) === JSON.stringify(rightEntries)
 }
 
-export function validateConfigurationInput(input: SaveConfigurationInput): void {
-	assertRole("text", input.text, input.expectedRevision, true)
-	assertRole("embedding", input.embedding, input.expectedRevision, input.embedding.credentialSource === "separate")
+export function validateConfigurationInput(
+	input: SaveConfigurationInput,
+	existing?: { text?: { credentials: boolean }; embedding?: { credentials: boolean } },
+): void {
+	assertRole("text", { ...input.text, existingCredentials: existing?.text?.credentials }, true)
+	assertRole(
+		"embedding",
+		{ ...input.embedding, existingCredentials: existing?.embedding?.credentials },
+		input.embedding.credentialSource === "separate",
+	)
 
 	if (input.embedding.credentialSource === "text") {
 		if (
@@ -58,7 +74,7 @@ export function validateConfigurationInput(input: SaveConfigurationInput): void 
 
 	if (input.embedding.credentialSource === "separate" && input.embedding.authMode === "static") {
 		const provider = getProviderDefinition(input.embedding.providerId)
-		if (input.expectedRevision === 0) {
+		if (!existing?.embedding?.credentials) {
 			assertNonEmptyFields(
 				input.embedding.credentials,
 				provider.requiredCredentialFields,

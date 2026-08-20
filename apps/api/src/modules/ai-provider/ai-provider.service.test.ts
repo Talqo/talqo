@@ -3,7 +3,12 @@ import { describe, expect, it } from "bun:test"
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration } from "./ai-provider.service.ts"
 
-import { createAiProviderService, PermissionDeniedError, RevisionConflictError } from "./ai-provider.service.ts"
+import {
+	createAiProviderService,
+	InvalidConfigurationError,
+	PermissionDeniedError,
+	RevisionConflictError,
+} from "./ai-provider.service.ts"
 import { createCredentialVault } from "./credential-vault.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
@@ -67,6 +72,20 @@ describe("AI provider service", () => {
 		await service.saveConfiguration("user-1", input)
 
 		await expect(service.saveConfiguration("user-1", input)).rejects.toBeInstanceOf(RevisionConflictError)
+	})
+
+	it("requires credentials when switching from reused to separate embedding credentials", async () => {
+		const { service } = createMemoryService()
+		await service.saveConfiguration("user-1", input)
+
+		await expect(
+			service.saveConfiguration("user-1", {
+				...input,
+				expectedRevision: 1,
+				text: { ...input.text, credentials: undefined },
+				embedding: { ...input.embedding, credentialSource: "separate", credentials: undefined },
+			}),
+		).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})
 
 	it("discovers models without saving transient credentials", async () => {
