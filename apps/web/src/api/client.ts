@@ -71,13 +71,11 @@ export type Agent = {
 	status: "active" | "paused"
 	systemPrompt: string
 	wordBlacklist: string[]
-	avatarUrl: string | null
 }
 
 export type AgentFile = {
-	id: string
+	// Files have no id: the name doubles as the identifier within an agent's directory.
 	name: string
-	mimeType: string
 	sizeBytes: number
 	createdAt: string
 }
@@ -121,10 +119,13 @@ export function uploadAgentFile(agentId: string, file: File): Promise<{ file: Ag
 	return request(`/api/agents/${agentId}/files`, { method: "POST", body: form })
 }
 
-export function deleteAgentFile(agentId: string, fileId: string): Promise<void> {
-	return request(`/api/agents/${agentId}/files/${fileId}`, { method: "DELETE" })
+export function deleteAgentFile(agentId: string, name: string): Promise<void> {
+	return request(`/api/agents/${agentId}/files/${encodeURIComponent(name)}`, { method: "DELETE" })
 }
 
-export function renameAgentFile(agentId: string, fileId: string, name: string): Promise<{ file: AgentFile }> {
-	return request(`/api/agents/${agentId}/files/${fileId}`, { method: "PATCH", body: JSON.stringify({ name }) })
+export function renameAgentFile(agentId: string, name: string, newName: string): Promise<{ file: AgentFile }> {
+	return request(`/api/agents/${agentId}/files/${encodeURIComponent(name)}`, {
+		method: "PATCH",
+		body: JSON.stringify({ name: newName }),
+	})
 }

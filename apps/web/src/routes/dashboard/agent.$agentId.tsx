@@ -54,14 +54,14 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 	const renameFile = useRenameAgentFile()
 	const deleteFile = useDeleteAgentFile()
 	const fileInput = useRef<HTMLInputElement>(null)
-	const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
-	const [pendingRename, setPendingRename] = useState<{ id: string; name: string } | null>(null)
+	const [pendingDelete, setPendingDelete] = useState<string | null>(null)
+	const [pendingRename, setPendingRename] = useState<string | null>(null)
 	const [renameValue, setRenameValue] = useState("")
 	const [dragging, setDragging] = useState(false)
 
-	function openRename(file: { id: string; name: string }) {
-		setPendingRename(file)
-		setRenameValue(file.name)
+	function openRename(name: string) {
+		setPendingRename(name)
+		setRenameValue(name)
 	}
 
 	function uploadFiles(dropped: Iterable<File>) {
@@ -133,7 +133,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 				) : (
 					<ul className="divide-y overflow-hidden rounded-md border">
 						{files.map((file) => (
-							<li key={file.id} className="flex items-center justify-between gap-3 px-3 py-2">
+							<li key={file.name} className="flex items-center justify-between gap-3 px-3 py-2">
 								<div className="min-w-0 flex-1">
 									<p className="truncate text-sm font-medium" title={file.name}>
 										{file.name}
@@ -147,7 +147,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 										variant="ghost"
 										size="icon"
 										aria-label={t("agentConfig.files.rename")}
-										onClick={() => openRename({ id: file.id, name: file.name })}
+										onClick={() => openRename(file.name)}
 									>
 										<Pencil className="size-4" />
 									</Button>
@@ -155,7 +155,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 										variant="ghost"
 										size="icon"
 										aria-label={t("agentConfig.files.delete")}
-										onClick={() => setPendingDelete({ id: file.id, name: file.name })}
+										onClick={() => setPendingDelete(file.name)}
 									>
 										<Trash2 className="text-destructive size-4" />
 									</Button>
@@ -178,7 +178,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 							event.preventDefault()
 							if (!pendingRename || !renameValue.trim()) return
 							renameFile.mutate(
-								{ agentId, fileId: pendingRename.id, name: renameValue.trim() },
+								{ agentId, name: pendingRename, newName: renameValue.trim() },
 								{ onSuccess: () => setPendingRename(null) },
 							)
 						}}
@@ -210,7 +210,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 						<DialogTitle>{t("agentConfig.files.delete")}</DialogTitle>
 						{/* pr-8 keeps long names clear of the absolute-positioned close button. */}
 						<DialogDescription className="pr-8">
-							{t("agentConfig.files.deleteConfirm", { name: pendingDelete?.name ?? "" })}
+							{t("agentConfig.files.deleteConfirm", { name: pendingDelete ?? "" })}
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
@@ -219,7 +219,7 @@ function ContextFilesCard({ agentId }: { agentId: string }) {
 							disabled={deleteFile.isPending}
 							onClick={() =>
 								pendingDelete &&
-								deleteFile.mutate({ agentId, fileId: pendingDelete.id }, { onSuccess: () => setPendingDelete(null) })
+								deleteFile.mutate({ agentId, name: pendingDelete }, { onSuccess: () => setPendingDelete(null) })
 							}
 						>
 							{t("agentConfig.files.delete")}

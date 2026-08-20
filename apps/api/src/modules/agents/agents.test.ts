@@ -27,10 +27,6 @@ describe("toPublicAgent", () => {
 		expect(toPublicAgent(makeAgent({ active: false })).status).toBe("paused")
 	})
 
-	it("always exposes a null avatarUrl until avatar upload ships", () => {
-		expect(toPublicAgent(makeAgent()).avatarUrl).toBeNull()
-	})
-
 	it("does not leak the owner id", () => {
 		expect(toPublicAgent(makeAgent())).not.toHaveProperty("ownerId")
 	})

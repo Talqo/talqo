@@ -60,10 +60,10 @@ graph LR
 |---|---|---|
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
 | `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and per-user/per-agent permission grants — owns "who can do what." |
-| `agent` | `AGENT`, `AGENT_FILE`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, content policy, and raw uploaded context files (pre-embedding). |
+| `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Per-agent branding, persona, content policy, and uploaded context files (stored on the filesystem under the upload dir, one directory per agent). |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
-| `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. Reads `agent`-owned raw files (`AGENT_FILE`) as embedding input. |
+| `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. Reads `agent`-owned raw files from the upload directories as embedding input. |
 | `conversation` | `END_USER_SESSION`, `CONVERSATION`, `MESSAGE` | Chat runtime; orchestrates a reply using agent config, the AI provider, MCP tools, and knowledge. |
 | `usage` | `USAGE_RECORD` | Meters tokens/cost per message; enforces usage limits. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |

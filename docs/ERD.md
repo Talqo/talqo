@@ -35,7 +35,6 @@ erDiagram
     AGENT ||--o{ PERMISSION_GRANT : scopes
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
-    AGENT ||--o{ AGENT_FILE : stores
     AGENT ||--o{ FILE_EMBEDDING : embeds
 
     AGENT ||--o{ END_USER_SESSION : receives

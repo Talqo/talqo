@@ -1,5 +1,5 @@
 {
-	"id": "5c319d46-a305-4c81-87a3-578f076ca145",
+	"id": "63493f40-716a-422a-92a1-c2198ecf3bd1",
 	"prevId": "91fd85ee-63cf-4693-b512-dc3704bdf099",
 	"version": "7",
 	"dialect": "postgresql",
@@ -106,88 +106,6 @@
 					"tableFrom": "agent",
 					"tableTo": "user",
 					"columnsFrom": ["owner_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.agent_file": {
-			"name": "agent_file",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "text",
-					"primaryKey": true,
-					"notNull": true
-				},
-				"agent_id": {
-					"name": "agent_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"original_name": {
-					"name": "original_name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"stored_name": {
-					"name": "stored_name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"mime_type": {
-					"name": "mime_type",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"size_bytes": {
-					"name": "size_bytes",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"created_at": {
-					"name": "created_at",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				}
-			},
-			"indexes": {
-				"agent_file_agent_id_idx": {
-					"name": "agent_file_agent_id_idx",
-					"columns": [
-						{
-							"expression": "agent_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"agent_file_agent_id_agent_id_fk": {
-					"name": "agent_file_agent_id_agent_id_fk",
-					"tableFrom": "agent_file",
-					"tableTo": "agent",
-					"columnsFrom": ["agent_id"],
 					"columnsTo": ["id"],
 					"onDelete": "cascade",
 					"onUpdate": "no action"

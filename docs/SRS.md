@@ -53,7 +53,7 @@ Talqo is related to these repos:
 - An external database is available at deploy time; PostgreSQL is not required, but the
   database must support vector similarity search for knowledge-base embeddings (FR-2.17).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
-- Uploaded knowledge-base files (FR-2.14) are stored on the local filesystem.
+- Uploaded knowledge-base files (FR-2.14) are stored on the local filesystem, one directory per agent under the upload dir; file names (validated, kept on disk) double as identifiers — there is no file metadata table.
 
 ## 3. Functional Requirements
 

@@ -55,7 +55,7 @@ function useInvalidateAgents() {
 export function useCreateAgent() {
 	const invalidate = useInvalidateAgents()
 	return useMutation({
-		mutationFn: (input: Omit<Agent, "avatarUrl" | "id">) =>
+		mutationFn: (input: Omit<Agent, "id">) =>
 			api.createAgent({ name: input.name }).then(({ agent }) =>
 				api
 					.updateAgent(agent.id, {
@@ -72,7 +72,7 @@ export function useCreateAgent() {
 export function useUpdateAgent() {
 	const invalidate = useInvalidateAgents()
 	return useMutation({
-		mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Agent, "avatarUrl" | "id">> }) => {
+		mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Agent, "id">> }) => {
 			const { status, ...rest } = patch
 			return api
 				.updateAgent(id, { ...rest, ...(status ? { active: status === "active" } : {}) })
@@ -93,8 +93,8 @@ export function useUploadAgentFile() {
 export function useRenameAgentFile() {
 	const invalidate = useInvalidateAgents()
 	return useMutation({
-		mutationFn: ({ agentId, fileId, name }: { agentId: string; fileId: string; name: string }) =>
-			api.renameAgentFile(agentId, fileId, name),
+		mutationFn: ({ agentId, name, newName }: { agentId: string; name: string; newName: string }) =>
+			api.renameAgentFile(agentId, name, newName),
 		onSuccess: invalidate,
 	})
 }
@@ -102,7 +102,7 @@ export function useRenameAgentFile() {
 export function useDeleteAgentFile() {
 	const invalidate = useInvalidateAgents()
 	return useMutation({
-		mutationFn: ({ agentId, fileId }: { agentId: string; fileId: string }) => api.deleteAgentFile(agentId, fileId),
+		mutationFn: ({ agentId, name }: { agentId: string; name: string }) => api.deleteAgentFile(agentId, name),
 		onSuccess: invalidate,
 	})
 }

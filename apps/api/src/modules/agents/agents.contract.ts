@@ -7,7 +7,6 @@ export const agentResponseSchema = z.object({
 	systemPrompt: z.string(),
 	wordBlacklist: z.array(z.string()),
 	status: z.enum(["active", "paused"]),
-	avatarUrl: z.string().nullable(),
 })
 
 export const agentsResponseSchema = z.object({
@@ -28,9 +27,8 @@ export const updateAgentRequestSchema = z
 	.partial()
 
 export const agentFileResponseSchema = z.object({
-	id: z.string(),
+	// The name doubles as the id: files are unique per agent directory and have no database row.
 	name: z.string(),
-	mimeType: z.string(),
 	sizeBytes: z.number().int().nonnegative(),
 	createdAt: z.date(),
 })

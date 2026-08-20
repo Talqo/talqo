@@ -5,7 +5,7 @@ const MAX_PORT = 65_535
 const DEFAULT_MAX_FILE_SIZE_MB = 10
 // eslint-disable-next-line no-magic-numbers
 export const BYTES_PER_MB = 1024 * 1024
-// agent_file.original_name is a text column; 255 keeps stored names portable and cheap to validate.
+// 255 keeps file names portable across filesystems and cheap to validate.
 const MAX_FILE_NAME_LENGTH = 255
 const DEFAULT_MAX_FILE_NAME_LENGTH = MAX_FILE_NAME_LENGTH
 

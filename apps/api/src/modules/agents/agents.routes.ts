@@ -15,6 +15,7 @@ import {
 	renameAgentFileRequestSchema,
 	updateAgentRequestSchema,
 } from "./agents.contract.ts"
+import * as files from "./agents.files.ts"
 import * as service from "./agents.service.ts"
 
 export const agentsRoutes = new Hono<{ Variables: AuthedVariables }>()
@@ -99,37 +100,43 @@ export const agentsRoutes = new Hono<{ Variables: AuthedVariables }>()
 			if (error instanceof service.InvalidFileError) {
 				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
 			}
+			if (error instanceof files.FileExistsError) {
+				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})
-	.patch("/api/agents/:id/files/:fileId", async (c) => {
+	.patch("/api/agents/:id/files/:fileName", async (c) => {
 		const body = renameAgentFileRequestSchema.safeParse(await parseJsonBody(c))
 		if (!body.success) return c.json({ error: z.prettifyError(body.error) }, HTTP_STATUS.BAD_REQUEST)
 
 		try {
 			const renamed = await service.renameFile(
 				c.req.param("id"),
-				c.req.param("fileId"),
+				c.req.param("fileName"),
 				c.get("user").id,
 				body.data.name,
 			)
 			return c.json({ file: agentFileResponseSchema.parse(renamed) })
 		} catch (error) {
-			if (error instanceof service.AgentNotFoundError || error instanceof service.AgentFileNotFoundError) {
+			if (error instanceof service.AgentNotFoundError || error instanceof files.FileNotFoundError) {
 				return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
 			}
 			if (error instanceof service.InvalidFileError) {
 				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
 			}
+			if (error instanceof files.FileExistsError) {
+				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})
-	.delete("/api/agents/:id/files/:fileId", async (c) => {
+	.delete("/api/agents/:id/files/:fileName", async (c) => {
 		try {
-			await service.deleteFile(c.req.param("id"), c.req.param("fileId"), c.get("user").id)
+			await service.deleteFile(c.req.param("id"), c.req.param("fileName"), c.get("user").id)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
-			if (error instanceof service.AgentNotFoundError || error instanceof service.AgentFileNotFoundError) {
+			if (error instanceof service.AgentNotFoundError || error instanceof files.FileNotFoundError) {
 				return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
 			}
 			throw error

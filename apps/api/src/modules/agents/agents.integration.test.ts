@@ -4,6 +4,7 @@ import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { describe, expect, it } from "bun:test"
 import { readdir } from "node:fs/promises"
+import { join } from "node:path"
 
 type AgentBody = {
 	id: string
@@ -11,13 +12,10 @@ type AgentBody = {
 	systemPrompt: string
 	wordBlacklist: string[]
 	status: "active" | "paused"
-	avatarUrl: string | null
 }
 
 type AgentFileBody = {
-	id: string
 	name: string
-	mimeType: string
 	sizeBytes: number
 	createdAt: string
 }
@@ -73,7 +71,6 @@ describe("agents", () => {
 			status: "active",
 			systemPrompt: "",
 			wordBlacklist: [],
-			avatarUrl: null,
 		})
 
 		const getResponse = await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: cookie } })
@@ -148,7 +145,7 @@ describe("agents", () => {
 		}
 	})
 
-	it("uploads, lists, and deletes a context file, storing it on disk", async () => {
+	it("uploads, lists, and deletes a context file, storing it on disk under the agent's directory", async () => {
 		const { cookie } = await createAndLogin()
 		const agent = await createAgent(cookie, uniqueAgentName())
 
@@ -159,17 +156,17 @@ describe("agents", () => {
 		})
 		expect(uploadResponse.status).toBe(201)
 		const { file } = (await uploadResponse.json()) as { file: AgentFileBody }
-		expect(file).toMatchObject({ name: "context.txt", mimeType: "text/plain" })
+		expect(file).toMatchObject({ name: "context.txt" })
 		expect(file.sizeBytes).toBeGreaterThan(0)
 
-		const stored = await readdir(env.TALQO_UPLOAD_DIR)
-		expect(stored.some((entry) => entry.endsWith(".txt"))).toBe(true)
+		const stored = await readdir(join(env.TALQO_UPLOAD_DIR, agent.id))
+		expect(stored).toEqual(["context.txt"])
 
 		const listResponse = await app.request(`/api/agents/${agent.id}/files`, { headers: { Cookie: cookie } })
 		const { files } = (await listResponse.json()) as { files: AgentFileBody[] }
-		expect(files.map((f) => f.id)).toEqual([file.id])
+		expect(files.map((f) => f.name)).toEqual([file.name])
 
-		const deleteResponse = await app.request(`/api/agents/${agent.id}/files/${file.id}`, {
+		const deleteResponse = await app.request(`/api/agents/${agent.id}/files/${file.name}`, {
 			method: "DELETE",
 			headers: { Cookie: cookie },
 		})
@@ -178,6 +175,25 @@ describe("agents", () => {
 		const emptyResponse = await app.request(`/api/agents/${agent.id}/files`, { headers: { Cookie: cookie } })
 		const { files: remaining } = (await emptyResponse.json()) as { files: AgentFileBody[] }
 		expect(remaining).toEqual([])
+	})
+
+	it("rejects uploading two files with the same name", async () => {
+		const { cookie } = await createAndLogin()
+		const agent = await createAgent(cookie, uniqueAgentName())
+
+		const first = await app.request(`/api/agents/${agent.id}/files`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+			body: uploadForm("first"),
+		})
+		expect(first.status).toBe(201)
+
+		const second = await app.request(`/api/agents/${agent.id}/files`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+			body: uploadForm("second"),
+		})
+		expect(second.status).toBe(409)
 	})
 
 	it("renames a context file, keeping the original extension", async () => {
@@ -191,7 +207,7 @@ describe("agents", () => {
 		})
 		const { file } = (await uploadResponse.json()) as { file: AgentFileBody }
 
-		const renameResponse = await app.request(`/api/agents/${agent.id}/files/${file.id}`, {
+		const renameResponse = await app.request(`/api/agents/${agent.id}/files/${file.name}`, {
 			method: "PATCH",
 			headers: { Cookie: cookie, "Content-Type": "application/json" },
 			body: JSON.stringify({ name: "Refund Policy" }),
@@ -199,13 +215,32 @@ describe("agents", () => {
 		expect(renameResponse.status).toBe(200)
 		const { file: renamed } = (await renameResponse.json()) as { file: AgentFileBody }
 		expect(renamed.name).toBe("Refund Policy.txt")
+		expect(renamed.sizeBytes).toBe(file.sizeBytes)
 
-		const emptyName = await app.request(`/api/agents/${agent.id}/files/${file.id}`, {
+		const emptyName = await app.request(`/api/agents/${agent.id}/files/${renamed.name}`, {
 			method: "PATCH",
 			headers: { Cookie: cookie, "Content-Type": "application/json" },
 			body: JSON.stringify({ name: "   " }),
 		})
 		expect(emptyName.status).toBe(400)
+	})
+
+	it("rejects file names that could escape the agent directory", async () => {
+		const { cookie } = await createAndLogin()
+		const agent = await createAgent(cookie, uniqueAgentName())
+
+		const responses = await Promise.all(
+			["../escape.txt", "nested/dir.txt"].map((name) =>
+				app.request(`/api/agents/${agent.id}/files`, {
+					method: "POST",
+					headers: { Cookie: cookie },
+					body: uploadForm("payload", name),
+				}),
+			),
+		)
+		for (const response of responses) {
+			expect(response.status).toBe(400)
+		}
 	})
 
 	it("rejects files over the size limit", async () => {
