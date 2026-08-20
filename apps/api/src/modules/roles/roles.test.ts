@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 
-import { can } from "./roles.service.ts"
+import { can, effectivePermissions } from "./roles.service.ts"
 
 describe("can", () => {
 	it("lets an admin pass any check regardless of grants or resource", () => {
@@ -34,5 +34,21 @@ describe("can", () => {
 		const grants = [{ agentId: null, permission: "some:other-permission" }]
 
 		expect(can({ isAdmin: false }, grants, "users:invite")).toBe(false)
+	})
+})
+
+describe("effectivePermissions", () => {
+	it("returns every permission for an admin", () => {
+		expect(effectivePermissions({ isAdmin: true }, [])).toContain("ai_provider:manage")
+	})
+
+	it("returns distinct global grants for an operator", () => {
+		expect(
+			effectivePermissions({ isAdmin: false }, [
+				{ agentId: null, permission: "ai_provider:manage" },
+				{ agentId: null, permission: "ai_provider:manage" },
+				{ agentId: "agent-1", permission: "users:invite" },
+			]),
+		).toEqual(["ai_provider:manage"])
 	})
 })

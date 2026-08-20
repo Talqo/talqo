@@ -11,7 +11,7 @@ const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/api/setup", "/api/invitations/redeem"]
 
-export const PERMISSIONS = ["users:invite"] as const
+export const PERMISSIONS = ["users:invite", "ai_provider:manage"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
 export type PermissionGrant = {
@@ -115,6 +115,21 @@ export function can(
 	return grants.some(
 		(grant) => grant.permission === permission && (grant.agentId === null || grant.agentId === agentId),
 	)
+}
+
+export function effectivePermissions(
+	user: { isAdmin: boolean },
+	grants: { agentId: string | null; permission: string }[],
+): Permission[] {
+	if (user.isAdmin) return [...PERMISSIONS]
+	return PERMISSIONS.filter((permission) =>
+		grants.some((grant) => grant.agentId === null && grant.permission === permission),
+	)
+}
+
+export async function getAccess(userId: string): Promise<{ isAdmin: boolean; permissions: Permission[] }> {
+	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
+	return { isAdmin: adminStatus, permissions: effectivePermissions({ isAdmin: adminStatus }, grants) }
 }
 
 export async function authorize(userId: string, permission: Permission, agentId?: string): Promise<boolean> {

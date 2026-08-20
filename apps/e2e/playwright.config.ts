@@ -7,6 +7,7 @@ const CI_RETRIES = 2
 const apiPort = process.env.TALQO_API_PORT ?? "3000"
 const webPort = process.env.TALQO_WEB_PORT ?? "4173"
 const widgetPort = process.env.TALQO_WIDGET_PORT ?? String(await getFreePort())
+const providerPort = process.env.E2E_PROVIDER_PORT ?? String(await getFreePort())
 
 const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
 	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
@@ -35,6 +36,13 @@ export default defineConfig({
 		video: "off",
 	},
 	webServer: [
+		{
+			command: "bun run fake-provider.ts",
+			cwd: ".",
+			reuseExistingServer: false,
+			timeout: 120_000,
+			url: `http://127.0.0.1:${providerPort}/health`,
+		},
 		{
 			command: "bun run dev",
 			cwd: "../api",

@@ -1,0 +1,32 @@
+---
+title: AI provider configuration
+description: Connect text and embedding models to a self-hosted Talqo deployment.
+---
+
+Talqo uses operator-owned provider credentials. Users with the `ai_provider:manage` permission configure one text model and one embedding model from **Dashboard → AI configuration**.
+
+## Deployment secret
+
+Set `APP_SECRET` before starting the API. It must be base64url-encoded and decode to at least 32 random bytes:
+
+```sh
+openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+```
+
+Back up this value separately from the database. Changing or losing it makes stored provider credentials unusable; enter the credentials again after replacing it.
+
+## Providers
+
+Talqo supports OpenAI, Anthropic, Google Gemini, Mistral, Azure OpenAI, Amazon Bedrock, and OpenAI-compatible endpoints. Azure OpenAI and Amazon Bedrock accept static credentials or the API process's deployment identity. Anthropic provides text models only, so its text configuration requires a separate embedding provider.
+
+When both roles use the same provider account, enable **Use text provider credentials**. Talqo stores only one encrypted credential set in that configuration.
+
+## Model selection
+
+Choose **Load models** after entering provider settings. Talqo displays model identifiers returned by the provider without classifying them as text or embedding models. Select the correct type for each role. If discovery is unsupported, fails, or returns no models, enter the exact model identifier manually.
+
+## OpenAI-compatible endpoints
+
+OpenAI-compatible configuration accepts public, private, loopback, HTTP, and HTTPS base URLs for self-hosted inference. A user with `ai_provider:manage` can therefore make the API process contact internal network addresses. Grant this permission only to trusted operators.
+
+Talqo sends credentials only to the configured origin, rejects non-HTTP protocols, does not forward credentials across cross-origin redirects, limits request duration and response size, and hides provider response bodies from dashboard errors.

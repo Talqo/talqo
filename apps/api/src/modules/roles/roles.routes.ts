@@ -10,6 +10,7 @@ import { z } from "zod"
 import {
 	bootstrapAdminRequestSchema,
 	bootstrapAdminResponseSchema,
+	accessResponseSchema,
 	createGrantRequestSchema,
 	createInvitationResponseSchema,
 	grantResponseSchema,
@@ -21,6 +22,9 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new Hono<{ Variables: AuthedVariables }>()
+	.get("/api/access", async (c) => {
+		return c.json(accessResponseSchema.parse(await service.getAccess(c.get("user").id)))
+	})
 	.get("/api/setup", async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }))

@@ -1,10 +1,12 @@
 import { $ } from "bun"
 
 const COMPOSE_TIMEOUT = "30"
+const APP_SECRET_BYTES = 32
 const POSTGRES_PORT = "5432"
 const TEST_DATABASE = "talqo"
 const TEST_PROFILE = "test"
 const TEST_SERVICE = "postgres-test"
+const TEST_APP_SECRET = Buffer.alloc(APP_SECRET_BYTES, 1).toString("base64url")
 
 export type TestDatabaseEnv = Record<string, string | undefined>
 
@@ -29,7 +31,12 @@ export async function withTestDatabase(run: (env: TestDatabaseEnv) => Promise<vo
 			databaseUrl = `postgres://talqo:talqo@127.0.0.1:${port}/${TEST_DATABASE}`
 		}
 
-		await run({ ...Bun.env, DATABASE_URL: databaseUrl, NODE_ENV: "test" })
+		await run({
+			...Bun.env,
+			APP_SECRET: Bun.env.APP_SECRET ?? TEST_APP_SECRET,
+			DATABASE_URL: databaseUrl,
+			NODE_ENV: "test",
+		})
 	} finally {
 		if (projectName) {
 			await $`docker compose --project-name ${projectName} --profile ${TEST_PROFILE} down --volumes`.cwd(root)
