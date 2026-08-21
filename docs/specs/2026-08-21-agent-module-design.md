@@ -143,9 +143,9 @@ Unexpected failures use the existing API error path. Repository rows and databas
 The roles permission registry adds:
 
 - `agents:read`: list and inspect all deployment agents and enter agent-dependent dashboard areas.
-- `agents:manage`: create, update, and delete deployment agents.
+- `agents:manage`: create, update, and delete deployment agents; it implies effective read access.
 
-An operator needs `agents:read` independently of `agents:manage`; granting manage does not implicitly alter stored grants. Admins continue to pass every authorization check through the existing admin bypass and receive the complete permission registry from `GET /api/me/permissions`. Non-admins receive their distinct current grants.
+`agents:read` supports read-only operators. A stored `agents:manage` grant also satisfies `agents:read` authorization and causes both permissions to appear in the operator's effective-permissions response; this implication is computed and does not create a second stored grant. Admins continue to pass every authorization check through the existing admin bypass and receive the complete permission registry from `GET /api/me/permissions`. Non-admins receive the distinct effective closure of their current grants.
 
 The opaque session token identifies the operator but contains no roles or permissions. The server reads current authorization state for every protected operation and for `GET /api/me/permissions`, preserving immediate revocation behavior. Browser permission state controls discoverability only and is never an enforcement boundary.
 
@@ -247,7 +247,7 @@ Generated migration and metadata files are never hand-edited.
 
 ### Route Tests
 
-- Authentication and `agents:read`/`agents:manage` enforcement on every endpoint.
+- Authentication and `agents:read`/`agents:manage` enforcement on every agent endpoint, including the manage-implies-read rule.
 - Effective-permissions response for admin and non-admin sessions.
 - Request validation, serialization, status codes, and error mapping.
 - Read-only users cannot mutate even if they call endpoints directly.
@@ -293,7 +293,7 @@ Run the repository-required quality, typecheck, unit, i18n, integration, and E2E
 - Aggregate updates cannot partially save.
 - Operators without `agents:read` cannot discover or access Agents, Widget, or Analytics dashboard areas.
 - Operators with `agents:read` but without `agents:manage` can inspect agents but cannot discover or execute mutations.
-- Operators with `agents:manage` can create, update, and hard-delete agents, subject to independent server authorization.
+- Operators with `agents:manage` receive effective read access and can create, update, and hard-delete agents, subject to independent server authorization.
 - The dashboard contains no in-memory agent seed or active/paused behavior.
 - Widget and Analytics selectors use persisted agent IDs and names without adding runtime, provider, MCP, RAG, appearance, or analytics implementations.
 - ERD and architecture documents describe deployment-owned agents and global permissions consistently.
