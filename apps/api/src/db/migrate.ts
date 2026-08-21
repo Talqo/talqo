@@ -1,14 +1,14 @@
 import { migrate } from "drizzle-orm/postgres-js/migrator"
 import { existsSync } from "node:fs"
 
-import { db, sql } from "./client.ts"
+import { getDb, getSql } from "./client.ts"
 
 const migrationsFolder = `${import.meta.dir}/../../drizzle`
 
 export async function runMigrations(): Promise<void> {
 	if (!existsSync(`${migrationsFolder}/meta/_journal.json`)) return
 
-	await migrate(db, { migrationsFolder })
+	await migrate(getDb(), { migrationsFolder })
 }
 
 if (import.meta.main) {
@@ -16,6 +16,6 @@ if (import.meta.main) {
 		await runMigrations()
 		console.log("Migrations up to date")
 	} finally {
-		await sql.end()
+		await getSql().end()
 	}
 }

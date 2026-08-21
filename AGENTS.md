@@ -10,14 +10,15 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 - Update `docs/architecture.md` in the same change when architecture, boundaries, ownership, or canonical structure changes.
 - Keep E2E data in the API-owned seed for an isolated test database.
 
-Run after changes:
+Run after changes. All commands work without env setup unless noted:
 
 ```sh
 bun run quality:fix
 bun run typecheck
-bun test
+bun run test            # unit tests only; hermetic, no database
+bun run contracts:check # only if API contracts or generated web client changed
 bun run i18n:fix
-bun run test:integration
-bun run e2e
-bun run actions:check  # only if GH actions changed
+bun run test:integration # needs Docker for the throwaway Postgres
+bun run e2e             # needs browsers; not covered by CI
+bun run actions:check   # only if GH actions changed; needs actionlint and zizmor on PATH
 ```

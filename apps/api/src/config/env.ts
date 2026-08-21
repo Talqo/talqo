@@ -14,6 +14,8 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>
 
+type EnvKey = keyof Env
+
 export function parseEnv(source: Record<string, string | undefined>): Env {
 	const result = envSchema.safeParse(source)
 	if (!result.success) {
@@ -22,19 +24,33 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
 	return result.data
 }
 
-let cached: Env | undefined
-function load(): Env {
-	return (cached ??= parseEnv(process.env))
+// Validate only the key being read so consumers of one variable never
+// require unrelated configuration to exist.
+const cache = new Map<EnvKey, Env[EnvKey]>()
+
+function read<K extends EnvKey>(key: K): Env[K] {
+	if (!cache.has(key)) {
+		const result = envSchema.shape[key].safeParse(process.env[key])
+		if (!result.success) {
+			throw new Error(`Invalid environment configuration:\n${formatFieldIssues(key, result.error)}`)
+		}
+		cache.set(key, result.data)
+	}
+	return cache.get(key) as Env[K]
+}
+
+function formatFieldIssues(key: EnvKey, error: z.ZodError): string {
+	return error.issues.map((issue) => `✖ ${issue.message}\n  → at ${key}`).join("\n")
 }
 
 export const env: Env = {
 	get DATABASE_URL() {
-		return load().DATABASE_URL
+		return read("DATABASE_URL")
 	},
 	get TALQO_API_PORT() {
-		return load().TALQO_API_PORT
+		return read("TALQO_API_PORT")
 	},
 	get NODE_ENV() {
-		return load().NODE_ENV
+		return read("NODE_ENV")
 	},
 }

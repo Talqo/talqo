@@ -16,13 +16,13 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
-import { ErrorResponse } from "../models/errorResponse.zod"
-import { ChangePasswordBody } from "../models/identity/changePasswordBody.zod"
-import { GetSession200 } from "../models/identity/getSession200.zod"
-import { Login200 } from "../models/identity/login200.zod"
-import { LoginBody } from "../models/identity/loginBody.zod"
-import { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
-import { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
+import type { ErrorResponse } from "../models/errorResponse.zod"
+import type { ChangePasswordBody } from "../models/identity/changePasswordBody.zod"
+import type { GetSession200 } from "../models/identity/getSession200.zod"
+import type { Login200 } from "../models/identity/login200.zod"
+import type { LoginBody } from "../models/identity/loginBody.zod"
+import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
+import type { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -83,7 +83,6 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 		body: JSON.stringify(loginBody),
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: loginResponseError["data"]; status?: number } = new globalThis.Error()
@@ -92,8 +91,7 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? Login200.parse(parsedBody) : parsedBody
+	const data: loginResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as loginResponseSuccess
 }
 
@@ -235,7 +233,6 @@ export const getSession = async (options?: RequestInit): Promise<getSessionRespo
 		method: "GET",
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: getSessionResponseError["data"]; status?: number } = new globalThis.Error()
@@ -244,8 +241,7 @@ export const getSession = async (options?: RequestInit): Promise<getSessionRespo
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? GetSession200.parse(parsedBody) : parsedBody
+	const data: getSessionResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as getSessionResponseSuccess
 }
 
@@ -344,7 +340,6 @@ export const updateAccount = async (
 		body: JSON.stringify(updateAccountBody),
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: updateAccountResponseError["data"]; status?: number } =
@@ -354,8 +349,7 @@ export const updateAccount = async (
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? UpdateAccount200.parse(parsedBody) : parsedBody
+	const data: updateAccountResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as updateAccountResponseSuccess
 }
 

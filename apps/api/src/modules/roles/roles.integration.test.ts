@@ -1,5 +1,5 @@
 import { app } from "@/app.ts"
-import { sql } from "@/db/client.ts"
+import { getSql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
@@ -26,7 +26,7 @@ async function login(username: string, password: string): Promise<string> {
 }
 
 async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	await sql`TRUNCATE TABLE user_role`
+	await getSql()`TRUNCATE TABLE user_role`
 	const username = uniqueUsername()
 	const admin = await service.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
@@ -40,7 +40,7 @@ async function createMemberSession(): Promise<string> {
 
 describe("roles", () => {
 	it("reports that setup is needed before any admin exists", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await getSql()`TRUNCATE TABLE user_role`
 
 		const response = await app.request("/api/setup")
 
@@ -49,7 +49,7 @@ describe("roles", () => {
 	})
 
 	it("bootstraps the admin account and then reports setup as complete", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await getSql()`TRUNCATE TABLE user_role`
 		const username = uniqueUsername()
 
 		const response = await app.request("/api/setup", {
@@ -68,7 +68,7 @@ describe("roles", () => {
 	})
 
 	it("rejects a second attempt to bootstrap an admin", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await getSql()`TRUNCATE TABLE user_role`
 		const seedAdmin = await identity.createAccount({ username: uniqueUsername(), password: "seed-admin-password" })
 		await repo.insertUserRole({ id: crypto.randomUUID(), userId: seedAdmin.id, role: "admin" })
 
@@ -88,7 +88,7 @@ describe("roles", () => {
 	})
 
 	it("enforces at most one admin row at the database level, not just in application code", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await getSql()`TRUNCATE TABLE user_role`
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
 		const userB = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-2" })
 

@@ -8,8 +8,8 @@ import type { QueryFunction, QueryKey, UseQueryOptions, UseQueryResult } from "@
  */
 import { useQuery } from "@tanstack/react-query"
 
-import { ErrorResponse } from "../models/errorResponse.zod"
-import { HealthResponse } from "../models/health/healthResponse.zod"
+import type { ErrorResponse } from "../models/errorResponse.zod"
+import type { HealthResponse } from "../models/health/healthResponse.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -58,7 +58,6 @@ export const getHealth = async (options?: RequestInit): Promise<getHealthRespons
 		method: "GET",
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: getHealthResponseError["data"]; status?: number } = new globalThis.Error()
@@ -67,8 +66,7 @@ export const getHealth = async (options?: RequestInit): Promise<getHealthRespons
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? HealthResponse.parse(parsedBody) : parsedBody
+	const data: getHealthResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as getHealthResponseSuccess
 }
 

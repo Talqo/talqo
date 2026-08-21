@@ -16,16 +16,16 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
-import { ErrorResponse } from "../models/errorResponse.zod"
-import { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
-import { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
-import { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
-import { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
-import { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
-import { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
-import { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
-import { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
-import { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
+import type { ErrorResponse } from "../models/errorResponse.zod"
+import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
+import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
+import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
+import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
+import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
+import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
+import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
+import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
+import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -74,7 +74,6 @@ export const getSetupStatus = async (options?: RequestInit): Promise<getSetupSta
 		method: "GET",
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: getSetupStatusResponseError["data"]; status?: number } =
@@ -84,8 +83,7 @@ export const getSetupStatus = async (options?: RequestInit): Promise<getSetupSta
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? GetSetupStatus200.parse(parsedBody) : parsedBody
+	const data: getSetupStatusResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as getSetupStatusResponseSuccess
 }
 
@@ -178,7 +176,6 @@ export const bootstrapAdmin = async (
 		body: JSON.stringify(bootstrapAdminBody),
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: bootstrapAdminResponseError["data"]; status?: number } =
@@ -188,8 +185,7 @@ export const bootstrapAdmin = async (
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? BootstrapAdmin201.parse(parsedBody) : parsedBody
+	const data: bootstrapAdminResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as bootstrapAdminResponseSuccess
 }
 
@@ -283,7 +279,6 @@ export const createInvitation = async (options?: RequestInit): Promise<createInv
 		method: "POST",
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: createInvitationResponseError["data"]; status?: number } =
@@ -293,8 +288,7 @@ export const createInvitation = async (options?: RequestInit): Promise<createInv
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? CreateInvitation201.parse(parsedBody) : parsedBody
+	const data: createInvitationResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as createInvitationResponseSuccess
 }
 
@@ -379,7 +373,6 @@ export const redeemInvitation = async (
 		body: JSON.stringify(redeemInvitationBody),
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: redeemInvitationResponseError["data"]; status?: number } =
@@ -389,8 +382,7 @@ export const redeemInvitation = async (
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? RedeemInvitation201.parse(parsedBody) : parsedBody
+	const data: redeemInvitationResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as redeemInvitationResponseSuccess
 }
 
@@ -511,7 +503,6 @@ export const createPermissionGrant = async (
 		body: JSON.stringify(createPermissionGrantBody),
 	})
 
-	const contentType = (res.headers.get("content-type") ?? "").toLowerCase()
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
 		const err: globalThis.Error & { info?: createPermissionGrantResponseError["data"]; status?: number } =
@@ -521,8 +512,7 @@ export const createPermissionGrant = async (
 		err.status = res.status
 		throw err
 	}
-	const parsedBody = body ? (contentType.includes("json") ? JSON.parse(body) : body) : {}
-	const data = contentType.includes("json") ? CreatePermissionGrant201.parse(parsedBody) : parsedBody
+	const data: createPermissionGrantResponseSuccess["data"] = body ? JSON.parse(body) : {}
 	return { data, status: res.status, headers: res.headers } as createPermissionGrantResponseSuccess
 }
 

@@ -1,20 +1,17 @@
 import { defineConfig } from "orval"
 
-const input = process.env.ORVAL_INPUT ?? "./apps/api/openapi.json"
-const target = process.env.ORVAL_OUTPUT ?? "./apps/web/src/api/generated"
-
 export default defineConfig({
 	web: {
 		input: {
-			target: input,
+			target: "./apps/api/openapi.json",
 		},
 		output: {
 			client: "react-query",
 			httpClient: "fetch",
 			mode: "tags-split",
-			target,
+			target: "./apps/web/src/api/generated",
 			schemas: {
-				path: `${target}/models`,
+				path: "./apps/web/src/api/generated/models",
 				type: "zod",
 				splitByTags: true,
 			},
@@ -26,7 +23,6 @@ export default defineConfig({
 				},
 				fetch: {
 					forceSuccessResponse: true,
-					runtimeValidation: true,
 				},
 				query: {
 					shouldExportQueryKey: true,

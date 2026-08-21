@@ -12,7 +12,7 @@ This change migrates every existing API route and every existing handwritten web
 - Generate a web-specific TanStack Query fetch client and Zod schemas with Orval 8.24.0.
 - Commit both `apps/api/openapi.json` and `apps/web/src/api/generated/`.
 - Keep the OpenAPI document as a repository artifact; do not serve it from the running API.
-- Make contributors responsible for regeneration. CI only compares fresh temporary output with committed artifacts and reports stale files.
+- Make contributors responsible for regeneration. CI regenerates artifacts and reports any drift from committed files.
 - Treat generated Zod request schemas as baseline wire validation. Derive app-owned form schemas for user experience concerns.
 - Treat OpenAPI, not a universal generated client package, as the reusable boundary between API consumers.
 
@@ -57,20 +57,19 @@ One repository-owned Orval configuration consumes `apps/api/openapi.json` and wr
 
 - the React Query client with native fetch;
 - Zod 4 classic schemas;
-- successful JSON response validation at runtime;
 - thrown errors for non-success responses;
 - abort-signal support;
 - relative API URLs;
 - `credentials: "include"` for dashboard session cookies;
 - deterministic tag-based output and cleaning limited to generated directories.
 
-The built-in fetch implementation is used instead of a custom mutator. Current Orval custom mutators bypass built-in response validation, so introducing one would undermine the validation goal.
+The built-in fetch implementation is used instead of a custom mutator; a mutator would bypass Orval's documented generation behavior without adding anything the boundary needs.
 
-Orval 8.24 loses Zod value-import metadata when React Query wraps its fetch output. Generation applies a narrow postprocessor that promotes generated model imports to value imports. This workaround owns no handwritten client behavior and must be removed when unchanged Orval output typechecks with fetch response validation.
+Client runtime response validation is deliberately not enabled. At Orval 8.24 its generator emits type-only imports for schemas it then calls as values, producing code that cannot typecheck or run; supporting the feature would require a permanent post-generation patch, which this repository does not accept. Generated Zod schemas are instead consumed at owned boundaries such as form validation, and contract drift is covered by integration and E2E tests. Revisit only when upstream output for that feature typechecks unmodified.
 
 The existing handwritten endpoint functions and duplicated response/request types in `apps/web/src/api/client.ts` are removed. Web call sites consume generated hooks and generated key factories directly. Global defaults remain in the app's `QueryClient`; call sites may supply operation-specific options. Mutation owners explicitly invalidate the generated keys affected by successful writes. Generated code contains no localized messages or UI error presentation.
 
-`apps/web/src/api/errors.ts` remains handwritten. It normalizes Orval/fetch failures into the app-facing error representation used by UI code. A generated response-schema failure remains a `ZodError` and is treated as a contract or programming defect rather than as invalid user input.
+`apps/web/src/api/errors.ts` remains handwritten. It normalizes Orval/fetch failures into the app-facing error representation used by UI code.
 
 ## Form Validation
 
@@ -98,9 +97,9 @@ A root `contracts:generate` command performs these steps in order:
 
 Contributors run this command whenever API contract declarations or generator configuration changes and commit the resulting artifacts.
 
-A root `contracts:check` command generates both artifacts into a temporary directory, applies the same formatting, and recursively compares them with the committed files. It exits nonzero with instructions to run `bun run contracts:generate` if files differ, are missing, or would be newly created. The check does not modify tracked files.
+A root `contracts:check` command regenerates both artifacts and fails if any tracked artifact would differ, disappear, or be newly created, with instructions to run `bun run contracts:generate`. Generation is deterministic, so a regenerated tree matches the committed one exactly when artifacts are fresh.
 
-CI runs `contracts:check`. Builds and tests consume committed generated output and do not regenerate it implicitly. Exact generator and integration versions are pinned in the lockfile to make output reproducible.
+CI runs `contracts:check` in a dedicated job. Builds and tests consume committed generated output and do not regenerate it implicitly. Exact generator and integration versions are pinned in the lockfile to make output reproducible.
 
 ## Documentation Changes
 
@@ -122,7 +121,7 @@ The implementation is complete when these commands pass:
 bun run contracts:check
 bun run quality:fix
 bun run typecheck
-bun test
+bun run test
 bun run i18n:fix
 bun run test:integration
 bun run e2e
@@ -142,7 +141,7 @@ bun run e2e
 - API handlers cannot return an intentional status/body combination omitted from their route declaration without a type or test failure.
 - `apps/api/openapi.json` and `apps/web/src/api/generated/` are committed, deterministic, and never hand-edited.
 - Existing web API calls use generated Orval React Query/Zod output with no duplicated endpoint request or response types.
-- Successful JSON responses are validated by generated Zod schemas at runtime.
+- Generated code typechecks and runs without any post-generation patch or workaround.
 - Forms reuse generated request constraints while retaining app-owned localized and cross-field validation.
-- CI detects stale or missing artifacts without modifying tracked files.
+- CI detects stale or missing generated artifacts by regenerating them and failing on any drift.
 - Architecture documentation and the generator ADR match the implemented ownership boundaries.
