@@ -13,6 +13,24 @@ import { createCredentialVault } from "./credential-vault.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
 
+const azureInput = (settings: Record<string, string>): SaveConfigurationInput => ({
+	expectedRevision: 0,
+	text: {
+		providerId: "azure",
+		modelId: "gpt-5",
+		authMode: "static",
+		settings,
+		credentials: { apiKey: "sk-azure" },
+	},
+	embedding: {
+		providerId: "azure",
+		modelId: "text-embedding-3-small",
+		authMode: "static",
+		settings,
+		credentialSource: "text",
+	},
+})
+
 const input: SaveConfigurationInput = {
 	expectedRevision: 0,
 	text: {
@@ -72,6 +90,20 @@ describe("AI provider service", () => {
 		await service.saveConfiguration("user-1", input)
 
 		await expect(service.saveConfiguration("user-1", input)).rejects.toBeInstanceOf(RevisionConflictError)
+	})
+
+	it("reuses stored credentials when settings arrive in a different key order", async () => {
+		const { service } = createMemoryService()
+		await service.saveConfiguration("user-1", azureInput({ apiVersion: "2024-06-01", baseURL: "https://example.com" }))
+
+		const reordered = azureInput({ baseURL: "https://example.com", apiVersion: "2024-06-01" })
+		const result = await service.saveConfiguration("user-1", {
+			expectedRevision: 1,
+			text: { ...reordered.text, credentials: undefined },
+			embedding: reordered.embedding,
+		})
+
+		expect(result.text?.hasCredentials).toBe(true)
 	})
 
 	it("requires credentials when switching from reused to separate embedding credentials", async () => {

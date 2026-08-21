@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { AI_PROVIDER_IDS, AUTH_MODES } from "./ai-provider.registry.ts"
+import { AI_PROVIDER_IDS, AI_PROVIDER_ROLES, AUTH_MODES } from "./ai-provider.registry.ts"
 
 const stringRecordSchema = z.record(z.string(), z.string())
 
@@ -29,7 +29,7 @@ export const discoverModelsRequestSchema = z.object({
 	authMode: z.enum(AUTH_MODES),
 	settings: stringRecordSchema,
 	credentials: stringRecordSchema.optional(),
-	storedCredentialRole: z.enum(["text", "embedding"]).optional(),
+	storedCredentialRole: z.enum(AI_PROVIDER_ROLES).optional(),
 })
 
 export type DiscoverModelsInput = z.infer<typeof discoverModelsRequestSchema>
@@ -38,7 +38,7 @@ export const providerMetadataResponseSchema = z.object({
 	providers: z.array(
 		z.object({
 			id: z.enum(AI_PROVIDER_IDS),
-			roles: z.array(z.enum(["text", "embedding"])),
+			roles: z.array(z.enum(AI_PROVIDER_ROLES)),
 			authModes: z.array(z.enum(AUTH_MODES)),
 			settingFields: z.array(z.string()),
 			requiredSettingFields: z.array(z.string()),

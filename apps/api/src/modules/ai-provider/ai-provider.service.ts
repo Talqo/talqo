@@ -40,6 +40,12 @@ export class RevisionConflictError extends Error {}
 export class InvalidConfigurationError extends Error {}
 export class UnusableConfigurationError extends Error {}
 
+function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
+	const firstKeys = Object.keys(first)
+	const secondKeys = Object.keys(second)
+	return firstKeys.length === secondKeys.length && firstKeys.every((key) => first[key] === second[key])
+}
+
 function sameContext(
 	stored: StoredTextConfiguration,
 	input: { authMode: StoredTextConfiguration["authMode"]; providerId: string; settings: Record<string, string> },
@@ -47,7 +53,7 @@ function sameContext(
 	return (
 		stored.providerId === input.providerId &&
 		stored.authMode === input.authMode &&
-		JSON.stringify(stored.settings) === JSON.stringify(input.settings)
+		settingsEqual(stored.settings, input.settings)
 	)
 }
 
@@ -59,7 +65,6 @@ function resolveEnvelope(
 	input: {
 		credentials?: Record<string, string>
 		existing?: StoredTextConfiguration
-		existingCredentials?: boolean
 		providerId: string
 		role: "text" | "embedding"
 		settings: Record<string, string>

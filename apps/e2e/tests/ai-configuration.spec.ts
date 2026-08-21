@@ -1,9 +1,15 @@
 import { expect, test } from "@playwright/test"
 
+function operatorPassword(): string {
+	const value = process.env.E2E_OPERATOR_PASSWORD
+	if (!value) throw new Error("E2E_OPERATOR_PASSWORD environment variable is required")
+	return value
+}
+
 async function login(page: import("@playwright/test").Page, username: string) {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(username)
-	await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_OPERATOR_PASSWORD ?? "")
+	await page.getByLabel("Password", { exact: true }).fill(operatorPassword())
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 }
