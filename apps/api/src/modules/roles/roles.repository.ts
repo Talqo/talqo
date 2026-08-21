@@ -1,4 +1,4 @@
-import { getDb } from "@/db/client.ts"
+import { db } from "@/db/client.ts"
 import { and, eq, gt, isNull } from "drizzle-orm"
 
 import { invitation, permissionGrant, userRole } from "./roles.schema.ts"
@@ -11,33 +11,28 @@ export type PermissionGrant = typeof permissionGrant.$inferSelect
 export type NewPermissionGrant = typeof permissionGrant.$inferInsert
 
 export async function adminExists(): Promise<boolean> {
-	const db = getDb()
 	const [row] = await db.select({ id: userRole.id }).from(userRole).where(eq(userRole.role, "admin")).limit(1)
 	return row !== undefined
 }
 
 export async function insertUserRole(values: NewUserRole): Promise<UserRole> {
-	const db = getDb()
 	const [row] = await db.insert(userRole).values(values).returning()
 	if (!row) throw new Error("insertUserRole: insert returned no row")
 	return row
 }
 
 export async function findRoleForUser(userId: string): Promise<UserRole["role"] | undefined> {
-	const db = getDb()
 	const [row] = await db.select({ role: userRole.role }).from(userRole).where(eq(userRole.userId, userId))
 	return row?.role
 }
 
 export async function insertInvitation(values: NewInvitation): Promise<Invitation> {
-	const db = getDb()
 	const [row] = await db.insert(invitation).values(values).returning()
 	if (!row) throw new Error("insertInvitation: insert returned no row")
 	return row
 }
 
 export async function claimInvitation(tokenHash: string): Promise<Invitation | undefined> {
-	const db = getDb()
 	// Conditional UPDATE, not read-then-write: Postgres's row lock makes this an atomic single-use claim.
 	const [row] = await db
 		.update(invitation)
@@ -50,23 +45,19 @@ export async function claimInvitation(tokenHash: string): Promise<Invitation | u
 }
 
 export async function unclaimInvitation(id: string): Promise<void> {
-	const db = getDb()
 	await db.update(invitation).set({ redeemedAt: null }).where(eq(invitation.id, id))
 }
 
 export async function insertPermissionGrant(values: NewPermissionGrant): Promise<PermissionGrant> {
-	const db = getDb()
 	const [row] = await db.insert(permissionGrant).values(values).returning()
 	if (!row) throw new Error("insertPermissionGrant: insert returned no row")
 	return row
 }
 
 export async function deletePermissionGrant(id: string): Promise<void> {
-	const db = getDb()
 	await db.delete(permissionGrant).where(eq(permissionGrant.id, id))
 }
 
 export async function findGrantsForUser(userId: string): Promise<PermissionGrant[]> {
-	const db = getDb()
 	return db.select().from(permissionGrant).where(eq(permissionGrant.userId, userId))
 }

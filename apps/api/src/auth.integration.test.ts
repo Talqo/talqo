@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 
 import { app } from "./app.ts"
-import { getSql } from "./db/client.ts"
+import { sql } from "./db/client.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "./test-helpers.ts"
 
 async function login(username: string, password: string): Promise<string> {
@@ -19,7 +19,7 @@ async function login(username: string, password: string): Promise<string> {
 
 describe("auth flow", () => {
 	it("bootstraps an admin, invites and grants a member, then revokes access via password reset", async () => {
-		await getSql()`TRUNCATE TABLE user_role`
+		await sql`TRUNCATE TABLE user_role`
 
 		// 1. Bootstrap the sole admin.
 		const adminUsername = uniqueUsername()

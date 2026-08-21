@@ -1,5 +1,5 @@
-import { getSql } from "@/db/client.ts"
+import { sql } from "@/db/client.ts"
 
 export async function reset(): Promise<void> {
-	await getSql()`TRUNCATE TABLE user_role, invitation, permission_grant`
+	await sql`TRUNCATE TABLE user_role, invitation, permission_grant`
 }

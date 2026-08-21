@@ -9,8 +9,8 @@
 		"db:migrate": "bun run src/db/migrate.ts",
 		"db:seed": "bun run src/db/seed.ts",
 		"dev": "bun --watch src/index.ts",
-		"openapi:generate": "bun run src/openapi.ts",
-		"test": "bun test --path-ignore-patterns '**/*.integration.test.ts'",
+		"openapi:generate": "bun --preload ./src/no-database.preload.ts src/openapi.ts",
+		"test": "bun test --preload ./src/no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts'",
 		"test:integration": "bun ../../scripts/test-integration.ts",
 		"typecheck": "tsc --noEmit"
 	},
