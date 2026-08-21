@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { LockIcon, PencilLineIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -200,6 +200,7 @@ function ConnectionFields({
 	onChange,
 	providers,
 	stored,
+	drafts,
 	disabled = false,
 }: {
 	role: "text" | "embedding"
@@ -207,6 +208,7 @@ function ConnectionFields({
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
 	stored: RedactedRoleConfiguration | null
+	drafts: Map<string, RoleValue>
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
@@ -214,8 +216,29 @@ function ConnectionFields({
 	if (!provider) return null
 
 	function selectProvider(providerId: AiProviderId) {
+		if (providerId === value.providerId) return
 		const next = providers.find((item) => item.id === providerId)
 		if (!next) return
+		drafts.set(`${role}:${value.providerId}`, {
+			...value,
+			settings: { ...value.settings },
+			credentials: { ...value.credentials },
+		})
+		const draft = drafts.get(`${role}:${providerId}`)
+		if (draft) {
+			onChange({ ...draft, settings: { ...draft.settings }, credentials: { ...draft.credentials } })
+			return
+		}
+		if (stored && stored.providerId === providerId) {
+			onChange({
+				providerId,
+				modelId: stored.modelId,
+				authMode: stored.authMode,
+				settings: { ...stored.settings },
+				credentials: {},
+			})
+			return
+		}
 		onChange({ providerId, modelId: "", authMode: next.authModes[0] ?? "static", settings: {}, credentials: {} })
 	}
 
@@ -352,6 +375,7 @@ function RoleFields(props: {
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
 	stored: RedactedRoleConfiguration | null
+	drafts: Map<string, RoleValue>
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
@@ -383,6 +407,7 @@ function AiConfigurationPage() {
 	const configurationQuery = useAiProviderConfiguration()
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
+	const drafts = useRef(new Map<string, RoleValue>()).current
 	const {
 		control,
 		handleSubmit,
@@ -477,6 +502,7 @@ function AiConfigurationPage() {
 									}}
 									providers={providers}
 									stored={configuration.text}
+									drafts={drafts}
 								/>
 							)}
 						/>
@@ -504,6 +530,11 @@ function AiConfigurationPage() {
 											onValueChange={(next) => {
 												if (next === "same") {
 													if (!textProvider) return
+													drafts.set("embedding:separate", {
+														...field.value,
+														settings: { ...field.value.settings },
+														credentials: { ...field.value.credentials },
+													})
 													field.onChange({
 														...field.value,
 														providerId: textRole.providerId,
@@ -515,6 +546,15 @@ function AiConfigurationPage() {
 													return
 												}
 												if (sameProvider) {
+													const draft = drafts.get("embedding:separate")
+													if (draft) {
+														field.onChange({
+															...draft,
+															settings: { ...draft.settings },
+															credentials: { ...draft.credentials },
+														})
+														return
+													}
 													field.onChange({
 														...field.value,
 														settings: {},
@@ -564,6 +604,7 @@ function AiConfigurationPage() {
 												onChange={field.onChange}
 												providers={embeddingProviders}
 												stored={configuration.embedding}
+												drafts={drafts}
 											/>
 										)}
 									</div>
