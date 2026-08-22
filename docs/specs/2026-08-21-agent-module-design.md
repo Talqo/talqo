@@ -100,7 +100,7 @@ The service exposes transport-neutral operations:
 
 Input normalization trims names, prompts, and blacklist terms. Empty values are rejected. Blacklist terms are deduplicated case-insensitively while preserving the first spelling. The service reports explicit not-found and duplicate-name errors; transport adapters map them to HTTP responses.
 
-Future conversation code will call `getAgent` to obtain persona and content-policy configuration. It will not query agent tables. Add an implementation TODO at that unavailable conversation integration seam stating that runtime prompt composition and pre-response blacklist enforcement remain required. Add equivalent concrete TODOs for audit recording and rate-limit integration, each naming the future owner and removal condition. Do not add speculative placeholder files or interfaces.
+Future conversation code will call `getAgent` to obtain persona and content-policy configuration. It will not query agent tables. Add an implementation TODO at that unavailable conversation integration seam stating that runtime prompt composition and pre-response blacklist enforcement remain required. Blacklist enforcement is direct string comparison against the raw message after trimming, compared case-insensitively — meaning-based matching is out of scope for v1 and the seeded examples must read as literal words an operator wants banned (e.g. competitor brand names). Add equivalent concrete TODOs for audit recording and rate-limit integration, each naming the future owner and removal condition. Do not add speculative placeholder files or interfaces.
 
 ## HTTP API
 
@@ -151,7 +151,7 @@ The opaque session token identifies the operator but contains no roles or permis
 
 The global effective-permissions route belongs to roles, not identity. This preserves the dependency direction in which roles knows identity while identity remains unaware of roles.
 
-The shift from optional per-agent scopes to global grants is a durable authorization decision. Implementation adds a new ADR that supersedes ADR-0009 and updates the canonical architecture guide, module diagram, and ERD in the same change.
+Per-agent scoping was a drafting misunderstanding in ADR-0009, never an enacted product rule; removal is correcting that text rather than reversing a decision. The hand-rolled `can(user, grants, permission)` core is unchanged. Implementation updates ADR-0009, the architecture guide, module diagram, and ERD in the same change.
 
 ## Dashboard Design
 
@@ -220,7 +220,7 @@ Route-only UI remains with its route. Reusable agent-selection and blacklist-edi
 
 ## Seeds And Migrations
 
-The agent module contributes deterministic integration and E2E seed records through the centralized API seed lifecycle. Browser tests contain no record definitions. Reset ordering respects the blacklist-to-agent foreign key.
+The seed provides one natural baseline shared by dev, integration, and E2E — never test-only records: one operator, one read-only viewer, one ungranted member (identity module), one bootstrap admin `admin` (roles module), and one production-plausible agent "Website Assistant" (agent module). The seed runs against the isolated test database before E2E and dev, and browser tests reference the same natural accounts without hardcoded record definitions. Reset ordering respects the blacklist-to-agent foreign key.
 
 Drizzle discovers `agent.schema.ts` and generates one centralized migration. Generated SQL is inspected for:
 
@@ -282,7 +282,7 @@ Run the repository-required quality, typecheck, unit, i18n, integration, and E2E
 - Update `docs/ERD.md` to remove User-to-Agent and Agent-to-Permission-Grant relationships while retaining Agent-to-Blacklist-Word.
 - Update `docs/architecture/module-diagram.md` to describe deployment-owned agents and global grants.
 - Update `docs/architecture.md` where authorization boundaries and canonical module structure change.
-- Add a new ADR superseding ADR-0009 with the global-grant decision.
+- Edit ADR-0009 to drop the never-enacted agent-scoping wording while keeping the hand-rolled authorization decision intact.
 - Update SRS completion notes only for behavior actually delivered.
 
 ## Acceptance Criteria

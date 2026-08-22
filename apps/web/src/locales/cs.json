@@ -23,36 +23,56 @@
 	},
 	"agentConfig": {
 		"backToAgents": "Zpět na agenty",
-		"cardDescription": "Změny se ukládají do dočasného úložiště a projeví se v celém přehledu.",
+		"cancel": "Zrušit",
+		"cardDescription": "Změny se ukládají na server a mají okamžitý účinek.",
 		"cardTitle": "Konfigurace agenta",
-		"heading": "Konfigurovat {{name}}",
+		"confirmHelp": "Pro potvrzení zadejte přesný název agenta: {{name}}",
+		"confirmLabel": "Zadejte „{{name}}“ pro povolení smazání",
+		"dangerDescription": "Smazání agenta je trvalé a nelze ho vrátit zpět.",
+		"dangerZone": "Nebezpečná zóna",
+		"deleteAgent": "Smazat agenta",
+		"deleteConfirm": "Trvale smazat",
+		"deletePrompt": "Toto trvale smaže agenta {{name}} a jeho blacklist. Akci nelze vrátit zpět.",
+		"deleteTitle": "Smazat agenta?",
+		"deleting": "Mazání…",
+		"heading": "Nastavit {{name}}",
 		"loading": "Načítání agenta…",
-		"notFound": "Agent nenalezen. Možná byl odstraněn.",
+		"notFound": "Agent nebyl nalezen. Možná byl odstraněn.",
 		"save": "Uložit změny",
-		"saved": "Právě uloženo.",
-		"subheading": "Upravte název, chování, zakázaná slova a stav agenta."
+		"saved": "Uloženo právě teď.",
+		"saving": "Ukládání…",
+		"subheading": "Aktualizujte název, chování a blokovaná slova agenta.",
+		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na aktuální seznam."
 	},
 	"agentFields": {
-		"blacklistHelp": "Slova oddělujte čárkami.",
-		"blacklistPlaceholder": "spam, urážky, podvod",
 		"name": "Název",
-		"namePlaceholder": "Agent podpory",
+		"namePlaceholder": "Podpora",
 		"nameRequired": "Název je povinný.",
-		"statusActive": "Aktivní",
-		"statusPaused": "Pozastavený",
 		"systemPrompt": "Systémový prompt",
 		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
 		"systemPromptRequired": "Systémový prompt je povinný.",
-		"wordBlacklist": "Zakázaná slova"
+		"wordBlacklist": "Blacklist slov"
 	},
 	"agents": {
-		"configure": "Konfigurovat",
 		"create": "Vytvořit agenta",
-		"createDescription": "Definujte název, chování a zakázaná slova agenta.",
-		"empty": "Zatím žádní agenti. Vytvořte svého prvního agenta a začněte.",
+		"createFailed": "Agenta se nepodařilo vytvořit. Zkuste to znovu.",
+		"creating": "Vytváření…",
+		"defaultName": "Nový agent",
+		"defaultSystemPrompt": "Jste nápomocný asistent.",
+		"deleteFailed": "Agenta se nepodařilo smazat. Zkuste to znovu.",
+		"empty": "Zatím žádní agenti. Vytvořte svého prvního agenta.",
 		"heading": "Agenti",
+		"loadFailed": "Agenty se nepodařilo načíst.",
 		"loading": "Načítání agentů…",
-		"subheading": "Spravujte své agenty a jejich chování."
+		"manageForbidden": "Váš účet nemá oprávnění spravovat agenty.",
+		"metricConversations": "Konverzace",
+		"metricFiles": "Soubory",
+		"metricMcpTools": "MCP nástroje",
+		"nameConflict": "Agent s tímto názvem již existuje. Zvolte jedinečný název.",
+		"retry": "Zkusit znovu",
+		"saveFailed": "Agenta se nepodařilo uložit. Zkuste to znovu.",
+		"subheading": "Spravujte své agenty a jejich chování.",
+		"updated": "Aktualizováno {{date}}"
 	},
 	"aiConfiguration": {
 		"auth": {
@@ -169,6 +189,19 @@
 			"submit": "Vytvořit účet administrátora"
 		}
 	},
+	"blacklist": {
+		"added": "{{word}} bylo přidáno na blacklist.",
+		"addTerm": "Přidat",
+		"count": "{{used}} z {{limit}} pojmů",
+		"duplicateError": "„{{word}}“ je již na blacklistu.",
+		"emptyError": "Nejprve zadejte slovo nebo frázi.",
+		"help": "Blokuje přesně tato slova (bez ohledu na velikost písmen). Porovnává doslovná slova, nikoli významy.",
+		"limitError": "Blacklist povoluje maximálně {{limit}} pojmů.",
+		"removed": "{{word}} bylo odebráno z blacklistu.",
+		"removeTerm": "Odebrat {{word}}",
+		"termPlaceholder": "Slovo nebo fráze k blokování",
+		"termsLabel": "Blokované pojmy"
+	},
 	"common": {
 		"appName": "Talqo"
 	},
@@ -188,7 +221,7 @@
 			},
 			"widget": {
 				"description": "Nakonfigurujte a zobrazte náhled vloženého widgetu.",
-				"title": "Widget"
+				"title": "Chatovací widget"
 			}
 		},
 		"heading": "Vítejte v Talqo",
@@ -210,12 +243,17 @@
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"invitations": "Pozvánky",
-		"widget": "Widget"
+		"widget": "Chatovací widget"
+	},
+	"permissions": {
+		"accessDeniedBody": "Požádejte správce o přidělení přístupu k agentům, pokud ho potřebujete.",
+		"accessDeniedDescription": "Váš účet nemá oprávnění přistupovat k agentům.",
+		"accessDeniedTitle": "Přístup omezen"
 	},
 	"widgetSetup": {
 		"accentColor": "Akcentová barva",
 		"accentHex": "Hexadecimální hodnota akcentové barvy",
-		"agentLabel": "Agent",
+		"agentLabel": "Asistent",
 		"appearance": "Vzhled",
 		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
 		"backToSetup": "Zpět na nastavení widgetu",
@@ -233,7 +271,7 @@
 		"position": "Pozice",
 		"positionBottomLeft": "Vlevo dole",
 		"positionBottomRight": "Vpravo dole",
-		"previewSiteLabel": "your-site.com",
+		"previewSiteLabel": "vas-web.cz",
 		"previewUnavailable": "Živý náhled není pro toto nasazení nakonfigurován.",
 		"scriptUrlMissing": "Pro vygenerování kódu pro vložení nastavte VITE_WIDGET_CDN_URL na zdrojovou adresu souboru widget.js.",
 		"selectAgent": "Vyberte agenta",

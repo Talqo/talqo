@@ -1,5 +1,7 @@
+import { ApiError, FORBIDDEN_STATUS } from "@/api/errors.ts"
 import { PageHeader } from "@/components/page-header"
 import { useActiveAgent } from "@/features/agents/agents-query"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -103,10 +105,19 @@ function MetricChart({
 
 function AnalyticsPage() {
 	const { t } = useTranslation()
-	const { agents, isLoading, activeId, setSelectedId } = useActiveAgent()
+	const { agents, error, isLoading, activeId, setSelectedId } = useActiveAgent()
 	const { data: stats, isLoading: statsLoading } = useAgentStats(activeId)
 	const { language } = useLanguage()
 	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
+
+	if (error instanceof ApiError && error.status === FORBIDDEN_STATUS) {
+		return (
+			<div className="mx-auto max-w-5xl space-y-6">
+				<PageHeader title={t("analytics.heading")} description={t("analytics.subheading")} />
+				<AccessDenied />
+			</div>
+		)
+	}
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">

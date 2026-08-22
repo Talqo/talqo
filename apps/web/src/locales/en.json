@@ -23,36 +23,56 @@
 	},
 	"agentConfig": {
 		"backToAgents": "Back to agents",
-		"cardDescription": "Changes are saved to the mock store and reflected across the dashboard.",
+		"cancel": "Cancel",
+		"cardDescription": "Changes are saved to the server and take effect immediately.",
 		"cardTitle": "Agent configuration",
+		"confirmHelp": "Type the agent's exact name to confirm: {{name}}",
+		"confirmLabel": "Type \"{{name}}\" to enable deletion",
+		"dangerDescription": "Deleting an agent is permanent and cannot be undone.",
+		"dangerZone": "Danger zone",
+		"deleteAgent": "Delete agent",
+		"deleteConfirm": "Delete permanently",
+		"deletePrompt": "This permanently deletes {{name}} and its blacklist. There is no undo.",
+		"deleteTitle": "Delete agent?",
+		"deleting": "Deleting…",
 		"heading": "Configure {{name}}",
 		"loading": "Loading agent…",
 		"notFound": "Agent not found. It may have been removed.",
 		"save": "Save changes",
 		"saved": "Saved just now.",
-		"subheading": "Update the agent's name, behavior, blocked words, and status."
+		"saving": "Saving…",
+		"subheading": "Update the agent's name, behavior, and blocked words.",
+		"wasDeleted": "This agent was deleted elsewhere. Go back to the list for the current state."
 	},
 	"agentFields": {
-		"blacklistHelp": "Separate words with commas.",
-		"blacklistPlaceholder": "spam, abuse, scam",
 		"name": "Name",
 		"namePlaceholder": "Support Agent",
 		"nameRequired": "Name is required.",
-		"statusActive": "Active",
-		"statusPaused": "Paused",
 		"systemPrompt": "System prompt",
 		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
 		"systemPromptRequired": "System prompt is required.",
 		"wordBlacklist": "Word blacklist"
 	},
 	"agents": {
-		"configure": "Configure",
 		"create": "Create agent",
-		"createDescription": "Define the agent's name, behavior, and blocked words.",
+		"createFailed": "The agent could not be created. Try again.",
+		"creating": "Creating…",
+		"defaultName": "New agent",
+		"defaultSystemPrompt": "You are a helpful assistant.",
+		"deleteFailed": "The agent could not be deleted. Try again.",
 		"empty": "No agents yet. Create your first agent to get started.",
 		"heading": "Agents",
+		"loadFailed": "Agents could not be loaded.",
 		"loading": "Loading agents…",
-		"subheading": "Manage your agents and their behavior."
+		"manageForbidden": "Your account does not have permission to manage agents.",
+		"metricConversations": "Conversations",
+		"metricFiles": "Files",
+		"metricMcpTools": "MCP tools",
+		"nameConflict": "An agent with this name already exists. Choose a unique name.",
+		"retry": "Retry",
+		"saveFailed": "The agent could not be saved. Try again.",
+		"subheading": "Manage your agents and their behavior.",
+		"updated": "Updated {{date}}"
 	},
 	"aiConfiguration": {
 		"auth": {
@@ -169,6 +189,19 @@
 			"submit": "Create admin account"
 		}
 	},
+	"blacklist": {
+		"added": "{{word}} added to the blacklist.",
+		"addTerm": "Add",
+		"count": "{{used}} of {{limit}} terms used",
+		"duplicateError": "\"{{word}}\" is already on the blacklist.",
+		"emptyError": "Enter a word or phrase first.",
+		"help": "Blocks these exact words (case-insensitive). Matches literal words, not related meanings.",
+		"limitError": "The blacklist allows at most {{limit}} terms.",
+		"removed": "{{word}} removed from the blacklist.",
+		"removeTerm": "Remove {{word}}",
+		"termPlaceholder": "Word or phrase to block",
+		"termsLabel": "Blacklisted terms"
+	},
 	"common": {
 		"appName": "Talqo"
 	},
@@ -211,6 +244,11 @@
 		"dashboard": "Dashboard",
 		"invitations": "Invitations",
 		"widget": "Widget"
+	},
+	"permissions": {
+		"accessDeniedBody": "Ask an admin to grant your account agent access if you need it.",
+		"accessDeniedDescription": "Your account does not have permission to access agents.",
+		"accessDeniedTitle": "Access restricted"
 	},
 	"widgetSetup": {
 		"accentColor": "Accent color",

@@ -11,16 +11,33 @@ const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/setup", "/invitations/redeem"]
 
-export const PERMISSIONS = ["users:invite", "ai_provider:manage"] as const
+export const PERMISSIONS = ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
+// Mutating grants imply read access to the same capability; keep this a DAG, never a cycle.
+const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
+	"agents:manage": ["agents:read"],
+}
+
 export type PermissionGrant = {
-	agentId: string | null
 	grantedAt: Date
 	grantedBy: string | null
 	id: string
 	permission: Permission
 	userId: string
+}
+
+function expandPermissions(granted: Permission[]): Permission[] {
+	const effective = new Set<Permission>(granted)
+	for (const permission of granted) {
+		for (const implied of IMPLIED_BY[permission] ?? []) effective.add(implied)
+	}
+	return PERMISSIONS.filter((permission) => effective.has(permission))
+}
+
+export function effectivePermissions(adminStatus: boolean, grants: { permission: string }[]): Permission[] {
+	if (adminStatus) return [...PERMISSIONS]
+	return expandPermissions(grants.map((grant) => grant.permission as Permission))
 }
 
 export class AdminAlreadyExistsError extends Error {}
@@ -84,7 +101,6 @@ export async function redeemInvitation(input: {
 }
 
 export async function grantPermission(input: {
-	agentId?: string
 	grantedBy: string
 	permission: Permission
 	userId: string
@@ -93,7 +109,6 @@ export async function grantPermission(input: {
 		id: crypto.randomUUID(),
 		userId: input.userId,
 		permission: input.permission,
-		agentId: input.agentId ?? null,
 		grantedBy: input.grantedBy,
 	})
 	return { ...row, permission: input.permission }
@@ -103,38 +118,25 @@ export async function revokePermission(id: string): Promise<void> {
 	await repo.deletePermissionGrant(id)
 }
 
-// Pure and synchronous by design: the BOLA-sensitive decision (ADR-0009) lives in one
-// small, fully auditable function, separate from where the grants get fetched.
-export function can(
-	user: { isAdmin: boolean },
-	grants: { agentId: string | null; permission: string }[],
-	permission: Permission,
-	agentId?: string,
-): boolean {
-	if (user.isAdmin) return true
-	return grants.some(
-		(grant) => grant.permission === permission && (grant.agentId === null || grant.agentId === agentId),
-	)
-}
-
-export function effectivePermissions(
-	user: { isAdmin: boolean },
-	grants: { agentId: string | null; permission: string }[],
-): Permission[] {
-	if (user.isAdmin) return [...PERMISSIONS]
-	return PERMISSIONS.filter((permission) =>
-		grants.some((grant) => grant.agentId === null && grant.permission === permission),
-	)
+// Pure and synchronous by design: the authorization decision lives in one small,
+// fully auditable function, separate from where the grants get fetched.
+export function can(user: { isAdmin: boolean }, grants: { permission: string }[], permission: Permission): boolean {
+	return effectivePermissions(user.isAdmin, grants).includes(permission)
 }
 
 export async function getAccess(userId: string): Promise<{ isAdmin: boolean; permissions: Permission[] }> {
 	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
-	return { isAdmin: adminStatus, permissions: effectivePermissions({ isAdmin: adminStatus }, grants) }
+	return { isAdmin: adminStatus, permissions: effectivePermissions(adminStatus, grants) }
 }
 
-export async function authorize(userId: string, permission: Permission, agentId?: string): Promise<boolean> {
+export async function authorize(userId: string, permission: Permission): Promise<boolean> {
 	// Fetched fresh on every call, never cached -- a revoked grant denies the very next
 	// request without needing to touch the user's session (see ADR-0008).
 	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
-	return can({ isAdmin: adminStatus }, grants, permission, agentId)
+	return can({ isAdmin: adminStatus }, grants, permission)
+}
+
+export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
+	const [adminStatus, grants] = await Promise.all([isAdmin(userId), repo.findGrantsForUser(userId)])
+	return effectivePermissions(adminStatus, grants)
 }

@@ -1,65 +1,81 @@
+import { ApiError, FORBIDDEN_STATUS } from "@/api/errors.ts"
 import { PageHeader } from "@/components/page-header"
-import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { useAgents, useCreateAgent, useUpdateAgent, type Agent } from "@/features/agents/agents-query"
-import { parseBlacklist } from "@/features/agents/blacklist"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useAgents } from "@/features/agents/agents-query"
+import { buildNameCandidates, useCreateAgent } from "@/features/agents/create-agent-mutation"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { useMyPermissions } from "@/features/permissions/permissions-query"
+import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@talqo/ui/components/dialog"
-import { Input } from "@talqo/ui/components/input"
-import { Label } from "@talqo/ui/components/label"
-import { Switch } from "@talqo/ui/components/switch"
-import { Textarea } from "@talqo/ui/components/textarea"
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { Plus, Settings2 } from "lucide-react"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { FileText, MessageSquare, Plus, Wrench } from "lucide-react"
 import { useState } from "react"
-import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agents")({
 	component: AgentsPage,
 })
 
+// "—", never 0: zero would claim "no usage" while those modules don't exist yet.
+// TODO(usage-api): per-agent conversation totals once GET /api/agents/:id/usage-summary lands.
+// TODO(knowledge-api): file count once GET /api/agents/:id/files lands.
+// TODO(mcp-api): MCP server count once GET /api/agents/:id/mcp-servers lands.
+const PLACEHOLDER_VALUE = "—"
+
+function AgentCardMetric({ icon: Icon, label }: { icon: typeof MessageSquare; label: string }) {
+	return (
+		<span className="text-muted-foreground flex items-center gap-1 text-xs" title={label}>
+			<Icon className="size-3.5" aria-hidden />
+			{label}: {PLACEHOLDER_VALUE}
+		</span>
+	)
+}
+
 function AgentsPage() {
 	const { t } = useTranslation()
-	const { data: agents, isLoading } = useAgents()
-	const [dialogOpen, setDialogOpen] = useState(false)
+	const { language } = useLanguage()
+	const navigate = useNavigate()
+	const { data: permissions, isLoading: permissionsLoading } = useMyPermissions()
+	const { data: agents, error, isLoading, refetch, isFetching } = useAgents()
 	const createAgent = useCreateAgent()
-	const updateAgent = useUpdateAgent()
+	const [createError, setCreateError] = useState<string | null>(null)
 
-	function toggleStatus(agent: Agent) {
-		updateAgent(agent.id, {
-			status: agent.status === "active" ? "paused" : "active",
-		})
+	const canRead = permissions?.includes("agents:read") ?? false
+	const canManage = permissions?.includes("agents:manage") ?? false
+
+	async function handleCreate() {
+		setCreateError(null)
+		try {
+			const agent = await createAgent.mutateAsync({
+				systemPrompt: t("agents.defaultSystemPrompt"),
+				wordBlacklist: [],
+				candidates: buildNameCandidates(t("agents.defaultName")),
+			})
+			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id } })
+		} catch (caught) {
+			setCreateError(
+				caught instanceof ApiError && caught.status === FORBIDDEN_STATUS
+					? t("agents.manageForbidden")
+					: t("agents.createFailed"),
+			)
+		}
 	}
 
-	const {
-		register,
-		handleSubmit,
-		reset,
-		formState: { errors },
-	} = useForm<AgentFormValues>({
-		resolver: zodResolver(agentFormSchema),
-		defaultValues: { name: "", systemPrompt: "", wordBlacklist: "", active: true },
-	})
+	if (permissionsLoading) {
+		return (
+			<div className="mx-auto max-w-5xl">
+				<p className="text-muted-foreground">{t("agents.loading")}</p>
+			</div>
+		)
+	}
 
-	function onValid(values: AgentFormValues) {
-		createAgent({
-			name: values.name.trim(),
-			systemPrompt: values.systemPrompt.trim(),
-			status: "active",
-			wordBlacklist: parseBlacklist(values.wordBlacklist),
-		})
-		reset({ name: "", systemPrompt: "", wordBlacklist: "", active: true })
-		setDialogOpen(false)
+	if (!canRead) {
+		return (
+			<div className="mx-auto max-w-5xl space-y-6">
+				<PageHeader title={t("agents.heading")} description={t("agents.subheading")} />
+				<AccessDenied />
+			</div>
+		)
 	}
 
 	return (
@@ -68,93 +84,60 @@ function AgentsPage() {
 				title={t("agents.heading")}
 				description={t("agents.subheading")}
 				actions={
-					<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-						<DialogTrigger render={<Button />}>
+					canManage ? (
+						<Button onClick={handleCreate} disabled={createAgent.isPending}>
 							<Plus className="size-4" />
-							{t("agents.create")}
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>{t("agents.create")}</DialogTitle>
-								<DialogDescription>{t("agents.createDescription")}</DialogDescription>
-							</DialogHeader>
-							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="agent-name">{t("agentFields.name")}</Label>
-									<Input
-										id="agent-name"
-										placeholder={t("agentFields.namePlaceholder")}
-										aria-invalid={errors.name ? true : undefined}
-										{...register("name")}
-									/>
-									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="agent-system-prompt">{t("agentFields.systemPrompt")}</Label>
-									<Textarea
-										id="agent-system-prompt"
-										placeholder={t("agentFields.systemPromptPlaceholder")}
-										rows={4}
-										aria-invalid={errors.systemPrompt ? true : undefined}
-										{...register("systemPrompt")}
-									/>
-									{errors.systemPrompt && (
-										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
-									)}
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="agent-word-blacklist">{t("agentFields.wordBlacklist")}</Label>
-									<Input
-										id="agent-word-blacklist"
-										placeholder={t("agentFields.blacklistPlaceholder")}
-										{...register("wordBlacklist")}
-									/>
-									<p className="text-muted-foreground text-xs">{t("agentFields.blacklistHelp")}</p>
-								</div>
-								<DialogFooter>
-									<Button type="submit">{t("agents.create")}</Button>
-								</DialogFooter>
-							</form>
-						</DialogContent>
-					</Dialog>
+							{createAgent.isPending ? t("agents.creating") : t("agents.create")}
+						</Button>
+					) : undefined
 				}
 			/>
 
+			{createError && (
+				<p role="alert" className="text-destructive text-sm">
+					{createError}
+				</p>
+			)}
+
 			{isLoading ? (
 				<p className="text-muted-foreground">{t("agents.loading")}</p>
+			) : error ? (
+				<div className="space-y-2">
+					<p role="alert" className="text-destructive text-sm">
+						{t("agents.loadFailed")}
+					</p>
+					<Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+						{t("agents.retry")}
+					</Button>
+				</div>
 			) : !agents?.length ? (
 				<p className="text-muted-foreground">{t("agents.empty")}</p>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{agents.map((agent) => (
-						<Card key={agent.id}>
-							<CardHeader>
-								<CardTitle>{agent.name}</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								<div className="flex items-center justify-between gap-2">
-									<div className="flex items-center gap-2">
-										<Switch
-											id={`status-${agent.id}`}
-											checked={agent.status === "active"}
-											onCheckedChange={() => toggleStatus(agent)}
-										/>
-										<Label htmlFor={`status-${agent.id}`}>
-											{t(agent.status === "active" ? "agentFields.statusActive" : "agentFields.statusPaused")}
-										</Label>
+						<Link key={agent.id} to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} className="group">
+							<Card className="group-hover:border-primary/40 h-full transition-colors">
+								<CardHeader>
+									<CardTitle>{agent.name}</CardTitle>
+									<p className="text-muted-foreground text-xs">
+										{t("agents.updated", {
+											date: new Date(agent.updatedAt).toLocaleDateString(language, {
+												year: "numeric",
+												month: "short",
+												day: "numeric",
+											}),
+										})}
+									</p>
+								</CardHeader>
+								<CardContent>
+									<div className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3">
+										<AgentCardMetric icon={MessageSquare} label={t("agents.metricConversations")} />
+										<AgentCardMetric icon={FileText} label={t("agents.metricFiles")} />
+										<AgentCardMetric icon={Wrench} label={t("agents.metricMcpTools")} />
 									</div>
-									<Button
-										render={<Link to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} />}
-										nativeButton={false}
-										variant="outline"
-										size="sm"
-									>
-										<Settings2 className="size-4" />
-										{t("agents.configure")}
-									</Button>
-								</div>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
+						</Link>
 					))}
 				</div>
 			)}

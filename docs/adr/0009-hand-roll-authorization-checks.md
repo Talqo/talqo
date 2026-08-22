@@ -6,11 +6,11 @@ Accepted (2026-08-06)
 
 ## Context
 
-The `roles` module must enforce per-user, per-permission grants optionally scoped to a single agent (SRS §2.3), checked on every mutating route. CASL (`@casl/ability`) is actively maintained and could express this, but its value is composable rules across multiple simultaneous conditions, subjects, and fields — more than a single-dimension grant model needs. A dependency's cost should match actual requirement complexity, not speculative future need.
+The `roles` module must enforce per-user permission grants, checked on every mutating route. CASL (`@casl/ability`) is actively maintained and could express this, but its value is composable rules across multiple simultaneous conditions, subjects, and fields — more than a single-dimension grant model needs. A dependency's cost should match actual requirement complexity, not speculative future need.
 
 ## Decision
 
-Enforce authorization with one hand-rolled `can(user, grants, permission, agentId?)` function that every mutating route calls; no external authorization library.
+Enforce authorization with one hand-rolled `can(user, grants, permission)` function that every mutating route calls; no external authorization library.
 
 ## Consequences
 

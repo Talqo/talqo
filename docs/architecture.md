@@ -129,9 +129,8 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
 - `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
-- Module seeds provide deterministic integration and E2E data through the centralized seed lifecycle.
+- Module seeds provide deterministic, production-plausible baseline data through the centralized seed lifecycle. One natural corpus shared by dev, integration, and E2E environments, never test-only fixtures.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
-- E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
 ## Shared Code Decisions
@@ -225,7 +224,7 @@ apps/e2e/
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- All E2E records come from the API-owned deterministic reset and E2E seed against an isolated database before each isolation scope. Playwright owns no record definitions.
+- All E2E records come from the API-owned deterministic natural seed against an isolated database before each isolation scope. Playwright owns no record definitions.
 - Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.

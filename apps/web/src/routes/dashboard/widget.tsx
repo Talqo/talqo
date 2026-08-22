@@ -1,6 +1,8 @@
+import { ApiError, FORBIDDEN_STATUS } from "@/api/errors.ts"
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
 import { useActiveAgent } from "@/features/agents/agents-query"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -33,7 +35,7 @@ const isEmbedLanguage = isSupportedLanguage
 
 function WidgetPage() {
 	const { t } = useTranslation()
-	const { agents, isLoading, activeId: activeAgentId, setSelectedId } = useActiveAgent()
+	const { agents, error, isLoading, activeId: activeAgentId, setSelectedId } = useActiveAgent()
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 	const [accentColor, setAccentColor] = useState("#1a7f4b")
@@ -66,6 +68,15 @@ function WidgetPage() {
 		} catch {
 			setCopied(false)
 		}
+	}
+
+	if (error instanceof ApiError && error.status === FORBIDDEN_STATUS) {
+		return (
+			<div className="mx-auto max-w-5xl space-y-6">
+				<PageHeader title={t("widgetSetup.heading")} description={t("widgetSetup.subheading")} />
+				<AccessDenied />
+			</div>
+		)
 	}
 
 	return (

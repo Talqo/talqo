@@ -1,6 +1,6 @@
 import { getGetSessionQueryKey, useLogout } from "@/api/generated/identity/identity.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
-import { useAccess } from "@/features/ai-configuration/ai-configuration-query"
+import { useMyPermissions } from "@/features/permissions/permissions-query"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -19,15 +19,32 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-const navItems = [
+type NavRequirement = "agentRead" | "invite" | "providerManage"
+
+type NavItem = {
+	to:
+		| "/dashboard"
+		| "/dashboard/agents"
+		| "/dashboard/invitations"
+		| "/dashboard/widget"
+		| "/dashboard/analytics"
+		| "/dashboard/ai-configuration"
+		| "/dashboard/account"
+	icon: typeof LayoutDashboard
+	requires?: NavRequirement
+}
+
+// Single mapping of routes to permissions used by nav and cards.
+// Widget and Analytics depend on the agent list, so they require agents:read.
+const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
-	{ to: "/dashboard/agents", icon: Bot },
-	{ to: "/dashboard/invitations", icon: UserPlus },
-	{ to: "/dashboard/widget", icon: MessageSquare },
-	{ to: "/dashboard/analytics", icon: BarChart3 },
-	{ to: "/dashboard/ai-configuration", icon: Settings2, permission: "ai_provider:manage" },
+	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
+	{ to: "/dashboard/invitations", icon: UserPlus, requires: "invite" },
+	{ to: "/dashboard/widget", icon: MessageSquare, requires: "agentRead" },
+	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
+	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
-] as const
+]
 
 function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => string) {
 	switch (to) {
@@ -46,6 +63,18 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 		case "/dashboard/account":
 			return t("nav.account")
 	}
+}
+
+function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
+	const canReadAgents = permissions?.includes("agents:read") ?? false
+	const canInvite = permissions?.includes("users:invite") ?? false
+	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
+	return navItems.filter((item) => {
+		if (item.requires === "agentRead") return canReadAgents
+		if (item.requires === "invite") return canInvite
+		if (item.requires === "providerManage") return canManageProvider
+		return true
+	})
 }
 
 function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { onNavigate: () => void }) {
@@ -70,13 +99,12 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 }
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
-	const { data: access } = useAccess()
-	const visibleItems = navItems.filter(
-		(item) => !("permission" in item) || access?.data.permissions.includes(item.permission),
-	)
+	const { data: permissions } = useMyPermissions()
+	// Show only unrestricted entries while permissions load.
+	const items = allowedNavItems(permissions)
 	return (
 		<nav className={className}>
-			{visibleItems.map((item) => (
+			{items.map((item) => (
 				<NavLink key={item.to} {...item} onNavigate={onNavigate} />
 			))}
 		</nav>

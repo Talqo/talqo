@@ -6,6 +6,7 @@ import { rejectMalformedJson } from "@/http/json-body.ts"
 import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
+import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
 import { OpenAPIHono, z } from "@hono/zod-openapi"
@@ -31,6 +32,7 @@ const api = new OpenAPIHono<{ Variables: AuthedVariables }>()
 api.route("/", aiProviderRoutes)
 api.route("/", identityRoutes)
 api.route("/", rolesRoutes)
+api.route("/agents", agentRoutes)
 app.route(API_PREFIX, api)
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,
 // hardened by validating the produced value is a real Response, and keeps a

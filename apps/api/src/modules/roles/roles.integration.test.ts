@@ -212,11 +212,10 @@ describe("permission grants", () => {
 
 		expect(response.status).toBe(201)
 		const { grant } = (await response.json()) as {
-			grant: { agentId: string | null; permission: string; userId: string }
+			grant: { permission: string; userId: string }
 		}
 		expect(grant.userId).toBe(member.id)
 		expect(grant.permission).toBe("users:invite")
-		expect(grant.agentId).toBeNull()
 	})
 
 	it("denies a non-admin from creating a permission grant", async () => {
@@ -248,6 +247,22 @@ describe("permission grants", () => {
 		expect(response.status).toBe(201)
 	})
 
+	it("rejects grant bodies that still try to scope a grant to one agent", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+
+		const response = await app.request("/api/permission-grants", {
+			method: "POST",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ userId: member.id, permission: "users:invite", agentId: crypto.randomUUID() }),
+		})
+
+		// Zod strips unknown keys, so scoping fields no longer apply: the resulting grant is global.
+		expect(response.status).toBe(201)
+		const { grant } = (await response.json()) as { grant: Record<string, unknown> }
+		expect("agentId" in grant).toBe(false)
+	})
+
 	it("denies the very next request after revocation, without touching the member's session", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
@@ -273,6 +288,52 @@ describe("permission grants", () => {
 		// rather than relying on anything cached in the session.
 		const afterRevoke = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
 		expect(afterRevoke.status).toBe(403)
+	})
+})
+
+describe("effective permissions", () => {
+	it("returns the full permission registry for an admin", async () => {
+		const { cookie } = await createAdminSession()
+
+		const response = await app.request("/api/me/permissions", { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ permissions: ["users:invite", "agents:read", "agents:manage"] })
+	})
+
+	it("expands a member's agents:manage grant to include agents:read", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		await app.request("/api/permission-grants", {
+			method: "POST",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ userId: member.id, permission: "agents:manage" }),
+		})
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
+
+		const response = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
+
+		expect(await response.json()).toEqual({ permissions: ["agents:read", "agents:manage"] })
+	})
+
+	it("returns an empty list for an ungranted member and reflects grants immediately", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
+
+		const beforeGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
+		expect(await beforeGrant.json()).toEqual({ permissions: [] })
+
+		await app.request("/api/permission-grants", {
+			method: "POST",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+		})
+
+		const afterGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
+		expect(await afterGrant.json()).toEqual({ permissions: ["users:invite"] })
 	})
 })
 

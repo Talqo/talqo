@@ -76,9 +76,9 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 
-	// Logging out removes access client-side so a stale UI cannot keep acting on the member session.
+	// Logging out redirects to login; a stale UI cannot reuse the session.
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/invitations")
-	await expect(page.getByText("You need to log in to invite a member.")).toBeVisible()
+	await expect(page).toHaveURL("/login")
 })

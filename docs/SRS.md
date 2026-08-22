@@ -100,11 +100,11 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can create a new agent with custom name | Medium | In progress (dashboard UI, in-memory store) |
-| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | In progress (single raw prompt field, per v1) |
-| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (dashboard UI; runtime enforcement pending) |
+| FR-2.10 | Operator can create a new agent with custom name | Medium | Done (persisted via API; deployment-wide unique names) |
+| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done (persisted via API) |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (persisted via API; runtime enforcement pending) |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress (live widget-shell preview; no AI responses) |
-| FR-2.13a | Operator can delete an agent | Medium | Not started |
+| FR-2.13a | Operator can delete an agent | Medium | Done (hard delete with exact-name confirmation) |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
