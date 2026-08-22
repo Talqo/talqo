@@ -93,7 +93,7 @@ const userParamsSchema = z.object({
 
 export const getSetupStatusRoute = createRoute({
 	method: "get",
-	path: "/api/setup",
+	path: "/setup",
 	operationId: "getSetupStatus",
 	tags: ["Roles"],
 	responses: {
@@ -104,7 +104,7 @@ export const getSetupStatusRoute = createRoute({
 
 export const bootstrapAdminRoute = createRoute({
 	method: "post",
-	path: "/api/setup",
+	path: "/setup",
 	operationId: "bootstrapAdmin",
 	tags: ["Roles"],
 	request: {
@@ -123,7 +123,7 @@ export const bootstrapAdminRoute = createRoute({
 
 export const createInvitationRoute = createRoute({
 	method: "post",
-	path: "/api/invitations",
+	path: "/invitations",
 	operationId: "createInvitation",
 	tags: ["Roles"],
 	security: sessionSecurity,
@@ -140,7 +140,7 @@ export const createInvitationRoute = createRoute({
 
 export const redeemInvitationRoute = createRoute({
 	method: "post",
-	path: "/api/invitations/redeem",
+	path: "/invitations/redeem",
 	operationId: "redeemInvitation",
 	tags: ["Roles"],
 	request: {
@@ -159,7 +159,7 @@ export const redeemInvitationRoute = createRoute({
 
 export const createPermissionGrantRoute = createRoute({
 	method: "post",
-	path: "/api/permission-grants",
+	path: "/permission-grants",
 	operationId: "createPermissionGrant",
 	tags: ["Roles"],
 	security: sessionSecurity,
@@ -178,7 +178,7 @@ export const createPermissionGrantRoute = createRoute({
 
 export const revokePermissionGrantRoute = createRoute({
 	method: "delete",
-	path: "/api/permission-grants/{id}",
+	path: "/permission-grants/{id}",
 	operationId: "revokePermissionGrant",
 	tags: ["Roles"],
 	security: sessionSecurity,
@@ -193,7 +193,7 @@ export const revokePermissionGrantRoute = createRoute({
 
 export const resetUserPasswordRoute = createRoute({
 	method: "patch",
-	path: "/api/users/{userId}/password",
+	path: "/users/{userId}/password",
 	operationId: "resetUserPassword",
 	tags: ["Roles"],
 	security: sessionSecurity,

@@ -3,7 +3,7 @@ import type { Context } from "hono"
 
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson } from "@/http/json-body.ts"
-import { requireAuth } from "@/http/require-auth.ts"
+import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
@@ -26,8 +26,10 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
 app.use("*", rejectMalformedJson)
 app.use("*", requireAuth)
-app.route("/", identityRoutes)
-app.route("/", rolesRoutes)
+const api = new OpenAPIHono<{ Variables: AuthedVariables }>()
+api.route("/", identityRoutes)
+api.route("/", rolesRoutes)
+app.route(API_PREFIX, api)
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,
 // hardened by validating the produced value is a real Response, and keeps a
 // generic body with the original error logged for everything else.
