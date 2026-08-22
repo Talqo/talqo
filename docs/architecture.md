@@ -134,14 +134,6 @@ Every role file and support directory is capability-triggered. Do not create emp
 - E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
-### AI Providers
-
-- `ai-provider` owns deployment-wide text and embedding model selection, provider credentials, model discovery, and Vercel AI SDK adapter construction.
-- Its registry is the source of supported provider IDs, provider-level roles, authentication modes, and required fields.
-- Stored credentials use authenticated field encryption derived from `APP_SECRET`; administrative responses are redacted.
-- Provider model lists are availability lists only. Talqo stores the operator's selected identifier without classifying its model type.
-- OpenAI-compatible endpoints may target private networks, so `ai_provider:manage` is a privileged permission and adapter requests enforce protocol, redirect, timeout, response-size, and error-redaction safeguards.
-
 ## Shared Code Decisions
 
 Apply these rules in order:

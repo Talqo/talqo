@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test"
 
-import { getFreePort } from "./get-free-port"
+import { getFreePort } from "./tests/get-free-port"
 
 const isCI = Boolean(process.env.CI)
 const CI_RETRIES = 2
@@ -37,7 +37,7 @@ export default defineConfig({
 	},
 	webServer: [
 		{
-			command: "bun run fake-provider.ts",
+			command: "bun run tests/fake-provider.ts",
 			cwd: ".",
 			reuseExistingServer: false,
 			timeout: 120_000,

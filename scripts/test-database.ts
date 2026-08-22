@@ -1,17 +1,19 @@
 import { $ } from "bun"
 
 const COMPOSE_TIMEOUT = "30"
-const APP_SECRET_BYTES = 32
 const POSTGRES_PORT = "5432"
 const TEST_DATABASE = "talqo"
 const TEST_PROFILE = "test"
 const TEST_SERVICE = "postgres-test"
-const TEST_APP_SECRET = Buffer.alloc(APP_SECRET_BYTES, 1).toString("base64url")
 
 export type TestDatabaseEnv = Record<string, string | undefined>
 
 export async function withTestDatabase(run: (env: TestDatabaseEnv) => Promise<void>): Promise<void> {
 	const root = (await $`git rev-parse --show-toplevel`.quiet().text()).trim()
+	const appSecret = Bun.env.APP_SECRET
+	if (!appSecret) {
+		throw new Error("APP_SECRET is required. Generate one with: openssl rand -base64 32 | tr '+/' '-_' | tr -d '='")
+	}
 	let projectName: string | undefined
 	let databaseUrl = Bun.env.DATABASE_URL
 
@@ -33,7 +35,7 @@ export async function withTestDatabase(run: (env: TestDatabaseEnv) => Promise<vo
 
 		await run({
 			...Bun.env,
-			APP_SECRET: Bun.env.APP_SECRET ?? TEST_APP_SECRET,
+			APP_SECRET: appSecret,
 			DATABASE_URL: databaseUrl,
 			NODE_ENV: "test",
 		})

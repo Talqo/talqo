@@ -5,16 +5,6 @@ description: Connect text and embedding models to a self-hosted Talqo deployment
 
 Talqo uses operator-owned provider credentials. Users with the `ai_provider:manage` permission configure one text model and one embedding model from **Dashboard → AI configuration**.
 
-## Deployment secret
-
-Set `APP_SECRET` before running database migrations or starting the API. The API refuses to boot without it. It must be base64url-encoded and decode to at least 32 random bytes:
-
-```sh
-openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
-```
-
-Back up this value separately from the database. Changing or losing it makes stored provider credentials unusable; enter the credentials again after replacing it.
-
 ## Providers
 
 Talqo supports OpenAI, Anthropic, Google Gemini, Mistral, Azure OpenAI, Amazon Bedrock, and OpenAI-compatible endpoints. Azure OpenAI and Amazon Bedrock accept static credentials or the API process's deployment identity. Anthropic provides text models only, so its text configuration requires a separate embedding provider.
