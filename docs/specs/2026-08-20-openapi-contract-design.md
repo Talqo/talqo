@@ -69,7 +69,7 @@ Client runtime response validation is deliberately not enabled. At Orval 8.24 it
 
 The existing handwritten endpoint functions and duplicated response/request types in `apps/web/src/api/client.ts` are removed. Web call sites consume generated hooks and generated key factories directly. Global defaults remain in the app's `QueryClient`; call sites may supply operation-specific options. Mutation owners explicitly invalidate the generated keys affected by successful writes. Generated code contains no localized messages or UI error presentation.
 
-`apps/web/src/api/errors.ts` remains handwritten. It normalizes Orval/fetch failures into the app-facing error representation used by UI code.
+`apps/web/src/features/authentication/api-error.ts` remains handwritten. It normalizes Orval/fetch failures into the app-facing error representation used by UI code.
 
 ## Form Validation
 

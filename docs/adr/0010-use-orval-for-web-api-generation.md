@@ -10,7 +10,7 @@ The dashboard needs typed fetch behavior, TanStack Query integration, and Zod wi
 
 ## Decision
 
-Generate the dashboard API client from committed OpenAPI with Orval, using its React Query fetch client and Zod schemas under `apps/web`.
+Generate the dashboard API client from committed OpenAPI with Orval, using its React Query fetch client and Zod schemas.
 
 ## Consequences
 

@@ -1,9 +1,6 @@
 import { mock } from "bun:test"
 
-// Makes module imports hermetic for database-free consumers (unit tests,
-// OpenAPI document generation). Any code path that actually executes a
-// database query fails loudly instead of silently connecting. Integration
-// tests run without this preload and use the real client.
+// Preloaded for database-free runs (unit tests, OpenAPI generation): executing a query fails loudly.
 process.env.DATABASE_URL ??= "postgres://stub:stub@localhost:5432/stub"
 process.env.NODE_ENV ??= "test"
 

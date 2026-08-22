@@ -1,6 +1,5 @@
-import { normalizeApiError } from "@/api/errors.ts"
-import { useLogin } from "@/api/generated/identity/identity.ts"
-import { clearSessionCache } from "@/api/session-cache.ts"
+import { getGetSessionQueryKey, useLogin } from "@/api/generated/identity/identity.ts"
+import { normalizeApiError } from "@/features/authentication/api-error.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { useQueryClient } from "@tanstack/react-query"
@@ -23,7 +22,7 @@ function LoginPage() {
 		setError(null)
 		try {
 			await login.mutateAsync({ data: input })
-			clearSessionCache(queryClient)
+			queryClient.removeQueries({ queryKey: getGetSessionQueryKey() })
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
 			setError(normalizeApiError(caught)?.message ?? t("auth.errorFallback"))

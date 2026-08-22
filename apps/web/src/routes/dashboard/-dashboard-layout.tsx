@@ -1,5 +1,4 @@
-import { useLogout } from "@/api/generated/identity/identity.ts"
-import { clearSessionCache } from "@/api/session-cache.ts"
+import { getGetSessionQueryKey, useLogout } from "@/api/generated/identity/identity.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
@@ -73,7 +72,7 @@ function LogoutButton() {
 
 	async function handleLogout() {
 		await logout.mutateAsync()
-		clearSessionCache(queryClient)
+		queryClient.removeQueries({ queryKey: getGetSessionQueryKey() })
 		await navigate({ to: "/login" })
 	}
 

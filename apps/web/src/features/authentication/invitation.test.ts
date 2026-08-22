@@ -1,6 +1,6 @@
-import { ApiError } from "@/api/errors.ts"
 import { describe, expect, test } from "bun:test"
 
+import { ApiError } from "./api-error.ts"
 import { buildInvitationUrl, formatInvitationExpiry, getInvitationErrorMessage } from "./invitation.ts"
 
 describe("buildInvitationUrl", () => {

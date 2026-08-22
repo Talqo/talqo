@@ -1,4 +1,4 @@
-import { normalizeApiError } from "@/api/errors.ts"
+import { normalizeApiError } from "./api-error.ts"
 
 const FORBIDDEN_STATUS = 403
 

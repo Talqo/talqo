@@ -11,7 +11,7 @@
 		"actions:check": "actionlint && zizmor --offline .",
 		"build": "turbo run build",
 		"ci": "bun run actions:check && bun run contracts:check && bun run quality && bun run i18n && bun run typecheck && bun run test && bun run build",
-		"contracts:check": "bun run scripts/check-contracts.ts",
+		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bunx oxfmt apps/api/openapi.json && bunx orval --config orval.config.ts --fail-on-warnings && bunx oxfmt apps/web/src/api/generated",
 		"dev": "bun scripts/dev.ts",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",

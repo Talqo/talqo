@@ -163,7 +163,7 @@ module contracts + route metadata
 - Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
 - Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
-- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas. `apps/web/src/api/errors.ts` owns web-facing error normalization.
+- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas. `apps/web/src/features/authentication/api-error.ts` owns web-facing error normalization.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 
 ## Web
@@ -175,8 +175,7 @@ apps/web/src/
 |-- main.tsx                         # entry point; creates the router
 |-- routeTree.gen.ts                 # generated; never hand-edit
 |-- api/
-|   |-- generated/                   # Orval output; never hand-edit
-|   `-- errors.ts                    # web transport-error normalization
+|   `-- generated/                   # Orval output; never hand-edit
 |-- components/                       # route-shared presentation
 |-- lib/                              # app-level UI infrastructure (i18n, theme, language stores)
 |-- locales/                          # dashboard translations (<lang>.json)

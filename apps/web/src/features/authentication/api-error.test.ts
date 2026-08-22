@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 
-import { ApiError, normalizeApiError } from "./errors.ts"
+import { ApiError, normalizeApiError } from "./api-error.ts"
 
 describe("normalizeApiError", () => {
 	it("normalizes an Orval fetch error", () => {
