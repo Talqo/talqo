@@ -7,6 +7,58 @@ export type PublicUser = {
 	username: string
 }
 
+export type Permission = "users:invite" | "ai_provider:manage"
+export type AiProviderId =
+	| "openai"
+	| "anthropic"
+	| "google"
+	| "mistral"
+	| "azure"
+	| "amazon-bedrock"
+	| "openai-compatible"
+export type AiProviderRole = "text" | "embedding"
+export type AiProviderAuthMode = "static" | "deployment-identity"
+
+export type ProviderMetadata = {
+	id: AiProviderId
+	roles: AiProviderRole[]
+	authModes: AiProviderAuthMode[]
+	settingFields: string[]
+	requiredSettingFields: string[]
+	credentialFields: string[]
+	requiredCredentialFields: string[]
+	discovery: boolean
+}
+
+export type RedactedRoleConfiguration = {
+	providerId: AiProviderId
+	modelId: string
+	authMode: AiProviderAuthMode
+	settings: Record<string, string>
+	hasCredentials: boolean
+}
+
+export type AiProviderConfiguration = {
+	revision: number
+	health: "unconfigured" | "configured" | "unusable"
+	text: RedactedRoleConfiguration | null
+	embedding: (RedactedRoleConfiguration & { credentialSource: "text" | "separate" | "deployment-identity" }) | null
+}
+
+export type RoleConfigurationInput = {
+	providerId: AiProviderId
+	modelId: string
+	authMode: AiProviderAuthMode
+	settings: Record<string, string>
+	credentials?: Record<string, string>
+}
+
+export type SaveAiProviderConfigurationInput = {
+	expectedRevision: number
+	text: RoleConfigurationInput
+	embedding: RoleConfigurationInput & { credentialSource: "text" | "separate" | "deployment-identity" }
+}
+
 function isErrorBody(body: unknown): body is { error: string } {
 	return (
 		typeof body === "object" &&
@@ -64,4 +116,30 @@ export function redeemInvitation(input: {
 	username: string
 }): Promise<{ user: PublicUser }> {
 	return request("/api/invitations/redeem", { method: "POST", body: JSON.stringify(input) })
+}
+
+export function getAccess(signal?: AbortSignal): Promise<{ isAdmin: boolean; permissions: Permission[] }> {
+	return request("/api/access", { signal })
+}
+
+export function getAiProviders(signal?: AbortSignal): Promise<{ providers: ProviderMetadata[] }> {
+	return request("/api/ai-providers", { signal })
+}
+
+export function getAiProviderConfiguration(signal?: AbortSignal): Promise<AiProviderConfiguration> {
+	return request("/api/ai-provider-configuration", { signal })
+}
+
+export function discoverAiProviderModels(input: {
+	providerId: AiProviderId
+	authMode: AiProviderAuthMode
+	settings: Record<string, string>
+	credentials?: Record<string, string>
+	storedCredentialRole?: AiProviderRole
+}): Promise<{ models: string[] }> {
+	return request("/api/ai-provider-models/discover", { method: "POST", body: JSON.stringify(input) })
+}
+
+export function saveAiProviderConfiguration(input: SaveAiProviderConfigurationInput): Promise<AiProviderConfiguration> {
+	return request("/api/ai-provider-configuration", { method: "PUT", body: JSON.stringify(input) })
 }

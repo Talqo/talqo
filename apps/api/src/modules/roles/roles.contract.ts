@@ -70,3 +70,8 @@ export const grantResponseSchema = z.object({
 export const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
 })
+
+export const accessResponseSchema = z.object({
+	isAdmin: z.boolean(),
+	permissions: z.array(z.enum(PERMISSIONS)),
+})

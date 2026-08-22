@@ -54,6 +54,65 @@
 		"loading": "正在加载智能体…",
 		"subheading": "管理您的智能体及其行为。"
 	},
+	"aiConfiguration": {
+		"auth": {
+			"deploymentIdentity": "部署身份",
+			"static": "静态凭据"
+		},
+		"discovery": {
+			"noResults": "没有匹配的模型",
+			"retry": "重试",
+			"showModels": "显示模型建议",
+			"unavailable": "无法加载模型列表。请输入准确的模型 ID。",
+			"unavailableStored": "无法使用已保存的连接刷新模型列表。请重新输入凭据或重试。"
+		},
+		"embeddingDescription": "选择用于生成知识嵌入的模型。",
+		"embeddingTitle": "嵌入",
+		"fields": {
+			"accessKeyId": "访问密钥 ID",
+			"apiKey": "API 密钥",
+			"apiVersion": "API 版本",
+			"authentication": "身份验证",
+			"baseURL": "基础 URL",
+			"embeddingModel": "嵌入模型",
+			"project": "项目",
+			"provider": "提供商",
+			"region": "区域",
+			"secretAccessKey": "秘密访问密钥",
+			"sessionToken": "会话令牌",
+			"textModel": "文本模型"
+		},
+		"heading": "AI 配置",
+		"keepCredentialsNote": "输入新凭据，或保留已保存的凭据。",
+		"keepSavedCredentials": "保留已保存的凭据",
+		"loadError": "无法加载 AI 配置。",
+		"loading": "正在加载 AI 配置…",
+		"providers": {
+			"amazonBedrock": "Amazon Bedrock",
+			"anthropic": "Anthropic",
+			"azure": "Azure OpenAI",
+			"google": "Google Gemini",
+			"mistral": "Mistral",
+			"openai": "OpenAI",
+			"openaiCompatible": "OpenAI 兼容"
+		},
+		"replaceCredentials": "替换",
+		"sameProviderNote": "共享“文本生成”中的连接。",
+		"sameProviderUnavailable": "文本提供商没有嵌入 API。请为嵌入选择其他提供商。",
+		"save": "保存配置",
+		"saved": "配置已保存",
+		"savedCredentials": "已保存的凭据",
+		"saving": "正在保存…",
+		"subheading": "为此 Talqo 部署连接文本和嵌入模型。",
+		"tabs": {
+			"differentProvider": "其他提供商",
+			"sameProvider": "与文本提供商相同"
+		},
+		"textDescription": "选择用于回复对话的模型。",
+		"textTitle": "文本生成",
+		"unusableWarning": "无法解密已存储的凭据。请重新输入并保存提供商凭据。",
+		"validationError": "保存前请选择两个提供商和模型 ID。"
+	},
 	"analytics": {
 		"conversations": "对话数",
 		"dailyTotals": "最近 30 天的每日总量。",
@@ -146,6 +205,7 @@
 	"nav": {
 		"account": "账户",
 		"agents": "智能体",
+		"aiConfiguration": "AI 配置",
 		"analytics": "分析",
 		"dashboard": "仪表盘",
 		"invitations": "邀请",
