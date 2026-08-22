@@ -163,7 +163,7 @@ module contracts + route metadata
 - Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
 - Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
-- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas. `apps/web/src/features/authentication/api-error.ts` owns web-facing error normalization.
+- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 
 ## Web

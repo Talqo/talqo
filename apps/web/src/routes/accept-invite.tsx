@@ -1,5 +1,4 @@
 import { useRedeemInvitation } from "@/api/generated/roles/roles.ts"
-import { normalizeApiError } from "@/features/authentication/api-error.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -26,7 +25,9 @@ function AcceptInvitePage() {
 			await redeemInvitation.mutateAsync({ data: { token, ...input } })
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			setError(normalizeApiError(caught)?.message ?? t("auth.errorFallback"))
+			// Orval fetch errors expose the parsed error body as `info.error`.
+			const info = (caught as { info?: { error?: string } } | null)?.info
+			setError(info?.error ?? t("auth.errorFallback"))
 		}
 	}
 

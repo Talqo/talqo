@@ -1,5 +1,3 @@
-import { normalizeApiError } from "./api-error.ts"
-
 const FORBIDDEN_STATUS = 403
 
 export function buildInvitationUrl(origin: string, token: string): string {
@@ -20,7 +18,8 @@ export function getInvitationErrorMessage(
 	error: unknown,
 	messages: { fallback: string; permissionDenied: string },
 ): string {
-	const apiError = normalizeApiError(error)
-	if (!apiError) return messages.fallback
-	return apiError.status === FORBIDDEN_STATUS ? messages.permissionDenied : apiError.message
+	// Orval fetch errors expose the status and parsed error body as `info.error`.
+	const response = (error as { info?: { error?: string }; status?: number } | null) ?? {}
+	if (response.status === FORBIDDEN_STATUS) return messages.permissionDenied
+	return response.info?.error ?? messages.fallback
 }
