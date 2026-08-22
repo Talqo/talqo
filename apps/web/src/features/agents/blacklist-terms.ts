@@ -15,5 +15,6 @@ export function addBlacklistTerm(terms: string[], input: string): AddTermResult 
 }
 
 export function removeBlacklistTerm(terms: string[], term: string): string[] {
-	return terms.filter((existing) => existing !== term)
+	const target = term.toLowerCase()
+	return terms.filter((existing) => existing.toLowerCase() !== target)
 }
