@@ -1,6 +1,7 @@
-import { logout } from "@/api/client.ts"
+import { getGetSessionQueryKey, useLogout } from "@/api/generated/identity/identity.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
+import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, MessageSquare, User, UserPlus, X } from "lucide-react"
 import { useState } from "react"
@@ -66,20 +67,17 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 function LogoutButton() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
-	const [submitting, setSubmitting] = useState(false)
+	const queryClient = useQueryClient()
+	const logout = useLogout()
 
 	async function handleLogout() {
-		setSubmitting(true)
-		try {
-			await logout()
-			await navigate({ to: "/login" })
-		} finally {
-			setSubmitting(false)
-		}
+		await logout.mutateAsync()
+		queryClient.removeQueries({ queryKey: getGetSessionQueryKey() })
+		await navigate({ to: "/login" })
 	}
 
 	return (
-		<Button variant="ghost" size="sm" onClick={handleLogout} disabled={submitting}>
+		<Button variant="ghost" size="sm" onClick={handleLogout} disabled={logout.isPending}>
 			<LogOut className="size-4" />
 			{t("header.logout")}
 		</Button>

@@ -9,11 +9,13 @@
 		"db:migrate": "bun run src/db/migrate.ts",
 		"db:seed": "bun run src/db/seed.ts",
 		"dev": "bun --watch src/index.ts",
-		"test": "bun test --path-ignore-patterns '**/*.integration.test.ts'",
+		"openapi:generate": "bun --preload ./no-database.preload.ts src/openapi.ts",
+		"test": "bun test --preload ./no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts'",
 		"test:integration": "bun ../../scripts/test-integration.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@hono/zod-openapi": "1.6.0",
 		"@talqo/shared": "workspace:*",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.13.2",

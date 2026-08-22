@@ -1,6 +1,5 @@
-import type { PublicUser } from "@/api/client.ts"
-
-import { createInvitation, getSession } from "@/api/client.ts"
+import { useGetSession } from "@/api/generated/identity/identity.ts"
+import { useCreateInvitation } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import {
 	buildInvitationUrl,
@@ -14,7 +13,7 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Check, Copy } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/invitations")({
@@ -24,27 +23,16 @@ export const Route = createFileRoute("/dashboard/invitations")({
 function InvitationsPage() {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
-	const [user, setUser] = useState<PublicUser | null | undefined>(undefined)
-	const [invite, setInvite] = useState<{ expiresAt: string; token: string } | null>(null)
+	const session = useGetSession()
+	const createInvitation = useCreateInvitation()
 	const [error, setError] = useState<string | null>(null)
-	const [submitting, setSubmitting] = useState(false)
 	const [copied, setCopied] = useState(false)
 
-	useEffect(() => {
-		const controller = new AbortController()
-		getSession(controller.signal)
-			.then((session) => setUser(session.user))
-			.catch(() => setUser(null))
-		return () => controller.abort()
-	}, [])
-
 	async function handleCreate() {
-		setSubmitting(true)
 		setError(null)
-		setInvite(null)
 		setCopied(false)
 		try {
-			setInvite(await createInvitation())
+			await createInvitation.mutateAsync()
 		} catch (caught) {
 			setError(
 				getInvitationErrorMessage(caught, {
@@ -52,8 +40,6 @@ function InvitationsPage() {
 					permissionDenied: t("auth.invitations.permissionDenied"),
 				}),
 			)
-		} finally {
-			setSubmitting(false)
 		}
 	}
 
@@ -68,7 +54,7 @@ function InvitationsPage() {
 		}
 	}
 
-	if (user === undefined) {
+	if (session.isPending) {
 		return (
 			<div className="mx-auto max-w-2xl">
 				<p className="text-muted-foreground">{t("auth.loading")}</p>
@@ -76,7 +62,8 @@ function InvitationsPage() {
 		)
 	}
 
-	if (user === null) {
+	const user = session.data?.data.user
+	if (!user) {
 		return (
 			<div className="mx-auto max-w-2xl space-y-6">
 				<PageHeader title={t("auth.invitations.heading")} description={t("auth.invitations.description")} />
@@ -92,6 +79,7 @@ function InvitationsPage() {
 		)
 	}
 
+	const invite = createInvitation.data?.data
 	const inviteUrl = invite ? buildInvitationUrl(window.location.origin, invite.token) : null
 
 	return (
@@ -99,7 +87,13 @@ function InvitationsPage() {
 			<PageHeader title={t("auth.invitations.heading")} description={t("auth.invitations.description")} />
 			<Card>
 				<CardContent className="space-y-4">
-					<Button className="w-full" size="lg" type="button" onClick={handleCreate} disabled={submitting}>
+					<Button
+						className="w-full"
+						size="lg"
+						type="button"
+						onClick={handleCreate}
+						disabled={createInvitation.isPending}
+					>
 						{t("auth.invitations.create")}
 					</Button>
 					{error ? (
