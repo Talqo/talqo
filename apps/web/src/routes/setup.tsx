@@ -1,5 +1,4 @@
-import { bootstrapAdmin } from "@/api/client.ts"
-import { ApiError } from "@/api/errors.ts"
+import { useBootstrapAdmin } from "@/api/generated/roles/roles.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -14,18 +13,17 @@ function SetupPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const [error, setError] = useState<string | null>(null)
-	const [submitting, setSubmitting] = useState(false)
+	const bootstrapAdmin = useBootstrapAdmin()
 
 	async function handleSubmit(input: { password: string; username: string }) {
-		setSubmitting(true)
 		setError(null)
 		try {
-			await bootstrapAdmin(input)
+			await bootstrapAdmin.mutateAsync({ data: input })
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			setError(caught instanceof ApiError ? caught.message : t("auth.errorFallback"))
-		} finally {
-			setSubmitting(false)
+			// Orval fetch errors expose the parsed error body as `info.error`.
+			const info = (caught as { info?: { error?: string } } | null)?.info
+			setError(info?.error ?? t("auth.errorFallback"))
 		}
 	}
 
@@ -36,7 +34,7 @@ function SetupPage() {
 				onSubmit={handleSubmit}
 				requireConfirmation={true}
 				submitLabel={t("auth.setup.submit")}
-				submitting={submitting}
+				submitting={bootstrapAdmin.isPending}
 			/>
 		</AuthShell>
 	)

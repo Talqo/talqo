@@ -1,4 +1,3 @@
-import { ApiError } from "@/api/errors.ts"
 import { describe, expect, test } from "bun:test"
 
 import { buildInvitationUrl, formatInvitationExpiry, getInvitationErrorMessage } from "./invitation.ts"
@@ -24,13 +23,13 @@ describe("getInvitationErrorMessage", () => {
 	}
 
 	test("returns a friendly permission message for forbidden responses", () => {
-		expect(getInvitationErrorMessage(new ApiError(403, "Missing users:invite permission"), messages)).toBe(
-			messages.permissionDenied,
-		)
+		const error = { info: { error: "Missing users:invite permission" }, status: 403 }
+		expect(getInvitationErrorMessage(error, messages)).toBe(messages.permissionDenied)
 	})
 
 	test("keeps other API messages", () => {
-		expect(getInvitationErrorMessage(new ApiError(409, "Conflict"), messages)).toBe("Conflict")
+		const error = { info: { error: "Conflict" }, status: 409 }
+		expect(getInvitationErrorMessage(error, messages)).toBe("Conflict")
 	})
 
 	test("uses the fallback for unexpected errors", () => {

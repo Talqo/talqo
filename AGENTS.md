@@ -15,9 +15,10 @@ Run after changes:
 ```sh
 bun run quality:fix
 bun run typecheck
-bun test
-bun run i18n:fix
+bun run test
 bun run test:integration
 bun run e2e
-bun run actions:check  # only if GH actions changed
+bun run contracts:check
+bun run i18n:fix         # only if app locales or translated keys changed
+bun run actions:check    # only if .github/workflows changed
 ```
