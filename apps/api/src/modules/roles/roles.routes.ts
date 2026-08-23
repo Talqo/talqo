@@ -38,6 +38,8 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
+
+const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.authorize(user.id, "users:invite"))) {
@@ -62,6 +64,8 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			throw error
 		}
 	})
+
+const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
@@ -88,19 +92,22 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		await service.revokePermission(c.req.valid("param").id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
-	.openapi(resetUserPasswordRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
-		}
 
-		try {
-			await identity.setPassword(c.req.valid("param").userId, c.req.valid("json").newPassword)
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof identity.UserNotFoundError) {
-				return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
-			}
-			throw error
+rolesRoutes.route("/invitations", invitationRoutes)
+rolesRoutes.route("/permission-grants", permissionGrantRoutes)
+rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
+	const user = c.get("user")
+	if (!(await service.isAdmin(user.id))) {
+		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	}
+
+	try {
+		await identity.setPassword(c.req.valid("param").userId, c.req.valid("json").newPassword)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	} catch (error) {
+		if (error instanceof identity.UserNotFoundError) {
+			return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
 		}
-	})
+		throw error
+	}
+})

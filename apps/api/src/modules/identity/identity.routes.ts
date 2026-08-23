@@ -28,7 +28,7 @@ function sessionCookieOptions() {
 	}
 }
 
-export const identityRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const authRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(loginRoute, async (c) => {
 		try {
 			const { token, expiresAt, user } = await service.login(c.req.valid("json"))
@@ -52,6 +52,8 @@ export const identityRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		const result = token ? await service.getSession(token) : null
 		return c.json(sessionResponseSchema.parse({ user: result?.user ?? null }), HTTP_STATUS.OK)
 	})
+
+const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(updateAccountRoute, async (c) => {
 		try {
 			const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
@@ -80,3 +82,7 @@ export const identityRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
+
+export const identityRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+identityRoutes.route("/auth", authRoutes)
+identityRoutes.route("/me", accountRoutes)

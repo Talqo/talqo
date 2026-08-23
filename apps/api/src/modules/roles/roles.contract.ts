@@ -123,7 +123,7 @@ export const bootstrapAdminRoute = createRoute({
 
 export const createInvitationRoute = createRoute({
 	method: "post",
-	path: "/invitations",
+	path: "/",
 	operationId: "createInvitation",
 	tags: ["Roles"],
 	security: sessionSecurity,
@@ -140,7 +140,7 @@ export const createInvitationRoute = createRoute({
 
 export const redeemInvitationRoute = createRoute({
 	method: "post",
-	path: "/invitations/redeem",
+	path: "/redeem",
 	operationId: "redeemInvitation",
 	tags: ["Roles"],
 	request: {
@@ -159,7 +159,7 @@ export const redeemInvitationRoute = createRoute({
 
 export const createPermissionGrantRoute = createRoute({
 	method: "post",
-	path: "/permission-grants",
+	path: "/",
 	operationId: "createPermissionGrant",
 	tags: ["Roles"],
 	security: sessionSecurity,
@@ -178,7 +178,7 @@ export const createPermissionGrantRoute = createRoute({
 
 export const revokePermissionGrantRoute = createRoute({
 	method: "delete",
-	path: "/permission-grants/{id}",
+	path: "/{id}",
 	operationId: "revokePermissionGrant",
 	tags: ["Roles"],
 	security: sessionSecurity,

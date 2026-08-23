@@ -51,7 +51,7 @@ const userEnvelopeSchema = z.object({ user: userResponseSchema })
 
 export const loginRoute = createRoute({
 	method: "post",
-	path: "/auth/login",
+	path: "/login",
 	operationId: "login",
 	tags: ["Identity"],
 	request: {
@@ -67,7 +67,7 @@ export const loginRoute = createRoute({
 
 export const logoutRoute = createRoute({
 	method: "post",
-	path: "/auth/logout",
+	path: "/logout",
 	operationId: "logout",
 	tags: ["Identity"],
 	responses: {
@@ -78,7 +78,7 @@ export const logoutRoute = createRoute({
 
 export const getSessionRoute = createRoute({
 	method: "get",
-	path: "/auth/session",
+	path: "/session",
 	operationId: "getSession",
 	tags: ["Identity"],
 	responses: {
@@ -89,7 +89,7 @@ export const getSessionRoute = createRoute({
 
 export const updateAccountRoute = createRoute({
 	method: "patch",
-	path: "/me",
+	path: "/",
 	operationId: "updateAccount",
 	tags: ["Identity"],
 	security: sessionSecurity,
@@ -107,7 +107,7 @@ export const updateAccountRoute = createRoute({
 
 export const changePasswordRoute = createRoute({
 	method: "patch",
-	path: "/me/password",
+	path: "/password",
 	operationId: "changePassword",
 	tags: ["Identity"],
 	security: sessionSecurity,
@@ -124,7 +124,7 @@ export const changePasswordRoute = createRoute({
 
 export const deleteAccountRoute = createRoute({
 	method: "delete",
-	path: "/me",
+	path: "/",
 	operationId: "deleteAccount",
 	tags: ["Identity"],
 	security: sessionSecurity,
