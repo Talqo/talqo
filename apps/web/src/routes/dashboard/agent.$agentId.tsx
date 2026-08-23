@@ -1,13 +1,17 @@
-import { ApiError, CONFLICT_STATUS, FORBIDDEN_STATUS, NOT_FOUND_STATUS } from "@/api/errors.ts"
+import {
+	getGetAgentQueryKey,
+	useDeleteAgent,
+	useRefreshEmbedToken,
+	useUpdateAgent,
+} from "@/api/generated/agent/agent.ts"
 import { PageHeader } from "@/components/page-header"
 import { useAgent } from "@/features/agents/agent-query"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
+import { agentsQueryKey } from "@/features/agents/agents-query"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
-import { useDeleteAgent } from "@/features/agents/delete-agent-mutation"
-import { useRefreshEmbedToken } from "@/features/agents/refresh-embed-token-mutation"
-import { useUpdateAgent } from "@/features/agents/update-agent-mutation"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useMyPermissions } from "@/features/permissions/permissions-query"
+import { apiErrorStatus } from "@/lib/api-error.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -22,6 +26,7 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Textarea } from "@talqo/ui/components/textarea"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -32,15 +37,30 @@ export const Route = createFileRoute("/dashboard/agent/$agentId")({
 	component: AgentConfigPage,
 })
 
+const CONFLICT_STATUS = 409
+const FORBIDDEN_STATUS = 403
+const NOT_FOUND_STATUS = 404
+
 function AgentConfigPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { agentId } = Route.useParams()
 	const { data: permissions, isLoading: permissionsLoading } = useMyPermissions()
-	const { data: agent, error, isLoading } = useAgent(agentId)
+	const agentQuery = useAgent(agentId)
+	const agent = agentQuery.data?.data.agent
+	const { error, isLoading } = agentQuery
+	const queryClient = useQueryClient()
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
 	const refreshEmbedToken = useRefreshEmbedToken()
+
+	// Generated keys are URL strings, so the list prefix never matches the detail key.
+	function invalidateAgentQueries() {
+		return Promise.all([
+			queryClient.invalidateQueries({ queryKey: agentsQueryKey }),
+			queryClient.invalidateQueries({ queryKey: getGetAgentQueryKey(agentId) }),
+		])
+	}
 
 	const [terms, setTerms] = useState<string[]>([])
 	const [saved, setSaved] = useState(false)
@@ -77,16 +97,18 @@ function AgentConfigPage() {
 		try {
 			await updateAgent.mutateAsync({
 				agentId,
-				input: { name: values.name, systemPrompt: values.systemPrompt, wordBlacklist: terms },
+				data: { name: values.name, systemPrompt: values.systemPrompt, wordBlacklist: terms },
 			})
+			await invalidateAgentQueries()
 			setSaved(true)
 		} catch (caught) {
 			// Failed saves keep edits; only the message changes.
-			if (caught instanceof ApiError && caught.status === CONFLICT_STATUS) {
+			const status = apiErrorStatus(caught)
+			if (status === CONFLICT_STATUS) {
 				setFormError(t("agents.nameConflict"))
-			} else if (caught instanceof ApiError && caught.status === FORBIDDEN_STATUS) {
+			} else if (status === FORBIDDEN_STATUS) {
 				setFormError(t("agents.manageForbidden"))
-			} else if (caught instanceof ApiError && caught.status === NOT_FOUND_STATUS) {
+			} else if (status === NOT_FOUND_STATUS) {
 				setFormError(t("agentConfig.wasDeleted"))
 			} else {
 				setFormError(t("agents.saveFailed"))
@@ -98,12 +120,11 @@ function AgentConfigPage() {
 		setRefreshError(null)
 		try {
 			await refreshEmbedToken.mutateAsync({ agentId })
+			await invalidateAgentQueries()
 			setRefreshOpen(false)
 		} catch (caught) {
 			setRefreshError(
-				caught instanceof ApiError && caught.status === NOT_FOUND_STATUS
-					? t("agentConfig.wasDeleted")
-					: t("agentConfig.refreshTokenFailed"),
+				apiErrorStatus(caught) === NOT_FOUND_STATUS ? t("agentConfig.wasDeleted") : t("agentConfig.refreshTokenFailed"),
 			)
 		}
 	}
@@ -111,13 +132,14 @@ function AgentConfigPage() {
 	async function onConfirmDelete() {
 		setDeleteError(null)
 		try {
-			await deleteAgent.mutateAsync(agentId)
+			await deleteAgent.mutateAsync({ agentId })
+			// The detail query would refetch into a 404 retry storm; drop it and refresh the list.
+			queryClient.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
+			await queryClient.invalidateQueries({ queryKey: agentsQueryKey })
 			await navigate({ to: "/dashboard/agents" })
 		} catch (caught) {
 			setDeleteError(
-				caught instanceof ApiError && caught.status === NOT_FOUND_STATUS
-					? t("agentConfig.wasDeleted")
-					: t("agents.deleteFailed"),
+				apiErrorStatus(caught) === NOT_FOUND_STATUS ? t("agentConfig.wasDeleted") : t("agents.deleteFailed"),
 			)
 		}
 	}
@@ -144,9 +166,7 @@ function AgentConfigPage() {
 			<div className="mx-auto max-w-3xl space-y-6">
 				<BackLink t={t} />
 				<p className="text-muted-foreground">
-					{error instanceof ApiError && error.status === NOT_FOUND_STATUS
-						? t("agentConfig.notFound")
-						: t("agents.loadFailed")}
+					{apiErrorStatus(error) === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
 				</p>
 			</div>
 		)
@@ -176,7 +196,7 @@ function AgentConfigPage() {
 								placeholder={t("agentFields.namePlaceholder")}
 								disabled={!canManage}
 								aria-invalid={errors.name ? true : undefined}
-								{...register("name")}
+								{...register("name", { onChange: () => setSaved(false) })}
 							/>
 							{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
 						</div>
@@ -188,7 +208,7 @@ function AgentConfigPage() {
 								rows={5}
 								disabled={!canManage}
 								aria-invalid={errors.systemPrompt ? true : undefined}
-								{...register("systemPrompt")}
+								{...register("systemPrompt", { onChange: () => setSaved(false) })}
 							/>
 							{errors.systemPrompt && (
 								<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
@@ -196,7 +216,15 @@ function AgentConfigPage() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
-							<BlacklistTermsEditor id="config-blacklist" value={terms} onChange={setTerms} disabled={!canManage} />
+							<BlacklistTermsEditor
+								id="config-blacklist"
+								value={terms}
+								onChange={(next) => {
+									setSaved(false)
+									setTerms(next)
+								}}
+								disabled={!canManage}
+							/>
 						</div>
 						{canManage && (
 							<div className="flex items-center gap-3 pt-2">

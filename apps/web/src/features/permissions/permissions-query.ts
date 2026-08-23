@@ -1,12 +1,6 @@
-import { getMyPermissions } from "@/api/client.ts"
-import { useQuery } from "@tanstack/react-query"
-
-export const myPermissionsQueryKey = ["me", "permissions"] as const
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 
 export function useMyPermissions() {
-	return useQuery({
-		queryKey: myPermissionsQueryKey,
-		queryFn: ({ signal }) => getMyPermissions(signal).then(({ permissions }) => permissions),
-		retry: false,
-	})
+	const query = useGetMyPermissions()
+	return { ...query, data: query.data?.data.permissions }
 }

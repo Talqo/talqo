@@ -38,7 +38,7 @@ describe("effectivePermissions", () => {
 	})
 
 	it("denies a grant for a different permission", () => {
-		expect(can({ isAdmin: false }, [{ permission: "users:invite" }], "agents:read")).toBe(false)
+		expect(effectivePermissions(false, [{ permission: "users:invite" }])).toEqual(["users:invite"])
 	})
 
 	it("expands agents:manage into agents:read and agents:manage", () => {

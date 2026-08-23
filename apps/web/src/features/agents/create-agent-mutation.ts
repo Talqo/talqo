@@ -1,8 +1,12 @@
-import { createAgent, type Agent, type AgentInput } from "@/api/client.ts"
-import { ApiError, CONFLICT_STATUS } from "@/api/errors.ts"
+import type { CreateAgentBody } from "@/api/generated/models/agent/createAgentBody.zod.ts"
+
+import { createAgent } from "@/api/generated/agent/agent.ts"
+import { apiErrorStatus } from "@/lib/api-error.ts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { agentsQueryKey } from "./agents-query.ts"
+
+const CONFLICT_STATUS = 409
 
 export const AGENT_NAME_FALLBACK_LIMIT = 20
 
@@ -14,18 +18,18 @@ export function buildNameCandidates(baseName: string): string[] {
 }
 
 export async function createAgentWithNameFallback<TAgent extends { name: string }>(
-	create: (input: AgentInput) => Promise<TAgent>,
-	input: Omit<AgentInput, "name">,
+	create: (input: CreateAgentBody) => Promise<TAgent>,
+	input: Omit<CreateAgentBody, "name">,
 	candidates: string[],
 ): Promise<TAgent> {
-	let lastError: unknown = new ApiError(CONFLICT_STATUS, "No names available")
+	let lastError: unknown = new Error("No names available")
 	for (const name of candidates) {
 		try {
 			// Sequential by design: each name must be rejected before the next is attempted.
 			// eslint-disable-next-line no-await-in-loop
 			return await create({ ...input, name })
 		} catch (error) {
-			if (!(error instanceof ApiError && error.status === CONFLICT_STATUS)) throw error
+			if (apiErrorStatus(error) !== CONFLICT_STATUS) throw error
 			lastError = error
 		}
 	}
@@ -35,10 +39,8 @@ export async function createAgentWithNameFallback<TAgent extends { name: string 
 export function useCreateAgent() {
 	const queryClient = useQueryClient()
 	return useMutation({
-		mutationFn: ({ candidates, ...input }: Omit<AgentInput, "name"> & { candidates: string[] }): Promise<Agent> =>
-			createAgentWithNameFallback(createAgentWrapper, input, candidates),
+		mutationFn: ({ candidates, ...input }: Omit<CreateAgentBody, "name"> & { candidates: string[] }) =>
+			createAgentWithNameFallback(async (body) => (await createAgent(body)).data.agent, input, candidates),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: agentsQueryKey }),
 	})
 }
-
-const createAgentWrapper = async (input: AgentInput): Promise<Agent> => (await createAgent(input)).agent

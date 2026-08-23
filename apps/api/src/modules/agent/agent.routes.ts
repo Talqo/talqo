@@ -40,7 +40,10 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		if (!(await roles.authorize(user.id, "agents:read"))) {
 			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
 		}
-		return c.json(agentListResponseSchema.parse({ agents: (await service.listAgents()).map(serialize) }), HTTP_STATUS.OK)
+		return c.json(
+			agentListResponseSchema.parse({ agents: (await service.listAgents()).map(serialize) }),
+			HTTP_STATUS.OK,
+		)
 	})
 	.openapi(createAgentRoute, async (c) => {
 		const user = c.get("user")

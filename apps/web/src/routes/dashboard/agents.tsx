@@ -1,9 +1,9 @@
-import { ApiError, FORBIDDEN_STATUS } from "@/api/errors.ts"
 import { PageHeader } from "@/components/page-header"
 import { useAgents } from "@/features/agents/agents-query"
 import { buildNameCandidates, useCreateAgent } from "@/features/agents/create-agent-mutation"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useMyPermissions } from "@/features/permissions/permissions-query"
+import { apiErrorStatus } from "@/lib/api-error.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -31,12 +31,15 @@ function AgentCardMetric({ icon: Icon, label }: { icon: typeof MessageSquare; la
 	)
 }
 
+const FORBIDDEN_STATUS = 403
+
 function AgentsPage() {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
 	const navigate = useNavigate()
 	const { data: permissions, isLoading: permissionsLoading } = useMyPermissions()
-	const { data: agents, error, isLoading, refetch, isFetching } = useAgents()
+	const { data, error, isLoading, refetch, isFetching } = useAgents()
+	const agents = data?.data.agents
 	const createAgent = useCreateAgent()
 	const [createError, setCreateError] = useState<string | null>(null)
 
@@ -54,9 +57,7 @@ function AgentsPage() {
 			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id } })
 		} catch (caught) {
 			setCreateError(
-				caught instanceof ApiError && caught.status === FORBIDDEN_STATUS
-					? t("agents.manageForbidden")
-					: t("agents.createFailed"),
+				apiErrorStatus(caught) === FORBIDDEN_STATUS ? t("agents.manageForbidden") : t("agents.createFailed"),
 			)
 		}
 	}

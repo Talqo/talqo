@@ -11,7 +11,6 @@ export const CreatePermissionGrant201 = zod.object({
 		id: zod.string(),
 		userId: zod.string(),
 		permission: zod.string(),
-		agentId: zod.string().nullable(),
 		grantedBy: zod.string().nullable(),
 		grantedAt: zod.iso.datetime({ offset: true }),
 	}),

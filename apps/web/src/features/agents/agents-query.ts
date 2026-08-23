@@ -1,19 +1,16 @@
-import { listAgents } from "@/api/client.ts"
-import { useQuery } from "@tanstack/react-query"
+import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
-export const agentsQueryKey = ["agents"] as const
+// Prefix key covering every agents query (list and single agent) for invalidation.
+export const agentsQueryKey = ["/api/agents"] as const
 
 export function useAgents() {
-	return useQuery({
-		queryKey: agentsQueryKey,
-		queryFn: ({ signal }) => listAgents(signal).then(({ agents }) => agents),
-		retry: false,
-	})
+	return useListAgents()
 }
 
 export function useActiveAgent() {
-	const { data: agentList, error, isLoading } = useAgents()
+	const { data, error, isLoading } = useAgents()
+	const agentList = data?.data.agents
 	const { agent: selectedId } = useSearch({ strict: false })
 	const navigate = useNavigate()
 	const activeId =

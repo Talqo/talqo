@@ -232,10 +232,16 @@ describe("agent CRUD", () => {
 		expect(agent.embedToken).toMatch(/^[0-9a-f-]{36}$/)
 
 		const reader = await createMemberSession(userId, ["agents:read"])
-		const forbidden = await createJsonRequest(reader, "POST", `/api/agents/${agent.id}/embed-token/refresh`)
+		const forbidden = await app.request(`/api/agents/${agent.id}/embed-token/refresh`, {
+			method: "POST",
+			headers: { Cookie: reader },
+		})
 		expect(forbidden.status).toBe(403)
 
-		const rotated = await createJsonRequest(cookie, "POST", `/api/agents/${agent.id}/embed-token/refresh`)
+		const rotated = await app.request(`/api/agents/${agent.id}/embed-token/refresh`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
 		expect(rotated.status).toBe(200)
 		const rotatedAgent = ((await rotated.json()) as AgentPayload).agent
 		expect(rotatedAgent.embedToken).toMatch(/^[0-9a-f-]{36}$/)
@@ -244,7 +250,10 @@ describe("agent CRUD", () => {
 		const fetched = await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: cookie } })
 		expect(((await fetched.json()) as AgentPayload).agent.embedToken).toBe(rotatedAgent.embedToken)
 
-		const missing = await createJsonRequest(cookie, "POST", `/api/agents/${crypto.randomUUID()}/embed-token/refresh`)
+		const missing = await app.request(`/api/agents/${crypto.randomUUID()}/embed-token/refresh`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
 		expect(missing.status).toBe(404)
 	})
 })
@@ -267,7 +276,7 @@ describe("agent service interface", () => {
 		expect(listed.map((agent) => agent.id)).toEqual([created.id])
 
 		await service.deleteAgent(created.id)
-		expect(service.getAgent(created.id)).rejects.toBeInstanceOf(service.AgentNotFoundError)
+		await expect(service.getAgent(created.id)).rejects.toBeInstanceOf(service.AgentNotFoundError)
 	})
 
 	it("refreshes the embed token and reports a missing aggregate", async () => {

@@ -1,15 +1,15 @@
-import { ApiError, CONFLICT_STATUS } from "@/api/errors.ts"
 import { describe, expect, test } from "bun:test"
 
 import { buildNameCandidates, createAgentWithNameFallback } from "./create-agent-mutation"
 
+const CONFLICT_STATUS = 409
 const INTERNAL_ERROR_STATUS = 500
 
-const createAlwaysFailing = async (): Promise<never> => {
-	throw new ApiError(INTERNAL_ERROR_STATUS, "boom")
-}
-const createAlwaysConflicting = async (): Promise<never> => {
-	throw new ApiError(CONFLICT_STATUS, "conflict")
+// Mirrors the Orval fetch error shape: a plain Error carrying a status.
+function failingWith(status: number): Promise<never> {
+	const error = new Error("request failed") as Error & { status: number }
+	error.status = status
+	throw error
 }
 
 describe("buildNameCandidates", () => {
@@ -47,7 +47,7 @@ describe("createAgentWithNameFallback", () => {
 		const used: string[] = []
 		const create = async ({ name }: { name: string }) => {
 			used.push(name)
-			if (used.length < 3) throw new ApiError(CONFLICT_STATUS, "An agent with this name already exists")
+			if (used.length < 3) return failingWith(CONFLICT_STATUS)
 			return { name }
 		}
 
@@ -60,7 +60,7 @@ describe("createAgentWithNameFallback", () => {
 		let attempts = 0
 		const create = async (): Promise<never> => {
 			attempts += 1
-			return createAlwaysFailing()
+			return failingWith(INTERNAL_ERROR_STATUS)
 		}
 
 		await expect(createAgentWithNameFallback(create, input, ["A", "A 2"])).rejects.toMatchObject({
@@ -70,8 +70,8 @@ describe("createAgentWithNameFallback", () => {
 	})
 
 	test("rethrows the conflict when every candidate is taken", async () => {
-		await expect(createAgentWithNameFallback(createAlwaysConflicting, input, ["A", "A 2"])).rejects.toMatchObject({
-			status: CONFLICT_STATUS,
-		})
+		await expect(
+			createAgentWithNameFallback(() => failingWith(CONFLICT_STATUS), input, ["A", "A 2"]),
+		).rejects.toMatchObject({ status: CONFLICT_STATUS })
 	})
 })
