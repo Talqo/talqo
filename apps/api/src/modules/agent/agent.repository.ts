@@ -90,6 +90,12 @@ export async function updateWithWords(
 	})
 }
 
+export async function updateEmbedToken(id: string, embedToken: string): Promise<AgentWithWords | undefined> {
+	const [updated] = await db.update(agent).set({ embedToken }).where(eq(agent.id, id)).returning({ id: agent.id })
+	if (!updated) return undefined
+	return findByIdWithWords(id)
+}
+
 export async function deleteById(id: string): Promise<boolean> {
 	const rows = await db.delete(agent).where(eq(agent.id, id)).returning({ id: agent.id })
 	return rows.length > 0

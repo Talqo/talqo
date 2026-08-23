@@ -4,6 +4,7 @@ import { useAgent } from "@/features/agents/agent-query"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { useDeleteAgent } from "@/features/agents/delete-agent-mutation"
+import { useRefreshEmbedToken } from "@/features/agents/refresh-embed-token-mutation"
 import { useUpdateAgent } from "@/features/agents/update-agent-mutation"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useMyPermissions } from "@/features/permissions/permissions-query"
@@ -22,7 +23,7 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, Trash2 } from "lucide-react"
+import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -39,6 +40,7 @@ function AgentConfigPage() {
 	const { data: agent, error, isLoading } = useAgent(agentId)
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
+	const refreshEmbedToken = useRefreshEmbedToken()
 
 	const [terms, setTerms] = useState<string[]>([])
 	const [saved, setSaved] = useState(false)
@@ -46,6 +48,8 @@ function AgentConfigPage() {
 	const [deleteError, setDeleteError] = useState<string | null>(null)
 	const [confirmation, setConfirmation] = useState("")
 	const [confirmOpen, setConfirmOpen] = useState(false)
+	const [refreshOpen, setRefreshOpen] = useState(false)
+	const [refreshError, setRefreshError] = useState<string | null>(null)
 
 	const canRead = permissions?.includes("agents:read") ?? false
 	const canManage = permissions?.includes("agents:manage") ?? false
@@ -87,6 +91,20 @@ function AgentConfigPage() {
 			} else {
 				setFormError(t("agents.saveFailed"))
 			}
+		}
+	}
+
+	async function onConfirmRefresh() {
+		setRefreshError(null)
+		try {
+			await refreshEmbedToken.mutateAsync({ agentId })
+			setRefreshOpen(false)
+		} catch (caught) {
+			setRefreshError(
+				caught instanceof ApiError && caught.status === NOT_FOUND_STATUS
+					? t("agentConfig.wasDeleted")
+					: t("agentConfig.refreshTokenFailed"),
+			)
 		}
 	}
 
@@ -193,6 +211,46 @@ function AgentConfigPage() {
 							</div>
 						)}
 					</form>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("agentConfig.embedToken")}</CardTitle>
+					<CardDescription>{t("agentConfig.embedTokenDescription")}</CardDescription>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="embed-token">{t("agentConfig.embedToken")}</Label>
+						<Input id="embed-token" value={agent.embedToken} readOnly className="font-mono" />
+					</div>
+					{canManage && (
+						<Dialog open={refreshOpen} onOpenChange={setRefreshOpen}>
+							<Button variant="outline" onClick={() => setRefreshOpen(true)}>
+								<RefreshCw className="size-4" />
+								{t("agentConfig.refreshToken")}
+							</Button>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>{t("agentConfig.refreshTokenTitle")}</DialogTitle>
+									<DialogDescription>{t("agentConfig.refreshTokenWarning")}</DialogDescription>
+								</DialogHeader>
+								{refreshError && (
+									<p role="alert" className="text-destructive text-sm">
+										{refreshError}
+									</p>
+								)}
+								<DialogFooter>
+									<Button variant="outline" onClick={() => setRefreshOpen(false)}>
+										{t("agentConfig.cancel")}
+									</Button>
+									<Button variant="destructive" disabled={refreshEmbedToken.isPending} onClick={onConfirmRefresh}>
+										{refreshEmbedToken.isPending ? t("agentConfig.refreshing") : t("agentConfig.refreshToken")}
+									</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
+					)}
 				</CardContent>
 			</Card>
 

@@ -47,14 +47,16 @@ function WidgetPage() {
 	}, [])
 
 	const scriptUrl = widgetScriptUrl()
-	const snippet = scriptUrl
-		? buildEmbedSnippet(scriptUrl, {
-				agentId: activeAgentId,
-				accent: accentColor,
-				language: widgetLanguage,
-				position,
-			})
-		: undefined
+	const activeToken = agents?.find((agent) => agent.id === activeAgentId)?.embedToken
+	const snippet =
+		scriptUrl && activeToken
+			? buildEmbedSnippet(scriptUrl, {
+					embedToken: activeToken,
+					accent: accentColor,
+					language: widgetLanguage,
+					position,
+				})
+			: undefined
 
 	async function copySnippet() {
 		if (!snippet) {

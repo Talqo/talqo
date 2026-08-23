@@ -89,6 +89,7 @@ describe("api", () => {
 				"/api/ai-providers",
 				"/api/agents",
 				"/api/agents/{agentId}",
+				"/api/agents/{agentId}/embed-token/refresh",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",

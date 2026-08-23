@@ -46,7 +46,18 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
 
-	// Widget setup resolves the persisted agent id into the embed snippet.
+	// Refreshing the embed token warns that existing embeds stop working, then rotates it.
+	const tokenInput = page.getByLabel("Embed token", { exact: true })
+	const firstToken = await tokenInput.inputValue()
+	expect(firstToken).toMatch(/^[0-9a-f-]{36}$/)
+	await page.getByRole("button", { name: "Refresh token" }).click()
+	const refreshDialog = page.getByRole("dialog")
+	await expect(refreshDialog.getByText(/stops working/)).toBeVisible()
+	await refreshDialog.getByRole("button", { name: "Refresh token" }).click()
+	await expect(tokenInput).not.toHaveValue(firstToken)
+	const rotatedToken = await tokenInput.inputValue()
+
+	// Widget setup resolves the rotated embed token into the embed snippet.
 	await page.getByRole("link", { name: "Widget", exact: true }).click()
 	await page.getByLabel("Agent").click()
 	await page.getByRole("option", { name: "Docs helper" }).click()
@@ -54,9 +65,10 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	if (!widgetCdnUrl) throw new Error("E2E_WIDGET_CDN_URL missing — playwright.config.ts provides it")
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText(`src="${widgetCdnUrl}"`)
+	await expect(snippet).toContainText(`data-talqo-embed-token="${rotatedToken}"`)
+	await expect(snippet).not.toContainText("data-talqo-agent")
 	await expect(snippet).toContainText('data-talqo-language="en"')
 	await expect(snippet).toContainText('data-talqo-position="bottom-right"')
-	await expect(snippet).not.toContainText("local-")
 	await page.getByLabel("Position").click()
 	await page.getByRole("option", { name: "Bottom left" }).click()
 	await expect(snippet).toContainText('data-talqo-position="bottom-left"')
@@ -99,7 +111,9 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(page.getByLabel("Name")).toBeDisabled()
 	await expect(page.getByLabel("System prompt")).toBeDisabled()
 	await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
+	await expect(page.getByLabel("Embed token", { exact: true })).toBeVisible()
 	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+	await expect(page.getByRole("button", { name: "Refresh token" })).toHaveCount(0)
 	await expect(page.getByText("Danger zone")).toHaveCount(0)
 })
 

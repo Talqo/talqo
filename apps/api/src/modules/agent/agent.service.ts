@@ -16,6 +16,7 @@ function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 		id: agent.id,
 		name: agent.name,
 		systemPrompt: agent.systemPrompt,
+		embedToken: agent.embedToken,
 		wordBlacklist: words.map((word) => word.word),
 		createdAt: agent.createdAt,
 		updatedAt: agent.updatedAt,
@@ -24,6 +25,7 @@ function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 
 export type Agent = {
 	createdAt: Date
+	embedToken: string
 	id: string
 	name: string
 	systemPrompt: string
@@ -119,6 +121,12 @@ export async function updateAgent(id: string, input: AgentInput): Promise<Agent>
 		if (isUniqueViolation(error)) throw new DuplicateAgentNameError("An agent with this name already exists")
 		throw error
 	}
+}
+
+export async function refreshEmbedToken(id: string): Promise<Agent> {
+	const updated = await repo.updateEmbedToken(id, crypto.randomUUID())
+	if (!updated) throw new AgentNotFoundError(`refreshEmbedToken: agent ${id} not found`)
+	return toAgent(updated)
 }
 
 export async function deleteAgent(id: string): Promise<void> {

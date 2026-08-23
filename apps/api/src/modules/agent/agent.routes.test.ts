@@ -28,4 +28,10 @@ describe("agent routes", () => {
 
 		expect(response.status).toBe(401)
 	})
+
+	it("rejects an unauthenticated POST /api/agents/:id/embed-token/refresh request", async () => {
+		const response = await app.request(`/api/agents/${crypto.randomUUID()}/embed-token/refresh`, { method: "POST" })
+
+		expect(response.status).toBe(401)
+	})
 })

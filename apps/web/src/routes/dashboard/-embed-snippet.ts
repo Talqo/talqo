@@ -1,7 +1,7 @@
 export type EmbedPosition = "bottom-right" | "bottom-left"
 
 export type EmbedConfig = {
-	agentId: string
+	embedToken: string
 	accent?: string
 	language?: string
 	position?: EmbedPosition
@@ -20,9 +20,7 @@ function escapeAttribute(value: string): string {
 export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): string {
 	const attributes = [
 		`src="${escapeAttribute(scriptUrl)}"`,
-		// TODO(public-token): raw agent IDs aren't credentials — swap for the shared widget
-		// token when FR-2.8/FR-3.4 lands.
-		`data-talqo-agent="${escapeAttribute(config.agentId)}"`,
+		`data-talqo-embed-token="${escapeAttribute(config.embedToken)}"`,
 		config.accent && HEX_COLOR.test(config.accent) ? `data-talqo-accent="${config.accent}"` : undefined,
 		config.language ? `data-talqo-language="${escapeAttribute(config.language)}"` : undefined,
 		config.position ? `data-talqo-position="${config.position}"` : undefined,

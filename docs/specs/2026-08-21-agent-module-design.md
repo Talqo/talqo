@@ -23,7 +23,7 @@ Agents belong to the single-tenant deployment rather than to individual operator
 - Knowledge ingestion, embeddings, or RAG.
 - Conversations, messages, response generation, or blacklist enforcement at runtime.
 - IP rate limiting or message limits.
-- Public widget tokens or embed authentication.
+- Token-authenticated public endpoints for the widget or SDK (the embed token itself is stored per agent and rotatable here; enforcement lands with those endpoints per FR-3.4/NFR-3.3).
 - Widget appearance persistence.
 - Agent analytics.
 - An active, paused, enabled, or disabled lifecycle state. The current mock status has no defined SRS behavior and will be removed.
@@ -60,8 +60,9 @@ The `agent` table contains:
 - `id`: text primary key containing an application-generated UUID.
 - `name`: trimmed display name, required, 1-100 characters.
 - `system_prompt`: trimmed raw prompt, required, 1-20,000 characters.
+- `embed_token`: UUID with `gen_random_uuid()` default and a unique index, required. Public identifier carried by the embed snippet; rotation replaces it and orphans the previous value.
 - `created_at`: timezone-aware creation timestamp.
-- `updated_at`: timezone-aware last-update timestamp.
+- `updated_at`: timezone-aware last-update timestamp. Rotation does not touch it — configuration last-changed semantics.
 
 Agent names are unique across the deployment after case folding. PostgreSQL enforces this with a unique index over `lower(name)`. IDs, not names, remain the stable identity.
 
@@ -112,6 +113,7 @@ All routes require a valid dashboard session.
 | `POST` | `/api/agents` | `agents:manage` | Create an aggregate and return `201`. |
 | `GET` | `/api/agents/:agentId` | `agents:read` | Return one aggregate or `404`. |
 | `PUT` | `/api/agents/:agentId` | `agents:manage` | Replace editable configuration transactionally. |
+| `POST` | `/api/agents/:agentId/embed-token/refresh` | `agents:manage` | Rotate the embed token; the old value is orphaned immediately. |
 | `DELETE` | `/api/agents/:agentId` | `agents:manage` | Hard-delete the aggregate and return `204`. |
 | `GET` | `/api/me/permissions` | authenticated | Return the current operator's effective global permissions. |
 
@@ -192,7 +194,7 @@ A visually separated danger zone performs hard deletion. The confirmation dialog
 
 ### Agent Consumers
 
-Widget and Analytics selectors consume the same persisted agent-list query and validated URL selection already used by the dashboard. They receive real agent IDs and names after reload. Their appearance settings, generated statistics, raw-ID embed behavior, and non-functional chat preview are not expanded by this effort; concrete TODOs identify the public-token, analytics, and conversation integrations where the current mock behavior meets the new persisted identity.
+Widget and Analytics selectors consume the same persisted agent-list query and validated URL selection already used by the dashboard. They receive real agent IDs, names, and embed tokens after reload, and the embed snippet carries the persisted embed token instead of the raw agent ID. Their appearance settings, generated statistics, and non-functional chat preview are not expanded by this effort; concrete TODOs identify the analytics and conversation integrations where the current mock behavior meets the new persisted identity.
 
 The API remains authoritative. Agent mutations are not optimistic because configuration conflicts and failed aggregate transactions must not be presented as saved.
 

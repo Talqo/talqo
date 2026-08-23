@@ -11,6 +11,7 @@ import {
 	deleteAgentRoute,
 	getAgentRoute,
 	listAgentsRoute,
+	refreshEmbedTokenRoute,
 	updateAgentRoute,
 } from "./agent.contract.ts"
 import * as service from "./agent.service.ts"
@@ -79,6 +80,21 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 
 		try {
 			const agent = await service.updateAgent(c.req.valid("param").agentId, c.req.valid("json"))
+			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
+		} catch (error) {
+			const mapped = mapDomainError(error)
+			if (mapped) return c.json(mapped.body, mapped.status as never)
+			throw error
+		}
+	})
+	.openapi(refreshEmbedTokenRoute, async (c) => {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, "agents:manage"))) {
+			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		}
+
+		try {
+			const agent = await service.refreshEmbedToken(c.req.valid("param").agentId)
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
