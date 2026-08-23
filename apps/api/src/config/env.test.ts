@@ -28,33 +28,4 @@ describe("parseEnv", () => {
 	it("rejects an invalid DATABASE_URL", () => {
 		expect(() => parseEnv({ DATABASE_URL: "not-a-url" })).toThrow(/DATABASE_URL/)
 	})
-
-	it("defaults the file size and name length limits", () => {
-		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" })
-
-		expect(env.TALQO_MAX_FILE_SIZE_MB).toBe(10)
-		expect(env.TALQO_MAX_FILE_NAME_LENGTH).toBe(255)
-	})
-
-	it("accepts overridden file limits", () => {
-		const env = parseEnv({
-			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-			NODE_ENV: "development",
-			TALQO_MAX_FILE_SIZE_MB: "25",
-			TALQO_MAX_FILE_NAME_LENGTH: "100",
-		})
-
-		expect(env.TALQO_MAX_FILE_SIZE_MB).toBe(25)
-		expect(env.TALQO_MAX_FILE_NAME_LENGTH).toBe(100)
-	})
-
-	it("rejects a file name length above the storage limit of 255", () => {
-		expect(() =>
-			parseEnv({
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				NODE_ENV: "development",
-				TALQO_MAX_FILE_NAME_LENGTH: "256",
-			}),
-		).toThrow(/TALQO_MAX_FILE_NAME_LENGTH/)
-	})
 })

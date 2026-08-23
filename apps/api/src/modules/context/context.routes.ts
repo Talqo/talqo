@@ -1,6 +1,5 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
-import { BYTES_PER_MB, env } from "@/config/env.ts"
 import { parseJsonBody } from "@/http/json-body.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { Hono } from "hono"
@@ -13,7 +12,8 @@ import {
 	createContextResponseSchema,
 	renameContextFileRequestSchema,
 } from "./context.contract.ts"
-import * as files from "./context.files.ts"
+import * as files from "./context.service.ts"
+import { BYTES_PER_MB, MAX_FILE_NAME_LENGTH, MAX_FILE_SIZE_MB } from "./context.service.ts"
 
 // Extension allowlist. The client-declared MIME type is NOT trustworthy for validation:
 // browsers label sniffed text content as text/plain regardless of the real type.
@@ -35,8 +35,8 @@ function validateUpload(file: { name: string; size: number }): void {
 		throw new InvalidFileError(`File type ${ext || "(none)"} is not allowed; use PDF, TXT, MD, or DOCX`)
 	}
 	validateNameForDisk(file.name)
-	if (file.size > env.TALQO_MAX_FILE_SIZE_MB * BYTES_PER_MB) {
-		throw new InvalidFileError(`File exceeds the ${env.TALQO_MAX_FILE_SIZE_MB} MB size limit`)
+	if (file.size > MAX_FILE_SIZE_MB * BYTES_PER_MB) {
+		throw new InvalidFileError(`File exceeds the ${MAX_FILE_SIZE_MB} MB size limit`)
 	}
 }
 
@@ -61,8 +61,8 @@ export const contextRoutes = new Hono<{ Variables: AuthedVariables }>()
 		return c.json(
 			contextFilesResponseSchema.parse({
 				files: await files.list(contextId),
-				maxSizeBytes: env.TALQO_MAX_FILE_SIZE_MB * BYTES_PER_MB,
-				maxNameLength: env.TALQO_MAX_FILE_NAME_LENGTH,
+				maxSizeBytes: MAX_FILE_SIZE_MB * BYTES_PER_MB,
+				maxNameLength: MAX_FILE_NAME_LENGTH,
 			}),
 		)
 	})

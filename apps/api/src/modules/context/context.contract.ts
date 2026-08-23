@@ -1,5 +1,6 @@
-import { env } from "@/config/env.ts"
 import { z } from "zod"
+
+import { MAX_FILE_NAME_LENGTH } from "./context.service.ts"
 
 // TODO: this module is a stub owned by the context-file-upload task. When the agents
 // module lands, its entities become the namespace for these uploads; the directory
@@ -23,5 +24,5 @@ export const contextFilesResponseSchema = z.object({
 })
 
 export const renameContextFileRequestSchema = z.object({
-	name: z.string().min(1).max(env.TALQO_MAX_FILE_NAME_LENGTH),
+	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
 })

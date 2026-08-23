@@ -6,6 +6,8 @@ import { describe, expect, it } from "bun:test"
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
+import { BYTES_PER_MB, MAX_FILE_SIZE_MB } from "./context.service.ts"
+
 type FileBody = {
 	name: string
 	sizeBytes: number
@@ -169,7 +171,7 @@ describe("context", () => {
 		const tooBig = await app.request(`/api/context/${contextId}/files`, {
 			method: "POST",
 			headers: { Cookie: cookie },
-			body: uploadForm("x".repeat(env.TALQO_MAX_FILE_SIZE_MB * 1024 * 1024 + 1)),
+			body: uploadForm("x".repeat(MAX_FILE_SIZE_MB * BYTES_PER_MB + 1)),
 		})
 		expect(tooBig.status).toBe(400)
 	})
