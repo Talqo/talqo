@@ -13,7 +13,7 @@ const appSecretSchema = z
 
 const envSchema = z
 	.object({
-		APP_SECRET: appSecretSchema,
+		APP_SECRET: appSecretSchema.optional(),
 		DATABASE_URL: z.url({
 			protocol: /^postgres(ql)?$/,
 			error: "DATABASE_URL must be a valid postgres:// connection string",
@@ -22,7 +22,16 @@ const envSchema = z
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
 	.superRefine((env, context) => {
-		if (env.NODE_ENV === "production" && Buffer.from(env.APP_SECRET, "base64url").every((byte) => byte === 0)) {
+		if (env.NODE_ENV !== "production") return
+		if (!env.APP_SECRET) {
+			context.addIssue({
+				code: "custom",
+				path: ["APP_SECRET"],
+				message: "APP_SECRET is required in production",
+			})
+			return
+		}
+		if (Buffer.from(env.APP_SECRET, "base64url").every((byte) => byte === 0)) {
 			context.addIssue({
 				code: "custom",
 				path: ["APP_SECRET"],

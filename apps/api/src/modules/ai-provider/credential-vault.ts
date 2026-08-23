@@ -31,7 +31,12 @@ function associatedData(context: CredentialContext): Buffer {
 	)
 }
 
-export function createCredentialVault(appSecret: string) {
+export function createCredentialVault(appSecret: string | undefined) {
+	if (!appSecret) {
+		throw new Error(
+			"APP_SECRET must be set before AI provider credentials can be used; generate one with `openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`",
+		)
+	}
 	const sourceKey = Buffer.from(appSecret, "base64url")
 	const key = Buffer.from(hkdfSync("sha256", sourceKey, Buffer.alloc(0), KEY_CONTEXT, KEY_BYTES))
 

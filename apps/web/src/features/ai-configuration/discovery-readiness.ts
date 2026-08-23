@@ -1,4 +1,4 @@
-import type { AiProviderAuthMode, ProviderMetadata, RedactedRoleConfiguration } from "@/api/client.ts"
+import type { AiProviderAuthMode, ProviderMetadata, RedactedRoleConfiguration } from "./types.ts"
 
 export type DiscoveryContext = {
 	provider: ProviderMetadata

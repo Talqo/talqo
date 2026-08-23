@@ -1,6 +1,7 @@
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 
 import { getProviderDefinition } from "./ai-provider.registry.ts"
+import { assertHttpBaseUrl } from "./base-url.ts"
 
 function assertNonEmptyFields(
 	values: Record<string, string> | undefined,
@@ -33,6 +34,15 @@ function assertRole(
 	}
 	assertNonEmptyFields(input.settings, provider.requiredSettingFields, `${input.providerId} setting`)
 	assertAllowedSettings(input.providerId, input.settings)
+	if (input.settings.baseURL) {
+		try {
+			assertHttpBaseUrl(input.settings.baseURL)
+		} catch (error) {
+			throw new Error(error instanceof Error ? error.message : `${input.providerId} baseURL is invalid`, {
+				cause: error,
+			})
+		}
+	}
 	if (requireStaticCredentials && input.authMode === "static" && !input.existingCredentials) {
 		assertNonEmptyFields(input.credentials, provider.requiredCredentialFields, `${input.providerId} credentials`)
 	}
@@ -70,16 +80,5 @@ export function validateConfigurationInput(
 		input.embedding.authMode !== "deployment-identity"
 	) {
 		throw new Error("Embedding deployment identity requires deployment-identity authentication")
-	}
-
-	if (input.embedding.credentialSource === "separate" && input.embedding.authMode === "static") {
-		const provider = getProviderDefinition(input.embedding.providerId)
-		if (!existing?.embedding?.credentials) {
-			assertNonEmptyFields(
-				input.embedding.credentials,
-				provider.requiredCredentialFields,
-				`${input.embedding.providerId} credentials`,
-			)
-		}
 	}
 }

@@ -1,11 +1,11 @@
+import { z } from "zod"
+
 import type {
+	AiProviderAuthMode,
 	AiProviderConfiguration,
 	AiProviderId,
-	AiProviderAuthMode,
 	SaveAiProviderConfigurationInput,
-} from "@/api/client.ts"
-
-import { z } from "zod"
+} from "./types.ts"
 
 const roleSchema = z.object({
 	providerId: z.enum(["openai", "anthropic", "google", "mistral", "azure", "amazon-bedrock", "openai-compatible"]),
@@ -42,10 +42,19 @@ function nonEmpty(values: Record<string, string>): Record<string, string> | unde
 	return entries.length ? Object.fromEntries(entries) : undefined
 }
 
+function buildRole(role: AiConfigurationFormValues["text"]) {
+	const { modelId, providerId, settings } = role
+	if (role.authMode === "deployment-identity") {
+		return { authMode: "deployment-identity" as const, modelId, providerId, settings }
+	}
+	const credentials = nonEmpty(role.credentials)
+	return { authMode: "static" as const, modelId, providerId, settings, ...(credentials ? { credentials } : {}) }
+}
+
 export function buildSaveInput(values: AiConfigurationFormValues): SaveAiProviderConfigurationInput {
 	return {
 		expectedRevision: values.revision,
-		text: { ...values.text, credentials: nonEmpty(values.text.credentials) },
-		embedding: { ...values.embedding, credentials: nonEmpty(values.embedding.credentials) },
+		text: buildRole(values.text),
+		embedding: { ...buildRole(values.embedding), credentialSource: values.embedding.credentialSource },
 	}
 }

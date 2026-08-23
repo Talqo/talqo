@@ -1,9 +1,16 @@
 import { HTTP_STATUS } from "@/http/status.ts"
 import { z } from "zod"
 
-import type { DiscoverModelsInput } from "./ai-provider.contract.ts"
+import type { AiProviderId, AuthMode } from "./ai-provider.registry.ts"
 
-import { assertHttpBaseUrl } from "./endpoint-policy.ts"
+import { assertHttpBaseUrl } from "./base-url.ts"
+
+export type DiscoveryRequest = {
+	authMode: AuthMode
+	credentials?: Record<string, string>
+	providerId: AiProviderId
+	settings: Record<string, string>
+}
 
 const MAX_RESPONSE_BYTES = 1_000_000
 const DISCOVERY_TIMEOUT_MS = 10_000
@@ -75,10 +82,7 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	}
 }
 
-export async function discoverModels(
-	input: DiscoverModelsInput,
-	fetcher: ModelDiscoveryFetch = fetch,
-): Promise<string[]> {
+export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDiscoveryFetch = fetch): Promise<string[]> {
 	if (
 		input.authMode === "deployment-identity" ||
 		input.providerId === "azure" ||

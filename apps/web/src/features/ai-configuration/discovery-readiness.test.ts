@@ -1,6 +1,6 @@
-import type { ProviderMetadata } from "@/api/client.ts"
-
 import { describe, expect, it } from "bun:test"
+
+import type { ProviderMetadata } from "./types.ts"
 
 import {
 	hasCompleteCredentials,

@@ -25,7 +25,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
-| Vercel AI SDK | Text and embedding provider interfaces | [ADR-0010](adr/0010-use-vercel-ai-sdk.md) |
+| Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |

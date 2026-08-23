@@ -72,7 +72,7 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
 	const { data: access } = useAccess()
 	const visibleItems = navItems.filter(
-		(item) => !("permission" in item) || access?.permissions.includes(item.permission),
+		(item) => !("permission" in item) || access?.data.permissions.includes(item.permission),
 	)
 	return (
 		<nav className={className}>

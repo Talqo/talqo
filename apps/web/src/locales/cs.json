@@ -102,6 +102,7 @@
 		"save": "Uložit konfiguraci",
 		"saved": "Konfigurace uložena",
 		"savedCredentials": "Uložené přihlašovací údaje",
+		"saveFailed": "Konfiguraci se nepodařilo uložit.",
 		"saving": "Ukládání…",
 		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
 		"tabs": {

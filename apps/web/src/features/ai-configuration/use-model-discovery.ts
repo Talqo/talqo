@@ -48,17 +48,25 @@ export function useModelDiscovery(
 		setFailed(false)
 		const handle = setTimeout(() => {
 			const complete = hasCompleteCredentials(provider, context.value.credentials)
+			const { settings } = context.value
+			const data = complete
+				? {
+						providerId: provider.id,
+						authMode: "static" as const,
+						settings,
+						credentials: requiredCredentials(provider, context.value.credentials),
+					}
+				: {
+						providerId: provider.id,
+						authMode: "static" as const,
+						settings,
+						storedCredentialRole: context.storedCredentialRole,
+					}
 			discover
-				.mutateAsync({
-					providerId: provider.id,
-					authMode: context.value.authMode,
-					settings: context.value.settings,
-					credentials: complete ? requiredCredentials(provider, context.value.credentials) : undefined,
-					storedCredentialRole: complete ? undefined : context.storedCredentialRole,
-				})
+				.mutateAsync({ data })
 				.then((result) => {
 					if (requestRef.current !== requestId) return
-					setModels(result.models)
+					setModels(result.data.models)
 					setLoading(false)
 				})
 				.catch(() => {

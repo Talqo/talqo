@@ -35,7 +35,32 @@ describe("AI configuration form mapping", () => {
 			},
 		})
 
-		expect(input.text.credentials).toBeUndefined()
-		expect(input.embedding.credentials).toBeUndefined()
+		expect(input.text).not.toHaveProperty("credentials")
+		expect(input.embedding).not.toHaveProperty("credentials")
+	})
+
+	it("drops credentials for deployment-identity roles", () => {
+		const input = buildSaveInput({
+			revision: 0,
+			text: {
+				providerId: "azure",
+				modelId: "gpt-5",
+				authMode: "deployment-identity",
+				settings: { baseURL: "https://example.openai.azure.com" },
+				credentials: { apiKey: "sk-form" },
+			},
+			embedding: {
+				providerId: "openai",
+				modelId: "text-embedding-3-small",
+				authMode: "static",
+				settings: {},
+				credentials: { apiKey: "sk-embedding" },
+				credentialSource: "separate",
+			},
+		})
+
+		expect(input.text).not.toHaveProperty("credentials")
+		expect(input.text.authMode).toBe("deployment-identity")
+		expect(input.embedding).toMatchObject({ credentials: { apiKey: "sk-embedding" } })
 	})
 })

@@ -99,11 +99,27 @@ describe("AI provider service", () => {
 		const reordered = azureInput({ baseURL: "https://example.com", apiVersion: "2024-06-01" })
 		const result = await service.saveConfiguration("user-1", {
 			expectedRevision: 1,
-			text: { ...reordered.text, credentials: undefined },
+			text: { ...reordered.text, authMode: "static", credentials: undefined },
 			embedding: reordered.embedding,
 		})
 
 		expect(result.text?.hasCredentials).toBe(true)
+	})
+
+	it("throws when a deployment-identity role carries static credentials", async () => {
+		const { service } = createMemoryService()
+		const invalid = {
+			...input,
+			text: {
+				providerId: "azure",
+				modelId: "gpt-5",
+				authMode: "deployment-identity",
+				settings: { baseURL: "https://example.openai.azure.com" },
+				credentials: { apiKey: "sk-dropped" },
+			},
+		} as SaveConfigurationInput
+
+		await expect(service.saveConfiguration("user-1", invalid)).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})
 
 	it("requires credentials when switching from reused to separate embedding credentials", async () => {
@@ -114,8 +130,8 @@ describe("AI provider service", () => {
 			service.saveConfiguration("user-1", {
 				...input,
 				expectedRevision: 1,
-				text: { ...input.text, credentials: undefined },
-				embedding: { ...input.embedding, credentialSource: "separate", credentials: undefined },
+				text: { ...input.text, authMode: "static", credentials: undefined },
+				embedding: { ...input.embedding, authMode: "static", credentialSource: "separate", credentials: undefined },
 			}),
 		).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})

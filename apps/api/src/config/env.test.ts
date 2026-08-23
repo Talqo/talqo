@@ -23,9 +23,15 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
-	it("rejects a missing APP_SECRET", () => {
+	it("allows a missing APP_SECRET outside production", () => {
+		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" })
+
+		expect(env.APP_SECRET).toBeUndefined()
+	})
+
+	it("rejects a missing APP_SECRET in production", () => {
 		expect(() =>
-			parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" }),
+			parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "production" }),
 		).toThrow(/APP_SECRET/)
 	})
 

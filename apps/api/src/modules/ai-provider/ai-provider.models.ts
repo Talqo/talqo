@@ -12,7 +12,7 @@ import { DefaultAzureCredential } from "@azure/identity"
 import type { AiProviderId, AiProviderRole, AuthMode } from "./ai-provider.registry.ts"
 
 import { getProviderDefinition } from "./ai-provider.registry.ts"
-import { assertHttpBaseUrl } from "./endpoint-policy.ts"
+import { assertHttpBaseUrl } from "./base-url.ts"
 
 type ModelConfiguration = {
 	authMode: AuthMode

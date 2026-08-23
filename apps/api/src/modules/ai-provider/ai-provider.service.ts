@@ -3,7 +3,7 @@ import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfi
 import type { CredentialEnvelope, createCredentialVault } from "./credential-vault.ts"
 
 import { validateConfigurationInput } from "./ai-provider.configuration.ts"
-import { discoverModels as discoverProviderModels } from "./ai-provider.discovery.ts"
+import { discoverModels as discoverProviderModels, type DiscoveryRequest } from "./ai-provider.discovery.ts"
 import { createProviderModel } from "./ai-provider.models.ts"
 import { PROVIDER_DEFINITIONS, getProviderDefinition } from "./ai-provider.registry.ts"
 
@@ -22,7 +22,7 @@ type Repository = {
 
 type ServiceDependencies = {
 	authorize(userId: string): Promise<boolean>
-	discover(input: DiscoverModelsInput): Promise<string[]>
+	discover(input: DiscoveryRequest): Promise<string[]>
 	repository: Repository
 	vault: Vault
 }
@@ -63,16 +63,21 @@ function requiredCredentialsPresent(providerId: string, credentials: Record<stri
 
 function resolveEnvelope(
 	input: {
-		credentials?: Record<string, string>
 		existing?: StoredTextConfiguration
 		providerId: string
 		role: "text" | "embedding"
 		settings: Record<string, string>
-		authMode: "static" | "deployment-identity"
-	},
+	} & ({ authMode: "static"; credentials?: Record<string, string> } | { authMode: "deployment-identity" }),
 	vault: Vault,
 ): CredentialEnvelope | null {
-	if (input.authMode === "deployment-identity") return null
+	if (input.authMode === "deployment-identity") {
+		if ("credentials" in input && input.credentials) {
+			throw new InvalidConfigurationError(
+				`${input.providerId} does not accept static credentials with deployment-identity authentication`,
+			)
+		}
+		return null
+	}
 	if (input.credentials) {
 		if (!requiredCredentialsPresent(input.providerId, input.credentials)) {
 			throw new InvalidConfigurationError(`${input.providerId} credentials are incomplete`)
@@ -189,8 +194,8 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 		},
 		async discoverModels(userId: string, input: DiscoverModelsInput): Promise<string[]> {
 			await requirePermission(userId)
-			let credentials = input.credentials
-			if (!credentials && input.storedCredentialRole) {
+			let credentials = input.authMode === "static" ? input.credentials : undefined
+			if (!credentials && input.authMode === "static" && input.storedCredentialRole) {
 				const stored = await dependencies.repository.find()
 				if (!stored) throw new InvalidConfigurationError("No stored credentials are available")
 				let role = input.storedCredentialRole
@@ -210,7 +215,12 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					})
 				}
 			}
-			return dependencies.discover({ ...input, credentials })
+			return dependencies.discover({
+				authMode: input.authMode,
+				providerId: input.providerId,
+				settings: input.settings,
+				credentials,
+			})
 		},
 		async createRuntimeModels() {
 			const stored = await dependencies.repository.find()

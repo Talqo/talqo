@@ -1,7 +1,7 @@
-import type { AiProviderId } from "@/api/client.ts"
-
 import { cn } from "@talqo/ui/lib/utils"
 import { Plug } from "lucide-react"
+
+import type { AiProviderId } from "./types.ts"
 
 import amazonwebservicesLogo from "./logos/amazonwebservices.svg"
 import anthropicLogo from "./logos/anthropic.svg"

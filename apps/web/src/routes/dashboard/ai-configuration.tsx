@@ -1,14 +1,14 @@
+import type { AiConfigurationFormValues } from "@/features/ai-configuration/ai-configuration-form"
+import type { DiscoveryContext } from "@/features/ai-configuration/discovery-readiness.ts"
 import type {
 	AiProviderAuthMode,
 	AiProviderId,
 	ProviderMetadata,
 	RedactedRoleConfiguration,
 	RoleConfigurationInput,
-} from "@/api/client.ts"
-import type { AiConfigurationFormValues } from "@/features/ai-configuration/ai-configuration-form"
-import type { DiscoveryContext } from "@/features/ai-configuration/discovery-readiness.ts"
+} from "@/features/ai-configuration/types.ts"
 
-import { getAccess } from "@/api/client.ts"
+import { getAccess } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import {
 	aiConfigurationFormSchema,
@@ -45,12 +45,17 @@ export const Route = createFileRoute("/dashboard/ai-configuration")({
 		} catch {
 			throw redirect({ to: "/login" })
 		}
-		if (!access.permissions.includes("ai_provider:manage")) throw redirect({ to: "/dashboard" })
+		if (!access.data.permissions.includes("ai_provider:manage")) throw redirect({ to: "/dashboard" })
 	},
 	component: AiConfigurationPage,
 })
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
+
+function failureMessage(error: unknown): string | null {
+	const failure = error as { info?: { error?: unknown } } | null
+	return typeof failure?.info?.error === "string" && failure.info.error ? failure.info.error : null
+}
 
 function providerLabel(providerId: AiProviderId, t: (key: string) => string): string {
 	switch (providerId) {
@@ -421,7 +426,7 @@ function AiConfigurationPage() {
 	})
 
 	useEffect(() => {
-		if (configurationQuery.data) reset(configurationToFormValues(configurationQuery.data))
+		if (configurationQuery.data) reset(configurationToFormValues(configurationQuery.data.data))
 	}, [configurationQuery.data, reset])
 
 	const watchedTextRole = useWatch({ control, name: "text" })
@@ -435,13 +440,13 @@ function AiConfigurationPage() {
 			</p>
 		)
 
-	const configuration = configurationQuery.data
-	const providers = providersQuery.data.providers
+	const configuration = configurationQuery.data.data
+	const providers = providersQuery.data.data.providers
 	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
 
 	async function onValid(values: AiConfigurationFormValues) {
 		setSaved(false)
-		await save.mutateAsync(buildSaveInput(values))
+		await save.mutateAsync({ data: buildSaveInput(values) })
 		setSaved(true)
 	}
 
@@ -621,7 +626,7 @@ function AiConfigurationPage() {
 				)}
 				{save.isError && (
 					<p role="alert" className="text-destructive text-sm">
-						{save.error.message}
+						{failureMessage(save.error) ?? t("aiConfiguration.saveFailed")}
 					</p>
 				)}
 				<div className="flex items-center gap-3">

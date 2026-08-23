@@ -73,4 +73,33 @@ describe("AI provider configuration", () => {
 		const [row] = await sql`SELECT revision FROM ai_provider_config`
 		expect(row?.revision).toBe(1)
 	})
+
+	it("rejects credentials sent with deployment-identity authentication", async () => {
+		const cookie = await adminCookie()
+
+		const response = await app.request("/api/ai-provider-configuration", {
+			method: "PUT",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({
+				expectedRevision: 0,
+				text: {
+					providerId: "azure",
+					modelId: "gpt-5",
+					authMode: "deployment-identity",
+					settings: { baseURL: "https://example.openai.azure.com" },
+					credentials: { apiKey: "sk-dropped" },
+				},
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "text",
+				},
+			}),
+		})
+
+		expect(response.status).toBe(400)
+		expect(await response.text()).not.toContain("sk-dropped")
+	})
 })

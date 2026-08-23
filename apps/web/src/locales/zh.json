@@ -102,6 +102,7 @@
 		"save": "保存配置",
 		"saved": "配置已保存",
 		"savedCredentials": "已保存的凭据",
+		"saveFailed": "无法保存配置。",
 		"saving": "正在保存…",
 		"subheading": "为此 Talqo 部署连接文本和嵌入模型。",
 		"tabs": {
