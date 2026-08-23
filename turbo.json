@@ -17,6 +17,7 @@
 		"dev": {
 			"cache": false,
 			"passThroughEnv": [
+				"APP_SECRET",
 				"DATABASE_URL",
 				"NODE_ENV",
 				"TALQO_API_PORT",
@@ -30,16 +31,16 @@
 		"e2e": {
 			"cache": false,
 			"dependsOn": ["@talqo/widget#build"],
-			"passThroughEnv": ["DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
+			"passThroughEnv": ["APP_SECRET", "DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
 		},
 		"test": {
 			"dependsOn": ["^build"],
-			"passThroughEnv": ["DATABASE_URL"]
+			"passThroughEnv": ["APP_SECRET", "DATABASE_URL"]
 		},
 		"test:integration": {
 			"cache": false,
 			"dependsOn": ["^build"],
-			"passThroughEnv": ["DATABASE_URL"]
+			"passThroughEnv": ["APP_SECRET", "DATABASE_URL"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]

@@ -19,6 +19,7 @@ import { Route as WidgetPreviewRouteImport } from './routes/widget-preview'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
+import { Route as DashboardAiConfigurationRouteImport } from './routes/dashboard/ai-configuration'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
 import { Route as DashboardInvitationsRouteImport } from './routes/dashboard/invitations'
 import { Route as DashboardWidgetRouteImport } from './routes/dashboard/widget'
@@ -74,6 +75,12 @@ const DashboardAgentsRoute = DashboardAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardAiConfigurationRoute =
+  DashboardAiConfigurationRouteImport.update({
+    id: '/ai-configuration',
+    path: '/ai-configuration',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
@@ -137,6 +146,7 @@ export interface FileRoutesById {
   '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
+  '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/invitations': typeof DashboardInvitationsRoute
   '/dashboard/widget': typeof DashboardWidgetRoute
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
+    | '/dashboard/ai-configuration'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
     | '/dashboard/widget'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
+    | '/dashboard/ai-configuration'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
     | '/dashboard/widget'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
     | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
+    | '/dashboard/ai-configuration'
     | '/dashboard/analytics'
     | '/dashboard/invitations'
     | '/dashboard/widget'
@@ -275,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAgentsRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/ai-configuration': {
+      id: '/dashboard/ai-configuration'
+      path: '/ai-configuration'
+      fullPath: '/dashboard/ai-configuration'
+      preLoaderRoute: typeof DashboardAiConfigurationRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/analytics': {
       id: '/dashboard/analytics'
       path: '/analytics'
@@ -309,6 +329,7 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteRouteChildren {
   DashboardAccountRoute: typeof DashboardAccountRoute
   DashboardAgentsRoute: typeof DashboardAgentsRoute
+  DashboardAiConfigurationRoute: typeof DashboardAiConfigurationRoute
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardInvitationsRoute: typeof DashboardInvitationsRoute
   DashboardWidgetRoute: typeof DashboardWidgetRoute
@@ -319,6 +340,7 @@ interface DashboardRouteRouteChildren {
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAccountRoute: DashboardAccountRoute,
   DashboardAgentsRoute: DashboardAgentsRoute,
+  DashboardAiConfigurationRoute: DashboardAiConfigurationRoute,
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardInvitationsRoute: DashboardInvitationsRoute,
   DashboardWidgetRoute: DashboardWidgetRoute,

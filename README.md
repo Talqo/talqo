@@ -18,7 +18,10 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 
 ```sh
 bun install
+export APP_SECRET=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')
 ```
+
+Development, integration, and E2E commands fail without `APP_SECRET`.
 
 ## Commands
 

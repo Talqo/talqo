@@ -54,6 +54,65 @@
 		"loading": "Načítání agentů…",
 		"subheading": "Spravujte své agenty a jejich chování."
 	},
+	"aiConfiguration": {
+		"auth": {
+			"deploymentIdentity": "Identita nasazení",
+			"static": "Statické přihlašovací údaje"
+		},
+		"discovery": {
+			"noResults": "Žádné odpovídající modely",
+			"retry": "Zkusit znovu",
+			"showModels": "Zobrazit návrhy modelů",
+			"unavailable": "Seznam modelů se nepodařilo načíst. Zadejte přesné ID modelu.",
+			"unavailableStored": "Seznam modelů se nepodařilo obnovit s uloženým připojením. Zadejte přihlašovací údaje znovu, nebo to zkuste znovu."
+		},
+		"embeddingDescription": "Vyberte model pro vytváření embeddingů znalostí.",
+		"embeddingTitle": "Embeddingy",
+		"fields": {
+			"accessKeyId": "ID přístupového klíče",
+			"apiKey": "API klíč",
+			"apiVersion": "Verze API",
+			"authentication": "Ověření",
+			"baseURL": "Základní URL",
+			"embeddingModel": "Embeddingový model",
+			"project": "Projekt",
+			"provider": "Poskytovatel",
+			"region": "Region",
+			"secretAccessKey": "Tajný přístupový klíč",
+			"sessionToken": "Token relace",
+			"textModel": "Textový model"
+		},
+		"heading": "Konfigurace AI",
+		"keepCredentialsNote": "Zadejte nové přihlašovací údaje, nebo ponechte uložené.",
+		"keepSavedCredentials": "Ponechat uložené přihlašovací údaje",
+		"loadError": "Konfiguraci AI se nepodařilo načíst.",
+		"loading": "Načítání konfigurace AI…",
+		"providers": {
+			"amazonBedrock": "Amazon Bedrock",
+			"anthropic": "Anthropic",
+			"azure": "Azure OpenAI",
+			"google": "Google Gemini",
+			"mistral": "Mistral",
+			"openai": "OpenAI",
+			"openaiCompatible": "Kompatibilní s OpenAI"
+		},
+		"replaceCredentials": "Nahradit",
+		"sameProviderNote": "Sdílí připojení z části Generování textu.",
+		"sameProviderUnavailable": "Textový poskytovatel nemá embeddingové API. Pro embeddingy zvolte jiného poskytovatele.",
+		"save": "Uložit konfiguraci",
+		"saved": "Konfigurace uložena",
+		"savedCredentials": "Uložené přihlašovací údaje",
+		"saving": "Ukládání…",
+		"subheading": "Připojte textové a embeddingové modely pro toto nasazení Talqo.",
+		"tabs": {
+			"differentProvider": "Jiný poskytovatel",
+			"sameProvider": "Stejný jako textový poskytovatel"
+		},
+		"textDescription": "Vyberte model používaný pro odpovědi v konverzacích.",
+		"textTitle": "Generování textu",
+		"unusableWarning": "Uložené přihlašovací údaje již nelze dešifrovat. Zadejte a uložte přihlašovací údaje znovu.",
+		"validationError": "Před uložením vyberte oba poskytovatele a ID modelů."
+	},
 	"analytics": {
 		"conversations": "Konverzace",
 		"dailyTotals": "Denní součty za posledních 30 dní.",
@@ -146,6 +205,7 @@
 	"nav": {
 		"account": "Účet",
 		"agents": "Agenti",
+		"aiConfiguration": "Konfigurace AI",
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"invitations": "Pozvánky",
