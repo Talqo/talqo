@@ -45,6 +45,17 @@
 		"systemPromptRequired": "System prompt is required.",
 		"wordBlacklist": "Word blacklist"
 	},
+	"agentFiles": {
+		"cardDescription": "Accepted types: PDF, TXT, MD, DOCX. Max {{maxSizeMB}} MB per file, file names up to {{maxNameLength}} characters.",
+		"cardDescriptionLoading": "Accepted types: PDF, TXT, MD, DOCX.",
+		"cardTitle": "Knowledge files",
+		"delete": "Delete {{name}}",
+		"dropzone": "Drag files here, or click to browse",
+		"dropzoneHint": "No knowledge files yet. Upload the sources the agent should answer from.",
+		"loading": "Loading files…",
+		"sizeKb": "{{size}} KB",
+		"uploading": "Uploading…"
+	},
 	"agents": {
 		"configure": "Configure",
 		"create": "Create agent",

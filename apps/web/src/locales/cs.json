@@ -45,6 +45,17 @@
 		"systemPromptRequired": "Systémový prompt je povinný.",
 		"wordBlacklist": "Zakázaná slova"
 	},
+	"agentFiles": {
+		"cardDescription": "Podporované typy: PDF, TXT, MD, DOCX. Maximálně {{maxSizeMB}} MB na soubor, název souboru do {{maxNameLength}} znaků.",
+		"cardDescriptionLoading": "Podporované typy: PDF, TXT, MD, DOCX.",
+		"cardTitle": "Znalostní soubory",
+		"delete": "Smazat {{name}}",
+		"dropzone": "Přetáhněte soubory sem, nebo klikněte pro výběr",
+		"dropzoneHint": "Zatím žádné znalostní soubory. Nahrajte zdroje, ze kterých má agent odpovídat.",
+		"loading": "Načítání souborů…",
+		"sizeKb": "{{size}} KB",
+		"uploading": "Nahrávání…"
+	},
 	"agents": {
 		"configure": "Konfigurovat",
 		"create": "Vytvořit agenta",

@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { useAgent, useUpdateAgent } from "@/features/agents/agents-query"
 import { parseBlacklist } from "@/features/agents/blacklist"
+import { useContextFiles, useDeleteContextFile, useUploadContextFiles } from "@/features/context/use-context-files"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
@@ -11,14 +12,18 @@ import { Label } from "@talqo/ui/components/label"
 import { Switch } from "@talqo/ui/components/switch"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ArrowLeft, FileText, Trash2, Upload } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
 	component: AgentConfigPage,
 })
+
+const BYTES_PER_KB = 1024
+// eslint-disable-next-line no-magic-numbers
+const BYTES_PER_MB = 1024 * 1024
 
 function AgentConfigPage() {
 	const { t } = useTranslation()
@@ -27,6 +32,39 @@ function AgentConfigPage() {
 	const updateAgent = useUpdateAgent()
 
 	const [saved, setSaved] = useState(false)
+
+	const fileInputRef = useRef<HTMLInputElement | null>(null)
+	const [dragging, setDragging] = useState(false)
+	const [uploadError, setUploadError] = useState<string | null>(null)
+	const contextFilesQuery = useContextFiles(agent?.contextId)
+	const uploadFiles = useUploadContextFiles()
+	const deleteFile = useDeleteContextFile()
+
+	function startBatch(fileList: FileList | null) {
+		if (!fileList?.length || !agent) return
+		setUploadError(null)
+		uploadFiles.mutate(
+			{ contextId: agent.contextId, files: Array.from(fileList) },
+			{
+				onSuccess: ({ contextId, results }) => {
+					// Write only when the id actually changed: an unchanged patch would still
+					// produce a new agent object, re-run the form effect, and discard in-progress edits.
+					if (contextId !== agent.contextId) updateAgent(agentId, { contextId })
+					if (fileInputRef.current) fileInputRef.current.value = ""
+					for (const result of results) {
+						if (result.error) setUploadError(`${result.name}: ${result.error}`)
+					}
+				},
+				onError: (error) => setUploadError(error instanceof Error ? error.message : String(error)),
+			},
+		)
+	}
+
+	function onDrop(event: React.DragEvent<HTMLDivElement>) {
+		event.preventDefault()
+		setDragging(false)
+		startBatch(event.dataTransfer.files)
+	}
 
 	const {
 		register,
@@ -145,6 +183,98 @@ function AgentConfigPage() {
 									{saved && <span className="text-muted-foreground text-sm">{t("agentConfig.saved")}</span>}
 								</div>
 							</form>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>{t("agentFiles.cardTitle")}</CardTitle>
+							<CardDescription>
+								{contextFilesQuery.data
+									? t("agentFiles.cardDescription", {
+											maxSizeMB: Math.round(contextFilesQuery.data.maxSizeBytes / BYTES_PER_MB),
+											maxNameLength: contextFilesQuery.data.maxNameLength,
+										})
+									: t("agentFiles.cardDescriptionLoading")}
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div
+								role="button"
+								tabIndex={uploadFiles.isPending ? -1 : 0}
+								aria-disabled={uploadFiles.isPending}
+								className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed px-4 py-6 text-center transition-colors ${
+									dragging ? "border-primary bg-accent" : "border-input hover:border-ring hover:bg-accent/50"
+								} ${uploadFiles.isPending ? "pointer-events-none opacity-60" : ""}`}
+								onClick={() => fileInputRef.current?.click()}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.preventDefault()
+										fileInputRef.current?.click()
+									}
+								}}
+								onDragOver={(event) => {
+									event.preventDefault()
+									setDragging(true)
+								}}
+								onDragLeave={() => setDragging(false)}
+								onDrop={onDrop}
+							>
+								<input
+									ref={fileInputRef}
+									id="context-file-input"
+									type="file"
+									accept=".pdf,.txt,.md,.docx"
+									multiple
+									className="sr-only"
+									disabled={uploadFiles.isPending}
+									onChange={(event) => startBatch(event.target.files)}
+								/>
+								<Upload className="text-muted-foreground size-6" />
+								<p className="text-sm font-medium">
+									{uploadFiles.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
+								</p>
+								<p className="text-muted-foreground text-xs">{t("agentFiles.dropzoneHint")}</p>
+							</div>
+							{uploadError && <p className="text-destructive text-xs">{uploadError}</p>}
+							{contextFilesQuery.isLoading && agent.contextId && (
+								<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
+							)}
+							{contextFilesQuery.data && contextFilesQuery.data.files.length > 0 && (
+								<ul className="divide-border divide-y rounded-md border">
+									{contextFilesQuery.data.files.map((file) => (
+										<li key={file.name} className="flex items-center justify-between gap-3 px-3 py-2">
+											<div className="flex min-w-0 items-center gap-2">
+												<FileText className="text-muted-foreground size-4 shrink-0" />
+												<span className="truncate text-sm">{file.name}</span>
+												<span className="text-muted-foreground shrink-0 text-xs">
+													{t("agentFiles.sizeKb", { size: (file.sizeBytes / BYTES_PER_KB).toFixed(1) })}
+												</span>
+											</div>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												disabled={deleteFile.isPending}
+												onClick={() => {
+													if (!agent.contextId) return
+													setUploadError(null)
+													deleteFile.mutate(
+														{ contextId: agent.contextId, name: file.name },
+														{
+															onError: (error) =>
+																setUploadError(error instanceof Error ? error.message : String(error)),
+														},
+													)
+												}}
+												aria-label={t("agentFiles.delete", { name: file.name })}
+											>
+												<Trash2 className="size-4" />
+											</Button>
+										</li>
+									))}
+								</ul>
+							)}
 						</CardContent>
 					</Card>
 				</>

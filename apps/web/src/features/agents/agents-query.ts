@@ -7,6 +7,8 @@ export type Agent = {
 	status: "active" | "paused"
 	systemPrompt: string
 	wordBlacklist: string[]
+	// Real context id once the first knowledge file has been uploaded; undefined until then.
+	contextId?: string
 }
 
 const agentsQueryKey = ["agents"] as const
