@@ -29,10 +29,7 @@ export function requiredCredentials(
 }
 
 export function hasCompleteCredentials(provider: ProviderMetadata, credentials: Record<string, string>): boolean {
-	return (
-		provider.requiredCredentialFields.length > 0 &&
-		provider.requiredCredentialFields.every((field) => credentials[field]?.trim())
-	)
+	return provider.requiredCredentialFields.every((field) => Boolean(credentials[field]?.trim()))
 }
 
 export function supportsDiscovery(provider: ProviderMetadata, authMode: AiProviderAuthMode): boolean {

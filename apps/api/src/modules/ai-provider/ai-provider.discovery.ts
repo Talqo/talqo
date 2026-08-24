@@ -96,8 +96,8 @@ export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDisc
 
 	if (input.providerId === "google") {
 		const response = await fetchJson(
-			`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
-			{},
+			"https://generativelanguage.googleapis.com/v1beta/models",
+			{ "x-goog-api-key": apiKey },
 			fetcher,
 		)
 		return googleResponseSchema.parse(response).models.map(({ name }) => name.replace(/^models\//, ""))

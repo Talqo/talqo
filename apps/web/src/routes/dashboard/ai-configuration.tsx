@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { LockIcon, PencilLineIcon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -317,7 +317,10 @@ function CredentialsSection({
 	const { t } = useTranslation()
 	const configured = storedCredentialsMatch({ provider, value, stored })
 	const [replacing, setReplacing] = useState(false)
-	const contextSignature = JSON.stringify([value.providerId, value.authMode, value.settings, provider.id])
+	const contextSignature = useMemo(
+		() => JSON.stringify([value.providerId, value.authMode, value.settings, provider.id]),
+		[value.providerId, value.authMode, value.settings, provider.id],
+	)
 	useEffect(() => {
 		setReplacing(false)
 	}, [contextSignature])

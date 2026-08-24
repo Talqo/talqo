@@ -98,4 +98,10 @@ describe("discovery readiness", () => {
 		expect(requiredCredentials(azure, { apiKey: "key", accessKeyId: "extra" })).toEqual({ apiKey: "key" })
 		expect(hasCompleteCredentials(openAiCompatible, { apiKey: "" })).toBe(false)
 	})
+
+	it("reports complete credentials when the provider requires none", () => {
+		const keyless: ProviderMetadata = { ...openAiCompatible, credentialFields: [], requiredCredentialFields: [] }
+
+		expect(hasCompleteCredentials(keyless, {})).toBe(true)
+	})
 })

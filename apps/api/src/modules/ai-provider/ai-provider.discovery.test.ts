@@ -29,6 +29,22 @@ describe("discoverModels", () => {
 		expect(result).toEqual(["gemini-2.5-flash"])
 	})
 
+	it("sends the Google API key in a header, never in the URL", async () => {
+		let seen: { headers: Headers; url: string } | undefined
+		const capturing: ModelDiscoveryFetch = async (url, init) => {
+			seen = { headers: new Headers(init?.headers), url: String(url) }
+			return googleFetcher(url, init)
+		}
+
+		await discoverModels(
+			{ providerId: "google", authMode: "static", settings: {}, credentials: { apiKey: "secret-key" } },
+			capturing,
+		)
+
+		expect(seen?.url).not.toContain("secret-key")
+		expect(seen?.headers.get("x-goog-api-key")).toBe("secret-key")
+	})
+
 	it("uses the configured OpenAI-compatible base URL", async () => {
 		let requestedUrl = ""
 		const fetcher: ModelDiscoveryFetch = async (input) => {
