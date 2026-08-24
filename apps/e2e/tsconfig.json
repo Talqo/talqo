@@ -1,7 +1,7 @@
 {
 	"extends": "@talqo/typescript-config/base.json",
 	"compilerOptions": {
-		"types": ["node"]
+		"types": ["bun", "node"]
 	},
 	"include": ["playwright.config.ts", "playwright/**/*.ts", "tests/**/*.ts"]
 }

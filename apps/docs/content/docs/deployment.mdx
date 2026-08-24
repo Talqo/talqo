@@ -1,0 +1,14 @@
+---
+title: Deployment
+description: Self-hosted Talqo deployment requirements.
+---
+
+## Application secret
+
+Set `APP_SECRET` before running database migrations or starting the API. The API refuses to boot without it. It must be base64url-encoded and decode to at least 32 random bytes:
+
+```sh
+openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+```
+
+Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes stored provider credentials unusable, and the credentials must be entered again after replacing it.

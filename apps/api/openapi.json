@@ -88,6 +88,816 @@
 				}
 			}
 		},
+		"/api/ai-providers": {
+			"get": {
+				"operationId": "listAiProviders",
+				"tags": ["AI Providers"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Supported AI providers",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"providers": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string",
+														"enum": [
+															"openai",
+															"anthropic",
+															"google",
+															"mistral",
+															"azure",
+															"amazon-bedrock",
+															"openai-compatible"
+														]
+													},
+													"roles": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"enum": ["text", "embedding"]
+														}
+													},
+													"authModes": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"enum": ["static", "deployment-identity"]
+														}
+													},
+													"settingFields": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													},
+													"requiredSettingFields": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													},
+													"credentialFields": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													},
+													"requiredCredentialFields": {
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													},
+													"discovery": {
+														"type": "boolean"
+													}
+												},
+												"required": [
+													"id",
+													"roles",
+													"authModes",
+													"settingFields",
+													"requiredSettingFields",
+													"credentialFields",
+													"requiredCredentialFields",
+													"discovery"
+												]
+											}
+										}
+									},
+									"required": ["providers"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/ai-provider-configuration": {
+			"get": {
+				"operationId": "getAiProviderConfiguration",
+				"tags": ["AI Providers"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Redacted AI provider configuration",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"revision": {
+											"type": "integer",
+											"minimum": 0
+										},
+										"health": {
+											"type": "string",
+											"enum": ["unconfigured", "configured", "unusable"]
+										},
+										"text": {
+											"type": ["object", "null"],
+											"properties": {
+												"providerId": {
+													"type": "string",
+													"enum": [
+														"openai",
+														"anthropic",
+														"google",
+														"mistral",
+														"azure",
+														"amazon-bedrock",
+														"openai-compatible"
+													]
+												},
+												"modelId": {
+													"type": "string"
+												},
+												"authMode": {
+													"type": "string",
+													"enum": ["static", "deployment-identity"]
+												},
+												"settings": {
+													"type": "object",
+													"additionalProperties": {
+														"type": "string"
+													}
+												},
+												"hasCredentials": {
+													"type": "boolean"
+												}
+											},
+											"required": ["providerId", "modelId", "authMode", "settings", "hasCredentials"]
+										},
+										"embedding": {
+											"type": ["object", "null"],
+											"properties": {
+												"providerId": {
+													"type": "string",
+													"enum": [
+														"openai",
+														"anthropic",
+														"google",
+														"mistral",
+														"azure",
+														"amazon-bedrock",
+														"openai-compatible"
+													]
+												},
+												"modelId": {
+													"type": "string"
+												},
+												"authMode": {
+													"type": "string",
+													"enum": ["static", "deployment-identity"]
+												},
+												"settings": {
+													"type": "object",
+													"additionalProperties": {
+														"type": "string"
+													}
+												},
+												"hasCredentials": {
+													"type": "boolean"
+												},
+												"credentialSource": {
+													"type": "string",
+													"enum": ["text", "separate", "deployment-identity"]
+												}
+											},
+											"required": [
+												"providerId",
+												"modelId",
+												"authMode",
+												"settings",
+												"hasCredentials",
+												"credentialSource"
+											]
+										}
+									},
+									"required": ["revision", "health", "text", "embedding"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"operationId": "saveAiProviderConfiguration",
+				"tags": ["AI Providers"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"expectedRevision": {
+										"type": "integer",
+										"minimum": 0
+									},
+									"text": {
+										"oneOf": [
+											{
+												"type": "object",
+												"properties": {
+													"providerId": {
+														"type": "string",
+														"enum": [
+															"openai",
+															"anthropic",
+															"google",
+															"mistral",
+															"azure",
+															"amazon-bedrock",
+															"openai-compatible"
+														]
+													},
+													"modelId": {
+														"type": "string",
+														"minLength": 1
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["static"]
+													},
+													"settings": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													},
+													"credentials": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													}
+												},
+												"required": ["providerId", "modelId", "authMode", "settings"],
+												"additionalProperties": false
+											},
+											{
+												"type": "object",
+												"properties": {
+													"providerId": {
+														"type": "string",
+														"enum": [
+															"openai",
+															"anthropic",
+															"google",
+															"mistral",
+															"azure",
+															"amazon-bedrock",
+															"openai-compatible"
+														]
+													},
+													"modelId": {
+														"type": "string",
+														"minLength": 1
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["deployment-identity"]
+													},
+													"settings": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													}
+												},
+												"required": ["providerId", "modelId", "authMode", "settings"],
+												"additionalProperties": false
+											}
+										]
+									},
+									"embedding": {
+										"oneOf": [
+											{
+												"type": "object",
+												"properties": {
+													"providerId": {
+														"type": "string",
+														"enum": [
+															"openai",
+															"anthropic",
+															"google",
+															"mistral",
+															"azure",
+															"amazon-bedrock",
+															"openai-compatible"
+														]
+													},
+													"modelId": {
+														"type": "string",
+														"minLength": 1
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["static"]
+													},
+													"settings": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													},
+													"credentials": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													},
+													"credentialSource": {
+														"type": "string",
+														"enum": ["text", "separate", "deployment-identity"]
+													}
+												},
+												"required": ["providerId", "modelId", "authMode", "settings", "credentialSource"],
+												"additionalProperties": false
+											},
+											{
+												"type": "object",
+												"properties": {
+													"providerId": {
+														"type": "string",
+														"enum": [
+															"openai",
+															"anthropic",
+															"google",
+															"mistral",
+															"azure",
+															"amazon-bedrock",
+															"openai-compatible"
+														]
+													},
+													"modelId": {
+														"type": "string",
+														"minLength": 1
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["deployment-identity"]
+													},
+													"settings": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string"
+														}
+													},
+													"credentialSource": {
+														"type": "string",
+														"enum": ["text", "separate", "deployment-identity"]
+													}
+												},
+												"required": ["providerId", "modelId", "authMode", "settings", "credentialSource"],
+												"additionalProperties": false
+											}
+										]
+									}
+								},
+								"required": ["expectedRevision", "text", "embedding"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Saved AI provider configuration",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"revision": {
+											"type": "integer",
+											"minimum": 0
+										},
+										"health": {
+											"type": "string",
+											"enum": ["unconfigured", "configured", "unusable"]
+										},
+										"text": {
+											"type": ["object", "null"],
+											"properties": {
+												"providerId": {
+													"type": "string",
+													"enum": [
+														"openai",
+														"anthropic",
+														"google",
+														"mistral",
+														"azure",
+														"amazon-bedrock",
+														"openai-compatible"
+													]
+												},
+												"modelId": {
+													"type": "string"
+												},
+												"authMode": {
+													"type": "string",
+													"enum": ["static", "deployment-identity"]
+												},
+												"settings": {
+													"type": "object",
+													"additionalProperties": {
+														"type": "string"
+													}
+												},
+												"hasCredentials": {
+													"type": "boolean"
+												}
+											},
+											"required": ["providerId", "modelId", "authMode", "settings", "hasCredentials"]
+										},
+										"embedding": {
+											"type": ["object", "null"],
+											"properties": {
+												"providerId": {
+													"type": "string",
+													"enum": [
+														"openai",
+														"anthropic",
+														"google",
+														"mistral",
+														"azure",
+														"amazon-bedrock",
+														"openai-compatible"
+													]
+												},
+												"modelId": {
+													"type": "string"
+												},
+												"authMode": {
+													"type": "string",
+													"enum": ["static", "deployment-identity"]
+												},
+												"settings": {
+													"type": "object",
+													"additionalProperties": {
+														"type": "string"
+													}
+												},
+												"hasCredentials": {
+													"type": "boolean"
+												},
+												"credentialSource": {
+													"type": "string",
+													"enum": ["text", "separate", "deployment-identity"]
+												}
+											},
+											"required": [
+												"providerId",
+												"modelId",
+												"authMode",
+												"settings",
+												"hasCredentials",
+												"credentialSource"
+											]
+										}
+									},
+									"required": ["revision", "health", "text", "embedding"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/ai-provider-models/discover": {
+			"post": {
+				"operationId": "discoverAiProviderModels",
+				"tags": ["AI Providers"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"oneOf": [
+									{
+										"type": "object",
+										"properties": {
+											"providerId": {
+												"type": "string",
+												"enum": [
+													"openai",
+													"anthropic",
+													"google",
+													"mistral",
+													"azure",
+													"amazon-bedrock",
+													"openai-compatible"
+												]
+											},
+											"authMode": {
+												"type": "string",
+												"enum": ["static"]
+											},
+											"settings": {
+												"type": "object",
+												"additionalProperties": {
+													"type": "string"
+												}
+											},
+											"credentials": {
+												"type": "object",
+												"additionalProperties": {
+													"type": "string"
+												}
+											},
+											"storedCredentialRole": {
+												"type": "string",
+												"enum": ["text", "embedding"]
+											}
+										},
+										"required": ["providerId", "authMode", "settings"],
+										"additionalProperties": false
+									},
+									{
+										"type": "object",
+										"properties": {
+											"providerId": {
+												"type": "string",
+												"enum": [
+													"openai",
+													"anthropic",
+													"google",
+													"mistral",
+													"azure",
+													"amazon-bedrock",
+													"openai-compatible"
+												]
+											},
+											"authMode": {
+												"type": "string",
+												"enum": ["deployment-identity"]
+											},
+											"settings": {
+												"type": "object",
+												"additionalProperties": {
+													"type": "string"
+												}
+											}
+										},
+										"required": ["providerId", "authMode", "settings"],
+										"additionalProperties": false
+									}
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Discovered model identifiers",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"models": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									},
+									"required": ["models"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request or rejected provider credentials",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"code": {
+											"type": "string",
+											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Provider rate limit reached",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"code": {
+											"type": "string",
+											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"502": {
+						"description": "Provider discovery failed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"code": {
+											"type": "string",
+											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/auth/login": {
 			"post": {
 				"operationId": "login",
@@ -415,6 +1225,62 @@
 				}
 			}
 		},
+		"/api/access": {
+			"get": {
+				"operationId": "getAccess",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Effective access for the current user",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"isAdmin": {
+											"type": "boolean"
+										},
+										"permissions": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"enum": ["users:invite", "ai_provider:manage"]
+											}
+										}
+									},
+									"required": ["isAdmin", "permissions"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/setup": {
 			"get": {
 				"operationId": "getSetupStatus",
@@ -692,7 +1558,7 @@
 									},
 									"permission": {
 										"type": "string",
-										"enum": ["users:invite"]
+										"enum": ["users:invite", "ai_provider:manage"]
 									},
 									"agentId": {
 										"type": "string",

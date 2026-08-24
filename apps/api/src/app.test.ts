@@ -83,6 +83,10 @@ describe("api", () => {
 		expect(document.openapi).toBe("3.1.1")
 		expect(Object.keys(paths).toSorted()).toEqual(
 			[
+				"/api/access",
+				"/api/ai-provider-configuration",
+				"/api/ai-provider-models/discover",
+				"/api/ai-providers",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",

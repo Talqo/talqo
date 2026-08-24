@@ -5,6 +5,7 @@ import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson } from "@/http/json-body.ts"
 import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
 import { OpenAPIHono, z } from "@hono/zod-openapi"
@@ -27,6 +28,7 @@ app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const,
 app.use("*", rejectMalformedJson)
 app.use("*", requireAuth)
 const api = new OpenAPIHono<{ Variables: AuthedVariables }>()
+api.route("/", aiProviderRoutes)
 api.route("/", identityRoutes)
 api.route("/", rolesRoutes)
 app.route(API_PREFIX, api)

@@ -54,6 +54,66 @@
 		"loading": "Loading agents…",
 		"subheading": "Manage your agents and their behavior."
 	},
+	"aiConfiguration": {
+		"auth": {
+			"deploymentIdentity": "Deployment identity",
+			"static": "Static credentials"
+		},
+		"discovery": {
+			"noResults": "No matching models",
+			"retry": "Try again",
+			"showModels": "Show model suggestions",
+			"unavailable": "The model list could not be loaded. Enter the exact model ID.",
+			"unavailableStored": "The model list could not be refreshed with the saved connection. Re-enter the credentials or try again."
+		},
+		"embeddingDescription": "Choose the model used to create knowledge embeddings.",
+		"embeddingTitle": "Embeddings",
+		"fields": {
+			"accessKeyId": "Access key ID",
+			"apiKey": "API key",
+			"apiVersion": "API version",
+			"authentication": "Authentication",
+			"baseURL": "Base URL",
+			"embeddingModel": "Embedding model",
+			"project": "Project",
+			"provider": "Provider",
+			"region": "Region",
+			"secretAccessKey": "Secret access key",
+			"sessionToken": "Session token",
+			"textModel": "Text model"
+		},
+		"heading": "AI configuration",
+		"keepCredentialsNote": "Enter new credentials, or keep the saved ones.",
+		"keepSavedCredentials": "Keep saved credentials",
+		"loadError": "AI configuration could not be loaded.",
+		"loading": "Loading AI configuration…",
+		"providers": {
+			"amazonBedrock": "Amazon Bedrock",
+			"anthropic": "Anthropic",
+			"azure": "Azure OpenAI",
+			"google": "Google Gemini",
+			"mistral": "Mistral",
+			"openai": "OpenAI",
+			"openaiCompatible": "OpenAI-compatible"
+		},
+		"replaceCredentials": "Replace",
+		"sameProviderNote": "Shares the connection from Text generation.",
+		"sameProviderUnavailable": "The text provider has no embedding API. Choose a different provider for embeddings.",
+		"save": "Save configuration",
+		"saved": "Configuration saved",
+		"savedCredentials": "Saved credentials",
+		"saveFailed": "Could not save the configuration.",
+		"saving": "Saving…",
+		"subheading": "Connect text and embedding models for this Talqo deployment.",
+		"tabs": {
+			"differentProvider": "Different provider",
+			"sameProvider": "Same as text provider"
+		},
+		"textDescription": "Choose the model used to answer conversations.",
+		"textTitle": "Text generation",
+		"unusableWarning": "Stored credentials can no longer be decrypted. Re-enter and save the provider credentials.",
+		"validationError": "Choose both providers and model IDs before saving."
+	},
 	"analytics": {
 		"conversations": "Conversations",
 		"dailyTotals": "Daily totals for the last 30 days.",
@@ -146,6 +206,7 @@
 	"nav": {
 		"account": "Account",
 		"agents": "Agents",
+		"aiConfiguration": "AI configuration",
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
 		"invitations": "Invitations",

@@ -6,11 +6,13 @@ import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
+	accessResponseSchema,
 	bootstrapAdminRoute,
 	bootstrapAdminResponseSchema,
 	createInvitationRoute,
 	createInvitationResponseSchema,
 	createPermissionGrantRoute,
+	getAccessRoute,
 	getSetupStatusRoute,
 	grantResponseSchema,
 	redeemInvitationRoute,
@@ -22,6 +24,9 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+	.openapi(getAccessRoute, async (c) => {
+		return c.json(accessResponseSchema.parse(await service.getAccess(c.get("user").id)), HTTP_STATUS.OK)
+	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)

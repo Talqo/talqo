@@ -1,9 +1,21 @@
 import { getGetSessionQueryKey, useLogout } from "@/api/generated/identity/identity.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
+import { useAccess } from "@/features/ai-configuration/ai-configuration-query"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, MessageSquare, User, UserPlus, X } from "lucide-react"
+import {
+	BarChart3,
+	Bot,
+	LayoutDashboard,
+	LogOut,
+	Menu,
+	MessageSquare,
+	Settings2,
+	User,
+	UserPlus,
+	X,
+} from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -13,6 +25,7 @@ const navItems = [
 	{ to: "/dashboard/invitations", icon: UserPlus },
 	{ to: "/dashboard/widget", icon: MessageSquare },
 	{ to: "/dashboard/analytics", icon: BarChart3 },
+	{ to: "/dashboard/ai-configuration", icon: Settings2, permission: "ai_provider:manage" },
 	{ to: "/dashboard/account", icon: User },
 ] as const
 
@@ -28,6 +41,8 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 			return t("nav.widget")
 		case "/dashboard/analytics":
 			return t("nav.analytics")
+		case "/dashboard/ai-configuration":
+			return t("nav.aiConfiguration")
 		case "/dashboard/account":
 			return t("nav.account")
 	}
@@ -55,9 +70,13 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 }
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
+	const { data: access } = useAccess()
+	const visibleItems = navItems.filter(
+		(item) => !("permission" in item) || access?.data.permissions.includes(item.permission),
+	)
 	return (
 		<nav className={className}>
-			{navItems.map((item) => (
+			{visibleItems.map((item) => (
 				<NavLink key={item.to} {...item} onNavigate={onNavigate} />
 			))}
 		</nav>

@@ -83,12 +83,33 @@ export const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
 })
 
+export const accessResponseSchema = z.object({
+	isAdmin: z.boolean(),
+	permissions: z.array(z.enum(PERMISSIONS)),
+})
+
 const permissionGrantParamsSchema = z.object({
 	id: z.string().openapi({ param: { name: "id", in: "path" } }),
 })
 
 const userParamsSchema = z.object({
 	userId: z.string().openapi({ param: { name: "userId", in: "path" } }),
+})
+
+export const getAccessRoute = createRoute({
+	method: "get",
+	path: "/access",
+	operationId: "getAccess",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	responses: {
+		200: {
+			content: { "application/json": { schema: accessResponseSchema } },
+			description: "Effective access for the current user",
+		},
+		401: unauthorizedResponse,
+		500: internalServerErrorResponse,
+	},
 })
 
 export const getSetupStatusRoute = createRoute({

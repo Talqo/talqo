@@ -22,6 +22,7 @@ import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
 import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
 import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
+import type { GetAccess200 } from "../models/roles/getAccess200.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
@@ -44,6 +45,93 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 		})
 	}
 	return result
+}
+
+export type getAccessResponse200 = {
+	data: GetAccess200
+	status: 200
+}
+
+export type getAccessResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type getAccessResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type getAccessResponseSuccess = getAccessResponse200 & {
+	headers: Headers
+}
+export type getAccessResponseError = (getAccessResponse401 | getAccessResponse500) & {
+	headers: Headers
+}
+
+export const getGetAccessUrl = () => {
+	return `/api/access`
+}
+
+export const getAccess = async (options?: RequestInit): Promise<getAccessResponseSuccess> => {
+	const res = await fetch(getGetAccessUrl(), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: getAccessResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: getAccessResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: getAccessResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as getAccessResponseSuccess
+}
+
+export const getGetAccessQueryKey = () => {
+	return [`/api/access`] as const
+}
+
+export const getGetAccessQueryOptions = <
+	TData = Awaited<ReturnType<typeof getAccess>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
+	fetch?: RequestInit
+}) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getGetAccessQueryKey()
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof getAccess>>> = ({ signal }) =>
+		getAccess({ signal, ...fetchOptions })
+
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof getAccess>>,
+		TError,
+		TData
+	> & { queryKey: QueryKey }
+}
+
+export type GetAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAccess>>>
+export type GetAccessQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+
+export function useGetAccess<
+	TData = Awaited<ReturnType<typeof getAccess>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
+	fetch?: RequestInit
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getGetAccessQueryOptions(options)
+
+	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+
+	return withQueryKey(query, queryOptions.queryKey)
 }
 
 export type getSetupStatusResponse200 = {

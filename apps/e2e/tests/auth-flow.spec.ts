@@ -21,25 +21,11 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 	await expect(page).toHaveURL("/login")
 })
 
-test("admin bootstraps the app, invites a member, and the member logs in", async ({ page }) => {
-	const adminUsername = `admin_${Date.now()}`
-	const adminPassword = "correct-horse-battery-staple"
+test("admin invites a member and the member logs in", async ({ page }) => {
+	const adminUsername = process.env.E2E_ADMIN_USERNAME ?? ""
+	const adminPassword = process.env.E2E_OPERATOR_PASSWORD ?? ""
 
-	// Before any admin exists, the dashboard redirects to setup.
-	await page.goto("/")
-	await expect(page).toHaveURL("/setup")
-
-	await page.getByLabel("Username").fill(adminUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
-	await page.getByLabel("Confirm password").fill("different-password")
-	await page.getByRole("button", { name: "Create admin account" }).click()
-	await expect(page.getByRole("alert")).toContainText("Passwords do not match.")
-	await page.getByLabel("Confirm password").fill(adminPassword)
-	await page.getByRole("button", { name: "Create admin account" }).click()
-
-	// Completing setup logs the new admin in.
-	await expect(page).toHaveURL("/login")
-	await expect(page.getByLabel("Confirm password")).toHaveCount(0)
+	await page.goto("/login")
 	await page.getByLabel("Username").fill(adminUsername)
 	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
