@@ -23,6 +23,7 @@ import type { CreateInvitation201 } from "../models/roles/createInvitation201.zo
 import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
 import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
 import type { GetAccess200 } from "../models/roles/getAccess200.zod"
+import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
@@ -757,6 +758,94 @@ export const useRevokePermissionGrant = <
 }): UseMutationResult<Awaited<ReturnType<typeof revokePermissionGrant>>, TError, { id: string }, TContext> => {
 	return useMutation(getRevokePermissionGrantMutationOptions(options))
 }
+export type getMyPermissionsResponse200 = {
+	data: GetMyPermissions200
+	status: 200
+}
+
+export type getMyPermissionsResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type getMyPermissionsResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type getMyPermissionsResponseSuccess = getMyPermissionsResponse200 & {
+	headers: Headers
+}
+export type getMyPermissionsResponseError = (getMyPermissionsResponse401 | getMyPermissionsResponse500) & {
+	headers: Headers
+}
+
+export const getGetMyPermissionsUrl = () => {
+	return `/api/me/permissions`
+}
+
+export const getMyPermissions = async (options?: RequestInit): Promise<getMyPermissionsResponseSuccess> => {
+	const res = await fetch(getGetMyPermissionsUrl(), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: getMyPermissionsResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: getMyPermissionsResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: getMyPermissionsResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as getMyPermissionsResponseSuccess
+}
+
+export const getGetMyPermissionsQueryKey = () => {
+	return [`/api/me/permissions`] as const
+}
+
+export const getGetMyPermissionsQueryOptions = <
+	TData = Awaited<ReturnType<typeof getMyPermissions>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>
+	fetch?: RequestInit
+}) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getGetMyPermissionsQueryKey()
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPermissions>>> = ({ signal }) =>
+		getMyPermissions({ signal, ...fetchOptions })
+
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof getMyPermissions>>,
+		TError,
+		TData
+	> & { queryKey: QueryKey }
+}
+
+export type GetMyPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPermissions>>>
+export type GetMyPermissionsQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+
+export function useGetMyPermissions<
+	TData = Awaited<ReturnType<typeof getMyPermissions>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(options?: {
+	query?: UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>
+	fetch?: RequestInit
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getGetMyPermissionsQueryOptions(options)
+
+	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
 export type resetUserPasswordResponse204 = {
 	data: void
 	status: 204

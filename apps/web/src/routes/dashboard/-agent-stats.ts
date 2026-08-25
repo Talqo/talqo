@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query"
-
 export type AgentStats = {
 	conversations: number
 	messages: number
@@ -53,7 +51,7 @@ function formatLocalDate(date: Date): string {
 }
 
 // TODO(agent-stats-api): Remove this deterministic mock generator when the real analytics endpoint exists.
-function createMockStats(agentId: string): AgentStats {
+export function createMockStats(agentId: string): AgentStats {
 	const random = seededRandom(hashAgentId(agentId))
 	const history: AgentStats["history"] = []
 	const today = new Date()
@@ -75,13 +73,4 @@ function createMockStats(agentId: string): AgentStats {
 		tokens: history.reduce((sum, day) => sum + day.tokens, 0),
 		history,
 	}
-}
-
-export function useAgentStats(agentId: string) {
-	return useQuery({
-		queryKey: ["agent-stats", agentId],
-		queryFn: () => Promise.resolve(createMockStats(agentId)),
-		enabled: agentId.length > 0,
-		staleTime: Number.POSITIVE_INFINITY,
-	})
 }

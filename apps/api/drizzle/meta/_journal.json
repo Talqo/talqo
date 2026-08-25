@@ -15,6 +15,13 @@
 			"when": 1787223600938,
 			"tag": "0001_nappy_shard",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1787668413537,
+			"tag": "0002_melted_wasp",
+			"breakpoints": true
 		}
 	]
 }
