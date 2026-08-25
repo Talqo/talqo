@@ -1,8 +1,7 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
+import { getListWidgetsQueryKey, useCreateWidget, useListWidgets } from "@/api/generated/widget/widget.ts"
 import { PageHeader } from "@/components/page-header"
 import { WIDGET_FORM_DEFAULTS } from "@/features/widgets/widget-appearance-form"
-import { useCreateWidget } from "@/features/widgets/widget-mutation"
-import { useWidgets } from "@/features/widgets/widgets-query"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
@@ -17,6 +16,7 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Plus, Settings2 } from "lucide-react"
 import { useState } from "react"
@@ -28,10 +28,16 @@ export const Route = createFileRoute("/dashboard/widgets/")({
 
 function WidgetsPage() {
 	const { t } = useTranslation()
-	const { data: widgets, isLoading, isError } = useWidgets()
+	const queryClient = useQueryClient()
+	const { data: widgetsResponse, isLoading, isError } = useListWidgets()
+	const widgets = widgetsResponse?.data.widgets
 	const { data: agentsResponse } = useListAgents()
 	const agents = agentsResponse?.data.agents
-	const createWidget = useCreateWidget()
+	const createWidget = useCreateWidget({
+		mutation: {
+			onSuccess: () => queryClient.invalidateQueries({ queryKey: getListWidgetsQueryKey() }),
+		},
+	})
 	const [dialogOpen, setDialogOpen] = useState(false)
 	const [name, setName] = useState("")
 	const [agentId, setAgentId] = useState("")
@@ -43,7 +49,7 @@ function WidgetsPage() {
 			return
 		}
 		try {
-			await createWidget.mutateAsync({ name: name.trim(), agentId, appearance: WIDGET_FORM_DEFAULTS })
+			await createWidget.mutateAsync({ data: { name: name.trim(), agentId, appearance: WIDGET_FORM_DEFAULTS } })
 		} catch {
 			// Reported below from createWidget.isError; keep the draft so it can be retried.
 			return

@@ -1,4 +1,10 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
+import {
+	getGetWidgetQueryKey,
+	getListWidgetsQueryKey,
+	useGetWidget,
+	useUpdateWidget,
+} from "@/api/generated/widget/widget.ts"
 import { PageHeader } from "@/components/page-header"
 import { ColorField } from "@/features/widgets/components/color-field"
 import { WidgetPreview } from "@/features/widgets/components/widget-preview"
@@ -9,8 +15,6 @@ import {
 	widgetFormSchema,
 	type WidgetFormValues,
 } from "@/features/widgets/widget-appearance-form"
-import { useUpdateWidget } from "@/features/widgets/widget-mutation"
-import { useWidget } from "@/features/widgets/widgets-query"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { isWidgetPosition, isWidgetTheme, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
@@ -20,6 +24,7 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -50,10 +55,19 @@ function themeLabel(theme: (typeof WIDGET_THEMES)[number], t: (key: string) => s
 function WidgetDetailPage() {
 	const { t } = useTranslation()
 	const { widgetId } = Route.useParams()
-	const { data: widget, isLoading, isError } = useWidget(widgetId)
+	const queryClient = useQueryClient()
+	const { data: widgetResponse, isLoading, isError } = useGetWidget(widgetId)
+	const widget = widgetResponse?.data.widget
 	const { data: agentsResponse } = useListAgents()
 	const agents = agentsResponse?.data.agents
-	const updateWidget = useUpdateWidget(widgetId)
+	const updateWidget = useUpdateWidget({
+		mutation: {
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({ queryKey: getGetWidgetQueryKey(widgetId) })
+				await queryClient.invalidateQueries({ queryKey: getListWidgetsQueryKey() })
+			},
+		},
+	})
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 
@@ -99,13 +113,16 @@ function WidgetDetailPage() {
 	function onValid(submitted: WidgetFormValues) {
 		updateWidget.mutate(
 			{
-				name: submitted.name.trim(),
-				agentId: submitted.agentId,
-				appearance: toAppearance(submitted),
+				widgetId,
+				data: {
+					name: submitted.name.trim(),
+					agentId: submitted.agentId,
+					appearance: toAppearance(submitted),
+				},
 			},
 			// Re-sync once the save lands so the server's stored values show through and
 			// the fields go clean again.
-			{ onSuccess: (saved) => reset(toFormValues(saved)) },
+			{ onSuccess: (saved) => reset(toFormValues(saved.data.widget)) },
 		)
 	}
 

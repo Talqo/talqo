@@ -94,6 +94,83 @@
 					}
 				},
 				"required": ["id", "name", "systemPrompt", "embedToken", "wordBlacklist", "createdAt", "updatedAt"]
+			},
+			"Widget": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"agentId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"publicToken": {
+						"type": "string"
+					},
+					"appearance": {
+						"$ref": "#/components/schemas/WidgetAppearance"
+					}
+				},
+				"required": ["id", "agentId", "name", "publicToken", "appearance"]
+			},
+			"WidgetAppearance": {
+				"type": "object",
+				"properties": {
+					"primary": {
+						"type": "string"
+					},
+					"primaryForeground": {
+						"type": "string"
+					},
+					"background": {
+						"type": "string"
+					},
+					"foreground": {
+						"type": "string"
+					},
+					"position": {
+						"type": "string",
+						"enum": ["bottom-right", "bottom-left"]
+					},
+					"theme": {
+						"type": "string",
+						"enum": ["system", "light", "dark"]
+					},
+					"themeToggle": {
+						"type": "boolean"
+					},
+					"language": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"primary",
+					"primaryForeground",
+					"background",
+					"foreground",
+					"position",
+					"theme",
+					"themeToggle",
+					"language"
+				]
+			},
+			"WidgetConfig": {
+				"type": "object",
+				"properties": {
+					"version": {
+						"type": "number"
+					},
+					"agentId": {
+						"type": "string"
+					},
+					"appearance": {
+						"$ref": "#/components/schemas/WidgetAppearance"
+					}
+				},
+				"required": ["version", "agentId", "appearance"]
 			}
 		},
 		"parameters": {}
@@ -2549,6 +2626,561 @@
 								}
 							}
 						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/widgets": {
+			"get": {
+				"operationId": "listWidgets",
+				"tags": ["Widget"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "All widgets",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"widgets": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Widget"
+											}
+										}
+									},
+									"required": ["widgets"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"operationId": "createWidget",
+				"tags": ["Widget"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"agentId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80
+									},
+									"appearance": {
+										"type": "object",
+										"properties": {
+											"primary": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"primaryForeground": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"background": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"foreground": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"position": {
+												"type": "string",
+												"enum": ["bottom-right", "bottom-left"]
+											},
+											"theme": {
+												"type": "string",
+												"enum": ["system", "light", "dark"]
+											},
+											"themeToggle": {
+												"type": "boolean"
+											},
+											"language": {
+												"type": "string",
+												"enum": ["en", "cs", "zh"]
+											}
+										},
+										"required": [
+											"primary",
+											"primaryForeground",
+											"background",
+											"foreground",
+											"position",
+											"theme",
+											"themeToggle",
+											"language"
+										]
+									}
+								},
+								"required": ["agentId", "name"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Widget created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"widget": {
+											"$ref": "#/components/schemas/Widget"
+										}
+									},
+									"required": ["widget"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/widgets/{widgetId}": {
+			"get": {
+				"operationId": "getWidget",
+				"tags": ["Widget"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "widgetId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "One widget",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"widget": {
+											"$ref": "#/components/schemas/Widget"
+										}
+									},
+									"required": ["widget"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"operationId": "updateWidget",
+				"tags": ["Widget"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "widgetId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"agentId": {
+										"type": "string",
+										"minLength": 1
+									},
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80
+									},
+									"appearance": {
+										"type": "object",
+										"properties": {
+											"primary": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"primaryForeground": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"background": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"foreground": {
+												"type": "string",
+												"pattern": "^#[0-9a-fA-F]{6}$"
+											},
+											"position": {
+												"type": "string",
+												"enum": ["bottom-right", "bottom-left"]
+											},
+											"theme": {
+												"type": "string",
+												"enum": ["system", "light", "dark"]
+											},
+											"themeToggle": {
+												"type": "boolean"
+											},
+											"language": {
+												"type": "string",
+												"enum": ["en", "cs", "zh"]
+											}
+										},
+										"required": [
+											"primary",
+											"primaryForeground",
+											"background",
+											"foreground",
+											"position",
+											"theme",
+											"themeToggle",
+											"language"
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Widget updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"widget": {
+											"$ref": "#/components/schemas/Widget"
+										}
+									},
+									"required": ["widget"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteWidget",
+				"tags": ["Widget"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "widgetId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/widget-config/{token}": {
+			"get": {
+				"operationId": "getWidgetConfig",
+				"tags": ["Widget"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "token",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Public appearance for the embedded widget",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/WidgetConfig"
+								}
+							}
+						}
+					},
+					"304": {
+						"description": "Configuration unchanged since the supplied ETag"
 					},
 					"404": {
 						"description": "Resource not found",

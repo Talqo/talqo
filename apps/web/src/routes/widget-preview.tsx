@@ -1,6 +1,6 @@
+import { useGetWidget } from "@/api/generated/widget/widget.ts"
 import { WidgetPreview } from "@/features/widgets/components/widget-preview"
 import { toAppearance, toFormValues } from "@/features/widgets/widget-appearance-form"
-import { useWidget } from "@/features/widgets/widgets-query"
 import { Button } from "@talqo/ui/components/button"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
@@ -18,7 +18,8 @@ export const Route = createFileRoute("/widget-preview")({
 function WidgetPreviewPage() {
 	const { t } = useTranslation()
 	const { widget: widgetId } = Route.useSearch()
-	const { data: widget, isLoading } = useWidget(widgetId)
+	const { data: widgetResponse, isLoading } = useGetWidget(widgetId)
+	const widget = widgetResponse?.data.widget
 
 	return (
 		<div className="bg-background text-foreground relative min-h-screen p-6">

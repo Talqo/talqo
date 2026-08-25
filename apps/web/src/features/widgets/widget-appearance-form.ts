@@ -1,4 +1,6 @@
-import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
+import type { Widget } from "@/api/generated/models/widget/widget.zod.ts"
+
+import { isSupportedLanguage, SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import {
 	DEFAULT_WIDGET_APPEARANCE,
 	WIDGET_POSITIONS,
@@ -6,8 +8,6 @@ import {
 	type WidgetAppearance,
 } from "@talqo/shared/widget-appearance"
 import { z } from "zod"
-
-import type { Widget } from "./widget-client.ts"
 
 // Mirrors apps/api/src/modules/widget/widget.contract.ts. Kept separate on purpose:
 // the API's job is to reject, this one's is to guide the operator while they type.
@@ -54,5 +54,13 @@ export function toAppearance(values: WidgetFormValues): WidgetAppearance {
 }
 
 export function toFormValues(widget: Pick<Widget, "agentId" | "appearance" | "name">): WidgetFormValues {
-	return { name: widget.name, agentId: widget.agentId, ...widget.appearance }
+	const { language, ...appearance } = widget.appearance
+	return {
+		name: widget.name,
+		agentId: widget.agentId,
+		...appearance,
+		// The API widens `language` on read, so a widget saved under a language since
+		// dropped from `@talqo/shared` still opens -- on the default rather than a blank select.
+		language: isSupportedLanguage(language) ? language : DEFAULT_WIDGET_APPEARANCE.language,
+	}
 }

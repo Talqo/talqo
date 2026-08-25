@@ -1,6 +1,15 @@
+import {
+	badRequestResponse,
+	forbiddenResponse,
+	internalServerErrorResponse,
+	noContentResponse,
+	notFoundResponse,
+	sessionSecurity,
+	unauthorizedResponse,
+} from "@/http/openapi.ts"
+import { createRoute, z } from "@hono/zod-openapi"
 import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import { WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
-import { z } from "zod"
 
 import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
 
@@ -9,7 +18,7 @@ import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
 const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex color, e.g. #1a7f4b")
 const nameSchema = z.string().trim().min(1).max(WIDGET_NAME_MAX_LENGTH)
 
-const appearanceSchema = z
+const appearanceInputSchema = z
 	.object({
 		primary: colorSchema,
 		primaryForeground: colorSchema,
@@ -31,12 +40,10 @@ const appearanceSchema = z
 		path: ["foreground"],
 	})
 
-const widgetSchema = z.object({
-	id: z.string(),
-	agentId: z.string(),
-	name: z.string(),
-	publicToken: z.string(),
-	appearance: z.object({
+// Looser than the input schema on purpose: `language` is widened on read so a widget
+// saved under a language later dropped from `@talqo/shared` stays readable.
+const appearanceResponseSchema = z
+	.object({
 		primary: z.string(),
 		primaryForeground: z.string(),
 		background: z.string(),
@@ -45,28 +52,155 @@ const widgetSchema = z.object({
 		theme: z.enum(WIDGET_THEMES),
 		themeToggle: z.boolean(),
 		language: z.string(),
-	}),
-})
+	})
+	.openapi("WidgetAppearance")
+
+export const widgetResponseSchema = z
+	.object({
+		id: z.string(),
+		agentId: z.string(),
+		name: z.string(),
+		publicToken: z.string(),
+		appearance: appearanceResponseSchema,
+	})
+	.openapi("Widget")
+
+export const widgetConfigResponseSchema = z
+	.object({
+		version: z.number(),
+		agentId: z.string(),
+		appearance: appearanceResponseSchema,
+	})
+	.openapi("WidgetConfig")
 
 export const createWidgetRequestSchema = z.object({
 	agentId: z.string().min(1),
 	name: nameSchema,
-	appearance: appearanceSchema.optional(),
+	appearance: appearanceInputSchema.optional(),
 })
 
 export const updateWidgetRequestSchema = z
 	.object({
 		agentId: z.string().min(1).optional(),
 		name: nameSchema.optional(),
-		appearance: appearanceSchema.optional(),
+		appearance: appearanceInputSchema.optional(),
 	})
 	.refine((patch) => Object.keys(patch).length > 0, { message: "Provide at least one field to update" })
 
-export const widgetResponseSchema = z.object({ widget: widgetSchema })
-export const widgetListResponseSchema = z.object({ widgets: z.array(widgetSchema) })
+export const widgetDetailResponseSchema = z.object({ widget: widgetResponseSchema })
+export const widgetListResponseSchema = z.object({ widgets: z.array(widgetResponseSchema) })
 
-export const widgetConfigResponseSchema = z.object({
-	version: z.number(),
-	agentId: z.string(),
-	appearance: widgetSchema.shape.appearance,
+const widgetParamsSchema = z.object({
+	widgetId: z.string().openapi({ param: { name: "widgetId", in: "path" } }),
+})
+
+const widgetTokenParamsSchema = z.object({
+	token: z.string().openapi({ param: { name: "token", in: "path" } }),
+})
+
+// Conditional GET: an unchanged configuration carries no body to describe.
+const notModifiedResponse = { description: "Configuration unchanged since the supplied ETag" } as const
+
+export const listWidgetsRoute = createRoute({
+	method: "get",
+	path: "/",
+	operationId: "listWidgets",
+	tags: ["Widget"],
+	security: sessionSecurity,
+	responses: {
+		200: { content: { "application/json": { schema: widgetListResponseSchema } }, description: "All widgets" },
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const createWidgetRoute = createRoute({
+	method: "post",
+	path: "/",
+	operationId: "createWidget",
+	tags: ["Widget"],
+	security: sessionSecurity,
+	request: {
+		body: { content: { "application/json": { schema: createWidgetRequestSchema } }, required: true },
+	},
+	responses: {
+		201: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "Widget created" },
+		400: badRequestResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const getWidgetRoute = createRoute({
+	method: "get",
+	path: "/{widgetId}",
+	operationId: "getWidget",
+	tags: ["Widget"],
+	security: sessionSecurity,
+	request: { params: widgetParamsSchema },
+	responses: {
+		200: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "One widget" },
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const updateWidgetRoute = createRoute({
+	method: "patch",
+	path: "/{widgetId}",
+	operationId: "updateWidget",
+	tags: ["Widget"],
+	security: sessionSecurity,
+	request: {
+		params: widgetParamsSchema,
+		body: { content: { "application/json": { schema: updateWidgetRequestSchema } }, required: true },
+	},
+	responses: {
+		200: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "Widget updated" },
+		400: badRequestResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const deleteWidgetRoute = createRoute({
+	method: "delete",
+	path: "/{widgetId}",
+	operationId: "deleteWidget",
+	tags: ["Widget"],
+	security: sessionSecurity,
+	request: { params: widgetParamsSchema },
+	responses: {
+		204: noContentResponse,
+		401: unauthorizedResponse,
+		403: forbiddenResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+// Deliberately unauthenticated (ADR-0011): it is reachable from arbitrary customer
+// origins, so it carries no security scheme and returns identity-free appearance only.
+export const getWidgetConfigRoute = createRoute({
+	method: "get",
+	path: "/{token}",
+	operationId: "getWidgetConfig",
+	tags: ["Widget"],
+	request: { params: widgetTokenParamsSchema },
+	responses: {
+		200: {
+			content: { "application/json": { schema: widgetConfigResponseSchema } },
+			description: "Public appearance for the embedded widget",
+		},
+		304: notModifiedResponse,
+		404: notFoundResponse,
+		500: internalServerErrorResponse,
+	},
 })
