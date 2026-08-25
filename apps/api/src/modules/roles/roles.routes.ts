@@ -15,6 +15,8 @@ import {
 	getAccessRoute,
 	getSetupStatusRoute,
 	grantResponseSchema,
+	myPermissionsRoute,
+	myPermissionsResponseSchema,
 	redeemInvitationRoute,
 	redeemInvitationResponseSchema,
 	resetUserPasswordRoute,
@@ -100,6 +102,12 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 
 rolesRoutes.route("/invitations", invitationRoutes)
 rolesRoutes.route("/permission-grants", permissionGrantRoutes)
+// Dashboard reads this to hide routes and controls the caller cannot use.
+rolesRoutes.openapi(myPermissionsRoute, async (c) => {
+	const permissions = await service.listEffectivePermissions(c.get("user").id)
+	return c.json(myPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
+})
+
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
 	if (!(await service.isAdmin(user.id))) {

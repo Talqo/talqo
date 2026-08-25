@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
-import { useActiveAgent } from "@/features/agents/agents-query"
+import { useActiveAgent } from "@/features/agents/use-active-agent"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -15,6 +16,8 @@ import { useTranslation } from "react-i18next"
 const COPY_FEEDBACK_MS = 2000
 
 import { buildEmbedSnippet, type EmbedPosition, widgetScriptUrl } from "./-embed-snippet"
+
+const FORBIDDEN_STATUS = 403
 
 export const Route = createFileRoute("/dashboard/widget")({
 	validateSearch: (search: Record<string, unknown>) => ({
@@ -33,7 +36,7 @@ const isEmbedLanguage = isSupportedLanguage
 
 function WidgetPage() {
 	const { t } = useTranslation()
-	const { agents, isLoading, activeId: activeAgentId, setSelectedId } = useActiveAgent()
+	const { agents, error, isLoading, activeId: activeAgentId, setSelectedId } = useActiveAgent()
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 	const [accentColor, setAccentColor] = useState("#1a7f4b")
@@ -45,14 +48,16 @@ function WidgetPage() {
 	}, [])
 
 	const scriptUrl = widgetScriptUrl()
-	const snippet = scriptUrl
-		? buildEmbedSnippet(scriptUrl, {
-				agentId: activeAgentId,
-				accent: accentColor,
-				language: widgetLanguage,
-				position,
-			})
-		: undefined
+	const activeToken = agents?.find((agent) => agent.id === activeAgentId)?.embedToken
+	const snippet =
+		scriptUrl && activeToken
+			? buildEmbedSnippet(scriptUrl, {
+					embedToken: activeToken,
+					accent: accentColor,
+					language: widgetLanguage,
+					position,
+				})
+			: undefined
 
 	async function copySnippet() {
 		if (!snippet) {
@@ -66,6 +71,15 @@ function WidgetPage() {
 		} catch {
 			setCopied(false)
 		}
+	}
+
+	if (error?.status === FORBIDDEN_STATUS) {
+		return (
+			<div className="mx-auto max-w-5xl space-y-6">
+				<PageHeader title={t("widgetSetup.heading")} description={t("widgetSetup.subheading")} />
+				<AccessDenied />
+			</div>
+		)
 	}
 
 	return (

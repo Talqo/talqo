@@ -25,11 +25,6 @@ await withTestDatabase(async (databaseEnv) => {
 		TALQO_WIDGET_PORT: widgetPort,
 		E2E_PROVIDER_PORT: providerPort,
 		E2E_PROVIDER_URL: `http://127.0.0.1:${providerPort}/v1`,
-		E2E_OPERATOR_PASSWORD: "correct-horse-battery-staple",
-		E2E_ADMIN_USERNAME: "e2e_admin",
-		E2E_GRANTED_USERNAME: "e2e_granted",
-		E2E_UNGRANTED_USERNAME: "e2e_ungranted",
-		TALQO_SEED_PROFILE: "e2e",
 	}
 
 	try {
