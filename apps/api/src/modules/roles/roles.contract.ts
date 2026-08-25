@@ -62,21 +62,41 @@ export const redeemInvitationResponseSchema = z.object({
 	user: userResponseSchema,
 })
 
-export const createGrantRequestSchema = z.object({
-	userId: z.string().min(1),
-	permission: z.enum(PERMISSIONS),
-	agentId: z.string().min(1).optional(),
-})
+export const createGrantRequestSchema = z
+	.object({
+		userId: z.string().min(1),
+		permission: z.enum(PERMISSIONS),
+	})
+	.strict()
 
 export const grantResponseSchema = z.object({
 	grant: z.object({
 		id: z.string(),
 		userId: z.string(),
 		permission: z.string(),
-		agentId: z.string().nullable(),
 		grantedBy: z.string().nullable(),
 		grantedAt: z.iso.datetime(),
 	}),
+})
+
+export const myPermissionsResponseSchema = z.object({
+	permissions: z.array(z.enum(PERMISSIONS)),
+})
+
+export const myPermissionsRoute = createRoute({
+	method: "get",
+	path: "/me/permissions",
+	operationId: "getMyPermissions",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	responses: {
+		200: {
+			content: { "application/json": { schema: myPermissionsResponseSchema } },
+			description: "Effective permissions",
+		},
+		401: unauthorizedResponse,
+		500: internalServerErrorResponse,
+	},
 })
 
 export const resetPasswordRequestSchema = z.object({

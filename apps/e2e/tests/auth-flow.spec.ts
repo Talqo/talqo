@@ -22,12 +22,9 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 })
 
 test("admin invites a member and the member logs in", async ({ page }) => {
-	const adminUsername = process.env.E2E_ADMIN_USERNAME ?? ""
-	const adminPassword = process.env.E2E_OPERATOR_PASSWORD ?? ""
-
 	await page.goto("/login")
-	await page.getByLabel("Username").fill(adminUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
+	await page.getByLabel("Username").fill("e2e_admin")
+	await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple")
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 
@@ -76,9 +73,9 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 
-	// Logging out removes access client-side so a stale UI cannot keep acting on the member session.
+	// Logging out redirects to login; a stale UI cannot reuse the session.
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/invitations")
-	await expect(page.getByText("You need to log in to invite a member.")).toBeVisible()
+	await expect(page).toHaveURL("/login")
 })

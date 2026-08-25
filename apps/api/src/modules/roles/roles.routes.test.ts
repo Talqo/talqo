@@ -39,4 +39,10 @@ describe("roles routes", () => {
 
 		expect(response.status).toBe(401)
 	})
+
+	it("rejects an unauthenticated request for the current user's permissions", async () => {
+		const response = await app.request("/api/me/permissions")
+
+		expect(response.status).toBe(401)
+	})
 })

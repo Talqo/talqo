@@ -1,8 +1,8 @@
+import { useDiscoverAiProviderModels } from "@/api/generated/ai-providers/ai-providers.ts"
 import { useEffect, useRef, useState } from "react"
 
 import type { DiscoveryContext } from "./discovery-readiness.ts"
 
-import { useDiscoverAiProviderModels } from "./ai-configuration-query.ts"
 import { hasCompleteCredentials, isDiscoveryReady, requiredCredentials } from "./discovery-readiness.ts"
 
 const DISCOVERY_DEBOUNCE_MS = 400

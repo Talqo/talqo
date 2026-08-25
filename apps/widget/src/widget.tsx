@@ -13,7 +13,7 @@ function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
 	}
-	const scripts = document.querySelectorAll<HTMLScriptElement>("script[data-talqo-agent]")
+	const scripts = document.querySelectorAll<HTMLScriptElement>("script[data-talqo-embed-token]")
 	if (scripts.length > 1) {
 		console.warn("TalqoWidget: multiple embed snippets found; using the first")
 	}
@@ -25,9 +25,9 @@ function embedProps(): EmbeddedWidgetProps {
 	if (!dataset) {
 		return {}
 	}
-	const { talqoAgent, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
+	const { talqoEmbedToken, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
 	return {
-		agentId: talqoAgent,
+		embedToken: talqoEmbedToken,
 		language: isWidgetLanguage(talqoLanguage) ? talqoLanguage : undefined,
 		title: talqoTitle,
 		theme: talqoTheme === "light" || talqoTheme === "dark" ? (talqoTheme as WidgetTheme) : undefined,

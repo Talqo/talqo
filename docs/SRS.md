@@ -87,7 +87,7 @@ Talqo is related to these repos:
 | FR-2.5 | Operator can update their account information (username) | Medium | Done |
 | FR-2.6 | Operator can delete their account | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | In progress (script-tag snippet; origin via VITE_WIDGET_CDN_URL) |
-| FR-2.8 | Operator can rotate the widget's public token to invalidate the old embed code | Medium | Not started |
+| FR-2.8 | Operator can rotate an agent's public embed token, which orphans the old token for existing embed code | Medium | Done |
 
 #### 3.2.2 API configuration (FR-2b)
 
@@ -100,11 +100,11 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Operator can create a new agent with custom name | Medium | In progress (dashboard UI, in-memory store) |
-| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | In progress (single raw prompt field, per v1) |
-| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (dashboard UI; runtime enforcement pending) |
+| FR-2.10 | Operator can create a new agent with custom name | Medium | Done |
+| FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (runtime enforcement pending) |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress (live widget-shell preview; no AI responses) |
-| FR-2.13a | Operator can delete an agent | Medium | Not started |
+| FR-2.13a | Operator can delete an agent | Medium | Done |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
@@ -147,7 +147,7 @@ Talqo is related to these repos:
 | FR-3.1 | Developer can send a message to the agent and receive a response via the SDK, without using the pre-built widget UI | High | Not started |
 | FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Not started |
 | FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Not started |
-| FR-3.4 | SDK authenticates using the same public widget token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
+| FR-3.4 | SDK authenticates using the same public embed token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
 | FR-3.5 | SDK fetches the server-side visual configuration (described in FR-2e) | Medium | Not started |
 
 ## 4. Non-Functional Requirements
@@ -178,7 +178,7 @@ Talqo is related to these repos:
 |----|-------------|-------|----------|------------|
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
 | NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Not started |
-| NFR-3.3 | SDK and widget endpoints authenticate using the instance's public token | Related to FR-3.4 | High | Not started |
+| NFR-3.3 | SDK and widget endpoints authenticate using the agent's public embed token | Related to FR-3.4 | High | Not started |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
 | NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Not started |
 | NFR-3.6 | Widget enforces a per-conversation message limit | | High | Not started |
