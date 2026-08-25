@@ -11,7 +11,6 @@
 		"email": "E-mail",
 		"emailInvalid": "Zadejte platnou e-mailovou adresu.",
 		"heading": "Účet",
-		"loading": "Načítání účtu…",
 		"name": "Jméno",
 		"nameRequired": "Jméno je povinné.",
 		"newPassword": "Nové heslo",

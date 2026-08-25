@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
-import { useActiveAgent } from "@/features/agents/agents-query"
+import { useActiveAgent } from "@/features/agents/use-active-agent"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"

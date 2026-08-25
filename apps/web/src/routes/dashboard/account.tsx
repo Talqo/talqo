@@ -11,8 +11,6 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
-import { type Operator, useOperator } from "./-account-query"
-
 export const Route = createFileRoute("/dashboard/account")({
 	component: AccountPage,
 })
@@ -23,6 +21,17 @@ const accountSchema = z.object({
 })
 
 type AccountFormValues = z.infer<typeof accountSchema>
+
+type Operator = {
+	name: string
+	email: string
+}
+
+// TODO(account-api): Replace this placeholder when the operator profile endpoint exists.
+const placeholderOperator: Operator = {
+	name: "Talqo Operator",
+	email: "operator@talqo.dev",
+}
 
 function ProfileCard({ operator }: { operator: Operator }) {
 	const { t } = useTranslation()
@@ -144,20 +153,11 @@ function DangerZoneCard() {
 
 function AccountPage() {
 	const { t } = useTranslation()
-	const { data: operator, isLoading } = useOperator()
-
-	if (isLoading || !operator) {
-		return (
-			<div className="mx-auto max-w-3xl">
-				<p className="text-muted-foreground">{t("account.loading")}</p>
-			</div>
-		)
-	}
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
-			<ProfileCard operator={operator} />
+			<ProfileCard operator={placeholderOperator} />
 			<PasswordCard />
 			<DangerZoneCard />
 		</div>

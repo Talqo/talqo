@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/page-header"
-import { useActiveAgent } from "@/features/agents/agents-query"
+import { useActiveAgent } from "@/features/agents/use-active-agent"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -10,7 +10,7 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
-import { useAgentStats, type AgentStats } from "./-agent-stats-query"
+import { createMockStats, type AgentStats } from "./-agent-stats"
 
 const FORBIDDEN_STATUS = 403
 
@@ -107,7 +107,7 @@ function MetricChart({
 function AnalyticsPage() {
 	const { t } = useTranslation()
 	const { agents, error, isLoading, activeId, setSelectedId } = useActiveAgent()
-	const { data: stats, isLoading: statsLoading } = useAgentStats(activeId)
+	const stats = activeId ? createMockStats(activeId) : undefined
 	const { language } = useLanguage()
 	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
 
@@ -149,7 +149,7 @@ function AnalyticsPage() {
 				<p className="text-muted-foreground">{t("analytics.loading")}</p>
 			) : !agents?.length ? (
 				<p className="text-muted-foreground">{t("analytics.empty")}</p>
-			) : statsLoading || !stats ? (
+			) : !stats ? (
 				<p className="text-muted-foreground">{t("analytics.loadingStats")}</p>
 			) : (
 				<>

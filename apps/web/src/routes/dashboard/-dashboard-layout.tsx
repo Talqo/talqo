@@ -34,8 +34,6 @@ type NavItem = {
 	requires?: NavRequirement
 }
 
-// Single mapping of routes to permissions used by nav and cards.
-// Widget and Analytics depend on the agent list, so they require agents:read.
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
@@ -100,7 +98,6 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
 	const permissions = useGetMyPermissions().data?.data.permissions
-	// Show only unrestricted entries while permissions load.
 	const items = allowedNavItems(permissions)
 	return (
 		<nav className={className}>

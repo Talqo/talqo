@@ -11,7 +11,6 @@
 		"email": "Email",
 		"emailInvalid": "Enter a valid email address.",
 		"heading": "Account",
-		"loading": "Loading account…",
 		"name": "Name",
 		"nameRequired": "Name is required.",
 		"newPassword": "New password",

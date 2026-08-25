@@ -105,7 +105,6 @@ function AgentConfigPage() {
 			await invalidateAgentQueries()
 			setSaved(true)
 		} catch (caught) {
-			// Failed saves keep edits; only the message changes.
 			const status = (caught as UpdateAgentMutationError).status
 			if (status === CONFLICT_STATUS) {
 				setFormError(t("agents.nameConflict"))

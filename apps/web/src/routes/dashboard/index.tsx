@@ -4,8 +4,6 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { BarChart3, Bot, MessageSquare, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-// Mirrors the layout's route-to-permission mapping.
-// Account stays visible for ungranted operators.
 const cards = [
 	{ to: "/dashboard/agents", icon: Bot, requiresRead: true },
 	{ to: "/dashboard/widget", icon: MessageSquare, requiresRead: true },
