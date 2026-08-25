@@ -1,4 +1,4 @@
-import { getGetSessionQueryKey, useLogout } from "@/api/generated/identity/identity.ts"
+import { useLogout } from "@/api/generated/identity/identity.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { useMyPermissions } from "@/features/permissions/permissions-query"
 import { Button } from "@talqo/ui/components/button"
@@ -119,7 +119,7 @@ function LogoutButton() {
 
 	async function handleLogout() {
 		await logout.mutateAsync()
-		queryClient.removeQueries({ queryKey: getGetSessionQueryKey() })
+		queryClient.clear()
 		await navigate({ to: "/login" })
 	}
 

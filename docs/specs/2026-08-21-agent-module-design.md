@@ -83,7 +83,7 @@ An aggregate may contain at most 100 blacklist terms. Create and update replace 
 
 The conceptual `USER 1 -> 0..* AGENT` relationship is removed. A deployment is the tenant, and its agents are shared resources governed by RBAC rather than user ownership.
 
-The conceptual `AGENT 1 -> 0..* PERMISSION_GRANT` relationship is also removed. `permission_grant.agent_id` and the corresponding service and HTTP fields are removed because every permission grant is global. Existing migrations are not hand-edited; a generated migration removes the unused column and creates the agent-owned tables and indexes.
+The conceptual `AGENT 1 -> 0..* PERMISSION_GRANT` relationship is also removed. `permission_grant.agent_id` and the corresponding service and HTTP fields are removed because every permission grant is global. A custom data migration first deletes legacy scoped grants so removing the column cannot silently broaden their authority. The following generated schema migration removes the unused column and creates the agent-owned tables and indexes.
 
 `AGENT_IP_RATE_LIMIT` remains a conceptual future capability but is not created in this effort. Its storage and enforcement contract must be designed with the future conversation/public API boundary rather than inferred now.
 
@@ -222,16 +222,16 @@ Route-only UI remains with its route. Reusable agent-selection and blacklist-edi
 
 ## Seeds And Migrations
 
-The seed provides one natural baseline shared by dev, integration, and E2E — never test-only records: one operator, one read-only viewer, one ungranted member (identity module), one bootstrap admin `admin` (roles module), and one production-plausible agent "Website Assistant" (agent module). The seed runs against the isolated test database before E2E and dev, and browser tests reference the same natural accounts without hardcoded record definitions. Reset ordering respects the blacklist-to-agent foreign key.
+The API-owned `e2e` seed profile creates deterministic environment-named records in an isolated database: one admin, one operator with agent and AI-provider management, one read-only agent viewer, one ungranted member, and one production-plausible agent "Website Assistant". Browser tests read the same environment-defined credentials rather than owning record definitions. Reset ordering respects the blacklist-to-agent foreign key.
 
-Drizzle discovers `agent.schema.ts` and generates one centralized migration. Generated SQL is inspected for:
+Drizzle discovers `agent.schema.ts`. After the custom scoped-grant cleanup migration, it generates the centralized agent schema migration. Generated SQL is inspected for:
 
 - Both new tables.
 - Case-insensitive unique indexes.
 - Blacklist cascade behavior.
 - Removal of `permission_grant.agent_id`.
 
-Generated migration and metadata files are never hand-edited.
+Generated migration and metadata files are never hand-edited; the cleanup is intentionally created through Drizzle's custom-migration workflow.
 
 ## Testing Strategy
 

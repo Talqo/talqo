@@ -257,10 +257,7 @@ describe("permission grants", () => {
 			body: JSON.stringify({ userId: member.id, permission: "users:invite", agentId: crypto.randomUUID() }),
 		})
 
-		// Zod strips unknown keys, so scoping fields no longer apply: the resulting grant is global.
-		expect(response.status).toBe(201)
-		const { grant } = (await response.json()) as { grant: Record<string, unknown> }
-		expect("agentId" in grant).toBe(false)
+		expect(response.status).toBe(400)
 	})
 
 	it("denies the very next request after revocation, without touching the member's session", async () => {
@@ -298,7 +295,7 @@ describe("effective permissions", () => {
 		const response = await app.request("/api/me/permissions", { headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(200)
-		expect(await response.json()).toEqual({ permissions: ["users:invite", "agents:read", "agents:manage"] })
+		expect(await response.json()).toEqual({ permissions: [...service.PERMISSIONS] })
 	})
 
 	it("expands a member's agents:manage grant to include agents:read", async () => {

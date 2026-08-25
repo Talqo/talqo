@@ -62,10 +62,12 @@ export const redeemInvitationResponseSchema = z.object({
 	user: userResponseSchema,
 })
 
-export const createGrantRequestSchema = z.object({
-	userId: z.string().min(1),
-	permission: z.enum(PERMISSIONS),
-})
+export const createGrantRequestSchema = z
+	.object({
+		userId: z.string().min(1),
+		permission: z.enum(PERMISSIONS),
+	})
+	.strict()
 
 export const grantResponseSchema = z.object({
 	grant: z.object({

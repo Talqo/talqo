@@ -1,5 +1,5 @@
-import * as aiProvider from "@/modules/ai-provider/ai-provider.seed.ts"
 import * as agent from "@/modules/agent/agent.seed.ts"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.seed.ts"
 import * as identity from "@/modules/identity/identity.seed.ts"
 import * as identityService from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"

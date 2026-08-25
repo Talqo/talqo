@@ -29,6 +29,7 @@ await withTestDatabase(async (databaseEnv) => {
 		E2E_ADMIN_USERNAME: "e2e_admin",
 		E2E_GRANTED_USERNAME: "e2e_granted",
 		E2E_UNGRANTED_USERNAME: "e2e_ungranted",
+		E2E_VIEWER_USERNAME: "e2e_viewer",
 		TALQO_SEED_PROFILE: "e2e",
 	}
 

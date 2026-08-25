@@ -8,7 +8,7 @@ import * as zod from "zod"
 
 export const GetAccess200 = zod.object({
 	isAdmin: zod.boolean(),
-	permissions: zod.array(zod.enum(["users:invite", "ai_provider:manage"])),
+	permissions: zod.array(zod.enum(["users:invite", "ai_provider:manage", "agents:read", "agents:manage"])),
 })
 
 export type GetAccess200 = zod.input<typeof GetAccess200>

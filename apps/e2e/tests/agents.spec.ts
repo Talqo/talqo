@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
 
-// Mirrors the natural seed in apps/api (identity/roles/agent seeds).
-const OPERATOR = { username: "user", password: "user1234" }
-const VIEWER = { username: "viewer", password: "viewer1234" }
-const MEMBER = { username: "member", password: "member1234" }
+const password = process.env.E2E_OPERATOR_PASSWORD ?? ""
+const OPERATOR = { username: process.env.E2E_GRANTED_USERNAME ?? "", password }
+const VIEWER = { username: process.env.E2E_VIEWER_USERNAME ?? "", password }
+const MEMBER = { username: process.env.E2E_UNGRANTED_USERNAME ?? "", password }
 const SEEDED_AGENT = "Website Assistant"
 
 async function logIn(page: Page, account: { password: string; username: string }) {
@@ -17,7 +17,7 @@ async function logIn(page: Page, account: { password: string; username: string }
 test("manager creates, configures, embeds, and deletes an agent through the real API", async ({ page }) => {
 	await logIn(page, OPERATOR)
 
-	// The natural seed contributes one agent to start from.
+	// The isolated E2E seed contributes one agent to start from.
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
 	await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible()
 	await expect(page.getByRole("link", { name: new RegExp(SEEDED_AGENT) })).toBeVisible()
@@ -130,6 +130,31 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	// Direct navigation still shows the access-denied state instead of data.
 	await page.goto("/dashboard/agents")
 	await expect(page.getByText("Access restricted")).toBeVisible()
+})
+
+test("switching accounts does not reuse cached agent permissions", async ({ page }) => {
+	await logIn(page, OPERATOR)
+	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
+
+	await page.getByRole("button", { name: "Log out" }).click()
+	await expect(page).toHaveURL("/login")
+
+	let releasePermissions: (() => void) | undefined
+	const permissionsReleased = new Promise<void>((resolve) => {
+		releasePermissions = resolve
+	})
+	await page.route("**/api/me/permissions", async (route) => {
+		await permissionsReleased
+		await route.continue()
+	})
+
+	await page.getByLabel("Username").fill(MEMBER.username)
+	await page.getByLabel("Password", { exact: true }).fill(MEMBER.password)
+	await page.getByRole("button", { name: "Log in" }).click()
+	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
+
+	releasePermissions?.()
 })
 
 test("account security controls stay disabled until the account API exists", async ({ page }) => {
