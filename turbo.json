@@ -1,5 +1,13 @@
 {
 	"$schema": "https://turborepo.com/schema.json",
+	"boundaries": {
+		"tags": {
+			"app": {
+				"dependencies": { "deny": ["app"] },
+				"dependents": { "deny": ["package"] }
+			}
+		}
+	},
 	"tasks": {
 		"//#format": {},
 		"//#format:fix": {

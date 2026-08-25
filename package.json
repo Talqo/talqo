@@ -9,8 +9,9 @@
 	"type": "module",
 	"scripts": {
 		"actions:check": "actionlint && zizmor --offline .",
+		"boundaries": "bun scripts/check-boundary-tags.ts && turbo boundaries",
 		"build": "turbo run build",
-		"ci": "bun run actions:check && bun run quality && bun run i18n && bun run typecheck && bun run test && bun run build",
+		"ci": "bun run actions:check && bun run quality && bun run boundaries && bun run i18n && bun run typecheck && bun run test && bun run build",
 		"dev": "bun scripts/dev.ts",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",
 		"e2e": "turbo run e2e --output-logs=errors-only",

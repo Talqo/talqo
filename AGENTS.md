@@ -14,6 +14,7 @@ Run after changes:
 
 ```sh
 bun run quality:fix
+bun run boundaries
 bun run typecheck
 bun test
 bun run i18n:fix

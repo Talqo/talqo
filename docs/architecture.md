@@ -241,7 +241,10 @@ apps/e2e/
 
 ## Boundary Enforcement
 
-- Module boundaries and cycles are enforced by linting and CI.
+- `turbo boundaries` enforces workspace direction. Every workspace declares a structural tag in its `turbo.json` (`app` under `apps/`, `package` under `packages/`); root `turbo.json` denies `app -> app` and `package -> app`. `scripts/check-boundary-tags.ts` fails the check when a workspace carries no tag, so a new package cannot silently escape the rules.
+- oxlint enforces module boundaries and cycles inside `apps/api`. Overrides scoped to `apps/api/src/modules` restrict cross-module imports to `@/modules/<module>/<module>.service.ts`, with a narrower override permitting schema-to-schema imports for foreign keys, and `import/no-cycle` covers `apps/api/src`.
+- `bun run boundaries` runs the workspace check; `bun run quality` runs the oxlint rules. Both gate CI.
+- Deviation: `apps/docs/src/lib/source.ts` carries a `@boundaries-ignore` comment because turbo cannot resolve the `collections/*` alias into fumadocs-generated, gitignored `.source` output. Remove it when turbo resolves aliases to generated targets.
 - Schema files may import another module's schema only for foreign-key declarations; all runtime cross-module access goes through the target service.
 - Add packages only for measured cross-app reuse; do not pre-split modules or speculative shared code.
 

@@ -1,7 +1,7 @@
 # API
 
 - Put business capabilities under `src/modules/<module>`; create role files only when needed.
-- Runtime cross-module imports target only `@/modules/<module>/<module>.service.ts`; schema files may import another module's schema for foreign keys.
+- Runtime cross-module imports target only `@/modules/<module>/<module>.service.ts`; schema files may import another module's schema for foreign keys. `bun run boundaries` and oxlint enforce this; it is not convention alone.
 - Keep Hono concerns in routes and business rules in services.
 - A module accesses another module's data only through its service interface.
 - Reserve `.contract.ts` for HTTP/OpenAPI schemas and `.schema.ts` for Drizzle declarations.

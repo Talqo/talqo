@@ -62,6 +62,63 @@
 			}
 		},
 		{
+			"files": ["apps/api/src/modules/**"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": [
+							{
+								"group": ["../**"],
+								"message": "Use @ alias imports instead of relative parent imports"
+							},
+							{
+								"group": [
+									"@/modules/*/*.repository.ts",
+									"@/modules/*/*.schema.ts",
+									"@/modules/*/*.routes.ts",
+									"@/modules/*/*.contract.ts",
+									"@/modules/*/*.seed.ts"
+								],
+								"message": "Cross-module imports target only @/modules/<module>/<module>.service.ts"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"files": ["apps/api/src/modules/**/*.schema.ts"],
+			"rules": {
+				"no-restricted-imports": [
+					"error",
+					{
+						"patterns": [
+							{
+								"group": ["../**"],
+								"message": "Use @ alias imports instead of relative parent imports"
+							},
+							{
+								"group": [
+									"@/modules/*/*.repository.ts",
+									"@/modules/*/*.routes.ts",
+									"@/modules/*/*.contract.ts",
+									"@/modules/*/*.seed.ts"
+								],
+								"message": "Cross-module imports target only @/modules/<module>/<module>.service.ts; schema files may import another module schema for foreign keys only"
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"files": ["apps/api/src/**/*.ts"],
+			"rules": {
+				"import/no-cycle": "error"
+			}
+		},
+		{
 			"files": ["apps/widget/**"],
 			"rules": {
 				"no-restricted-imports": [
