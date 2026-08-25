@@ -1,10 +1,7 @@
 import type { CreateAgentBody } from "@/api/generated/models/agent/createAgentBody.zod.ts"
 
-import { createAgent } from "@/api/generated/agent/agent.ts"
-import { apiErrorStatus } from "@/lib/api-error.ts"
+import { createAgent, getListAgentsQueryKey, type CreateAgentMutationError } from "@/api/generated/agent/agent.ts"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-import { agentsQueryKey } from "./agents-query.ts"
 
 const CONFLICT_STATUS = 409
 
@@ -29,7 +26,7 @@ export async function createAgentWithNameFallback<TAgent extends { name: string 
 			// eslint-disable-next-line no-await-in-loop
 			return await create({ ...input, name })
 		} catch (error) {
-			if (apiErrorStatus(error) !== CONFLICT_STATUS) throw error
+			if ((error as CreateAgentMutationError).status !== CONFLICT_STATUS) throw error
 			lastError = error
 		}
 	}
@@ -41,6 +38,6 @@ export function useCreateAgent() {
 	return useMutation({
 		mutationFn: ({ candidates, ...input }: Omit<CreateAgentBody, "name"> & { candidates: string[] }) =>
 			createAgentWithNameFallback(async (body) => (await createAgent(body)).data.agent, input, candidates),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: agentsQueryKey }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
 	})
 }

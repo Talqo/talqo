@@ -35,9 +35,13 @@ function expandPermissions(granted: Permission[]): Permission[] {
 	return PERMISSIONS.filter((permission) => effective.has(permission))
 }
 
-export function effectivePermissions(adminStatus: boolean, grants: { permission: string }[]): Permission[] {
+type AuthorizationGrant = { agentId?: string | null; permission: string }
+
+export function effectivePermissions(adminStatus: boolean, grants: AuthorizationGrant[]): Permission[] {
 	if (adminStatus) return [...PERMISSIONS]
-	return expandPermissions(grants.map((grant) => grant.permission as Permission))
+	return expandPermissions(
+		grants.filter((grant) => grant.agentId == null).map((grant) => grant.permission as Permission),
+	)
 }
 
 export class AdminAlreadyExistsError extends Error {}
@@ -120,7 +124,7 @@ export async function revokePermission(id: string): Promise<void> {
 
 // Pure and synchronous by design: the authorization decision lives in one small,
 // fully auditable function, separate from where the grants get fetched.
-export function can(user: { isAdmin: boolean }, grants: { permission: string }[], permission: Permission): boolean {
+export function can(user: { isAdmin: boolean }, grants: AuthorizationGrant[], permission: Permission): boolean {
 	return effectivePermissions(user.isAdmin, grants).includes(permission)
 }
 

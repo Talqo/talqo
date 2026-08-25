@@ -22,12 +22,9 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 })
 
 test("admin invites a member and the member logs in", async ({ page }) => {
-	const adminUsername = process.env.E2E_ADMIN_USERNAME ?? ""
-	const adminPassword = process.env.E2E_OPERATOR_PASSWORD ?? ""
-
 	await page.goto("/login")
-	await page.getByLabel("Username").fill(adminUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminPassword)
+	await page.getByLabel("Username").fill("e2e_admin")
+	await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery-staple")
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 

@@ -129,7 +129,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
 - `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
-- Module seeds participate in the centralized reset lifecycle. The API-owned `e2e` profile composes deterministic, production-plausible records from environment-defined identities in an isolated database; browser specs never own record definitions.
+- Module seeds participate in the centralized reset lifecycle. In test mode, the API seed creates fixed, production-plausible records in an isolated database; those fixtures are not user-configurable environment settings.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
@@ -224,7 +224,7 @@ apps/e2e/
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- All E2E records come from the API-owned `e2e` seed profile against an isolated database before each isolation scope. Playwright supplies deterministic identity values through the environment but owns no record definitions.
+- All E2E records come from the API-owned test seed against an isolated database before each isolation scope. Test identities are fixed fixtures rather than environment configuration.
 - Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.

@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
 
-const password = process.env.E2E_OPERATOR_PASSWORD ?? ""
-const OPERATOR = { username: process.env.E2E_GRANTED_USERNAME ?? "", password }
-const VIEWER = { username: process.env.E2E_VIEWER_USERNAME ?? "", password }
-const MEMBER = { username: process.env.E2E_UNGRANTED_USERNAME ?? "", password }
+const TEST_PASSWORD = "correct-horse-battery-staple"
+const OPERATOR = { username: "e2e_granted", password: TEST_PASSWORD }
+const VIEWER = { username: "e2e_viewer", password: TEST_PASSWORD }
+const MEMBER = { username: "e2e_ungranted", password: TEST_PASSWORD }
 const SEEDED_AGENT = "Website Assistant"
 
 async function logIn(page: Page, account: { password: string; username: string }) {

@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/components/widget-preview"
 import { useActiveAgent } from "@/features/agents/agents-query"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
-import { apiErrorStatus } from "@/lib/api-error.ts"
 import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -74,7 +73,7 @@ function WidgetPage() {
 		}
 	}
 
-	if (apiErrorStatus(error) === FORBIDDEN_STATUS) {
+	if (error?.status === FORBIDDEN_STATUS) {
 		return (
 			<div className="mx-auto max-w-5xl space-y-6">
 				<PageHeader title={t("widgetSetup.heading")} description={t("widgetSetup.subheading")} />

@@ -1,17 +1,19 @@
 import {
 	getGetAgentQueryKey,
+	getListAgentsQueryKey,
+	type DeleteAgentMutationError,
+	type RefreshEmbedTokenMutationError,
+	type UpdateAgentMutationError,
 	useDeleteAgent,
+	useGetAgent,
 	useRefreshEmbedToken,
 	useUpdateAgent,
 } from "@/api/generated/agent/agent.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
-import { useAgent } from "@/features/agents/agent-query"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
-import { agentsQueryKey } from "@/features/agents/agents-query"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
-import { useMyPermissions } from "@/features/permissions/permissions-query"
-import { apiErrorStatus } from "@/lib/api-error.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -45,8 +47,9 @@ function AgentConfigPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const { agentId } = Route.useParams()
-	const { data: permissions, isLoading: permissionsLoading } = useMyPermissions()
-	const agentQuery = useAgent(agentId)
+	const permissionsQuery = useGetMyPermissions()
+	const permissions = permissionsQuery.data?.data.permissions
+	const agentQuery = useGetAgent(agentId)
 	const agent = agentQuery.data?.data.agent
 	const { error, isLoading } = agentQuery
 	const queryClient = useQueryClient()
@@ -57,7 +60,7 @@ function AgentConfigPage() {
 	// Generated keys are URL strings, so the list prefix never matches the detail key.
 	function invalidateAgentQueries() {
 		return Promise.all([
-			queryClient.invalidateQueries({ queryKey: agentsQueryKey }),
+			queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
 			queryClient.invalidateQueries({ queryKey: getGetAgentQueryKey(agentId) }),
 		])
 	}
@@ -103,7 +106,7 @@ function AgentConfigPage() {
 			setSaved(true)
 		} catch (caught) {
 			// Failed saves keep edits; only the message changes.
-			const status = apiErrorStatus(caught)
+			const status = (caught as UpdateAgentMutationError).status
 			if (status === CONFLICT_STATUS) {
 				setFormError(t("agents.nameConflict"))
 			} else if (status === FORBIDDEN_STATUS) {
@@ -124,7 +127,9 @@ function AgentConfigPage() {
 			setRefreshOpen(false)
 		} catch (caught) {
 			setRefreshError(
-				apiErrorStatus(caught) === NOT_FOUND_STATUS ? t("agentConfig.wasDeleted") : t("agentConfig.refreshTokenFailed"),
+				(caught as RefreshEmbedTokenMutationError).status === NOT_FOUND_STATUS
+					? t("agentConfig.wasDeleted")
+					: t("agentConfig.refreshTokenFailed"),
 			)
 		}
 	}
@@ -135,16 +140,18 @@ function AgentConfigPage() {
 			await deleteAgent.mutateAsync({ agentId })
 			// The detail query would refetch into a 404 retry storm; drop it and refresh the list.
 			queryClient.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
-			await queryClient.invalidateQueries({ queryKey: agentsQueryKey })
+			await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() })
 			await navigate({ to: "/dashboard/agents" })
 		} catch (caught) {
 			setDeleteError(
-				apiErrorStatus(caught) === NOT_FOUND_STATUS ? t("agentConfig.wasDeleted") : t("agents.deleteFailed"),
+				(caught as DeleteAgentMutationError).status === NOT_FOUND_STATUS
+					? t("agentConfig.wasDeleted")
+					: t("agents.deleteFailed"),
 			)
 		}
 	}
 
-	if (isLoading || permissionsLoading) {
+	if (isLoading || permissionsQuery.isLoading) {
 		return (
 			<div className="mx-auto max-w-3xl">
 				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
@@ -166,7 +173,7 @@ function AgentConfigPage() {
 			<div className="mx-auto max-w-3xl space-y-6">
 				<BackLink t={t} />
 				<p className="text-muted-foreground">
-					{apiErrorStatus(error) === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
+					{error?.status === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
 				</p>
 			</div>
 		)

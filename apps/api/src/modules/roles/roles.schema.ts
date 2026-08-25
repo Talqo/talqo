@@ -48,6 +48,9 @@ export const permissionGrant = pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		// Free text, not a DB enum: each module with mutating routes owns its own permission strings.
 		permission: text("permission").notNull(),
+		// Retained for compatibility with existing databases. New grants are global and
+		// authorization deliberately ignores legacy rows where this is non-null.
+		agentId: text("agent_id"),
 		// Nullable + set null (not cascade): deleting the granting admin's account must not
 		// silently revoke grants they made to other, unrelated users.
 		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),

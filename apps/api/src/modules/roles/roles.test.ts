@@ -58,4 +58,9 @@ describe("effectivePermissions", () => {
 	it("drops unknown grant strings", () => {
 		expect(effectivePermissions(false, [{ permission: "systems:aws" }])).toEqual([])
 	})
+
+	it("ignores retained legacy agent-scoped grants", () => {
+		const scopedGrant = { agentId: "agent-1", permission: "ai_provider:manage" }
+		expect(effectivePermissions(false, [scopedGrant])).toEqual([])
+	})
 })

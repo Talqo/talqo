@@ -1,15 +1,8 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
-// Prefix key covering every agents query (list and single agent) for invalidation.
-export const agentsQueryKey = ["/api/agents"] as const
-
-export function useAgents() {
-	return useListAgents()
-}
-
 export function useActiveAgent() {
-	const { data, error, isLoading } = useAgents()
+	const { data, error, isLoading } = useListAgents()
 	const agentList = data?.data.agents
 	const { agent: selectedId } = useSearch({ strict: false })
 	const navigate = useNavigate()

@@ -1,6 +1,6 @@
 import { useLogout } from "@/api/generated/identity/identity.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
-import { useMyPermissions } from "@/features/permissions/permissions-query"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -99,7 +99,7 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 }
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
-	const { data: permissions } = useMyPermissions()
+	const permissions = useGetMyPermissions().data?.data.permissions
 	// Show only unrestricted entries while permissions load.
 	const items = allowedNavItems(permissions)
 	return (

@@ -18,5 +18,4 @@ ALTER TABLE "blacklist_word" ADD CONSTRAINT "blacklist_word_agent_id_agent_id_fk
 CREATE UNIQUE INDEX "agent_name_unique_idx" ON "agent" USING btree (lower("name"));--> statement-breakpoint
 CREATE UNIQUE INDEX "agent_embed_token_unique_idx" ON "agent" USING btree ("embed_token");--> statement-breakpoint
 CREATE INDEX "blacklist_word_agent_id_idx" ON "blacklist_word" USING btree ("agent_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "blacklist_word_agent_word_unique_idx" ON "blacklist_word" USING btree ("agent_id",lower("word"));--> statement-breakpoint
-ALTER TABLE "permission_grant" DROP COLUMN "agent_id";
+CREATE UNIQUE INDEX "blacklist_word_agent_word_unique_idx" ON "blacklist_word" USING btree ("agent_id",lower("word"));

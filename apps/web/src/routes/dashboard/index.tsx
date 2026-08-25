@@ -1,4 +1,4 @@
-import { useMyPermissions } from "@/features/permissions/permissions-query"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { BarChart3, Bot, MessageSquare, User } from "lucide-react"
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/dashboard/")({
 
 function DashboardIndexPage() {
 	const { t } = useTranslation()
-	const { data: permissions } = useMyPermissions()
+	const permissions = useGetMyPermissions().data?.data.permissions
 	const canReadAgents = permissions?.includes("agents:read") ?? false
 	const visibleCards = cards.filter((card) => !card.requiresRead || canReadAgents)
 

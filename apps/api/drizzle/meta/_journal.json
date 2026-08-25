@@ -19,15 +19,8 @@
 		{
 			"idx": 2,
 			"version": "7",
-			"when": 1787562176330,
-			"tag": "0002_discard_scoped_grants",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1787562200676,
-			"tag": "0003_lush_black_crow",
+			"when": 1787668413537,
+			"tag": "0002_melted_wasp",
 			"breakpoints": true
 		}
 	]

@@ -7,6 +7,14 @@ import * as rolesService from "@/modules/roles/roles.service.ts"
 
 import { sql } from "./client.ts"
 
+const TEST_PASSWORD = "correct-horse-battery-staple"
+const TEST_USERS = {
+	admin: "e2e_admin",
+	granted: "e2e_granted",
+	ungranted: "e2e_ungranted",
+	viewer: "e2e_viewer",
+} as const
+
 export async function seed(): Promise<void> {
 	// Dependents first: module tables must be clear before identity truncates `user`.
 	await agent.reset()
@@ -14,19 +22,11 @@ export async function seed(): Promise<void> {
 	await roles.reset()
 	await identity.reset()
 
-	if (Bun.env.TALQO_SEED_PROFILE === "e2e") {
-		const password = Bun.env.E2E_OPERATOR_PASSWORD
-		const adminUsername = Bun.env.E2E_ADMIN_USERNAME
-		const grantedUsername = Bun.env.E2E_GRANTED_USERNAME
-		const ungrantedUsername = Bun.env.E2E_UNGRANTED_USERNAME
-		const viewerUsername = Bun.env.E2E_VIEWER_USERNAME
-		if (!password || !adminUsername || !grantedUsername || !ungrantedUsername || !viewerUsername) {
-			throw new Error("E2E seed credentials are incomplete")
-		}
-		const admin = await rolesService.bootstrapAdmin({ username: adminUsername, password })
-		const granted = await identityService.createAccount({ username: grantedUsername, password })
-		await identityService.createAccount({ username: ungrantedUsername, password })
-		const viewer = await identityService.createAccount({ username: viewerUsername, password })
+	if (Bun.env.NODE_ENV === "test") {
+		const admin = await rolesService.bootstrapAdmin({ username: TEST_USERS.admin, password: TEST_PASSWORD })
+		const granted = await identityService.createAccount({ username: TEST_USERS.granted, password: TEST_PASSWORD })
+		await identityService.createAccount({ username: TEST_USERS.ungranted, password: TEST_PASSWORD })
+		const viewer = await identityService.createAccount({ username: TEST_USERS.viewer, password: TEST_PASSWORD })
 		await rolesService.grantPermission({
 			grantedBy: admin.id,
 			permission: "ai_provider:manage",

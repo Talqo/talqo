@@ -1,9 +1,177 @@
 {
-	"id": "9f03911e-5886-4ee4-83ca-bd9a97c193d7",
+	"id": "d836e22c-0a0f-4377-9c96-c6a413304470",
 	"prevId": "9783711b-f238-4c0c-a980-a7bb0c76196d",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
+		"public.agent": {
+			"name": "agent",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"system_prompt": {
+					"name": "system_prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"embed_token": {
+					"name": "embed_token",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"agent_name_unique_idx": {
+					"name": "agent_name_unique_idx",
+					"columns": [
+						{
+							"expression": "lower(\"name\")",
+							"asc": true,
+							"isExpression": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"agent_embed_token_unique_idx": {
+					"name": "agent_embed_token_unique_idx",
+					"columns": [
+						{
+							"expression": "embed_token",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.blacklist_word": {
+			"name": "blacklist_word",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"word": {
+					"name": "word",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"blacklist_word_agent_id_idx": {
+					"name": "blacklist_word_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"blacklist_word_agent_word_unique_idx": {
+					"name": "blacklist_word_agent_word_unique_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "lower(\"word\")",
+							"asc": true,
+							"isExpression": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"blacklist_word_agent_id_agent_id_fk": {
+					"name": "blacklist_word_agent_id_agent_id_fk",
+					"tableFrom": "blacklist_word",
+					"tableTo": "agent",
+					"columnsFrom": ["agent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
 		"public.ai_provider_config": {
 			"name": "ai_provider_config",
 			"schema": "",
@@ -120,28 +288,28 @@
 						}
 					],
 					"isUnique": false,
-					"with": {},
+					"concurrently": false,
 					"method": "btree",
-					"concurrently": false
+					"with": {}
 				}
 			},
 			"foreignKeys": {
 				"session_user_id_user_id_fk": {
 					"name": "session_user_id_user_id_fk",
 					"tableFrom": "session",
-					"columnsFrom": ["user_id"],
 					"tableTo": "user",
+					"columnsFrom": ["user_id"],
 					"columnsTo": ["id"],
-					"onUpdate": "no action",
-					"onDelete": "cascade"
+					"onDelete": "cascade",
+					"onUpdate": "no action"
 				}
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
 				"session_token_hash_unique": {
 					"name": "session_token_hash_unique",
-					"columns": ["token_hash"],
-					"nullsNotDistinct": false
+					"nullsNotDistinct": false,
+					"columns": ["token_hash"]
 				}
 			},
 			"policies": {},
@@ -191,8 +359,8 @@
 			"uniqueConstraints": {
 				"user_username_unique": {
 					"name": "user_username_unique",
-					"columns": ["username"],
-					"nullsNotDistinct": false
+					"nullsNotDistinct": false,
+					"columns": ["username"]
 				}
 			},
 			"policies": {},
@@ -253,28 +421,28 @@
 						}
 					],
 					"isUnique": false,
-					"with": {},
+					"concurrently": false,
 					"method": "btree",
-					"concurrently": false
+					"with": {}
 				}
 			},
 			"foreignKeys": {
 				"invitation_invited_by_user_id_fk": {
 					"name": "invitation_invited_by_user_id_fk",
 					"tableFrom": "invitation",
-					"columnsFrom": ["invited_by"],
 					"tableTo": "user",
+					"columnsFrom": ["invited_by"],
 					"columnsTo": ["id"],
-					"onUpdate": "no action",
-					"onDelete": "cascade"
+					"onDelete": "cascade",
+					"onUpdate": "no action"
 				}
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {
 				"invitation_token_hash_unique": {
 					"name": "invitation_token_hash_unique",
-					"columns": ["token_hash"],
-					"nullsNotDistinct": false
+					"nullsNotDistinct": false,
+					"columns": ["token_hash"]
 				}
 			},
 			"policies": {},
@@ -335,29 +503,29 @@
 						}
 					],
 					"isUnique": false,
-					"with": {},
+					"concurrently": false,
 					"method": "btree",
-					"concurrently": false
+					"with": {}
 				}
 			},
 			"foreignKeys": {
 				"permission_grant_user_id_user_id_fk": {
 					"name": "permission_grant_user_id_user_id_fk",
 					"tableFrom": "permission_grant",
-					"columnsFrom": ["user_id"],
 					"tableTo": "user",
+					"columnsFrom": ["user_id"],
 					"columnsTo": ["id"],
-					"onUpdate": "no action",
-					"onDelete": "cascade"
+					"onDelete": "cascade",
+					"onUpdate": "no action"
 				},
 				"permission_grant_granted_by_user_id_fk": {
 					"name": "permission_grant_granted_by_user_id_fk",
 					"tableFrom": "permission_grant",
-					"columnsFrom": ["granted_by"],
 					"tableTo": "user",
+					"columnsFrom": ["granted_by"],
 					"columnsTo": ["id"],
-					"onUpdate": "no action",
-					"onDelete": "set null"
+					"onDelete": "set null",
+					"onUpdate": "no action"
 				}
 			},
 			"compositePrimaryKeys": {},
@@ -409,10 +577,10 @@
 						}
 					],
 					"isUnique": true,
-					"with": {},
-					"method": "btree",
 					"where": "\"user_role\".\"role\" = 'admin'",
-					"concurrently": false
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				},
 				"user_role_user_id_idx": {
 					"name": "user_role_user_id_idx",
@@ -425,20 +593,20 @@
 						}
 					],
 					"isUnique": false,
-					"with": {},
+					"concurrently": false,
 					"method": "btree",
-					"concurrently": false
+					"with": {}
 				}
 			},
 			"foreignKeys": {
 				"user_role_user_id_user_id_fk": {
 					"name": "user_role_user_id_user_id_fk",
 					"tableFrom": "user_role",
-					"columnsFrom": ["user_id"],
 					"tableTo": "user",
+					"columnsFrom": ["user_id"],
 					"columnsTo": ["id"],
-					"onUpdate": "no action",
-					"onDelete": "cascade"
+					"onDelete": "cascade",
+					"onUpdate": "no action"
 				}
 			},
 			"compositePrimaryKeys": {},
@@ -456,10 +624,10 @@
 		}
 	},
 	"schemas": {},
-	"views": {},
 	"sequences": {},
 	"roles": {},
 	"policies": {},
+	"views": {},
 	"_meta": {
 		"columns": {},
 		"schemas": {},

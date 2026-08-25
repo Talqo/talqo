@@ -49,7 +49,7 @@ Each file is included because this implementation needs its capability: HTTP val
 
 Routes validate and translate HTTP concerns. The service enforces normalization and aggregate invariants and returns domain values rather than Drizzle rows. The repository performs only agent-owned persistence. MCP, knowledge, conversation, usage, and AI-provider modules are neither created nor imported.
 
-The roles module receives the minimum cross-cutting changes required by the chosen authorization model: global agent permissions, effective-permission discovery, and removal of obsolete agent-scoping fields. This is an intentional supporting change, not a second business-capability implementation.
+The roles module receives the minimum cross-cutting changes required by the chosen authorization model: global agent permissions, effective-permission discovery, and removal of agent scoping from service and HTTP contracts. The nullable legacy database column remains for migration compatibility, and authorization ignores scoped rows. This is an intentional supporting change, not a second business-capability implementation.
 
 ## Data Model And Cardinality
 
@@ -83,7 +83,7 @@ An aggregate may contain at most 100 blacklist terms. Create and update replace 
 
 The conceptual `USER 1 -> 0..* AGENT` relationship is removed. A deployment is the tenant, and its agents are shared resources governed by RBAC rather than user ownership.
 
-The conceptual `AGENT 1 -> 0..* PERMISSION_GRANT` relationship is also removed. `permission_grant.agent_id` and the corresponding service and HTTP fields are removed because every permission grant is global. A custom data migration first deletes legacy scoped grants so removing the column cannot silently broaden their authority. The following generated schema migration removes the unused column and creates the agent-owned tables and indexes.
+The conceptual `AGENT 1 -> 0..* PERMISSION_GRANT` relationship is also removed. New permission grants are global, and `agentId` is absent from service and HTTP inputs. The nullable legacy `permission_grant.agent_id` column is retained so this feature needs only one generated migration and does not destroy existing data. Authorization ignores rows where that column is non-null, preventing old scoped grants from silently becoming global.
 
 `AGENT_IP_RATE_LIMIT` remains a conceptual future capability but is not created in this effort. Its storage and enforcement contract must be designed with the future conversation/public API boundary rather than inferred now.
 
@@ -222,16 +222,16 @@ Route-only UI remains with its route. Reusable agent-selection and blacklist-edi
 
 ## Seeds And Migrations
 
-The API-owned `e2e` seed profile creates deterministic environment-named records in an isolated database: one admin, one operator with agent and AI-provider management, one read-only agent viewer, one ungranted member, and one production-plausible agent "Website Assistant". Browser tests read the same environment-defined credentials rather than owning record definitions. Reset ordering respects the blacklist-to-agent foreign key.
+When `NODE_ENV=test`, the API-owned seed creates fixed records in the isolated test database: one admin, one operator with agent and AI-provider management, one read-only agent viewer, one ungranted member, and one production-plausible agent "Website Assistant". These identities are test fixtures, not user-configurable environment settings. Reset ordering respects the blacklist-to-agent foreign key.
 
-Drizzle discovers `agent.schema.ts`. After the custom scoped-grant cleanup migration, it generates the centralized agent schema migration. Generated SQL is inspected for:
+Drizzle discovers `agent.schema.ts` and generates one centralized agent schema migration. Generated SQL is inspected for:
 
 - Both new tables.
 - Case-insensitive unique indexes.
 - Blacklist cascade behavior.
-- Removal of `permission_grant.agent_id`.
+- No destructive changes to `permission_grant`.
 
-Generated migration and metadata files are never hand-edited; the cleanup is intentionally created through Drizzle's custom-migration workflow.
+Generated migration and metadata files are never hand-edited.
 
 ## Testing Strategy
 
