@@ -1,4 +1,4 @@
-import { getGetSessionQueryKey, useLogin } from "@/api/generated/identity/identity.ts"
+import { useLogin } from "@/api/generated/identity/identity.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
 import { useQueryClient } from "@tanstack/react-query"
@@ -21,7 +21,7 @@ function LoginPage() {
 		setError(null)
 		try {
 			await login.mutateAsync({ data: input })
-			queryClient.removeQueries({ queryKey: getGetSessionQueryKey() })
+			queryClient.clear()
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
 			// Orval fetch errors expose the parsed error body as `info.error`.

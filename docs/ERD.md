@@ -31,8 +31,6 @@ erDiagram
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
-    USER ||--o{ AGENT : configures
-    AGENT ||--o{ PERMISSION_GRANT : scopes
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
     AGENT ||--o{ FILE_EMBEDDING : embeds

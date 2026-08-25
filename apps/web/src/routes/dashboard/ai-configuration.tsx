@@ -8,6 +8,12 @@ import type {
 	RoleConfigurationInput,
 } from "@/features/ai-configuration/types.ts"
 
+import {
+	type SaveAiProviderConfigurationMutationError,
+	useGetAiProviderConfiguration,
+	useListAiProviders,
+	useSaveAiProviderConfiguration,
+} from "@/api/generated/ai-providers/ai-providers.ts"
 import { getAccess } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import {
@@ -15,11 +21,6 @@ import {
 	buildSaveInput,
 	configurationToFormValues,
 } from "@/features/ai-configuration/ai-configuration-form"
-import {
-	useAiProviderConfiguration,
-	useAiProviders,
-	useSaveAiProviderConfiguration,
-} from "@/features/ai-configuration/ai-configuration-query"
 import { storedCredentialsMatch } from "@/features/ai-configuration/discovery-readiness.ts"
 import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplete"
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
@@ -51,11 +52,6 @@ export const Route = createFileRoute("/dashboard/ai-configuration")({
 })
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
-
-function failureMessage(error: unknown): string | null {
-	const failure = error as { info?: { error?: unknown } } | null
-	return typeof failure?.info?.error === "string" && failure.info.error ? failure.info.error : null
-}
 
 function providerLabel(providerId: AiProviderId, t: (key: string) => string): string {
 	switch (providerId) {
@@ -411,8 +407,8 @@ function RoleFields(props: {
 
 function AiConfigurationPage() {
 	const { t } = useTranslation()
-	const providersQuery = useAiProviders()
-	const configurationQuery = useAiProviderConfiguration()
+	const providersQuery = useListAiProviders()
+	const configurationQuery = useGetAiProviderConfiguration()
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const drafts = useRef(new Map<string, RoleValue>()).current
@@ -450,6 +446,7 @@ function AiConfigurationPage() {
 	async function onValid(values: AiConfigurationFormValues) {
 		setSaved(false)
 		await save.mutateAsync({ data: buildSaveInput(values) })
+		await configurationQuery.refetch()
 		setSaved(true)
 	}
 
@@ -629,7 +626,7 @@ function AiConfigurationPage() {
 				)}
 				{save.isError && (
 					<p role="alert" className="text-destructive text-sm">
-						{failureMessage(save.error) ?? t("aiConfiguration.saveFailed")}
+						{(save.error as SaveAiProviderConfigurationMutationError).info?.error ?? t("aiConfiguration.saveFailed")}
 					</p>
 				)}
 				<div className="flex items-center gap-3">

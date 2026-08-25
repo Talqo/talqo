@@ -1,21 +1,17 @@
 import { expect, test } from "@playwright/test"
 
-function operatorPassword(): string {
-	const value = process.env.E2E_OPERATOR_PASSWORD
-	if (!value) throw new Error("E2E_OPERATOR_PASSWORD environment variable is required")
-	return value
-}
+const TEST_PASSWORD = "correct-horse-battery-staple"
 
 async function login(page: import("@playwright/test").Page, username: string) {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(username)
-	await page.getByLabel("Password", { exact: true }).fill(operatorPassword())
+	await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD)
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 }
 
 test("granted operator configures text and embedding models", async ({ page }) => {
-	await login(page, process.env.E2E_GRANTED_USERNAME ?? "")
+	await login(page, "e2e_granted")
 	await page.getByRole("link", { name: "AI configuration" }).click()
 
 	const cards = page.locator("[data-slot=card]")
@@ -72,7 +68,7 @@ test("granted operator configures text and embedding models", async ({ page }) =
 })
 
 test("ungranted operator cannot discover or open AI configuration", async ({ page }) => {
-	await login(page, process.env.E2E_UNGRANTED_USERNAME ?? "")
+	await login(page, "e2e_ungranted")
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/ai-configuration")

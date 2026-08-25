@@ -11,7 +11,6 @@
 		"email": "邮箱",
 		"emailInvalid": "请输入有效的邮箱地址。",
 		"heading": "账户",
-		"loading": "正在加载账户…",
 		"name": "姓名",
 		"nameRequired": "姓名为必填项。",
 		"newPassword": "新密码",
@@ -23,36 +22,63 @@
 	},
 	"agentConfig": {
 		"backToAgents": "返回智能体列表",
-		"cardDescription": "更改会保存到模拟存储，并在整个仪表盘中生效。",
+		"cancel": "取消",
+		"cardDescription": "更改会保存到服务器并立即生效。",
 		"cardTitle": "智能体配置",
+		"confirmHelp": "请输入智能体的确切名称以确认：{{name}}",
+		"confirmLabel": "输入“{{name}}”以启用删除",
+		"dangerDescription": "删除智能体是永久性的，无法撤销。",
+		"dangerZone": "危险操作区",
+		"deleteAgent": "删除智能体",
+		"deleteConfirm": "永久删除",
+		"deletePrompt": "这将永久删除 {{name}} 及其屏蔽词列表。此操作无法撤销。",
+		"deleteTitle": "删除智能体？",
+		"deleting": "正在删除…",
+		"embedToken": "嵌入令牌",
+		"embedTokenDescription": "嵌入代码片段携带的公开标识符。它会出现在您网站的标记中，并非机密。",
 		"heading": "配置 {{name}}",
 		"loading": "正在加载智能体…",
-		"notFound": "未找到智能体，可能已被删除。",
+		"notFound": "未找到该智能体。它可能已被删除。",
+		"refreshing": "正在刷新…",
+		"refreshToken": "刷新令牌",
+		"refreshTokenFailed": "无法刷新嵌入令牌。请重试。",
+		"refreshTokenTitle": "刷新嵌入令牌？",
+		"refreshTokenWarning": "当前令牌将立即停止工作。使用它的每个嵌入代码片段都必须更新为新令牌，小组件才能恢复运行。",
 		"save": "保存更改",
 		"saved": "刚刚已保存。",
-		"subheading": "更新智能体的名称、行为、屏蔽词和状态。"
+		"saving": "正在保存…",
+		"subheading": "更新智能体的名称、行为和屏蔽词。",
+		"wasDeleted": "该智能体已在别处被删除。请返回列表查看最新状态。"
 	},
 	"agentFields": {
-		"blacklistHelp": "用逗号分隔词语。",
-		"blacklistPlaceholder": "垃圾信息、辱骂、诈骗",
 		"name": "名称",
 		"namePlaceholder": "客服智能体",
 		"nameRequired": "名称为必填项。",
-		"statusActive": "已启用",
-		"statusPaused": "已暂停",
 		"systemPrompt": "系统提示词",
-		"systemPromptPlaceholder": "你是一位乐于助人的客户支持助手……",
+		"systemPromptPlaceholder": "你是一名乐于助人的客服助手…",
 		"systemPromptRequired": "系统提示词为必填项。",
 		"wordBlacklist": "屏蔽词"
 	},
 	"agents": {
-		"configure": "配置",
 		"create": "创建智能体",
-		"createDescription": "定义智能体的名称、行为和屏蔽词。",
-		"empty": "还没有智能体。创建您的第一个智能体开始使用。",
+		"createFailed": "无法创建智能体。请重试。",
+		"creating": "正在创建…",
+		"defaultName": "新智能体",
+		"defaultSystemPrompt": "你是一名乐于助人的助手。",
+		"deleteFailed": "无法删除智能体。请重试。",
+		"empty": "还没有智能体。创建你的第一个智能体开始使用。",
 		"heading": "智能体",
+		"loadFailed": "无法加载智能体。",
 		"loading": "正在加载智能体…",
-		"subheading": "管理您的智能体及其行为。"
+		"manageForbidden": "你的账户没有管理智能体的权限。",
+		"metricConversations": "对话",
+		"metricFiles": "文件",
+		"metricMcpTools": "MCP 工具",
+		"nameConflict": "已存在同名智能体。请选择一个唯一名称。",
+		"retry": "重试",
+		"saveFailed": "无法保存智能体。请重试。",
+		"subheading": "管理你的智能体及其行为。",
+		"updated": "更新于 {{date}}"
 	},
 	"aiConfiguration": {
 		"auth": {
@@ -169,6 +195,19 @@
 			"submit": "创建管理员账户"
 		}
 	},
+	"blacklist": {
+		"added": "已将 {{word}} 加入屏蔽词。",
+		"addTerm": "添加",
+		"count": "已用 {{used}} / {{limit}} 个词条",
+		"duplicateError": "“{{word}}”已在屏蔽词列表中。",
+		"emptyError": "请先输入词语或短语。",
+		"help": "屏蔽这些确切的词语（不区分大小写）。按字面匹配词语，而不是相关含义。",
+		"limitError": "屏蔽词最多允许 {{limit}} 个词条。",
+		"removed": "已将 {{word}} 从屏蔽词中移除。",
+		"removeTerm": "移除 {{word}}",
+		"termPlaceholder": "要屏蔽的词语或短语",
+		"termsLabel": "屏蔽词条"
+	},
 	"common": {
 		"appName": "Talqo"
 	},
@@ -212,6 +251,11 @@
 		"invitations": "邀请",
 		"widget": "聊天组件"
 	},
+	"permissions": {
+		"accessDeniedBody": "如需智能体访问权限，请让管理员为你的账户授权。",
+		"accessDeniedDescription": "你的账户没有访问智能体的权限。",
+		"accessDeniedTitle": "访问受限"
+	},
 	"widgetSetup": {
 		"accentColor": "强调色",
 		"accentHex": "强调色十六进制值",
@@ -233,7 +277,7 @@
 		"position": "位置",
 		"positionBottomLeft": "左下",
 		"positionBottomRight": "右下",
-		"previewSiteLabel": "your-site.com",
+		"previewSiteLabel": "your-site.com.cn",
 		"previewUnavailable": "此部署未配置实时预览。",
 		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
 		"selectAgent": "选择智能体",
