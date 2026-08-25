@@ -1,16 +1,10 @@
-import {
-	getListAgentsQueryKey,
-	type CreateAgentMutationError,
-	useCreateAgent,
-	useListAgents,
-} from "@/api/generated/agent/agent.ts"
+import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { FileText, MessageSquare, Plus, Wrench } from "lucide-react"
 import { useState } from "react"
@@ -39,18 +33,13 @@ const FORBIDDEN_STATUS = 403
 
 function AgentsPage() {
 	const { t } = useTranslation()
-	const queryClient = useQueryClient()
 	const { language } = useLanguage()
 	const navigate = useNavigate()
 	const permissionsQuery = useGetMyPermissions()
 	const permissions = permissionsQuery.data?.data.permissions
 	const { data, error, isLoading, refetch, isFetching } = useListAgents()
 	const agents = data?.data.agents
-	const createAgent = useCreateAgent({
-		mutation: {
-			onSuccess: () => queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
-		},
-	})
+	const createAgent = useCreateAgent()
 	const [createError, setCreateError] = useState<string | null>(null)
 
 	const canRead = permissions?.includes("agents:read") ?? false
@@ -67,6 +56,7 @@ function AgentsPage() {
 				},
 			})
 			const agent = result.data.agent
+			await refetch()
 			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id } })
 		} catch (caught) {
 			setCreateError(

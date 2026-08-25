@@ -9,7 +9,6 @@ import type {
 } from "@/features/ai-configuration/types.ts"
 
 import {
-	getGetAiProviderConfigurationQueryKey,
 	type SaveAiProviderConfigurationMutationError,
 	useGetAiProviderConfiguration,
 	useListAiProviders,
@@ -33,7 +32,6 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
-import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { LockIcon, PencilLineIcon } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -409,14 +407,9 @@ function RoleFields(props: {
 
 function AiConfigurationPage() {
 	const { t } = useTranslation()
-	const queryClient = useQueryClient()
 	const providersQuery = useListAiProviders()
 	const configurationQuery = useGetAiProviderConfiguration()
-	const save = useSaveAiProviderConfiguration({
-		mutation: {
-			onSuccess: (result) => queryClient.setQueryData(getGetAiProviderConfigurationQueryKey(), result),
-		},
-	})
+	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const drafts = useRef(new Map<string, RoleValue>()).current
 	const {
@@ -453,6 +446,7 @@ function AiConfigurationPage() {
 	async function onValid(values: AiConfigurationFormValues) {
 		setSaved(false)
 		await save.mutateAsync({ data: buildSaveInput(values) })
+		await configurationQuery.refetch()
 		setSaved(true)
 	}
 

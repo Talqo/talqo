@@ -1,6 +1,4 @@
 import {
-	getGetAgentQueryKey,
-	getListAgentsQueryKey,
 	type DeleteAgentMutationError,
 	type RefreshEmbedTokenMutationError,
 	type UpdateAgentMutationError,
@@ -28,7 +26,6 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Textarea } from "@talqo/ui/components/textarea"
-import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -52,18 +49,9 @@ function AgentConfigPage() {
 	const agentQuery = useGetAgent(agentId)
 	const agent = agentQuery.data?.data.agent
 	const { error, isLoading } = agentQuery
-	const queryClient = useQueryClient()
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
 	const refreshEmbedToken = useRefreshEmbedToken()
-
-	// Generated keys are URL strings, so the list prefix never matches the detail key.
-	function invalidateAgentQueries() {
-		return Promise.all([
-			queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
-			queryClient.invalidateQueries({ queryKey: getGetAgentQueryKey(agentId) }),
-		])
-	}
 
 	const [terms, setTerms] = useState<string[]>([])
 	const [saved, setSaved] = useState(false)
@@ -102,7 +90,7 @@ function AgentConfigPage() {
 				agentId,
 				data: { name: values.name, systemPrompt: values.systemPrompt, wordBlacklist: terms },
 			})
-			await invalidateAgentQueries()
+			await agentQuery.refetch()
 			setSaved(true)
 		} catch (caught) {
 			const status = (caught as UpdateAgentMutationError).status
@@ -122,7 +110,7 @@ function AgentConfigPage() {
 		setRefreshError(null)
 		try {
 			await refreshEmbedToken.mutateAsync({ agentId })
-			await invalidateAgentQueries()
+			await agentQuery.refetch()
 			setRefreshOpen(false)
 		} catch (caught) {
 			setRefreshError(
@@ -137,9 +125,6 @@ function AgentConfigPage() {
 		setDeleteError(null)
 		try {
 			await deleteAgent.mutateAsync({ agentId })
-			// The detail query would refetch into a 404 retry storm; drop it and refresh the list.
-			queryClient.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
-			await queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() })
 			await navigate({ to: "/dashboard/agents" })
 		} catch (caught) {
 			setDeleteError(
