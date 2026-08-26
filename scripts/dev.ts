@@ -1,10 +1,9 @@
 import { $ } from "bun"
 
+const DEV_APP_SECRET_BYTES = 32
+const DEV_APP_SECRET = Buffer.alloc(DEV_APP_SECRET_BYTES, 1).toString("base64url")
 const root = (await $`git rev-parse --show-toplevel`.quiet().text()).trim()
-const appSecret = Bun.env.APP_SECRET
-if (!appSecret) {
-	throw new Error("APP_SECRET is required. Generate one with: openssl rand -base64 32 | tr '+/' '-_' | tr -d '='")
-}
+const appSecret = Bun.env.APP_SECRET ?? DEV_APP_SECRET
 const reservations = Array.from({ length: 3 }, () =>
 	Bun.serve({ fetch: () => new Response(), hostname: "0.0.0.0", port: 0 }),
 )
