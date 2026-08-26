@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { configFromMessage, PREVIEW_CHANNEL_VERSION, readyMessage } from "./preview-channel"
+import { configFromMessage, PREVIEW_CHANNEL_VERSION, readyMessage, trustedParentOrigin } from "./preview-channel"
 
 const appearance = { primary: "#1a7f4b", position: "bottom-left" }
 
@@ -11,6 +11,25 @@ function message(overrides: Record<string, unknown> = {}) {
 describe("readyMessage", () => {
 	test("identifies itself so the dashboard can filter other senders", () => {
 		expect(readyMessage()).toEqual({ source: "talqo-preview", version: PREVIEW_CHANNEL_VERSION, type: "ready" })
+	})
+})
+
+describe("trustedParentOrigin", () => {
+	test("accepts the origin the dashboard sends", () => {
+		expect(trustedParentOrigin("https://dashboard.example.com")).toBe("https://dashboard.example.com")
+		expect(trustedParentOrigin("http://localhost:5173")).toBe("http://localhost:5173")
+	})
+
+	// A wildcard would post the handshake to whatever framed the preview.
+	test("rejects a wildcard, a path, and anything that is not a URL", () => {
+		expect(trustedParentOrigin("*")).toBeUndefined()
+		expect(trustedParentOrigin("https://dashboard.example.com/preview")).toBeUndefined()
+		expect(trustedParentOrigin("dashboard.example.com")).toBeUndefined()
+	})
+
+	test("treats an absent parameter as no parent", () => {
+		expect(trustedParentOrigin(null)).toBeUndefined()
+		expect(trustedParentOrigin("")).toBeUndefined()
 	})
 })
 

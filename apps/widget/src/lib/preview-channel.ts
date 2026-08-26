@@ -19,6 +19,21 @@ export function readyMessage(): PreviewReadyMessage {
 }
 
 /**
+ * The preview names its parent in its own URL, so a crafted link could pass `"*"` and
+ * turn the ready handshake into a broadcast. Only a concrete origin is honoured.
+ */
+export function trustedParentOrigin(value: string | null): string | undefined {
+	if (!value) {
+		return undefined
+	}
+	try {
+		return new URL(value).origin === value ? value : undefined
+	} catch {
+		return undefined
+	}
+}
+
+/**
  * Returns the appearance carried by a config message, or undefined for anything
  * else on the window -- another embed's chatter, or a preview page cached from an
  * older deploy. Ignoring a version mismatch degrades to the URL-param initial paint.

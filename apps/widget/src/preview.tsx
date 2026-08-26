@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { EmbeddedWidget } from "./embedded-widget"
-import { configFromMessage, readyMessage } from "./lib/preview-channel"
+import { configFromMessage, readyMessage, trustedParentOrigin } from "./lib/preview-channel"
 
 /** Initial paint only; every later edit arrives over the preview channel. */
 function appearanceFromSearch(params: URLSearchParams): WidgetAppearanceInput {
@@ -65,7 +65,7 @@ if (!(rootElement instanceof HTMLElement)) {
 createRoot(rootElement).render(
 	<PreviewWidget
 		initialAppearance={appearanceFromSearch(params)}
-		parentOrigin={params.get("parentOrigin") ?? undefined}
+		parentOrigin={trustedParentOrigin(params.get("parentOrigin"))}
 		title={params.get("title") ?? undefined}
 	/>,
 )
