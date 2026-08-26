@@ -83,6 +83,8 @@ export const updateWidgetRequestSchema = z
 	.object({
 		agentId: z.string().min(1).optional(),
 		name: nameSchema.optional(),
+		// Whole-object: the pair refinements have nothing to compare a lone color against,
+		// so a sparse appearance could not be checked without first reading the row.
 		appearance: appearanceInputSchema.optional(),
 	})
 	.refine((patch) => Object.keys(patch).length > 0, { message: "Provide at least one field to update" })
