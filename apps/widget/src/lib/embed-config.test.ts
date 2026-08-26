@@ -112,6 +112,7 @@ describe("parseWidgetConfig", () => {
 	test("yields no overrides when the appearance is missing or not an object", () => {
 		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION }).appearance).toEqual({})
 		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: "green" }).appearance).toEqual({})
+		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: [] }).appearance).toEqual({})
 	})
 
 	test("yields no overrides for a non-object payload", () => {

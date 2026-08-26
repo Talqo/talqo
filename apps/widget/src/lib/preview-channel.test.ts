@@ -36,6 +36,7 @@ describe("configFromMessage", () => {
 		expect(configFromMessage(message({ appearance: undefined }))).toBeUndefined()
 		expect(configFromMessage(message({ appearance: null }))).toBeUndefined()
 		expect(configFromMessage(message({ appearance: "green" }))).toBeUndefined()
+		expect(configFromMessage(message({ appearance: [] }))).toBeUndefined()
 	})
 
 	test("ignores non-object payloads", () => {

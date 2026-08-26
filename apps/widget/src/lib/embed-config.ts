@@ -76,7 +76,12 @@ export function parseWidgetConfig(payload: unknown): { agentId?: string; appeara
 		return { appearance: {} }
 	}
 	const body = payload as { agentId?: unknown; appearance?: unknown; version?: unknown }
-	if (body.version !== WIDGET_CONFIG_VERSION || typeof body.appearance !== "object" || body.appearance === null) {
+	if (
+		body.version !== WIDGET_CONFIG_VERSION ||
+		typeof body.appearance !== "object" ||
+		body.appearance === null ||
+		Array.isArray(body.appearance)
+	) {
 		return { appearance: {} }
 	}
 	return {

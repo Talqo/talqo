@@ -33,7 +33,8 @@ export function configFromMessage(data: unknown): WidgetAppearanceInput | undefi
 		message.version !== PREVIEW_CHANNEL_VERSION ||
 		message.type !== "config" ||
 		typeof message.appearance !== "object" ||
-		message.appearance === null
+		message.appearance === null ||
+		Array.isArray(message.appearance)
 	) {
 		return undefined
 	}
