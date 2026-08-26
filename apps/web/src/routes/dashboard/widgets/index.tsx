@@ -43,6 +43,8 @@ function WidgetsPage() {
 	const [agentId, setAgentId] = useState("")
 
 	const agentName = (id: string) => agents?.find((agent) => agent.id === id)?.name ?? t("widgetSetup.unknownAgent")
+	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
+	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
 
 	async function onCreate() {
 		if (!name.trim() || !agentId) {
@@ -87,14 +89,14 @@ function WidgetsPage() {
 								</div>
 								<div className="space-y-2">
 									<Label htmlFor="widget-agent">{t("widgetSetup.agentLabel")}</Label>
-									<Select value={agentId} onValueChange={(value) => setAgentId(value ?? "")}>
+									<Select items={agentOptions} value={agentId} onValueChange={(value) => setAgentId(value ?? "")}>
 										<SelectTrigger id="widget-agent" className="w-full">
 											<SelectValue placeholder={t("widgetSetup.selectAgent")} />
 										</SelectTrigger>
 										<SelectContent>
-											{agents?.map((agent) => (
-												<SelectItem key={agent.id} value={agent.id}>
-													{agent.name}
+											{agentOptions.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
 												</SelectItem>
 											))}
 										</SelectContent>

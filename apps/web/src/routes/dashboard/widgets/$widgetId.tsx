@@ -12,6 +12,7 @@ import { apiOriginOverride, buildEmbedSnippet, widgetScriptUrl } from "@/feature
 import {
 	toAppearance,
 	toFormValues,
+	WIDGET_FORM_DEFAULTS,
 	widgetFormSchema,
 	type WidgetFormValues,
 } from "@/features/widgets/widget-appearance-form"
@@ -73,6 +74,9 @@ function WidgetDetailPage() {
 
 	const { register, handleSubmit, reset, control, watch, formState } = useForm<WidgetFormValues>({
 		resolver: zodResolver(widgetFormSchema),
+		// `values` is applied in an effect, one render after the fields mount, so without
+		// defaults the selects would mount uncontrolled and stay blank once it lands.
+		defaultValues: { name: "", agentId: "", ...WIDGET_FORM_DEFAULTS },
 		// Server state flows in through `values`, and keepDirtyValues protects fields the
 		// operator has already edited: a background refetch must never discard their typing.
 		values: widget ? toFormValues(widget) : undefined,
@@ -86,6 +90,12 @@ function WidgetDetailPage() {
 	// The preview follows the form, not the server, so it updates before a save.
 	const values = watch()
 	const appearance = toAppearance(values)
+
+	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
+	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
+	const positionOptions = WIDGET_POSITIONS.map((value) => ({ value, label: positionLabel(value, t) }))
+	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: themeLabel(value, t) }))
+	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
 	const scriptUrl = widgetScriptUrl()
 	const snippet =
@@ -199,14 +209,18 @@ function WidgetDetailPage() {
 									control={control}
 									name="agentId"
 									render={({ field }) => (
-										<Select value={field.value} onValueChange={(value) => field.onChange(value ?? "")}>
+										<Select
+											items={agentOptions}
+											value={field.value}
+											onValueChange={(value) => field.onChange(value ?? "")}
+										>
 											<SelectTrigger id="widget-agent" className="w-full">
 												<SelectValue placeholder={t("widgetSetup.selectAgent")} />
 											</SelectTrigger>
 											<SelectContent>
-												{agents?.map((agent) => (
-													<SelectItem key={agent.id} value={agent.id}>
-														{agent.name}
+												{agentOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -277,6 +291,7 @@ function WidgetDetailPage() {
 									name="position"
 									render={({ field }) => (
 										<Select
+											items={positionOptions}
 											value={field.value}
 											onValueChange={(value) => isWidgetPosition(value) && field.onChange(value)}
 										>
@@ -284,9 +299,9 @@ function WidgetDetailPage() {
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												{WIDGET_POSITIONS.map((option) => (
-													<SelectItem key={option} value={option}>
-														{positionLabel(option, t)}
+												{positionOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -302,6 +317,7 @@ function WidgetDetailPage() {
 									name="theme"
 									render={({ field }) => (
 										<Select
+											items={themeOptions}
 											value={field.value}
 											onValueChange={(value) => isWidgetTheme(value) && field.onChange(value)}
 										>
@@ -309,9 +325,9 @@ function WidgetDetailPage() {
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												{WIDGET_THEMES.map((option) => (
-													<SelectItem key={option} value={option}>
-														{themeLabel(option, t)}
+												{themeOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -338,6 +354,7 @@ function WidgetDetailPage() {
 									name="language"
 									render={({ field }) => (
 										<Select
+											items={languageOptions}
 											value={field.value}
 											onValueChange={(value) => isSupportedLanguage(value) && field.onChange(value)}
 										>
@@ -345,9 +362,9 @@ function WidgetDetailPage() {
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												{Object.entries(supportedLanguages).map(([value, label]) => (
-													<SelectItem key={value} value={value}>
-														{label}
+												{languageOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
 													</SelectItem>
 												))}
 											</SelectContent>

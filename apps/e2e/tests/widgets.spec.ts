@@ -52,7 +52,9 @@ test("operator moves the widget to the other corner", async ({ page }) => {
 		.getByRole("button", { name: "Customize" })
 		.click()
 
-	await page.getByLabel("Position").click()
+	const positionSelect = page.getByLabel("Position")
+	await expect(positionSelect).toContainText("Bottom right")
+	await positionSelect.click()
 	await page.getByRole("option", { name: "Bottom left" }).click()
 
 	await expect(page.frameLocator("iframe").locator(".talqo-widget")).toHaveClass(/left-4/)
@@ -70,8 +72,12 @@ test("operator reassigns the widget to a different agent", async ({ page }) => {
 		.getByRole("button", { name: "Customize" })
 		.click()
 
-	await page.getByLabel("Agent").click()
+	// The closed trigger has to read the agent's name; Base UI would otherwise show its id.
+	const agentSelect = page.getByLabel("Agent")
+	await expect(agentSelect).toContainText("Website Assistant")
+	await agentSelect.click()
 	await page.getByRole("option", { name: "Sales assistant" }).click()
+	await expect(agentSelect).toContainText("Sales assistant")
 	await page.getByRole("button", { name: "Save changes" }).click()
 	await expect(page.getByText("Saved just now.")).toBeVisible()
 
