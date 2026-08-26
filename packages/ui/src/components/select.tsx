@@ -41,6 +41,9 @@ function SelectTrigger({
 	)
 }
 
+// Base UI defaults `alignItemWithTrigger` to true, which overlaps the popup on the
+// trigger so it opens upwards or downwards depending on which item is selected. Every
+// popup anchors below the trigger instead.
 function SelectContent({
 	className,
 	children,
@@ -48,7 +51,7 @@ function SelectContent({
 	sideOffset = 4,
 	align = "center",
 	alignOffset = 0,
-	alignItemWithTrigger = true,
+	alignItemWithTrigger = false,
 	...props
 }: SelectPrimitive.Popup.Props &
 	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger">) {
