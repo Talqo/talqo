@@ -38,7 +38,7 @@ export async function updateWidget(id: string, patch: WidgetPatch): Promise<Widg
 
 /** Seed-only: lets the deterministic E2E fixture embed a known token. */
 export async function setPublicToken(id: string, publicToken: string): Promise<void> {
-	await db.update(widget).set({ publicToken }).where(eq(widget.id, id))
+	await db.update(widget).set({ publicToken, updatedAt: new Date() }).where(eq(widget.id, id))
 }
 
 export async function deleteWidget(id: string): Promise<void> {
