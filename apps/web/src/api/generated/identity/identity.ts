@@ -18,6 +18,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { ErrorResponse } from "../models/errorResponse.zod"
 import type { ChangePasswordBody } from "../models/identity/changePasswordBody.zod"
+import type { CompleteForcedPasswordChangeBody } from "../models/identity/completeForcedPasswordChangeBody.zod"
 import type { GetSession200 } from "../models/identity/getSession200.zod"
 import type { Login200 } from "../models/identity/login200.zod"
 import type { LoginBody } from "../models/identity/loginBody.zod"
@@ -619,4 +620,138 @@ export const useChangePassword = <
 	TContext
 > => {
 	return useMutation(getChangePasswordMutationOptions(options))
+}
+export type completeForcedPasswordChangeResponse204 = {
+	data: void
+	status: 204
+}
+
+export type completeForcedPasswordChangeResponse400 = {
+	data: ErrorResponse
+	status: 400
+}
+
+export type completeForcedPasswordChangeResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type completeForcedPasswordChangeResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
+export type completeForcedPasswordChangeResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type completeForcedPasswordChangeResponseSuccess = completeForcedPasswordChangeResponse204 & {
+	headers: Headers
+}
+export type completeForcedPasswordChangeResponseError = (
+	| completeForcedPasswordChangeResponse400
+	| completeForcedPasswordChangeResponse401
+	| completeForcedPasswordChangeResponse409
+	| completeForcedPasswordChangeResponse500
+) & {
+	headers: Headers
+}
+
+export const getCompleteForcedPasswordChangeUrl = () => {
+	return `/api/me/password/forced`
+}
+
+export const completeForcedPasswordChange = async (
+	completeForcedPasswordChangeBody: CompleteForcedPasswordChangeBody,
+	options?: RequestInit,
+): Promise<completeForcedPasswordChangeResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
+	const res = await fetch(getCompleteForcedPasswordChangeUrl(), {
+		credentials: "include",
+		...options,
+		method: "PATCH",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(completeForcedPasswordChangeBody),
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: completeForcedPasswordChangeResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: completeForcedPasswordChangeResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: completeForcedPasswordChangeResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as completeForcedPasswordChangeResponseSuccess
+}
+
+export const getCompleteForcedPasswordChangeMutationOptions = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+		TError,
+		CompleteForcedPasswordChangeMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+	TError,
+	CompleteForcedPasswordChangeMutationVariables,
+	TContext
+> => {
+	const mutationKey = ["completeForcedPasswordChange"]
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+		CompleteForcedPasswordChangeMutationVariables
+	> = (props) => {
+		const { data } = props ?? {}
+
+		return completeForcedPasswordChange(data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type CompleteForcedPasswordChangeMutationResult = NonNullable<
+	Awaited<ReturnType<typeof completeForcedPasswordChange>>
+>
+export type CompleteForcedPasswordChangeMutationBody = CompleteForcedPasswordChangeBody
+export type CompleteForcedPasswordChangeMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CompleteForcedPasswordChangeMutationVariables = { data: CompleteForcedPasswordChangeBody }
+
+export const useCompleteForcedPasswordChange = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+		TError,
+		CompleteForcedPasswordChangeMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationResult<
+	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+	TError,
+	CompleteForcedPasswordChangeMutationVariables,
+	TContext
+> => {
+	return useMutation(getCompleteForcedPasswordChangeMutationOptions(options))
 }

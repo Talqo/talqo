@@ -18,6 +18,9 @@ const EXEMPT_PATHS = new Set([
 	...roles.PUBLIC_PATHS.map((path) => API_PREFIX + path),
 ])
 
+// Both routes correctly clear mustChangePassword as part of rotating the password.
+const FORCED_PASSWORD_CHANGE_ALLOWED_PATHS = new Set([`${API_PREFIX}/me/password`, `${API_PREFIX}/me/password/forced`])
+
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (EXEMPT_PATHS.has(c.req.path)) {
 		return next()
@@ -29,6 +32,18 @@ export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(asyn
 		return c.json({ error: "Authentication required" }, HTTP_STATUS.UNAUTHORIZED)
 	}
 
+	// Enforced here, not just by the SPA's redirect, since a direct API call bypasses that gate.
+	if (session.user.mustChangePassword && !FORCED_PASSWORD_CHANGE_ALLOWED_PATHS.has(c.req.path)) {
+		return c.json({ error: "Password change required" }, HTTP_STATUS.FORBIDDEN)
+	}
+
 	c.set("user", session.user)
+	return next()
+})
+
+export const requireAdmin = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
+	if (!(await roles.isAdmin(c.get("user").id))) {
+		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	}
 	return next()
 })

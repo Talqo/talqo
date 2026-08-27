@@ -89,6 +89,65 @@ describe("identity", () => {
 		expect((await login(username, "new-password-123")).status).toBe(200)
 	})
 
+	it("clears mustChangePassword when a self-service change completes", async () => {
+		const { username, user } = await createAndLogin()
+		await service.setPassword(user.id, "reset-password-789")
+		expect((await repo.findUserById(user.id))?.mustChangePassword).toBe(true)
+
+		const cookie = extractSessionCookie(await login(username, "reset-password-789"))
+		const response = await app.request("/api/me/password", {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ currentPassword: "reset-password-789", newPassword: "self-chosen-password-000" }),
+		})
+
+		expect(response.status).toBe(204)
+		expect((await repo.findUserById(user.id))?.mustChangePassword).toBe(false)
+	})
+
+	it("completes a forced password change without a current password when one is required", async () => {
+		const { username, user } = await createAndLogin()
+		await service.setPassword(user.id, "reset-password-321")
+		const cookie = extractSessionCookie(await login(username, "reset-password-321"))
+
+		const response = await app.request("/api/me/password/forced", {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "self-chosen-after-reset-000" }),
+		})
+
+		expect(response.status).toBe(204)
+		expect((await repo.findUserById(user.id))?.mustChangePassword).toBe(false)
+		expect((await login(username, "reset-password-321")).status).toBe(401)
+		expect((await login(username, "self-chosen-after-reset-000")).status).toBe(200)
+	})
+
+	it("rejects a forced password change when none is required", async () => {
+		const { cookie } = await createAndLogin()
+
+		const response = await app.request("/api/me/password/forced", {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "attempted-bypass-password" }),
+		})
+
+		expect(response.status).toBe(409)
+	})
+
+	it("blocks other authenticated routes while a password change is required, not just the SPA redirect", async () => {
+		const { username, user } = await createAndLogin()
+		await service.setPassword(user.id, "reset-password-654")
+		const cookie = extractSessionCookie(await login(username, "reset-password-654"))
+
+		const response = await app.request("/api/me", {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ username: uniqueUsername() }),
+		})
+
+		expect(response.status).toBe(403)
+	})
+
 	it("updates account info", async () => {
 		const { cookie } = await createAndLogin()
 		const newUsername = uniqueUsername()
@@ -129,7 +188,7 @@ describe("identity", () => {
 		expect((await login(username, password)).status).toBe(401)
 	})
 
-	it("setPassword rotates the password and invalidates existing sessions", async () => {
+	it("setPassword rotates the password, forces a change, and invalidates existing sessions", async () => {
 		const { cookie, username, user } = await createAndLogin()
 
 		await service.setPassword(user.id, "reset-password-456")
@@ -138,7 +197,10 @@ describe("identity", () => {
 		expect(await sessionResponse.json()).toEqual({ user: null })
 
 		expect((await login(username, DEFAULT_PASSWORD)).status).toBe(401)
-		expect((await login(username, "reset-password-456")).status).toBe(200)
+		const loginResponse = await login(username, "reset-password-456")
+		expect(loginResponse.status).toBe(200)
+		const { user: loggedInUser } = (await loginResponse.json()) as { user: { mustChangePassword: boolean } }
+		expect(loggedInUser.mustChangePassword).toBe(true)
 	})
 
 	it("purges an expired session from the database on read, not just rejecting it", async () => {
