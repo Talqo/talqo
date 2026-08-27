@@ -84,6 +84,7 @@
 		"renameAction": "重命名文件",
 		"renameDescription": "为文件输入新名称。",
 		"renameExtensionKept": "{{extension}} 扩展名会自动保留。",
+		"renameFailed": "无法重命名文件。请重试。",
 		"renameLabel": "文件名",
 		"renameSave": "重命名",
 		"renameTitle": "重命名文件",

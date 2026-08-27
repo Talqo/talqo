@@ -84,6 +84,7 @@
 		"renameAction": "Rename file",
 		"renameDescription": "Give the file a new name.",
 		"renameExtensionKept": "The {{extension}} extension is kept automatically.",
+		"renameFailed": "The file could not be renamed. Try again.",
 		"renameLabel": "File name",
 		"renameSave": "Rename",
 		"renameTitle": "Rename file",

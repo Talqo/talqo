@@ -84,6 +84,7 @@
 		"renameAction": "Přejmenovat soubor",
 		"renameDescription": "Zadejte nový název souboru.",
 		"renameExtensionKept": "Přípona {{extension}} se zachová automaticky.",
+		"renameFailed": "Soubor se nepodařilo přejmenovat. Zkuste to znovu.",
 		"renameLabel": "Název souboru",
 		"renameSave": "Přejmenovat",
 		"renameTitle": "Přejmenovat soubor",
