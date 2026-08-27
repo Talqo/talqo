@@ -9,6 +9,7 @@ import * as zod from "zod"
 export const RoleUser = zod.object({
 	id: zod.string(),
 	username: zod.string(),
+	mustChangePassword: zod.boolean(),
 })
 
 export type RoleUser = zod.input<typeof RoleUser>

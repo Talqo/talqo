@@ -348,7 +348,36 @@ describe("admin password reset", () => {
 
 		expect(response.status).toBe(204)
 		expect((await loginResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
-		expect((await loginResponse(memberUsername, "admin-reset-password-123")).status).toBe(200)
+		const memberLogin = await loginResponse(memberUsername, "admin-reset-password-123")
+		expect(memberLogin.status).toBe(200)
+		const { user: loggedInMember } = (await memberLogin.json()) as { user: { mustChangePassword: boolean } }
+		expect(loggedInMember.mustChangePassword).toBe(true)
+	})
+
+	it("lets the reset target complete a forced change without re-entering the admin-set password", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+
+		await app.request(`/api/users/${member.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "admin-reset-password-789" }),
+		})
+		const memberCookie = await login(memberUsername, "admin-reset-password-789")
+
+		const response = await app.request("/api/me/password/forced", {
+			method: "PATCH",
+			headers: { Cookie: memberCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "member-chosen-after-reset-000" }),
+		})
+
+		expect(response.status).toBe(204)
+		expect((await loginResponse(memberUsername, "admin-reset-password-789")).status).toBe(401)
+		const finalLogin = await loginResponse(memberUsername, "member-chosen-after-reset-000")
+		expect(finalLogin.status).toBe(200)
+		const { user: finalUser } = (await finalLogin.json()) as { user: { mustChangePassword: boolean } }
+		expect(finalUser.mustChangePassword).toBe(false)
 	})
 
 	it("invalidates the target account's existing sessions once the reset happens", async () => {
@@ -392,5 +421,62 @@ describe("admin password reset", () => {
 		})
 
 		expect(response.status).toBe(404)
+	})
+
+	it("rejects an admin resetting their own password through this endpoint", async () => {
+		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
+
+		const response = await app.request(`/api/users/${adminId}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "attempted-self-reset-password" }),
+		})
+
+		expect(response.status).toBe(400)
+	})
+})
+
+describe("list users", () => {
+	it("lets an admin list all users", async () => {
+		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+
+		const response = await app.request("/api/users", { headers: { Cookie: adminCookie } })
+
+		expect(response.status).toBe(200)
+		const { users } = (await response.json()) as { users: { id: string; mustChangePassword: boolean }[] }
+		const ids = users.map((user) => user.id)
+		expect(ids).toContain(adminId)
+		expect(ids).toContain(member.id)
+		expect(users.find((user) => user.id === member.id)?.mustChangePassword).toBe(false)
+	})
+
+	it("denies a non-admin listing users", async () => {
+		const memberCookie = await createMemberSession()
+
+		const response = await app.request("/api/users", { headers: { Cookie: memberCookie } })
+
+		expect(response.status).toBe(403)
+	})
+})
+
+describe("access", () => {
+	it("reports isAdmin true for an admin", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+
+		const response = await app.request("/api/access", { headers: { Cookie: adminCookie } })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({ isAdmin: true })
+	})
+
+	it("reports isAdmin false for a non-admin", async () => {
+		const memberCookie = await createMemberSession()
+
+		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({ isAdmin: false })
 	})
 })
