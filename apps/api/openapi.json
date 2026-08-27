@@ -94,6 +94,23 @@
 					}
 				},
 				"required": ["id", "name", "systemPrompt", "embedToken", "wordBlacklist", "createdAt", "updatedAt"]
+			},
+			"AgentFile": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"sizeBytes": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": ["name", "sizeBytes", "createdAt"]
 			}
 		},
 		"parameters": {}
@@ -2512,6 +2529,407 @@
 								}
 							}
 						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/files": {
+			"get": {
+				"operationId": "listAgentFiles",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Knowledge files uploaded for the agent",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"files": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/AgentFile"
+											}
+										},
+										"maxSizeBytes": {
+											"type": "integer",
+											"exclusiveMinimum": 0
+										},
+										"maxNameLength": {
+											"type": "integer",
+											"exclusiveMinimum": 0
+										}
+									},
+									"required": ["files", "maxSizeBytes", "maxNameLength"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"operationId": "uploadAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									}
+								},
+								"required": ["file"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "File uploaded",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
+										}
+									},
+									"required": ["file"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/files/{fileName}": {
+			"patch": {
+				"operationId": "renameAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 255
+									}
+								},
+								"required": ["name"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "File renamed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
+										}
+									},
+									"required": ["file"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
 					},
 					"401": {
 						"description": "Authentication required",

@@ -11,6 +11,7 @@ import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
+import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
@@ -25,6 +26,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react"
@@ -168,70 +170,81 @@ function AgentConfigPage() {
 			<BackLink t={t} />
 
 			<PageHeader title={t("agentConfig.heading", { name: agent.name })} description={t("agentConfig.subheading")} />
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
-					<CardDescription>{t("agentConfig.cardDescription")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-						{formError && (
-							<p role="alert" className="text-destructive text-sm">
-								{formError}
-							</p>
-						)}
-						<div className="space-y-2">
-							<Label htmlFor="config-name">{t("agentFields.name")}</Label>
-							<Input
-								id="config-name"
-								placeholder={t("agentFields.namePlaceholder")}
-								disabled={!canManage}
-								aria-invalid={errors.name ? true : undefined}
-								{...register("name", { onChange: () => setSaved(false) })}
-							/>
-							{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
-							<Textarea
-								id="config-system-prompt"
-								placeholder={t("agentFields.systemPromptPlaceholder")}
-								rows={5}
-								disabled={!canManage}
-								aria-invalid={errors.systemPrompt ? true : undefined}
-								{...register("systemPrompt", { onChange: () => setSaved(false) })}
-							/>
-							{errors.systemPrompt && (
-								<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
-							)}
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
-							<BlacklistTermsEditor
-								id="config-blacklist"
-								value={terms}
-								onChange={(next) => {
-									setSaved(false)
-									setEditedTerms({ agentId, terms: next })
-								}}
-								disabled={!canManage}
-							/>
-						</div>
-						{canManage && (
-							<div className="flex items-center gap-3 pt-2">
-								<Button type="submit" disabled={updateAgent.isPending}>
-									{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
-								</Button>
-								{saved && (
-									<span role="status" className="text-muted-foreground text-sm">
-										{t("agentConfig.saved")}
-									</span>
+			<Tabs defaultValue="configuration">
+				<TabsList>
+					<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
+					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
+				</TabsList>
+				<TabsContent value="configuration">
+					<Card>
+						<CardHeader>
+							<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
+							<CardDescription>{t("agentConfig.cardDescription")}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
+								{formError && (
+									<p role="alert" className="text-destructive text-sm">
+										{formError}
+									</p>
 								)}
-							</div>
-						)}
-					</form>
-				</CardContent>
-			</Card>
+								<div className="space-y-2">
+									<Label htmlFor="config-name">{t("agentFields.name")}</Label>
+									<Input
+										id="config-name"
+										placeholder={t("agentFields.namePlaceholder")}
+										disabled={!canManage}
+										aria-invalid={errors.name ? true : undefined}
+										{...register("name", { onChange: () => setSaved(false) })}
+									/>
+									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
+									<Textarea
+										id="config-system-prompt"
+										placeholder={t("agentFields.systemPromptPlaceholder")}
+										rows={5}
+										disabled={!canManage}
+										aria-invalid={errors.systemPrompt ? true : undefined}
+										{...register("systemPrompt", { onChange: () => setSaved(false) })}
+									/>
+									{errors.systemPrompt && (
+										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
+									)}
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
+									<BlacklistTermsEditor
+										id="config-blacklist"
+										value={terms}
+										onChange={(next) => {
+											setSaved(false)
+											setEditedTerms({ agentId, terms: next })
+										}}
+										disabled={!canManage}
+									/>
+								</div>
+								{canManage && (
+									<div className="flex items-center gap-3 pt-2">
+										<Button type="submit" disabled={updateAgent.isPending}>
+											{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
+										</Button>
+										{saved && (
+											<span role="status" className="text-muted-foreground text-sm">
+												{t("agentConfig.saved")}
+											</span>
+										)}
+									</div>
+								)}
+							</form>
+						</CardContent>
+					</Card>
+				</TabsContent>
+				<TabsContent value="context">
+					<AgentFilesCard agentId={agentId} canManage={canManage} />
+				</TabsContent>
+			</Tabs>
 
 			<Card>
 				<CardHeader>

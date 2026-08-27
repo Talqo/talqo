@@ -51,6 +51,8 @@
 		"saved": "刚刚已保存。",
 		"saving": "正在保存…",
 		"subheading": "更新智能体的名称、行为和屏蔽词。",
+		"tabConfiguration": "配置",
+		"tabContext": "上下文",
 		"wasDeleted": "该智能体已在别处被删除。请返回列表查看最新状态。"
 	},
 	"agentFields": {
@@ -61,6 +63,33 @@
 		"systemPromptPlaceholder": "你是一名乐于助人的客服助手…",
 		"systemPromptRequired": "系统提示词为必填项。",
 		"wordBlacklist": "屏蔽词"
+	},
+	"agentFiles": {
+		"cardDescription": "支持的类型:PDF、TXT、MD、DOCX。单文件最大 {{maxSizeMB}} MB。",
+		"cardTitle": "知识文件",
+		"delete": "删除 {{name}}",
+		"deleteAction": "删除文件",
+		"deleteCancel": "取消",
+		"deleteConfirm": "删除",
+		"deleteFailed": "无法删除文件。请重试。",
+		"deletePrompt": "这将从智能体的知识库中永久删除该文件,且无法撤销。",
+		"deleteTitle": "删除文件",
+		"deleting": "正在删除…",
+		"dropzone": "将文件拖到此处,或点击浏览",
+		"dropzoneHint": "还没有知识文件。上传智能体应参考的文档。",
+		"empty": "还没有知识文件。",
+		"loadFailed": "无法加载知识文件。",
+		"loading": "正在加载文件…",
+		"rename": "重命名 {{name}}",
+		"renameAction": "重命名文件",
+		"renameDescription": "为文件输入新名称。",
+		"renameExtensionKept": "{{extension}} 扩展名会自动保留。",
+		"renameLabel": "文件名",
+		"renameSave": "重命名",
+		"renameTitle": "重命名文件",
+		"tooLarge": "每个文件不得超过 {{maxSizeMB}} MB。",
+		"uploadFailed": "上传失败。请重试。",
+		"uploading": "正在上传…"
 	},
 	"agents": {
 		"create": "创建智能体",

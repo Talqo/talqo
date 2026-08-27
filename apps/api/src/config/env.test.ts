@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { fileURLToPath } from "node:url"
 
 import { parseEnv } from "./env.ts"
 
@@ -77,6 +78,12 @@ describe("parseEnv", () => {
 
 	it("rejects a missing NODE_ENV", () => {
 		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })).toThrow(/NODE_ENV/)
+	})
+
+	it("defaults TALQO_UPLOAD_DIR to the repo-root tmp directory", () => {
+		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" })
+
+		expect(env.TALQO_UPLOAD_DIR).toBe(fileURLToPath(new URL("../../../../tmp", import.meta.url)))
 	})
 
 	it("rejects a missing DATABASE_URL", () => {
