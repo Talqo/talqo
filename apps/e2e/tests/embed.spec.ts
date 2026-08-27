@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"
 
-const DIST = path.resolve(__dirname, "../../widget/dist")
-const HOST_HTML_PATH = path.resolve(__dirname, "fixtures/host.html")
+const DIST = path.resolve(import.meta.dirname, "../../widget/dist")
+const HOST_HTML_PATH = path.resolve(import.meta.dirname, "fixtures/host.html")
 
 // The seeded widget's brand color, as rgb() for toHaveCSS.
 const SEEDED_PRIMARY_RGB = "rgb(124, 58, 237)"
