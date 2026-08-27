@@ -187,11 +187,17 @@ export const createWidget = async (
 	createWidgetBody: CreateWidgetBody,
 	options?: RequestInit,
 ): Promise<createWidgetResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getCreateWidgetUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(createWidgetBody),
 	})
 
@@ -211,9 +217,14 @@ export const getCreateWidgetMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createWidget>>, TError, { data: CreateWidgetBody }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof createWidget>>,
+		TError,
+		CreateWidgetMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof createWidget>>, TError, { data: CreateWidgetBody }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof createWidget>>, TError, CreateWidgetMutationVariables, TContext> => {
 	const mutationKey = ["createWidget"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -221,7 +232,7 @@ export const getCreateWidgetMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWidget>>, { data: CreateWidgetBody }> = (
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWidget>>, CreateWidgetMutationVariables> = (
 		props,
 	) => {
 		const { data } = props ?? {}
@@ -235,14 +246,20 @@ export const getCreateWidgetMutationOptions = <
 export type CreateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof createWidget>>>
 export type CreateWidgetMutationBody = CreateWidgetBody
 export type CreateWidgetMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CreateWidgetMutationVariables = { data: CreateWidgetBody }
 
 export const useCreateWidget = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createWidget>>, TError, { data: CreateWidgetBody }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof createWidget>>,
+		TError,
+		CreateWidgetMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof createWidget>>, TError, { data: CreateWidgetBody }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof createWidget>>, TError, CreateWidgetMutationVariables, TContext> => {
 	return useMutation(getCreateWidgetMutationOptions(options))
 }
 export type getWidgetResponse200 = {
@@ -400,11 +417,17 @@ export const updateWidget = async (
 	updateWidgetBody: UpdateWidgetBody,
 	options?: RequestInit,
 ): Promise<updateWidgetResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getUpdateWidgetUrl(widgetId), {
 		credentials: "include",
 		...options,
 		method: "PUT",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(updateWidgetBody),
 	})
 
@@ -427,16 +450,11 @@ export const getUpdateWidgetMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof updateWidget>>,
 		TError,
-		{ widgetId: string; data: UpdateWidgetBody },
+		UpdateWidgetMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof updateWidget>>,
-	TError,
-	{ widgetId: string; data: UpdateWidgetBody },
-	TContext
-> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof updateWidget>>, TError, UpdateWidgetMutationVariables, TContext> => {
 	const mutationKey = ["updateWidget"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -444,10 +462,9 @@ export const getUpdateWidgetMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof updateWidget>>,
-		{ widgetId: string; data: UpdateWidgetBody }
-	> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWidget>>, UpdateWidgetMutationVariables> = (
+		props,
+	) => {
 		const { widgetId, data } = props ?? {}
 
 		return updateWidget(widgetId, data, fetchOptions)
@@ -459,6 +476,7 @@ export const getUpdateWidgetMutationOptions = <
 export type UpdateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof updateWidget>>>
 export type UpdateWidgetMutationBody = UpdateWidgetBody
 export type UpdateWidgetMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type UpdateWidgetMutationVariables = { widgetId: string; data: UpdateWidgetBody }
 
 export const useUpdateWidget = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -467,16 +485,11 @@ export const useUpdateWidget = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof updateWidget>>,
 		TError,
-		{ widgetId: string; data: UpdateWidgetBody },
+		UpdateWidgetMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationResult<
-	Awaited<ReturnType<typeof updateWidget>>,
-	TError,
-	{ widgetId: string; data: UpdateWidgetBody },
-	TContext
-> => {
+}): UseMutationResult<Awaited<ReturnType<typeof updateWidget>>, TError, UpdateWidgetMutationVariables, TContext> => {
 	return useMutation(getUpdateWidgetMutationOptions(options))
 }
 export type deleteWidgetResponse204 = {
@@ -543,9 +556,14 @@ export const getDeleteWidgetMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteWidget>>, TError, { widgetId: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof deleteWidget>>,
+		TError,
+		DeleteWidgetMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof deleteWidget>>, TError, { widgetId: string }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteWidget>>, TError, DeleteWidgetMutationVariables, TContext> => {
 	const mutationKey = ["deleteWidget"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -553,7 +571,9 @@ export const getDeleteWidgetMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWidget>>, { widgetId: string }> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWidget>>, DeleteWidgetMutationVariables> = (
+		props,
+	) => {
 		const { widgetId } = props ?? {}
 
 		return deleteWidget(widgetId, fetchOptions)
@@ -565,14 +585,20 @@ export const getDeleteWidgetMutationOptions = <
 export type DeleteWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWidget>>>
 
 export type DeleteWidgetMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type DeleteWidgetMutationVariables = { widgetId: string }
 
 export const useDeleteWidget = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteWidget>>, TError, { widgetId: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof deleteWidget>>,
+		TError,
+		DeleteWidgetMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof deleteWidget>>, TError, { widgetId: string }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof deleteWidget>>, TError, DeleteWidgetMutationVariables, TContext> => {
 	return useMutation(getDeleteWidgetMutationOptions(options))
 }
 export type getWidgetConfigResponse200 = {
