@@ -60,7 +60,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the public browser SDK. It generates or owns transport appropriate to its public API; the widget consumes the SDK.
+- `packages/sdk` is the planned public browser SDK, owning transport appropriate to its public API. It does not exist yet; the widget calls the API directly until it lands.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -220,7 +220,7 @@ apps/web/src/
 - `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe: URL parameters carry the initial appearance, and a versioned `talqo-preview` `postMessage` channel carries live updates (ADR-0014). Both apps declare the message shape independently — `apps/web` never imports widget source.
 - The embed snippet carries identity only (`data-talqo-widget`, optional `data-talqo-api`). The widget fetches its appearance from the public config endpoint at boot and applies `data-talqo-*` appearance attributes over it as a per-page override (ADR-0013).
 - Widget theme tokens derive from four operator colors via `color-mix()` (ADR-0012). Widget CSS must never register a custom property with `@property`: the build strips those rules and then fails if any survive.
-- The widget consumes `packages/sdk` and never imports API app source.
+- The widget never imports API app source. It fetches the public config endpoint directly today and moves onto `packages/sdk` when that package lands.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 
