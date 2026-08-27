@@ -1,0 +1,6 @@
+# Generated artifacts
+/apps/api/openapi.json linguist-generated
+/apps/api/drizzle/** linguist-generated
+/apps/docs/src/routeTree.gen.ts linguist-generated
+/apps/web/src/routeTree.gen.ts linguist-generated
+/apps/web/src/api/generated/** linguist-generated
