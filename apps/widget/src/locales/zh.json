@@ -5,5 +5,8 @@
 	"messageLabel": "消息",
 	"openChat": "打开聊天",
 	"placeholder": "输入消息...",
+	"resizeHeight": "调整聊天高度",
+	"resizeWidth": "调整聊天宽度",
+	"resizeWindow": "调整聊天窗口大小",
 	"send": "发送"
 }
