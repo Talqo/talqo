@@ -53,7 +53,7 @@ function AgentConfigPage() {
 	const deleteAgent = useDeleteAgent()
 	const refreshEmbedToken = useRefreshEmbedToken()
 
-	const [terms, setTerms] = useState<string[]>([])
+	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: string[] } | null>(null)
 	const [saved, setSaved] = useState(false)
 	const [formError, setFormError] = useState<string | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -78,9 +78,9 @@ function AgentConfigPage() {
 	useEffect(() => {
 		if (agent) {
 			reset({ name: agent.name, systemPrompt: agent.systemPrompt })
-			setTerms(agent.wordBlacklist)
 		}
 	}, [agent, reset])
+	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (agent?.wordBlacklist ?? [])
 
 	async function onValid(values: AgentFormValues) {
 		setFormError(null)
@@ -212,7 +212,7 @@ function AgentConfigPage() {
 								value={terms}
 								onChange={(next) => {
 									setSaved(false)
-									setTerms(next)
+									setEditedTerms({ agentId, terms: next })
 								}}
 								disabled={!canManage}
 							/>
