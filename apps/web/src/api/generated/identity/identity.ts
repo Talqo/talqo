@@ -666,11 +666,17 @@ export const completeForcedPasswordChange = async (
 	completeForcedPasswordChangeBody: CompleteForcedPasswordChangeBody,
 	options?: RequestInit,
 ): Promise<completeForcedPasswordChangeResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getCompleteForcedPasswordChangeUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(completeForcedPasswordChangeBody),
 	})
 
@@ -694,14 +700,14 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 		TError,
-		{ data: CompleteForcedPasswordChangeBody },
+		CompleteForcedPasswordChangeMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 	TError,
-	{ data: CompleteForcedPasswordChangeBody },
+	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["completeForcedPasswordChange"]
@@ -713,7 +719,7 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
-		{ data: CompleteForcedPasswordChangeBody }
+		CompleteForcedPasswordChangeMutationVariables
 	> = (props) => {
 		const { data } = props ?? {}
 
@@ -728,6 +734,7 @@ export type CompleteForcedPasswordChangeMutationResult = NonNullable<
 >
 export type CompleteForcedPasswordChangeMutationBody = CompleteForcedPasswordChangeBody
 export type CompleteForcedPasswordChangeMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CompleteForcedPasswordChangeMutationVariables = { data: CompleteForcedPasswordChangeBody }
 
 export const useCompleteForcedPasswordChange = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -736,14 +743,14 @@ export const useCompleteForcedPasswordChange = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 		TError,
-		{ data: CompleteForcedPasswordChangeBody },
+		CompleteForcedPasswordChangeMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 	TError,
-	{ data: CompleteForcedPasswordChangeBody },
+	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
 	return useMutation(getCompleteForcedPasswordChangeMutationOptions(options))
