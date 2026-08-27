@@ -90,6 +90,8 @@ describe("api", () => {
 				"/api/agents",
 				"/api/agents/{agentId}",
 				"/api/agents/{agentId}/embed-token/refresh",
+				"/api/agents/{agentId}/files",
+				"/api/agents/{agentId}/files/{fileName}",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",

@@ -5,6 +5,7 @@ import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson } from "@/http/json-body.ts"
 import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { agentFilesRoutes } from "@/modules/agent-files/agent-files.routes.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
@@ -45,6 +46,7 @@ api.route("/", rolesRoutes)
 api.route("/agents", agentRoutes)
 api.route("/widgets", widgetRoutes)
 api.route("/widget-config", widgetConfigRoutes)
+api.route("/agents", agentFilesRoutes)
 app.route(API_PREFIX, api)
 // Hono's default pass-through for response-carrying errors, plus a generic body
 // for everything else so internals never reach the client.

@@ -95,91 +95,22 @@
 				},
 				"required": ["id", "name", "systemPrompt", "embedToken", "wordBlacklist", "createdAt", "updatedAt"]
 			},
-			"Widget": {
+			"AgentFile": {
 				"type": "object",
 				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"agentId": {
-						"type": "string"
-					},
 					"name": {
 						"type": "string"
 					},
-					"publicToken": {
-						"type": "string"
+					"sizeBytes": {
+						"type": "integer",
+						"minimum": 0
 					},
-					"appearance": {
-						"$ref": "#/components/schemas/WidgetAppearance"
-					}
-				},
-				"required": ["id", "agentId", "name", "publicToken", "appearance"]
-			},
-			"WidgetAppearance": {
-				"type": "object",
-				"properties": {
-					"light": {
-						"$ref": "#/components/schemas/WidgetScheme"
-					},
-					"dark": {
-						"$ref": "#/components/schemas/WidgetScheme"
-					},
-					"position": {
+					"createdAt": {
 						"type": "string",
-						"enum": ["bottom-right", "bottom-left"]
-					},
-					"theme": {
-						"type": "string",
-						"enum": ["system", "light", "dark"]
-					},
-					"themeToggle": {
-						"type": "boolean"
-					},
-					"language": {
-						"type": "string"
+						"format": "date-time"
 					}
 				},
-				"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
-			},
-			"WidgetScheme": {
-				"type": "object",
-				"properties": {
-					"primary": {
-						"type": "string"
-					},
-					"textOnPrimary": {
-						"type": "string"
-					},
-					"background": {
-						"type": "string"
-					},
-					"surface": {
-						"type": "string"
-					},
-					"text": {
-						"type": "string"
-					}
-				},
-				"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-			},
-			"WidgetConfig": {
-				"type": "object",
-				"properties": {
-					"version": {
-						"type": "number"
-					},
-					"agentId": {
-						"type": "string"
-					},
-					"name": {
-						"type": "string"
-					},
-					"appearance": {
-						"$ref": "#/components/schemas/WidgetAppearance"
-					}
-				},
-				"required": ["version", "agentId", "name", "appearance"]
+				"required": ["name", "sizeBytes", "createdAt"]
 			}
 		},
 		"parameters": {}
@@ -1441,15 +1372,18 @@
 								"schema": {
 									"type": "object",
 									"properties": {
+										"isAdmin": {
+											"type": "boolean"
+										},
 										"permissions": {
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 											}
 										}
 									},
-									"required": ["permissions"]
+									"required": ["isAdmin", "permissions"]
 								}
 							}
 						}
@@ -1754,7 +1688,7 @@
 									},
 									"permission": {
 										"type": "string",
-										"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+										"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 									}
 								},
 								"required": ["userId", "permission"],
@@ -1831,16 +1765,6 @@
 					},
 					"404": {
 						"description": "Resource not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Request conflicts with current state",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1939,7 +1863,7 @@
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 											}
 										}
 									},
@@ -2557,16 +2481,6 @@
 							}
 						}
 					},
-					"409": {
-						"description": "Request conflicts with current state",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
 					"500": {
 						"description": "Unexpected server error",
 						"content": {
@@ -2659,10 +2573,10 @@
 				}
 			}
 		},
-		"/api/widgets": {
+		"/api/agents/{agentId}/files": {
 			"get": {
-				"operationId": "listWidgets",
-				"tags": ["Widget"],
+				"operationId": "listAgentFiles",
+				"tags": ["Agent"],
 				"security": [
 					{
 						"SessionCookie": []
@@ -2673,27 +2587,35 @@
 						"schema": {
 							"type": "string"
 						},
-						"required": false,
+						"required": true,
 						"name": "agentId",
-						"in": "query"
+						"in": "path"
 					}
 				],
 				"responses": {
 					"200": {
-						"description": "All widgets",
+						"description": "Knowledge files uploaded for the agent",
 						"content": {
 							"application/json": {
 								"schema": {
 									"type": "object",
 									"properties": {
-										"widgets": {
+										"files": {
 											"type": "array",
 											"items": {
-												"$ref": "#/components/schemas/Widget"
+												"$ref": "#/components/schemas/AgentFile"
 											}
+										},
+										"maxSizeBytes": {
+											"type": "integer",
+											"exclusiveMinimum": 0
+										},
+										"maxNameLength": {
+											"type": "integer",
+											"exclusiveMinimum": 0
 										}
 									},
-									"required": ["widgets"]
+									"required": ["files", "maxSizeBytes", "maxNameLength"]
 								}
 							}
 						}
@@ -2710,6 +2632,16 @@
 					},
 					"403": {
 						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2731,121 +2663,53 @@
 				}
 			},
 			"post": {
-				"operationId": "createWidget",
-				"tags": ["Widget"],
+				"operationId": "uploadAgentFile",
+				"tags": ["Agent"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
 				"requestBody": {
 					"required": true,
 					"content": {
-						"application/json": {
+						"multipart/form-data": {
 							"schema": {
 								"type": "object",
 								"properties": {
-									"agentId": {
+									"file": {
 										"type": "string",
-										"minLength": 1
-									},
-									"name": {
-										"type": "string",
-										"minLength": 1,
-										"maxLength": 80
-									},
-									"appearance": {
-										"type": "object",
-										"properties": {
-											"light": {
-												"type": "object",
-												"properties": {
-													"primary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"textOnPrimary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"background": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"surface": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"text": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													}
-												},
-												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-											},
-											"dark": {
-												"type": "object",
-												"properties": {
-													"primary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"textOnPrimary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"background": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"surface": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"text": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													}
-												},
-												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-											},
-											"position": {
-												"type": "string",
-												"enum": ["bottom-right", "bottom-left"]
-											},
-											"theme": {
-												"type": "string",
-												"enum": ["system", "light", "dark"]
-											},
-											"themeToggle": {
-												"type": "boolean"
-											},
-											"language": {
-												"type": "string",
-												"enum": ["en", "cs", "zh"]
-											}
-										},
-										"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
+										"format": "binary"
 									}
 								},
-								"required": ["agentId", "name", "appearance"]
+								"required": ["file"]
 							}
 						}
 					}
 				},
 				"responses": {
 					"201": {
-						"description": "Widget created",
+						"description": "File uploaded",
 						"content": {
 							"application/json": {
 								"schema": {
 									"type": "object",
 									"properties": {
-										"widget": {
-											"$ref": "#/components/schemas/Widget"
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
 										}
 									},
-									"required": ["widget"]
+									"required": ["file"]
 								}
 							}
 						}
@@ -2882,6 +2746,16 @@
 					},
 					"404": {
 						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2903,10 +2777,10 @@
 				}
 			}
 		},
-		"/api/widgets/{widgetId}": {
-			"get": {
-				"operationId": "getWidget",
-				"tags": ["Widget"],
+		"/api/agents/{agentId}/files/{fileName}": {
+			"patch": {
+				"operationId": "renameAgentFile",
+				"tags": ["Agent"],
 				"security": [
 					{
 						"SessionCookie": []
@@ -2918,84 +2792,15 @@
 							"type": "string"
 						},
 						"required": true,
-						"name": "widgetId",
+						"name": "agentId",
 						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "One widget",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"widget": {
-											"$ref": "#/components/schemas/Widget"
-										}
-									},
-									"required": ["widget"]
-								}
-							}
-						}
 					},
-					"401": {
-						"description": "Authentication required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Permission denied",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Resource not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Unexpected server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"operationId": "updateWidget",
-				"tags": ["Widget"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
 					{
 						"schema": {
 							"type": "string"
 						},
 						"required": true,
-						"name": "widgetId",
+						"name": "fileName",
 						"in": "path"
 					}
 				],
@@ -3006,107 +2811,30 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"agentId": {
-										"type": "string",
-										"minLength": 1
-									},
 									"name": {
 										"type": "string",
 										"minLength": 1,
-										"maxLength": 80
-									},
-									"appearance": {
-										"type": "object",
-										"properties": {
-											"light": {
-												"type": "object",
-												"properties": {
-													"primary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"textOnPrimary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"background": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"surface": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"text": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													}
-												},
-												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-											},
-											"dark": {
-												"type": "object",
-												"properties": {
-													"primary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"textOnPrimary": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"background": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"surface": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													},
-													"text": {
-														"type": "string",
-														"pattern": "^#[0-9a-fA-F]{6}$"
-													}
-												},
-												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-											},
-											"position": {
-												"type": "string",
-												"enum": ["bottom-right", "bottom-left"]
-											},
-											"theme": {
-												"type": "string",
-												"enum": ["system", "light", "dark"]
-											},
-											"themeToggle": {
-												"type": "boolean"
-											},
-											"language": {
-												"type": "string",
-												"enum": ["en", "cs", "zh"]
-											}
-										},
-										"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
+										"maxLength": 255
 									}
 								},
-								"required": ["agentId", "name", "appearance"]
+								"required": ["name"]
 							}
 						}
 					}
 				},
 				"responses": {
 					"200": {
-						"description": "Widget updated",
+						"description": "File renamed",
 						"content": {
 							"application/json": {
 								"schema": {
 									"type": "object",
 									"properties": {
-										"widget": {
-											"$ref": "#/components/schemas/Widget"
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
 										}
 									},
-									"required": ["widget"]
+									"required": ["file"]
 								}
 							}
 						}
@@ -3151,6 +2879,16 @@
 							}
 						}
 					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
 					"500": {
 						"description": "Unexpected server error",
 						"content": {
@@ -3164,8 +2902,8 @@
 				}
 			},
 			"delete": {
-				"operationId": "deleteWidget",
-				"tags": ["Widget"],
+				"operationId": "deleteAgentFile",
+				"tags": ["Agent"],
 				"security": [
 					{
 						"SessionCookie": []
@@ -3177,7 +2915,15 @@
 							"type": "string"
 						},
 						"required": true,
-						"name": "widgetId",
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
 						"in": "path"
 					}
 				],
@@ -3204,57 +2950,6 @@
 								}
 							}
 						}
-					},
-					"404": {
-						"description": "Resource not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Unexpected server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/widget-config/{token}": {
-			"get": {
-				"operationId": "getWidgetConfig",
-				"tags": ["Widget"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "token",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Public appearance for the embedded widget",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/WidgetConfig"
-								}
-							}
-						}
-					},
-					"304": {
-						"description": "Configuration unchanged since the supplied ETag"
 					},
 					"404": {
 						"description": "Resource not found",
