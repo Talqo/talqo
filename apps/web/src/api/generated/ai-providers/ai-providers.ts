@@ -293,7 +293,7 @@ export const saveAiProviderConfiguration = async (
 	saveAiProviderConfigurationBody: SaveAiProviderConfigurationBody,
 	options?: RequestInit,
 ): Promise<saveAiProviderConfigurationResponseSuccess> => {
-	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
 		if (Array.isArray(h)) return Object.fromEntries(h)
@@ -327,14 +327,14 @@ export const getSaveAiProviderConfigurationMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
 		TError,
-		{ data: SaveAiProviderConfigurationBody },
+		SaveAiProviderConfigurationMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
 	TError,
-	{ data: SaveAiProviderConfigurationBody },
+	SaveAiProviderConfigurationMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["saveAiProviderConfiguration"]
@@ -346,7 +346,7 @@ export const getSaveAiProviderConfigurationMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
-		{ data: SaveAiProviderConfigurationBody }
+		SaveAiProviderConfigurationMutationVariables
 	> = (props) => {
 		const { data } = props ?? {}
 
@@ -361,6 +361,7 @@ export type SaveAiProviderConfigurationMutationResult = NonNullable<
 >
 export type SaveAiProviderConfigurationMutationBody = SaveAiProviderConfigurationBody
 export type SaveAiProviderConfigurationMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type SaveAiProviderConfigurationMutationVariables = { data: SaveAiProviderConfigurationBody }
 
 export const useSaveAiProviderConfiguration = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -369,14 +370,14 @@ export const useSaveAiProviderConfiguration = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
 		TError,
-		{ data: SaveAiProviderConfigurationBody },
+		SaveAiProviderConfigurationMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
 	TError,
-	{ data: SaveAiProviderConfigurationBody },
+	SaveAiProviderConfigurationMutationVariables,
 	TContext
 > => {
 	return useMutation(getSaveAiProviderConfigurationMutationOptions(options))
@@ -438,7 +439,7 @@ export const discoverAiProviderModels = async (
 	discoverAiProviderModelsBody: DiscoverAiProviderModelsBody,
 	options?: RequestInit,
 ): Promise<discoverAiProviderModelsResponseSuccess> => {
-	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
 		if (Array.isArray(h)) return Object.fromEntries(h)
@@ -475,14 +476,14 @@ export const getDiscoverAiProviderModelsMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof discoverAiProviderModels>>,
 		TError,
-		{ data: DiscoverAiProviderModelsBody },
+		DiscoverAiProviderModelsMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof discoverAiProviderModels>>,
 	TError,
-	{ data: DiscoverAiProviderModelsBody },
+	DiscoverAiProviderModelsMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["discoverAiProviderModels"]
@@ -494,7 +495,7 @@ export const getDiscoverAiProviderModelsMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof discoverAiProviderModels>>,
-		{ data: DiscoverAiProviderModelsBody }
+		DiscoverAiProviderModelsMutationVariables
 	> = (props) => {
 		const { data } = props ?? {}
 
@@ -510,6 +511,7 @@ export type DiscoverAiProviderModelsMutationError = globalThis.Error & {
 	info?: DiscoverAiProviderModels400 | ErrorResponse | DiscoverAiProviderModels429 | DiscoverAiProviderModels502
 	status?: number
 }
+export type DiscoverAiProviderModelsMutationVariables = { data: DiscoverAiProviderModelsBody }
 
 export const useDiscoverAiProviderModels = <
 	TError = globalThis.Error & {
@@ -521,14 +523,14 @@ export const useDiscoverAiProviderModels = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof discoverAiProviderModels>>,
 		TError,
-		{ data: DiscoverAiProviderModelsBody },
+		DiscoverAiProviderModelsMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof discoverAiProviderModels>>,
 	TError,
-	{ data: DiscoverAiProviderModelsBody },
+	DiscoverAiProviderModelsMutationVariables,
 	TContext
 > => {
 	return useMutation(getDiscoverAiProviderModelsMutationOptions(options))

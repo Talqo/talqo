@@ -187,7 +187,7 @@ export const createAgent = async (
 	createAgentBody: CreateAgentBody,
 	options?: RequestInit,
 ): Promise<createAgentResponseSuccess> => {
-	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
 		if (Array.isArray(h)) return Object.fromEntries(h)
@@ -217,9 +217,9 @@ export const getCreateAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, { data: CreateAgentBody }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, { data: CreateAgentBody }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext> => {
 	const mutationKey = ["createAgent"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -227,7 +227,9 @@ export const getCreateAgentMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgent>>, { data: CreateAgentBody }> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgent>>, CreateAgentMutationVariables> = (
+		props,
+	) => {
 		const { data } = props ?? {}
 
 		return createAgent(data, fetchOptions)
@@ -239,14 +241,15 @@ export const getCreateAgentMutationOptions = <
 export type CreateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof createAgent>>>
 export type CreateAgentMutationBody = CreateAgentBody
 export type CreateAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CreateAgentMutationVariables = { data: CreateAgentBody }
 
 export const useCreateAgent = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, { data: CreateAgentBody }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof createAgent>>, TError, { data: CreateAgentBody }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext> => {
 	return useMutation(getCreateAgentMutationOptions(options))
 }
 export type getAgentResponse200 = {
@@ -409,7 +412,7 @@ export const updateAgent = async (
 	updateAgentBody: UpdateAgentBody,
 	options?: RequestInit,
 ): Promise<updateAgentResponseSuccess> => {
-	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
 		if (Array.isArray(h)) return Object.fromEntries(h)
@@ -439,19 +442,9 @@ export const getUpdateAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof updateAgent>>,
-		TError,
-		{ agentId: string; data: UpdateAgentBody },
-		TContext
-	>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof updateAgent>>,
-	TError,
-	{ agentId: string; data: UpdateAgentBody },
-	TContext
-> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext> => {
 	const mutationKey = ["updateAgent"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -459,10 +452,9 @@ export const getUpdateAgentMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof updateAgent>>,
-		{ agentId: string; data: UpdateAgentBody }
-	> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgent>>, UpdateAgentMutationVariables> = (
+		props,
+	) => {
 		const { agentId, data } = props ?? {}
 
 		return updateAgent(agentId, data, fetchOptions)
@@ -474,24 +466,15 @@ export const getUpdateAgentMutationOptions = <
 export type UpdateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgent>>>
 export type UpdateAgentMutationBody = UpdateAgentBody
 export type UpdateAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type UpdateAgentMutationVariables = { agentId: string; data: UpdateAgentBody }
 
 export const useUpdateAgent = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof updateAgent>>,
-		TError,
-		{ agentId: string; data: UpdateAgentBody },
-		TContext
-	>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationResult<
-	Awaited<ReturnType<typeof updateAgent>>,
-	TError,
-	{ agentId: string; data: UpdateAgentBody },
-	TContext
-> => {
+}): UseMutationResult<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext> => {
 	return useMutation(getUpdateAgentMutationOptions(options))
 }
 export type deleteAgentResponse204 = {
@@ -558,9 +541,9 @@ export const getDeleteAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, { agentId: string }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, { agentId: string }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
 	const mutationKey = ["deleteAgent"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -568,7 +551,9 @@ export const getDeleteAgentMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgent>>, { agentId: string }> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgent>>, DeleteAgentMutationVariables> = (
+		props,
+	) => {
 		const { agentId } = props ?? {}
 
 		return deleteAgent(agentId, fetchOptions)
@@ -580,14 +565,15 @@ export const getDeleteAgentMutationOptions = <
 export type DeleteAgentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgent>>>
 
 export type DeleteAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type DeleteAgentMutationVariables = { agentId: string }
 
 export const useDeleteAgent = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, { agentId: string }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof deleteAgent>>, TError, { agentId: string }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
 	return useMutation(getDeleteAgentMutationOptions(options))
 }
 export type refreshEmbedTokenResponse200 = {
@@ -658,9 +644,19 @@ export const getRefreshEmbedTokenMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof refreshEmbedToken>>, TError, { agentId: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof refreshEmbedToken>>,
+		TError,
+		RefreshEmbedTokenMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof refreshEmbedToken>>, TError, { agentId: string }, TContext> => {
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof refreshEmbedToken>>,
+	TError,
+	RefreshEmbedTokenMutationVariables,
+	TContext
+> => {
 	const mutationKey = ["refreshEmbedToken"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -668,7 +664,10 @@ export const getRefreshEmbedTokenMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof refreshEmbedToken>>, { agentId: string }> = (props) => {
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof refreshEmbedToken>>,
+		RefreshEmbedTokenMutationVariables
+	> = (props) => {
 		const { agentId } = props ?? {}
 
 		return refreshEmbedToken(agentId, fetchOptions)
@@ -680,13 +679,24 @@ export const getRefreshEmbedTokenMutationOptions = <
 export type RefreshEmbedTokenMutationResult = NonNullable<Awaited<ReturnType<typeof refreshEmbedToken>>>
 
 export type RefreshEmbedTokenMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type RefreshEmbedTokenMutationVariables = { agentId: string }
 
 export const useRefreshEmbedToken = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof refreshEmbedToken>>, TError, { agentId: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof refreshEmbedToken>>,
+		TError,
+		RefreshEmbedTokenMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof refreshEmbedToken>>, TError, { agentId: string }, TContext> => {
+}): UseMutationResult<
+	Awaited<ReturnType<typeof refreshEmbedToken>>,
+	TError,
+	RefreshEmbedTokenMutationVariables,
+	TContext
+> => {
 	return useMutation(getRefreshEmbedTokenMutationOptions(options))
 }
