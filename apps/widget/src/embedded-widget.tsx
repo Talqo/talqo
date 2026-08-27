@@ -306,7 +306,7 @@ function WidgetChat({
 								<div
 									className={cn(
 										"tw:mx-auto tw:mt-1 tw:h-0.5 tw:w-10 tw:rounded-full tw:transition-colors",
-										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-border",
+										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-border tw:group-hover:bg-muted-foreground/60",
 									)}
 								/>
 							</div>
@@ -327,7 +327,7 @@ function WidgetChat({
 									className={cn(
 										"tw:my-auto tw:h-10 tw:w-0.5 tw:rounded-full tw:transition-colors",
 										position === "bottom-left" ? "tw:mr-1 tw:ml-auto" : "tw:mt-auto tw:ml-1",
-										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-border",
+										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-border tw:group-hover:bg-muted-foreground/60",
 									)}
 								/>
 							</div>
@@ -337,13 +337,10 @@ function WidgetChat({
 								aria-label={t("resizeWindow")}
 								data-testid="resize-corner"
 								className={cn(
-									"tw:absolute tw:z-10 tw:size-5 tw:transition-opacity",
+									"tw:absolute tw:z-10 tw:size-5 tw:transition-colors",
 									position === "bottom-left"
 										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
 										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
-									activeEdge === "corner"
-										? "tw:opacity-100"
-										: "tw:opacity-0 tw:group-hover:opacity-100 tw:focus:opacity-100",
 								)}
 								onPointerDown={(event) => startResize("corner", event)}
 								onKeyDown={(event) => resizeByKeys("corner", event)}
@@ -352,8 +349,9 @@ function WidgetChat({
 								<ResizeGripIcon
 									aria-hidden="true"
 									className={cn(
-										"tw:size-full tw:text-muted-foreground",
+										"tw:size-full tw:transition-colors",
 										position === "bottom-left" && "tw:-scale-x-100",
+										activeEdge === "corner" ? "tw:text-primary" : "tw:text-muted-foreground",
 									)}
 								/>
 							</div>
