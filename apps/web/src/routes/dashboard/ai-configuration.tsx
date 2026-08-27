@@ -312,14 +312,12 @@ function CredentialsSection({
 }) {
 	const { t } = useTranslation()
 	const configured = storedCredentialsMatch({ provider, value, stored })
-	const [replacing, setReplacing] = useState(false)
+	const [replacingContext, setReplacingContext] = useState<string | null>(null)
 	const contextSignature = useMemo(
 		() => JSON.stringify([value.providerId, value.authMode, value.settings, provider.id]),
 		[value.providerId, value.authMode, value.settings, provider.id],
 	)
-	useEffect(() => {
-		setReplacing(false)
-	}, [contextSignature])
+	const replacing = replacingContext === contextSignature
 
 	if (provider.credentialFields.length === 0) return null
 
@@ -330,7 +328,12 @@ function CredentialsSection({
 					<LockIcon className="size-3.5" />
 					{t("aiConfiguration.savedCredentials")}
 				</p>
-				<Button type="button" variant="ghost" className="h-7 px-2.5 text-xs" onClick={() => setReplacing(true)}>
+				<Button
+					type="button"
+					variant="ghost"
+					className="h-7 px-2.5 text-xs"
+					onClick={() => setReplacingContext(contextSignature)}
+				>
 					<PencilLineIcon data-icon="inline-start" />
 					{t("aiConfiguration.replaceCredentials")}
 				</Button>
@@ -347,7 +350,7 @@ function CredentialsSection({
 						type="button"
 						className="text-foreground shrink-0 underline underline-offset-2"
 						onClick={() => {
-							setReplacing(false)
+							setReplacingContext(null)
 							onChange({ ...value, credentials: {} })
 						}}
 					>

@@ -10,7 +10,7 @@
 	"scripts": {
 		"actions:check": "actionlint && zizmor --offline .",
 		"build": "turbo run build",
-		"ci": "bun run actions:check && bun run contracts:check && bun run quality && bun run i18n && bun run typecheck && bun run test && bun run build",
+		"ci": "bun run --sequential actions:check contracts:check quality i18n typecheck test build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bunx oxfmt apps/api/openapi.json && bunx orval --config orval.config.ts --fail-on-warnings && bunx oxfmt apps/web/src/api/generated",
 		"dev": "bun scripts/dev.ts",
@@ -40,5 +40,5 @@
 		"oxlint-tsgolint": "^7.0.2001",
 		"turbo": "2.10.11"
 	},
-	"packageManager": "bun@1.3.14"
+	"packageManager": "bun@1.4.0"
 }

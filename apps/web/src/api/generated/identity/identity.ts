@@ -75,11 +75,17 @@ export const getLoginUrl = () => {
 }
 
 export const login = async (loginBody: LoginBody, options?: RequestInit): Promise<loginResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getLoginUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(loginBody),
 	})
 
@@ -332,11 +338,17 @@ export const updateAccount = async (
 	updateAccountBody: UpdateAccountBody,
 	options?: RequestInit,
 ): Promise<updateAccountResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getUpdateAccountUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(updateAccountBody),
 	})
 
@@ -520,11 +532,17 @@ export const changePassword = async (
 	changePasswordBody: ChangePasswordBody,
 	options?: RequestInit,
 ): Promise<changePasswordResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getChangePasswordUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(changePasswordBody),
 	})
 

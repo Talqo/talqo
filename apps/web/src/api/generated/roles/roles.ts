@@ -257,11 +257,17 @@ export const bootstrapAdmin = async (
 	bootstrapAdminBody: BootstrapAdminBody,
 	options?: RequestInit,
 ): Promise<bootstrapAdminResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getBootstrapAdminUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(bootstrapAdminBody),
 	})
 
@@ -454,11 +460,17 @@ export const redeemInvitation = async (
 	redeemInvitationBody: RedeemInvitationBody,
 	options?: RequestInit,
 ): Promise<redeemInvitationResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getRedeemInvitationUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(redeemInvitationBody),
 	})
 
@@ -584,11 +596,17 @@ export const createPermissionGrant = async (
 	createPermissionGrantBody: CreatePermissionGrantBody,
 	options?: RequestInit,
 ): Promise<createPermissionGrantResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getCreatePermissionGrantUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(createPermissionGrantBody),
 	})
 
@@ -898,11 +916,17 @@ export const resetUserPassword = async (
 	resetUserPasswordBody: ResetUserPasswordBody,
 	options?: RequestInit,
 ): Promise<resetUserPasswordResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getResetUserPasswordUrl(userId), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(resetUserPasswordBody),
 	})
 

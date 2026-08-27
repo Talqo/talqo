@@ -293,11 +293,17 @@ export const saveAiProviderConfiguration = async (
 	saveAiProviderConfigurationBody: SaveAiProviderConfigurationBody,
 	options?: RequestInit,
 ): Promise<saveAiProviderConfigurationResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getSaveAiProviderConfigurationUrl(), {
 		credentials: "include",
 		...options,
 		method: "PUT",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(saveAiProviderConfigurationBody),
 	})
 
@@ -432,11 +438,17 @@ export const discoverAiProviderModels = async (
 	discoverAiProviderModelsBody: DiscoverAiProviderModelsBody,
 	options?: RequestInit,
 ): Promise<discoverAiProviderModelsResponseSuccess> => {
+	const getHeaders = (h?: HeadersInit | Headers): Record<string, string> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getDiscoverAiProviderModelsUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(discoverAiProviderModelsBody),
 	})
 
