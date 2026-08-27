@@ -297,8 +297,9 @@ function WidgetChat({
 								data-testid="resize-top"
 								className={cn(
 									"tw:absolute tw:-top-1.5 tw:right-3 tw:left-3 tw:z-10 tw:h-3 tw:cursor-ns-resize",
-									position !== "bottom-left" && "tw:right-14",
-									position === "bottom-left" && "tw:left-14",
+									// Keep clear of the corner grip: it sits top-left for bottom-right, top-right for bottom-left.
+									position !== "bottom-left" && "tw:left-14",
+									position === "bottom-left" && "tw:right-14",
 								)}
 								onPointerDown={(event) => startResize("top", event)}
 								onKeyDown={(event) => resizeByKeys("top", event)}
