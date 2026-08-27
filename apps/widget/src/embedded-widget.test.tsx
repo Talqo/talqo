@@ -56,7 +56,6 @@ async function openChat() {
 
 // Drag the corner handle; default position anchors the panel's right/bottom
 // edges, so moving the pointer up-left grows the panel.
-
 async function dragCornerTo(clientX: number, clientY: number, pointerId = 7) {
 	const handle = host.querySelector<HTMLElement>('[data-testid="resize-corner"]')
 	const dialog = panel()
@@ -151,6 +150,27 @@ describe("EmbeddedWidget resize", () => {
 		await dragCornerTo(-1000, -1000)
 		expect(panel()?.style.width).toBe("992px")
 		expect(panel()?.style.height).toBe("736px")
+	})
+
+	test("bottom-left position anchors on the left and grows rightwards", async () => {
+		await act(async () => {
+			root.unmount()
+		})
+		host.remove()
+		host = document.createElement("div")
+		document.body.append(host)
+		root = createRoot(host)
+		await act(async () => {
+			root.render(<EmbeddedWidget position="bottom-left" />)
+		})
+		await act(async () => {})
+
+		await openChat()
+		// Panel is anchored at left/bottom; dragging the pointer right grows it.
+		await dragCornerTo(600, 300)
+		// left=500, bottom=500 → width=600-500=100 → clamped to 280; height=500-300=320
+		expect(panel()?.style.width).toBe("280px")
+		expect(panel()?.style.height).toBe("320px")
 	})
 
 	test("closing and reopening resets the custom size", async () => {
