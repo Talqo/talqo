@@ -9,6 +9,9 @@ export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
 
+// Float in the corner by default; embeds can pin it via data-talqo-position.
+const DEFAULT_POSITION: WidgetPosition = "bottom-right"
+
 function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
 		return document.currentScript.dataset
@@ -23,7 +26,7 @@ function embedScriptDataset(): DOMStringMap | undefined {
 function embedProps(): EmbeddedWidgetProps {
 	const dataset = embedScriptDataset()
 	if (!dataset) {
-		return {}
+		return { position: DEFAULT_POSITION }
 	}
 	const { talqoEmbedToken, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
 	return {
@@ -35,7 +38,7 @@ function embedProps(): EmbeddedWidgetProps {
 		position:
 			talqoPosition === "bottom-left" || talqoPosition === "bottom-right"
 				? (talqoPosition as WidgetPosition)
-				: undefined,
+				: DEFAULT_POSITION,
 	}
 }
 

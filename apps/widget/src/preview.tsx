@@ -20,6 +20,6 @@ createRoot(rootElement).render(
 		language={isWidgetLanguage(language) ? language : undefined}
 		theme={theme === "light" || theme === "dark" ? theme : undefined}
 		accent={params.get("accent") ?? undefined}
-		position={position === "bottom-left" || position === "bottom-right" ? position : undefined}
+		position={position === "bottom-left" || position === "bottom-right" ? position : "bottom-right"}
 	/>,
 )
