@@ -27,6 +27,7 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
+import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
@@ -177,11 +178,15 @@ function useResizablePanel(
 		}
 	}
 
+	// Which edge is mid-drag; used to keep its highlight visible while resizing.
+	const [activeEdge, setActiveEdge] = useState<ResizeEdge | null>(null)
+
 	function startResize(edge: ResizeEdge, event: ReactPointerEvent<HTMLDivElement>) {
 		if (event.pointerType === "touch" || !panelRef.current) {
 			return
 		}
 		event.preventDefault()
+		setActiveEdge(edge)
 		const anchor = panelRef.current.getBoundingClientRect()
 		// The panel's bottom screen edge stays pinned: for bottom-right (default)
 		// it is the right edge, for bottom-left the left edge.
@@ -202,6 +207,7 @@ function useResizablePanel(
 			if (endEvent.pointerId !== pointerId) {
 				return
 			}
+			setActiveEdge(null)
 			window.removeEventListener("pointermove", handleMove)
 			window.removeEventListener("pointerup", handleEnd)
 			window.removeEventListener("pointercancel", handleEnd)
@@ -230,7 +236,7 @@ function useResizablePanel(
 		)
 	}
 
-	return { size, resizable, startResize, resizeByKeys }
+	return { size, resizable, startResize, resizeByKeys, activeEdge }
 }
 
 function WidgetChat({
@@ -256,7 +262,7 @@ function WidgetChat({
 	const wasOpen = useRef(false)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
-	const { size, resizable, startResize, resizeByKeys } = useResizablePanel(open, position, panelRef)
+	const { size, resizable, startResize, resizeByKeys, activeEdge } = useResizablePanel(open, position, panelRef)
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -310,7 +316,7 @@ function WidgetChat({
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:relative tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
+					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
 					style={panelStyle}
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
@@ -335,7 +341,14 @@ function WidgetChat({
 								)}
 								onPointerDown={(event) => startResize("top", event)}
 								onKeyDown={(event) => resizeByKeys("top", event)}
-							/>
+							>
+								<div
+									className={cn(
+										"tw:mx-auto tw:mt-1 tw:h-0.5 tw:w-10 tw:rounded-full tw:transition-colors",
+										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-border",
+									)}
+								/>
+							</div>
 							<div
 								role="separator"
 								tabIndex={0}
@@ -348,21 +361,41 @@ function WidgetChat({
 								)}
 								onPointerDown={(event) => startResize("side", event)}
 								onKeyDown={(event) => resizeByKeys("side", event)}
-							/>
+							>
+								<div
+									className={cn(
+										"tw:my-auto tw:h-10 tw:w-0.5 tw:rounded-full tw:transition-colors",
+										position === "bottom-left" ? "tw:mr-1 tw:ml-auto" : "tw:mt-auto tw:ml-1",
+										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-border",
+									)}
+								/>
+							</div>
 							<div
 								role="separator"
 								tabIndex={0}
 								aria-label={t("resizeWindow")}
 								data-testid="resize-corner"
 								className={cn(
-									"tw:absolute tw:z-10 tw:size-4",
+									"tw:absolute tw:z-10 tw:size-5 tw:transition-opacity",
 									position === "bottom-left"
 										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
 										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
+									activeEdge === "corner"
+										? "tw:opacity-100"
+										: "tw:opacity-0 tw:group-hover:opacity-100 tw:focus:opacity-100",
 								)}
 								onPointerDown={(event) => startResize("corner", event)}
 								onKeyDown={(event) => resizeByKeys("corner", event)}
-							/>
+							>
+								{/* Diagonal grip lines hinting the panel can be stretched. */}
+								<ResizeGripIcon
+									aria-hidden="true"
+									className={cn(
+										"tw:size-full tw:text-muted-foreground",
+										position === "bottom-left" && "tw:-scale-x-100",
+									)}
+								/>
+							</div>
 						</>
 					)}
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
