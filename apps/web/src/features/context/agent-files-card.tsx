@@ -108,7 +108,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			setRenameTarget(null)
 			await refresh()
 		} catch (error) {
-			setRenameError(errorMessage(error, t("agentFiles.uploadFailed")))
+			setRenameError(errorMessage(error, t("agentFiles.renameFailed")))
 		}
 	}
 
