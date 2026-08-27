@@ -2782,7 +2782,7 @@
 										]
 									}
 								},
-								"required": ["agentId", "name"]
+								"required": ["agentId", "name", "appearance"]
 							}
 						}
 					}
@@ -2935,7 +2935,7 @@
 					}
 				}
 			},
-			"patch": {
+			"put": {
 				"operationId": "updateWidget",
 				"tags": ["Widget"],
 				"security": [
@@ -3015,7 +3015,8 @@
 											"language"
 										]
 									}
-								}
+								},
+								"required": ["agentId", "name", "appearance"]
 							}
 						}
 					}

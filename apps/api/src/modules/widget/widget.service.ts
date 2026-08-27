@@ -1,6 +1,7 @@
+import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
+
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
-import { DEFAULT_WIDGET_APPEARANCE, type WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 import * as repo from "./widget.repository.ts"
 
@@ -31,6 +32,12 @@ export type WidgetConfig = {
 	version: number
 }
 
+export type WidgetInput = {
+	agentId: string
+	appearance: WidgetAppearance
+	name: string
+}
+
 export class WidgetNotFoundError extends Error {}
 export class UnknownAgentError extends Error {}
 
@@ -57,16 +64,16 @@ function toWidget(row: WidgetRow): Widget {
 	}
 }
 
-function toColumns(appearance: Partial<WidgetAppearance>) {
+function toColumns(appearance: WidgetAppearance) {
 	return {
-		...(appearance.primary !== undefined && { primaryColor: appearance.primary }),
-		...(appearance.primaryForeground !== undefined && { primaryForegroundColor: appearance.primaryForeground }),
-		...(appearance.background !== undefined && { backgroundColor: appearance.background }),
-		...(appearance.foreground !== undefined && { foregroundColor: appearance.foreground }),
-		...(appearance.position !== undefined && { position: appearance.position }),
-		...(appearance.theme !== undefined && { theme: appearance.theme }),
-		...(appearance.themeToggle !== undefined && { themeToggleEnabled: appearance.themeToggle }),
-		...(appearance.language !== undefined && { language: appearance.language }),
+		primaryColor: appearance.primary,
+		primaryForegroundColor: appearance.primaryForeground,
+		backgroundColor: appearance.background,
+		foregroundColor: appearance.foreground,
+		position: appearance.position,
+		theme: appearance.theme,
+		themeToggleEnabled: appearance.themeToggle,
+		language: appearance.language,
 	}
 }
 
@@ -80,26 +87,14 @@ export async function getWidget(id: string): Promise<Widget> {
 	return toWidget(row)
 }
 
-export async function createWidget(input: {
-	agentId: string
-	appearance?: Partial<WidgetAppearance>
-	name: string
-}): Promise<Widget> {
-	const appearance = { ...DEFAULT_WIDGET_APPEARANCE, ...input.appearance }
+export async function createWidget(input: WidgetInput): Promise<Widget> {
 	try {
 		const row = await repo.insertWidget({
 			id: crypto.randomUUID(),
 			agentId: input.agentId,
 			name: input.name,
 			publicToken: generateOpaqueToken(),
-			primaryColor: appearance.primary,
-			primaryForegroundColor: appearance.primaryForeground,
-			backgroundColor: appearance.background,
-			foregroundColor: appearance.foreground,
-			position: appearance.position,
-			theme: appearance.theme,
-			themeToggleEnabled: appearance.themeToggle,
-			language: appearance.language,
+			...toColumns(input.appearance),
 		})
 		return toWidget(row)
 	} catch (error) {
@@ -108,20 +103,13 @@ export async function createWidget(input: {
 	}
 }
 
-export async function updateWidget(
-	id: string,
-	patch: { agentId?: string; appearance?: Partial<WidgetAppearance>; name?: string },
-): Promise<Widget> {
-	const columns = {
-		...(patch.agentId !== undefined && { agentId: patch.agentId }),
-		...(patch.name !== undefined && { name: patch.name }),
-		...toColumns(patch.appearance ?? {}),
-	}
-	// An empty patch must still confirm the widget exists rather than silently succeeding.
-	if (Object.keys(columns).length === 0) return getWidget(id)
-
+export async function updateWidget(id: string, input: WidgetInput): Promise<Widget> {
 	try {
-		const row = await repo.updateWidget(id, columns)
+		const row = await repo.updateWidget(id, {
+			agentId: input.agentId,
+			name: input.name,
+			...toColumns(input.appearance),
+		})
 		if (!row) throw new WidgetNotFoundError(`Widget ${id} not found`)
 		return toWidget(row)
 	} catch (error) {

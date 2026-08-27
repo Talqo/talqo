@@ -12,27 +12,36 @@ async function createAgent(name = "Docs helper"): Promise<string> {
 	).id
 }
 
+async function createWidget(agentId: string, overrides: Partial<service.WidgetInput> = {}): Promise<service.Widget> {
+	return service.createWidget({ agentId, name: "Marketing site", appearance: DEFAULT_WIDGET_APPEARANCE, ...overrides })
+}
+
+/** Both write paths take a whole widget, so a targeted change is the stored one plus an override. */
+async function replaceWidget(widget: service.Widget, overrides: Partial<service.WidgetInput>): Promise<service.Widget> {
+	const { agentId, name, appearance } = widget
+	return service.updateWidget(widget.id, { agentId, name, appearance, ...overrides })
+}
+
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE widget CASCADE`
 	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
 })
 
 describe("widget lifecycle", () => {
-	it("creates a widget with the default palette and a unique public token", async () => {
+	it("mints a distinct public token per widget", async () => {
 		const agentId = await createAgent()
 
-		const first = await service.createWidget({ agentId, name: "Marketing site" })
-		const second = await service.createWidget({ agentId, name: "Support portal" })
+		const first = await createWidget(agentId)
+		const second = await createWidget(agentId, { name: "Support portal" })
 
-		expect(first.appearance).toEqual(DEFAULT_WIDGET_APPEARANCE)
 		expect(first.publicToken).not.toBe(second.publicToken)
 		expect(first.publicToken.length).toBeGreaterThan(0)
 	})
 
 	it("lets one agent serve several widgets", async () => {
 		const agentId = await createAgent()
-		await service.createWidget({ agentId, name: "Marketing site" })
-		await service.createWidget({ agentId, name: "Support portal" })
+		await createWidget(agentId)
+		await createWidget(agentId, { name: "Support portal" })
 
 		const widgets = await service.listWidgets()
 
@@ -53,39 +62,33 @@ describe("widget lifecycle", () => {
 			language: "cs",
 		} as const
 
-		const created = await service.createWidget({ agentId, name: "Dark site", appearance })
+		const created = await createWidget(agentId, { name: "Dark site", appearance })
 
 		expect((await service.getWidget(created.id)).appearance).toEqual(appearance)
 	})
 
-	it("applies a partial appearance patch without disturbing the other colors", async () => {
+	it("replaces the whole appearance on update", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
+		const appearance = { ...DEFAULT_WIDGET_APPEARANCE, primary: "#123456", theme: "dark" } as const
 
-		const updated = await service.updateWidget(created.id, { appearance: { primary: "#123456" } })
-
-		expect(updated.appearance.primary).toBe("#123456")
-		expect(updated.appearance.background).toBe(DEFAULT_WIDGET_APPEARANCE.background)
+		expect((await replaceWidget(created, { appearance })).appearance).toEqual(appearance)
 	})
 
 	it("reassigns a widget to a different agent", async () => {
 		const first = await createAgent("First")
 		const second = await createAgent("Second")
-		const created = await service.createWidget({ agentId: first, name: "Marketing site" })
+		const created = await createWidget(first)
 
-		expect((await service.updateWidget(created.id, { agentId: second })).agentId).toBe(second)
+		expect((await replaceWidget(created, { agentId: second })).agentId).toBe(second)
 	})
 
 	it("rejects an unknown agent on create and on reassignment", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 
-		await expect(service.createWidget({ agentId: crypto.randomUUID(), name: "Orphan" })).rejects.toThrow(
-			service.UnknownAgentError,
-		)
-		await expect(service.updateWidget(created.id, { agentId: crypto.randomUUID() })).rejects.toThrow(
-			service.UnknownAgentError,
-		)
+		await expect(createWidget(crypto.randomUUID(), { name: "Orphan" })).rejects.toThrow(service.UnknownAgentError)
+		await expect(replaceWidget(created, { agentId: crypto.randomUUID() })).rejects.toThrow(service.UnknownAgentError)
 	})
 
 	it("raises a typed error for an unknown widget", async () => {
@@ -97,14 +100,14 @@ describe("widget lifecycle", () => {
 describe("agent deletion", () => {
 	it("refuses to delete an agent that still serves a widget", async () => {
 		const agentId = await createAgent()
-		await service.createWidget({ agentId, name: "Marketing site" })
+		await createWidget(agentId)
 
 		await expect(agent.deleteAgent(agentId)).rejects.toThrow(agent.AgentInUseError)
 	})
 
 	it("allows deletion once the last widget is removed", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 
 		await service.deleteWidget(created.id)
 
@@ -115,7 +118,7 @@ describe("agent deletion", () => {
 describe("public config lookup", () => {
 	it("returns the appearance and agent for a known token", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 
 		const config = await service.getConfigByToken(created.publicToken)
 
@@ -136,16 +139,16 @@ describe("public config lookup", () => {
 
 	it("serves the updated appearance to already-embedded widgets", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 
-		await service.updateWidget(created.id, { appearance: { primary: "#ff0000" } })
+		await replaceWidget(created, { appearance: { ...created.appearance, primary: "#ff0000" } })
 
 		expect((await service.getConfigByToken(created.publicToken)).appearance.primary).toBe("#ff0000")
 	})
 
 	it("serves the config over HTTP without a session, with cache headers", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 
 		const response = await app.request(`/api/widget-config/${created.publicToken}`)
 
@@ -161,7 +164,7 @@ describe("public config lookup", () => {
 
 	it("answers 304 for a matching ETag and a fresh 200 once the appearance changes", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Marketing site" })
+		const created = await createWidget(agentId)
 		const first = await app.request(`/api/widget-config/${created.publicToken}`)
 		const etag = first.headers.get("etag") ?? ""
 
@@ -170,7 +173,7 @@ describe("public config lookup", () => {
 		})
 		expect(cached.status).toBe(304)
 
-		await service.updateWidget(created.id, { appearance: { primary: "#00ff00" } })
+		await replaceWidget(created, { appearance: { ...created.appearance, primary: "#00ff00" } })
 		const refreshed = await app.request(`/api/widget-config/${created.publicToken}`, {
 			headers: { "If-None-Match": etag },
 		})
@@ -179,7 +182,7 @@ describe("public config lookup", () => {
 
 	it("does not leak the widget's internal id or name", async () => {
 		const agentId = await createAgent()
-		const created = await service.createWidget({ agentId, name: "Internal name" })
+		const created = await createWidget(agentId, { name: "Internal name" })
 
 		const body = await (await app.request(`/api/widget-config/${created.publicToken}`)).text()
 

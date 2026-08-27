@@ -16,18 +16,16 @@ export const createWidgetBodyAppearanceForegroundRegExp = new RegExp("^#[0-9a-fA
 export const CreateWidgetBody = zod.object({
 	agentId: zod.string().min(1),
 	name: zod.string().min(1).max(createWidgetBodyNameMax),
-	appearance: zod
-		.object({
-			primary: zod.string().regex(createWidgetBodyAppearancePrimaryRegExp),
-			primaryForeground: zod.string().regex(createWidgetBodyAppearancePrimaryForegroundRegExp),
-			background: zod.string().regex(createWidgetBodyAppearanceBackgroundRegExp),
-			foreground: zod.string().regex(createWidgetBodyAppearanceForegroundRegExp),
-			position: zod.enum(["bottom-right", "bottom-left"]),
-			theme: zod.enum(["system", "light", "dark"]),
-			themeToggle: zod.boolean(),
-			language: zod.enum(["en", "cs", "zh"]),
-		})
-		.optional(),
+	appearance: zod.object({
+		primary: zod.string().regex(createWidgetBodyAppearancePrimaryRegExp),
+		primaryForeground: zod.string().regex(createWidgetBodyAppearancePrimaryForegroundRegExp),
+		background: zod.string().regex(createWidgetBodyAppearanceBackgroundRegExp),
+		foreground: zod.string().regex(createWidgetBodyAppearanceForegroundRegExp),
+		position: zod.enum(["bottom-right", "bottom-left"]),
+		theme: zod.enum(["system", "light", "dark"]),
+		themeToggle: zod.boolean(),
+		language: zod.enum(["en", "cs", "zh"]),
+	}),
 })
 
 export type CreateWidgetBody = zod.input<typeof CreateWidgetBody>

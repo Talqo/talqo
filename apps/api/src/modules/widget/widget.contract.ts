@@ -73,21 +73,16 @@ export const widgetConfigResponseSchema = z
 	})
 	.openapi("WidgetConfig")
 
-export const createWidgetRequestSchema = z.object({
+// Whole-object on both write paths: the pair refinements have nothing to compare a lone
+// color against, so a sparse appearance could not be checked without first reading the row.
+const widgetInputSchema = z.object({
 	agentId: z.string().min(1),
 	name: nameSchema,
-	appearance: appearanceInputSchema.optional(),
+	appearance: appearanceInputSchema,
 })
 
-export const updateWidgetRequestSchema = z
-	.object({
-		agentId: z.string().min(1).optional(),
-		name: nameSchema.optional(),
-		// Whole-object: the pair refinements have nothing to compare a lone color against,
-		// so a sparse appearance could not be checked without first reading the row.
-		appearance: appearanceInputSchema.optional(),
-	})
-	.refine((patch) => Object.keys(patch).length > 0, { message: "Provide at least one field to update" })
+export const createWidgetRequestSchema = widgetInputSchema
+export const updateWidgetRequestSchema = widgetInputSchema
 
 export const widgetDetailResponseSchema = z.object({ widget: widgetResponseSchema })
 export const widgetListResponseSchema = z.object({ widgets: z.array(widgetResponseSchema) })
@@ -153,7 +148,7 @@ export const getWidgetRoute = createRoute({
 })
 
 export const updateWidgetRoute = createRoute({
-	method: "patch",
+	method: "put",
 	path: "/{widgetId}",
 	operationId: "updateWidget",
 	tags: ["Widget"],

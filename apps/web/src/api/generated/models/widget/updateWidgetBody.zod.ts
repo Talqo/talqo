@@ -14,20 +14,18 @@ export const updateWidgetBodyAppearanceBackgroundRegExp = new RegExp("^#[0-9a-fA
 export const updateWidgetBodyAppearanceForegroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 
 export const UpdateWidgetBody = zod.object({
-	agentId: zod.string().min(1).optional(),
-	name: zod.string().min(1).max(updateWidgetBodyNameMax).optional(),
-	appearance: zod
-		.object({
-			primary: zod.string().regex(updateWidgetBodyAppearancePrimaryRegExp),
-			primaryForeground: zod.string().regex(updateWidgetBodyAppearancePrimaryForegroundRegExp),
-			background: zod.string().regex(updateWidgetBodyAppearanceBackgroundRegExp),
-			foreground: zod.string().regex(updateWidgetBodyAppearanceForegroundRegExp),
-			position: zod.enum(["bottom-right", "bottom-left"]),
-			theme: zod.enum(["system", "light", "dark"]),
-			themeToggle: zod.boolean(),
-			language: zod.enum(["en", "cs", "zh"]),
-		})
-		.optional(),
+	agentId: zod.string().min(1),
+	name: zod.string().min(1).max(updateWidgetBodyNameMax),
+	appearance: zod.object({
+		primary: zod.string().regex(updateWidgetBodyAppearancePrimaryRegExp),
+		primaryForeground: zod.string().regex(updateWidgetBodyAppearancePrimaryForegroundRegExp),
+		background: zod.string().regex(updateWidgetBodyAppearanceBackgroundRegExp),
+		foreground: zod.string().regex(updateWidgetBodyAppearanceForegroundRegExp),
+		position: zod.enum(["bottom-right", "bottom-left"]),
+		theme: zod.enum(["system", "light", "dark"]),
+		themeToggle: zod.boolean(),
+		language: zod.enum(["en", "cs", "zh"]),
+	}),
 })
 
 export type UpdateWidgetBody = zod.input<typeof UpdateWidgetBody>

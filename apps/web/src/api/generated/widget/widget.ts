@@ -403,7 +403,7 @@ export const updateWidget = async (
 	const res = await fetch(getUpdateWidgetUrl(widgetId), {
 		credentials: "include",
 		...options,
-		method: "PATCH",
+		method: "PUT",
 		headers: { "Content-Type": "application/json", ...options?.headers },
 		body: JSON.stringify(updateWidgetBody),
 	})

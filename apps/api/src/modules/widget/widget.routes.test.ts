@@ -52,9 +52,9 @@ describe("widget CRUD authentication boundary", () => {
 
 	it("requires a session to update a widget", async () => {
 		const response = await app.request("/api/widgets/any-id", {
-			method: "PATCH",
+			method: "PUT",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ name: "Renamed" }),
+			body: JSON.stringify({ agentId: "agent-1", name: "Renamed" }),
 		})
 
 		expect(response.status).toBe(401)
