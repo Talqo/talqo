@@ -26,6 +26,7 @@ export const userResponseSchema = z
 	.object({
 		id: z.string(),
 		username: z.string(),
+		mustChangePassword: z.boolean(),
 	})
 	.openapi("User")
 
@@ -44,6 +45,10 @@ export const updateAccountRequestSchema = z.object({
 
 export const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1),
+	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
+})
+
+export const forcedPasswordChangeRequestSchema = z.object({
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
 
@@ -118,6 +123,24 @@ export const changePasswordRoute = createRoute({
 		204: noContentResponse,
 		400: badRequestResponse,
 		401: unauthorizedResponse,
+		500: internalServerErrorResponse,
+	},
+})
+
+export const completeForcedPasswordChangeRoute = createRoute({
+	method: "patch",
+	path: "/password/forced",
+	operationId: "completeForcedPasswordChange",
+	tags: ["Identity"],
+	security: sessionSecurity,
+	request: {
+		body: { content: { "application/json": { schema: forcedPasswordChangeRequestSchema } }, required: true },
+	},
+	responses: {
+		204: noContentResponse,
+		400: badRequestResponse,
+		401: unauthorizedResponse,
+		409: conflictResponse,
 		500: internalServerErrorResponse,
 	},
 })

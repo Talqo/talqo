@@ -8,6 +8,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 
 import {
 	changePasswordRoute,
+	completeForcedPasswordChangeRoute,
 	deleteAccountRoute,
 	getSessionRoute,
 	loginRoute,
@@ -73,6 +74,20 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {
 				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+			}
+			throw error
+		}
+	})
+	.openapi(completeForcedPasswordChangeRoute, async (c) => {
+		const body = c.req.valid("json")
+		try {
+			await service.completeForcedPasswordChange(c.get("user").id, body.newPassword)
+			// completeForcedPasswordChange invalidates all sessions for the user, including this request's.
+			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
+			return c.body(null, HTTP_STATUS.NO_CONTENT)
+		} catch (error) {
+			if (error instanceof service.PasswordChangeNotRequiredError) {
+				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
 			}
 			throw error
 		}

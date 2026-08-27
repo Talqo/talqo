@@ -9,6 +9,7 @@ import * as zod from "zod"
 export const User = zod.object({
 	id: zod.string(),
 	username: zod.string(),
+	mustChangePassword: zod.boolean(),
 })
 
 export type User = zod.input<typeof User>

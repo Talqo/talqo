@@ -46,10 +46,11 @@ describe("toPublicUser", () => {
 			id: "user-1",
 			username: "alice",
 			passwordHash: "hash",
+			mustChangePassword: false,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		}
 
-		expect(toPublicUser(user)).toEqual({ id: "user-1", username: "alice" })
+		expect(toPublicUser(user)).toEqual({ id: "user-1", username: "alice", mustChangePassword: false })
 	})
 })
