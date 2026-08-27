@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { apiOriginOverride, buildEmbedSnippet } from "./embed-snippet"
+import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
 
 const SCRIPT_URL = "https://cdn.example.com/widget.js"
 

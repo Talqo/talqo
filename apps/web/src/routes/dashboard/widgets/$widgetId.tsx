@@ -6,9 +6,7 @@ import {
 	useUpdateWidget,
 } from "@/api/generated/widget/widget.ts"
 import { PageHeader } from "@/components/page-header"
-import { ColorField } from "@/features/widgets/components/color-field"
 import { WidgetPreview } from "@/features/widgets/components/widget-preview"
-import { apiOriginOverride, buildEmbedSnippet, widgetScriptUrl } from "@/features/widgets/embed-snippet"
 import {
 	toAppearance,
 	toFormValues,
@@ -31,6 +29,9 @@ import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+
+import { ColorField } from "./-color-field"
+import { apiOriginOverride, buildEmbedSnippet, widgetScriptUrl } from "./-embed-snippet"
 
 const COPY_FEEDBACK_MS = 2000
 
