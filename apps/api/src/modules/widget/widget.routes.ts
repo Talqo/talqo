@@ -102,7 +102,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 
 // Mounted apart from the CRUD namespace so an auth exemption for this path can never
-// widen into `/api/widgets` (ADR-0011); `widget.routes.test.ts` guards that boundary.
+// widen into `/api/widgets` (ADR-0013); `widget.routes.test.ts` guards that boundary.
 export const widgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(
 	getWidgetConfigRoute,
 	async (c) => {

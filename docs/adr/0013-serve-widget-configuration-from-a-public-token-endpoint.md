@@ -1,4 +1,4 @@
-# 0011: Serve Widget Configuration From A Public Token Endpoint
+# 0013: Serve Widget Configuration From A Public Token Endpoint
 
 ## Status
 

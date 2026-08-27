@@ -183,7 +183,7 @@ export const deleteWidgetRoute = createRoute({
 	},
 })
 
-// Deliberately unauthenticated (ADR-0011): it is reachable from arbitrary customer
+// Deliberately unauthenticated (ADR-0013): it is reachable from arbitrary customer
 // origins, so it carries no security scheme and returns identity-free appearance only.
 export const getWidgetConfigRoute = createRoute({
 	method: "get",

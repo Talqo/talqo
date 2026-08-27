@@ -25,7 +25,11 @@ Update this guide in the same change as any decision that changes architecture, 
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
+| Orval | Web API client generation | [ADR-0010](adr/0010-use-orval-for-web-api-generation.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
+| Widget theme derivation | Four operator colors expanded in CSS | [ADR-0012](adr/0012-derive-widget-theme-tokens-from-four-colors.md) |
+| Public widget config endpoint | Widget appearance delivery | [ADR-0013](adr/0013-serve-widget-configuration-from-a-public-token-endpoint.md) |
+| `talqo-preview` postMessage channel | Dashboard-to-preview updates | [ADR-0014](adr/0014-drive-the-widget-preview-with-a-postmessage-channel.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
@@ -213,9 +217,9 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe: URL parameters carry the initial appearance, and a versioned `talqo-preview` `postMessage` channel carries live updates (ADR-0012). Both apps declare the message shape independently — `apps/web` never imports widget source.
-- The embed snippet carries identity only (`data-talqo-widget`, optional `data-talqo-api`). The widget fetches its appearance from the public config endpoint at boot and applies `data-talqo-*` appearance attributes over it as a per-page override (ADR-0011).
-- Widget theme tokens derive from four operator colors via `color-mix()` (ADR-0010). Widget CSS must never register a custom property with `@property`: the build strips those rules and then fails if any survive.
+- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe: URL parameters carry the initial appearance, and a versioned `talqo-preview` `postMessage` channel carries live updates (ADR-0014). Both apps declare the message shape independently — `apps/web` never imports widget source.
+- The embed snippet carries identity only (`data-talqo-widget`, optional `data-talqo-api`). The widget fetches its appearance from the public config endpoint at boot and applies `data-talqo-*` appearance attributes over it as a per-page override (ADR-0013).
+- Widget theme tokens derive from four operator colors via `color-mix()` (ADR-0012). Widget CSS must never register a custom property with `@property`: the build strips those rules and then fails if any survive.
 - The widget consumes `packages/sdk` and never imports API app source.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.

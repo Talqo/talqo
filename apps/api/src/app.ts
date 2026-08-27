@@ -35,7 +35,7 @@ app.use("*", rejectMalformedJson)
 // browser abandons the real request. Scoped to the public config path only --
 // permissive CORS over the cookie-authenticated routes would be a CSRF hole.
 // `origin: "*"` is safe here precisely because it forbids credentialed requests,
-// and the payload is already public in every embedding page's source (ADR-0011).
+// and the payload is already public in every embedding page's source (ADR-0013).
 app.use(
 	`${API_PREFIX}/widget-config/*`,
 	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
