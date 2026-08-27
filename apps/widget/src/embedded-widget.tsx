@@ -305,8 +305,8 @@ function WidgetChat({
 							>
 								<div
 									className={cn(
-										"tw:mx-auto tw:mt-1 tw:h-0.5 tw:w-10 tw:rounded-full tw:transition-colors",
-										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-border tw:group-hover:bg-muted-foreground/60",
+										"tw:mx-auto tw:h-1.5 tw:w-12 tw:rounded-full tw:transition-colors",
+										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
 									)}
 								/>
 							</div>
@@ -325,9 +325,9 @@ function WidgetChat({
 							>
 								<div
 									className={cn(
-										"tw:my-auto tw:h-10 tw:w-0.5 tw:rounded-full tw:transition-colors",
+										"tw:my-auto tw:h-12 tw:w-1.5 tw:rounded-full tw:transition-colors",
 										position === "bottom-left" ? "tw:mr-1 tw:ml-auto" : "tw:mt-auto tw:ml-1",
-										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-border tw:group-hover:bg-muted-foreground/60",
+										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
 									)}
 								/>
 							</div>
@@ -337,10 +337,13 @@ function WidgetChat({
 								aria-label={t("resizeWindow")}
 								data-testid="resize-corner"
 								className={cn(
-									"tw:absolute tw:z-10 tw:size-5 tw:transition-colors",
+									"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
 									position === "bottom-left"
 										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
 										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
+									activeEdge === "corner"
+										? "tw:opacity-100"
+										: "tw:opacity-0 tw:group-hover:opacity-100 tw:focus:opacity-100",
 								)}
 								onPointerDown={(event) => startResize("corner", event)}
 								onKeyDown={(event) => resizeByKeys("corner", event)}
