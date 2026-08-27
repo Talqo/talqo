@@ -1,6 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test"
-
-import { fetchCalledDuring } from "./test-fetch.ts"
+import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
 
@@ -57,6 +55,10 @@ describe("widget mount", () => {
 	})
 
 	test("does not reach the network without a widget token", () => {
-		expect(fetchCalledDuring(() => mount())).toBe(false)
+		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
+
+		mount()
+
+		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 })
