@@ -82,7 +82,10 @@ export function WidgetPreview({ appearance, previewKey, title }: WidgetPreviewPr
 	// Computed once per widget: recomputing it per keystroke would reload the frame.
 	const [src] = useState(() => previewSrc(appearance, title))
 	const latestAppearance = useRef(appearance)
-	latestAppearance.current = appearance
+	// Kept out of the `ready` effect's deps so a re-subscribe is not needed per keystroke.
+	useEffect(() => {
+		latestAppearance.current = appearance
+	}, [appearance])
 
 	const targetOrigin = src ? new URL(src).origin : undefined
 

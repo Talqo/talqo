@@ -29,7 +29,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 const COPY_FEEDBACK_MS = 2000
@@ -72,7 +72,7 @@ function WidgetDetailPage() {
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 
-	const { register, handleSubmit, reset, control, watch, formState } = useForm<WidgetFormValues>({
+	const { register, handleSubmit, reset, control, formState } = useForm<WidgetFormValues>({
 		resolver: zodResolver(widgetFormSchema),
 		// `values` is applied in an effect, one render after the fields mount, so without
 		// defaults the selects would mount uncontrolled and stay blank once it lands.
@@ -88,8 +88,7 @@ function WidgetDetailPage() {
 	}, [])
 
 	// The preview follows the form, not the server, so it updates before a save.
-	const values = watch()
-	const appearance = toAppearance(values)
+	const appearance = useWatch({ control, compute: toAppearance })
 
 	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
 	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
@@ -239,7 +238,7 @@ function WidgetDetailPage() {
 										label={t("widgetSetup.colorPrimary")}
 										value={field.value}
 										onChange={field.onChange}
-										against={values.primaryForeground}
+										against={appearance.primaryForeground}
 									/>
 								)}
 							/>
@@ -252,7 +251,7 @@ function WidgetDetailPage() {
 										label={t("widgetSetup.colorPrimaryForeground")}
 										value={field.value}
 										onChange={field.onChange}
-										against={values.primary}
+										against={appearance.primary}
 									/>
 								)}
 							/>
@@ -265,7 +264,7 @@ function WidgetDetailPage() {
 										label={t("widgetSetup.colorBackground")}
 										value={field.value}
 										onChange={field.onChange}
-										against={values.foreground}
+										against={appearance.foreground}
 									/>
 								)}
 							/>
@@ -278,7 +277,7 @@ function WidgetDetailPage() {
 										label={t("widgetSetup.colorForeground")}
 										value={field.value}
 										onChange={field.onChange}
-										against={values.background}
+										against={appearance.background}
 									/>
 								)}
 							/>
