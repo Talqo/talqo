@@ -1,4 +1,5 @@
 [install]
+globalStore = false # TODO: Enable after https://github.com/oven-sh/bun/issues/36795 is fixed.
 linker = "isolated"
 minimumReleaseAge = 86400
 
