@@ -71,8 +71,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			return
 		}
 		try {
-			// Sequential on purpose: one directory per agent, and a deterministic order makes
-			// per-file feedback line up with selection order.
+			// Sequential so per-file feedback lines up with selection order.
 			for (const file of files) {
 				// eslint-disable-next-line no-await-in-loop
 				await uploadFile.mutateAsync({ agentId, data: { file } })

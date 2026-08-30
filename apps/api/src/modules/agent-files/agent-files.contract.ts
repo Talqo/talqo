@@ -37,8 +37,7 @@ const fileParamsSchema = z.object({
 	fileName: z.string().openapi({ param: { name: "fileName", in: "path" } }),
 })
 
-// Multipart carries a binary file; the runtime validates it is a real File. The
-// schema is overridden to OpenAPI's binary string so clients generate an upload field.
+// Overridden to OpenAPI's binary string so clients generate an upload field.
 const fileFieldSchema = z.custom<File>((value) => value instanceof File).openapi({ type: "string", format: "binary" })
 
 export const renameAgentFileRequestSchema = z.object({

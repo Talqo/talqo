@@ -28,7 +28,6 @@ function mapDomainError(error: unknown): { body: { error: string }; status: numb
 	return null
 }
 
-// Contract schemas serialize timestamps as ISO strings.
 function serialize(file: files.StoredFile) {
 	return { ...file, createdAt: file.createdAt.toISOString() }
 }
@@ -36,7 +35,7 @@ function serialize(file: files.StoredFile) {
 // The agent must exist before any file operation: with no agent↔context table, the
 // agent row is the only thing that proves the upload directory belongs to a live agent.
 async function requireAgent(agentId: string): Promise<void> {
-	await agent.getAgent(agentId) // throws AgentNotFoundError
+	await agent.getAgent(agentId)
 }
 
 export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
@@ -111,7 +110,6 @@ export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 		const { agentId, fileName } = c.req.valid("param")
 		try {
 			await requireAgent(agentId)
-			// See rename: the name is URL-decoded before it reaches us.
 			files.validatePathName(fileName)
 			await files.remove(agentId, fileName)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)

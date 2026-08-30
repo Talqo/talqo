@@ -10,11 +10,9 @@ export const BYTES_PER_MB = 1024 * 1024
 export const MAX_FILE_NAME_LENGTH = 255
 /* eslint-enable no-magic-numbers */
 
-// Extension allowlist. The client-declared MIME type is NOT trustworthy for validation:
-// browsers label sniffed text content as text/plain regardless of the real type.
+// Client-declared MIME types are not trustworthy (sniffed text becomes text/plain), so validate by extension.
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".txt", ".md", ".docx"])
 
-// Filename must be safe to use directly on disk: no separators or control characters.
 const FORBIDDEN_NAME_CHARS = /[/\\\0]|\.{2}/
 
 export type StoredFile = {
@@ -77,7 +75,6 @@ export async function list(agentId: string): Promise<StoredFile[]> {
 	try {
 		entries = await readdir(dir)
 	} catch (error) {
-		// No upload yet: the directory simply does not exist, which is "no files".
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
 		throw error
 	}
@@ -87,7 +84,6 @@ export async function list(agentId: string): Promise<StoredFile[]> {
 
 export async function put(agentId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
 	const dir = agentDir(agentId)
-	// The agent directory is created lazily on the first upload.
 	await mkdir(dir, { recursive: true })
 	const path = join(dir, name)
 	try {
