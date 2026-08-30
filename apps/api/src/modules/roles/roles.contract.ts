@@ -110,7 +110,6 @@ export const userListResponseSchema = z.object({
 })
 
 export const accessResponseSchema = z.object({
-	isAdmin: z.boolean(),
 	permissions: z.array(z.enum(PERMISSIONS)),
 })
 
@@ -219,6 +218,7 @@ export const createPermissionGrantRoute = createRoute({
 		401: unauthorizedResponse,
 		403: forbiddenResponse,
 		404: notFoundResponse,
+		409: conflictResponse,
 		500: internalServerErrorResponse,
 	},
 })

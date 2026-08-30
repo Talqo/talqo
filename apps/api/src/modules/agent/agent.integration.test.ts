@@ -59,7 +59,7 @@ function createJsonRequest(cookie: string, method: string, path: string, body?: 
 }
 
 beforeEach(async () => {
-	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, user_role, session, "user"`
+	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user"`
 })
 
 describe("agent CRUD", () => {
