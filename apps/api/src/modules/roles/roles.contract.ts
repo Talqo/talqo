@@ -16,6 +16,7 @@ import {
 	USERNAME_PATTERN,
 } from "@/modules/identity/identity.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
+import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
 import { PERMISSIONS } from "./roles.service.ts"
 
@@ -54,8 +55,13 @@ export const createInvitationResponseSchema = z.object({
 	expiresAt: z.iso.datetime(),
 })
 
+<<<<<<< HEAD
 const redeemInvitationRequestSchema = z.object({
 	token: z.string().min(1),
+=======
+export const redeemInvitationRequestSchema = z.object({
+	token: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
+>>>>>>> de69a6c9 (fix: cap unbounded input to prevent oversized-payload DoS)
 	username: usernameSchema,
 	password: passwordSchema,
 })
@@ -66,7 +72,7 @@ export const redeemInvitationResponseSchema = z.object({
 
 const createGrantRequestSchema = z
 	.object({
-		userId: z.string().min(1),
+		userId: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
 		permission: z.enum(PERMISSIONS),
 	})
 	.strict()

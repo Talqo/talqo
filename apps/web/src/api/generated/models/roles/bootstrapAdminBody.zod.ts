@@ -11,7 +11,7 @@ export const bootstrapAdminBodyUsernameMax = 32
 
 export const bootstrapAdminBodyUsernameRegExp = new RegExp("^[a-zA-Z0-9_-]+$")
 export const bootstrapAdminBodyPasswordMin = 8
-export const bootstrapAdminBodyPasswordMax = 128
+export const bootstrapAdminBodyPasswordMax = 72
 
 export const BootstrapAdminBody = zod.object({
 	username: zod

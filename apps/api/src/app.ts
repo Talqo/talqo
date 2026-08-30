@@ -2,7 +2,7 @@ import type { AuthedVariables } from "@/http/require-auth.ts"
 import type { Context } from "hono"
 
 import { getHealthRoute } from "@/http/health.contract.ts"
-import { rejectMalformedJson } from "@/http/json-body.ts"
+import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
 import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
@@ -30,6 +30,7 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 })
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
+app.use("*", rejectOversizedBody)
 app.use("*", rejectMalformedJson)
 // Ahead of requireAuth, so a preflight is not answered with a 401. Scoped to the public
 // config path: `origin: "*"` forbids credentials, but wider would be a CSRF hole (ADR-0013).

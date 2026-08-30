@@ -7,7 +7,7 @@
 import * as zod from "zod"
 
 export const resetUserPasswordBodyNewPasswordMin = 8
-export const resetUserPasswordBodyNewPasswordMax = 128
+export const resetUserPasswordBodyNewPasswordMax = 72
 
 export const ResetUserPasswordBody = zod.object({
 	newPassword: zod.string().min(resetUserPasswordBodyNewPasswordMin).max(resetUserPasswordBodyNewPasswordMax),

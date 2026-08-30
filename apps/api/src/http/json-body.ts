@@ -1,5 +1,14 @@
 import { HTTP_STATUS } from "@/http/status.ts"
+import { bodyLimit } from "hono/body-limit"
 import { createMiddleware } from "hono/factory"
+
+// Hard ceiling for inbound bodies; generous for the largest payload (system prompts up to 20k chars).
+const REQUEST_BODY_MAX_BYTES = 65_536
+
+export const rejectOversizedBody = bodyLimit({
+	maxSize: REQUEST_BODY_MAX_BYTES,
+	onError: (context) => context.json({ error: "Request body too large" }, HTTP_STATUS.PAYLOAD_TOO_LARGE),
+})
 
 export const rejectMalformedJson = createMiddleware(async (context, next) => {
 	if (context.req.header("Content-Type")?.startsWith("application/json")) {
