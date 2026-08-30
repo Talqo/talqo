@@ -5,8 +5,7 @@ const DEFAULT_API_PORT = 3000
 const MAX_PORT = 65_535
 const MIN_APP_SECRET_BYTES = 32
 
-// Dev default for TALQO_UPLOAD_DIR: <repo>/tmp. From src/config/env.ts, the repo root
-// is four levels up; the trailing slash keeps the last segment a directory.
+// Trailing slash keeps the last segment a directory.
 const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url))
 
 const appSecretSchema = z
@@ -24,8 +23,7 @@ const envSchema = z
 			error: "DATABASE_URL must be a valid postgres:// connection string",
 		}),
 		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
-		// Dev default only: <repo>/tmp (gitignored). Production sets TALQO_UPLOAD_DIR to
-		// whatever persistent path its deployment provides — the var is the contract.
+		// Dev default <repo>/tmp (gitignored); production sets TALQO_UPLOAD_DIR explicitly.
 		TALQO_UPLOAD_DIR: z.string().min(1).default(`${REPO_ROOT}tmp`),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
