@@ -76,11 +76,17 @@ export const getLoginUrl = () => {
 }
 
 export const login = async (loginBody: LoginBody, options?: RequestInit): Promise<loginResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getLoginUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(loginBody),
 	})
 
@@ -100,9 +106,9 @@ export const getLoginMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, { data: LoginBody }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, { data: LoginBody }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext> => {
 	const mutationKey = ["login"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -110,7 +116,7 @@ export const getLoginMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof login>>, { data: LoginBody }> = (props) => {
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof login>>, LoginMutationVariables> = (props) => {
 		const { data } = props ?? {}
 
 		return login(data, fetchOptions)
@@ -122,14 +128,15 @@ export const getLoginMutationOptions = <
 export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
 export type LoginMutationBody = LoginBody
 export type LoginMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type LoginMutationVariables = { data: LoginBody }
 
 export const useLogin = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, { data: LoginBody }, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof login>>, TError, { data: LoginBody }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext> => {
 	return useMutation(getLoginMutationOptions(options))
 }
 export type logoutResponse204 = {
@@ -333,11 +340,17 @@ export const updateAccount = async (
 	updateAccountBody: UpdateAccountBody,
 	options?: RequestInit,
 ): Promise<updateAccountResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getUpdateAccountUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(updateAccountBody),
 	})
 
@@ -361,11 +374,11 @@ export const getUpdateAccountMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof updateAccount>>,
 		TError,
-		{ data: UpdateAccountBody },
+		UpdateAccountMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError, { data: UpdateAccountBody }, TContext> => {
+}): UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
 	const mutationKey = ["updateAccount"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -373,7 +386,7 @@ export const getUpdateAccountMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAccount>>, { data: UpdateAccountBody }> = (
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAccount>>, UpdateAccountMutationVariables> = (
 		props,
 	) => {
 		const { data } = props ?? {}
@@ -387,6 +400,7 @@ export const getUpdateAccountMutationOptions = <
 export type UpdateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccount>>>
 export type UpdateAccountMutationBody = UpdateAccountBody
 export type UpdateAccountMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type UpdateAccountMutationVariables = { data: UpdateAccountBody }
 
 export const useUpdateAccount = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -395,11 +409,11 @@ export const useUpdateAccount = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof updateAccount>>,
 		TError,
-		{ data: UpdateAccountBody },
+		UpdateAccountMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof updateAccount>>, TError, { data: UpdateAccountBody }, TContext> => {
+}): UseMutationResult<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
 	return useMutation(getUpdateAccountMutationOptions(options))
 }
 export type deleteAccountResponse204 = {
@@ -521,11 +535,17 @@ export const changePassword = async (
 	changePasswordBody: ChangePasswordBody,
 	options?: RequestInit,
 ): Promise<changePasswordResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getChangePasswordUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(changePasswordBody),
 	})
 
@@ -549,11 +569,16 @@ export const getChangePasswordMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof changePassword>>,
 		TError,
-		{ data: ChangePasswordBody },
+		ChangePasswordMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError, { data: ChangePasswordBody }, TContext> => {
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof changePassword>>,
+	TError,
+	ChangePasswordMutationVariables,
+	TContext
+> => {
 	const mutationKey = ["changePassword"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -561,7 +586,7 @@ export const getChangePasswordMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, { data: ChangePasswordBody }> = (
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, ChangePasswordMutationVariables> = (
 		props,
 	) => {
 		const { data } = props ?? {}
@@ -575,6 +600,7 @@ export const getChangePasswordMutationOptions = <
 export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
 export type ChangePasswordMutationBody = ChangePasswordBody
 export type ChangePasswordMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type ChangePasswordMutationVariables = { data: ChangePasswordBody }
 
 export const useChangePassword = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -583,11 +609,16 @@ export const useChangePassword = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof changePassword>>,
 		TError,
-		{ data: ChangePasswordBody },
+		ChangePasswordMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof changePassword>>, TError, { data: ChangePasswordBody }, TContext> => {
+}): UseMutationResult<
+	Awaited<ReturnType<typeof changePassword>>,
+	TError,
+	ChangePasswordMutationVariables,
+	TContext
+> => {
 	return useMutation(getChangePasswordMutationOptions(options))
 }
 export type completeForcedPasswordChangeResponse204 = {
@@ -635,11 +666,17 @@ export const completeForcedPasswordChange = async (
 	completeForcedPasswordChangeBody: CompleteForcedPasswordChangeBody,
 	options?: RequestInit,
 ): Promise<completeForcedPasswordChangeResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getCompleteForcedPasswordChangeUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(completeForcedPasswordChangeBody),
 	})
 
@@ -663,14 +700,14 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 		TError,
-		{ data: CompleteForcedPasswordChangeBody },
+		CompleteForcedPasswordChangeMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 	TError,
-	{ data: CompleteForcedPasswordChangeBody },
+	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["completeForcedPasswordChange"]
@@ -682,7 +719,7 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
-		{ data: CompleteForcedPasswordChangeBody }
+		CompleteForcedPasswordChangeMutationVariables
 	> = (props) => {
 		const { data } = props ?? {}
 
@@ -697,6 +734,7 @@ export type CompleteForcedPasswordChangeMutationResult = NonNullable<
 >
 export type CompleteForcedPasswordChangeMutationBody = CompleteForcedPasswordChangeBody
 export type CompleteForcedPasswordChangeMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CompleteForcedPasswordChangeMutationVariables = { data: CompleteForcedPasswordChangeBody }
 
 export const useCompleteForcedPasswordChange = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -705,14 +743,14 @@ export const useCompleteForcedPasswordChange = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 		TError,
-		{ data: CompleteForcedPasswordChangeBody },
+		CompleteForcedPasswordChangeMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 	TError,
-	{ data: CompleteForcedPasswordChangeBody },
+	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
 	return useMutation(getCompleteForcedPasswordChangeMutationOptions(options))
