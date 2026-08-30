@@ -3,6 +3,7 @@ import { getListUsersQueryKey, useListUsers, useResetUserPassword } from "@/api/
 import { PageHeader } from "@/components/page-header"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
+import { readErrorInfo } from "@/lib/fetch-error"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
@@ -91,8 +92,7 @@ function ResetPasswordDialog({
 			onReset(targetUser.id)
 			handleOpenChange(false)
 		} catch (caught) {
-			const info = (caught as { info?: { error?: string } } | null)?.info
-			setError(info?.error ?? t("auth.errorFallback"))
+			setError(readErrorInfo(caught) ?? t("auth.errorFallback"))
 		}
 	}
 
