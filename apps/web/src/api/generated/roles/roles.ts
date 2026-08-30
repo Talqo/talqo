@@ -258,11 +258,17 @@ export const bootstrapAdmin = async (
 	bootstrapAdminBody: BootstrapAdminBody,
 	options?: RequestInit,
 ): Promise<bootstrapAdminResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getBootstrapAdminUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(bootstrapAdminBody),
 	})
 
@@ -286,11 +292,16 @@ export const getBootstrapAdminMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof bootstrapAdmin>>,
 		TError,
-		{ data: BootstrapAdminBody },
+		BootstrapAdminMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof bootstrapAdmin>>, TError, { data: BootstrapAdminBody }, TContext> => {
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof bootstrapAdmin>>,
+	TError,
+	BootstrapAdminMutationVariables,
+	TContext
+> => {
 	const mutationKey = ["bootstrapAdmin"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -298,7 +309,7 @@ export const getBootstrapAdminMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof bootstrapAdmin>>, { data: BootstrapAdminBody }> = (
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof bootstrapAdmin>>, BootstrapAdminMutationVariables> = (
 		props,
 	) => {
 		const { data } = props ?? {}
@@ -312,6 +323,7 @@ export const getBootstrapAdminMutationOptions = <
 export type BootstrapAdminMutationResult = NonNullable<Awaited<ReturnType<typeof bootstrapAdmin>>>
 export type BootstrapAdminMutationBody = BootstrapAdminBody
 export type BootstrapAdminMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type BootstrapAdminMutationVariables = { data: BootstrapAdminBody }
 
 export const useBootstrapAdmin = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -320,11 +332,16 @@ export const useBootstrapAdmin = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof bootstrapAdmin>>,
 		TError,
-		{ data: BootstrapAdminBody },
+		BootstrapAdminMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof bootstrapAdmin>>, TError, { data: BootstrapAdminBody }, TContext> => {
+}): UseMutationResult<
+	Awaited<ReturnType<typeof bootstrapAdmin>>,
+	TError,
+	BootstrapAdminMutationVariables,
+	TContext
+> => {
 	return useMutation(getBootstrapAdminMutationOptions(options))
 }
 export type createInvitationResponse201 = {
@@ -455,11 +472,17 @@ export const redeemInvitation = async (
 	redeemInvitationBody: RedeemInvitationBody,
 	options?: RequestInit,
 ): Promise<redeemInvitationResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getRedeemInvitationUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(redeemInvitationBody),
 	})
 
@@ -483,14 +506,14 @@ export const getRedeemInvitationMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof redeemInvitation>>,
 		TError,
-		{ data: RedeemInvitationBody },
+		RedeemInvitationMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof redeemInvitation>>,
 	TError,
-	{ data: RedeemInvitationBody },
+	RedeemInvitationMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["redeemInvitation"]
@@ -500,9 +523,10 @@ export const getRedeemInvitationMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof redeemInvitation>>, { data: RedeemInvitationBody }> = (
-		props,
-	) => {
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof redeemInvitation>>,
+		RedeemInvitationMutationVariables
+	> = (props) => {
 		const { data } = props ?? {}
 
 		return redeemInvitation(data, fetchOptions)
@@ -514,6 +538,7 @@ export const getRedeemInvitationMutationOptions = <
 export type RedeemInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof redeemInvitation>>>
 export type RedeemInvitationMutationBody = RedeemInvitationBody
 export type RedeemInvitationMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type RedeemInvitationMutationVariables = { data: RedeemInvitationBody }
 
 export const useRedeemInvitation = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -522,14 +547,14 @@ export const useRedeemInvitation = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof redeemInvitation>>,
 		TError,
-		{ data: RedeemInvitationBody },
+		RedeemInvitationMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof redeemInvitation>>,
 	TError,
-	{ data: RedeemInvitationBody },
+	RedeemInvitationMutationVariables,
 	TContext
 > => {
 	return useMutation(getRedeemInvitationMutationOptions(options))
@@ -585,11 +610,17 @@ export const createPermissionGrant = async (
 	createPermissionGrantBody: CreatePermissionGrantBody,
 	options?: RequestInit,
 ): Promise<createPermissionGrantResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getCreatePermissionGrantUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(createPermissionGrantBody),
 	})
 
@@ -613,14 +644,14 @@ export const getCreatePermissionGrantMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof createPermissionGrant>>,
 		TError,
-		{ data: CreatePermissionGrantBody },
+		CreatePermissionGrantMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof createPermissionGrant>>,
 	TError,
-	{ data: CreatePermissionGrantBody },
+	CreatePermissionGrantMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["createPermissionGrant"]
@@ -632,7 +663,7 @@ export const getCreatePermissionGrantMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof createPermissionGrant>>,
-		{ data: CreatePermissionGrantBody }
+		CreatePermissionGrantMutationVariables
 	> = (props) => {
 		const { data } = props ?? {}
 
@@ -645,6 +676,7 @@ export const getCreatePermissionGrantMutationOptions = <
 export type CreatePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof createPermissionGrant>>>
 export type CreatePermissionGrantMutationBody = CreatePermissionGrantBody
 export type CreatePermissionGrantMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CreatePermissionGrantMutationVariables = { data: CreatePermissionGrantBody }
 
 export const useCreatePermissionGrant = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -653,14 +685,14 @@ export const useCreatePermissionGrant = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof createPermissionGrant>>,
 		TError,
-		{ data: CreatePermissionGrantBody },
+		CreatePermissionGrantMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof createPermissionGrant>>,
 	TError,
-	{ data: CreatePermissionGrantBody },
+	CreatePermissionGrantMutationVariables,
 	TContext
 > => {
 	return useMutation(getCreatePermissionGrantMutationOptions(options))
@@ -727,9 +759,19 @@ export const getRevokePermissionGrantMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof revokePermissionGrant>>, TError, { id: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof revokePermissionGrant>>,
+		TError,
+		RevokePermissionGrantMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof revokePermissionGrant>>, TError, { id: string }, TContext> => {
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof revokePermissionGrant>>,
+	TError,
+	RevokePermissionGrantMutationVariables,
+	TContext
+> => {
 	const mutationKey = ["revokePermissionGrant"]
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -737,7 +779,10 @@ export const getRevokePermissionGrantMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokePermissionGrant>>, { id: string }> = (props) => {
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof revokePermissionGrant>>,
+		RevokePermissionGrantMutationVariables
+	> = (props) => {
 		const { id } = props ?? {}
 
 		return revokePermissionGrant(id, fetchOptions)
@@ -749,14 +794,25 @@ export const getRevokePermissionGrantMutationOptions = <
 export type RevokePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof revokePermissionGrant>>>
 
 export type RevokePermissionGrantMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type RevokePermissionGrantMutationVariables = { id: string }
 
 export const useRevokePermissionGrant = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof revokePermissionGrant>>, TError, { id: string }, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof revokePermissionGrant>>,
+		TError,
+		RevokePermissionGrantMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof revokePermissionGrant>>, TError, { id: string }, TContext> => {
+}): UseMutationResult<
+	Awaited<ReturnType<typeof revokePermissionGrant>>,
+	TError,
+	RevokePermissionGrantMutationVariables,
+	TContext
+> => {
 	return useMutation(getRevokePermissionGrantMutationOptions(options))
 }
 export type getMyPermissionsResponse200 = {
@@ -991,11 +1047,17 @@ export const resetUserPassword = async (
 	resetUserPasswordBody: ResetUserPasswordBody,
 	options?: RequestInit,
 ): Promise<resetUserPasswordResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
 	const res = await fetch(getResetUserPasswordUrl(userId), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
-		headers: { "Content-Type": "application/json", ...options?.headers },
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
 		body: JSON.stringify(resetUserPasswordBody),
 	})
 
@@ -1019,14 +1081,14 @@ export const getResetUserPasswordMutationOptions = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof resetUserPassword>>,
 		TError,
-		{ userId: string; data: ResetUserPasswordBody },
+		ResetUserPasswordMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<
 	Awaited<ReturnType<typeof resetUserPassword>>,
 	TError,
-	{ userId: string; data: ResetUserPasswordBody },
+	ResetUserPasswordMutationVariables,
 	TContext
 > => {
 	const mutationKey = ["resetUserPassword"]
@@ -1038,7 +1100,7 @@ export const getResetUserPasswordMutationOptions = <
 
 	const mutationFn: MutationFunction<
 		Awaited<ReturnType<typeof resetUserPassword>>,
-		{ userId: string; data: ResetUserPasswordBody }
+		ResetUserPasswordMutationVariables
 	> = (props) => {
 		const { userId, data } = props ?? {}
 
@@ -1051,6 +1113,7 @@ export const getResetUserPasswordMutationOptions = <
 export type ResetUserPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof resetUserPassword>>>
 export type ResetUserPasswordMutationBody = ResetUserPasswordBody
 export type ResetUserPasswordMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type ResetUserPasswordMutationVariables = { userId: string; data: ResetUserPasswordBody }
 
 export const useResetUserPassword = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
@@ -1059,14 +1122,14 @@ export const useResetUserPassword = <
 	mutation?: UseMutationOptions<
 		Awaited<ReturnType<typeof resetUserPassword>>,
 		TError,
-		{ userId: string; data: ResetUserPasswordBody },
+		ResetUserPasswordMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
 }): UseMutationResult<
 	Awaited<ReturnType<typeof resetUserPassword>>,
 	TError,
-	{ userId: string; data: ResetUserPasswordBody },
+	ResetUserPasswordMutationVariables,
 	TContext
 > => {
 	return useMutation(getResetUserPasswordMutationOptions(options))
