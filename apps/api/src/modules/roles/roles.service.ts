@@ -14,6 +14,15 @@ export const PUBLIC_PATHS = ["/setup", "/invitations/redeem"]
 export const PERMISSIONS = ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
+// Named constants for call sites, so authorization checks never depend on hand-typed strings.
+export const Permission = {
+	Admin: "admin",
+	UsersInvite: "users:invite",
+	AiProviderManage: "ai_provider:manage",
+	AgentsRead: "agents:read",
+	AgentsManage: "agents:manage",
+} as const satisfies Record<string, Permission>
+
 // "admin" is the first entry only for display stability; it implies every other permission.
 const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
 	admin: PERMISSIONS.filter((permission) => permission !== "admin"),
@@ -62,7 +71,7 @@ export async function bootstrapAdmin(input: { password: string; username: string
 		await repo.insertPermissionGrant({
 			id: crypto.randomUUID(),
 			userId: user.id,
-			permission: "admin",
+			permission: Permission.Admin,
 			grantedBy: user.id,
 		})
 	} catch (error) {

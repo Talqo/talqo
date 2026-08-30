@@ -37,8 +37,8 @@ function serialize(agent: service.Agent) {
 export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(listAgentsRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsRead} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 		return c.json(
 			agentListResponseSchema.parse({ agents: (await service.listAgents()).map(serialize) }),
@@ -47,8 +47,8 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(createAgentRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsManage} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -62,8 +62,8 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(getAgentRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsRead} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -77,8 +77,8 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(updateAgentRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsManage} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -92,8 +92,8 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(refreshEmbedTokenRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsManage} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -107,8 +107,8 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(deleteAgentRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return c.json({ error: `Missing ${roles.Permission.AgentsManage} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {

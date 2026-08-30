@@ -51,8 +51,8 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, "users:invite"))) {
-			return c.json({ error: "Missing users:invite permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await service.authorize(user.id, service.Permission.UsersInvite))) {
+			return c.json({ error: `Missing ${service.Permission.UsersInvite} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
@@ -77,7 +77,7 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, "admin"))) {
+		if (!(await service.authorize(user.id, service.Permission.Admin))) {
 			return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
@@ -95,7 +95,7 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 	.openapi(revokePermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, "admin"))) {
+		if (!(await service.authorize(user.id, service.Permission.Admin))) {
 			return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
@@ -112,7 +112,7 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 })
 
 rolesRoutes.openapi(getUsersRoute, async (c) => {
-	if (!(await service.authorize(c.get("user").id, "admin"))) {
+	if (!(await service.authorize(c.get("user").id, service.Permission.Admin))) {
 		return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 	}
 
@@ -122,7 +122,7 @@ rolesRoutes.openapi(getUsersRoute, async (c) => {
 
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
-	if (!(await service.authorize(user.id, "admin"))) {
+	if (!(await service.authorize(user.id, service.Permission.Admin))) {
 		return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 	}
 
