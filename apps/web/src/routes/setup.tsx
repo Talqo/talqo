@@ -2,6 +2,7 @@ import { useLogin } from "@/api/generated/identity/identity.ts"
 import { useBootstrapAdmin } from "@/api/generated/roles/roles.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
+import { readErrorInfo } from "@/lib/fetch-error"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
@@ -27,9 +28,7 @@ function SetupPage() {
 			queryClient.clear()
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
-			// Orval fetch errors expose the parsed error body as `info.error`.
-			const info = (caught as { info?: { error?: string } } | null)?.info
-			setError(info?.error ?? t("auth.errorFallback"))
+			setError(readErrorInfo(caught) ?? t("auth.errorFallback"))
 		}
 	}
 

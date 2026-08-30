@@ -1,3 +1,5 @@
+import { readErrorInfo } from "@/lib/fetch-error"
+
 const FORBIDDEN_STATUS = 403
 
 export function buildInvitationUrl(origin: string, token: string): string {
@@ -18,8 +20,7 @@ export function getInvitationErrorMessage(
 	error: unknown,
 	messages: { fallback: string; permissionDenied: string },
 ): string {
-	// Orval fetch errors expose the status and parsed error body as `info.error`.
-	const response = (error as { info?: { error?: string }; status?: number } | null) ?? {}
-	if (response.status === FORBIDDEN_STATUS) return messages.permissionDenied
-	return response.info?.error ?? messages.fallback
+	const status = (error as { status?: number } | null)?.status
+	if (status === FORBIDDEN_STATUS) return messages.permissionDenied
+	return readErrorInfo(error) ?? messages.fallback
 }
