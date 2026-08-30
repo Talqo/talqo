@@ -6,6 +6,7 @@ import {
 } from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
+import { readErrorInfo } from "@/lib/fetch-error"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
@@ -29,11 +30,6 @@ const profileSchema = z.object({
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
-
-// Orval fetch errors expose the parsed error body as `info.error`.
-function readErrorInfo(caught: unknown): string | undefined {
-	return (caught as { info?: { error?: string } } | null)?.info?.error
-}
 
 function ProfileCard({ name }: { name: string }) {
 	const { t } = useTranslation()
