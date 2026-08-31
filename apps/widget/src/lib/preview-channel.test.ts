@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import { configFromMessage, PREVIEW_CHANNEL_VERSION, readyMessage, trustedParentOrigin } from "./preview-channel"
 
-const appearance = { primary: "#1a7f4b", position: "bottom-left" }
+const appearance = { light: { primary: "#1a7f4b" }, position: "bottom-left" }
 
 function message(overrides: Record<string, unknown> = {}) {
 	return { source: "talqo-preview", version: PREVIEW_CHANNEL_VERSION, type: "config", appearance, ...overrides }
@@ -35,7 +35,19 @@ describe("trustedParentOrigin", () => {
 
 describe("configFromMessage", () => {
 	test("extracts the appearance from a well-formed message", () => {
-		expect(configFromMessage(message())).toEqual(appearance)
+		expect(configFromMessage(message())).toEqual({ appearance, title: undefined, forcedScheme: undefined })
+	})
+
+	test("extracts the title and forced scheme when present", () => {
+		expect(configFromMessage(message({ title: "Marketing site", forcedScheme: "dark" }))).toEqual({
+			appearance,
+			title: "Marketing site",
+			forcedScheme: "dark",
+		})
+	})
+
+	test("ignores an invalid forced scheme", () => {
+		expect(configFromMessage(message({ forcedScheme: "sepia" }))?.forcedScheme).toBeUndefined()
 	})
 
 	test("ignores another embed's traffic on the same window", () => {

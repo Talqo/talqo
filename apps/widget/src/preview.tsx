@@ -1,18 +1,27 @@
-import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
+import type { WidgetAppearanceInput, WidgetSchemeInput } from "@talqo/shared/widget-appearance"
 
 import { useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { EmbeddedWidget } from "./embedded-widget"
-import { configFromMessage, readyMessage, trustedParentOrigin } from "./lib/preview-channel"
+import { configFromMessage, type PreviewConfig, readyMessage, trustedParentOrigin } from "./lib/preview-channel"
+
+function schemeFromSearch(params: URLSearchParams, prefix: "light" | "dark"): WidgetSchemeInput {
+	const entries: Record<string, unknown> = {
+		primary: params.get(`${prefix}Primary`) ?? (prefix === "light" ? params.get("accent") : undefined) ?? undefined,
+		textOnPrimary: params.get(`${prefix}TextOnPrimary`) ?? undefined,
+		background: params.get(`${prefix}Background`) ?? undefined,
+		surface: params.get(`${prefix}Surface`) ?? undefined,
+		text: params.get(`${prefix}Text`) ?? undefined,
+	}
+	return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined))
+}
 
 /** Initial paint only; every later edit arrives over the preview channel. */
 function appearanceFromSearch(params: URLSearchParams): WidgetAppearanceInput {
 	const entries: Record<string, unknown> = {
-		primary: params.get("primary") ?? params.get("accent") ?? undefined,
-		primaryForeground: params.get("primaryForeground") ?? undefined,
-		background: params.get("background") ?? undefined,
-		foreground: params.get("foreground") ?? undefined,
+		light: schemeFromSearch(params, "light"),
+		dark: schemeFromSearch(params, "dark"),
 		position: params.get("position") ?? undefined,
 		theme: params.get("theme") ?? undefined,
 		language: params.get("language") ?? undefined,
@@ -21,14 +30,13 @@ function appearanceFromSearch(params: URLSearchParams): WidgetAppearanceInput {
 	return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined))
 }
 
-function PreviewWidget({
-	initialAppearance,
-	parentOrigin,
-}: {
-	initialAppearance: WidgetAppearanceInput
-	parentOrigin: string | undefined
-}) {
-	const [appearance, setAppearance] = useState(initialAppearance)
+function forcedSchemeFromSearch(params: URLSearchParams): "light" | "dark" | undefined {
+	const value = params.get("forcedScheme")
+	return value === "light" || value === "dark" ? value : undefined
+}
+
+function PreviewWidget({ initial, parentOrigin }: { initial: PreviewConfig; parentOrigin: string | undefined }) {
+	const [config, setConfig] = useState(initial)
 
 	useEffect(() => {
 		if (!parentOrigin) {
@@ -40,7 +48,7 @@ function PreviewWidget({
 			}
 			const next = configFromMessage(event.data)
 			if (next) {
-				setAppearance(next)
+				setConfig(next)
 			}
 		}
 		window.addEventListener("message", onMessage)
@@ -49,7 +57,7 @@ function PreviewWidget({
 		return () => window.removeEventListener("message", onMessage)
 	}, [parentOrigin])
 
-	return <EmbeddedWidget appearance={appearance} />
+	return <EmbeddedWidget title={config.title} appearance={config.appearance} forcedScheme={config.forcedScheme} />
 }
 
 const params = new URLSearchParams(window.location.search)
@@ -61,7 +69,11 @@ if (!(rootElement instanceof HTMLElement)) {
 
 createRoot(rootElement).render(
 	<PreviewWidget
-		initialAppearance={appearanceFromSearch(params)}
+		initial={{
+			appearance: appearanceFromSearch(params),
+			title: params.get("title") ?? undefined,
+			forcedScheme: forcedSchemeFromSearch(params),
+		}}
 		parentOrigin={trustedParentOrigin(params.get("parentOrigin"))}
 	/>,
 )

@@ -15,28 +15,43 @@ describe("appearanceFromDataset", () => {
 		expect(appearanceFromDataset({ talqoAgent: "agent-1" })).toEqual({})
 	})
 
-	test("maps the four palette attributes", () => {
+	test("maps the five light-scheme attributes", () => {
 		expect(
 			appearanceFromDataset({
-				talqoPrimary: "#1a7f4b",
-				talqoPrimaryForeground: "#ffffff",
-				talqoBackground: "#0a0a0a",
-				talqoForeground: "#fafafa",
+				talqoLightPrimary: "#1a7f4b",
+				talqoLightTextOnPrimary: "#ffffff",
+				talqoLightBackground: "#f0f0f0",
+				talqoLightSurface: "#e0e0e0",
+				talqoLightText: "#101010",
 			}),
 		).toEqual({
-			primary: "#1a7f4b",
-			primaryForeground: "#ffffff",
-			background: "#0a0a0a",
-			foreground: "#fafafa",
+			light: {
+				primary: "#1a7f4b",
+				textOnPrimary: "#ffffff",
+				background: "#f0f0f0",
+				surface: "#e0e0e0",
+				text: "#101010",
+			},
 		})
 	})
 
-	test("accepts the legacy accent attribute as primary", () => {
-		expect(appearanceFromDataset({ talqoAccent: "#123456" })).toEqual({ primary: "#123456" })
+	test("maps the five dark-scheme attributes separately from light", () => {
+		expect(
+			appearanceFromDataset({
+				talqoDarkPrimary: "#34d399",
+				talqoDarkBackground: "#0a0a0a",
+			}),
+		).toEqual({ dark: { primary: "#34d399", background: "#0a0a0a" } })
 	})
 
-	test("prefers the canonical primary attribute over the legacy alias", () => {
-		expect(appearanceFromDataset({ talqoPrimary: "#111111", talqoAccent: "#222222" })).toEqual({ primary: "#111111" })
+	test("accepts the legacy accent attribute as the light primary", () => {
+		expect(appearanceFromDataset({ talqoAccent: "#123456" })).toEqual({ light: { primary: "#123456" } })
+	})
+
+	test("prefers the canonical light primary attribute over the legacy alias", () => {
+		expect(appearanceFromDataset({ talqoLightPrimary: "#111111", talqoAccent: "#222222" })).toEqual({
+			light: { primary: "#111111" },
+		})
 	})
 
 	test("parses the theme toggle as a boolean and ignores other values", () => {
@@ -95,12 +110,18 @@ describe("configUrl", () => {
 })
 
 describe("parseWidgetConfig", () => {
-	const appearance = { primary: "#123456", position: "bottom-left" }
+	const appearance = { light: { primary: "#123456" }, position: "bottom-left" }
 
-	test("extracts the appearance and agent from a current payload", () => {
-		const result = parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, agentId: "agent-1", appearance })
+	test("extracts the appearance, agent, and name from a current payload", () => {
+		const result = parseWidgetConfig({
+			version: WIDGET_CONFIG_VERSION,
+			agentId: "agent-1",
+			name: "Marketing site",
+			appearance,
+		})
 
 		expect(result.agentId).toBe("agent-1")
+		expect(result.name).toBe("Marketing site")
 		expect(result.appearance).toEqual(appearance)
 	})
 
@@ -122,7 +143,9 @@ describe("parseWidgetConfig", () => {
 		expect(parseWidgetConfig("nope").appearance).toEqual({})
 	})
 
-	test("ignores a non-string agent id", () => {
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, agentId: 7, appearance }).agentId).toBeUndefined()
+	test("ignores a non-string agent id and name", () => {
+		const result = parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, agentId: 7, name: 7, appearance })
+		expect(result.agentId).toBeUndefined()
+		expect(result.name).toBeUndefined()
 	})
 })

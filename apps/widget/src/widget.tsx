@@ -44,9 +44,11 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	return created
 }
 
-function render(appearance: WidgetAppearanceInput, agentId: string | undefined, hidden: boolean) {
+function render(appearance: WidgetAppearanceInput, agentId: string | undefined, hidden: boolean, name?: string) {
 	const dataset = embedScript?.dataset
-	root?.render(<EmbeddedWidget title={dataset?.talqoTitle} agentId={agentId} appearance={appearance} hidden={hidden} />)
+	// A per-page `data-talqo-title` outranks the widget's own name.
+	const title = dataset?.talqoTitle ?? name
+	root?.render(<EmbeddedWidget title={title} agentId={agentId} appearance={appearance} hidden={hidden} />)
 }
 
 async function loadConfig(origin: string, publicToken: string, overrides: WidgetAppearanceInput): Promise<void> {
@@ -55,9 +57,9 @@ async function loadConfig(origin: string, publicToken: string, overrides: Widget
 		if (!response.ok) {
 			throw new Error(`config request failed: ${response.status}`)
 		}
-		const { agentId, appearance } = parseWidgetConfig(await response.json())
+		const { agentId, appearance, name } = parseWidgetConfig(await response.json())
 		// Attributes last: an explicit per-page override outranks the stored config.
-		render({ ...appearance, ...overrides }, agentId, false)
+		render({ ...appearance, ...overrides }, agentId, false, name)
 	} catch (error) {
 		// A widget that cannot reach its config must still work, in default colors.
 		console.warn("TalqoWidget: falling back to the default appearance", error)

@@ -13,6 +13,13 @@ export type PreviewReadyMessage = {
 	version: number
 }
 
+export type PreviewConfig = {
+	appearance: WidgetAppearanceInput
+	title?: string
+	/** Pins the widget to whichever Light/Dark tab the operator is editing. */
+	forcedScheme?: "light" | "dark"
+}
+
 export function readyMessage(): PreviewReadyMessage {
 	return { source: PREVIEW_CHANNEL_SOURCE, version: PREVIEW_CHANNEL_VERSION, type: "ready" }
 }
@@ -30,11 +37,18 @@ export function trustedParentOrigin(value: string | null): string | undefined {
 }
 
 /** Undefined for foreign or version-mismatched messages, degrading to the URL-param initial paint. */
-export function configFromMessage(data: unknown): WidgetAppearanceInput | undefined {
+export function configFromMessage(data: unknown): PreviewConfig | undefined {
 	if (typeof data !== "object" || data === null) {
 		return undefined
 	}
-	const message = data as { appearance?: unknown; source?: unknown; type?: unknown; version?: unknown }
+	const message = data as {
+		appearance?: unknown
+		forcedScheme?: unknown
+		source?: unknown
+		title?: unknown
+		type?: unknown
+		version?: unknown
+	}
 	if (
 		message.source !== PREVIEW_CHANNEL_SOURCE ||
 		message.version !== PREVIEW_CHANNEL_VERSION ||
@@ -45,5 +59,10 @@ export function configFromMessage(data: unknown): WidgetAppearanceInput | undefi
 	) {
 		return undefined
 	}
-	return message.appearance as WidgetAppearanceInput
+	return {
+		appearance: message.appearance as WidgetAppearanceInput,
+		title: typeof message.title === "string" ? message.title : undefined,
+		forcedScheme:
+			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,
+	}
 }
