@@ -285,6 +285,8 @@ export const bootstrapAdmin = async (
 	return { data, status: res.status, headers: res.headers } as bootstrapAdminResponseSuccess
 }
 
+export const getBootstrapAdminMutationKey = () => ["bootstrapAdmin"] as const
+
 export const getBootstrapAdminMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -302,7 +304,7 @@ export const getBootstrapAdminMutationOptions = <
 	BootstrapAdminMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["bootstrapAdmin"]
+	const mutationKey = getBootstrapAdminMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -399,6 +401,8 @@ export const createInvitation = async (options?: RequestInit): Promise<createInv
 	return { data, status: res.status, headers: res.headers } as createInvitationResponseSuccess
 }
 
+export const getCreateInvitationMutationKey = () => ["createInvitation"] as const
+
 export const getCreateInvitationMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -406,7 +410,7 @@ export const getCreateInvitationMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext> => {
-	const mutationKey = ["createInvitation"]
+	const mutationKey = getCreateInvitationMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -499,6 +503,8 @@ export const redeemInvitation = async (
 	return { data, status: res.status, headers: res.headers } as redeemInvitationResponseSuccess
 }
 
+export const getRedeemInvitationMutationKey = () => ["redeemInvitation"] as const
+
 export const getRedeemInvitationMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -516,7 +522,7 @@ export const getRedeemInvitationMutationOptions = <
 	RedeemInvitationMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["redeemInvitation"]
+	const mutationKey = getRedeemInvitationMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -637,6 +643,8 @@ export const createPermissionGrant = async (
 	return { data, status: res.status, headers: res.headers } as createPermissionGrantResponseSuccess
 }
 
+export const getCreatePermissionGrantMutationKey = () => ["createPermissionGrant"] as const
+
 export const getCreatePermissionGrantMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -654,7 +662,7 @@ export const getCreatePermissionGrantMutationOptions = <
 	CreatePermissionGrantMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["createPermissionGrant"]
+	const mutationKey = getCreatePermissionGrantMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -755,6 +763,8 @@ export const revokePermissionGrant = async (
 	return { data, status: res.status, headers: res.headers } as revokePermissionGrantResponseSuccess
 }
 
+export const getRevokePermissionGrantMutationKey = () => ["revokePermissionGrant"] as const
+
 export const getRevokePermissionGrantMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -772,7 +782,7 @@ export const getRevokePermissionGrantMutationOptions = <
 	RevokePermissionGrantMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["revokePermissionGrant"]
+	const mutationKey = getRevokePermissionGrantMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -1074,6 +1084,8 @@ export const resetUserPassword = async (
 	return { data, status: res.status, headers: res.headers } as resetUserPasswordResponseSuccess
 }
 
+export const getResetUserPasswordMutationKey = () => ["resetUserPassword"] as const
+
 export const getResetUserPasswordMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -1091,7 +1103,7 @@ export const getResetUserPasswordMutationOptions = <
 	ResetUserPasswordMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["resetUserPassword"]
+	const mutationKey = getResetUserPasswordMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
