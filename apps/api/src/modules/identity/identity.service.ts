@@ -51,7 +51,7 @@ export function assertValidUsername(username: string): void {
 export function assertValidPassword(password: string): void {
 	if (password.length < PASSWORD_MIN_LENGTH || Buffer.byteLength(password, "utf8") > PASSWORD_MAX_LENGTH) {
 		throw new InvalidPasswordFormatError(
-			`Password must be between ${PASSWORD_MIN_LENGTH} and ${PASSWORD_MAX_LENGTH} characters`,
+			`Password must be at least ${PASSWORD_MIN_LENGTH} characters and at most ${PASSWORD_MAX_LENGTH} bytes long`,
 		)
 	}
 }
