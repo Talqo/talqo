@@ -2,8 +2,10 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { bodyLimit } from "hono/body-limit"
 import { createMiddleware } from "hono/factory"
 
-// Hard ceiling for inbound bodies; generous for the largest payload (system prompts up to 20k chars).
-const REQUEST_BODY_MAX_BYTES = 65_536
+// Hard ceiling for inbound bodies; sized above the largest contract-valid payload so the
+// transport never rejects what the schemas accept (20k-char multi-byte system prompt plus a
+// full blacklist can exceed 120 KB of UTF-8 before JSON escaping overhead).
+const REQUEST_BODY_MAX_BYTES = 262_144
 
 export const rejectOversizedBody = bodyLimit({
 	maxSize: REQUEST_BODY_MAX_BYTES,
