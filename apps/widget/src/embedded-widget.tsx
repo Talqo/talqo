@@ -1,15 +1,25 @@
 import {
 	DEFAULT_WIDGET_APPEARANCE,
-	isDarkColor,
 	isHexColor,
 	isWidgetPosition,
 	isWidgetTheme,
 	type WidgetAppearance,
 	type WidgetAppearanceInput,
 	type WidgetPosition,
+	type WidgetScheme,
+	type WidgetSchemeInput,
 } from "@talqo/shared/widget-appearance"
 import { cn } from "@talqo/ui/lib/utils"
-import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
+import {
+	type CSSProperties,
+	type FormEvent,
+	type KeyboardEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import ChatIcon from "./assets/icons/chat.svg?react"
@@ -19,7 +29,6 @@ import SendIcon from "./assets/icons/send.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
-import { usePrefersDark } from "./lib/use-prefers-dark"
 
 import "./index.css"
 
@@ -29,9 +38,28 @@ export type EmbeddedWidgetProps = {
 	appearance?: WidgetAppearanceInput
 	/** Held invisible (but laid out) until the fetched configuration settles. */
 	hidden?: boolean
+	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
+	forcedScheme?: ColorScheme
 }
 
 type ColorScheme = "light" | "dark"
+
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+
+/** Missing `matchMedia` reads as light: the widget may mount into a document without it. */
+function usePrefersDark(): boolean {
+	const subscribe = useCallback((onChange: () => void) => {
+		const media = globalThis.matchMedia?.(DARK_SCHEME_QUERY)
+		media?.addEventListener("change", onChange)
+		return () => media?.removeEventListener("change", onChange)
+	}, [])
+
+	return useSyncExternalStore(
+		subscribe,
+		() => globalThis.matchMedia?.(DARK_SCHEME_QUERY)?.matches ?? false,
+		() => false,
+	)
+}
 
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
@@ -52,18 +80,24 @@ function messageText(message: Message, t: (key: string) => string): string | und
 	return message.text
 }
 
+function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
+	return {
+		primary: isHexColor(input?.primary) ? input.primary : fallback.primary,
+		textOnPrimary: isHexColor(input?.textOnPrimary) ? input.textOnPrimary : fallback.textOnPrimary,
+		background: isHexColor(input?.background) ? input.background : fallback.background,
+		surface: isHexColor(input?.surface) ? input.surface : fallback.surface,
+		text: isHexColor(input?.text) ? input.text : fallback.text,
+	}
+}
+
 /**
  * Falls back per field: an invalid hex reaching a var() invalidates every declaration
  * referencing it, blanking the whole widget instead of degrading one color.
  */
 function resolveAppearance(appearance: WidgetAppearanceInput | undefined): WidgetAppearance {
 	return {
-		primary: isHexColor(appearance?.primary) ? appearance.primary : DEFAULT_WIDGET_APPEARANCE.primary,
-		primaryForeground: isHexColor(appearance?.primaryForeground)
-			? appearance.primaryForeground
-			: DEFAULT_WIDGET_APPEARANCE.primaryForeground,
-		background: isHexColor(appearance?.background) ? appearance.background : DEFAULT_WIDGET_APPEARANCE.background,
-		foreground: isHexColor(appearance?.foreground) ? appearance.foreground : DEFAULT_WIDGET_APPEARANCE.foreground,
+		light: resolveScheme(appearance?.light, DEFAULT_WIDGET_APPEARANCE.light),
+		dark: resolveScheme(appearance?.dark, DEFAULT_WIDGET_APPEARANCE.dark),
 		position: isWidgetPosition(appearance?.position) ? appearance.position : DEFAULT_WIDGET_APPEARANCE.position,
 		theme: isWidgetTheme(appearance?.theme) ? appearance.theme : DEFAULT_WIDGET_APPEARANCE.theme,
 		themeToggle:
@@ -96,11 +130,13 @@ function WidgetChat({
 	agentId,
 	appearance,
 	hidden,
+	forcedScheme,
 }: {
 	title?: string
 	agentId?: string
 	appearance: WidgetAppearance
 	hidden?: boolean
+	forcedScheme?: ColorScheme
 }) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
@@ -120,12 +156,11 @@ function WidgetChat({
 	}, [open])
 
 	// Visitor choice (FR-2.21) beats the operator default, which beats the host's preference.
+	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
 		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme
-	const scheme = visitorScheme ?? operatorScheme
-
-	// One palette, so its background tells which scheme it expresses; the other one inverts it.
-	const paletteScheme: ColorScheme = isDarkColor(appearance.background) ? "dark" : "light"
+	const scheme = forcedScheme ?? visitorScheme ?? operatorScheme
+	const active = scheme === "dark" ? appearance.dark : appearance.light
 
 	function handleSend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
@@ -138,10 +173,11 @@ function WidgetChat({
 	}
 
 	const paletteStyle = {
-		"--talqo-primary-input": appearance.primary,
-		"--talqo-primary-foreground-input": appearance.primaryForeground,
-		"--talqo-background-input": appearance.background,
-		"--talqo-foreground-input": appearance.foreground,
+		"--talqo-primary-input": active.primary,
+		"--talqo-text-on-primary-input": active.textOnPrimary,
+		"--talqo-background-input": active.background,
+		"--talqo-surface-input": active.surface,
+		"--talqo-text-input": active.text,
 		// visibility, not display: nothing shifts when the fetched configuration paints.
 		...(hidden && { visibility: "hidden" }),
 	} as CSSProperties
@@ -152,7 +188,6 @@ function WidgetChat({
 				"talqo-widget tw:flex tw:flex-col tw:gap-3 tw:font-sans tw:text-foreground",
 				positionClasses[appearance.position],
 				scheme === "dark" && "dark",
-				scheme !== paletteScheme && "talqo-invert",
 			)}
 			style={paletteStyle}
 			data-agent={agentId}
@@ -244,7 +279,7 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, agentId, appearance, hidden }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedScheme }: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -254,7 +289,7 @@ export function EmbeddedWidget({ title, agentId, appearance, hidden }: EmbeddedW
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} />
+			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} forcedScheme={forcedScheme} />
 		</I18nextProvider>
 	)
 }

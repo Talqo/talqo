@@ -1,50 +1,35 @@
 /*
- * Every token derives from four operator inputs, mixing ink into the surface so the
- * direction holds in both schemes without a second palette.
- *
- * Argument order is load-bearing: Tailwind's @supports fallback for browsers without
- * color-mix() uses the FIRST color argument, so each mix leads with its safe degradation.
+ * Five operator inputs per scheme (light and dark), each explicit — dark is never derived
+ * from light. Every other token maps straight to one of the five; only the border and
+ * muted-foreground scrims use alpha, and only against transparent, so no hue or tone shifts.
  *
  * Never register these with @property: the build strips @property rules and fails if any
  * survive (vite.config.ts), and color-mix() needs textual substitution here.
  */
 .talqo-widget {
 	--talqo-primary-input: #1a7f4b;
-	--talqo-primary-foreground-input: #ffffff;
+	--talqo-text-on-primary-input: #ffffff;
 	--talqo-background-input: #ffffff;
-	--talqo-foreground-input: #171717;
+	--talqo-surface-input: #f5f5f5;
+	--talqo-text-input: #171717;
 
-	/* Effective surface pair. Identity by default; swapped by .talqo-invert. */
-	--talqo-background: var(--talqo-background-input);
-	--talqo-foreground: var(--talqo-foreground-input);
-
-	/* Scheme-independent: a solid brand chip carries its own foreground. */
 	--talqo-primary: var(--talqo-primary-input);
-	--talqo-primary-foreground: var(--talqo-primary-foreground-input);
+	--talqo-primary-foreground: var(--talqo-text-on-primary-input);
+	--talqo-background: var(--talqo-background-input);
+	--talqo-foreground: var(--talqo-text-input);
+	--talqo-card: var(--talqo-surface-input);
+	--talqo-muted: var(--talqo-surface-input);
+	--talqo-secondary: var(--talqo-surface-input);
+	--talqo-secondary-foreground: var(--talqo-text-input);
+	--talqo-accent: var(--talqo-surface-input);
+	--talqo-accent-foreground: var(--talqo-text-input);
+	--talqo-input: var(--talqo-surface-input);
+	--talqo-ring: var(--talqo-primary-input);
 
-	--talqo-card: color-mix(in oklab, var(--talqo-background) 97%, var(--talqo-foreground));
-	--talqo-muted: color-mix(in oklab, var(--talqo-background) 93%, var(--talqo-foreground));
-	--talqo-secondary: color-mix(in oklab, var(--talqo-background) 93%, var(--talqo-foreground));
-	--talqo-border: color-mix(in oklab, var(--talqo-background) 86%, var(--talqo-foreground));
-	--talqo-input: color-mix(in oklab, var(--talqo-background) 78%, var(--talqo-foreground));
-	--talqo-accent: color-mix(in oklab, var(--talqo-background) 86%, var(--talqo-primary));
+	--talqo-border: color-mix(in srgb, var(--talqo-text-input) 12%, transparent);
+	--talqo-muted-foreground: color-mix(in srgb, var(--talqo-text-input) 65%, transparent);
 
-	--talqo-muted-foreground: color-mix(in oklab, var(--talqo-foreground) 62%, var(--talqo-background));
-	--talqo-secondary-foreground: var(--talqo-foreground);
-	--talqo-accent-foreground: color-mix(in oklab, var(--talqo-primary) 65%, var(--talqo-foreground));
-	--talqo-ring: var(--talqo-primary);
-
-	/* Fixed hue pulled toward the operator's foreground to stay legible on their surface. */
-	--talqo-destructive: color-mix(in oklab, #e5484d 82%, var(--talqo-foreground));
+	--talqo-destructive: #e5484d;
 
 	--talqo-radius: 0.75rem;
-}
-
-/*
- * Applied when the requested scheme disagrees with the one the operator's pair expresses.
- * Swapping the inputs re-derives every mix above through custom-property substitution.
- */
-.talqo-widget.talqo-invert {
-	--talqo-background: var(--talqo-foreground-input);
-	--talqo-foreground: var(--talqo-background-input);
 }

@@ -1,4 +1,4 @@
-import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
+import { DEFAULT_LIGHT_SCHEME } from "@talqo/shared/widget-appearance"
 import { describe, expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 
@@ -10,10 +10,11 @@ function customProperty(name: string): string | undefined {
 
 // These literals paint before JS applies the inline values, and nothing else checks them.
 describe("tokens.css seed colors", () => {
-	test("match DEFAULT_WIDGET_APPEARANCE", () => {
-		expect(customProperty("primary")).toBe(DEFAULT_WIDGET_APPEARANCE.primary)
-		expect(customProperty("primary-foreground")).toBe(DEFAULT_WIDGET_APPEARANCE.primaryForeground)
-		expect(customProperty("background")).toBe(DEFAULT_WIDGET_APPEARANCE.background)
-		expect(customProperty("foreground")).toBe(DEFAULT_WIDGET_APPEARANCE.foreground)
+	test("match DEFAULT_LIGHT_SCHEME", () => {
+		expect(customProperty("primary")).toBe(DEFAULT_LIGHT_SCHEME.primary)
+		expect(customProperty("text-on-primary")).toBe(DEFAULT_LIGHT_SCHEME.textOnPrimary)
+		expect(customProperty("background")).toBe(DEFAULT_LIGHT_SCHEME.background)
+		expect(customProperty("surface")).toBe(DEFAULT_LIGHT_SCHEME.surface)
+		expect(customProperty("text")).toBe(DEFAULT_LIGHT_SCHEME.text)
 	})
 })
