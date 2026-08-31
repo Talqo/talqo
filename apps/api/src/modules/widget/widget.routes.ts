@@ -18,9 +18,10 @@ import {
 import * as service from "./widget.service.ts"
 
 // Short enough that an appearance change reaches live sites promptly (there is no
-// purge), long enough to keep a busy host page off the API on every navigation.
+// purge), long enough to keep a busy host page off the API on every navigation. No
+// stale-while-revalidate: a shared cache would serve the old palette past the sixty
+// seconds ADR-0013 promises.
 const CONFIG_MAX_AGE_SECONDS = 60
-const CONFIG_STALE_WHILE_REVALIDATE_SECONDS = 300
 
 function mapDomainError(error: unknown): { body: { error: string }; status: number } | null {
 	if (error instanceof service.WidgetNotFoundError) {
@@ -112,10 +113,7 @@ export const widgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }
 			if (c.req.header("if-none-match") === etag) {
 				return c.body(null, HTTP_STATUS.NOT_MODIFIED)
 			}
-			c.header(
-				"Cache-Control",
-				`public, max-age=${CONFIG_MAX_AGE_SECONDS}, stale-while-revalidate=${CONFIG_STALE_WHILE_REVALIDATE_SECONDS}`,
-			)
+			c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
 			c.header("ETag", etag)
 			return c.json(widgetConfigResponseSchema.parse(config), HTTP_STATUS.OK)
 		} catch (error) {

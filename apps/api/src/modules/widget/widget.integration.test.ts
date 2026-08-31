@@ -153,7 +153,7 @@ describe("public config lookup", () => {
 		const response = await app.request(`/api/widget-config/${created.publicToken}`)
 
 		expect(response.status).toBe(200)
-		expect(response.headers.get("cache-control")).toContain("max-age=60")
+		expect(response.headers.get("cache-control")).toBe("public, max-age=60")
 		expect(response.headers.get("etag")).toBeTruthy()
 		expect(await response.json()).toEqual({
 			version: service.WIDGET_CONFIG_VERSION,
