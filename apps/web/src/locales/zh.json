@@ -302,7 +302,6 @@
 		"createError": "无法创建挂件。请重试。",
 		"createWidget": "新建挂件",
 		"creating": "创建中…",
-		"customize": "自定义",
 		"detailSubheading": "分配智能体、调整配色，并复制嵌入代码。",
 		"embedCode": "嵌入代码",
 		"embedDescription": "将此代码片段粘贴到站点 body 结束标签之前。外观更改无需重新复制即可生效。",

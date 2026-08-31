@@ -23,7 +23,7 @@ test("operator customizes a widget and the preview follows without reloading", a
 	const card = page.locator("[data-slot=card]", { hasText: "Marketing site" })
 	await expect(card).toBeVisible()
 	await expect(card.getByText("Served by Website Assistant")).toBeVisible()
-	await card.getByRole("button", { name: "Customize" }).click()
+	await card.click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -47,10 +47,7 @@ test("operator customizes a widget and the preview follows without reloading", a
 
 test("operator moves the widget to the other corner", async ({ page }) => {
 	await page.goto("/dashboard/widgets")
-	await page
-		.locator("[data-slot=card]", { hasText: "Marketing site" })
-		.getByRole("button", { name: "Customize" })
-		.click()
+	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
 
 	const positionSelect = page.getByLabel("Position")
 	await expect(positionSelect).toContainText("Bottom right")
@@ -67,10 +64,7 @@ test("operator reassigns the widget to a different agent", async ({ page }) => {
 	})
 
 	await page.goto("/dashboard/widgets")
-	await page
-		.locator("[data-slot=card]", { hasText: "Support portal" })
-		.getByRole("button", { name: "Customize" })
-		.click()
+	await page.locator("[data-slot=card]", { hasText: "Support portal" }).click()
 
 	// The closed trigger has to read the agent's name; Base UI would otherwise show its id.
 	const agentSelect = page.getByLabel("Agent")
@@ -88,10 +82,7 @@ test("operator reassigns the widget to a different agent", async ({ page }) => {
 
 test("embed snippet carries the public token and no baked-in appearance", async ({ page }) => {
 	await page.goto("/dashboard/widgets")
-	await page
-		.locator("[data-slot=card]", { hasText: "Marketing site" })
-		.getByRole("button", { name: "Customize" })
-		.click()
+	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
 
 	const snippet = page.locator("pre")
 	const widgetToken = process.env.E2E_WIDGET_TOKEN

@@ -302,7 +302,6 @@
 		"createError": "Could not create the widget. Try again.",
 		"createWidget": "New widget",
 		"creating": "Creating…",
-		"customize": "Customize",
 		"detailSubheading": "Assign an agent, tune the palette, and copy the embed snippet.",
 		"embedCode": "Embed code",
 		"embedDescription": "Paste this snippet before the closing body tag of your site. Appearance changes apply without re-copying it.",

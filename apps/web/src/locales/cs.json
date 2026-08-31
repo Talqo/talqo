@@ -302,7 +302,6 @@
 		"createError": "Widget se nepodařilo vytvořit. Zkuste to znovu.",
 		"createWidget": "Nový widget",
 		"creating": "Vytváření…",
-		"customize": "Přizpůsobit",
 		"detailSubheading": "Přiřaďte agenta, nalaďte paletu a zkopírujte kód pro vložení.",
 		"embedCode": "Kód pro vložení",
 		"embedDescription": "Vložte tento úryvek před uzavírací značku body. Změny vzhledu se projeví bez opětovného kopírování.",

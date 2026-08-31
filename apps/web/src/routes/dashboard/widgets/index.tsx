@@ -19,7 +19,7 @@ import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Plus, Settings2 } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -136,12 +136,12 @@ function WidgetsPage() {
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{widgets.map((widget) => (
-						<Card key={widget.id}>
-							<CardHeader>
-								<CardTitle>{widget.name}</CardTitle>
-							</CardHeader>
-							<CardContent className="flex items-center justify-between gap-2">
-								<div className="flex items-center gap-2">
+						<Link key={widget.id} to="/dashboard/widgets/$widgetId" params={{ widgetId: widget.id }} className="group">
+							<Card className="group-hover:border-primary/40 h-full transition-colors">
+								<CardHeader>
+									<CardTitle>{widget.name}</CardTitle>
+								</CardHeader>
+								<CardContent className="flex items-center gap-2">
 									<span
 										aria-hidden="true"
 										className="size-4 rounded-full border"
@@ -150,18 +150,9 @@ function WidgetsPage() {
 									<span className="text-muted-foreground text-sm">
 										{t("widgetSetup.servedBy", { name: agentName(widget.agentId) })}
 									</span>
-								</div>
-								<Button
-									render={<Link to="/dashboard/widgets/$widgetId" params={{ widgetId: widget.id }} />}
-									nativeButton={false}
-									variant="outline"
-									size="sm"
-								>
-									<Settings2 className="size-4" />
-									{t("widgetSetup.customize")}
-								</Button>
-							</CardContent>
-						</Card>
+								</CardContent>
+							</Card>
+						</Link>
 					))}
 				</div>
 			)}
