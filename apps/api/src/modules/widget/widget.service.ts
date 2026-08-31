@@ -2,6 +2,7 @@ import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 
 import * as repo from "./widget.repository.ts"
 
@@ -14,8 +15,6 @@ export const WIDGET_NAME_MAX_LENGTH = 80
  * expose the CRUD routes.
  */
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/widget-config\/[^/]+$/] as const
-
-export const WIDGET_CONFIG_VERSION = 1
 
 export type Widget = {
 	agentId: string

@@ -1,7 +1,7 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
+import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as service from "./widget.service.ts"
@@ -122,7 +122,7 @@ describe("public config lookup", () => {
 
 		const config = await service.getConfigByToken(created.publicToken)
 
-		expect(config.version).toBe(service.WIDGET_CONFIG_VERSION)
+		expect(config.version).toBe(WIDGET_CONFIG_VERSION)
 		expect(config.agentId).toBe(agentId)
 		expect(config.appearance).toEqual(DEFAULT_WIDGET_APPEARANCE)
 	})
@@ -156,7 +156,7 @@ describe("public config lookup", () => {
 		expect(response.headers.get("cache-control")).toBe("public, max-age=60")
 		expect(response.headers.get("etag")).toBeTruthy()
 		expect(await response.json()).toEqual({
-			version: service.WIDGET_CONFIG_VERSION,
+			version: WIDGET_CONFIG_VERSION,
 			agentId,
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 		})

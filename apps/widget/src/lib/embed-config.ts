@@ -1,7 +1,6 @@
 import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 
-/** Must match `WIDGET_CONFIG_VERSION` in apps/api/src/modules/widget/widget.service.ts. */
-export const WIDGET_CONFIG_VERSION = 1
+import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 
 /**
  * Appearance overrides read from the embed script's `data-talqo-*` attributes.

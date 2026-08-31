@@ -109,3 +109,9 @@ export function contrastRatio(a: string, b: string): number {
 export function isDarkColor(hex: string): boolean {
 	return contrastRatio(hex, WHITE) > contrastRatio(hex, BLACK_INK)
 }
+
+/**
+ * Envelope version of the public config payload. The widget repaints with defaults on
+ * any mismatch, so both sides must move together -- hence one owner, not two copies.
+ */
+export const WIDGET_CONFIG_VERSION = 1

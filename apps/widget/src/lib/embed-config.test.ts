@@ -1,6 +1,7 @@
+import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, configUrl, parseWidgetConfig, WIDGET_CONFIG_VERSION } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, configUrl, parseWidgetConfig } from "./embed-config"
 
 // Registers happy-dom; the script-element helpers below need a document.
 await import("@/test-setup")
