@@ -24,11 +24,9 @@ function appearanceFromSearch(params: URLSearchParams): WidgetAppearanceInput {
 function PreviewWidget({
 	initialAppearance,
 	parentOrigin,
-	title,
 }: {
 	initialAppearance: WidgetAppearanceInput
 	parentOrigin: string | undefined
-	title: string | undefined
 }) {
 	const [appearance, setAppearance] = useState(initialAppearance)
 
@@ -52,7 +50,7 @@ function PreviewWidget({
 		return () => window.removeEventListener("message", onMessage)
 	}, [parentOrigin])
 
-	return <EmbeddedWidget title={title} appearance={appearance} />
+	return <EmbeddedWidget appearance={appearance} />
 }
 
 const params = new URLSearchParams(window.location.search)
@@ -66,6 +64,5 @@ createRoot(rootElement).render(
 	<PreviewWidget
 		initialAppearance={appearanceFromSearch(params)}
 		parentOrigin={trustedParentOrigin(params.get("parentOrigin"))}
-		title={params.get("title") ?? undefined}
 	/>,
 )

@@ -36,7 +36,7 @@ function WidgetPreviewPage() {
 			{isLoading ? (
 				<p className="text-muted-foreground mt-4">{t("widgetSetup.loading")}</p>
 			) : widget ? (
-				<WidgetPreview appearance={toAppearance(toFormValues(widget))} previewKey={widget.id} title={widget.name} />
+				<WidgetPreview appearance={toAppearance(toFormValues(widget))} previewKey={widget.id} />
 			) : (
 				<p className="text-muted-foreground mt-4">{t("widgetSetup.notFound")}</p>
 			)}

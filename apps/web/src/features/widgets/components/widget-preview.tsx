@@ -20,7 +20,6 @@ type WidgetPreviewProps = {
 	appearance: WidgetAppearance
 	/** Changing this remounts the frame; appearance edits never do. */
 	previewKey: string
-	title?: string
 }
 
 /**
@@ -31,7 +30,7 @@ type WidgetPreviewProps = {
  * The URL carries the first paint; every later edit goes over postMessage, so
  * dragging a color picker never reloads the frame.
  */
-function previewSrc(appearance: WidgetAppearance, title: string | undefined): string | undefined {
+function previewSrc(appearance: WidgetAppearance): string | undefined {
 	if (!PREVIEW_URL) {
 		return undefined
 	}
@@ -44,9 +43,6 @@ function previewSrc(appearance: WidgetAppearance, title: string | undefined): st
 	url.searchParams.set("theme", appearance.theme)
 	url.searchParams.set("themeToggle", String(appearance.themeToggle))
 	url.searchParams.set("language", appearance.language)
-	if (title) {
-		url.searchParams.set("title", title)
-	}
 	// Echoed back by the child as its postMessage target, so neither side has to infer
 	// an origin -- E2E serves the dashboard and the widget on different hostnames.
 	url.searchParams.set("parentOrigin", window.location.origin)
@@ -73,14 +69,14 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
 	return scale
 }
 
-export function WidgetPreview({ appearance, previewKey, title }: WidgetPreviewProps) {
+export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const frameRef = useRef<HTMLDivElement>(null)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	const scale = useFrameScale(frameRef)
 
 	// Computed once per widget: recomputing it per keystroke would reload the frame.
-	const [src] = useState(() => previewSrc(appearance, title))
+	const [src] = useState(() => previewSrc(appearance))
 	const latestAppearance = useRef(appearance)
 	// Kept out of the `ready` effect's deps so a re-subscribe is not needed per keystroke.
 	useEffect(() => {
