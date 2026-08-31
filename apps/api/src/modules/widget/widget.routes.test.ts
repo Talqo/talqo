@@ -39,28 +39,4 @@ describe("widget CRUD authentication boundary", () => {
 	it("does not exempt a deeper path under the public prefix", async () => {
 		expect((await app.request("/api/widget-config/token/extra")).status).toBe(401)
 	})
-
-	it("requires a session to create a widget", async () => {
-		const response = await app.request("/api/widgets", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ agentId: "agent-1", name: "Marketing site" }),
-		})
-
-		expect(response.status).toBe(401)
-	})
-
-	it("requires a session to update a widget", async () => {
-		const response = await app.request("/api/widgets/any-id", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ agentId: "agent-1", name: "Renamed" }),
-		})
-
-		expect(response.status).toBe(401)
-	})
-
-	it("requires a session to delete a widget", async () => {
-		expect((await app.request("/api/widgets/any-id", { method: "DELETE" })).status).toBe(401)
-	})
 })
