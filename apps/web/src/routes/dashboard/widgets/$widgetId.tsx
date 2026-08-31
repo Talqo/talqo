@@ -1,4 +1,5 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import {
 	getGetWidgetQueryKey,
 	getListWidgetsQueryKey,
@@ -62,6 +63,8 @@ function WidgetDetailPage() {
 	const widget = widgetResponse?.data.widget
 	const { data: agentsResponse } = useListAgents()
 	const agents = agentsResponse?.data.agents
+	const permissions = useGetMyPermissions().data?.data.permissions
+	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateWidget = useUpdateWidget({
 		mutation: {
 			onSuccess: async () => {
@@ -198,194 +201,204 @@ function WidgetDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="widget-name">{t("widgetSetup.nameLabel")}</Label>
-								<Input id="widget-name" aria-invalid={formState.errors.name ? true : undefined} {...register("name")} />
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="widget-agent">{t("widgetSetup.agentLabel")}</Label>
-								<Controller
-									control={control}
-									name="agentId"
-									render={({ field }) => (
-										<Select
-											items={agentOptions}
-											value={field.value}
-											onValueChange={(value) => field.onChange(value ?? "")}
-										>
-											<SelectTrigger id="widget-agent" className="w-full">
-												<SelectValue placeholder={t("widgetSetup.selectAgent")} />
-											</SelectTrigger>
-											<SelectContent>
-												{agentOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								/>
-								<p className="text-muted-foreground text-xs">{t("widgetSetup.agentHelp")}</p>
-							</div>
-
-							<Controller
-								control={control}
-								name="primary"
-								render={({ field }) => (
-									<ColorField
-										id="color-primary"
-										label={t("widgetSetup.colorPrimary")}
-										value={field.value}
-										onChange={field.onChange}
-										against={appearance.primaryForeground}
+							{/* Native cascade: one attribute disables every control below, including the
+							    Base UI triggers, so a read-only operator reads the widget without editing it. */}
+							<fieldset disabled={!canManage} className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="widget-name">{t("widgetSetup.nameLabel")}</Label>
+									<Input
+										id="widget-name"
+										aria-invalid={formState.errors.name ? true : undefined}
+										{...register("name")}
 									/>
-								)}
-							/>
-							<Controller
-								control={control}
-								name="primaryForeground"
-								render={({ field }) => (
-									<ColorField
-										id="color-primary-foreground"
-										label={t("widgetSetup.colorPrimaryForeground")}
-										value={field.value}
-										onChange={field.onChange}
-										against={appearance.primary}
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="widget-agent">{t("widgetSetup.agentLabel")}</Label>
+									<Controller
+										control={control}
+										name="agentId"
+										render={({ field }) => (
+											<Select
+												items={agentOptions}
+												value={field.value}
+												onValueChange={(value) => field.onChange(value ?? "")}
+											>
+												<SelectTrigger id="widget-agent" className="w-full">
+													<SelectValue placeholder={t("widgetSetup.selectAgent")} />
+												</SelectTrigger>
+												<SelectContent>
+													{agentOptions.map((option) => (
+														<SelectItem key={option.value} value={option.value}>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 									/>
-								)}
-							/>
-							<Controller
-								control={control}
-								name="background"
-								render={({ field }) => (
-									<ColorField
-										id="color-background"
-										label={t("widgetSetup.colorBackground")}
-										value={field.value}
-										onChange={field.onChange}
-										against={appearance.foreground}
+									<p className="text-muted-foreground text-xs">{t("widgetSetup.agentHelp")}</p>
+								</div>
+
+								<Controller
+									control={control}
+									name="primary"
+									render={({ field }) => (
+										<ColorField
+											id="color-primary"
+											label={t("widgetSetup.colorPrimary")}
+											value={field.value}
+											onChange={field.onChange}
+											against={appearance.primaryForeground}
+										/>
+									)}
+								/>
+								<Controller
+									control={control}
+									name="primaryForeground"
+									render={({ field }) => (
+										<ColorField
+											id="color-primary-foreground"
+											label={t("widgetSetup.colorPrimaryForeground")}
+											value={field.value}
+											onChange={field.onChange}
+											against={appearance.primary}
+										/>
+									)}
+								/>
+								<Controller
+									control={control}
+									name="background"
+									render={({ field }) => (
+										<ColorField
+											id="color-background"
+											label={t("widgetSetup.colorBackground")}
+											value={field.value}
+											onChange={field.onChange}
+											against={appearance.foreground}
+										/>
+									)}
+								/>
+								<Controller
+									control={control}
+									name="foreground"
+									render={({ field }) => (
+										<ColorField
+											id="color-foreground"
+											label={t("widgetSetup.colorForeground")}
+											value={field.value}
+											onChange={field.onChange}
+											against={appearance.background}
+										/>
+									)}
+								/>
+								<p className="text-muted-foreground text-xs">{t("widgetSetup.colorsHelp")}</p>
+
+								<div className="space-y-2">
+									<Label htmlFor="widget-position">{t("widgetSetup.position")}</Label>
+									<Controller
+										control={control}
+										name="position"
+										render={({ field }) => (
+											<Select
+												items={positionOptions}
+												value={field.value}
+												onValueChange={(value) => isWidgetPosition(value) && field.onChange(value)}
+											>
+												<SelectTrigger id="widget-position" className="w-full">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{positionOptions.map((option) => (
+														<SelectItem key={option.value} value={option.value}>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 									/>
-								)}
-							/>
-							<Controller
-								control={control}
-								name="foreground"
-								render={({ field }) => (
-									<ColorField
-										id="color-foreground"
-										label={t("widgetSetup.colorForeground")}
-										value={field.value}
-										onChange={field.onChange}
-										against={appearance.background}
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="widget-theme">{t("widgetSetup.theme")}</Label>
+									<Controller
+										control={control}
+										name="theme"
+										render={({ field }) => (
+											<Select
+												items={themeOptions}
+												value={field.value}
+												onValueChange={(value) => isWidgetTheme(value) && field.onChange(value)}
+											>
+												<SelectTrigger id="widget-theme" className="w-full">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{themeOptions.map((option) => (
+														<SelectItem key={option.value} value={option.value}>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 									/>
-								)}
-							/>
-							<p className="text-muted-foreground text-xs">{t("widgetSetup.colorsHelp")}</p>
+								</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="widget-position">{t("widgetSetup.position")}</Label>
-								<Controller
-									control={control}
-									name="position"
-									render={({ field }) => (
-										<Select
-											items={positionOptions}
-											value={field.value}
-											onValueChange={(value) => isWidgetPosition(value) && field.onChange(value)}
-										>
-											<SelectTrigger id="widget-position" className="w-full">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{positionOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								/>
-							</div>
+								<div className="flex items-center gap-2">
+									<Controller
+										control={control}
+										name="themeToggle"
+										render={({ field }) => (
+											<Switch id="widget-theme-toggle" checked={field.value} onCheckedChange={field.onChange} />
+										)}
+									/>
+									<Label htmlFor="widget-theme-toggle">{t("widgetSetup.themeToggle")}</Label>
+								</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="widget-theme">{t("widgetSetup.theme")}</Label>
-								<Controller
-									control={control}
-									name="theme"
-									render={({ field }) => (
-										<Select
-											items={themeOptions}
-											value={field.value}
-											onValueChange={(value) => isWidgetTheme(value) && field.onChange(value)}
-										>
-											<SelectTrigger id="widget-theme" className="w-full">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{themeOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								/>
-							</div>
-
-							<div className="flex items-center gap-2">
-								<Controller
-									control={control}
-									name="themeToggle"
-									render={({ field }) => (
-										<Switch id="widget-theme-toggle" checked={field.value} onCheckedChange={field.onChange} />
-									)}
-								/>
-								<Label htmlFor="widget-theme-toggle">{t("widgetSetup.themeToggle")}</Label>
-							</div>
-
-							<div className="space-y-2">
-								<Label htmlFor="widget-language">{t("widgetSetup.language")}</Label>
-								<Controller
-									control={control}
-									name="language"
-									render={({ field }) => (
-										<Select
-											items={languageOptions}
-											value={field.value}
-											onValueChange={(value) => isSupportedLanguage(value) && field.onChange(value)}
-										>
-											<SelectTrigger id="widget-language" className="w-full">
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{languageOptions.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									)}
-								/>
-							</div>
+								<div className="space-y-2">
+									<Label htmlFor="widget-language">{t("widgetSetup.language")}</Label>
+									<Controller
+										control={control}
+										name="language"
+										render={({ field }) => (
+											<Select
+												items={languageOptions}
+												value={field.value}
+												onValueChange={(value) => isSupportedLanguage(value) && field.onChange(value)}
+											>
+												<SelectTrigger id="widget-language" className="w-full">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{languageOptions.map((option) => (
+														<SelectItem key={option.value} value={option.value}>
+															{option.label}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
+									/>
+								</div>
+							</fieldset>
 
 							{updateWidget.isError && (
 								<p role="alert" className="text-destructive text-sm">
 									{t("widgetSetup.saveError")}
 								</p>
 							)}
-							<div className="flex items-center gap-3 pt-2">
-								<Button type="submit" disabled={updateWidget.isPending}>
-									{updateWidget.isPending ? t("widgetSetup.saving") : t("widgetSetup.save")}
-								</Button>
-								{updateWidget.isSuccess && !updateWidget.isPending && (
-									<span className="text-muted-foreground text-sm">{t("widgetSetup.saved")}</span>
-								)}
-							</div>
+							{canManage && (
+								<div className="flex items-center gap-3 pt-2">
+									<Button type="submit" disabled={updateWidget.isPending}>
+										{updateWidget.isPending ? t("widgetSetup.saving") : t("widgetSetup.save")}
+									</Button>
+									{updateWidget.isSuccess && !updateWidget.isPending && (
+										<span className="text-muted-foreground text-sm">{t("widgetSetup.saved")}</span>
+									)}
+								</div>
+							)}
 						</form>
 					</CardContent>
 				</Card>

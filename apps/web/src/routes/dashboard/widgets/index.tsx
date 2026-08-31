@@ -1,4 +1,5 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { getListWidgetsQueryKey, useCreateWidget, useListWidgets } from "@/api/generated/widget/widget.ts"
 import { PageHeader } from "@/components/page-header"
 import { WIDGET_FORM_DEFAULTS } from "@/features/widgets/widget-appearance-form"
@@ -33,6 +34,8 @@ function WidgetsPage() {
 	const widgets = widgetsResponse?.data.widgets
 	const { data: agentsResponse } = useListAgents()
 	const agents = agentsResponse?.data.agents
+	const permissions = useGetMyPermissions().data?.data.permissions
+	const canManage = permissions?.includes("agents:manage") ?? false
 	const createWidget = useCreateWidget({
 		mutation: {
 			onSuccess: () => queryClient.invalidateQueries({ queryKey: getListWidgetsQueryKey() }),
@@ -67,54 +70,56 @@ function WidgetsPage() {
 				title={t("widgetSetup.heading")}
 				description={t("widgetSetup.subheading")}
 				actions={
-					<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-						<DialogTrigger render={<Button />} disabled={!agents?.length}>
-							<Plus className="size-4" />
-							{t("widgetSetup.createWidget")}
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>{t("widgetSetup.createWidget")}</DialogTitle>
-								<DialogDescription>{t("widgetSetup.createDescription")}</DialogDescription>
-							</DialogHeader>
-							<div className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="widget-name">{t("widgetSetup.nameLabel")}</Label>
-									<Input
-										id="widget-name"
-										placeholder={t("widgetSetup.namePlaceholder")}
-										value={name}
-										onChange={(event) => setName(event.target.value)}
-									/>
+					canManage ? (
+						<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+							<DialogTrigger render={<Button />} disabled={!agents?.length}>
+								<Plus className="size-4" />
+								{t("widgetSetup.createWidget")}
+							</DialogTrigger>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>{t("widgetSetup.createWidget")}</DialogTitle>
+									<DialogDescription>{t("widgetSetup.createDescription")}</DialogDescription>
+								</DialogHeader>
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="widget-name">{t("widgetSetup.nameLabel")}</Label>
+										<Input
+											id="widget-name"
+											placeholder={t("widgetSetup.namePlaceholder")}
+											value={name}
+											onChange={(event) => setName(event.target.value)}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="widget-agent">{t("widgetSetup.agentLabel")}</Label>
+										<Select items={agentOptions} value={agentId} onValueChange={(value) => setAgentId(value ?? "")}>
+											<SelectTrigger id="widget-agent" className="w-full">
+												<SelectValue placeholder={t("widgetSetup.selectAgent")} />
+											</SelectTrigger>
+											<SelectContent>
+												{agentOptions.map((option) => (
+													<SelectItem key={option.value} value={option.value}>
+														{option.label}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+									{createWidget.isError && (
+										<p role="alert" className="text-destructive text-sm">
+											{t("widgetSetup.createError")}
+										</p>
+									)}
 								</div>
-								<div className="space-y-2">
-									<Label htmlFor="widget-agent">{t("widgetSetup.agentLabel")}</Label>
-									<Select items={agentOptions} value={agentId} onValueChange={(value) => setAgentId(value ?? "")}>
-										<SelectTrigger id="widget-agent" className="w-full">
-											<SelectValue placeholder={t("widgetSetup.selectAgent")} />
-										</SelectTrigger>
-										<SelectContent>
-											{agentOptions.map((option) => (
-												<SelectItem key={option.value} value={option.value}>
-													{option.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-								{createWidget.isError && (
-									<p role="alert" className="text-destructive text-sm">
-										{t("widgetSetup.createError")}
-									</p>
-								)}
-							</div>
-							<DialogFooter>
-								<Button onClick={onCreate} disabled={createWidget.isPending || !name.trim() || !agentId}>
-									{createWidget.isPending ? t("widgetSetup.creating") : t("widgetSetup.createWidget")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+								<DialogFooter>
+									<Button onClick={onCreate} disabled={createWidget.isPending || !name.trim() || !agentId}>
+										{createWidget.isPending ? t("widgetSetup.creating") : t("widgetSetup.createWidget")}
+									</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
+					) : undefined
 				}
 			/>
 

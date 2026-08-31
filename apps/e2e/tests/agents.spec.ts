@@ -99,6 +99,16 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: "Refresh token" })).toHaveCount(0)
 	await expect(page.getByText("Danger zone")).toHaveCount(0)
+
+	// Widgets are managed by the same permission, so the same controls have to disappear.
+	await page.getByRole("link", { name: "Widgets", exact: true }).click()
+	await expect(page.getByRole("button", { name: "New widget" })).toHaveCount(0)
+	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+
+	await expect(page.getByLabel("Name")).toBeDisabled()
+	await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
+	await expect(page.locator("pre")).toBeVisible()
+	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 })
 
 test("an ungranted operator sees neither agent navigation nor agent content", async ({ page }) => {
