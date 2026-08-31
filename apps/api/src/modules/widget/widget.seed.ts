@@ -17,7 +17,10 @@ export async function seed(agentId: string): Promise<{ publicToken: string }> {
 	const marketing = await service.createWidget({
 		agentId,
 		name: "Marketing site",
-		appearance: { ...DEFAULT_WIDGET_APPEARANCE, primary: E2E_WIDGET_PRIMARY, primaryForeground: "#ffffff" },
+		appearance: {
+			...DEFAULT_WIDGET_APPEARANCE,
+			light: { ...DEFAULT_WIDGET_APPEARANCE.light, primary: E2E_WIDGET_PRIMARY, textOnPrimary: "#ffffff" },
+		},
 	})
 	// Pinned afterwards so the service needs no test-only parameter.
 	await repo.setPublicToken(marketing.id, E2E_WIDGET_TOKEN)

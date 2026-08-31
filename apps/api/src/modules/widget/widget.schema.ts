@@ -7,6 +7,7 @@ export const widgetThemeEnum = pgEnum("widget_theme", ["system", "light", "dark"
 /**
  * One column per setting rather than a jsonb blob: the set is closed (SRS 3.2.5), enums
  * plus NOT NULL make an invalid row unrepresentable, and changes show in the migration.
+ * Light and dark are each a full five-color scheme; neither is ever derived from the other.
  */
 export const widget = pgTable(
 	"widget",
@@ -20,10 +21,16 @@ export const widget = pgTable(
 		// A public identifier printed into every host page, not a bearer credential, so it is
 		// stored in the clear: hashing adds nothing and loses the snippet after creation.
 		publicToken: text("public_token").notNull().unique(),
-		primaryColor: text("primary_color").notNull(),
-		primaryForegroundColor: text("primary_foreground_color").notNull(),
-		backgroundColor: text("background_color").notNull(),
-		foregroundColor: text("foreground_color").notNull(),
+		lightPrimaryColor: text("light_primary_color").notNull(),
+		lightTextOnPrimaryColor: text("light_text_on_primary_color").notNull(),
+		lightBackgroundColor: text("light_background_color").notNull(),
+		lightSurfaceColor: text("light_surface_color").notNull(),
+		lightTextColor: text("light_text_color").notNull(),
+		darkPrimaryColor: text("dark_primary_color").notNull(),
+		darkTextOnPrimaryColor: text("dark_text_on_primary_color").notNull(),
+		darkBackgroundColor: text("dark_background_color").notNull(),
+		darkSurfaceColor: text("dark_surface_color").notNull(),
+		darkTextColor: text("dark_text_color").notNull(),
 		position: widgetPositionEnum("position").notNull().default("bottom-right"),
 		theme: widgetThemeEnum("theme").notNull().default("system"),
 		themeToggleEnabled: boolean("theme_toggle_enabled").notNull().default(true),

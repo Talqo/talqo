@@ -585,26 +585,62 @@
 					"primaryKey": false,
 					"notNull": true
 				},
-				"primary_color": {
-					"name": "primary_color",
+				"light_primary_color": {
+					"name": "light_primary_color",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true
 				},
-				"primary_foreground_color": {
-					"name": "primary_foreground_color",
+				"light_text_on_primary_color": {
+					"name": "light_text_on_primary_color",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true
 				},
-				"background_color": {
-					"name": "background_color",
+				"light_background_color": {
+					"name": "light_background_color",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true
 				},
-				"foreground_color": {
-					"name": "foreground_color",
+				"light_surface_color": {
+					"name": "light_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_text_color": {
+					"name": "light_text_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_primary_color": {
+					"name": "dark_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_on_primary_color": {
+					"name": "dark_text_on_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_background_color": {
+					"name": "dark_background_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_surface_color": {
+					"name": "dark_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_color": {
+					"name": "dark_text_color",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true

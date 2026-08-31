@@ -49,13 +49,35 @@ describe("widget lifecycle", () => {
 		expect(widgets.every((widget) => widget.agentId === agentId)).toBe(true)
 	})
 
-	it("stores a custom palette and reads it back unchanged", async () => {
+	it("filters by agent so one agent's page never fetches another agent's widgets", async () => {
+		const first = await createAgent("First")
+		const second = await createAgent("Second")
+		await createWidget(first)
+		await createWidget(second, { name: "Support portal" })
+
+		const widgets = await service.listWidgets(first)
+
+		expect(widgets).toHaveLength(1)
+		expect(widgets[0]?.agentId).toBe(first)
+	})
+
+	it("stores a custom light and dark palette and reads it back unchanged", async () => {
 		const agentId = await createAgent()
 		const appearance = {
-			primary: "#7c3aed",
-			primaryForeground: "#ffffff",
-			background: "#0a0a0a",
-			foreground: "#fafafa",
+			light: {
+				primary: "#7c3aed",
+				textOnPrimary: "#ffffff",
+				background: "#fafafa",
+				surface: "#eeeeee",
+				text: "#0a0a0a",
+			},
+			dark: {
+				primary: "#a78bfa",
+				textOnPrimary: "#1e1b4b",
+				background: "#0a0a0a",
+				surface: "#171717",
+				text: "#fafafa",
+			},
 			position: "bottom-left",
 			theme: "dark",
 			themeToggle: false,
@@ -70,7 +92,11 @@ describe("widget lifecycle", () => {
 	it("replaces the whole appearance on update", async () => {
 		const agentId = await createAgent()
 		const created = await createWidget(agentId)
-		const appearance = { ...DEFAULT_WIDGET_APPEARANCE, primary: "#123456", theme: "dark" } as const
+		const appearance = {
+			...DEFAULT_WIDGET_APPEARANCE,
+			light: { ...DEFAULT_WIDGET_APPEARANCE.light, primary: "#123456" },
+			theme: "dark",
+		} as const
 
 		expect((await replaceWidget(created, { appearance })).appearance).toEqual(appearance)
 	})
@@ -116,14 +142,15 @@ describe("agent deletion", () => {
 })
 
 describe("public config lookup", () => {
-	it("returns the appearance and agent for a known token", async () => {
+	it("returns the appearance, agent, and name for a known token", async () => {
 		const agentId = await createAgent()
-		const created = await createWidget(agentId)
+		const created = await createWidget(agentId, { name: "Marketing site" })
 
 		const config = await service.getConfigByToken(created.publicToken)
 
 		expect(config.version).toBe(WIDGET_CONFIG_VERSION)
 		expect(config.agentId).toBe(agentId)
+		expect(config.name).toBe("Marketing site")
 		expect(config.appearance).toEqual(DEFAULT_WIDGET_APPEARANCE)
 	})
 
@@ -140,14 +167,16 @@ describe("public config lookup", () => {
 		const agentId = await createAgent()
 		const created = await createWidget(agentId)
 
-		await replaceWidget(created, { appearance: { ...created.appearance, primary: "#ff0000" } })
+		await replaceWidget(created, {
+			appearance: { ...created.appearance, light: { ...created.appearance.light, primary: "#ff0000" } },
+		})
 
-		expect((await service.getConfigByToken(created.publicToken)).appearance.primary).toBe("#ff0000")
+		expect((await service.getConfigByToken(created.publicToken)).appearance.light.primary).toBe("#ff0000")
 	})
 
 	it("serves the config over HTTP without a session, with cache headers", async () => {
 		const agentId = await createAgent()
-		const created = await createWidget(agentId)
+		const created = await createWidget(agentId, { name: "Marketing site" })
 
 		const response = await app.request(`/api/widget-config/${created.publicToken}`)
 
@@ -157,6 +186,7 @@ describe("public config lookup", () => {
 		expect(await response.json()).toEqual({
 			version: WIDGET_CONFIG_VERSION,
 			agentId,
+			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 		})
 	})
@@ -172,20 +202,22 @@ describe("public config lookup", () => {
 		})
 		expect(cached.status).toBe(304)
 
-		await replaceWidget(created, { appearance: { ...created.appearance, primary: "#00ff00" } })
+		await replaceWidget(created, {
+			appearance: { ...created.appearance, light: { ...created.appearance.light, primary: "#00ff00" } },
+		})
 		const refreshed = await app.request(`/api/widget-config/${created.publicToken}`, {
 			headers: { "If-None-Match": etag },
 		})
 		expect(refreshed.status).toBe(200)
 	})
 
-	it("does not leak the widget's internal id or name", async () => {
+	// The name is public by design (the embed shows it); the internal id is not.
+	it("does not leak the widget's internal id", async () => {
 		const agentId = await createAgent()
 		const created = await createWidget(agentId, { name: "Internal name" })
 
 		const body = await (await app.request(`/api/widget-config/${created.publicToken}`)).text()
 
 		expect(body).not.toContain(created.id)
-		expect(body).not.toContain("Internal name")
 	})
 })

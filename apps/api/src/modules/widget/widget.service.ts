@@ -25,6 +25,7 @@ export type Widget = {
 export type WidgetConfig = {
 	agentId: string
 	appearance: WidgetAppearance
+	name: string
 	updatedAt: Date
 	version: number
 }
@@ -47,10 +48,20 @@ function toWidget(row: WidgetRow): Widget {
 		name: row.name,
 		publicToken: row.publicToken,
 		appearance: {
-			primary: row.primaryColor,
-			primaryForeground: row.primaryForegroundColor,
-			background: row.backgroundColor,
-			foreground: row.foregroundColor,
+			light: {
+				primary: row.lightPrimaryColor,
+				textOnPrimary: row.lightTextOnPrimaryColor,
+				background: row.lightBackgroundColor,
+				surface: row.lightSurfaceColor,
+				text: row.lightTextColor,
+			},
+			dark: {
+				primary: row.darkPrimaryColor,
+				textOnPrimary: row.darkTextOnPrimaryColor,
+				background: row.darkBackgroundColor,
+				surface: row.darkSurfaceColor,
+				text: row.darkTextColor,
+			},
 			position: row.position,
 			theme: row.theme,
 			themeToggle: row.themeToggleEnabled,
@@ -62,10 +73,16 @@ function toWidget(row: WidgetRow): Widget {
 
 function toColumns(appearance: WidgetAppearance) {
 	return {
-		primaryColor: appearance.primary,
-		primaryForegroundColor: appearance.primaryForeground,
-		backgroundColor: appearance.background,
-		foregroundColor: appearance.foreground,
+		lightPrimaryColor: appearance.light.primary,
+		lightTextOnPrimaryColor: appearance.light.textOnPrimary,
+		lightBackgroundColor: appearance.light.background,
+		lightSurfaceColor: appearance.light.surface,
+		lightTextColor: appearance.light.text,
+		darkPrimaryColor: appearance.dark.primary,
+		darkTextOnPrimaryColor: appearance.dark.textOnPrimary,
+		darkBackgroundColor: appearance.dark.background,
+		darkSurfaceColor: appearance.dark.surface,
+		darkTextColor: appearance.dark.text,
 		position: appearance.position,
 		theme: appearance.theme,
 		themeToggleEnabled: appearance.themeToggle,
@@ -73,8 +90,8 @@ function toColumns(appearance: WidgetAppearance) {
 	}
 }
 
-export async function listWidgets(): Promise<Widget[]> {
-	return (await repo.listWidgets()).map(toWidget)
+export async function listWidgets(agentId?: string): Promise<Widget[]> {
+	return (await repo.listWidgets(agentId)).map(toWidget)
 }
 
 export async function getWidget(id: string): Promise<Widget> {
@@ -123,6 +140,6 @@ export async function deleteWidget(id: string): Promise<void> {
 export async function getConfigByToken(publicToken: string): Promise<WidgetConfig> {
 	const row = await repo.findWidgetByToken(publicToken)
 	if (!row) throw new WidgetNotFoundError("Widget not found")
-	const { agentId, appearance } = toWidget(row)
-	return { version: WIDGET_CONFIG_VERSION, agentId, appearance, updatedAt: row.updatedAt }
+	const { agentId, name, appearance } = toWidget(row)
+	return { version: WIDGET_CONFIG_VERSION, agentId, name, appearance, updatedAt: row.updatedAt }
 }
