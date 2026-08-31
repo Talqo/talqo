@@ -26,7 +26,7 @@ describe("api", () => {
 
 	it("rejects an oversized body before authentication or validation", async () => {
 		const response = await app.request("/api/auth/login", {
-			body: JSON.stringify({ username: "a".repeat(70_000), password: "x".repeat(70_000) }),
+			body: JSON.stringify({ username: "a".repeat(150_000), password: "x".repeat(150_000) }),
 			headers: { "Content-Type": "application/json" },
 			method: "POST",
 		})
