@@ -25,7 +25,6 @@ import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analy
 import { Route as DashboardInvitationsRouteImport } from './routes/dashboard/invitations'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
-import { Route as DashboardWidgetsIndexRouteImport } from './routes/dashboard/widgets/index'
 import { Route as DashboardWidgetsWidgetIdRouteImport } from './routes/dashboard/widgets/$widgetId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -109,11 +108,6 @@ const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
   path: '/agent/$agentId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardWidgetsIndexRoute = DashboardWidgetsIndexRouteImport.update({
-  id: '/widgets/',
-  path: '/widgets/',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardWidgetsWidgetIdRoute =
   DashboardWidgetsWidgetIdRouteImport.update({
     id: '/widgets/$widgetId',
@@ -139,7 +133,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
-  '/dashboard/widgets/': typeof DashboardWidgetsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,7 +151,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
-  '/dashboard/widgets': typeof DashboardWidgetsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,7 +171,6 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
-  '/dashboard/widgets/': typeof DashboardWidgetsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,7 +192,6 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
     | '/dashboard/widgets/$widgetId'
-    | '/dashboard/widgets/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -220,7 +210,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/agent/$agentId'
     | '/dashboard/widgets/$widgetId'
-    | '/dashboard/widgets'
   id:
     | '__root__'
     | '/'
@@ -240,7 +229,6 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
     | '/dashboard/widgets/$widgetId'
-    | '/dashboard/widgets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -368,13 +356,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAgentAgentIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/widgets/': {
-      id: '/dashboard/widgets/'
-      path: '/widgets'
-      fullPath: '/dashboard/widgets/'
-      preLoaderRoute: typeof DashboardWidgetsIndexRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/widgets/$widgetId': {
       id: '/dashboard/widgets/$widgetId'
       path: '/widgets/$widgetId'
@@ -395,7 +376,6 @@ interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
   DashboardWidgetsWidgetIdRoute: typeof DashboardWidgetsWidgetIdRoute
-  DashboardWidgetsIndexRoute: typeof DashboardWidgetsIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -408,7 +388,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
   DashboardWidgetsWidgetIdRoute: DashboardWidgetsWidgetIdRoute,
-  DashboardWidgetsIndexRoute: DashboardWidgetsIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

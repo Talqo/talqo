@@ -57,7 +57,7 @@ function AgentsPage() {
 			})
 			const agent = result.data.agent
 			await refetch()
-			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id } })
+			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id }, search: { tab: undefined } })
 		} catch (caught) {
 			setCreateError(
 				(caught as CreateAgentMutationError).status === FORBIDDEN_STATUS
@@ -121,7 +121,13 @@ function AgentsPage() {
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{agents.map((agent) => (
-						<Link key={agent.id} to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} className="group">
+						<Link
+							key={agent.id}
+							to="/dashboard/agent/$agentId"
+							params={{ agentId: agent.id }}
+							search={{ tab: undefined }}
+							className="group"
+						>
 							<Card className="group-hover:border-primary/40 h-full transition-colors">
 								<CardHeader>
 									<CardTitle>{agent.name}</CardTitle>
