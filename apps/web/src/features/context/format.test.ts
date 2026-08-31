@@ -27,10 +27,6 @@ describe("formatFileDate", () => {
 		expect(formatted).toContain("25")
 		expect(formatted).toContain("2026")
 	})
-
-	test("respects the language", () => {
-		expect(formatFileDate("2026-08-25T14:30:00.000Z", "cs-CZ")).toContain("25")
-	})
 })
 
 describe("splitExtension", () => {

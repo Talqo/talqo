@@ -65,7 +65,7 @@
 		"wordBlacklist": "Word blacklist"
 	},
 	"agentFiles": {
-		"cardDescription": "Accepted types: PDF, TXT, MD, DOCX. Max {{maxSizeMB}} MB per file.",
+		"cardDescription": "Accepted types: {{formats}}. Max {{maxSizeMB}} MB per file.",
 		"cardTitle": "Knowledge files",
 		"delete": "Delete {{name}}",
 		"deleteAction": "Delete file",
@@ -77,7 +77,6 @@
 		"deleting": "Deleting…",
 		"dropzone": "Drag files here, or click to browse",
 		"dropzoneHint": "No knowledge files yet. Upload the sources the agent should answer from.",
-		"empty": "No knowledge files yet.",
 		"loadFailed": "Could not load the knowledge files.",
 		"loading": "Loading files…",
 		"rename": "Rename {{name}}",

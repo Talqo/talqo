@@ -134,7 +134,6 @@ export async function deleteAgent(id: string): Promise<void> {
 	if (!(await repo.deleteById(id))) {
 		throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
 	}
-	// Knowledge files are stored on disk under the agent id; the DB delete is already
-	// committed, so clean up the upload directory best-effort and never fail the delete.
+	// Best-effort: the DB delete already committed, so never fail the delete.
 	await agentFiles.removeAgentDir(id).catch((error: unknown) => console.error(error))
 }

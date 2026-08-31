@@ -65,7 +65,7 @@
 		"wordBlacklist": "Blacklist slov"
 	},
 	"agentFiles": {
-		"cardDescription": "Podporované typy: PDF, TXT, MD, DOCX. Maximálně {{maxSizeMB}} MB na soubor.",
+		"cardDescription": "Podporované typy: {{formats}}. Maximálně {{maxSizeMB}} MB na soubor.",
 		"cardTitle": "Znalostní soubory",
 		"delete": "Smazat {{name}}",
 		"deleteAction": "Smazat soubor",
@@ -77,7 +77,6 @@
 		"deleting": "Mazání…",
 		"dropzone": "Přetáhněte soubory sem, nebo klikněte pro výběr",
 		"dropzoneHint": "Zatím žádné znalostní soubory. Nahrajte zdroje, ze kterých má agent odpovídat.",
-		"empty": "Zatím žádné znalostní soubory.",
 		"loadFailed": "Znalostní soubory se nepodařilo načíst.",
 		"loading": "Načítání souborů…",
 		"rename": "Přejmenovat {{name}}",

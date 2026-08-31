@@ -2,6 +2,7 @@ import type { AgentFile } from "@/api/generated/models/agent/agentFile.zod"
 
 import {
 	getListAgentFilesQueryKey,
+	getListAgentFilesQueryOptions,
 	useDeleteAgentFile,
 	useListAgentFiles,
 	useRenameAgentFile,
@@ -29,7 +30,6 @@ import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
-const ACCEPTED_EXTENSIONS = ".pdf,.txt,.md,.docx"
 
 function errorMessage(error: unknown, fallback: string): string {
 	const info = (error as { info?: { error?: string } }).info
@@ -41,7 +41,10 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const { language } = useLanguage()
 	const queryClient = useQueryClient()
 
-	const filesQuery = useListAgentFiles(agentId)
+	// List requires agents:manage; read-only members skip the query instead of landing on a 403.
+	const filesQuery = useListAgentFiles(agentId, {
+		query: { ...getListAgentFilesQueryOptions(agentId), enabled: canManage },
+	})
 	const uploadFile = useUploadAgentFile()
 	const renameFile = useRenameAgentFile()
 	const deleteFile = useDeleteAgentFile()
@@ -57,6 +60,8 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 
 	const maxSizeBytes = filesQuery.data?.data.maxSizeBytes
 	const maxSizeMB = maxSizeBytes ? Math.round(maxSizeBytes / BYTES_PER_MB) : undefined
+	const allowedExtensions = filesQuery.data?.data.allowedExtensions
+	const formats = allowedExtensions?.map((extension) => extension.slice(1).toUpperCase()).join(", ")
 
 	function refresh() {
 		return queryClient.invalidateQueries({ queryKey: getListAgentFilesQueryKey(agentId) })
@@ -76,10 +81,11 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 				// eslint-disable-next-line no-await-in-loop
 				await uploadFile.mutateAsync({ agentId, data: { file } })
 			}
-			await refresh()
 		} catch (error) {
 			setFileError(errorMessage(error, t("agentFiles.uploadFailed")))
 		} finally {
+			// Refresh even on failure: earlier files of a batch may have landed before the error.
+			await refresh()
 			if (fileInputRef.current) fileInputRef.current.value = ""
 		}
 	}
@@ -134,7 +140,9 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		<Card>
 			<CardHeader>
 				<CardTitle>{t("agentFiles.cardTitle")}</CardTitle>
-				<CardDescription>{t("agentFiles.cardDescription", { maxSizeMB: maxSizeMB ?? "…" })}</CardDescription>
+				<CardDescription>
+					{t("agentFiles.cardDescription", { maxSizeMB: maxSizeMB ?? "…", formats: formats ?? "…" })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{canManage && (
@@ -163,7 +171,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							ref={fileInputRef}
 							id="agent-file-input"
 							type="file"
-							accept={ACCEPTED_EXTENSIONS}
+							accept={allowedExtensions?.join(",")}
 							multiple
 							className="sr-only"
 							disabled={uploadFile.isPending}
@@ -185,9 +193,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
 				) : filesQuery.isError ? (
 					<p className="text-destructive text-sm">{t("agentFiles.loadFailed")}</p>
-				) : files.length === 0 ? (
-					!canManage && <p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
-				) : (
+				) : !canManage || files.length === 0 ? null : (
 					<ul className="divide-border divide-y rounded-md border">
 						{files.map((file) => (
 							<li key={file.name} className="flex items-center gap-3 px-3 py-2">

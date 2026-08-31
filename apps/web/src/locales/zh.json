@@ -65,7 +65,7 @@
 		"wordBlacklist": "屏蔽词"
 	},
 	"agentFiles": {
-		"cardDescription": "支持的类型:PDF、TXT、MD、DOCX。单文件最大 {{maxSizeMB}} MB。",
+		"cardDescription": "支持的类型:{{formats}}。单文件最大 {{maxSizeMB}} MB。",
 		"cardTitle": "知识文件",
 		"delete": "删除 {{name}}",
 		"deleteAction": "删除文件",
@@ -77,7 +77,6 @@
 		"deleting": "正在删除…",
 		"dropzone": "将文件拖到此处,或点击浏览",
 		"dropzoneHint": "还没有知识文件。上传智能体应参考的文档。",
-		"empty": "还没有知识文件。",
 		"loadFailed": "无法加载知识文件。",
 		"loading": "正在加载文件…",
 		"rename": "重命名 {{name}}",

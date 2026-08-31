@@ -6,7 +6,7 @@ import {
 	MAX_FILE_SIZE_MB,
 	BYTES_PER_MB,
 	resolveRenameTarget,
-	validatePathName,
+	validateName,
 	validateUpload,
 } from "./agent-files.service.ts"
 
@@ -33,15 +33,15 @@ describe("validateUpload", () => {
 	})
 })
 
-describe("validatePathName", () => {
+describe("validateName", () => {
 	it("rejects traversal and separators that arrive URL-decoded", () => {
 		for (const name of ["../x", "a/b", "a\\b", "..", "a\0b"]) {
-			expect(() => validatePathName(name)).toThrow(InvalidFileError)
+			expect(() => validateName(name)).toThrow(InvalidFileError)
 		}
 	})
 
 	it("accepts a plain file name", () => {
-		expect(() => validatePathName("report.pdf")).not.toThrow()
+		expect(() => validateName("report.pdf")).not.toThrow()
 	})
 })
 

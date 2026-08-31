@@ -152,7 +152,6 @@
 	--primary-foreground: var(--color-neutral-950);
 	--secondary: var(--color-neutral-800);
 	--secondary-foreground: var(--color-neutral-50);
-	/* 700 over the neutral-900 card keeps hover states (ghost buttons, rows) visible. */
 	--muted: var(--color-neutral-700);
 	--muted-foreground: var(--color-neutral-400);
 	--accent: var(--color-green-900);
