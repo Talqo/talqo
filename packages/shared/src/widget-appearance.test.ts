@@ -8,7 +8,6 @@ import {
 	isWidgetPosition,
 	isWidgetTheme,
 	relativeLuminance,
-	suggestForeground,
 } from "./widget-appearance"
 
 describe("isHexColor", () => {
@@ -67,22 +66,6 @@ describe("isDarkColor", () => {
 
 	test("classifies the default brand green as dark", () => {
 		expect(isDarkColor("#1a7f4b")).toBe(true)
-	})
-
-	test("agrees with suggestForeground", () => {
-		for (const color of ["#000000", "#ffffff", "#1a7f4b", "#f5f5f5", "#7f7f7f", "#facc15"]) {
-			expect(suggestForeground(color)).toBe(isDarkColor(color) ? "#ffffff" : "#171717")
-		}
-	})
-})
-
-describe("suggestForeground", () => {
-	test("always beats the alternative on contrast", () => {
-		for (const color of ["#1a7f4b", "#facc15", "#0a0a0a", "#e5e5e5"]) {
-			const chosen = suggestForeground(color)
-			const other = chosen === "#ffffff" ? "#171717" : "#ffffff"
-			expect(contrastRatio(color, chosen)).toBeGreaterThanOrEqual(contrastRatio(color, other))
-		}
 	})
 })
 

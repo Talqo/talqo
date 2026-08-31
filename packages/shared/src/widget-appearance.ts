@@ -109,7 +109,3 @@ export function contrastRatio(a: string, b: string): number {
 export function isDarkColor(hex: string): boolean {
 	return contrastRatio(hex, WHITE) > contrastRatio(hex, BLACK_INK)
 }
-
-export function suggestForeground(background: string): string {
-	return isDarkColor(background) ? WHITE : BLACK_INK
-}

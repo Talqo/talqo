@@ -15,7 +15,6 @@ export {
 	isWidgetPosition,
 	isWidgetTheme,
 	relativeLuminance,
-	suggestForeground,
 	WIDGET_POSITIONS,
 	WIDGET_THEMES,
 	type WidgetAppearance,
