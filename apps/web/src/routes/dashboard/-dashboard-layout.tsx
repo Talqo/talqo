@@ -93,7 +93,7 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 			inactiveProps={{
 				className: "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 			}}
-			className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+			className="min-h-control rounded-item flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors"
 			onClick={onNavigate}
 		>
 			<Icon className="size-5" />

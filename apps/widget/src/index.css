@@ -31,7 +31,12 @@
 	--color-border: var(--talqo-border);
 	--color-input: var(--talqo-input);
 	--color-ring: var(--talqo-ring);
-	--radius-md: var(--talqo-radius);
+	--radius-item: var(--talqo-radius-item);
+	--radius-control: var(--talqo-radius-control);
+	--radius-surface: var(--talqo-radius-surface);
+	--radius-overlay: var(--talqo-radius-overlay);
+	--spacing-control: 2.5rem;
+	--spacing-control-padding: 1rem;
 }
 
 .talqo-widget,

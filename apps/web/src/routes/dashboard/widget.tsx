@@ -128,7 +128,7 @@ function WidgetPage() {
 							</div>
 							{snippet ? (
 								<div className="relative">
-									<pre className="bg-muted overflow-x-auto rounded-lg border p-4 font-mono text-sm">{snippet}</pre>
+									<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
 									<Button
 										variant="outline"
 										size="icon"
@@ -162,7 +162,7 @@ function WidgetPage() {
 									type="color"
 									value={accentColor}
 									onChange={(event) => setAccentColor(event.target.value)}
-									className="h-9 w-12 cursor-pointer rounded-md border bg-transparent p-1"
+									className="h-control rounded-control w-12 cursor-pointer border bg-transparent p-1"
 								/>
 								<Input
 									value={accentColor}
@@ -228,7 +228,7 @@ function WidgetPage() {
 						<CardDescription>{t("widgetSetup.livePreviewDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<div className="overflow-hidden rounded-lg border">
+						<div className="rounded-surface overflow-hidden border">
 							<div className="bg-muted flex items-center gap-1.5 border-b px-3 py-2">
 								<span className="bg-destructive/70 size-2.5 rounded-full" />
 								<span className="bg-chart-4 size-2.5 rounded-full" />

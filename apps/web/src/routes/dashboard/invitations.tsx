@@ -97,12 +97,12 @@ function InvitationsPage() {
 						{t("auth.invitations.create")}
 					</Button>
 					{error ? (
-						<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+						<p className="bg-destructive/10 text-destructive rounded-surface p-4 text-sm" role="alert">
 							{error}
 						</p>
 					) : null}
 					{invite && inviteUrl ? (
-						<div className="bg-muted/50 space-y-2 rounded-xl border p-3">
+						<div className="bg-muted/50 rounded-surface space-y-3 border p-4">
 							<Label htmlFor="invitation-link">{t("auth.invitations.linkLabel")}</Label>
 							<div className="flex gap-2">
 								<Input id="invitation-link" className="font-mono text-xs" value={inviteUrl} readOnly />

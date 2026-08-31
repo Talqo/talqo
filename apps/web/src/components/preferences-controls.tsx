@@ -3,7 +3,7 @@ import { useLanguage } from "@/lib/use-language"
 import { useTheme } from "@/lib/use-theme"
 import { Button } from "@talqo/ui/components/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
-import { Moon, Sun } from "lucide-react"
+import { Languages, Moon, Sun } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 export function ThemeToggle() {
@@ -34,14 +34,15 @@ export function LanguageSelect() {
 			}}
 		>
 			<SelectTrigger
-				className="hover:bg-muted w-auto justify-center border-0 px-4 [&>svg]:hidden"
+				className="hover:bg-muted w-auto justify-center gap-1.5 border-0 px-3.5 [&>svg:last-child]:hidden"
 				aria-label={`${t("header.language")}: ${dashboardLanguages[language]}`}
 			>
-				{language}
+				<Languages className="size-4" aria-hidden />
+				<span>{language.toUpperCase()}</span>
 			</SelectTrigger>
 			<SelectContent align="end">
 				{Object.entries(dashboardLanguages).map(([value, label]) => (
-					<SelectItem key={value} value={value} className="py-2.5 pl-3.5">
+					<SelectItem key={value} value={value}>
 						{label}
 					</SelectItem>
 				))}

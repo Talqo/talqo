@@ -43,6 +43,19 @@
 	--radius-md: calc(var(--radius) * 0.8);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-item: 9999px;
+	--radius-control: 9999px;
+	--radius-surface: 0.875rem;
+	--radius-overlay: 0.875rem;
+	--spacing-control-xs: 1.75rem;
+	--spacing-control-sm: 2rem;
+	--spacing-control: 2.5rem;
+	--spacing-control-lg: 2.75rem;
+	--spacing-control-padding-sm: 0.75rem;
+	--spacing-control-padding: 1rem;
+	--spacing-control-padding-lg: 1.25rem;
+	--spacing-item: 2.25rem;
+	--spacing-surface-padding: 1.5rem;
 }
 
 :root {
