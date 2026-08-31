@@ -213,6 +213,8 @@ export const createWidget = async (
 	return { data, status: res.status, headers: res.headers } as createWidgetResponseSuccess
 }
 
+export const getCreateWidgetMutationKey = () => ["createWidget"] as const
+
 export const getCreateWidgetMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -225,7 +227,7 @@ export const getCreateWidgetMutationOptions = <
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof createWidget>>, TError, CreateWidgetMutationVariables, TContext> => {
-	const mutationKey = ["createWidget"]
+	const mutationKey = getCreateWidgetMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -443,6 +445,8 @@ export const updateWidget = async (
 	return { data, status: res.status, headers: res.headers } as updateWidgetResponseSuccess
 }
 
+export const getUpdateWidgetMutationKey = () => ["updateWidget"] as const
+
 export const getUpdateWidgetMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -455,7 +459,7 @@ export const getUpdateWidgetMutationOptions = <
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof updateWidget>>, TError, UpdateWidgetMutationVariables, TContext> => {
-	const mutationKey = ["updateWidget"]
+	const mutationKey = getUpdateWidgetMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -552,6 +556,8 @@ export const deleteWidget = async (widgetId: string, options?: RequestInit): Pro
 	return { data, status: res.status, headers: res.headers } as deleteWidgetResponseSuccess
 }
 
+export const getDeleteWidgetMutationKey = () => ["deleteWidget"] as const
+
 export const getDeleteWidgetMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -564,7 +570,7 @@ export const getDeleteWidgetMutationOptions = <
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof deleteWidget>>, TError, DeleteWidgetMutationVariables, TContext> => {
-	const mutationKey = ["deleteWidget"]
+	const mutationKey = getDeleteWidgetMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
