@@ -100,21 +100,12 @@ test("widget fetches its palette by public token across origins", async ({ page 
 	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", SEEDED_PRIMARY_RGB)
 })
 
-test("widget derives its surfaces from the fetched palette", async ({ page }) => {
+test("widget paints its own surface color, not the background", async ({ page }) => {
 	await page.goto(baseURL)
 	await page.getByRole("button", { name: "Open chat" }).click()
 
-	// The panel is a near-background surface, not the raw foreground the no-color-mix fallback
-	// gives. Read through a canvas: Chromium serializes color-mix() in its mixing space.
-	const channels = await page.getByRole("dialog").evaluate((panel) => {
-		const context = document.createElement("canvas").getContext("2d")
-		if (!context) throw new Error("canvas 2d context unavailable")
-		context.fillStyle = getComputedStyle(panel).backgroundColor
-		context.fillRect(0, 0, 1, 1)
-		return context.getImageData(0, 0, 1, 1).data.slice(0, 3)
-	})
-
-	expect(Math.min(...channels)).toBeGreaterThanOrEqual(240)
+	// The default surface (#f5f5f5) is a distinct operator input, not derived from background.
+	await expect(page.getByRole("dialog")).toHaveCSS("background-color", "rgb(245, 245, 245)")
 })
 
 test("widget still renders in default colors when its token is unknown", async ({ page }) => {

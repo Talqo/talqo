@@ -76,7 +76,6 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await logIn(page, VIEWER)
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await expect(page.getByRole("link", { name: "Widgets", exact: true })).toBeVisible()
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
 	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
 
@@ -94,7 +93,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(page.getByText("Danger zone")).toHaveCount(0)
 
 	// Widgets ride on the same permission, so their controls must disappear too.
-	await page.getByRole("link", { name: "Widgets", exact: true }).click()
+	await page.getByRole("tab", { name: "Widgets" }).click()
 	await expect(page.getByRole("button", { name: "New widget" })).toHaveCount(0)
 	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
 
@@ -108,7 +107,6 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await logIn(page, MEMBER)
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
-	await expect(page.getByRole("link", { name: "Widgets", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
 
