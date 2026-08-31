@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test"
 
 import {
 	contrastRatio,
-	DEFAULT_WIDGET_APPEARANCE,
-	isDarkColor,
+	DEFAULT_DARK_SCHEME,
+	DEFAULT_LIGHT_SCHEME,
 	isHexColor,
 	isWidgetPosition,
 	isWidgetTheme,
@@ -48,24 +48,16 @@ describe("contrastRatio", () => {
 		expect(contrastRatio("#1a7f4b", "#1a7f4b")).toBeCloseTo(1)
 	})
 
-	test("the default palette pairs clear AA for normal text", () => {
-		expect(contrastRatio(DEFAULT_WIDGET_APPEARANCE.background, DEFAULT_WIDGET_APPEARANCE.foreground)).toBeGreaterThan(
-			4.5,
-		)
-		expect(
-			contrastRatio(DEFAULT_WIDGET_APPEARANCE.primary, DEFAULT_WIDGET_APPEARANCE.primaryForeground),
-		).toBeGreaterThan(4.5)
-	})
-})
-
-describe("isDarkColor", () => {
-	test("classifies the extremes", () => {
-		expect(isDarkColor("#000000")).toBe(true)
-		expect(isDarkColor("#ffffff")).toBe(false)
+	test("both default schemes pair clear AA for normal text", () => {
+		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.background, DEFAULT_LIGHT_SCHEME.text)).toBeGreaterThan(4.5)
+		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.primary, DEFAULT_LIGHT_SCHEME.textOnPrimary)).toBeGreaterThan(4.5)
+		expect(contrastRatio(DEFAULT_DARK_SCHEME.background, DEFAULT_DARK_SCHEME.text)).toBeGreaterThan(4.5)
+		expect(contrastRatio(DEFAULT_DARK_SCHEME.primary, DEFAULT_DARK_SCHEME.textOnPrimary)).toBeGreaterThan(4.5)
 	})
 
-	test("classifies the default brand green as dark", () => {
-		expect(isDarkColor("#1a7f4b")).toBe(true)
+	test("dark is a distinct palette, not a derivation of light", () => {
+		expect(DEFAULT_DARK_SCHEME.primary).not.toBe(DEFAULT_LIGHT_SCHEME.primary)
+		expect(DEFAULT_DARK_SCHEME.background).not.toBe(DEFAULT_LIGHT_SCHEME.background)
 	})
 })
 

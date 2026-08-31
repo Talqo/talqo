@@ -6,12 +6,19 @@ export const WIDGET_THEMES = ["system", "light", "dark"] as const
 export type WidgetPosition = (typeof WIDGET_POSITIONS)[number]
 export type WidgetTheme = (typeof WIDGET_THEMES)[number]
 
-/** Every other widget token derives from these four colors in `apps/widget/src/theme/tokens.css`. */
-export type WidgetAppearance = {
+/** The only five colors a widget paints with; nothing else derives a tone or hue from them. */
+export type WidgetScheme = {
 	primary: string
-	primaryForeground: string
+	textOnPrimary: string
 	background: string
-	foreground: string
+	surface: string
+	text: string
+}
+
+/** Every other widget token derives from one of these five colors in `apps/widget/src/theme/tokens.css`. */
+export type WidgetAppearance = {
+	light: WidgetScheme
+	dark: WidgetScheme
 	position: WidgetPosition
 	theme: WidgetTheme
 	themeToggle: boolean
@@ -19,13 +26,34 @@ export type WidgetAppearance = {
 }
 
 /** As it arrives from an untrusted source; nothing is validated until the widget resolves it. */
-export type WidgetAppearanceInput = { [K in keyof WidgetAppearance]?: unknown }
+export type WidgetSchemeInput = { [K in keyof WidgetScheme]?: unknown }
+export type WidgetAppearanceInput = {
+	[K in keyof Omit<WidgetAppearance, "light" | "dark">]?: unknown
+} & {
+	light?: WidgetSchemeInput
+	dark?: WidgetSchemeInput
+}
+
+export const DEFAULT_LIGHT_SCHEME: WidgetScheme = {
+	primary: "#1a7f4b",
+	textOnPrimary: "#ffffff",
+	background: "#ffffff",
+	surface: "#f5f5f5",
+	text: "#171717",
+}
+
+// An operator input, not derived from light: dark mode gets its own explicit palette.
+export const DEFAULT_DARK_SCHEME: WidgetScheme = {
+	primary: "#34d399",
+	textOnPrimary: "#052e16",
+	background: "#0a0a0a",
+	surface: "#1a1a1a",
+	text: "#fafafa",
+}
 
 export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
-	primary: "#1a7f4b",
-	primaryForeground: "#ffffff",
-	background: "#ffffff",
-	foreground: "#171717",
+	light: DEFAULT_LIGHT_SCHEME,
+	dark: DEFAULT_DARK_SCHEME,
 	position: "bottom-right",
 	theme: "system",
 	themeToggle: true,
@@ -70,9 +98,6 @@ const CONTRAST_OFFSET = 0.05
 
 export const CONTRAST_AA_NORMAL = 4.5
 
-const WHITE = "#ffffff"
-const BLACK_INK = "#171717"
-
 function channel(hex: string, offset: number): number {
 	const linear = Number.parseInt(hex.slice(offset, offset + CHANNEL_LENGTH), HEX_RADIX) / CHANNEL_MAX
 	return linear <= SRGB_LINEAR_THRESHOLD
@@ -97,10 +122,5 @@ export function contrastRatio(a: string, b: string): number {
 	return (lighter + CONTRAST_OFFSET) / (darker + CONTRAST_OFFSET)
 }
 
-/** True when white text reads better on this color than dark ink does. */
-export function isDarkColor(hex: string): boolean {
-	return contrastRatio(hex, WHITE) > contrastRatio(hex, BLACK_INK)
-}
-
 /** The widget falls back to defaults on a mismatch, so both sides move together. */
-export const WIDGET_CONFIG_VERSION = 1
+export const WIDGET_CONFIG_VERSION = 2
