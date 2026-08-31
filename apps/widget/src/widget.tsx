@@ -1,6 +1,12 @@
 import { createRoot, type Root } from "react-dom/client"
 
-import { EmbeddedWidget, type EmbeddedWidgetProps, type WidgetPosition, type WidgetTheme } from "./embedded-widget"
+import {
+	defaultWidgetPosition,
+	EmbeddedWidget,
+	type EmbeddedWidgetProps,
+	isWidgetPosition,
+	type WidgetTheme,
+} from "./embedded-widget"
 import { isWidgetLanguage } from "./lib/i18n"
 
 let root: Root | null = null
@@ -8,9 +14,6 @@ let root: Root | null = null
 export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
-
-// Float in the corner by default; embeds can pin it via data-talqo-position.
-const DEFAULT_POSITION: WidgetPosition = "bottom-right"
 
 function embedScriptDataset(): DOMStringMap | undefined {
 	if (document.currentScript instanceof HTMLScriptElement) {
@@ -26,7 +29,7 @@ function embedScriptDataset(): DOMStringMap | undefined {
 function embedProps(): EmbeddedWidgetProps {
 	const dataset = embedScriptDataset()
 	if (!dataset) {
-		return { position: DEFAULT_POSITION }
+		return { position: defaultWidgetPosition }
 	}
 	const { talqoEmbedToken, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
 	return {
@@ -35,10 +38,7 @@ function embedProps(): EmbeddedWidgetProps {
 		title: talqoTitle,
 		theme: talqoTheme === "light" || talqoTheme === "dark" ? (talqoTheme as WidgetTheme) : undefined,
 		accent: talqoAccent,
-		position:
-			talqoPosition === "bottom-left" || talqoPosition === "bottom-right"
-				? (talqoPosition as WidgetPosition)
-				: DEFAULT_POSITION,
+		position: isWidgetPosition(talqoPosition) ? talqoPosition : defaultWidgetPosition,
 	}
 }
 

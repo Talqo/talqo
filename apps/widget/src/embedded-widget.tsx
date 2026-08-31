@@ -21,7 +21,15 @@ import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i
 import "./index.css"
 
 export type WidgetTheme = "light" | "dark"
-export type WidgetPosition = "bottom-right" | "bottom-left"
+
+export const widgetPositions = ["bottom-right", "bottom-left"] as const
+export type WidgetPosition = (typeof widgetPositions)[number]
+// Float in the corner by default; embeds can pin it via data-talqo-position.
+export const defaultWidgetPosition: WidgetPosition = "bottom-right"
+
+export function isWidgetPosition(value: unknown): value is WidgetPosition {
+	return typeof value === "string" && widgetPositions.includes(value as WidgetPosition)
+}
 
 export type EmbeddedWidgetProps = {
 	title?: string
@@ -39,12 +47,9 @@ const positionClasses: Record<WidgetPosition, string> = {
 
 type ResizeEdge = "top" | "side" | "corner"
 
-const DEFAULT_WIDTH = 320
-const DEFAULT_HEIGHT = 384
 const MIN_WIDTH = 280
 const MIN_HEIGHT = 320
 const RESIZE_MARGIN = 32
-const RESIZE_KEYBOARD_STEP = 16
 
 function clampPanelSize(width: number, height: number): { width: number; height: number } {
 	return {
@@ -190,26 +195,7 @@ function useResizablePanel(
 		window.addEventListener("pointercancel", handleEnd)
 	}
 
-	function resizeByKeys(edge: ResizeEdge, event: KeyboardEvent<HTMLDivElement>) {
-		const current = size ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }
-		const vertical = edge !== "side" && (event.key === "ArrowUp" || event.key === "ArrowDown")
-		const horizontal = edge !== "top" && (event.key === "ArrowLeft" || event.key === "ArrowRight")
-		if (!(vertical || horizontal)) {
-			return
-		}
-		event.preventDefault()
-		const growsUp = event.key === "ArrowUp"
-		// With a right anchor, dragging left grows the panel; with a left anchor, dragging right grows it.
-		const growsSideways = position === "bottom-left" ? event.key === "ArrowRight" : event.key === "ArrowLeft"
-		setSize(
-			clampPanelSize(
-				current.width + (horizontal ? (growsSideways ? RESIZE_KEYBOARD_STEP : -RESIZE_KEYBOARD_STEP) : 0),
-				current.height + (vertical ? (growsUp ? RESIZE_KEYBOARD_STEP : -RESIZE_KEYBOARD_STEP) : 0),
-			),
-		)
-	}
-
-	return { size, resizable, startResize, resizeByKeys, activeEdge }
+	return { size, resizable, startResize, activeEdge }
 }
 
 function WidgetChat({
@@ -232,7 +218,7 @@ function WidgetChat({
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
-	const { size, resizable, startResize, resizeByKeys, activeEdge } = useResizablePanel(open, position, panelRef)
+	const { size, resizable, startResize, activeEdge } = useResizablePanel(open, position, panelRef)
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -290,10 +276,7 @@ function WidgetChat({
 					{resizable && (
 						<>
 							<div
-								role="separator"
-								tabIndex={0}
-								aria-label={t("resizeHeight")}
-								aria-orientation="horizontal"
+								aria-hidden="true"
 								data-testid="resize-top"
 								className={cn(
 									"tw:absolute tw:-top-1.5 tw:right-3 tw:left-3 tw:z-10 tw:h-3 tw:cursor-ns-resize",
@@ -302,7 +285,6 @@ function WidgetChat({
 									position === "bottom-left" && "tw:right-14",
 								)}
 								onPointerDown={(event) => startResize("top", event)}
-								onKeyDown={(event) => resizeByKeys("top", event)}
 							>
 								<div
 									className={cn(
@@ -312,17 +294,13 @@ function WidgetChat({
 								/>
 							</div>
 							<div
-								role="separator"
-								tabIndex={0}
-								aria-label={t("resizeWidth")}
-								aria-orientation="vertical"
+								aria-hidden="true"
 								data-testid="resize-side"
 								className={cn(
 									"tw:absolute tw:top-3 tw:bottom-3 tw:z-10 tw:w-3",
 									position === "bottom-left" ? "tw:-right-1.5 tw:cursor-ew-resize" : "tw:-left-1.5 tw:cursor-ew-resize",
 								)}
 								onPointerDown={(event) => startResize("side", event)}
-								onKeyDown={(event) => resizeByKeys("side", event)}
 							>
 								<div
 									className={cn(
@@ -333,21 +311,16 @@ function WidgetChat({
 								/>
 							</div>
 							<div
-								role="separator"
-								tabIndex={0}
-								aria-label={t("resizeWindow")}
+								aria-hidden="true"
 								data-testid="resize-corner"
 								className={cn(
 									"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
 									position === "bottom-left"
 										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
 										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
-									activeEdge === "corner"
-										? "tw:opacity-100"
-										: "tw:opacity-0 tw:group-hover:opacity-100 tw:focus:opacity-100",
+									activeEdge === "corner" ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
 								)}
 								onPointerDown={(event) => startResize("corner", event)}
-								onKeyDown={(event) => resizeByKeys("corner", event)}
 							>
 								{/* Diagonal grip lines hinting the panel can be stretched. */}
 								<ResizeGripIcon

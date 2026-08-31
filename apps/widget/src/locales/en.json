@@ -5,8 +5,5 @@
 	"messageLabel": "Message",
 	"openChat": "Open chat",
 	"placeholder": "Type a message...",
-	"resizeHeight": "Resize chat height",
-	"resizeWidth": "Resize chat width",
-	"resizeWindow": "Resize chat window",
 	"send": "Send"
 }
