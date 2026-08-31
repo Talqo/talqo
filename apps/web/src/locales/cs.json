@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "Změnit heslo",
-		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
@@ -12,6 +10,8 @@
 		"email": "E-mail",
 		"emailInvalid": "Zadejte platnou e-mailovou adresu.",
 		"heading": "Účet",
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"name": "Jméno",
 		"nameRequired": "Jméno je povinné.",
 		"newPassword": "Nové heslo",
@@ -51,6 +51,8 @@
 		"saved": "Uloženo právě teď.",
 		"saving": "Ukládání…",
 		"subheading": "Aktualizujte název, chování a blokovaná slova agenta.",
+		"tabConfiguration": "Nastavení",
+		"tabWidgets": "Widgety",
 		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na aktuální seznam."
 	},
 	"agentFields": {
@@ -234,15 +236,11 @@
 			"analytics": {
 				"description": "Zobrazte statistiky konverzací a využití.",
 				"title": "Analytika"
-			},
-			"widget": {
-				"description": "Nakonfigurujte a zobrazte náhled vloženého widgetu.",
-				"title": "Chatovací widget"
 			}
 		},
 		"heading": "Vítejte v Talqo",
 		"openCard": "Otevřít {{title}} →",
-		"subheading": "Spravujte své agenty, widget a analytiku na jednom místě."
+		"subheading": "Spravujte své agenty a analytiku na jednom místě."
 	},
 	"header": {
 		"language": "Jazyk",
@@ -259,8 +257,7 @@
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"invitations": "Pozvánky",
-		"users": "Uživatelé",
-		"widgets": "Widgety"
+		"users": "Uživatelé"
 	},
 	"permissions": {
 		"accessDeniedBody": "Požádejte správce o přidělení přístupu k agentům, pokud ho potřebujete.",
@@ -285,38 +282,39 @@
 	"widgetSetup": {
 		"agentHelp": "Jeden agent může obsluhovat libovolný počet widgetů.",
 		"agentLabel": "Agent",
+		"agentPanelDescription": "Widgety obsluhované tímto agentem.",
 		"appearance": "Vzhled",
 		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
+		"backToAgent": "Zpět na agenta",
 		"backToSetup": "Zpět na nastavení widgetu",
-		"backToWidgets": "Zpět na widgety",
 		"colorBackground": "Pozadí",
-		"colorForeground": "Text",
 		"colorInvalid": "Použijte šestimístnou hex barvu, např. #1a7f4b.",
 		"colorPrimary": "Barva značky",
-		"colorPrimaryForeground": "Text na barvě značky",
-		"colorsHelp": "Okraje, tlumené plochy a stavy při najetí se odvozují z těchto čtyř barev. Tmavý režim prohodí pozadí a text.",
+		"colorsHelp": "Widget vykresluje přesně těmito pěti barvami pro každý režim; nic se neodvozuje ani negeneruje automaticky.",
+		"colorSurface": "Plocha",
+		"colorText": "Text",
+		"colorTextOnPrimary": "Text na barvě značky",
 		"contrastPass": "{{ratio}}:1",
 		"contrastWarning": "{{ratio}}:1 nízký",
 		"copyEmbed": "Zkopírovat kód pro vložení",
-		"createDescription": "Pojmenujte widget a vyberte agenta, který na něm odpovídá.",
+		"createDescription": "Pojmenujte widget; bude obsluhovat tohoto agenta.",
 		"createError": "Widget se nepodařilo vytvořit. Zkuste to znovu.",
 		"createWidget": "Nový widget",
 		"creating": "Vytváření…",
-		"detailSubheading": "Přiřaďte agenta, nalaďte paletu a zkopírujte kód pro vložení.",
+		"detailSubheading": "Nalaďte paletu a zkopírujte kód pro vložení.",
 		"embedCode": "Kód pro vložení",
 		"embedDescription": "Vložte tento úryvek před uzavírací značku body. Změny vzhledu se projeví bez opětovného kopírování.",
-		"empty": "Zatím žádní agenti. Než přidáte widget, vytvořte agenta na stránce Agenti.",
-		"heading": "Nastavení widgetu",
 		"hexValue": "Hex hodnota: {{label}}",
 		"language": "Jazyk",
 		"livePreview": "Živý náhled",
 		"livePreviewDescription": "Skutečný balíček widgetu, který se aktualizuje během psaní.",
 		"loadError": "Widgety se nepodařilo načíst. Obnovte stránku a zkuste to znovu.",
-		"loading": "Načítání agentů…",
+		"loading": "Načítání…",
 		"nameLabel": "Název",
 		"namePlaceholder": "Marketingový web",
 		"notFound": "Widget nebyl nalezen. Možná byl odstraněn.",
 		"noWidgets": "Zatím žádné widgety. Vytvořte jeden a získejte kód pro vložení.",
+		"openCustomization": "Otevřít přizpůsobení",
 		"openFullPreview": "Otevřít náhled na celou obrazovku",
 		"position": "Pozice",
 		"positionBottomLeft": "Vlevo dole",
@@ -329,13 +327,12 @@
 		"saving": "Ukládání…",
 		"scriptUrlMissing": "Pro vygenerování kódu pro vložení nastavte VITE_WIDGET_CDN_URL na zdrojovou adresu souboru widget.js.",
 		"selectAgent": "Vyberte agenta",
-		"servedBy": "Obsluhuje {{name}}",
-		"subheading": "Vytvářejte widgety, přiřaďte každému agenta a nalaďte jejich vzhled.",
+		"tabDark": "Tmavý",
+		"tabLight": "Světlý",
 		"theme": "Výchozí motiv",
 		"themeDark": "Tmavý",
 		"themeLight": "Světlý",
 		"themeSystem": "Podle systému návštěvníka",
-		"themeToggle": "Umožnit návštěvníkům přepínat světlý a tmavý režim",
-		"unknownAgent": "Neznámý agent"
+		"themeToggle": "Umožnit návštěvníkům přepínat světlý a tmavý režim"
 	}
 }

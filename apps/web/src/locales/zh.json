@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "修改密码",
-		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
@@ -12,6 +10,8 @@
 		"email": "邮箱",
 		"emailInvalid": "请输入有效的邮箱地址。",
 		"heading": "账户",
+		"changePassword": "修改密码",
+		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"name": "姓名",
 		"nameRequired": "姓名为必填项。",
 		"newPassword": "新密码",
@@ -51,6 +51,8 @@
 		"saved": "刚刚已保存。",
 		"saving": "正在保存…",
 		"subheading": "更新智能体的名称、行为和屏蔽词。",
+		"tabConfiguration": "配置",
+		"tabWidgets": "小组件",
 		"wasDeleted": "该智能体已在别处被删除。请返回列表查看最新状态。"
 	},
 	"agentFields": {
@@ -234,15 +236,11 @@
 			"analytics": {
 				"description": "查看对话和使用统计。",
 				"title": "分析"
-			},
-			"widget": {
-				"description": "配置并预览嵌入式聊天组件。",
-				"title": "聊天组件"
 			}
 		},
 		"heading": "欢迎使用 Talqo",
 		"openCard": "打开{{title}} →",
-		"subheading": "在一个地方管理您的智能体、聊天组件和分析。"
+		"subheading": "在一个地方管理您的智能体和分析。"
 	},
 	"header": {
 		"language": "语言",
@@ -259,8 +257,7 @@
 		"analytics": "分析",
 		"dashboard": "仪表盘",
 		"invitations": "邀请",
-		"users": "用户",
-		"widgets": "挂件"
+		"users": "用户"
 	},
 	"permissions": {
 		"accessDeniedBody": "如需智能体访问权限，请让管理员为你的账户授权。",
@@ -285,38 +282,39 @@
 	"widgetSetup": {
 		"agentHelp": "一个智能体可以服务任意数量的挂件。",
 		"agentLabel": "智能体",
+		"agentPanelDescription": "服务此智能体的挂件。",
 		"appearance": "外观",
 		"appearanceDescription": "应用于嵌入式聊天组件的视觉配置。",
+		"backToAgent": "返回智能体",
 		"backToSetup": "返回聊天组件设置",
-		"backToWidgets": "返回挂件列表",
 		"colorBackground": "背景色",
-		"colorForeground": "文字颜色",
 		"colorInvalid": "请使用六位十六进制颜色，例如 #1a7f4b。",
 		"colorPrimary": "品牌色",
-		"colorPrimaryForeground": "品牌色上的文字",
-		"colorsHelp": "边框、弱化表面和悬停状态均由这四种颜色推导而来。深色模式会交换背景色与文字颜色。",
+		"colorsHelp": "挂件仅使用这五种颜色渲染每种模式；没有任何颜色是推导或自动生成的。",
+		"colorSurface": "表面色",
+		"colorText": "文字颜色",
+		"colorTextOnPrimary": "品牌色上的文字",
 		"contrastPass": "{{ratio}}:1",
 		"contrastWarning": "{{ratio}}:1 偏低",
 		"copyEmbed": "复制嵌入代码",
-		"createDescription": "为挂件命名，并选择在其上作答的智能体。",
+		"createDescription": "为挂件命名；它将服务此智能体。",
 		"createError": "无法创建挂件。请重试。",
 		"createWidget": "新建挂件",
 		"creating": "创建中…",
-		"detailSubheading": "分配智能体、调整配色，并复制嵌入代码。",
+		"detailSubheading": "调整配色，并复制嵌入代码。",
 		"embedCode": "嵌入代码",
 		"embedDescription": "将此代码片段粘贴到站点 body 结束标签之前。外观更改无需重新复制即可生效。",
-		"empty": "尚无智能体。请先在智能体页面创建一个，再添加挂件。",
-		"heading": "聊天组件设置",
 		"hexValue": "{{label}} 十六进制值",
 		"language": "语言",
 		"livePreview": "实时预览",
 		"livePreviewDescription": "真实的挂件包，随输入实时更新。",
 		"loadError": "无法加载挂件。请刷新后重试。",
-		"loading": "正在加载智能体…",
+		"loading": "正在加载…",
 		"nameLabel": "名称",
 		"namePlaceholder": "营销站点",
 		"notFound": "未找到该挂件。它可能已被删除。",
 		"noWidgets": "尚无挂件。创建一个即可获得嵌入代码。",
+		"openCustomization": "打开自定义设置",
 		"openFullPreview": "打开全屏预览",
 		"position": "位置",
 		"positionBottomLeft": "左下",
@@ -329,13 +327,12 @@
 		"saving": "保存中…",
 		"scriptUrlMissing": "请将 VITE_WIDGET_CDN_URL 设置为 widget.js 的来源地址，以生成嵌入代码。",
 		"selectAgent": "选择智能体",
-		"servedBy": "由 {{name}} 提供服务",
-		"subheading": "创建挂件、为每个挂件分配智能体，并调整外观。",
+		"tabDark": "深色",
+		"tabLight": "浅色",
 		"theme": "默认主题",
 		"themeDark": "深色",
 		"themeLight": "浅色",
 		"themeSystem": "跟随访客系统",
-		"themeToggle": "允许访客切换浅色和深色",
-		"unknownAgent": "未知智能体"
+		"themeToggle": "允许访客切换浅色和深色"
 	}
 }
