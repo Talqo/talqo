@@ -18,14 +18,29 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { DiscoverAiProviderModels200 } from "../models/ai-providers/discoverAiProviderModels200.zod"
 import type { DiscoverAiProviderModels400 } from "../models/ai-providers/discoverAiProviderModels400.zod"
+import type { DiscoverAiProviderModels401 } from "../models/ai-providers/discoverAiProviderModels401.zod"
+import type { DiscoverAiProviderModels403 } from "../models/ai-providers/discoverAiProviderModels403.zod"
 import type { DiscoverAiProviderModels429 } from "../models/ai-providers/discoverAiProviderModels429.zod"
+import type { DiscoverAiProviderModels500 } from "../models/ai-providers/discoverAiProviderModels500.zod"
 import type { DiscoverAiProviderModels502 } from "../models/ai-providers/discoverAiProviderModels502.zod"
 import type { DiscoverAiProviderModelsBody } from "../models/ai-providers/discoverAiProviderModelsBody.zod"
 import type { GetAiProviderConfiguration200 } from "../models/ai-providers/getAiProviderConfiguration200.zod"
+import type { GetAiProviderConfiguration400 } from "../models/ai-providers/getAiProviderConfiguration400.zod"
+import type { GetAiProviderConfiguration401 } from "../models/ai-providers/getAiProviderConfiguration401.zod"
+import type { GetAiProviderConfiguration403 } from "../models/ai-providers/getAiProviderConfiguration403.zod"
+import type { GetAiProviderConfiguration500 } from "../models/ai-providers/getAiProviderConfiguration500.zod"
 import type { ListAiProviders200 } from "../models/ai-providers/listAiProviders200.zod"
+import type { ListAiProviders400 } from "../models/ai-providers/listAiProviders400.zod"
+import type { ListAiProviders401 } from "../models/ai-providers/listAiProviders401.zod"
+import type { ListAiProviders403 } from "../models/ai-providers/listAiProviders403.zod"
+import type { ListAiProviders500 } from "../models/ai-providers/listAiProviders500.zod"
 import type { SaveAiProviderConfiguration200 } from "../models/ai-providers/saveAiProviderConfiguration200.zod"
+import type { SaveAiProviderConfiguration400 } from "../models/ai-providers/saveAiProviderConfiguration400.zod"
+import type { SaveAiProviderConfiguration401 } from "../models/ai-providers/saveAiProviderConfiguration401.zod"
+import type { SaveAiProviderConfiguration403 } from "../models/ai-providers/saveAiProviderConfiguration403.zod"
+import type { SaveAiProviderConfiguration409 } from "../models/ai-providers/saveAiProviderConfiguration409.zod"
+import type { SaveAiProviderConfiguration500 } from "../models/ai-providers/saveAiProviderConfiguration500.zod"
 import type { SaveAiProviderConfigurationBody } from "../models/ai-providers/saveAiProviderConfigurationBody.zod"
-import type { ErrorResponse } from "../models/errorResponse.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -51,18 +66,23 @@ export type listAiProvidersResponse200 = {
 	status: 200
 }
 
+export type listAiProvidersResponse400 = {
+	data: ListAiProviders400
+	status: 400
+}
+
 export type listAiProvidersResponse401 = {
-	data: ErrorResponse
+	data: ListAiProviders401
 	status: 401
 }
 
 export type listAiProvidersResponse403 = {
-	data: ErrorResponse
+	data: ListAiProviders403
 	status: 403
 }
 
 export type listAiProvidersResponse500 = {
-	data: ErrorResponse
+	data: ListAiProviders500
 	status: 500
 }
 
@@ -70,6 +90,7 @@ export type listAiProvidersResponseSuccess = listAiProvidersResponse200 & {
 	headers: Headers
 }
 export type listAiProvidersResponseError = (
+	| listAiProvidersResponse400
 	| listAiProvidersResponse401
 	| listAiProvidersResponse403
 	| listAiProvidersResponse500
@@ -107,7 +128,10 @@ export const getListAiProvidersQueryKey = () => {
 
 export const getListAiProvidersQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAiProviders>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: ListAiProviders400 | ListAiProviders401 | ListAiProviders403 | ListAiProviders500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
 	fetch?: RequestInit
@@ -127,11 +151,17 @@ export const getListAiProvidersQueryOptions = <
 }
 
 export type ListAiProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof listAiProviders>>>
-export type ListAiProvidersQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type ListAiProvidersQueryError = globalThis.Error & {
+	info?: ListAiProviders400 | ListAiProviders401 | ListAiProviders403 | ListAiProviders500
+	status?: number
+}
 
 export function useListAiProviders<
 	TData = Awaited<ReturnType<typeof listAiProviders>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: ListAiProviders400 | ListAiProviders401 | ListAiProviders403 | ListAiProviders500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
 	fetch?: RequestInit
@@ -148,18 +178,23 @@ export type getAiProviderConfigurationResponse200 = {
 	status: 200
 }
 
+export type getAiProviderConfigurationResponse400 = {
+	data: GetAiProviderConfiguration400
+	status: 400
+}
+
 export type getAiProviderConfigurationResponse401 = {
-	data: ErrorResponse
+	data: GetAiProviderConfiguration401
 	status: 401
 }
 
 export type getAiProviderConfigurationResponse403 = {
-	data: ErrorResponse
+	data: GetAiProviderConfiguration403
 	status: 403
 }
 
 export type getAiProviderConfigurationResponse500 = {
-	data: ErrorResponse
+	data: GetAiProviderConfiguration500
 	status: 500
 }
 
@@ -167,6 +202,7 @@ export type getAiProviderConfigurationResponseSuccess = getAiProviderConfigurati
 	headers: Headers
 }
 export type getAiProviderConfigurationResponseError = (
+	| getAiProviderConfigurationResponse400
 	| getAiProviderConfigurationResponse401
 	| getAiProviderConfigurationResponse403
 	| getAiProviderConfigurationResponse500
@@ -206,7 +242,14 @@ export const getGetAiProviderConfigurationQueryKey = () => {
 
 export const getGetAiProviderConfigurationQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| GetAiProviderConfiguration400
+			| GetAiProviderConfiguration401
+			| GetAiProviderConfiguration403
+			| GetAiProviderConfiguration500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>
 	fetch?: RequestInit
@@ -226,11 +269,25 @@ export const getGetAiProviderConfigurationQueryOptions = <
 }
 
 export type GetAiProviderConfigurationQueryResult = NonNullable<Awaited<ReturnType<typeof getAiProviderConfiguration>>>
-export type GetAiProviderConfigurationQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type GetAiProviderConfigurationQueryError = globalThis.Error & {
+	info?:
+		| GetAiProviderConfiguration400
+		| GetAiProviderConfiguration401
+		| GetAiProviderConfiguration403
+		| GetAiProviderConfiguration500
+	status?: number
+}
 
 export function useGetAiProviderConfiguration<
 	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| GetAiProviderConfiguration400
+			| GetAiProviderConfiguration401
+			| GetAiProviderConfiguration403
+			| GetAiProviderConfiguration500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>
 	fetch?: RequestInit
@@ -248,27 +305,27 @@ export type saveAiProviderConfigurationResponse200 = {
 }
 
 export type saveAiProviderConfigurationResponse400 = {
-	data: ErrorResponse
+	data: SaveAiProviderConfiguration400
 	status: 400
 }
 
 export type saveAiProviderConfigurationResponse401 = {
-	data: ErrorResponse
+	data: SaveAiProviderConfiguration401
 	status: 401
 }
 
 export type saveAiProviderConfigurationResponse403 = {
-	data: ErrorResponse
+	data: SaveAiProviderConfiguration403
 	status: 403
 }
 
 export type saveAiProviderConfigurationResponse409 = {
-	data: ErrorResponse
+	data: SaveAiProviderConfiguration409
 	status: 409
 }
 
 export type saveAiProviderConfigurationResponse500 = {
-	data: ErrorResponse
+	data: SaveAiProviderConfiguration500
 	status: 500
 }
 
@@ -323,7 +380,15 @@ export const saveAiProviderConfiguration = async (
 export const getSaveAiProviderConfigurationMutationKey = () => ["saveAiProviderConfiguration"] as const
 
 export const getSaveAiProviderConfigurationMutationOptions = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| SaveAiProviderConfiguration400
+			| SaveAiProviderConfiguration401
+			| SaveAiProviderConfiguration403
+			| SaveAiProviderConfiguration409
+			| SaveAiProviderConfiguration500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -362,11 +427,27 @@ export type SaveAiProviderConfigurationMutationResult = NonNullable<
 	Awaited<ReturnType<typeof saveAiProviderConfiguration>>
 >
 export type SaveAiProviderConfigurationMutationBody = SaveAiProviderConfigurationBody
-export type SaveAiProviderConfigurationMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type SaveAiProviderConfigurationMutationError = globalThis.Error & {
+	info?:
+		| SaveAiProviderConfiguration400
+		| SaveAiProviderConfiguration401
+		| SaveAiProviderConfiguration403
+		| SaveAiProviderConfiguration409
+		| SaveAiProviderConfiguration500
+	status?: number
+}
 export type SaveAiProviderConfigurationMutationVariables = { data: SaveAiProviderConfigurationBody }
 
 export const useSaveAiProviderConfiguration = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| SaveAiProviderConfiguration400
+			| SaveAiProviderConfiguration401
+			| SaveAiProviderConfiguration403
+			| SaveAiProviderConfiguration409
+			| SaveAiProviderConfiguration500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -395,12 +476,12 @@ export type discoverAiProviderModelsResponse400 = {
 }
 
 export type discoverAiProviderModelsResponse401 = {
-	data: ErrorResponse
+	data: DiscoverAiProviderModels401
 	status: 401
 }
 
 export type discoverAiProviderModelsResponse403 = {
-	data: ErrorResponse
+	data: DiscoverAiProviderModels403
 	status: 403
 }
 
@@ -410,7 +491,7 @@ export type discoverAiProviderModelsResponse429 = {
 }
 
 export type discoverAiProviderModelsResponse500 = {
-	data: ErrorResponse
+	data: DiscoverAiProviderModels500
 	status: 500
 }
 
@@ -472,7 +553,13 @@ export const getDiscoverAiProviderModelsMutationKey = () => ["discoverAiProvider
 
 export const getDiscoverAiProviderModelsMutationOptions = <
 	TError = globalThis.Error & {
-		info?: DiscoverAiProviderModels400 | ErrorResponse | DiscoverAiProviderModels429 | DiscoverAiProviderModels502
+		info?:
+			| DiscoverAiProviderModels400
+			| DiscoverAiProviderModels401
+			| DiscoverAiProviderModels403
+			| DiscoverAiProviderModels429
+			| DiscoverAiProviderModels500
+			| DiscoverAiProviderModels502
 		status?: number
 	},
 	TContext = unknown,
@@ -512,14 +599,26 @@ export const getDiscoverAiProviderModelsMutationOptions = <
 export type DiscoverAiProviderModelsMutationResult = NonNullable<Awaited<ReturnType<typeof discoverAiProviderModels>>>
 export type DiscoverAiProviderModelsMutationBody = DiscoverAiProviderModelsBody
 export type DiscoverAiProviderModelsMutationError = globalThis.Error & {
-	info?: DiscoverAiProviderModels400 | ErrorResponse | DiscoverAiProviderModels429 | DiscoverAiProviderModels502
+	info?:
+		| DiscoverAiProviderModels400
+		| DiscoverAiProviderModels401
+		| DiscoverAiProviderModels403
+		| DiscoverAiProviderModels429
+		| DiscoverAiProviderModels500
+		| DiscoverAiProviderModels502
 	status?: number
 }
 export type DiscoverAiProviderModelsMutationVariables = { data: DiscoverAiProviderModelsBody }
 
 export const useDiscoverAiProviderModels = <
 	TError = globalThis.Error & {
-		info?: DiscoverAiProviderModels400 | ErrorResponse | DiscoverAiProviderModels429 | DiscoverAiProviderModels502
+		info?:
+			| DiscoverAiProviderModels400
+			| DiscoverAiProviderModels401
+			| DiscoverAiProviderModels403
+			| DiscoverAiProviderModels429
+			| DiscoverAiProviderModels500
+			| DiscoverAiProviderModels502
 		status?: number
 	},
 	TContext = unknown,

@@ -56,6 +56,12 @@ function upload(cookie: string, agentId: string, name = "a.md", contents = "hell
 	return app.request(`/api/agents/${agentId}/files`, { method: "POST", headers: { Cookie: cookie }, body: form })
 }
 
+async function expectProblem(response: Response, status: number, code: string) {
+	expect(response.status).toBe(status)
+	expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+	expect(await response.json()).toEqual({ code, type: `https://docs.talqo.chat/problems#${code}` })
+}
+
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user" CASCADE`
 	await rm(UPLOAD_ROOT, { force: true, recursive: true })
@@ -108,7 +114,7 @@ describe("agent knowledge files", () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Dupes")
 		expect((await upload(cookie, agentId)).status).toBe(201)
-		expect((await upload(cookie, agentId)).status).toBe(409)
+		await expectProblem(await upload(cookie, agentId), 409, "agent-file-name-taken")
 	})
 
 	it("rejects a disallowed file type with 400", async () => {
@@ -121,7 +127,7 @@ describe("agent knowledge files", () => {
 			headers: { Cookie: cookie },
 			body: form,
 		})
-		expect(response.status).toBe(400)
+		await expectProblem(response, 400, "agent-file-invalid")
 	})
 
 	it("rejects an oversized file with 413 over HTTP", async () => {
@@ -134,13 +140,13 @@ describe("agent knowledge files", () => {
 			headers: { Cookie: cookie },
 			body: form,
 		})
-		expect(response.status).toBe(413)
+		await expectProblem(response, 413, "payload-too-large")
 	})
 
 	it("returns 404 when the agent does not exist", async () => {
 		const { cookie } = await createAdminSession()
 		const response = await app.request(`/api/agents/${crypto.randomUUID()}/files`, { headers: { Cookie: cookie } })
-		expect(response.status).toBe(404)
+		await expectProblem(response, 404, "agent-not-found")
 	})
 
 	it("rejects path traversal through the file name", async () => {
@@ -151,7 +157,7 @@ describe("agent knowledge files", () => {
 			method: "DELETE",
 			headers: { Cookie: cookie },
 		})
-		expect(response.status).toBe(400)
+		await expectProblem(response, 400, "agent-file-invalid")
 	})
 
 	it("denies file operations to a member with only agents:read", async () => {
@@ -159,7 +165,7 @@ describe("agent knowledge files", () => {
 		const agentId = await createAgent(cookie, "Perm")
 		const reader = await createReaderSession(userId)
 		const response = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
-		expect(response.status).toBe(403)
+		await expectProblem(response, 403, "permission-denied")
 	})
 
 	it("removes the upload directory when the agent is deleted", async () => {

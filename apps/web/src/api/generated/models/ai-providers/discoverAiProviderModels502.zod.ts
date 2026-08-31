@@ -6,10 +6,20 @@
  */
 import * as zod from "zod"
 
-export const DiscoverAiProviderModels502 = zod.object({
-	error: zod.string(),
-	code: zod.enum(["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]).optional(),
-})
+export const DiscoverAiProviderModels502 = zod.union([
+	zod.object({
+		code: zod.literal("model-discovery-unsupported"),
+		type: zod.literal("https://docs.talqo.chat/problems#model-discovery-unsupported"),
+	}),
+	zod.object({
+		code: zod.literal("provider-error"),
+		type: zod.literal("https://docs.talqo.chat/problems#provider-error"),
+	}),
+	zod.object({
+		code: zod.literal("provider-unreachable"),
+		type: zod.literal("https://docs.talqo.chat/problems#provider-unreachable"),
+	}),
+])
 
 export type DiscoverAiProviderModels502 = zod.input<typeof DiscoverAiProviderModels502>
 export type DiscoverAiProviderModels502Output = zod.output<typeof DiscoverAiProviderModels502>

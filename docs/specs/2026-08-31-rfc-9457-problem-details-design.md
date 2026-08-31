@@ -40,7 +40,11 @@ The initial closed code set is:
 | --- | --- | --- |
 | `admin-access-required` | Admin access required | 403 |
 | `admin-already-exists` | Admin already exists | 409 |
+| `agent-file-invalid` | Invalid agent file | 400 |
+| `agent-file-name-taken` | Agent file name already in use | 409 |
+| `agent-file-not-found` | Agent file not found | 404 |
 | `agent-invalid` | Invalid agent | 400 |
+| `agent-in-use` | Agent in use | 409 |
 | `agent-name-taken` | Agent name already in use | 409 |
 | `agent-not-found` | Agent not found | 404 |
 | `authentication-required` | Authentication required | 401 |
@@ -55,6 +59,7 @@ The initial closed code set is:
 | `model-discovery-unsupported` | Model discovery unsupported | 502 |
 | `password-change-not-required` | Password change not required | 409 |
 | `password-change-required` | Password change required | 403 |
+| `payload-too-large` | Payload too large | 413 |
 | `permission-denied` | Permission denied | 403 |
 | `provider-credentials-rejected` | Provider credentials rejected | 400 |
 | `provider-error` | Provider error | 502 |
@@ -64,6 +69,7 @@ The initial closed code set is:
 | `route-not-found` | Route not found | 404 |
 | `self-password-reset-not-allowed` | Self password reset not allowed | 400 |
 | `user-not-found` | User not found | 404 |
+| `widget-not-found` | Widget not found | 404 |
 | `username-taken` | Username already in use | 409 |
 
 Documentation titles satisfy RFC 9457 problem-definition metadata only. They are not API fields or web translation sources and can be localized independently when docs localization is introduced.

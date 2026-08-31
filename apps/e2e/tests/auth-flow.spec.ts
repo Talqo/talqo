@@ -42,7 +42,14 @@ test("auth screens expose theme and language controls", async ({ page }) => {
 
 test("root redirects to login when setup status is unavailable", async ({ page }) => {
 	await page.route("**/api/setup", (route) =>
-		route.fulfill({ body: JSON.stringify({ error: "unavailable" }), contentType: "application/json", status: 500 }),
+		route.fulfill({
+			body: JSON.stringify({
+				code: "internal-server-error",
+				type: "https://docs.talqo.chat/problems#internal-server-error",
+			}),
+			contentType: "application/problem+json",
+			status: 500,
+		}),
 	)
 
 	await page.goto("/")
