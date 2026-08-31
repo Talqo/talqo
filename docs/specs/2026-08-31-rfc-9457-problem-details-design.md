@@ -77,7 +77,7 @@ The existing model-discovery codes migrate to clearer catalog values: `unauthori
 3. Routes map known authorization and domain errors to catalog entries. Dynamic domain and upstream messages never enter responses.
 4. Unknown routes return `route-not-found`.
 5. Unknown thrown errors are logged and return `internal-server-error`.
-6. A response-carrying exception passes through only when its body validates as an exact known problem. Otherwise it becomes `request-failed`, preserving its 4xx or 5xx status but not its arbitrary body or content type.
+6. A response-carrying exception whose body validates as an exact known problem is reserialized through the problem helper. Otherwise it becomes `request-failed`. Both paths preserve its 4xx or 5xx status but not its original body or content type.
 
 Validation details that do not fit the exact schema collapse into the relevant semantic code, such as `agent-invalid` or `invalid-ai-provider-configuration`. Client-side field validation provides specific UI guidance; server logs retain diagnostics.
 
