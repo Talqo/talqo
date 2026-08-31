@@ -6,7 +6,6 @@ import {
 } from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
-import { readErrorInfo } from "@/lib/fetch-error"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
@@ -67,7 +66,9 @@ function ProfileCard({ name }: { name: string }) {
 			}))
 			setSaved(true)
 		} catch (caught) {
-			setServerError(readErrorInfo(caught) ?? t("auth.errorFallback"))
+			// Orval fetch errors expose the parsed error body as `info.error`.
+			const info = (caught as { info?: { error?: string } } | null)?.info
+			setServerError(info?.error ?? t("auth.errorFallback"))
 		}
 	}
 
@@ -127,7 +128,8 @@ function PasswordCard() {
 			queryClient.clear()
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			setError(readErrorInfo(caught) ?? t("auth.errorFallback"))
+			const info = (caught as { info?: { error?: string } } | null)?.info
+			setError(info?.error ?? t("auth.errorFallback"))
 		}
 	}
 
