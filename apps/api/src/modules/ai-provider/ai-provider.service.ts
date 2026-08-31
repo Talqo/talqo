@@ -38,7 +38,7 @@ type RedactedConfiguration = {
 export class PermissionDeniedError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidConfigurationError extends Error {}
-export class UnusableConfigurationError extends Error {}
+class UnusableConfigurationError extends Error {}
 
 function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
 	const firstKeys = Object.keys(first)
@@ -291,8 +291,4 @@ export async function saveConfiguration(userId: string, input: SaveConfiguration
 
 export async function discoverModels(userId: string, input: DiscoverModelsInput) {
 	return (await getDefaultService()).discoverModels(userId, input)
-}
-
-export async function createRuntimeModels() {
-	return (await getDefaultService()).createRuntimeModels()
 }

@@ -6,7 +6,6 @@ export type AiProviderConfiguration = GetAiProviderConfiguration200
 export type ProviderMetadata = ListAiProviders200["providers"][number]
 export type AiProviderId = ProviderMetadata["id"]
 export type AiProviderAuthMode = ProviderMetadata["authModes"][number]
-export type AiProviderRole = "text" | "embedding"
 export type RedactedRoleConfiguration = NonNullable<AiProviderConfiguration["text"]>
 export type SaveAiProviderConfigurationInput = SaveAiProviderConfigurationBody
 export type RoleConfigurationInput = {

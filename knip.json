@@ -1,0 +1,40 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	"ignoreBinaries": ["actionlint", "zizmor"],
+	"ignoreDependencies": ["@playwright/cli"],
+	"workspaces": {
+		".": {
+			"entry": ["*.ts", "scripts/**/*.ts"],
+			"project": ["*.ts", "scripts/**/*.ts"]
+		},
+		"apps/api": {
+			"project": ["src/**/*.ts", "*.ts"]
+		},
+		"apps/docs": {
+			"entry": ["src/components/mdx.tsx"],
+			"project": ["src/**/*.{ts,tsx,css}", "content/**/*.mdx", "*.ts"],
+			"ignoreIssues": {
+				"src/lib/source.ts": ["unlisted"]
+			}
+		},
+		"apps/e2e": {
+			"entry": ["tests/**/*.spec.ts", "tests/fake-provider.ts"],
+			"project": ["**/*.ts"]
+		},
+		"apps/web": {
+			"entry": ["i18next.config.ts"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts", "!src/api/generated/**"]
+		},
+		"apps/widget": {
+			"entry": ["src/preview.tsx", "src/svg-stub-component.ts", "i18next.config.ts"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
+		},
+		"packages/typescript-config": {
+			"ignoreDependencies": ["vite"]
+		},
+		"packages/ui": {
+			"entry": ["src/components/*.tsx", "src/lib/*.ts"],
+			"project": ["src/**/*.{ts,tsx,css}"]
+		}
+	}
+}

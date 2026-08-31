@@ -22,7 +22,7 @@ const usernameSchema = z
 	.max(USERNAME_MAX_LENGTH)
 	.regex(USERNAME_PATTERN, "Username may only contain letters, numbers, underscores, and hyphens")
 
-export const userResponseSchema = z
+const userResponseSchema = z
 	.object({
 		id: z.string(),
 		username: z.string(),
@@ -30,7 +30,7 @@ export const userResponseSchema = z
 	})
 	.openapi("User")
 
-export const loginRequestSchema = z.object({
+const loginRequestSchema = z.object({
 	username: z.string().min(1),
 	password: z.string().min(1),
 })
@@ -39,16 +39,16 @@ export const sessionResponseSchema = z.object({
 	user: z.union([userResponseSchema, z.null()]),
 })
 
-export const updateAccountRequestSchema = z.object({
+const updateAccountRequestSchema = z.object({
 	username: usernameSchema,
 })
 
-export const changePasswordRequestSchema = z.object({
+const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1),
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
 
-export const forcedPasswordChangeRequestSchema = z.object({
+const forcedPasswordChangeRequestSchema = z.object({
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
 

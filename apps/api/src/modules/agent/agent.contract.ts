@@ -17,7 +17,7 @@ import {
 	SYSTEM_PROMPT_MAX_LENGTH,
 } from "./agent.service.ts"
 
-export const agentResponseSchema = z
+const agentResponseSchema = z
 	.object({
 		id: z.string(),
 		name: z.string(),
@@ -35,8 +35,8 @@ const agentInputSchema = z.object({
 	wordBlacklist: z.array(z.string().min(1).max(BLACKLIST_WORD_MAX_LENGTH)).max(BLACKLIST_MAX_WORDS),
 })
 
-export const createAgentRequestSchema = agentInputSchema
-export const updateAgentRequestSchema = agentInputSchema
+const createAgentRequestSchema = agentInputSchema
+const updateAgentRequestSchema = agentInputSchema
 
 export const agentDetailResponseSchema = z.object({ agent: agentResponseSchema })
 export const agentListResponseSchema = z.object({ agents: z.array(agentResponseSchema) })
