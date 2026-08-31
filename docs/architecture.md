@@ -25,11 +25,6 @@ Update this guide in the same change as any decision that changes architecture, 
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
-| Orval | Web API client generation | [ADR-0010](adr/0010-use-orval-for-web-api-generation.md) |
-| Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
-| Widget theme derivation | Four operator colors expanded in CSS | [ADR-0012](adr/0012-derive-widget-theme-tokens-from-four-colors.md) |
-| Public widget config endpoint | Widget appearance delivery | [ADR-0013](adr/0013-serve-widget-configuration-from-a-public-token-endpoint.md) |
-| `talqo-preview` postMessage channel | Dashboard-to-preview updates | [ADR-0014](adr/0014-drive-the-widget-preview-with-a-postmessage-channel.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
@@ -43,7 +38,7 @@ Conventions have three sources. Preserve upstream conventions unless a documente
 | Source | Conventions |
 | --- | --- |
 | Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/` |
-| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e` |
+| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/client.ts`; `packages/api-client`; `apps/e2e` |
 | Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
 
 Role suffixes and boundary rules in this document are Talqo conventions, not framework requirements.
@@ -59,8 +54,8 @@ packages -X-> apps
 
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
-- Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the planned public browser SDK, owning transport appropriate to its public API. It does not exist yet; the widget calls the API directly until it lands.
+- `packages/api-client` is generated transport-only code. It contains no authentication policy, telemetry policy, error presentation, TanStack Query options, or handwritten domain logic.
+- `packages/sdk` is the public browser SDK. It consumes `packages/api-client`; the widget consumes the SDK.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -117,13 +112,6 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
 
-### Public Endpoints
-
-- Authentication is deny-by-default in `http/require-auth.ts`. A module opens a route by exporting it: a fixed path in `PUBLIC_PATHS`, or an anchored regular expression in `PUBLIC_PATH_PATTERNS` when the path carries a parameter.
-- Patterns are anchored at both ends and match a single segment. A public resource lives under its own top-level path, never nested inside an authenticated namespace, so a pattern mistake cannot widen into a mutating route. `GET /api/widget-config/:token` is public; `/api/widgets/*` is not.
-- CORS is scoped to the specific public path and registered before `requireAuth`, since a preflight that reaches the auth gate is rejected before the real request. Wildcard origins are permitted only where credentials are not, and never over cookie-authenticated routes.
-- Each public route carries a `<module>.routes.test.ts` case asserting both that it is reachable unauthenticated and that its authenticated siblings still return 401.
-
 ### Persistence And Migrations
 
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
@@ -140,8 +128,9 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
 - `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
-- Module seeds participate in the centralized reset lifecycle. In test mode, the API seed creates fixed, production-plausible records in an isolated database; those fixtures are not user-configurable environment settings.
+- Module seeds provide deterministic integration and E2E data through the centralized seed lifecycle.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
+- E2E data is a separate deterministic API-owned seed profile applied to an isolated database before each isolation scope; Playwright contains no record definitions.
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
 ## Shared Code Decisions
@@ -165,17 +154,16 @@ The flow is one-way and deterministic:
 ```text
 module contracts + route metadata
   -> API-owned OpenAPI document
-  -> consumer-specific generated clients
+  -> generated clients
   -> dashboard + widget + SDK + integrations
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
-- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates the committed web client under `apps/web/src/api/generated`.
-- Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
+- Select and pin the generator before documenting artifact paths or generated file layout. Preserve the selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
-- Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
-- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas.
-- Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
+- `packages/api-client` is generated transport only. Generated files are never hand-edited.
+- `apps/web/src/api/client.ts` configures base URL, authentication, telemetry, request behavior, and app-level error translation. Optional `errors.ts` defines web-facing transport error normalization.
+- Generated code contains no TanStack Query keys, caching, retries, invalidation, optimistic updates, or UI error policy. The consuming route or extracted frontend feature owns that policy.
 
 ## Web
 
@@ -185,8 +173,9 @@ module contracts + route metadata
 apps/web/src/
 |-- main.tsx                         # entry point; creates the router
 |-- routeTree.gen.ts                 # generated; never hand-edit
-|-- api/
-|   `-- generated/                   # Orval output; never hand-edit
+|-- api/                              # added with the first real endpoint
+|   |-- client.ts                    # configured generated API client
+|   `-- errors.ts                    # web transport-error normalization
 |-- components/                       # route-shared presentation
 |-- lib/                              # app-level UI infrastructure (i18n, theme, language stores)
 |-- locales/                          # dashboard translations (<lang>.json)
@@ -208,8 +197,7 @@ apps/web/src/
 
 ### Query And Forms
 
-- Generated Orval code owns mechanical query hooks and key factories. Routes or features own cache policy, invalidation decisions, and forms.
-- Generated request Zod schemas are baseline wire validation. App-owned form schemas may derive from them to add coercion, localized messages, UI-only fields, and cross-field rules.
+- Routes or features own query keys, cache policy, invalidation, and forms; generated clients own transport only.
 - The API remains authoritative. Browser caches and client validation never replace server validation or domain behavior.
 
 ## Widget
@@ -217,10 +205,8 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe: URL parameters carry the initial appearance, and a versioned `talqo-preview` `postMessage` channel carries live updates (ADR-0014). Both apps declare the message shape independently — `apps/web` never imports widget source.
-- The embed snippet carries identity only (`data-talqo-widget`, optional `data-talqo-api`). The widget fetches its appearance from the public config endpoint at boot and applies `data-talqo-*` appearance attributes over it as a per-page override (ADR-0013).
-- Widget theme tokens derive from four operator colors via `color-mix()` (ADR-0012). Widget CSS must never register a custom property with `@property`: the build strips those rules and then fails if any survive.
-- The widget never imports API app source. It fetches the public config endpoint directly today and moves onto `packages/sdk` when that package lands.
+- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
+- The widget consumes `packages/sdk` and never imports API app source.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 
@@ -237,7 +223,7 @@ apps/e2e/
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- All E2E records come from the API-owned test seed against an isolated database before each isolation scope. Test identities are fixed fixtures rather than environment configuration.
+- All E2E records come from the API-owned deterministic reset and E2E seed against an isolated database before each isolation scope. Playwright owns no record definitions.
 - Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.
