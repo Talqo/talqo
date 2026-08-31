@@ -122,7 +122,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.20 | Operator can set the widget's accent color via a hex color picker | Medium | Done |
+| FR-2.20 | Operator can set the widget's light-mode palette (primary, text on primary, background, surface, text) via hex color pickers | Medium | Done |
+| FR-2.20a | Operator can set the widget's dark-mode palette independently of light mode, with no color derived or auto-generated from the other | Medium | Done |
 | FR-2.21 | Operator can toggle whether the widget displays a light/dark mode switch to end users | Low | Done |
 | FR-2.22 | Operator can set the widget's display language | Low | Done |
 | FR-2.23 | Operator can set the agent's avatar image | Low | Not started |
