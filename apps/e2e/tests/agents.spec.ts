@@ -164,3 +164,23 @@ test("account deletion stays disabled until the account deletion API exists", as
 	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(1)
 	await expect(page.getByRole("button", { name: "Delete account" })).toBeDisabled()
 })
+
+test("operator renames the account through the profile form", async ({ page }) => {
+	await logIn(page, OPERATOR)
+	await page.goto("/dashboard/account")
+	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
+
+	// The profile form pre-fills the real operator name and persists a rename.
+	const nameInput = page.getByLabel("Name", { exact: true })
+	await expect(nameInput).toHaveValue(OPERATOR.username)
+	await nameInput.fill("e2e_granted_renamed")
+	await page.getByRole("button", { name: "Save profile" }).click()
+	await expect(page.getByText("Profile saved.")).toBeVisible()
+	await page.reload()
+	await expect(page.getByLabel("Name")).toHaveValue("e2e_granted_renamed")
+
+	// Rename back so other tests keep finding the seeded operator name.
+	await page.getByLabel("Name").fill(OPERATOR.username)
+	await page.getByRole("button", { name: "Save profile" }).click()
+	await expect(page.getByText("Profile saved.")).toBeVisible()
+})

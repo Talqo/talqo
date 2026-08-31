@@ -42,6 +42,7 @@ function ForcePasswordChangePage() {
 			// The server already invalidated this session as part of the password change.
 			await navigate({ to: "/login" })
 		} catch (caught) {
+			// Orval fetch errors expose the parsed error body as `info.error`.
 			const info = (caught as { info?: { error?: string } } | null)?.info
 			setError(info?.error ?? t("auth.errorFallback"))
 		}

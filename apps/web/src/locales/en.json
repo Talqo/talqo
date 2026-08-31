@@ -9,17 +9,15 @@
 		"dangerDescription": "Deleting your account removes all agents and analytics data.",
 		"dangerZone": "Danger zone",
 		"deleteAccount": "Delete account",
-		"email": "Email",
-		"emailInvalid": "Enter a valid email address.",
 		"heading": "Account",
 		"name": "Name",
-		"nameRequired": "Name is required.",
+		"nameInvalid": "Name must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens.",
 		"newPassword": "New password",
 		"newPasswordError": "Password must be {{min}}-{{max}} characters.",
 		"passwordMismatchError": "Passwords do not match.",
 		"profile": "Profile",
-		"profileDescription": "Your operator name and email.",
-		"profileSaved": "Profile changes will be persisted in a later iteration.",
+		"profileDescription": "Your operator name.",
+		"profileSaved": "Profile saved.",
 		"saveProfile": "Save profile",
 		"subheading": "Manage your account settings and preferences."
 	},
@@ -247,7 +245,6 @@
 	"header": {
 		"language": "Language",
 		"logout": "Log out",
-		"placeholderName": "Account name",
 		"toDarkTheme": "Switch to dark theme",
 		"toggleNavigation": "Toggle navigation",
 		"toLightTheme": "Switch to light theme"

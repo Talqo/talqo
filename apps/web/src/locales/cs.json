@@ -9,17 +9,15 @@
 		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
 		"dangerZone": "Nebezpečná zóna",
 		"deleteAccount": "Smazat účet",
-		"email": "E-mail",
-		"emailInvalid": "Zadejte platnou e-mailovou adresu.",
 		"heading": "Účet",
 		"name": "Jméno",
-		"nameRequired": "Jméno je povinné.",
+		"nameInvalid": "Jméno musí mít {{min}}-{{max}} znaků a obsahovat pouze písmena, čísla, podtržítka a pomlčky.",
 		"newPassword": "Nové heslo",
 		"newPasswordError": "Heslo musí mít {{min}}-{{max}} znaků.",
 		"passwordMismatchError": "Hesla se neshodují.",
 		"profile": "Profil",
-		"profileDescription": "Vaše jméno a e-mail operátora.",
-		"profileSaved": "Změny profilu budou trvale uloženy v pozdější iteraci.",
+		"profileDescription": "Vaše jméno operátora.",
+		"profileSaved": "Profil uložen.",
 		"saveProfile": "Uložit profil",
 		"subheading": "Spravujte nastavení a předvolby svého účtu."
 	},
@@ -247,7 +245,6 @@
 	"header": {
 		"language": "Jazyk",
 		"logout": "Odhlásit se",
-		"placeholderName": "Jméno účtu",
 		"toDarkTheme": "Přepnout na tmavý motiv",
 		"toggleNavigation": "Přepnout navigaci",
 		"toLightTheme": "Přepnout na světlý motiv"

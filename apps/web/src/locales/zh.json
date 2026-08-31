@@ -9,17 +9,15 @@
 		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
 		"dangerZone": "危险区域",
 		"deleteAccount": "删除账户",
-		"email": "邮箱",
-		"emailInvalid": "请输入有效的邮箱地址。",
 		"heading": "账户",
 		"name": "姓名",
-		"nameRequired": "姓名为必填项。",
+		"nameInvalid": "姓名必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。",
 		"newPassword": "新密码",
 		"newPasswordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
 		"passwordMismatchError": "两次输入的密码不一致。",
 		"profile": "个人资料",
-		"profileDescription": "您的操作员姓名和邮箱。",
-		"profileSaved": "个人资料更改将在后续迭代中持久保存。",
+		"profileDescription": "您的操作员姓名。",
+		"profileSaved": "个人资料已保存。",
 		"saveProfile": "保存个人资料",
 		"subheading": "管理您的账户设置和偏好。"
 	},
@@ -247,7 +245,6 @@
 	"header": {
 		"language": "语言",
 		"logout": "退出登录",
-		"placeholderName": "账户名称",
 		"toDarkTheme": "切换到深色主题",
 		"toggleNavigation": "切换导航",
 		"toLightTheme": "切换到浅色主题"
