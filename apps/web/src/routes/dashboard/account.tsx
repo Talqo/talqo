@@ -102,7 +102,7 @@ function PasswordCard() {
 			await changePassword.mutateAsync({
 				data: { currentPassword: input.currentPassword, newPassword: input.newPassword },
 			})
-			// The server already invalidated this session as part of the password change.
+			// The password change already invalidated this session.
 			await navigate({ to: "/login" })
 		} catch (caught) {
 			const info = (caught as { info?: { error?: string } } | null)?.info

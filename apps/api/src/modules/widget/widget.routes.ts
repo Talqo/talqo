@@ -17,10 +17,8 @@ import {
 } from "./widget.contract.ts"
 import * as service from "./widget.service.ts"
 
-// Short enough that an appearance change reaches live sites promptly (there is no
-// purge), long enough to keep a busy host page off the API on every navigation. No
-// stale-while-revalidate: a shared cache would serve the old palette past the sixty
-// seconds ADR-0013 promises.
+// There is no purge, so this bounds how long a live site keeps a stale palette. No
+// stale-while-revalidate: a shared cache would serve it past the window ADR-0013 promises.
 const CONFIG_MAX_AGE_SECONDS = 60
 
 function mapDomainError(error: unknown): { body: { error: string }; status: number } | null {
@@ -102,8 +100,8 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 
-// Mounted apart from the CRUD namespace so an auth exemption for this path can never
-// widen into `/api/widgets` (ADR-0013); `widget.routes.test.ts` guards that boundary.
+// Mounted apart from the CRUD namespace so its auth exemption can never widen into
+// `/api/widgets` (ADR-0013); `widget.routes.test.ts` guards that boundary.
 export const widgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(
 	getWidgetConfigRoute,
 	async (c) => {

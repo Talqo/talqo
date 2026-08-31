@@ -2,8 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 await import("./test-setup")
 
-// Scoped to this file: the mount tests in widget.test.tsx render outside act() on
-// purpose, and the flag is what turns that into a warning.
+// Scoped to this file: widget.test.tsx mounts outside act() on purpose.
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { EmbeddedWidget } = await import("./embedded-widget")

@@ -16,7 +16,7 @@ async function createWidget(agentId: string, overrides: Partial<service.WidgetIn
 	return service.createWidget({ agentId, name: "Marketing site", appearance: DEFAULT_WIDGET_APPEARANCE, ...overrides })
 }
 
-/** Both write paths take a whole widget, so a targeted change is the stored one plus an override. */
+/** Both write paths take a whole widget, so a targeted change overrides the stored one. */
 async function replaceWidget(widget: service.Widget, overrides: Partial<service.WidgetInput>): Promise<service.Widget> {
 	const { agentId, name, appearance } = widget
 	return service.updateWidget(widget.id, { agentId, name, appearance, ...overrides })
@@ -131,8 +131,7 @@ describe("public config lookup", () => {
 		await expect(service.getConfigByToken("nope")).rejects.toThrow(service.WidgetNotFoundError)
 	})
 
-	// 404 rather than 401: the exemption fired and the lookup simply missed. Needs a real
-	// database, so it cannot live beside the route unit tests.
+	// 404, not 401: the exemption fired and the lookup missed.
 	it("is reachable without a session so embedded widgets can boot", async () => {
 		expect((await app.request("/api/widget-config/not-a-real-token")).status).toBe(404)
 	})

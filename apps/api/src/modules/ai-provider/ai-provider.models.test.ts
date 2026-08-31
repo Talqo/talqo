@@ -54,8 +54,7 @@ describe("createProviderModel", () => {
 			authMode: "deployment-identity" as const,
 			settings: { baseURL: "https://example.openai.azure.com/openai", apiVersion: "2024-10-21" },
 		}
-		// Note: DefaultAzureCredential is created per-call here; runtime consumers should
-		// reuse createRuntimeModels, which shares a single credential for both roles.
+		// Per-call credential; createRuntimeModels shares one across both roles.
 		createProviderModel({ ...base, role: "text" }, dependencies)
 		createProviderModel({ ...base, role: "embedding" }, dependencies)
 		expect(constructions).toBe(2)

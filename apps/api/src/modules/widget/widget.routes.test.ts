@@ -22,8 +22,7 @@ describe("public widget config endpoint", () => {
 })
 
 describe("widget CRUD authentication boundary", () => {
-	// Regression guard: the public exemption is a pattern, and a pattern that widened
-	// into this namespace would turn an appearance endpoint into an auth bypass.
+	// The public exemption is a pattern; widening it into this namespace is an auth bypass.
 	it("still requires a session to list widgets", async () => {
 		expect((await app.request("/api/widgets")).status).toBe(401)
 	})

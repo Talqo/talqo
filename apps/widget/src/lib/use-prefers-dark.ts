@@ -2,11 +2,7 @@ import { useCallback, useSyncExternalStore } from "react"
 
 const QUERY = "(prefers-color-scheme: dark)"
 
-/**
- * Tracks the host page's color-scheme preference. Server-safe and SSR-inert: the
- * widget may be mounted into a document that never matches, so absence of
- * `matchMedia` reads as "light" rather than throwing.
- */
+/** Missing `matchMedia` reads as light: the widget may mount into a document without it. */
 export function usePrefersDark(): boolean {
 	const subscribe = useCallback((onChange: () => void) => {
 		const media = globalThis.matchMedia?.(QUERY)

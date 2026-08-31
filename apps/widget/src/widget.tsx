@@ -11,16 +11,10 @@ export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
 
-// Past this the widget paints with whatever it has rather than staying invisible on
-// a customer's page because the API is slow or unreachable.
+// Past this the widget paints with what it has rather than waiting on a slow API.
 const CONFIG_TIMEOUT_MS = 1500
 
-/**
- * Captured at module scope, not inside mount(): `document.currentScript` is only
- * valid during top-level execution, and mount() runs on DOMContentLoaded where it is
- * always null. The element itself -- not just its dataset -- is needed to derive the
- * API origin from its `src`.
- */
+/** Module scope: `document.currentScript` is null by the time mount() runs. */
 const embedScript: HTMLScriptElement | null =
 	document.currentScript instanceof HTMLScriptElement ? document.currentScript : findEmbedScript()
 
@@ -86,16 +80,13 @@ export function mount(target: MountTarget = DEFAULT_TARGET) {
 	const origin = apiOrigin(embedScript)
 	const overrides = appearanceFromDataset(dataset)
 
-	// Agent-level `data-talqo-embed-token` snippets and the dev harness have no widget
-	// config to fetch, so they paint immediately -- which also keeps bundle.test.ts
-	// network-free.
+	// Agent-level `data-talqo-embed-token` snippets and the dev harness fetch nothing.
 	if (!publicToken || !origin) {
 		render(overrides, undefined, false)
 		return
 	}
 
-	// Mounted hidden rather than deferred: the launcher's box is reserved, and the
-	// visitor never sees a default-green button repaint into the operator's brand.
+	// Hidden rather than deferred: the box is reserved, and no default-color flash.
 	render(overrides, undefined, true)
 	void loadConfig(origin, publicToken, overrides)
 }

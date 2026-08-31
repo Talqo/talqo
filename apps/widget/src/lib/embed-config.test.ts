@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 
 import { apiOrigin, appearanceFromDataset, configUrl, parseWidgetConfig } from "./embed-config"
 
-// Registers happy-dom; the script-element helpers below need a document.
+// Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
 
 describe("appearanceFromDataset", () => {

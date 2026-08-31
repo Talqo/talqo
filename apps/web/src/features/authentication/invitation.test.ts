@@ -13,8 +13,8 @@ describe("buildInvitationUrl", () => {
 describe("formatInvitationExpiry", () => {
 	const EXPIRY = "2026-08-21T14:00:00.000Z"
 
-	// Asserted piecewise on purpose: CLDR changed the separator between the date and the
-	// time from "," to " at ", so pinning the whole string breaks on an ICU upgrade alone.
+	// Piecewise: CLDR moved the date/time separator from "," to " at ", so an ICU upgrade
+	// alone breaks a pinned string.
 	test("formats the expiry in the selected app language", () => {
 		const formatted = formatInvitationExpiry(EXPIRY, "en", "UTC")
 

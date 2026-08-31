@@ -11,8 +11,7 @@ import {
 } from "@talqo/shared/widget-appearance"
 import { z } from "zod"
 
-// Same rule as the API contract, from the same source: this schema guides the operator
-// while they type, the API rejects, and the two can no longer disagree.
+// Same source as the API contract, so guidance while typing cannot disagree with the reject.
 const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 
 export const widgetFormSchema = z.object({
@@ -61,8 +60,7 @@ export function toFormValues(widget: Pick<Widget, "agentId" | "appearance" | "na
 		name: widget.name,
 		agentId: widget.agentId,
 		...appearance,
-		// The API widens `language` on read, so a widget saved under a language since
-		// dropped from `@talqo/shared` still opens -- on the default rather than a blank select.
+		// The API widens `language` on read, so a since-dropped one opens on the default.
 		language: isSupportedLanguage(language) ? language : DEFAULT_WIDGET_APPEARANCE.language,
 	}
 }

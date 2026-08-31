@@ -13,8 +13,7 @@ import { HEX_COLOR_MESSAGE, HEX_COLOR_PATTERN, WIDGET_POSITIONS, WIDGET_THEMES }
 
 import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
 
-// Shared with the widget: a rule the API loosened alone would store colors the widget
-// silently drops back to defaults.
+// Shared with the widget: colors it rejects would silently fall back to defaults.
 const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 const nameSchema = z.string().trim().min(1).max(WIDGET_NAME_MAX_LENGTH)
 
@@ -29,8 +28,7 @@ const appearanceInputSchema = z
 		themeToggle: z.boolean(),
 		language: z.enum(SUPPORTED_LANGUAGES),
 	})
-	// Identical members of a pair render invisible text. Contrast beyond that is the
-	// operator's call -- the dashboard warns rather than blocking their brand colors.
+	// Identical pairs render invisible text; weaker contrast is the operator's call to make.
 	.refine((appearance) => appearance.primary.toLowerCase() !== appearance.primaryForeground.toLowerCase(), {
 		message: "Primary and its foreground must differ",
 		path: ["primaryForeground"],
@@ -40,8 +38,7 @@ const appearanceInputSchema = z
 		path: ["foreground"],
 	})
 
-// Looser than the input schema on purpose: `language` is widened on read so a widget
-// saved under a language later dropped from `@talqo/shared` stays readable.
+// `language` is widened on read so a widget saved under a since-dropped language stays readable.
 const appearanceResponseSchema = z
 	.object({
 		primary: z.string(),
@@ -73,8 +70,7 @@ export const widgetConfigResponseSchema = z
 	})
 	.openapi("WidgetConfig")
 
-// Whole-object on both write paths: the pair refinements have nothing to compare a lone
-// color against, so a sparse appearance could not be checked without first reading the row.
+// Whole-object on both write paths: the pair refinements cannot check a lone color.
 const widgetInputSchema = z.object({
 	agentId: z.string().min(1),
 	name: nameSchema,
@@ -95,7 +91,6 @@ const widgetTokenParamsSchema = z.object({
 	token: z.string().openapi({ param: { name: "token", in: "path" } }),
 })
 
-// Conditional GET: an unchanged configuration carries no body to describe.
 const notModifiedResponse = { description: "Configuration unchanged since the supplied ETag" } as const
 
 export const listWidgetsRoute = createRoute({
@@ -183,8 +178,7 @@ export const deleteWidgetRoute = createRoute({
 	},
 })
 
-// Deliberately unauthenticated (ADR-0013): it is reachable from arbitrary customer
-// origins, so it carries no security scheme and returns identity-free appearance only.
+// Unauthenticated (ADR-0013): reachable from any customer origin, so it returns appearance only.
 export const getWidgetConfigRoute = createRoute({
 	method: "get",
 	path: "/{token}",

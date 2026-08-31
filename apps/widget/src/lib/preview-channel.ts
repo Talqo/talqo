@@ -1,9 +1,8 @@
 import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 
 /**
- * Widget side of the dashboard preview channel; the dashboard declares the same
- * shape in `apps/web/src/features/widgets/preview-channel.ts`. Apps never import each
- * other, so the wire format is the contract and `PREVIEW_CHANNEL_VERSION` guards it.
+ * Widget side of the preview channel; the dashboard declares the same shape in
+ * `apps/web/src/features/widgets/preview-channel.ts`. Apps never import each other.
  */
 export const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
 export const PREVIEW_CHANNEL_VERSION = 1
@@ -18,10 +17,7 @@ export function readyMessage(): PreviewReadyMessage {
 	return { source: PREVIEW_CHANNEL_SOURCE, version: PREVIEW_CHANNEL_VERSION, type: "ready" }
 }
 
-/**
- * The preview names its parent in its own URL, so a crafted link could pass `"*"` and
- * turn the ready handshake into a broadcast. Only a concrete origin is honoured.
- */
+/** Concrete origins only: the parent comes from the URL, and `"*"` would broadcast the handshake. */
 export function trustedParentOrigin(value: string | null): string | undefined {
 	if (!value) {
 		return undefined
@@ -33,11 +29,7 @@ export function trustedParentOrigin(value: string | null): string | undefined {
 	}
 }
 
-/**
- * Returns the appearance carried by a config message, or undefined for anything
- * else on the window -- another embed's chatter, or a preview page cached from an
- * older deploy. Ignoring a version mismatch degrades to the URL-param initial paint.
- */
+/** Undefined for foreign or version-mismatched messages, degrading to the URL-param initial paint. */
 export function configFromMessage(data: unknown): WidgetAppearanceInput | undefined {
 	if (typeof data !== "object" || data === null) {
 		return undefined

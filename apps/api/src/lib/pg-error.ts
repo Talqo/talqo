@@ -5,7 +5,7 @@ const RESTRICT_VIOLATION = "23001"
 const MAX_CAUSE_DEPTH = 5
 
 function hasPgErrorCode(error: unknown, code: string): boolean {
-	// drizzle-orm wraps the raw Postgres error in a DrizzleQueryError's `.cause`, not directly on the caught error.
+	// drizzle-orm wraps the raw Postgres error in a DrizzleQueryError's `.cause`.
 	let current: unknown = error
 	for (let depth = 0; depth < MAX_CAUSE_DEPTH && current; depth += 1) {
 		if (typeof current === "object" && "code" in current && current.code === code) return true
@@ -22,10 +22,7 @@ export function isForeignKeyViolation(error: unknown): boolean {
 	return hasPgErrorCode(error, FOREIGN_KEY_VIOLATION)
 }
 
-/**
- * Raised when ON DELETE RESTRICT blocks a delete because rows still reference the target.
- * Distinct from the 23503 an insert or update raises when the parent row is missing.
- */
+/** ON DELETE RESTRICT blocking a delete, distinct from the 23503 a missing parent raises. */
 export function isRestrictViolation(error: unknown): boolean {
 	return hasPgErrorCode(error, RESTRICT_VIOLATION)
 }

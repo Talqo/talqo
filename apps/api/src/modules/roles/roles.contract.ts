@@ -27,7 +27,7 @@ const usernameSchema = z
 
 const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH)
 
-// Mirrors identity.contract.ts's userResponseSchema: cross-module imports are service.ts-only here.
+// Mirrors identity.contract.ts: modules cross-import through service.ts only.
 const userResponseSchema = z
 	.object({
 		id: z.string(),

@@ -6,10 +6,7 @@ export const WIDGET_THEMES = ["system", "light", "dark"] as const
 export type WidgetPosition = (typeof WIDGET_POSITIONS)[number]
 export type WidgetTheme = (typeof WIDGET_THEMES)[number]
 
-/**
- * The four operator-configurable colors plus behavioural settings. Every other
- * widget token is derived from these four in CSS (`apps/widget/src/theme/tokens.css`).
- */
+/** Every other widget token derives from these four colors in `apps/widget/src/theme/tokens.css`. */
 export type WidgetAppearance = {
 	primary: string
 	primaryForeground: string
@@ -21,11 +18,7 @@ export type WidgetAppearance = {
 	language: SupportedLanguage
 }
 
-/**
- * Appearance as it arrives from an untrusted source -- the config endpoint, the
- * embed script's data attributes, or a preview message. Every field is `unknown`
- * because none of them are validated until the widget resolves them.
- */
+/** As it arrives from an untrusted source; nothing is validated until the widget resolves it. */
 export type WidgetAppearanceInput = { [K in keyof WidgetAppearance]?: unknown }
 
 export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
@@ -39,9 +32,8 @@ export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
 	language: "en",
 }
 
-// Six-digit only: shorthand and functional notations would need normalising before
-// the widget can write them into a CSS custom property. Exported so the API contract
-// and the dashboard form build their schemas from this rule rather than restating it.
+// Six-digit only: other notations would need normalising before reaching a custom property.
+// Exported so the API contract and the dashboard form build on it rather than restate it.
 export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
 export const HEX_COLOR_MESSAGE = "Use a six-digit hex color, e.g. #1a7f4b"
@@ -110,8 +102,5 @@ export function isDarkColor(hex: string): boolean {
 	return contrastRatio(hex, WHITE) > contrastRatio(hex, BLACK_INK)
 }
 
-/**
- * Envelope version of the public config payload. The widget repaints with defaults on
- * any mismatch, so both sides must move together -- hence one owner, not two copies.
- */
+/** The widget falls back to defaults on a mismatch, so both sides move together. */
 export const WIDGET_CONFIG_VERSION = 1

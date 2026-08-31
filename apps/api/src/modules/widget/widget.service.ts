@@ -9,10 +9,8 @@ import * as repo from "./widget.repository.ts"
 export const WIDGET_NAME_MAX_LENGTH = 80
 
 /**
- * Exempted from authentication in `http/require-auth.ts`. Anchored at both ends with
- * a single non-slash segment so it cannot widen into a sibling path; kept separate
- * from the authenticated `/api/widgets` namespace so a prefix mistake here can never
- * expose the CRUD routes.
+ * Exempted from authentication in `http/require-auth.ts`, so it is anchored at both ends
+ * over a single segment and kept off the authenticated `/api/widgets` namespace.
  */
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/widget-config\/[^/]+$/] as const
 
@@ -56,8 +54,7 @@ function toWidget(row: WidgetRow): Widget {
 			position: row.position,
 			theme: row.theme,
 			themeToggle: row.themeToggleEnabled,
-			// Widened on read: a language removed from `@talqo/shared` after a widget was
-			// saved must not make the row unreadable -- the widget falls back on its own.
+			// Widened on read: a since-dropped language must not make the row unreadable.
 			language: row.language as WidgetAppearance["language"],
 		},
 	}
@@ -123,7 +120,6 @@ export async function deleteWidget(id: string): Promise<void> {
 	await repo.deleteWidget(id)
 }
 
-/** Public read path: everything an embedded widget needs, and nothing else. */
 export async function getConfigByToken(publicToken: string): Promise<WidgetConfig> {
 	const row = await repo.findWidgetByToken(publicToken)
 	if (!row) throw new WidgetNotFoundError("Widget not found")

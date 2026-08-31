@@ -82,7 +82,7 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		const body = c.req.valid("json")
 		try {
 			await service.completeForcedPasswordChange(c.get("user").id, body.newPassword)
-			// completeForcedPasswordChange invalidates all sessions for the user, including this request's.
+			// The change invalidates every session for the user, including this request's.
 			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {

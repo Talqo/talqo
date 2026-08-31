@@ -8,8 +8,7 @@ function customProperty(name: string): string | undefined {
 	return new RegExp(String.raw`--talqo-${name}-input:\s*(#[0-9a-fA-F]{6});`).exec(css)?.[1]
 }
 
-// These literals paint the frame before JS applies the inline values, so they have to
-// stay the shared defaults. Nothing else cross-checks them.
+// These literals paint before JS applies the inline values, and nothing else checks them.
 describe("tokens.css seed colors", () => {
 	test("match DEFAULT_WIDGET_APPEARANCE", () => {
 		expect(customProperty("primary")).toBe(DEFAULT_WIDGET_APPEARANCE.primary)

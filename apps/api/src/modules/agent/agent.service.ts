@@ -77,11 +77,9 @@ export async function listAgents(): Promise<Agent[]> {
 	return (await repo.findAllWithWords()).map(toAgent)
 }
 
-// TODO(conversation): systemPrompt composition + direct-match blacklist enforcement live
-// with send-message orchestration (FR-1.1, NFR-2.2).
+// TODO(conversation): systemPrompt composition and blacklist enforcement (FR-1.1, NFR-2.2).
+// TODO(conversation): rate-limit storage and IP/message limits (NFR-3.5, NFR-3.6).
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
-// TODO(conversation): rate-limit storage + IP/message limits belong to the conversation
-// public boundary (NFR-3.5, NFR-3.6).
 
 export async function getAgent(id: string): Promise<Agent> {
 	const row = await repo.findByIdWithWords(id)
@@ -136,8 +134,7 @@ export async function deleteAgent(id: string): Promise<void> {
 			throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
 		}
 	} catch (error) {
-		// `widget.agent_id` is ON DELETE RESTRICT: widgets already embedded on customer
-		// sites must be reassigned or removed first rather than breaking silently.
+		// `widget.agent_id` is ON DELETE RESTRICT: embedded widgets must be reassigned first.
 		if (isRestrictViolation(error)) {
 			throw new AgentInUseError("Agent still serves one or more widgets")
 		}

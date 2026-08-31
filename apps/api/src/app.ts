@@ -31,11 +31,8 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
 app.use("*", rejectMalformedJson)
-// Ahead of requireAuth: a preflight that hits the auth gate gets a 401 and the
-// browser abandons the real request. Scoped to the public config path only --
-// permissive CORS over the cookie-authenticated routes would be a CSRF hole.
-// `origin: "*"` is safe here precisely because it forbids credentialed requests,
-// and the payload is already public in every embedding page's source (ADR-0013).
+// Ahead of requireAuth, so a preflight is not answered with a 401. Scoped to the public
+// config path: `origin: "*"` forbids credentials, but wider would be a CSRF hole (ADR-0013).
 app.use(
 	`${API_PREFIX}/widget-config/*`,
 	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
@@ -49,9 +46,8 @@ api.route("/agents", agentRoutes)
 api.route("/widgets", widgetRoutes)
 api.route("/widget-config", widgetConfigRoutes)
 app.route(API_PREFIX, api)
-// Mirrors Hono's default errorHandler pass-through for response-carrying errors,
-// hardened by validating the produced value is a real Response, and keeps a
-// generic body with the original error logged for everything else.
+// Hono's default pass-through for response-carrying errors, plus a generic body
+// for everything else so internals never reach the client.
 export function handleError(error: Error, context: Context): Response {
 	if ("getResponse" in error && typeof error.getResponse === "function") {
 		const response: unknown = error.getResponse()

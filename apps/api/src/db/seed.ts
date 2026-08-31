@@ -52,8 +52,7 @@ export async function seed(): Promise<SeedResult | null> {
 if (import.meta.main) {
 	try {
 		const result = await seed()
-		// One JSON line for scripts/test-e2e.ts to hand to Playwright, so apps/e2e never
-		// has to import API source or restate the seeded records itself.
+		// One JSON line for scripts/test-e2e.ts, so apps/e2e never imports API source.
 		console.log(result ? JSON.stringify(result) : "Database seeded")
 	} finally {
 		await sql.end()

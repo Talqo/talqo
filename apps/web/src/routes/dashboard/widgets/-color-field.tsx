@@ -40,7 +40,7 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 					aria-invalid={isHexColor(value) ? undefined : true}
 				/>
 				{ratio !== undefined && (
-					// A warning, not a gate: an operator's brand color is theirs to choose.
+					// A warning, not a gate: the brand color is the operator's to choose.
 					<Badge variant={passes ? "outline" : "destructive"}>
 						{t(passes ? "widgetSetup.contrastPass" : "widgetSetup.contrastWarning", {
 							ratio: ratio.toFixed(RATIO_DECIMALS),

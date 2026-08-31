@@ -5,23 +5,20 @@ export const widgetPositionEnum = pgEnum("widget_position", ["bottom-right", "bo
 export const widgetThemeEnum = pgEnum("widget_theme", ["system", "light", "dark"])
 
 /**
- * One column per setting rather than a jsonb blob: the set is closed and enumerated
- * by SRS 3.2.5, enums plus NOT NULL make an invalid row unrepresentable, and a column
- * change is visible in the generated SQL that ADR-0004's review step depends on.
+ * One column per setting rather than a jsonb blob: the set is closed (SRS 3.2.5), enums
+ * plus NOT NULL make an invalid row unrepresentable, and changes show in the migration.
  */
 export const widget = pgTable(
 	"widget",
 	{
 		id: text("id").primaryKey(),
-		// Restrict, not cascade: deleting an agent that still serves widgets would break
-		// every embed snippet already pasted onto customer sites.
+		// Restrict, not cascade: deleting the agent would break every embed already pasted.
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "restrict" }),
 		name: text("name").notNull(),
-		// Stored in the clear, unlike `invitation.token_hash`. This is a public identifier
-		// printed into every page the widget runs on, not a bearer credential; hashing adds
-		// no confidentiality and would make the embed snippet unrecoverable after creation.
+		// A public identifier printed into every host page, not a bearer credential, so it is
+		// stored in the clear: hashing adds nothing and loses the snippet after creation.
 		publicToken: text("public_token").notNull().unique(),
 		primaryColor: text("primary_color").notNull(),
 		primaryForegroundColor: text("primary_foreground_color").notNull(),
@@ -30,8 +27,7 @@ export const widget = pgTable(
 		position: widgetPositionEnum("position").notNull().default("bottom-right"),
 		theme: widgetThemeEnum("theme").notNull().default("system"),
 		themeToggleEnabled: boolean("theme_toggle_enabled").notNull().default(true),
-		// text, not an enum: the supported set lives in `@talqo/shared` and grows on its own
-		// schedule; a DB enum would force a migration per added language.
+		// text, not an enum: `@talqo/shared` owns the set, and an enum costs a migration per language.
 		language: text("language").notNull().default("en"),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

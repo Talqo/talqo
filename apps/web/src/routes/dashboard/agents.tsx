@@ -14,7 +14,7 @@ export const Route = createFileRoute("/dashboard/agents")({
 	component: AgentsPage,
 })
 
-// "—", never 0: zero would claim "no usage" while those modules don't exist yet.
+// "—", never 0: zero would claim no usage before those modules exist.
 // TODO(usage-api): per-agent conversation totals once GET /api/agents/:id/usage-summary lands.
 // TODO(knowledge-api): file count once GET /api/agents/:id/files lands.
 // TODO(mcp-api): MCP server count once GET /api/agents/:id/mcp-servers lands.

@@ -19,8 +19,7 @@ test.beforeAll(async () => {
 	if (!token) throw new Error("E2E_WIDGET_TOKEN missing — scripts/test-e2e.ts provides it from the API seed")
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 
-	// Deliberately a different origin from the host page below, so the widget's config
-	// request is genuinely cross-origin and exercises the API's CORS policy for real.
+	// A different origin from the host page below, so the config request exercises CORS.
 	const apiOrigin = `http://127.0.0.1:${apiPort}`
 	const template = await readFile(HOST_HTML_PATH, "utf8")
 	const configured = template.replace("__TOKEN__", token).replace("__API_ORIGIN__", apiOrigin)
@@ -63,8 +62,7 @@ test.afterAll(() => {
 test("built widget boots, mounts, and stays styled on a bare host page", async ({ page }) => {
 	const errors: string[] = []
 	page.on("pageerror", (error) => errors.push(String(error)))
-	// A blocked CORS request surfaces here and never throws, so without this a CORS
-	// regression would slip past the pageerror assertion below.
+	// A blocked CORS request only logs, so pageerror alone would miss a CORS regression.
 	page.on("console", (message) => {
 		if (message.type() === "error") errors.push(message.text())
 	})
@@ -98,8 +96,7 @@ test("built widget boots, mounts, and stays styled on a bare host page", async (
 test("widget fetches its palette by public token across origins", async ({ page }) => {
 	await page.goto(baseURL)
 
-	// Proves the whole chain in one assertion: token lookup, CORS, and the fetched
-	// color reaching the CSS custom property the launcher paints from.
+	// One assertion for the whole chain: token lookup, CORS, and the fetched color painting.
 	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", SEEDED_PRIMARY_RGB)
 })
 
@@ -107,9 +104,8 @@ test("widget derives its surfaces from the fetched palette", async ({ page }) =>
 	await page.goto(baseURL)
 	await page.getByRole("button", { name: "Open chat" }).click()
 
-	// color-mix() at work: the panel is a near-background surface, not the raw
-	// foreground the no-color-mix fallback would produce. Read back through a canvas
-	// because Chromium serializes a color-mix() result in its mixing space, not as rgb().
+	// The panel is a near-background surface, not the raw foreground the no-color-mix fallback
+	// gives. Read through a canvas: Chromium serializes color-mix() in its mixing space.
 	const channels = await page.getByRole("dialog").evaluate((panel) => {
 		const context = document.createElement("canvas").getContext("2d")
 		if (!context) throw new Error("canvas 2d context unavailable")

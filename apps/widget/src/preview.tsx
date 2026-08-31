@@ -44,8 +44,7 @@ function PreviewWidget({
 			}
 		}
 		window.addEventListener("message", onMessage)
-		// Announce after the listener is attached, so the dashboard's reply cannot race
-		// it. Posting on load instead would risk arriving before React mounted.
+		// Announced after the listener attaches, so the dashboard's reply cannot race it.
 		window.parent.postMessage(readyMessage(), parentOrigin)
 		return () => window.removeEventListener("message", onMessage)
 	}, [parentOrigin])

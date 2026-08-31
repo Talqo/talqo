@@ -1,12 +1,8 @@
 import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 /**
- * Dashboard side of the preview channel. The widget app declares the same shape in
- * `apps/widget/src/lib/preview-channel.ts` -- apps never import each other, so the
- * contract is the wire format, kept in step by the `PREVIEW_CHANNEL_VERSION` guard.
- *
- * A version mismatch is ignored rather than thrown: a stale cached preview.html then
- * degrades to "initial paint from URL params, no live updates" instead of breaking.
+ * Dashboard side of the preview channel; the widget declares the same shape in
+ * `apps/widget/src/lib/preview-channel.ts`. Apps never import each other.
  */
 export const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
 export const PREVIEW_CHANNEL_VERSION = 1

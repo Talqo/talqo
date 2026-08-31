@@ -2,7 +2,7 @@ const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!
 const GENERATED_PASSWORD_LENGTH = 24
 const BYTE_RANGE = 256
 
-// Rejects bytes past the largest multiple of CHARSET.length below 256, avoiding modulo bias.
+// Rejects bytes past the largest multiple of CHARSET.length, avoiding modulo bias.
 function randomCharsetIndex(): number {
 	const acceptLimit = BYTE_RANGE - (BYTE_RANGE % CHARSET.length)
 	let byte: number
@@ -13,7 +13,7 @@ function randomCharsetIndex(): number {
 	return byte % CHARSET.length
 }
 
-// Only ever copy-pasted via a clipboard button, never hand-typed -- full entropy, no readability concessions.
+// Copy-pasted, never hand-typed: full entropy over readability.
 export function generateRandomPassword(): string {
 	return Array.from({ length: GENERATED_PASSWORD_LENGTH }, () => CHARSET[randomCharsetIndex()]).join("")
 }

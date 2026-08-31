@@ -53,10 +53,8 @@ function messageText(message: Message, t: (key: string) => string): string | und
 }
 
 /**
- * Drops anything that would not survive as a CSS custom property or a known enum.
- * A bad value must fall back per field: an invalid hex written into a var() makes
- * every declaration referencing it invalid at computed-value time, which blanks the
- * whole widget instead of degrading one color.
+ * Falls back per field: an invalid hex reaching a var() invalidates every declaration
+ * referencing it, blanking the whole widget instead of degrading one color.
  */
 function resolveAppearance(appearance: WidgetAppearanceInput | undefined): WidgetAppearance {
 	return {
@@ -121,14 +119,12 @@ function WidgetChat({
 		wasOpen.current = open
 	}, [open])
 
-	// The visitor's own choice (FR-2.21) wins over the operator default, which in turn
-	// wins over the host's system preference.
+	// Visitor choice (FR-2.21) beats the operator default, which beats the host's preference.
 	const operatorScheme: ColorScheme =
 		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme
 	const scheme = visitorScheme ?? operatorScheme
 
-	// The operator supplies one palette. Its own background tells us which scheme it
-	// expresses; the opposite scheme swaps the surface pair and re-derives everything.
+	// One palette, so its background tells which scheme it expresses; the other one inverts it.
 	const paletteScheme: ColorScheme = isDarkColor(appearance.background) ? "dark" : "light"
 
 	function handleSend(event: FormEvent<HTMLFormElement>) {
@@ -146,7 +142,7 @@ function WidgetChat({
 		"--talqo-primary-foreground-input": appearance.primaryForeground,
 		"--talqo-background-input": appearance.background,
 		"--talqo-foreground-input": appearance.foreground,
-		// visibility, not display: layout stays stable, so nothing shifts when it paints.
+		// visibility, not display: nothing shifts when the fetched configuration paints.
 		...(hidden && { visibility: "hidden" }),
 	} as CSSProperties
 

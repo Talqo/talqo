@@ -3,13 +3,8 @@ import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 
 /**
- * Appearance overrides read from the embed script's `data-talqo-*` attributes.
- *
- * The dashboard no longer generates these -- a baked-in color would pin the widget
- * to a stale palette after the operator changes it. They remain a documented escape
- * hatch for hosts that need a per-page override, and therefore win over the fetched
- * configuration. Values are returned unvalidated; `resolveAppearance` decides which
- * ones survive.
+ * Per-page escape hatch, unvalidated and winning over the fetched configuration.
+ * The dashboard no longer emits these: a baked-in color pins the embed to a stale palette.
  */
 export function appearanceFromDataset(dataset: DOMStringMap | undefined): WidgetAppearanceInput {
 	if (!dataset) {
@@ -39,12 +34,7 @@ function parseBoolean(value: string | undefined): boolean | undefined {
 	return undefined
 }
 
-/**
- * The widget defaults to the origin its own script came from -- in a standard
- * self-hosted deployment the API and widget.js share one, so the snippet needs no
- * extra attribute and there is no stale-origin footgun. `data-talqo-api` overrides
- * it for split deployments.
- */
+/** Defaults to the script's own origin, which self-hosted deployments share with the API. */
 export function apiOrigin(script: HTMLScriptElement | null): string | undefined {
 	const override = script?.dataset.talqoApi
 	if (override) {
@@ -65,11 +55,7 @@ export function configUrl(origin: string, publicToken: string): string {
 	return `${origin}/api/widget-config/${encodeURIComponent(publicToken)}`
 }
 
-/**
- * Reads the appearance out of a config response. Unknown shapes yield no overrides
- * rather than throwing, so a widget on a customer page degrades to its defaults
- * instead of disappearing when the endpoint misbehaves.
- */
+/** Unknown shapes yield no overrides, so a misbehaving endpoint degrades the widget to its defaults. */
 export function parseWidgetConfig(payload: unknown): { agentId?: string; appearance: WidgetAppearanceInput } {
 	if (typeof payload !== "object" || payload === null) {
 		return { appearance: {} }

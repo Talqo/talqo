@@ -22,14 +22,7 @@ type WidgetPreviewProps = {
 	previewKey: string
 }
 
-/**
- * Renders the real widget bundle in an iframe rather than a dashboard-side replica,
- * so the preview cannot drift from what customers see and the widget's scoped CSS
- * stays isolated from the dashboard's.
- *
- * The URL carries the first paint; every later edit goes over postMessage, so
- * dragging a color picker never reloads the frame.
- */
+/** Carries the first paint only; later edits go over postMessage. */
 function previewSrc(appearance: WidgetAppearance): string | undefined {
 	if (!PREVIEW_URL) {
 		return undefined
@@ -43,8 +36,7 @@ function previewSrc(appearance: WidgetAppearance): string | undefined {
 	url.searchParams.set("theme", appearance.theme)
 	url.searchParams.set("themeToggle", String(appearance.themeToggle))
 	url.searchParams.set("language", appearance.language)
-	// Echoed back by the child as its postMessage target, so neither side has to infer
-	// an origin -- E2E serves the dashboard and the widget on different hostnames.
+	// Echoed back as the child's postMessage target; the two apps can sit on different origins.
 	url.searchParams.set("parentOrigin", window.location.origin)
 	return url.toString()
 }
@@ -69,16 +61,20 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
 	return scale
 }
 
+/**
+ * Frames the real widget bundle rather than a dashboard-side replica, so the preview
+ * cannot drift from what customers see and the widget's scoped CSS stays isolated.
+ */
 export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const frameRef = useRef<HTMLDivElement>(null)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	const scale = useFrameScale(frameRef)
 
-	// Computed once per widget: recomputing it per keystroke would reload the frame.
+	// Once per widget: recomputing per keystroke would reload the frame.
 	const [src] = useState(() => previewSrc(appearance))
 	const latestAppearance = useRef(appearance)
-	// Kept out of the `ready` effect's deps so a re-subscribe is not needed per keystroke.
+	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
 	useEffect(() => {
 		latestAppearance.current = appearance
 	}, [appearance])
@@ -90,8 +86,8 @@ export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
 			return
 		}
 		function onMessage(event: MessageEvent) {
-			// The child announces itself; replying on `ready` rather than on iframe load
-			// makes reload, HMR, and bfcache restore all self-healing with no retry timer.
+			// Replying on `ready` rather than on iframe load makes reload, HMR, and bfcache
+			// restore self-healing without a retry timer.
 			if (event.origin !== targetOrigin || !isReadyMessage(event.data)) {
 				return
 			}

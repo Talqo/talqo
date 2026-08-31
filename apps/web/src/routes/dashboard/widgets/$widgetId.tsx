@@ -78,11 +78,9 @@ function WidgetDetailPage() {
 
 	const { register, handleSubmit, reset, control, formState } = useForm<WidgetFormValues>({
 		resolver: zodResolver(widgetFormSchema),
-		// `values` is applied in an effect, one render after the fields mount, so without
-		// defaults the selects would mount uncontrolled and stay blank once it lands.
+		// `values` lands one render after mount; without defaults the selects mount uncontrolled.
 		defaultValues: { name: "", agentId: "", ...WIDGET_FORM_DEFAULTS },
-		// Server state flows in through `values`, and keepDirtyValues protects fields the
-		// operator has already edited: a background refetch must never discard their typing.
+		// keepDirtyValues so a background refetch never discards the operator's typing.
 		values: widget ? toFormValues(widget) : undefined,
 		resetOptions: { keepDirtyValues: true },
 	})
@@ -91,7 +89,7 @@ function WidgetDetailPage() {
 		return () => window.clearTimeout(copyTimeout.current)
 	}, [])
 
-	// The preview follows the form, not the server, so it updates before a save.
+	// Follows the form, not the server, so the preview updates before a save.
 	const appearance = useWatch({ control, compute: toAppearance })
 
 	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
@@ -133,8 +131,7 @@ function WidgetDetailPage() {
 					appearance: toAppearance(submitted),
 				},
 			},
-			// Re-sync once the save lands so the server's stored values show through and
-			// the fields go clean again.
+			// Re-sync on save so the stored values show through and the fields go clean.
 			{ onSuccess: (saved) => reset(toFormValues(saved.data.widget)) },
 		)
 	}

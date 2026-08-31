@@ -7,7 +7,7 @@ async function widgetRoot(): Promise<HTMLElement> {
 	for (let attempt = 0; attempt < 50; attempt += 1) {
 		const element = document.querySelector(".talqo-widget")
 		if (element instanceof HTMLElement) return element
-		// eslint-disable-next-line no-await-in-loop -- sequential by design: each tick hands React a chance to commit.
+		// eslint-disable-next-line no-await-in-loop -- each tick lets React commit.
 		await new Promise((resolve) => setTimeout(resolve, 1))
 	}
 	throw new Error("widget root never rendered")
@@ -45,9 +45,7 @@ describe("widget mount", () => {
 		expect(document.querySelector("#talqo-widget")).toBeNull()
 	})
 
-	// No embed script carries a token in this harness, so there is nothing to fetch and
-	// the widget must paint visible rather than sitting hidden behind a request that
-	// will never come. mount() renders outside act(), so the commit lands a tick later.
+	// No token in this harness, so nothing is fetched and nothing may stay hidden.
 	test("paints visible when there is no widget token to fetch", async () => {
 		mount()
 

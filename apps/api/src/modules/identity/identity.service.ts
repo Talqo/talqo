@@ -128,7 +128,7 @@ export async function changePassword(userId: string, currentPassword: string, ne
 	await rotatePassword(userId, newPassword, false)
 }
 
-// Skips the current-password proof: safe only because mustChangePassword is server-set, never caller-set.
+// Skips the current-password proof; safe only because mustChangePassword is server-set.
 export async function completeForcedPasswordChange(userId: string, newPassword: string): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`completeForcedPasswordChange: user ${userId} not found`)
@@ -139,7 +139,7 @@ export async function completeForcedPasswordChange(userId: string, newPassword: 
 	await rotatePassword(userId, newPassword, false)
 }
 
-// An admin knowing this password should never be a durable state, hence mustChangePassword=true.
+// mustChangePassword: an admin knowing the password must not be a durable state.
 export async function setPassword(userId: string, newPassword: string): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`setPassword: user ${userId} not found`)

@@ -8,16 +8,12 @@ export function widgetScriptUrl(): string | undefined {
 	return import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
 }
 
-/** The snippet is rendered for copy-paste into a host page, so it must survive as literal text. */
+/** The snippet is shown for copy-paste, so it has to survive as literal text. */
 function escapeAttribute(value: string): string {
 	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-/**
- * Carries identity only, never appearance. A baked-in color would pin the embed to
- * whatever the palette was on the day it was copied, and the operator would have to
- * re-paste the snippet on every visual change -- the opposite of fetching by token.
- */
+/** Identity only: a baked-in color would pin the embed to the palette it was copied with. */
 export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): string {
 	const attributes = [
 		`src="${escapeAttribute(scriptUrl)}"`,
@@ -27,10 +23,7 @@ export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): strin
 	return ["<script", ...attributes.map((attribute) => `  ${attribute}`), "></script>"].join("\n")
 }
 
-/**
- * The widget defaults to its own script origin, so the attribute is only needed when
- * the dashboard knows the API lives elsewhere.
- */
+/** The widget defaults to its own script origin, so the attribute is for split deployments only. */
 export function apiOriginOverride(scriptUrl: string, apiOrigin: string | undefined): string | undefined {
 	if (!apiOrigin) {
 		return undefined

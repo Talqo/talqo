@@ -1,17 +1,12 @@
 /*
- * Every token derives from four operator inputs. Neutrals mix a little ink into the
- * surface, so the direction stays correct in both schemes without a second palette:
- * foreground is dark on a light surface and light on a dark one.
+ * Every token derives from four operator inputs, mixing ink into the surface so the
+ * direction holds in both schemes without a second palette.
  *
- * Argument order is load-bearing. Tailwind emits an @supports guard for browsers
- * without color-mix() and falls those back to the FIRST color argument, so each mix
- * leads with the color that is the safe degradation -- surfaces fall back to
- * `background`, text falls back to `foreground`. Reordering a mix without rewriting
- * its percentage silently breaks that fallback.
+ * Argument order is load-bearing: Tailwind's @supports fallback for browsers without
+ * color-mix() uses the FIRST color argument, so each mix leads with its safe degradation.
  *
- * Never register these with @property: the build strips @property rules and then
- * fails if any survive (vite.config.ts). Unregistered custom properties substitute
- * textually, which is what color-mix() needs here.
+ * Never register these with @property: the build strips @property rules and fails if any
+ * survive (vite.config.ts), and color-mix() needs textual substitution here.
  */
 .talqo-widget {
 	--talqo-primary-input: #1a7f4b;
@@ -23,8 +18,7 @@
 	--talqo-background: var(--talqo-background-input);
 	--talqo-foreground: var(--talqo-foreground-input);
 
-	/* The brand pair is scheme-independent: a solid brand chip carries its own
-	   foreground and reads correctly on either surface. */
+	/* Scheme-independent: a solid brand chip carries its own foreground. */
 	--talqo-primary: var(--talqo-primary-input);
 	--talqo-primary-foreground: var(--talqo-primary-foreground-input);
 
@@ -40,18 +34,15 @@
 	--talqo-accent-foreground: color-mix(in oklab, var(--talqo-primary) 65%, var(--talqo-foreground));
 	--talqo-ring: var(--talqo-primary);
 
-	/* Fixed hue, scheme-corrected: pulling the red toward the operator's foreground
-	   keeps it legible on their surface without asking for a fifth input. */
+	/* Fixed hue pulled toward the operator's foreground to stay legible on their surface. */
 	--talqo-destructive: color-mix(in oklab, #e5484d 82%, var(--talqo-foreground));
 
 	--talqo-radius: 0.75rem;
 }
 
 /*
- * Applied when the requested scheme disagrees with the scheme the operator's own
- * pair expresses. Swapping the two inputs re-derives every mix above, because
- * custom-property substitution uses the element's cascaded value regardless of
- * which rule declared the referencing property.
+ * Applied when the requested scheme disagrees with the one the operator's pair expresses.
+ * Swapping the inputs re-derives every mix above through custom-property substitution.
  */
 .talqo-widget.talqo-invert {
 	--talqo-background: var(--talqo-foreground-input);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test"
 
 import { isForeignKeyViolation, isRestrictViolation, isUniqueViolation } from "./pg-error.ts"
 
-/** Mirrors how drizzle-orm surfaces a driver error: the Postgres code sits on `.cause`. */
+/** drizzle-orm surfaces the Postgres code on `.cause`. */
 function wrapped(code: string): Error {
 	return new Error("Failed query", { cause: Object.assign(new Error("driver"), { code }) })
 }
@@ -16,7 +16,7 @@ describe("pg error predicates", () => {
 		expect(isForeignKeyViolation(wrapped("23503"))).toBe(true)
 	})
 
-	// ON DELETE RESTRICT reports 23001, so matching only 23503 would let the raw error escape.
+	// ON DELETE RESTRICT reports 23001, not 23503.
 	it("recognizes the 23001 an ON DELETE RESTRICT raises", () => {
 		expect(isRestrictViolation(wrapped("23001"))).toBe(true)
 		expect(isForeignKeyViolation(wrapped("23001"))).toBe(false)

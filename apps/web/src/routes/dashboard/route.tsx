@@ -11,7 +11,7 @@ export const Route = createFileRoute("/dashboard")({
 		} catch {
 			user = null
 		}
-		// A null user covers both "never logged in" and "session just invalidated" (e.g. admin reset).
+		// A null user covers never-logged-in and just-invalidated alike.
 		if (!user) throw redirect({ to: "/login" })
 		if (user.mustChangePassword) throw redirect({ to: "/force-password-change" })
 	},

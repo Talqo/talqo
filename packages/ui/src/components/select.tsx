@@ -41,9 +41,8 @@ function SelectTrigger({
 	)
 }
 
-// Base UI defaults `alignItemWithTrigger` to true, which overlaps the popup on the
-// trigger so it opens upwards or downwards depending on which item is selected. Every
-// popup anchors below the trigger instead.
+// Base UI's default overlaps the popup on the trigger, opening up or down by selection.
+// Every popup anchors below the trigger instead.
 function SelectContent({
 	className,
 	children,

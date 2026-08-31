@@ -58,7 +58,7 @@ test("operator moves the widget to the other corner", async ({ page }) => {
 })
 
 test("operator reassigns the widget to a different agent", async ({ page }) => {
-	// The API seed provides a single agent; reassignment needs a second target.
+	// The seed has one agent; reassignment needs a second target.
 	await page.request.post("/api/agents", {
 		data: { name: "Sales assistant", systemPrompt: "You answer sales questions.", wordBlacklist: [] },
 	})
@@ -66,7 +66,7 @@ test("operator reassigns the widget to a different agent", async ({ page }) => {
 	await page.goto("/dashboard/widgets")
 	await page.locator("[data-slot=card]", { hasText: "Support portal" }).click()
 
-	// The closed trigger has to read the agent's name; Base UI would otherwise show its id.
+	// Base UI shows the raw id in a closed trigger unless `items` maps it to a name.
 	const agentSelect = page.getByLabel("Agent")
 	await expect(agentSelect).toContainText("Website Assistant")
 	await agentSelect.click()

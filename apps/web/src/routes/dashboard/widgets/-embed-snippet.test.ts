@@ -22,7 +22,7 @@ describe("buildEmbedSnippet", () => {
 		expect(snippet).toContain('data-talqo-api="https://api.example.com"')
 	})
 
-	// The whole point of fetching by token: a copied snippet must not freeze the palette.
+	// A copied snippet must not freeze the palette.
 	test("never emits appearance attributes", () => {
 		const snippet = buildEmbedSnippet(SCRIPT_URL, { publicToken: "tok_123", apiOrigin: "https://api.example.com" })
 

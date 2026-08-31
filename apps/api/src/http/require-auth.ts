@@ -22,9 +22,7 @@ const EXEMPT_PATHS = new Set([
 // Both routes correctly clear mustChangePassword as part of rotating the password.
 const FORCED_PASSWORD_CHANGE_ALLOWED_PATHS = new Set([`${API_PREFIX}/me/password`, `${API_PREFIX}/me/password/forced`])
 
-// Separate from the exact-match set because the path carries a token segment. Each
-// pattern is anchored at both ends by its owning module so it cannot widen to cover
-// a sibling route.
+// For paths carrying a token segment. Each module anchors its own pattern at both ends.
 const EXEMPT_PATTERNS: readonly RegExp[] = [...widget.PUBLIC_PATH_PATTERNS]
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
@@ -38,7 +36,7 @@ export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(asyn
 		return c.json({ error: "Authentication required" }, HTTP_STATUS.UNAUTHORIZED)
 	}
 
-	// Enforced here, not just by the SPA's redirect, since a direct API call bypasses that gate.
+	// Enforced here too: a direct API call bypasses the SPA's redirect.
 	if (session.user.mustChangePassword && !FORCED_PASSWORD_CHANGE_ALLOWED_PATHS.has(c.req.path)) {
 		return c.json({ error: "Password change required" }, HTTP_STATUS.FORBIDDEN)
 	}

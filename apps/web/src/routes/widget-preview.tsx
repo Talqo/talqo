@@ -7,8 +7,7 @@ import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/widget-preview")({
-	// Only the widget id: the appearance is read from the saved record, so a shared
-	// link can never drift from what the widget actually looks like.
+	// The id only: appearance comes from the saved record, so a shared link cannot drift.
 	validateSearch: (search: Record<string, unknown>) => ({
 		widget: typeof search.widget === "string" ? search.widget : "",
 	}),

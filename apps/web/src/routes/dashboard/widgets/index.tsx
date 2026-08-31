@@ -56,7 +56,7 @@ function WidgetsPage() {
 		try {
 			await createWidget.mutateAsync({ data: { name: name.trim(), agentId, appearance: WIDGET_FORM_DEFAULTS } })
 		} catch {
-			// Reported below from createWidget.isError; keep the draft so it can be retried.
+			// Reported below from createWidget.isError; the draft stays for a retry.
 			return
 		}
 		setName("")

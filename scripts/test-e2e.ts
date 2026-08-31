@@ -40,8 +40,7 @@ await withTestDatabase(async (databaseEnv) => {
 
 	try {
 		await $`bun run db:migrate`.cwd(apiDirectory).env(env)
-		// The seed prints its records as one JSON line; Playwright reads them from the
-		// environment so apps/e2e never has to import API source or define records itself.
+		// Passed through the environment so apps/e2e never imports API source.
 		const seeded = seedResult(await $`bun run db:seed`.cwd(apiDirectory).env(env).text())
 		releasePorts()
 		await $`bunx playwright test --project=chromium`.cwd(e2eDirectory).env({
