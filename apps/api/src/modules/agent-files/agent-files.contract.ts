@@ -5,6 +5,7 @@ import {
 	internalServerErrorResponse,
 	noContentResponse,
 	notFoundResponse,
+	payloadTooLargeResponse,
 	sessionSecurity,
 	unauthorizedResponse,
 } from "@/http/openapi.ts"
@@ -24,6 +25,7 @@ export const agentFileListResponseSchema = z.object({
 	files: z.array(agentFileSchema),
 	maxSizeBytes: z.number().int().positive(),
 	maxNameLength: z.number().int().positive(),
+	allowedExtensions: z.array(z.string()),
 })
 
 export const agentFileDetailResponseSchema = z.object({ file: agentFileSchema })
@@ -83,6 +85,7 @@ export const uploadAgentFileRoute = createRoute({
 		403: forbiddenResponse,
 		404: notFoundResponse,
 		409: conflictResponse,
+		413: payloadTooLargeResponse,
 		500: internalServerErrorResponse,
 	},
 })

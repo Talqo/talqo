@@ -3,12 +3,13 @@ import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
-import { beforeEach, describe, expect, it } from "bun:test"
+import { afterAll, beforeEach, describe, expect, it } from "bun:test"
 import { readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
 
-// Set by agent-files.preload.ts before the env singleton loads (see `bun test --preload`).
-const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR ?? join(import.meta.dir, ".test-uploads")
+// Set by scripts/test-integration.ts; integration tests must not fall back to a directory inside src/.
+const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
+if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
 
 async function login(username: string): Promise<string> {
 	const response = await app.request("/api/auth/login", {
@@ -55,6 +56,10 @@ function upload(cookie: string, agentId: string, name = "a.md", contents = "hell
 
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, user_role, session, "user"`
+	await rm(UPLOAD_ROOT, { force: true, recursive: true })
+})
+
+afterAll(async () => {
 	await rm(UPLOAD_ROOT, { force: true, recursive: true })
 })
 

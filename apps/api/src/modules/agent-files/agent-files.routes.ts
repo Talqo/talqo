@@ -4,6 +4,7 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
+import { bodyLimit } from "hono/body-limit"
 
 import {
 	agentFileDetailResponseSchema,
@@ -38,7 +39,17 @@ async function requireAgent(agentId: string): Promise<void> {
 	await agent.getAgent(agentId)
 }
 
-export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+// Reject oversized upload bodies before hono buffers the whole multipart body: the
+// 10 MB file limit inside validateUpload would otherwise run only after a full-body copy.
+const uploadBodyLimit = bodyLimit({
+	maxSize: files.MAX_UPLOAD_BODY_BYTES,
+	onError: (c) => c.json({ error: "Upload exceeds the size limit" }, HTTP_STATUS.PAYLOAD_TOO_LARGE),
+})
+
+const routes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+routes.use("/:agentId/files", uploadBodyLimit)
+
+export const agentFilesRoutes = routes
 	.openapi(listAgentFilesRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:manage"))) {
@@ -50,8 +61,9 @@ export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 			return c.json(
 				agentFileListResponseSchema.parse({
 					files: (await files.list(agentId)).map(serialize),
-					maxSizeBytes: files.MAX_FILE_SIZE_MB * files.BYTES_PER_MB,
+					maxSizeBytes: files.MAX_FILE_SIZE_BYTES,
 					maxNameLength: files.MAX_FILE_NAME_LENGTH,
+					allowedExtensions: [...files.ALLOWED_EXTENSIONS],
 				}),
 				HTTP_STATUS.OK,
 			)
@@ -92,7 +104,7 @@ export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
 		try {
 			await requireAgent(agentId)
-			files.validatePathName(fileName)
+			files.validateName(fileName)
 			const target = files.resolveRenameTarget(fileName, c.req.valid("json").name)
 			const renamed = await files.renameFile(agentId, fileName, target)
 			return c.json(agentFileDetailResponseSchema.parse({ file: serialize(renamed) }), HTTP_STATUS.OK)
@@ -110,7 +122,7 @@ export const agentFilesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 		const { agentId, fileName } = c.req.valid("param")
 		try {
 			await requireAgent(agentId)
-			files.validatePathName(fileName)
+			files.validateName(fileName)
 			await files.remove(agentId, fileName)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {

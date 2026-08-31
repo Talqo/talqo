@@ -2613,9 +2613,15 @@
 										"maxNameLength": {
 											"type": "integer",
 											"exclusiveMinimum": 0
+										},
+										"allowedExtensions": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
 										}
 									},
-									"required": ["files", "maxSizeBytes", "maxNameLength"]
+									"required": ["files", "maxSizeBytes", "maxNameLength", "allowedExtensions"]
 								}
 							}
 						}
@@ -2756,6 +2762,16 @@
 					},
 					"409": {
 						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Payload too large",
 						"content": {
 							"application/json": {
 								"schema": {

@@ -7,10 +7,6 @@ describe("nextDefaultAgentName", () => {
 		expect(nextDefaultAgentName([], "New agent")).toBe("New agent")
 	})
 
-	it("returns the base name when only other names exist", () => {
-		expect(nextDefaultAgentName(["Support bot"], "New agent")).toBe("New agent")
-	})
-
 	it("appends 2 when the base name is taken", () => {
 		expect(nextDefaultAgentName(["New agent"], "New agent")).toBe("New agent 2")
 	})

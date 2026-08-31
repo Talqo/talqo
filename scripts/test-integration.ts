@@ -7,8 +7,5 @@ const apiDirectory = `${root}/apps/api`
 
 await withTestDatabase(async (env) => {
 	await $`bun run db:migrate`.cwd(apiDirectory).env(env)
-	// agent-files.preload redirects TALQO_UPLOAD_DIR before the env singleton caches it.
-	await $`bun test --preload ./src/modules/agent-files/agent-files.preload.ts integration.test.ts`
-		.cwd(apiDirectory)
-		.env(env)
+	await $`bun test integration.test.ts`.cwd(apiDirectory).env({ ...env, TALQO_UPLOAD_DIR: `${root}/tmp/test-uploads` })
 })

@@ -16,6 +16,7 @@ export const ListAgentFiles200 = zod.object({
 	files: zod.array(AgentFile),
 	maxSizeBytes: zod.int().gt(listAgentFiles200MaxSizeBytesExclusiveMin),
 	maxNameLength: zod.int().gt(listAgentFiles200MaxNameLengthExclusiveMin),
+	allowedExtensions: zod.array(zod.string()),
 })
 
 export type ListAgentFiles200 = zod.input<typeof ListAgentFiles200>

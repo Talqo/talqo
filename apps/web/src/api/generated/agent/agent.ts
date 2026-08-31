@@ -841,6 +841,11 @@ export type uploadAgentFileResponse409 = {
 	status: 409
 }
 
+export type uploadAgentFileResponse413 = {
+	data: ErrorResponse
+	status: 413
+}
+
 export type uploadAgentFileResponse500 = {
 	data: ErrorResponse
 	status: 500
@@ -855,6 +860,7 @@ export type uploadAgentFileResponseError = (
 	| uploadAgentFileResponse403
 	| uploadAgentFileResponse404
 	| uploadAgentFileResponse409
+	| uploadAgentFileResponse413
 	| uploadAgentFileResponse500
 ) & {
 	headers: Headers
