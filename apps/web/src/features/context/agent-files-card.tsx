@@ -36,6 +36,11 @@ function errorMessage(error: unknown, fallback: string): string {
 	return info?.error ?? fallback
 }
 
+// The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
+function pathName(name: string): string {
+	return encodeURIComponent(name)
+}
+
 export function AgentFilesCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
@@ -109,7 +114,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		if (!trimmed) return
 		setRenameError(null)
 		try {
-			await renameFile.mutateAsync({ agentId, fileName: renameTarget.name, data: { name: trimmed } })
+			await renameFile.mutateAsync({ agentId, fileName: pathName(renameTarget.name), data: { name: trimmed } })
 			setRenameTarget(null)
 			await refresh()
 		} catch (error) {
@@ -126,7 +131,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		if (!deleteTarget) return
 		setDeleteError(null)
 		try {
-			await deleteFile.mutateAsync({ agentId, fileName: deleteTarget.name })
+			await deleteFile.mutateAsync({ agentId, fileName: pathName(deleteTarget.name) })
 			setDeleteTarget(null)
 			await refresh()
 		} catch (error) {
