@@ -11,7 +11,7 @@
 		"@playwright/test": "1.62.1",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.0",
-		"@types/node": "26.2.0",
+		"@types/node": "26.4.0",
 		"typescript": "7.0.2"
 	}
 }
