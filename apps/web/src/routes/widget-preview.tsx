@@ -24,7 +24,11 @@ function WidgetPreviewPage() {
 		<div className="bg-background text-foreground relative min-h-screen p-6">
 			<Button
 				render={
-					widgetId ? <Link to="/dashboard/widgets/$widgetId" params={{ widgetId }} /> : <Link to="/dashboard/widgets" />
+					widgetId ? (
+						<Link to="/dashboard/widgets/$widgetId" params={{ widgetId }} search={{ colorTab: undefined }} />
+					) : (
+						<Link to="/dashboard/agents" />
+					)
 				}
 				nativeButton={false}
 				variant="outline"
@@ -35,7 +39,7 @@ function WidgetPreviewPage() {
 			{isLoading ? (
 				<p className="text-muted-foreground mt-4">{t("widgetSetup.loading")}</p>
 			) : widget ? (
-				<WidgetPreview appearance={toAppearance(toFormValues(widget))} previewKey={widget.id} />
+				<WidgetPreview appearance={toAppearance(toFormValues(widget))} title={widget.name} previewKey={widget.id} />
 			) : (
 				<p className="text-muted-foreground mt-4">{t("widgetSetup.notFound")}</p>
 			)}

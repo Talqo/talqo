@@ -3,10 +3,8 @@ import { describe, expect, test } from "bun:test"
 import { configMessage, isReadyMessage, PREVIEW_CHANNEL_VERSION } from "./preview-channel"
 
 const appearance = {
-	primary: "#1a7f4b",
-	primaryForeground: "#ffffff",
-	background: "#ffffff",
-	foreground: "#171717",
+	light: { primary: "#1a7f4b", textOnPrimary: "#ffffff", background: "#ffffff", surface: "#f5f5f5", text: "#171717" },
+	dark: { primary: "#34d399", textOnPrimary: "#052e16", background: "#0a0a0a", surface: "#1a1a1a", text: "#fafafa" },
 	position: "bottom-right",
 	theme: "system",
 	themeToggle: true,
@@ -21,6 +19,15 @@ describe("configMessage", () => {
 		expect(message.version).toBe(PREVIEW_CHANNEL_VERSION)
 		expect(message.type).toBe("config")
 		expect(message.appearance).toEqual(appearance)
+		expect(message.title).toBeUndefined()
+		expect(message.forcedScheme).toBeUndefined()
+	})
+
+	test("carries the title and forced scheme when given", () => {
+		const message = configMessage(appearance, { title: "Marketing site", forcedScheme: "dark" })
+
+		expect(message.title).toBe("Marketing site")
+		expect(message.forcedScheme).toBe("dark")
 	})
 })
 

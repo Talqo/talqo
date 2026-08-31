@@ -15,13 +15,26 @@ export type PreviewReadyMessage = {
 
 export type PreviewConfigMessage = {
 	appearance: WidgetAppearance
+	title?: string
+	/** Pins the widget to whichever Light/Dark tab the operator is editing. */
+	forcedScheme?: "light" | "dark"
 	source: typeof PREVIEW_CHANNEL_SOURCE
 	type: "config"
 	version: number
 }
 
-export function configMessage(appearance: WidgetAppearance): PreviewConfigMessage {
-	return { source: PREVIEW_CHANNEL_SOURCE, version: PREVIEW_CHANNEL_VERSION, type: "config", appearance }
+export function configMessage(
+	appearance: WidgetAppearance,
+	options: { title?: string; forcedScheme?: "light" | "dark" } = {},
+): PreviewConfigMessage {
+	return {
+		source: PREVIEW_CHANNEL_SOURCE,
+		version: PREVIEW_CHANNEL_VERSION,
+		type: "config",
+		appearance,
+		title: options.title,
+		forcedScheme: options.forcedScheme,
+	}
 }
 
 export function isReadyMessage(data: unknown): data is PreviewReadyMessage {

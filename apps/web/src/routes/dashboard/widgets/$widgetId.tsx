@@ -24,11 +24,12 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Controller, useForm, useWatch } from "react-hook-form"
+import { type Control, Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
@@ -36,7 +37,17 @@ import { apiOriginOverride, buildEmbedSnippet, widgetScriptUrl } from "./-embed-
 
 const COPY_FEEDBACK_MS = 2000
 
+const COLOR_SCHEMES = ["light", "dark"] as const
+type ColorSchemeTab = (typeof COLOR_SCHEMES)[number]
+
+function isColorSchemeTab(value: unknown): value is ColorSchemeTab {
+	return value === "light" || value === "dark"
+}
+
 export const Route = createFileRoute("/dashboard/widgets/$widgetId")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		colorTab: isColorSchemeTab(search.colorTab) ? search.colorTab : undefined,
+	}),
 	component: WidgetDetailPage,
 })
 
@@ -55,14 +66,99 @@ function themeLabel(theme: (typeof WIDGET_THEMES)[number], t: (key: string) => s
 	}
 }
 
+function SchemeColorFields({
+	scheme,
+	control,
+	appearanceScheme,
+	t,
+}: {
+	scheme: ColorSchemeTab
+	control: Control<WidgetFormValues>
+	appearanceScheme: { primary: string; textOnPrimary: string; background: string; surface: string; text: string }
+	t: (key: string) => string
+}) {
+	return (
+		<div className="space-y-4">
+			<Controller
+				control={control}
+				name={`${scheme}.primary`}
+				render={({ field }) => (
+					<ColorField
+						id={`color-${scheme}-primary`}
+						label={t("widgetSetup.colorPrimary")}
+						value={field.value}
+						onChange={field.onChange}
+						against={appearanceScheme.textOnPrimary}
+					/>
+				)}
+			/>
+			<Controller
+				control={control}
+				name={`${scheme}.textOnPrimary`}
+				render={({ field }) => (
+					<ColorField
+						id={`color-${scheme}-text-on-primary`}
+						label={t("widgetSetup.colorTextOnPrimary")}
+						value={field.value}
+						onChange={field.onChange}
+						against={appearanceScheme.primary}
+					/>
+				)}
+			/>
+			<Controller
+				control={control}
+				name={`${scheme}.background`}
+				render={({ field }) => (
+					<ColorField
+						id={`color-${scheme}-background`}
+						label={t("widgetSetup.colorBackground")}
+						value={field.value}
+						onChange={field.onChange}
+						against={appearanceScheme.text}
+					/>
+				)}
+			/>
+			<Controller
+				control={control}
+				name={`${scheme}.surface`}
+				render={({ field }) => (
+					<ColorField
+						id={`color-${scheme}-surface`}
+						label={t("widgetSetup.colorSurface")}
+						value={field.value}
+						onChange={field.onChange}
+						against={appearanceScheme.text}
+					/>
+				)}
+			/>
+			<Controller
+				control={control}
+				name={`${scheme}.text`}
+				render={({ field }) => (
+					<ColorField
+						id={`color-${scheme}-text`}
+						label={t("widgetSetup.colorText")}
+						value={field.value}
+						onChange={field.onChange}
+						against={appearanceScheme.background}
+					/>
+				)}
+			/>
+		</div>
+	)
+}
+
 function WidgetDetailPage() {
 	const { t } = useTranslation()
 	const { widgetId } = Route.useParams()
+	const { colorTab = "light" } = Route.useSearch()
+	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
 	const { data: widgetResponse, isLoading, isError } = useGetWidget(widgetId)
 	const widget = widgetResponse?.data.widget
 	const { data: agentsResponse } = useListAgents()
 	const agents = agentsResponse?.data.agents
+	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
 	const permissions = useGetMyPermissions().data?.data.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateWidget = useUpdateWidget({
@@ -90,10 +186,12 @@ function WidgetDetailPage() {
 	}, [])
 
 	// Follows the form, not the server, so the preview updates before a save.
-	const appearance = useWatch({ control, compute: toAppearance })
+	const { appearance, name } = useWatch({
+		control,
+		compute: (values) => ({ appearance: toAppearance(values), name: values.name }),
+	})
 
 	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
-	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
 	const positionOptions = WIDGET_POSITIONS.map((value) => ({ value, label: positionLabel(value, t) }))
 	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: themeLabel(value, t) }))
 	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
@@ -145,9 +243,16 @@ function WidgetDetailPage() {
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
-			<Button render={<Link to="/dashboard/widgets" />} nativeButton={false} variant="ghost" className="-ml-2">
+			<Button
+				render={
+					<Link to="/dashboard/agent/$agentId" params={{ agentId: widget.agentId }} search={{ tab: "widgets" }} />
+				}
+				nativeButton={false}
+				variant="ghost"
+				className="-ml-2"
+			>
 				<ArrowLeft className="size-4" />
-				{t("widgetSetup.backToWidgets")}
+				{t("widgetSetup.backToAgent")}
 			</Button>
 
 			<PageHeader
@@ -237,59 +342,26 @@ function WidgetDetailPage() {
 									<p className="text-muted-foreground text-xs">{t("widgetSetup.agentHelp")}</p>
 								</div>
 
-								<Controller
-									control={control}
-									name="primary"
-									render={({ field }) => (
-										<ColorField
-											id="color-primary"
-											label={t("widgetSetup.colorPrimary")}
-											value={field.value}
-											onChange={field.onChange}
-											against={appearance.primaryForeground}
-										/>
-									)}
-								/>
-								<Controller
-									control={control}
-									name="primaryForeground"
-									render={({ field }) => (
-										<ColorField
-											id="color-primary-foreground"
-											label={t("widgetSetup.colorPrimaryForeground")}
-											value={field.value}
-											onChange={field.onChange}
-											against={appearance.primary}
-										/>
-									)}
-								/>
-								<Controller
-									control={control}
-									name="background"
-									render={({ field }) => (
-										<ColorField
-											id="color-background"
-											label={t("widgetSetup.colorBackground")}
-											value={field.value}
-											onChange={field.onChange}
-											against={appearance.foreground}
-										/>
-									)}
-								/>
-								<Controller
-									control={control}
-									name="foreground"
-									render={({ field }) => (
-										<ColorField
-											id="color-foreground"
-											label={t("widgetSetup.colorForeground")}
-											value={field.value}
-											onChange={field.onChange}
-											against={appearance.background}
-										/>
-									)}
-								/>
 								<p className="text-muted-foreground text-xs">{t("widgetSetup.colorsHelp")}</p>
+								<Tabs
+									value={colorTab}
+									onValueChange={(value) => {
+										if (isColorSchemeTab(value)) {
+											void navigate({ search: (prev) => ({ ...prev, colorTab: value }), replace: true })
+										}
+									}}
+								>
+									<TabsList>
+										<TabsTrigger value="light">{t("widgetSetup.tabLight")}</TabsTrigger>
+										<TabsTrigger value="dark">{t("widgetSetup.tabDark")}</TabsTrigger>
+									</TabsList>
+									<TabsContent value="light">
+										<SchemeColorFields scheme="light" control={control} appearanceScheme={appearance.light} t={t} />
+									</TabsContent>
+									<TabsContent value="dark">
+										<SchemeColorFields scheme="dark" control={control} appearanceScheme={appearance.dark} t={t} />
+									</TabsContent>
+								</Tabs>
 
 								<div className="space-y-2">
 									<Label htmlFor="widget-position">{t("widgetSetup.position")}</Label>
@@ -414,7 +486,7 @@ function WidgetDetailPage() {
 								<span className="text-muted-foreground ml-2 text-xs">{t("widgetSetup.previewSiteLabel")}</span>
 							</div>
 							<div className="bg-background relative h-[460px]">
-								<WidgetPreview appearance={appearance} previewKey={widgetId} />
+								<WidgetPreview appearance={appearance} title={name} activeScheme={colorTab} previewKey={widgetId} />
 							</div>
 						</div>
 					</CardContent>

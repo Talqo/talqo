@@ -1,4 +1,4 @@
-import type { WidgetAppearance, WidgetPosition } from "@talqo/shared/widget-appearance"
+import type { WidgetAppearance, WidgetPosition, WidgetScheme } from "@talqo/shared/widget-appearance"
 
 import { configMessage, isReadyMessage } from "@/features/widgets/preview-channel.ts"
 import { cn } from "@talqo/ui/lib/utils"
@@ -18,24 +18,44 @@ const insetClasses: Record<WidgetPosition, string> = {
 
 type WidgetPreviewProps = {
 	appearance: WidgetAppearance
+	title?: string
+	/** Which tab the operator is editing; forces the preview to that scheme. Omit to let the
+	 * embed pick its own scheme from the operator's theme setting, like the real widget does. */
+	activeScheme?: "light" | "dark"
 	/** Changing this remounts the frame; appearance edits never do. */
 	previewKey: string
 }
 
+function schemeSearchParams(url: URL, prefix: "light" | "dark", scheme: WidgetScheme) {
+	url.searchParams.set(`${prefix}Primary`, scheme.primary)
+	url.searchParams.set(`${prefix}TextOnPrimary`, scheme.textOnPrimary)
+	url.searchParams.set(`${prefix}Background`, scheme.background)
+	url.searchParams.set(`${prefix}Surface`, scheme.surface)
+	url.searchParams.set(`${prefix}Text`, scheme.text)
+}
+
 /** Carries the first paint only; later edits go over postMessage. */
-function previewSrc(appearance: WidgetAppearance): string | undefined {
+function previewSrc(
+	appearance: WidgetAppearance,
+	title: string | undefined,
+	activeScheme: "light" | "dark" | undefined,
+) {
 	if (!PREVIEW_URL) {
 		return undefined
 	}
 	const url = new URL(PREVIEW_URL)
-	url.searchParams.set("primary", appearance.primary)
-	url.searchParams.set("primaryForeground", appearance.primaryForeground)
-	url.searchParams.set("background", appearance.background)
-	url.searchParams.set("foreground", appearance.foreground)
+	schemeSearchParams(url, "light", appearance.light)
+	schemeSearchParams(url, "dark", appearance.dark)
 	url.searchParams.set("position", appearance.position)
 	url.searchParams.set("theme", appearance.theme)
 	url.searchParams.set("themeToggle", String(appearance.themeToggle))
 	url.searchParams.set("language", appearance.language)
+	if (activeScheme) {
+		url.searchParams.set("forcedScheme", activeScheme)
+	}
+	if (title) {
+		url.searchParams.set("title", title)
+	}
 	// Echoed back as the child's postMessage target; the two apps can sit on different origins.
 	url.searchParams.set("parentOrigin", window.location.origin)
 	return url.toString()
@@ -65,19 +85,19 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
  * Frames the real widget bundle rather than a dashboard-side replica, so the preview
  * cannot drift from what customers see and the widget's scoped CSS stays isolated.
  */
-export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
+export function WidgetPreview({ appearance, title, activeScheme, previewKey }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const frameRef = useRef<HTMLDivElement>(null)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	const scale = useFrameScale(frameRef)
 
 	// Once per widget: recomputing per keystroke would reload the frame.
-	const [src] = useState(() => previewSrc(appearance))
-	const latestAppearance = useRef(appearance)
+	const [src] = useState(() => previewSrc(appearance, title, activeScheme))
+	const latest = useRef({ appearance, title, activeScheme })
 	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
 	useEffect(() => {
-		latestAppearance.current = appearance
-	}, [appearance])
+		latest.current = { appearance, title, activeScheme }
+	}, [appearance, title, activeScheme])
 
 	const targetOrigin = src ? new URL(src).origin : undefined
 
@@ -91,7 +111,13 @@ export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
 			if (event.origin !== targetOrigin || !isReadyMessage(event.data)) {
 				return
 			}
-			iframeRef.current?.contentWindow?.postMessage(configMessage(latestAppearance.current), targetOrigin)
+			iframeRef.current?.contentWindow?.postMessage(
+				configMessage(latest.current.appearance, {
+					title: latest.current.title,
+					forcedScheme: latest.current.activeScheme,
+				}),
+				targetOrigin,
+			)
 		}
 		window.addEventListener("message", onMessage)
 		return () => window.removeEventListener("message", onMessage)
@@ -102,8 +128,11 @@ export function WidgetPreview({ appearance, previewKey }: WidgetPreviewProps) {
 			return
 		}
 		// Dropped harmlessly if the child is not listening yet; its next `ready` re-syncs.
-		iframeRef.current?.contentWindow?.postMessage(configMessage(appearance), targetOrigin)
-	}, [appearance, targetOrigin])
+		iframeRef.current?.contentWindow?.postMessage(
+			configMessage(appearance, { title, forcedScheme: activeScheme }),
+			targetOrigin,
+		)
+	}, [appearance, title, activeScheme, targetOrigin])
 
 	if (!src) {
 		return (
