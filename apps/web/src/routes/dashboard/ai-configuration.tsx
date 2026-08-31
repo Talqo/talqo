@@ -323,17 +323,12 @@ function CredentialsSection({
 
 	if (configured && !replacing) {
 		return (
-			<div className="bg-muted/40 border-border flex h-9 items-center justify-between rounded-lg border pr-1.5 pl-3">
+			<div className="bg-muted/40 border-border h-control rounded-control flex items-center justify-between border pr-1 pl-4">
 				<p className="text-muted-foreground flex items-center gap-2 text-sm">
 					<LockIcon className="size-3.5" />
 					{t("aiConfiguration.savedCredentials")}
 				</p>
-				<Button
-					type="button"
-					variant="ghost"
-					className="h-7 px-2.5 text-xs"
-					onClick={() => setReplacingContext(contextSignature)}
-				>
+				<Button type="button" variant="ghost" size="sm" onClick={() => setReplacingContext(contextSignature)}>
 					<PencilLineIcon data-icon="inline-start" />
 					{t("aiConfiguration.replaceCredentials")}
 				</Button>
@@ -485,7 +480,7 @@ function AiConfigurationPage() {
 			{configuration.health === "unusable" && (
 				<p
 					role="alert"
-					className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border p-3 text-sm"
+					className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface border p-4 text-sm"
 				>
 					{t("aiConfiguration.unusableWarning")}
 				</p>
