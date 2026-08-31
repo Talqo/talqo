@@ -21,6 +21,7 @@ import type { CreateWidget201 } from "../models/widget/createWidget201.zod"
 import type { CreateWidgetBody } from "../models/widget/createWidgetBody.zod"
 import type { GetWidget200 } from "../models/widget/getWidget200.zod"
 import type { ListWidgets200 } from "../models/widget/listWidgets200.zod"
+import type { ListWidgetsParams } from "../models/widget/listWidgetsParams.zod"
 import type { UpdateWidget200 } from "../models/widget/updateWidget200.zod"
 import type { UpdateWidgetBody } from "../models/widget/updateWidgetBody.zod"
 import type { WidgetConfig } from "../models/widget/widgetConfig.zod"
@@ -71,12 +72,25 @@ export type listWidgetsResponseError = (listWidgetsResponse401 | listWidgetsResp
 	headers: Headers
 }
 
-export const getListWidgetsUrl = () => {
-	return `/api/widgets`
+export const getListWidgetsUrl = (params?: ListWidgetsParams) => {
+	const normalizedParams = new URLSearchParams()
+
+	Object.entries(params || {}).forEach(([key, value]) => {
+		if (value !== undefined) {
+			normalizedParams.append(key, value === null ? "null" : String(value))
+		}
+	})
+
+	const stringifiedParams = normalizedParams.toString()
+
+	return stringifiedParams.length > 0 ? `/api/widgets?${stringifiedParams}` : `/api/widgets`
 }
 
-export const listWidgets = async (options?: RequestInit): Promise<listWidgetsResponseSuccess> => {
-	const res = await fetch(getListWidgetsUrl(), {
+export const listWidgets = async (
+	params?: ListWidgetsParams,
+	options?: RequestInit,
+): Promise<listWidgetsResponseSuccess> => {
+	const res = await fetch(getListWidgetsUrl(params), {
 		credentials: "include",
 		...options,
 		method: "GET",
@@ -94,23 +108,23 @@ export const listWidgets = async (options?: RequestInit): Promise<listWidgetsRes
 	return { data, status: res.status, headers: res.headers } as listWidgetsResponseSuccess
 }
 
-export const getListWidgetsQueryKey = () => {
-	return [`/api/widgets`] as const
+export const getListWidgetsQueryKey = (params?: ListWidgetsParams) => {
+	return [`/api/widgets`, ...(params ? [params] : [])] as const
 }
 
 export const getListWidgetsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listWidgets>>,
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>
-	fetch?: RequestInit
-}) => {
+>(
+	params?: ListWidgetsParams,
+	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
+) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
-	const queryKey = queryOptions?.queryKey ?? getListWidgetsQueryKey()
+	const queryKey = queryOptions?.queryKey ?? getListWidgetsQueryKey(params)
 
 	const queryFn: QueryFunction<Awaited<ReturnType<typeof listWidgets>>> = ({ signal }) =>
-		listWidgets({ signal, ...fetchOptions })
+		listWidgets(params, { signal, ...fetchOptions })
 
 	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
 		Awaited<ReturnType<typeof listWidgets>>,
@@ -125,11 +139,11 @@ export type ListWidgetsQueryError = globalThis.Error & { info?: ErrorResponse; s
 export function useListWidgets<
 	TData = Awaited<ReturnType<typeof listWidgets>>,
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>
-	fetch?: RequestInit
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-	const queryOptions = getListWidgetsQueryOptions(options)
+>(
+	params?: ListWidgetsParams,
+	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getListWidgetsQueryOptions(params, options)
 
 	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
 

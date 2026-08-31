@@ -119,17 +119,11 @@
 			"WidgetAppearance": {
 				"type": "object",
 				"properties": {
-					"primary": {
-						"type": "string"
+					"light": {
+						"$ref": "#/components/schemas/WidgetScheme"
 					},
-					"primaryForeground": {
-						"type": "string"
-					},
-					"background": {
-						"type": "string"
-					},
-					"foreground": {
-						"type": "string"
+					"dark": {
+						"$ref": "#/components/schemas/WidgetScheme"
 					},
 					"position": {
 						"type": "string",
@@ -146,16 +140,28 @@
 						"type": "string"
 					}
 				},
-				"required": [
-					"primary",
-					"primaryForeground",
-					"background",
-					"foreground",
-					"position",
-					"theme",
-					"themeToggle",
-					"language"
-				]
+				"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
+			},
+			"WidgetScheme": {
+				"type": "object",
+				"properties": {
+					"primary": {
+						"type": "string"
+					},
+					"textOnPrimary": {
+						"type": "string"
+					},
+					"background": {
+						"type": "string"
+					},
+					"surface": {
+						"type": "string"
+					},
+					"text": {
+						"type": "string"
+					}
+				},
+				"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 			},
 			"WidgetConfig": {
 				"type": "object",
@@ -166,11 +172,14 @@
 					"agentId": {
 						"type": "string"
 					},
+					"name": {
+						"type": "string"
+					},
 					"appearance": {
 						"$ref": "#/components/schemas/WidgetAppearance"
 					}
 				},
-				"required": ["version", "agentId", "appearance"]
+				"required": ["version", "agentId", "name", "appearance"]
 			}
 		},
 		"parameters": {}
@@ -2659,6 +2668,16 @@
 						"SessionCookie": []
 					}
 				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": false,
+						"name": "agentId",
+						"in": "query"
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "All widgets",
@@ -2738,21 +2757,57 @@
 									"appearance": {
 										"type": "object",
 										"properties": {
-											"primary": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
+											"light": {
+												"type": "object",
+												"properties": {
+													"primary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"textOnPrimary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"background": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"surface": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"text": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													}
+												},
+												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 											},
-											"primaryForeground": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
-											},
-											"background": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
-											},
-											"foreground": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
+											"dark": {
+												"type": "object",
+												"properties": {
+													"primary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"textOnPrimary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"background": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"surface": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"text": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													}
+												},
+												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 											},
 											"position": {
 												"type": "string",
@@ -2770,16 +2825,7 @@
 												"enum": ["en", "cs", "zh"]
 											}
 										},
-										"required": [
-											"primary",
-											"primaryForeground",
-											"background",
-											"foreground",
-											"position",
-											"theme",
-											"themeToggle",
-											"language"
-										]
+										"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
 									}
 								},
 								"required": ["agentId", "name", "appearance"]
@@ -2972,21 +3018,57 @@
 									"appearance": {
 										"type": "object",
 										"properties": {
-											"primary": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
+											"light": {
+												"type": "object",
+												"properties": {
+													"primary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"textOnPrimary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"background": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"surface": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"text": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													}
+												},
+												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 											},
-											"primaryForeground": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
-											},
-											"background": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
-											},
-											"foreground": {
-												"type": "string",
-												"pattern": "^#[0-9a-fA-F]{6}$"
+											"dark": {
+												"type": "object",
+												"properties": {
+													"primary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"textOnPrimary": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"background": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"surface": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													},
+													"text": {
+														"type": "string",
+														"pattern": "^#[0-9a-fA-F]{6}$"
+													}
+												},
+												"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 											},
 											"position": {
 												"type": "string",
@@ -3004,16 +3086,7 @@
 												"enum": ["en", "cs", "zh"]
 											}
 										},
-										"required": [
-											"primary",
-											"primaryForeground",
-											"background",
-											"foreground",
-											"position",
-											"theme",
-											"themeToggle",
-											"language"
-										]
+										"required": ["light", "dark", "position", "theme", "themeToggle", "language"]
 									}
 								},
 								"required": ["agentId", "name", "appearance"]

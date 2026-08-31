@@ -17,34 +17,49 @@ import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
 const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 const nameSchema = z.string().trim().min(1).max(WIDGET_NAME_MAX_LENGTH)
 
-const appearanceInputSchema = z
+// Exactly the five colors the widget paints with; nothing here derives a tone or hue.
+const schemeInputSchema = z
 	.object({
 		primary: colorSchema,
-		primaryForeground: colorSchema,
+		textOnPrimary: colorSchema,
 		background: colorSchema,
-		foreground: colorSchema,
-		position: z.enum(WIDGET_POSITIONS),
-		theme: z.enum(WIDGET_THEMES),
-		themeToggle: z.boolean(),
-		language: z.enum(SUPPORTED_LANGUAGES),
+		surface: colorSchema,
+		text: colorSchema,
 	})
 	// Identical pairs render invisible text; weaker contrast is the operator's call to make.
-	.refine((appearance) => appearance.primary.toLowerCase() !== appearance.primaryForeground.toLowerCase(), {
-		message: "Primary and its foreground must differ",
-		path: ["primaryForeground"],
+	.refine((scheme) => scheme.primary.toLowerCase() !== scheme.textOnPrimary.toLowerCase(), {
+		message: "Primary and its on-primary text must differ",
+		path: ["textOnPrimary"],
 	})
-	.refine((appearance) => appearance.background.toLowerCase() !== appearance.foreground.toLowerCase(), {
-		message: "Background and foreground must differ",
-		path: ["foreground"],
+	.refine((scheme) => scheme.background.toLowerCase() !== scheme.text.toLowerCase(), {
+		message: "Background and text must differ",
+		path: ["text"],
 	})
+
+const appearanceInputSchema = z.object({
+	light: schemeInputSchema,
+	dark: schemeInputSchema,
+	position: z.enum(WIDGET_POSITIONS),
+	theme: z.enum(WIDGET_THEMES),
+	themeToggle: z.boolean(),
+	language: z.enum(SUPPORTED_LANGUAGES),
+})
+
+const schemeResponseSchema = z
+	.object({
+		primary: z.string(),
+		textOnPrimary: z.string(),
+		background: z.string(),
+		surface: z.string(),
+		text: z.string(),
+	})
+	.openapi("WidgetScheme")
 
 // `language` is widened on read so a widget saved under a since-dropped language stays readable.
 const appearanceResponseSchema = z
 	.object({
-		primary: z.string(),
-		primaryForeground: z.string(),
-		background: z.string(),
-		foreground: z.string(),
+		light: schemeResponseSchema,
+		dark: schemeResponseSchema,
 		position: z.enum(WIDGET_POSITIONS),
 		theme: z.enum(WIDGET_THEMES),
 		themeToggle: z.boolean(),
@@ -62,10 +77,12 @@ export const widgetResponseSchema = z
 	})
 	.openapi("Widget")
 
+// `name` is public here on purpose (FR-2.5 UX review): the embedded chat header shows it.
 export const widgetConfigResponseSchema = z
 	.object({
 		version: z.number(),
 		agentId: z.string(),
+		name: z.string(),
 		appearance: appearanceResponseSchema,
 	})
 	.openapi("WidgetConfig")
@@ -91,6 +108,15 @@ const widgetTokenParamsSchema = z.object({
 	token: z.string().openapi({ param: { name: "token", in: "path" } }),
 })
 
+// Optional: the agent detail page filters here rather than client-side, so it never fetches
+// every widget in the deployment to show the handful that serve one agent.
+const listWidgetsQuerySchema = z.object({
+	agentId: z
+		.string()
+		.optional()
+		.openapi({ param: { name: "agentId", in: "query" } }),
+})
+
 const notModifiedResponse = { description: "Configuration unchanged since the supplied ETag" } as const
 
 export const listWidgetsRoute = createRoute({
@@ -99,6 +125,7 @@ export const listWidgetsRoute = createRoute({
 	operationId: "listWidgets",
 	tags: ["Widget"],
 	security: sessionSecurity,
+	request: { query: listWidgetsQuerySchema },
 	responses: {
 		200: { content: { "application/json": { schema: widgetListResponseSchema } }, description: "All widgets" },
 		401: unauthorizedResponse,
@@ -178,7 +205,7 @@ export const deleteWidgetRoute = createRoute({
 	},
 })
 
-// Unauthenticated (ADR-0013): reachable from any customer origin, so it returns appearance only.
+// Unauthenticated (ADR-0013): reachable from any customer origin, so the widget's internal id stays out of it.
 export const getWidgetConfigRoute = createRoute({
 	method: "get",
 	path: "/{token}",

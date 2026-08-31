@@ -6,11 +6,11 @@
  */
 import * as zod from "zod"
 
+import { WidgetScheme } from "./widgetScheme.zod"
+
 export const WidgetAppearance = zod.object({
-	primary: zod.string(),
-	primaryForeground: zod.string(),
-	background: zod.string(),
-	foreground: zod.string(),
+	light: WidgetScheme,
+	dark: WidgetScheme,
 	position: zod.enum(["bottom-right", "bottom-left"]),
 	theme: zod.enum(["system", "light", "dark"]),
 	themeToggle: zod.boolean(),

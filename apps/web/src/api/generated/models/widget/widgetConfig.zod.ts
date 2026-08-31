@@ -11,6 +11,7 @@ import { WidgetAppearance } from "./widgetAppearance.zod"
 export const WidgetConfig = zod.object({
 	version: zod.number(),
 	agentId: zod.string(),
+	name: zod.string(),
 	appearance: WidgetAppearance,
 })
 

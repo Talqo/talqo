@@ -7,8 +7,11 @@ export type Widget = typeof widget.$inferSelect
 export type NewWidget = typeof widget.$inferInsert
 export type WidgetPatch = Partial<Omit<NewWidget, "id" | "publicToken" | "createdAt">>
 
-export async function listWidgets(): Promise<Widget[]> {
-	return db.select().from(widget).orderBy(asc(widget.createdAt))
+export async function listWidgets(agentId?: string): Promise<Widget[]> {
+	const query = db.select().from(widget)
+	return agentId
+		? query.where(eq(widget.agentId, agentId)).orderBy(asc(widget.createdAt))
+		: query.orderBy(asc(widget.createdAt))
 }
 
 export async function findWidget(id: string): Promise<Widget | undefined> {

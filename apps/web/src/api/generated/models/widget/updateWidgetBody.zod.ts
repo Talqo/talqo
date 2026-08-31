@@ -8,19 +8,35 @@ import * as zod from "zod"
 
 export const updateWidgetBodyNameMax = 80
 
-export const updateWidgetBodyAppearancePrimaryRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
-export const updateWidgetBodyAppearancePrimaryForegroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
-export const updateWidgetBodyAppearanceBackgroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
-export const updateWidgetBodyAppearanceForegroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceLightPrimaryRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceLightTextOnPrimaryRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceLightBackgroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceLightSurfaceRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceLightTextRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceDarkPrimaryRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceDarkTextOnPrimaryRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceDarkBackgroundRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceDarkSurfaceRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
+export const updateWidgetBodyAppearanceDarkTextRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 
 export const UpdateWidgetBody = zod.object({
 	agentId: zod.string().min(1),
 	name: zod.string().min(1).max(updateWidgetBodyNameMax),
 	appearance: zod.object({
-		primary: zod.string().regex(updateWidgetBodyAppearancePrimaryRegExp),
-		primaryForeground: zod.string().regex(updateWidgetBodyAppearancePrimaryForegroundRegExp),
-		background: zod.string().regex(updateWidgetBodyAppearanceBackgroundRegExp),
-		foreground: zod.string().regex(updateWidgetBodyAppearanceForegroundRegExp),
+		light: zod.object({
+			primary: zod.string().regex(updateWidgetBodyAppearanceLightPrimaryRegExp),
+			textOnPrimary: zod.string().regex(updateWidgetBodyAppearanceLightTextOnPrimaryRegExp),
+			background: zod.string().regex(updateWidgetBodyAppearanceLightBackgroundRegExp),
+			surface: zod.string().regex(updateWidgetBodyAppearanceLightSurfaceRegExp),
+			text: zod.string().regex(updateWidgetBodyAppearanceLightTextRegExp),
+		}),
+		dark: zod.object({
+			primary: zod.string().regex(updateWidgetBodyAppearanceDarkPrimaryRegExp),
+			textOnPrimary: zod.string().regex(updateWidgetBodyAppearanceDarkTextOnPrimaryRegExp),
+			background: zod.string().regex(updateWidgetBodyAppearanceDarkBackgroundRegExp),
+			surface: zod.string().regex(updateWidgetBodyAppearanceDarkSurfaceRegExp),
+			text: zod.string().regex(updateWidgetBodyAppearanceDarkTextRegExp),
+		}),
 		position: zod.enum(["bottom-right", "bottom-left"]),
 		theme: zod.enum(["system", "light", "dark"]),
 		themeToggle: zod.boolean(),

@@ -37,7 +37,8 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		if (!(await roles.authorize(user.id, "agents:read"))) {
 			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
 		}
-		return c.json(widgetListResponseSchema.parse({ widgets: await service.listWidgets() }), HTTP_STATUS.OK)
+		const { agentId } = c.req.valid("query")
+		return c.json(widgetListResponseSchema.parse({ widgets: await service.listWidgets(agentId) }), HTTP_STATUS.OK)
 	})
 	.openapi(createWidgetRoute, async (c) => {
 		const user = c.get("user")
