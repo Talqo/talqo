@@ -9,13 +9,13 @@ import {
 } from "@/http/openapi.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
-import { WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
+import { HEX_COLOR_MESSAGE, HEX_COLOR_PATTERN, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
 
 import { WIDGET_NAME_MAX_LENGTH } from "./widget.service.ts"
 
-// Six-digit hex only: the widget writes these straight into CSS custom properties,
-// where any other notation would need normalising first.
-const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex color, e.g. #1a7f4b")
+// Shared with the widget: a rule the API loosened alone would store colors the widget
+// silently drops back to defaults.
+const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 const nameSchema = z.string().trim().min(1).max(WIDGET_NAME_MAX_LENGTH)
 
 const appearanceInputSchema = z

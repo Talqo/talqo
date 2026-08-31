@@ -3,15 +3,17 @@ import type { Widget } from "@/api/generated/models/widget/widget.zod.ts"
 import { isSupportedLanguage, SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import {
 	DEFAULT_WIDGET_APPEARANCE,
+	HEX_COLOR_MESSAGE,
+	HEX_COLOR_PATTERN,
 	WIDGET_POSITIONS,
 	WIDGET_THEMES,
 	type WidgetAppearance,
 } from "@talqo/shared/widget-appearance"
 import { z } from "zod"
 
-// Mirrors apps/api/src/modules/widget/widget.contract.ts. Kept separate on purpose:
-// the API's job is to reject, this one's is to guide the operator while they type.
-const colorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a six-digit hex color, e.g. #1a7f4b")
+// Same rule as the API contract, from the same source: this schema guides the operator
+// while they type, the API rejects, and the two can no longer disagree.
+const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 
 export const widgetFormSchema = z.object({
 	name: z.string().trim().min(1),

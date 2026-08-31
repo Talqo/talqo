@@ -40,8 +40,11 @@ export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
 }
 
 // Six-digit only: shorthand and functional notations would need normalising before
-// the widget can write them into a CSS custom property.
-const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+// the widget can write them into a CSS custom property. Exported so the API contract
+// and the dashboard form build their schemas from this rule rather than restating it.
+export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
+
+export const HEX_COLOR_MESSAGE = "Use a six-digit hex color, e.g. #1a7f4b"
 
 export function isHexColor(value: unknown): value is string {
 	return typeof value === "string" && HEX_COLOR_PATTERN.test(value)
