@@ -24,6 +24,17 @@ describe("api", () => {
 		expect(await response.json()).toEqual({ error: "Malformed JSON body" })
 	})
 
+	it("rejects an oversized body before authentication or validation", async () => {
+		const response = await app.request("/api/auth/login", {
+			body: JSON.stringify({ username: "a".repeat(150_000), password: "x".repeat(150_000) }),
+			headers: { "Content-Type": "application/json" },
+			method: "POST",
+		})
+
+		expect(response.status).toBe(413)
+		expect(await response.json()).toEqual({ error: "Request body too large" })
+	})
+
 	it("accepts an empty JSON-typed body on the bodyless logout route", async () => {
 		const response = await app.request("/api/auth/logout", {
 			headers: { "Content-Length": "0", "Content-Type": "application/json" },

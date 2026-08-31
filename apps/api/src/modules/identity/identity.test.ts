@@ -1,5 +1,7 @@
+import { CREDENTIAL_MAX_LENGTH, PASSWORD_MAX_LENGTH } from "@talqo/shared"
 import { describe, expect, it } from "bun:test"
 
+import { changePasswordRequestSchema, loginRequestSchema } from "./identity.contract.ts"
 import {
 	assertValidPassword,
 	assertValidUsername,
@@ -26,6 +28,20 @@ describe("assertValidUsername", () => {
 	})
 })
 
+describe("credential request schemas", () => {
+	it("rejects credentials longer than the maximum before hashing", () => {
+		const oversized = "x".repeat(CREDENTIAL_MAX_LENGTH + 1)
+
+		expect(loginRequestSchema.safeParse({ password: oversized, username: oversized }).success).toBe(false)
+		expect(
+			changePasswordRequestSchema.safeParse({
+				currentPassword: oversized,
+				newPassword: "valid-password",
+			}).success,
+		).toBe(false)
+	})
+})
+
 describe("assertValidPassword", () => {
 	it("accepts a password within length constraints", () => {
 		expect(() => assertValidPassword("correct-horse-battery-staple")).not.toThrow()
@@ -36,7 +52,13 @@ describe("assertValidPassword", () => {
 	})
 
 	it("rejects a password longer than the maximum length", () => {
-		expect(() => assertValidPassword("a".repeat(129))).toThrow(InvalidPasswordFormatError)
+		expect(() => assertValidPassword("a".repeat(PASSWORD_MAX_LENGTH + 1))).toThrow(InvalidPasswordFormatError)
+	})
+
+	it("rejects a password whose UTF-8 bytes exceed the maximum even when its char count does not", () => {
+		// PASSWORD_MAX_LENGTH is a byte cap: 40 multi-byte chars are 80 bytes and must be rejected
+		// before the memory-hard hash.
+		expect(() => assertValidPassword("€".repeat(40))).toThrow(InvalidPasswordFormatError)
 	})
 })
 

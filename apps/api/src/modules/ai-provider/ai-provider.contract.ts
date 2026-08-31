@@ -10,20 +10,36 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 import { AI_PROVIDER_IDS, AI_PROVIDER_ROLES, AUTH_MODES } from "./ai-provider.registry.ts"
 
-const stringRecordSchema = z.record(z.string(), z.string())
+// Caps for provider-supplied inputs persisted to the configuration row or sent to the vault.
+const MODEL_ID_MAX_LENGTH = 256
+const SETTING_VALUE_MAX_LENGTH = 2048
+const CREDENTIAL_VALUE_MAX_LENGTH = 4096
+// Entry-count cap (not in the OpenAPI contract): provider allowlists already bound real keys.
+const MAX_PROVIDER_ENTRIES = 32
+
+const stringRecordSchema = z
+	.record(z.string(), z.string().max(SETTING_VALUE_MAX_LENGTH))
+	.refine((record) => Object.keys(record).length <= MAX_PROVIDER_ENTRIES, {
+		message: `At most ${MAX_PROVIDER_ENTRIES} entries are allowed`,
+	})
+const credentialRecordSchema = z
+	.record(z.string(), z.string().max(CREDENTIAL_VALUE_MAX_LENGTH))
+	.refine((record) => Object.keys(record).length <= MAX_PROVIDER_ENTRIES, {
+		message: `At most ${MAX_PROVIDER_ENTRIES} entries are allowed`,
+	})
 const credentialSourceSchema = z.enum(["text", "separate", "deployment-identity"])
 
 const staticRoleShape = {
 	providerId: z.enum(AI_PROVIDER_IDS),
-	modelId: z.string().trim().min(1),
+	modelId: z.string().trim().min(1).max(MODEL_ID_MAX_LENGTH),
 	authMode: z.literal("static"),
 	settings: stringRecordSchema,
-	credentials: stringRecordSchema.optional(),
+	credentials: credentialRecordSchema.optional(),
 }
 
 const deploymentIdentityRoleShape = {
 	providerId: z.enum(AI_PROVIDER_IDS),
-	modelId: z.string().trim().min(1),
+	modelId: z.string().trim().min(1).max(MODEL_ID_MAX_LENGTH),
 	authMode: z.literal("deployment-identity"),
 	settings: stringRecordSchema,
 }
@@ -51,7 +67,7 @@ export const discoverModelsRequestSchema = z.discriminatedUnion("authMode", [
 		providerId: z.enum(AI_PROVIDER_IDS),
 		authMode: z.literal("static"),
 		settings: stringRecordSchema,
-		credentials: stringRecordSchema.optional(),
+		credentials: credentialRecordSchema.optional(),
 		storedCredentialRole: z.enum(AI_PROVIDER_ROLES).optional(),
 	}),
 	z.strictObject({

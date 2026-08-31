@@ -6,9 +6,13 @@
  */
 import * as zod from "zod"
 
+export const loginBodyUsernameMax = 128
+
+export const loginBodyPasswordMax = 128
+
 export const LoginBody = zod.object({
-	username: zod.string().min(1),
-	password: zod.string().min(1),
+	username: zod.string().min(1).max(loginBodyUsernameMax),
+	password: zod.string().min(1).max(loginBodyPasswordMax),
 })
 
 export type LoginBody = zod.input<typeof LoginBody>
