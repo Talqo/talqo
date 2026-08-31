@@ -8,6 +8,7 @@
 		"dev": "vite dev --port 3002",
 		"generate": "fumadocs-mdx source.config.ts",
 		"preview": "vite preview",
+		"test": "bun test",
 		"typecheck": "bun run generate && tsc --noEmit"
 	},
 	"dependencies": {

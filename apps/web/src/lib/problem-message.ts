@@ -1,5 +1,6 @@
-import type { ProblemDetails } from "@/api/generated/models/problemDetails.zod.ts"
+import { ProblemDetails as problemDetailsSchema } from "@/api/generated/models/problemDetails.zod.ts"
 
+type ProblemDetails = ReturnType<(typeof problemDetailsSchema)["parse"]>
 type ProblemCode = ProblemDetails["code"]
 type Translate = (key: string) => string
 
@@ -40,7 +41,7 @@ function isExactProblem(value: unknown): value is ProblemDetails {
 	if (Object.keys(value).length !== PROBLEM_PROPERTY_COUNT || !("code" in value) || !("type" in value)) return false
 	if (typeof value.code !== "string" || typeof value.type !== "string") return false
 	if (!Object.hasOwn(PROBLEM_TRANSLATORS, value.code)) return false
-	return value.type === `https://docs.talqo.chat/problems#${value.code}`
+	return problemDetailsSchema.safeParse(value).success
 }
 
 export function getProblemMessage(error: unknown, translate: Translate, fallback: string): string {

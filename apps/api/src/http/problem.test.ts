@@ -33,14 +33,4 @@ describe("problem details", () => {
 
 		expect(result.success).toBe(false)
 	})
-
-	it("publishes documentation for every problem code", async () => {
-		const catalogFile = Bun.file(new URL("../../../docs/src/routes/problems.tsx", import.meta.url))
-
-		expect(await catalogFile.exists()).toBe(true)
-		const catalog = await catalogFile.text()
-		for (const code of Object.values(PROBLEM_CODES)) {
-			expect(catalog).toContain(`code: "${code}"`)
-		}
-	})
 })
