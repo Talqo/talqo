@@ -1,11 +1,8 @@
 import { useGetSession } from "@/api/generated/identity/identity.ts"
 import { useCreateInvitation } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
-import {
-	buildInvitationUrl,
-	formatInvitationExpiry,
-	getInvitationErrorMessage,
-} from "@/features/authentication/invitation.ts"
+import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
+import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
@@ -34,12 +31,7 @@ function InvitationsPage() {
 		try {
 			await createInvitation.mutateAsync()
 		} catch (caught) {
-			setError(
-				getInvitationErrorMessage(caught, {
-					fallback: t("auth.errorFallback"),
-					permissionDenied: t("auth.invitations.permissionDenied"),
-				}),
-			)
+			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
 	}
 

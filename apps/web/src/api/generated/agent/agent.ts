@@ -17,13 +17,42 @@ import type {
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { CreateAgent201 } from "../models/agent/createAgent201.zod"
+import type { CreateAgent400 } from "../models/agent/createAgent400.zod"
+import type { CreateAgent401 } from "../models/agent/createAgent401.zod"
+import type { CreateAgent403 } from "../models/agent/createAgent403.zod"
+import type { CreateAgent409 } from "../models/agent/createAgent409.zod"
+import type { CreateAgent500 } from "../models/agent/createAgent500.zod"
 import type { CreateAgentBody } from "../models/agent/createAgentBody.zod"
+import type { DeleteAgent400 } from "../models/agent/deleteAgent400.zod"
+import type { DeleteAgent401 } from "../models/agent/deleteAgent401.zod"
+import type { DeleteAgent403 } from "../models/agent/deleteAgent403.zod"
+import type { DeleteAgent404 } from "../models/agent/deleteAgent404.zod"
+import type { DeleteAgent500 } from "../models/agent/deleteAgent500.zod"
 import type { GetAgent200 } from "../models/agent/getAgent200.zod"
+import type { GetAgent400 } from "../models/agent/getAgent400.zod"
+import type { GetAgent401 } from "../models/agent/getAgent401.zod"
+import type { GetAgent403 } from "../models/agent/getAgent403.zod"
+import type { GetAgent404 } from "../models/agent/getAgent404.zod"
+import type { GetAgent500 } from "../models/agent/getAgent500.zod"
 import type { ListAgents200 } from "../models/agent/listAgents200.zod"
+import type { ListAgents400 } from "../models/agent/listAgents400.zod"
+import type { ListAgents401 } from "../models/agent/listAgents401.zod"
+import type { ListAgents403 } from "../models/agent/listAgents403.zod"
+import type { ListAgents500 } from "../models/agent/listAgents500.zod"
 import type { RefreshEmbedToken200 } from "../models/agent/refreshEmbedToken200.zod"
+import type { RefreshEmbedToken400 } from "../models/agent/refreshEmbedToken400.zod"
+import type { RefreshEmbedToken401 } from "../models/agent/refreshEmbedToken401.zod"
+import type { RefreshEmbedToken403 } from "../models/agent/refreshEmbedToken403.zod"
+import type { RefreshEmbedToken404 } from "../models/agent/refreshEmbedToken404.zod"
+import type { RefreshEmbedToken500 } from "../models/agent/refreshEmbedToken500.zod"
 import type { UpdateAgent200 } from "../models/agent/updateAgent200.zod"
+import type { UpdateAgent400 } from "../models/agent/updateAgent400.zod"
+import type { UpdateAgent401 } from "../models/agent/updateAgent401.zod"
+import type { UpdateAgent403 } from "../models/agent/updateAgent403.zod"
+import type { UpdateAgent404 } from "../models/agent/updateAgent404.zod"
+import type { UpdateAgent409 } from "../models/agent/updateAgent409.zod"
+import type { UpdateAgent500 } from "../models/agent/updateAgent500.zod"
 import type { UpdateAgentBody } from "../models/agent/updateAgentBody.zod"
-import type { ErrorResponse } from "../models/errorResponse.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -49,25 +78,35 @@ export type listAgentsResponse200 = {
 	status: 200
 }
 
+export type listAgentsResponse400 = {
+	data: ListAgents400
+	status: 400
+}
+
 export type listAgentsResponse401 = {
-	data: ErrorResponse
+	data: ListAgents401
 	status: 401
 }
 
 export type listAgentsResponse403 = {
-	data: ErrorResponse
+	data: ListAgents403
 	status: 403
 }
 
 export type listAgentsResponse500 = {
-	data: ErrorResponse
+	data: ListAgents500
 	status: 500
 }
 
 export type listAgentsResponseSuccess = listAgentsResponse200 & {
 	headers: Headers
 }
-export type listAgentsResponseError = (listAgentsResponse401 | listAgentsResponse403 | listAgentsResponse500) & {
+export type listAgentsResponseError = (
+	| listAgentsResponse400
+	| listAgentsResponse401
+	| listAgentsResponse403
+	| listAgentsResponse500
+) & {
 	headers: Headers
 }
 
@@ -100,7 +139,7 @@ export const getListAgentsQueryKey = () => {
 
 export const getListAgentsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & { info?: ListAgents400 | ListAgents401 | ListAgents403 | ListAgents500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
 	fetch?: RequestInit
@@ -120,11 +159,14 @@ export const getListAgentsQueryOptions = <
 }
 
 export type ListAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgents>>>
-export type ListAgentsQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type ListAgentsQueryError = globalThis.Error & {
+	info?: ListAgents400 | ListAgents401 | ListAgents403 | ListAgents500
+	status?: number
+}
 
 export function useListAgents<
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & { info?: ListAgents400 | ListAgents401 | ListAgents403 | ListAgents500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
 	fetch?: RequestInit
@@ -142,27 +184,27 @@ export type createAgentResponse201 = {
 }
 
 export type createAgentResponse400 = {
-	data: ErrorResponse
+	data: CreateAgent400
 	status: 400
 }
 
 export type createAgentResponse401 = {
-	data: ErrorResponse
+	data: CreateAgent401
 	status: 401
 }
 
 export type createAgentResponse403 = {
-	data: ErrorResponse
+	data: CreateAgent403
 	status: 403
 }
 
 export type createAgentResponse409 = {
-	data: ErrorResponse
+	data: CreateAgent409
 	status: 409
 }
 
 export type createAgentResponse500 = {
-	data: ErrorResponse
+	data: CreateAgent500
 	status: 500
 }
 
@@ -216,7 +258,10 @@ export const createAgent = async (
 export const getCreateAgentMutationKey = () => ["createAgent"] as const
 
 export const getCreateAgentMutationOptions = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: CreateAgent400 | CreateAgent401 | CreateAgent403 | CreateAgent409 | CreateAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
@@ -242,11 +287,17 @@ export const getCreateAgentMutationOptions = <
 
 export type CreateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof createAgent>>>
 export type CreateAgentMutationBody = CreateAgentBody
-export type CreateAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type CreateAgentMutationError = globalThis.Error & {
+	info?: CreateAgent400 | CreateAgent401 | CreateAgent403 | CreateAgent409 | CreateAgent500
+	status?: number
+}
 export type CreateAgentMutationVariables = { data: CreateAgentBody }
 
 export const useCreateAgent = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: CreateAgent400 | CreateAgent401 | CreateAgent403 | CreateAgent409 | CreateAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
@@ -259,23 +310,28 @@ export type getAgentResponse200 = {
 	status: 200
 }
 
+export type getAgentResponse400 = {
+	data: GetAgent400
+	status: 400
+}
+
 export type getAgentResponse401 = {
-	data: ErrorResponse
+	data: GetAgent401
 	status: 401
 }
 
 export type getAgentResponse403 = {
-	data: ErrorResponse
+	data: GetAgent403
 	status: 403
 }
 
 export type getAgentResponse404 = {
-	data: ErrorResponse
+	data: GetAgent404
 	status: 404
 }
 
 export type getAgentResponse500 = {
-	data: ErrorResponse
+	data: GetAgent500
 	status: 500
 }
 
@@ -283,6 +339,7 @@ export type getAgentResponseSuccess = getAgentResponse200 & {
 	headers: Headers
 }
 export type getAgentResponseError = (
+	| getAgentResponse400
 	| getAgentResponse401
 	| getAgentResponse403
 	| getAgentResponse404
@@ -320,7 +377,10 @@ export const getGetAgentQueryKey = (agentId: string) => {
 
 export const getGetAgentQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: GetAgent400 | GetAgent401 | GetAgent403 | GetAgent404 | GetAgent500
+		status?: number
+	},
 >(
 	agentId: string,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>; fetch?: RequestInit },
@@ -340,11 +400,17 @@ export const getGetAgentQueryOptions = <
 }
 
 export type GetAgentQueryResult = NonNullable<Awaited<ReturnType<typeof getAgent>>>
-export type GetAgentQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type GetAgentQueryError = globalThis.Error & {
+	info?: GetAgent400 | GetAgent401 | GetAgent403 | GetAgent404 | GetAgent500
+	status?: number
+}
 
 export function useGetAgent<
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: GetAgent400 | GetAgent401 | GetAgent403 | GetAgent404 | GetAgent500
+		status?: number
+	},
 >(
 	agentId: string,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>; fetch?: RequestInit },
@@ -362,32 +428,32 @@ export type updateAgentResponse200 = {
 }
 
 export type updateAgentResponse400 = {
-	data: ErrorResponse
+	data: UpdateAgent400
 	status: 400
 }
 
 export type updateAgentResponse401 = {
-	data: ErrorResponse
+	data: UpdateAgent401
 	status: 401
 }
 
 export type updateAgentResponse403 = {
-	data: ErrorResponse
+	data: UpdateAgent403
 	status: 403
 }
 
 export type updateAgentResponse404 = {
-	data: ErrorResponse
+	data: UpdateAgent404
 	status: 404
 }
 
 export type updateAgentResponse409 = {
-	data: ErrorResponse
+	data: UpdateAgent409
 	status: 409
 }
 
 export type updateAgentResponse500 = {
-	data: ErrorResponse
+	data: UpdateAgent500
 	status: 500
 }
 
@@ -443,7 +509,10 @@ export const updateAgent = async (
 export const getUpdateAgentMutationKey = () => ["updateAgent"] as const
 
 export const getUpdateAgentMutationOptions = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: UpdateAgent400 | UpdateAgent401 | UpdateAgent403 | UpdateAgent404 | UpdateAgent409 | UpdateAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
@@ -469,11 +538,17 @@ export const getUpdateAgentMutationOptions = <
 
 export type UpdateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgent>>>
 export type UpdateAgentMutationBody = UpdateAgentBody
-export type UpdateAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type UpdateAgentMutationError = globalThis.Error & {
+	info?: UpdateAgent400 | UpdateAgent401 | UpdateAgent403 | UpdateAgent404 | UpdateAgent409 | UpdateAgent500
+	status?: number
+}
 export type UpdateAgentMutationVariables = { agentId: string; data: UpdateAgentBody }
 
 export const useUpdateAgent = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: UpdateAgent400 | UpdateAgent401 | UpdateAgent403 | UpdateAgent404 | UpdateAgent409 | UpdateAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
@@ -486,23 +561,28 @@ export type deleteAgentResponse204 = {
 	status: 204
 }
 
+export type deleteAgentResponse400 = {
+	data: DeleteAgent400
+	status: 400
+}
+
 export type deleteAgentResponse401 = {
-	data: ErrorResponse
+	data: DeleteAgent401
 	status: 401
 }
 
 export type deleteAgentResponse403 = {
-	data: ErrorResponse
+	data: DeleteAgent403
 	status: 403
 }
 
 export type deleteAgentResponse404 = {
-	data: ErrorResponse
+	data: DeleteAgent404
 	status: 404
 }
 
 export type deleteAgentResponse500 = {
-	data: ErrorResponse
+	data: DeleteAgent500
 	status: 500
 }
 
@@ -510,6 +590,7 @@ export type deleteAgentResponseSuccess = deleteAgentResponse204 & {
 	headers: Headers
 }
 export type deleteAgentResponseError = (
+	| deleteAgentResponse400
 	| deleteAgentResponse401
 	| deleteAgentResponse403
 	| deleteAgentResponse404
@@ -544,7 +625,10 @@ export const deleteAgent = async (agentId: string, options?: RequestInit): Promi
 export const getDeleteAgentMutationKey = () => ["deleteAgent"] as const
 
 export const getDeleteAgentMutationOptions = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: DeleteAgent400 | DeleteAgent401 | DeleteAgent403 | DeleteAgent404 | DeleteAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
@@ -570,11 +654,17 @@ export const getDeleteAgentMutationOptions = <
 
 export type DeleteAgentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgent>>>
 
-export type DeleteAgentMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type DeleteAgentMutationError = globalThis.Error & {
+	info?: DeleteAgent400 | DeleteAgent401 | DeleteAgent403 | DeleteAgent404 | DeleteAgent500
+	status?: number
+}
 export type DeleteAgentMutationVariables = { agentId: string }
 
 export const useDeleteAgent = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?: DeleteAgent400 | DeleteAgent401 | DeleteAgent403 | DeleteAgent404 | DeleteAgent500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
@@ -587,23 +677,28 @@ export type refreshEmbedTokenResponse200 = {
 	status: 200
 }
 
+export type refreshEmbedTokenResponse400 = {
+	data: RefreshEmbedToken400
+	status: 400
+}
+
 export type refreshEmbedTokenResponse401 = {
-	data: ErrorResponse
+	data: RefreshEmbedToken401
 	status: 401
 }
 
 export type refreshEmbedTokenResponse403 = {
-	data: ErrorResponse
+	data: RefreshEmbedToken403
 	status: 403
 }
 
 export type refreshEmbedTokenResponse404 = {
-	data: ErrorResponse
+	data: RefreshEmbedToken404
 	status: 404
 }
 
 export type refreshEmbedTokenResponse500 = {
-	data: ErrorResponse
+	data: RefreshEmbedToken500
 	status: 500
 }
 
@@ -611,6 +706,7 @@ export type refreshEmbedTokenResponseSuccess = refreshEmbedTokenResponse200 & {
 	headers: Headers
 }
 export type refreshEmbedTokenResponseError = (
+	| refreshEmbedTokenResponse400
 	| refreshEmbedTokenResponse401
 	| refreshEmbedTokenResponse403
 	| refreshEmbedTokenResponse404
@@ -649,7 +745,15 @@ export const refreshEmbedToken = async (
 export const getRefreshEmbedTokenMutationKey = () => ["refreshEmbedToken"] as const
 
 export const getRefreshEmbedTokenMutationOptions = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| RefreshEmbedToken400
+			| RefreshEmbedToken401
+			| RefreshEmbedToken403
+			| RefreshEmbedToken404
+			| RefreshEmbedToken500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -686,11 +790,27 @@ export const getRefreshEmbedTokenMutationOptions = <
 
 export type RefreshEmbedTokenMutationResult = NonNullable<Awaited<ReturnType<typeof refreshEmbedToken>>>
 
-export type RefreshEmbedTokenMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type RefreshEmbedTokenMutationError = globalThis.Error & {
+	info?:
+		| RefreshEmbedToken400
+		| RefreshEmbedToken401
+		| RefreshEmbedToken403
+		| RefreshEmbedToken404
+		| RefreshEmbedToken500
+	status?: number
+}
 export type RefreshEmbedTokenMutationVariables = { agentId: string }
 
 export const useRefreshEmbedToken = <
-	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| RefreshEmbedToken400
+			| RefreshEmbedToken401
+			| RefreshEmbedToken403
+			| RefreshEmbedToken404
+			| RefreshEmbedToken500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<

@@ -10,7 +10,11 @@ describe("roles routes", () => {
 		})
 
 		expect(response.status).toBe(400)
-		expect(await response.json()).toEqual({ error: "Malformed JSON body" })
+		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+		expect(await response.json()).toEqual({
+			code: "malformed-json",
+			type: "https://docs.talqo.chat/problems#malformed-json",
+		})
 	})
 
 	it("rejects a bootstrap request missing required fields", async () => {
@@ -21,7 +25,11 @@ describe("roles routes", () => {
 		})
 
 		expect(response.status).toBe(400)
-		expect(await response.json()).toEqual({ error: expect.any(String) })
+		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+		expect(await response.json()).toEqual({
+			code: "invalid-request",
+			type: "https://docs.talqo.chat/problems#invalid-request",
+		})
 	})
 
 	it("rejects an invitation redemption request missing required fields", async () => {

@@ -9,7 +9,6 @@ import type {
 } from "@/features/ai-configuration/types.ts"
 
 import {
-	type SaveAiProviderConfigurationMutationError,
 	useGetAiProviderConfiguration,
 	useListAiProviders,
 	useSaveAiProviderConfiguration,
@@ -25,6 +24,7 @@ import { storedCredentialsMatch } from "@/features/ai-configuration/discovery-re
 import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplete"
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
 import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
+import { getProblemMessage } from "@/lib/problem-message.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -629,7 +629,7 @@ function AiConfigurationPage() {
 				)}
 				{save.isError && (
 					<p role="alert" className="text-destructive text-sm">
-						{(save.error as SaveAiProviderConfigurationMutationError).info?.error ?? t("aiConfiguration.saveFailed")}
+						{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
 					</p>
 				)}
 				<div className="flex items-center gap-3">

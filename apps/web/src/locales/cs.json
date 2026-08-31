@@ -188,8 +188,7 @@
 			"heading": "Pozvat člena",
 			"linkLabel": "Odkaz na pozvánku:",
 			"loginLink": "Přihlásit se",
-			"loginRequired": "Pro pozvání člena se musíte přihlásit.",
-			"permissionDenied": "Váš účet nemá oprávnění zvát členy."
+			"loginRequired": "Pro pozvání člena se musíte přihlásit."
 		},
 		"loading": "Načítání…",
 		"login": {
@@ -266,6 +265,35 @@
 		"accessDeniedBody": "Požádejte správce o přidělení přístupu k agentům, pokud ho potřebujete.",
 		"accessDeniedDescription": "Váš účet nemá oprávnění přistupovat k agentům.",
 		"accessDeniedTitle": "Přístup omezen"
+	},
+	"problems": {
+		"admin-access-required": "Je vyžadován přístup správce.",
+		"admin-already-exists": "Účet správce již existuje.",
+		"agent-invalid": "Konfigurace agenta je neplatná.",
+		"agent-name-taken": "Agent s tímto názvem již existuje.",
+		"agent-not-found": "Agent nebyl nalezen.",
+		"authentication-required": "Pro pokračování se přihlaste.",
+		"configuration-conflict": "Konfigurace se změnila. Načtěte stránku znovu a akci opakujte.",
+		"current-password-incorrect": "Aktuální heslo není správné.",
+		"internal-server-error": "Na serveru došlo k neočekávané chybě.",
+		"invalid-ai-provider-configuration": "Konfigurace poskytovatele AI je neplatná.",
+		"invalid-credentials": "Uživatelské jméno nebo heslo není správné.",
+		"invalid-invitation": "Pozvánka je neplatná, vypršela nebo již byla použita.",
+		"invalid-request": "Požadavek je neplatný.",
+		"malformed-json": "Požadavek obsahuje poškozený JSON.",
+		"model-discovery-unsupported": "Zjišťování modelů není pro tuto konfiguraci poskytovatele podporováno.",
+		"password-change-not-required": "Změna hesla nyní není vyžadována.",
+		"password-change-required": "Před pokračováním musíte změnit heslo.",
+		"permission-denied": "K této akci nemáte oprávnění.",
+		"provider-credentials-rejected": "Poskytovatel tyto přihlašovací údaje odmítl.",
+		"provider-error": "Poskytovatel nemohl požadavek dokončit.",
+		"provider-rate-limited": "Byl dosažen limit požadavků poskytovatele. Zkuste to později.",
+		"provider-unreachable": "Poskytovatele se nepodařilo kontaktovat.",
+		"request-failed": "Požadavek se nepodařilo dokončit.",
+		"route-not-found": "Požadovaná trasa API nebyla nalezena.",
+		"self-password-reset-not-allowed": "Vlastní heslo změňte v nastavení účtu.",
+		"user-not-found": "Uživatel nebyl nalezen.",
+		"username-taken": "Toto uživatelské jméno se již používá."
 	},
 	"users": {
 		"copy": "Kopírovat vygenerované heslo",

@@ -1,13 +1,5 @@
-import {
-	badRequestResponse,
-	conflictResponse,
-	forbiddenResponse,
-	internalServerErrorResponse,
-	noContentResponse,
-	notFoundResponse,
-	sessionSecurity,
-	unauthorizedResponse,
-} from "@/http/openapi.ts"
+import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import {
@@ -45,6 +37,17 @@ const agentParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
 })
 
+const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
+const invalidAgent = problemResponse([
+	PROBLEM_CODES.AGENT_INVALID,
+	PROBLEM_CODES.INVALID_REQUEST,
+	PROBLEM_CODES.MALFORMED_JSON,
+])
+const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const agentNotFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND])
+const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
+
 export const listAgentsRoute = createRoute({
 	method: "get",
 	path: "/",
@@ -53,9 +56,10 @@ export const listAgentsRoute = createRoute({
 	security: sessionSecurity,
 	responses: {
 		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "All agents" },
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		500: serverError,
 	},
 })
 
@@ -70,11 +74,11 @@ export const createAgentRoute = createRoute({
 	},
 	responses: {
 		201: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "Agent created" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: invalidAgent,
+		401: authRequired,
+		403: forbidden,
+		409: problemResponse([PROBLEM_CODES.AGENT_NAME_TAKEN]),
+		500: serverError,
 	},
 })
 
@@ -87,10 +91,11 @@ export const getAgentRoute = createRoute({
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "One agent" },
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		500: serverError,
 	},
 })
 
@@ -106,12 +111,12 @@ export const updateAgentRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "Agent updated" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: invalidAgent,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		409: problemResponse([PROBLEM_CODES.AGENT_NAME_TAKEN]),
+		500: serverError,
 	},
 })
 
@@ -127,10 +132,11 @@ export const refreshEmbedTokenRoute = createRoute({
 			content: { "application/json": { schema: agentDetailResponseSchema } },
 			description: "Embed token rotated; the old value is orphaned",
 		},
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		500: serverError,
 	},
 })
 
@@ -143,9 +149,10 @@ export const deleteAgentRoute = createRoute({
 	request: { params: agentParamsSchema },
 	responses: {
 		204: noContentResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		500: serverError,
 	},
 })

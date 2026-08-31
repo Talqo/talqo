@@ -1,6 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi"
 
-import { internalServerErrorResponse } from "./openapi.ts"
+import { problemResponse } from "./openapi.ts"
+import { PROBLEM_CODES } from "./problem.ts"
 
 export const healthResponseSchema = z
 	.object({
@@ -18,6 +19,6 @@ export const getHealthRoute = createRoute({
 			content: { "application/json": { schema: healthResponseSchema } },
 			description: "API is healthy",
 		},
-		500: internalServerErrorResponse,
+		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })

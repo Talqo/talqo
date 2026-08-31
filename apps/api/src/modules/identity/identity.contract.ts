@@ -1,11 +1,5 @@
-import {
-	badRequestResponse,
-	conflictResponse,
-	internalServerErrorResponse,
-	noContentResponse,
-	sessionSecurity,
-	unauthorizedResponse,
-} from "@/http/openapi.ts"
+import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import {
@@ -54,6 +48,12 @@ export const forcedPasswordChangeRequestSchema = z.object({
 
 const userEnvelopeSchema = z.object({ user: userResponseSchema })
 
+const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
+const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
+const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const passwordRequired = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
+const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
+
 export const loginRoute = createRoute({
 	method: "post",
 	path: "/login",
@@ -64,9 +64,9 @@ export const loginRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: userEnvelopeSchema } }, description: "Authenticated user" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		500: internalServerErrorResponse,
+		400: invalidRequest,
+		401: problemResponse([PROBLEM_CODES.INVALID_CREDENTIALS]),
+		500: serverError,
 	},
 })
 
@@ -77,7 +77,8 @@ export const logoutRoute = createRoute({
 	tags: ["Identity"],
 	responses: {
 		204: noContentResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		500: serverError,
 	},
 })
 
@@ -88,7 +89,8 @@ export const getSessionRoute = createRoute({
 	tags: ["Identity"],
 	responses: {
 		200: { content: { "application/json": { schema: sessionResponseSchema } }, description: "Current session" },
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		500: serverError,
 	},
 })
 
@@ -103,10 +105,11 @@ export const updateAccountRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: userEnvelopeSchema } }, description: "Updated user" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: invalidRequest,
+		401: authRequired,
+		403: passwordRequired,
+		409: problemResponse([PROBLEM_CODES.USERNAME_TAKEN]),
+		500: serverError,
 	},
 })
 
@@ -121,9 +124,13 @@ export const changePasswordRoute = createRoute({
 	},
 	responses: {
 		204: noContentResponse,
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		500: internalServerErrorResponse,
+		400: problemResponse([
+			PROBLEM_CODES.CURRENT_PASSWORD_INCORRECT,
+			PROBLEM_CODES.INVALID_REQUEST,
+			PROBLEM_CODES.MALFORMED_JSON,
+		]),
+		401: authRequired,
+		500: serverError,
 	},
 })
 
@@ -138,10 +145,10 @@ export const completeForcedPasswordChangeRoute = createRoute({
 	},
 	responses: {
 		204: noContentResponse,
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: invalidRequest,
+		401: authRequired,
+		409: problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_NOT_REQUIRED]),
+		500: serverError,
 	},
 })
 
@@ -153,7 +160,9 @@ export const deleteAccountRoute = createRoute({
 	security: sessionSecurity,
 	responses: {
 		204: noContentResponse,
-		401: unauthorizedResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: passwordRequired,
+		500: serverError,
 	},
 })

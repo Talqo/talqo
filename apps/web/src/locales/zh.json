@@ -188,8 +188,7 @@
 			"heading": "邀请成员",
 			"linkLabel": "邀请链接：",
 			"loginLink": "登录",
-			"loginRequired": "您需要登录才能邀请成员。",
-			"permissionDenied": "您的账户没有邀请成员的权限。"
+			"loginRequired": "您需要登录才能邀请成员。"
 		},
 		"loading": "正在加载…",
 		"login": {
@@ -266,6 +265,35 @@
 		"accessDeniedBody": "如需智能体访问权限，请让管理员为你的账户授权。",
 		"accessDeniedDescription": "你的账户没有访问智能体的权限。",
 		"accessDeniedTitle": "访问受限"
+	},
+	"problems": {
+		"admin-access-required": "此操作需要管理员权限。",
+		"admin-already-exists": "管理员账户已存在。",
+		"agent-invalid": "智能体配置无效。",
+		"agent-name-taken": "已存在同名智能体。",
+		"agent-not-found": "未找到该智能体。",
+		"authentication-required": "请先登录再继续。",
+		"configuration-conflict": "配置已更改，请重新加载后重试。",
+		"current-password-incorrect": "当前密码不正确。",
+		"internal-server-error": "服务器遇到意外错误。",
+		"invalid-ai-provider-configuration": "AI 提供商配置无效。",
+		"invalid-credentials": "用户名或密码不正确。",
+		"invalid-invitation": "邀请无效、已过期或已被使用。",
+		"invalid-request": "请求无效。",
+		"malformed-json": "请求包含格式错误的 JSON。",
+		"model-discovery-unsupported": "此提供商配置不支持模型发现。",
+		"password-change-not-required": "当前无需修改密码。",
+		"password-change-required": "继续前必须修改密码。",
+		"permission-denied": "您没有执行此操作的权限。",
+		"provider-credentials-rejected": "提供商拒绝了这些凭据。",
+		"provider-error": "提供商无法完成请求。",
+		"provider-rate-limited": "已达到提供商速率限制，请稍后重试。",
+		"provider-unreachable": "无法连接到提供商。",
+		"request-failed": "无法完成请求。",
+		"route-not-found": "未找到请求的 API 路由。",
+		"self-password-reset-not-allowed": "请在账户设置中修改自己的密码。",
+		"user-not-found": "未找到该用户。",
+		"username-taken": "该用户名已被使用。"
 	},
 	"users": {
 		"copy": "复制生成的密码",

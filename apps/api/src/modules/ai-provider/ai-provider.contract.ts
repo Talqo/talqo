@@ -1,11 +1,5 @@
-import {
-	badRequestResponse,
-	conflictResponse,
-	forbiddenResponse,
-	internalServerErrorResponse,
-	sessionSecurity,
-	unauthorizedResponse,
-} from "@/http/openapi.ts"
+import { problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { AI_PROVIDER_IDS, AI_PROVIDER_ROLES, AUTH_MODES } from "./ai-provider.registry.ts"
@@ -80,11 +74,6 @@ export const providerMetadataResponseSchema = z.object({
 
 export const modelDiscoveryResponseSchema = z.object({ models: z.array(z.string()) })
 
-export const modelDiscoveryErrorResponseSchema = z.object({
-	error: z.string(),
-	code: z.enum(["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]).optional(),
-})
-
 const redactedRoleSchema = z.object({
 	providerId: z.enum(AI_PROVIDER_IDS),
 	modelId: z.string(),
@@ -100,6 +89,16 @@ export const configurationResponseSchema = z.object({
 	embedding: redactedRoleSchema.extend({ credentialSource: credentialSourceSchema }).nullable(),
 })
 
+const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
+const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
+const providerError = problemResponse([
+	PROBLEM_CODES.MODEL_DISCOVERY_UNSUPPORTED,
+	PROBLEM_CODES.PROVIDER_ERROR,
+	PROBLEM_CODES.PROVIDER_UNREACHABLE,
+])
+
 export const listAiProvidersRoute = createRoute({
 	method: "get",
 	path: "/ai-providers",
@@ -111,9 +110,10 @@ export const listAiProvidersRoute = createRoute({
 			content: { "application/json": { schema: providerMetadataResponseSchema } },
 			description: "Supported AI providers",
 		},
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		500: serverError,
 	},
 })
 
@@ -128,9 +128,10 @@ export const getAiProviderConfigurationRoute = createRoute({
 			content: { "application/json": { schema: configurationResponseSchema } },
 			description: "Redacted AI provider configuration",
 		},
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		500: internalServerErrorResponse,
+		400: malformedJson,
+		401: authRequired,
+		403: forbidden,
+		500: serverError,
 	},
 })
 
@@ -148,11 +149,15 @@ export const saveAiProviderConfigurationRoute = createRoute({
 			content: { "application/json": { schema: configurationResponseSchema } },
 			description: "Saved AI provider configuration",
 		},
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: problemResponse([
+			PROBLEM_CODES.INVALID_AI_PROVIDER_CONFIGURATION,
+			PROBLEM_CODES.INVALID_REQUEST,
+			PROBLEM_CODES.MALFORMED_JSON,
+		]),
+		401: authRequired,
+		403: forbidden,
+		409: problemResponse([PROBLEM_CODES.CONFIGURATION_CONFLICT]),
+		500: serverError,
 	},
 })
 
@@ -170,20 +175,16 @@ export const discoverAiProviderModelsRoute = createRoute({
 			content: { "application/json": { schema: modelDiscoveryResponseSchema } },
 			description: "Discovered model identifiers",
 		},
-		400: {
-			content: { "application/json": { schema: modelDiscoveryErrorResponseSchema } },
-			description: "Invalid request or rejected provider credentials",
-		},
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		429: {
-			content: { "application/json": { schema: modelDiscoveryErrorResponseSchema } },
-			description: "Provider rate limit reached",
-		},
-		500: internalServerErrorResponse,
-		502: {
-			content: { "application/json": { schema: modelDiscoveryErrorResponseSchema } },
-			description: "Provider discovery failed",
-		},
+		400: problemResponse([
+			PROBLEM_CODES.INVALID_AI_PROVIDER_CONFIGURATION,
+			PROBLEM_CODES.INVALID_REQUEST,
+			PROBLEM_CODES.MALFORMED_JSON,
+			PROBLEM_CODES.PROVIDER_CREDENTIALS_REJECTED,
+		]),
+		401: authRequired,
+		403: forbidden,
+		429: problemResponse([PROBLEM_CODES.PROVIDER_RATE_LIMITED]),
+		500: serverError,
+		502: providerError,
 	},
 })

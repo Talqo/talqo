@@ -1,30 +1,18 @@
-import { z } from "@hono/zod-openapi"
+import type { ProblemCode } from "./problem.ts"
 
-export const errorResponseSchema = z
-	.object({
-		error: z.string(),
-	})
-	.openapi("ErrorResponse")
+import { problemDetailsSchema } from "./problem.ts"
 
-function errorResponse(description: string) {
+export function problemResponse(codes: readonly ProblemCode[]) {
 	return {
+		"x-problem-codes": codes,
 		content: {
-			"application/json": {
-				schema: errorResponseSchema,
+			"application/problem+json": {
+				schema: problemDetailsSchema,
 			},
 		},
-		description,
+		description: "https://docs.talqo.chat/problems",
 	} as const
 }
-
-export const badRequestResponse = errorResponse("Invalid request")
-export const unauthorizedResponse = errorResponse("Authentication required")
-export const forbiddenResponse = errorResponse("Permission denied")
-export const notFoundResponse = errorResponse("Resource not found")
-export const conflictResponse = errorResponse("Request conflicts with current state")
-export const tooManyRequestsResponse = errorResponse("Too many requests")
-export const internalServerErrorResponse = errorResponse("Unexpected server error")
-export const badGatewayResponse = errorResponse("Upstream provider error")
 
 export const noContentResponse = {
 	description: "No content",

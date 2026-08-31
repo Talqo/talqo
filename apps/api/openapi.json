@@ -23,14 +23,414 @@
 				},
 				"required": ["status"]
 			},
-			"ErrorResponse": {
-				"type": "object",
-				"properties": {
-					"error": {
-						"type": "string"
+			"ProblemDetails": {
+				"oneOf": [
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "admin-access-required",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#admin-access-required",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "admin-already-exists",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#admin-already-exists",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "agent-invalid",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#agent-invalid",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "agent-name-taken",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#agent-name-taken",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "agent-not-found",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#agent-not-found",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "authentication-required",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#authentication-required",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "configuration-conflict",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#configuration-conflict",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "current-password-incorrect",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#current-password-incorrect",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "internal-server-error",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#internal-server-error",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "invalid-ai-provider-configuration",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "invalid-credentials",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#invalid-credentials",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "invalid-invitation",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#invalid-invitation",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "invalid-request",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#invalid-request",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "malformed-json",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#malformed-json",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "model-discovery-unsupported",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#model-discovery-unsupported",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "password-change-not-required",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#password-change-not-required",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "password-change-required",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#password-change-required",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "permission-denied",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#permission-denied",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "provider-credentials-rejected",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#provider-credentials-rejected",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "provider-error",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#provider-error",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "provider-rate-limited",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#provider-rate-limited",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "provider-unreachable",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#provider-unreachable",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "request-failed",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#request-failed",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "route-not-found",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#route-not-found",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "self-password-reset-not-allowed",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#self-password-reset-not-allowed",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "user-not-found",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#user-not-found",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
+					},
+					{
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"const": "username-taken",
+								"type": "string"
+							},
+							"type": {
+								"const": "https://docs.talqo.chat/problems#username-taken",
+								"type": "string"
+							}
+						},
+						"required": ["code", "type"],
+						"type": "object"
 					}
-				},
-				"required": ["error"]
+				]
 			},
 			"User": {
 				"type": "object",
@@ -115,11 +515,27 @@
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -221,32 +637,121 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -364,32 +869,121 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -684,51 +1278,176 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-ai-provider-configuration",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "configuration-conflict",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#configuration-conflict",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -845,91 +1564,247 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request or rejected provider credentials",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-ai-provider-configuration",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
 										},
-										"code": {
-											"type": "string",
-											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-credentials-rejected",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-credentials-rejected",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
 										}
-									},
-									"required": ["error"]
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"429": {
-						"description": "Provider rate limit reached",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
-										},
-										"code": {
-											"type": "string",
-											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-rate-limited",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-rate-limited",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
 										}
-									},
-									"required": ["error"]
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"502": {
-						"description": "Provider discovery failed",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"type": "object",
-									"properties": {
-										"error": {
-											"type": "string"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "model-discovery-unsupported",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#model-discovery-unsupported",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
 										},
-										"code": {
-											"type": "string",
-											"enum": ["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-unreachable",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-unreachable",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
 										}
-									},
-									"required": ["error"]
+									]
 								}
 							}
 						}
@@ -980,31 +1855,94 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-credentials",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-credentials",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1020,12 +1958,54 @@
 					"204": {
 						"description": "No content"
 					},
-					"500": {
-						"description": "Unexpected server error",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1061,12 +2041,54 @@
 							}
 						}
 					},
-					"500": {
-						"description": "Unexpected server error",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1120,41 +2142,146 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "username-taken",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#username-taken",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1173,22 +2300,106 @@
 					"204": {
 						"description": "No content"
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1232,31 +2443,109 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "current-password-incorrect",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#current-password-incorrect",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1296,41 +2585,120 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-not-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-not-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1371,22 +2739,106 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1415,12 +2867,54 @@
 							}
 						}
 					},
-					"500": {
-						"description": "Unexpected server error",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1472,31 +2966,109 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "admin-already-exists",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#admin-already-exists",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "username-taken",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#username-taken",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1534,32 +3106,121 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1617,31 +3278,109 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-invitation",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-invitation",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "username-taken",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#username-taken",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1717,51 +3456,161 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "admin-access-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#admin-access-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "user-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#user-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1792,32 +3641,121 @@
 					"204": {
 						"description": "No content"
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "admin-access-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#admin-access-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1855,22 +3793,106 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1907,32 +3929,121 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "admin-access-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#admin-access-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -1982,51 +4093,176 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "self-password-reset-not-allowed",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#self-password-reset-not-allowed",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "admin-access-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#admin-access-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "user-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#user-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2063,32 +4299,121 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2153,51 +4478,176 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-invalid",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-invalid",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-name-taken",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-name-taken",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2241,42 +4691,147 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2351,61 +4906,202 @@
 						}
 					},
 					"400": {
-						"description": "Invalid request",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-invalid",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-invalid",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "invalid-request",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#invalid-request",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "Authentication required",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"409": {
-						"description": "Request conflicts with current state",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-name-taken",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-name-taken",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2434,42 +5130,147 @@
 					"204": {
 						"description": "No content"
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
@@ -2513,42 +5314,147 @@
 							}
 						}
 					},
-					"401": {
-						"description": "Authentication required",
+					"400": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "malformed-json",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#malformed-json",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "authentication-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#authentication-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "Permission denied",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "password-change-required",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#password-change-required",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										},
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "permission-denied",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#permission-denied",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "Resource not found",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "agent-not-found",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#agent-not-found",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "Unexpected server error",
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
-							"application/json": {
+							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "internal-server-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#internal-server-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}
