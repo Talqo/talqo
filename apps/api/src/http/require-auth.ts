@@ -16,7 +16,6 @@ export type AuthedVariables = {
 export const API_PREFIX = "/api"
 
 const EXEMPT_PATHS = new Set([
-	"/health",
 	...identity.PUBLIC_AUTH_PATHS.map((path) => API_PREFIX + path),
 	...roles.PUBLIC_PATHS.map((path) => API_PREFIX + path),
 ])
