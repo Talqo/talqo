@@ -1,6 +1,7 @@
 import { useChangePassword } from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
+import { getProblemMessage } from "@/lib/problem-message.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
@@ -105,8 +106,7 @@ function PasswordCard() {
 			// The server already invalidated this session as part of the password change.
 			await navigate({ to: "/login" })
 		} catch (caught) {
-			const info = (caught as { info?: { error?: string } } | null)?.info
-			setError(info?.error ?? t("auth.errorFallback"))
+			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
 	}
 

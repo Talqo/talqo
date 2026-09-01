@@ -1,5 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -41,9 +42,9 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(bootstrapAdminResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.AdminAlreadyExistsError) {
-				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+				return problemResponse(c, PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT)
 			}
-			if (isUniqueViolation(error)) return c.json({ error: "Username already in use" }, HTTP_STATUS.CONFLICT)
+			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
 			throw error
 		}
 	})
@@ -52,7 +53,7 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.authorize(user.id, "users:invite"))) {
-			return c.json({ error: "Missing users:invite permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
@@ -67,9 +68,9 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.InvalidInvitationError) {
-				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+				return problemResponse(c, PROBLEM_CODES.INVALID_INVITATION, HTTP_STATUS.CONFLICT)
 			}
-			if (isUniqueViolation(error)) return c.json({ error: "Username already in use" }, HTTP_STATUS.CONFLICT)
+			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
 			throw error
 		}
 	})
@@ -78,7 +79,7 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -88,14 +89,14 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 				HTTP_STATUS.CREATED,
 			)
 		} catch (error) {
-			if (isForeignKeyViolation(error)) return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND)
+			if (isForeignKeyViolation(error)) return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 			throw error
 		}
 	})
 	.openapi(revokePermissionGrantRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		await service.revokePermission(c.req.valid("param").id)
@@ -112,7 +113,7 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 
 rolesRoutes.openapi(getUsersRoute, async (c) => {
 	if (!(await service.isAdmin(c.get("user").id))) {
-		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
 	}
 
 	const users = await identity.listUsers()
@@ -122,12 +123,12 @@ rolesRoutes.openapi(getUsersRoute, async (c) => {
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
 	if (!(await service.isAdmin(user.id))) {
-		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
 	}
 
 	const targetUserId = c.req.valid("param").userId
 	if (targetUserId === user.id) {
-		return c.json({ error: "Use account settings to change your own password" }, HTTP_STATUS.BAD_REQUEST)
+		return problemResponse(c, PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
 	}
 
 	try {
@@ -135,7 +136,7 @@ rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	} catch (error) {
 		if (error instanceof identity.UserNotFoundError) {
-			return c.json({ error: error.message }, HTTP_STATUS.NOT_FOUND)
+			return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 		}
 		throw error
 	}

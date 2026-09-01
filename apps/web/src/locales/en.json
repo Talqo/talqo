@@ -188,8 +188,7 @@
 			"heading": "Invite a member",
 			"linkLabel": "Invitation link:",
 			"loginLink": "Log in",
-			"loginRequired": "You need to log in to invite a member.",
-			"permissionDenied": "Your account does not have permission to invite members."
+			"loginRequired": "You need to log in to invite a member."
 		},
 		"loading": "Loading…",
 		"login": {
@@ -266,6 +265,35 @@
 		"accessDeniedBody": "Ask an admin to grant your account agent access if you need it.",
 		"accessDeniedDescription": "Your account does not have permission to access agents.",
 		"accessDeniedTitle": "Access restricted"
+	},
+	"problems": {
+		"admin-access-required": "Admin access is required.",
+		"admin-already-exists": "An admin account already exists.",
+		"agent-invalid": "The agent configuration is invalid.",
+		"agent-name-taken": "An agent with this name already exists.",
+		"agent-not-found": "The agent was not found.",
+		"authentication-required": "Please log in to continue.",
+		"configuration-conflict": "The configuration changed. Reload and try again.",
+		"current-password-incorrect": "The current password is incorrect.",
+		"internal-server-error": "The server encountered an unexpected error.",
+		"invalid-ai-provider-configuration": "The AI provider configuration is invalid.",
+		"invalid-credentials": "The username or password is incorrect.",
+		"invalid-invitation": "The invitation is invalid, expired, or already used.",
+		"invalid-request": "The request is invalid.",
+		"malformed-json": "The request contains malformed JSON.",
+		"model-discovery-unsupported": "Model discovery is not supported for this provider configuration.",
+		"password-change-not-required": "A password change is not currently required.",
+		"password-change-required": "You must change your password before continuing.",
+		"permission-denied": "You do not have permission to perform this action.",
+		"provider-credentials-rejected": "The provider rejected these credentials.",
+		"provider-error": "The provider could not complete the request.",
+		"provider-rate-limited": "The provider rate limit was reached. Try again later.",
+		"provider-unreachable": "The provider could not be reached.",
+		"request-failed": "The request could not be completed.",
+		"route-not-found": "The requested API route was not found.",
+		"self-password-reset-not-allowed": "Use account settings to change your own password.",
+		"user-not-found": "The user was not found.",
+		"username-taken": "This username is already in use."
 	},
 	"users": {
 		"copy": "Copy generated password",

@@ -1,5 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -16,15 +17,15 @@ import {
 } from "./agent.contract.ts"
 import * as service from "./agent.service.ts"
 
-function mapDomainError(error: unknown): { body: { error: string }; status: number } | null {
+function mapDomainError(error: unknown) {
 	if (error instanceof service.InvalidAgentInputError) {
-		return { body: { error: error.message }, status: HTTP_STATUS.BAD_REQUEST }
+		return { code: PROBLEM_CODES.AGENT_INVALID, status: HTTP_STATUS.BAD_REQUEST }
 	}
 	if (error instanceof service.AgentNotFoundError) {
-		return { body: { error: "Agent not found" }, status: HTTP_STATUS.NOT_FOUND }
+		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND }
 	}
 	if (error instanceof service.DuplicateAgentNameError) {
-		return { body: { error: error.message }, status: HTTP_STATUS.CONFLICT }
+		return { code: PROBLEM_CODES.AGENT_NAME_TAKEN, status: HTTP_STATUS.CONFLICT }
 	}
 	return null
 }
@@ -38,7 +39,7 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(listAgentsRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 		return c.json(
 			agentListResponseSchema.parse({ agents: (await service.listAgents()).map(serialize) }),
@@ -48,7 +49,7 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createAgentRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -56,14 +57,14 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
 			throw error
 		}
 	})
 	.openapi(getAgentRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -71,14 +72,14 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
 			throw error
 		}
 	})
 	.openapi(updateAgentRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -86,14 +87,14 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
 			throw error
 		}
 	})
 	.openapi(refreshEmbedTokenRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -101,14 +102,14 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
 			throw error
 		}
 	})
 	.openapi(deleteAgentRoute, async (c) => {
 		const user = c.get("user")
 		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -116,7 +117,7 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
 			throw error
 		}
 	})

@@ -1,5 +1,7 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
 
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
+import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
@@ -13,7 +15,6 @@ export type AuthedVariables = {
 export const API_PREFIX = "/api"
 
 const EXEMPT_PATHS = new Set([
-	"/health",
 	...identity.PUBLIC_AUTH_PATHS.map((path) => API_PREFIX + path),
 	...roles.PUBLIC_PATHS.map((path) => API_PREFIX + path),
 ])
@@ -22,6 +23,8 @@ const EXEMPT_PATHS = new Set([
 const FORCED_PASSWORD_CHANGE_ALLOWED_PATHS = new Set([`${API_PREFIX}/me/password`, `${API_PREFIX}/me/password/forced`])
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
+	if (!hasMatchedRoute(c)) return next()
+
 	if (EXEMPT_PATHS.has(c.req.path)) {
 		return next()
 	}
@@ -29,12 +32,12 @@ export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(asyn
 	const token = getCookie(c, identity.SESSION_COOKIE)
 	const session = token ? await identity.getSession(token) : null
 	if (!session) {
-		return c.json({ error: "Authentication required" }, HTTP_STATUS.UNAUTHORIZED)
+		return problemResponse(c, PROBLEM_CODES.AUTHENTICATION_REQUIRED, HTTP_STATUS.UNAUTHORIZED)
 	}
 
 	// Enforced here, not just by the SPA's redirect, since a direct API call bypasses that gate.
 	if (session.user.mustChangePassword && !FORCED_PASSWORD_CHANGE_ALLOWED_PATHS.has(c.req.path)) {
-		return c.json({ error: "Password change required" }, HTTP_STATUS.FORBIDDEN)
+		return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN)
 	}
 
 	c.set("user", session.user)
@@ -43,7 +46,7 @@ export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(asyn
 
 export const requireAdmin = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (!(await roles.isAdmin(c.get("user").id))) {
-		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
 	}
 	return next()
 })
