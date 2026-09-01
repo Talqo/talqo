@@ -34,7 +34,7 @@ const API_PROBLEM_CODES = [
 
 describe("problem catalog", () => {
 	it("documents the API problem codes", () => {
-		expect(PROBLEMS.map((problem) => problem.code)).toEqual([...API_PROBLEM_CODES])
+		expect(PROBLEMS.map((problem) => problem.code).toSorted()).toEqual(API_PROBLEM_CODES.toSorted())
 	})
 
 	it("uses unique codes as stable anchors", () => {

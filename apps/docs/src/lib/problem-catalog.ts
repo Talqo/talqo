@@ -164,7 +164,7 @@ export const PROBLEMS = [
 	{
 		code: "request-failed",
 		title: "Request failed",
-		status: "Original 4xx or 5xx",
+		status: "Varies",
 		meaning: "A response-carrying error had no recognized Talqo problem body.",
 		guidance: "Use the HTTP status and retry or correct the request.",
 	},
