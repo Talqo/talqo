@@ -4,8 +4,6 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useTranslation } from "react-i18next"
 
-const RATIO_DECIMALS = 1
-
 type ColorFieldProps = {
 	/** The other half of the pair this color must stay readable against. */
 	against?: string
@@ -39,14 +37,11 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 					aria-label={t("widgetSetup.hexValue", { label })}
 					aria-invalid={isHexColor(value) ? undefined : true}
 				/>
-				{ratio !== undefined && (
-					// A warning, not a gate: the brand color is the operator's to choose.
-					<Badge variant={passes ? "outline" : "destructive"}>
-						{t(passes ? "widgetSetup.contrastPass" : "widgetSetup.contrastWarning", {
-							ratio: ratio.toFixed(RATIO_DECIMALS),
-						})}
-					</Badge>
-				)}
+				{ratio !== undefined &&
+					!passes && (
+						// A warning, not a gate: the brand color is the operator's to choose.
+						<Badge variant="destructive">{t("widgetSetup.contrastWarning")}</Badge>
+					)}
 			</div>
 			{!isHexColor(value) && <p className="text-destructive text-xs">{t("widgetSetup.colorInvalid")}</p>}
 		</div>
