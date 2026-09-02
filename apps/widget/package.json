@@ -14,12 +14,10 @@
 	"dependencies": {
 		"@talqo/shared": "workspace:*",
 		"@talqo/ui": "workspace:*",
-		"clsx": "2.1.1",
 		"i18next": "^26.4.0",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
-		"react-i18next": "^17.0.12",
-		"tailwind-merge": "3.6.0"
+		"react-i18next": "^17.0.12"
 	},
 	"devDependencies": {
 		"@happy-dom/global-registrator": "^20.12.0",

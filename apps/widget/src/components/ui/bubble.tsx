@@ -7,7 +7,7 @@ const bubbleContentVariants = {
 	muted: "tw:bg-muted",
 } as const
 
-export type BubbleVariant = keyof typeof bubbleContentVariants
+type BubbleVariant = keyof typeof bubbleContentVariants
 
 function BubbleGroup({ className, ...props }: ComponentProps<"div">) {
 	return (

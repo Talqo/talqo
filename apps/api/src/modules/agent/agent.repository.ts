@@ -3,9 +3,9 @@ import { eq, sql } from "drizzle-orm"
 
 import { agent, blacklistWord } from "./agent.schema.ts"
 
-export type AgentRow = typeof agent.$inferSelect
+type AgentRow = typeof agent.$inferSelect
 export type NewAgent = typeof agent.$inferInsert
-export type BlacklistWordRow = typeof blacklistWord.$inferSelect
+type BlacklistWordRow = typeof blacklistWord.$inferSelect
 
 export type AgentWithWords = {
 	agent: AgentRow

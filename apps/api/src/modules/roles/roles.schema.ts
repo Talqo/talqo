@@ -1,28 +1,6 @@
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
-import { index, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
-
-export const roleEnum = pgEnum("role", ["admin"])
-
-export const userRole = pgTable(
-	"user_role",
-	{
-		id: text("id").primaryKey(),
-		userId: text("user_id")
-			.notNull()
-			.references(() => user.id, { onDelete: "cascade" }),
-		role: roleEnum("role").notNull(),
-		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-	},
-	// Partial index, not a table-wide constraint: enforces "at most one admin" today while
-	// leaving room for future non-exclusive roles to allow multiple rows per user.
-	(table) => [
-		uniqueIndex("user_role_admin_unique_idx")
-			.on(table.role)
-			.where(sql`${table.role} = 'admin'`),
-		index("user_role_user_id_idx").on(table.userId),
-	],
-)
+import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const invitation = pgTable(
 	"invitation",
@@ -51,10 +29,16 @@ export const permissionGrant = pgTable(
 		// Retained for compatibility with existing databases. New grants are global and
 		// authorization deliberately ignores legacy rows where this is non-null.
 		agentId: text("agent_id"),
-		// Nullable + set null (not cascade): deleting the granting admin's account must not
+		// Nullable + set null (not cascade): deleting the granting user's account must not
 		// silently revoke grants they made to other, unrelated users.
 		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
 		grantedAt: timestamp("granted_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
-	(table) => [index("permission_grant_user_id_idx").on(table.userId)],
+	(table) => [
+		index("permission_grant_user_id_idx").on(table.userId),
+		// At most one global admin; the application also checks, but the constraint holds even when bypassed.
+		uniqueIndex("permission_grant_admin_unique_idx")
+			.on(table.permission)
+			.where(sql`${table.permission} = 'admin' AND ${table.agentId} IS NULL`),
+	],
 )

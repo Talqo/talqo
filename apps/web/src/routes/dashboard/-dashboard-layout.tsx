@@ -1,5 +1,5 @@
 import { useLogout } from "@/api/generated/identity/identity.ts"
-import { useGetAccess, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
@@ -68,10 +68,11 @@ function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => strin
 	}
 }
 
-function allowedNavItems(permissions: string[] | undefined, isAdmin: boolean): readonly NavItem[] {
+function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
 	const canInvite = permissions?.includes("users:invite") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
+	const isAdmin = permissions?.includes("admin") ?? false
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
 		if (item.requires === "invite") return canInvite
@@ -104,8 +105,7 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
 	const permissions = useGetMyPermissions().data?.data.permissions
-	const isAdmin = useGetAccess().data?.data.isAdmin ?? false
-	const items = allowedNavItems(permissions, isAdmin)
+	const items = allowedNavItems(permissions)
 	return (
 		<nav className={className}>
 			{items.map((item) => (

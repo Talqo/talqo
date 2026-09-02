@@ -40,7 +40,7 @@ export const setupStatusResponseSchema = z.object({
 	needsSetup: z.boolean(),
 })
 
-export const bootstrapAdminRequestSchema = z.object({
+const bootstrapAdminRequestSchema = z.object({
 	username: usernameSchema,
 	password: passwordSchema,
 })
@@ -54,7 +54,7 @@ export const createInvitationResponseSchema = z.object({
 	expiresAt: z.iso.datetime(),
 })
 
-export const redeemInvitationRequestSchema = z.object({
+const redeemInvitationRequestSchema = z.object({
 	token: z.string().min(1),
 	username: usernameSchema,
 	password: passwordSchema,
@@ -64,7 +64,7 @@ export const redeemInvitationResponseSchema = z.object({
 	user: userResponseSchema,
 })
 
-export const createGrantRequestSchema = z
+const createGrantRequestSchema = z
 	.object({
 		userId: z.string().min(1),
 		permission: z.enum(PERMISSIONS),
@@ -101,7 +101,7 @@ export const myPermissionsRoute = createRoute({
 	},
 })
 
-export const resetPasswordRequestSchema = z.object({
+const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
 })
 
@@ -110,7 +110,6 @@ export const userListResponseSchema = z.object({
 })
 
 export const accessResponseSchema = z.object({
-	isAdmin: z.boolean(),
 	permissions: z.array(z.enum(PERMISSIONS)),
 })
 
@@ -219,6 +218,7 @@ export const createPermissionGrantRoute = createRoute({
 		401: unauthorizedResponse,
 		403: forbiddenResponse,
 		404: notFoundResponse,
+		409: conflictResponse,
 		500: internalServerErrorResponse,
 	},
 })

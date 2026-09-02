@@ -38,7 +38,7 @@ type RedactedConfiguration = {
 export class PermissionDeniedError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidConfigurationError extends Error {}
-export class UnusableConfigurationError extends Error {}
+class UnusableConfigurationError extends Error {}
 
 function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
 	const firstKeys = Object.keys(first)
@@ -268,7 +268,7 @@ async function getDefaultService(): Promise<ReturnType<typeof createAiProviderSe
 		import("./credential-vault.ts"),
 	]).then(([{ env }, roles, repository, { createCredentialVault }]) =>
 		createAiProviderService({
-			authorize: (userId) => roles.authorize(userId, "ai_provider:manage"),
+			authorize: (userId) => roles.authorize(userId, roles.Permission.AiProviderManage),
 			discover: (input) => discoverProviderModels(input),
 			repository,
 			vault: createCredentialVault(env.APP_SECRET),
@@ -291,8 +291,4 @@ export async function saveConfiguration(userId: string, input: SaveConfiguration
 
 export async function discoverModels(userId: string, input: DiscoverModelsInput) {
 	return (await getDefaultService()).discoverModels(userId, input)
-}
-
-export async function createRuntimeModels() {
-	return (await getDefaultService()).createRuntimeModels()
 }

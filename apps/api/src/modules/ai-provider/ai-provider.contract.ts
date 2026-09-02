@@ -28,17 +28,17 @@ const deploymentIdentityRoleShape = {
 	settings: stringRecordSchema,
 }
 
-export const roleConfigurationRequestSchema = z.discriminatedUnion("authMode", [
+const roleConfigurationRequestSchema = z.discriminatedUnion("authMode", [
 	z.strictObject(staticRoleShape),
 	z.strictObject(deploymentIdentityRoleShape),
 ])
 
-export const embeddingConfigurationRequestSchema = z.discriminatedUnion("authMode", [
+const embeddingConfigurationRequestSchema = z.discriminatedUnion("authMode", [
 	z.strictObject({ ...staticRoleShape, credentialSource: credentialSourceSchema }),
 	z.strictObject({ ...deploymentIdentityRoleShape, credentialSource: credentialSourceSchema }),
 ])
 
-export const saveConfigurationRequestSchema = z.strictObject({
+const saveConfigurationRequestSchema = z.strictObject({
 	expectedRevision: z.number().int().nonnegative(),
 	text: roleConfigurationRequestSchema,
 	embedding: embeddingConfigurationRequestSchema,
@@ -46,7 +46,7 @@ export const saveConfigurationRequestSchema = z.strictObject({
 
 export type SaveConfigurationInput = z.infer<typeof saveConfigurationRequestSchema>
 
-export const discoverModelsRequestSchema = z.discriminatedUnion("authMode", [
+const discoverModelsRequestSchema = z.discriminatedUnion("authMode", [
 	z.strictObject({
 		providerId: z.enum(AI_PROVIDER_IDS),
 		authMode: z.literal("static"),
@@ -80,7 +80,7 @@ export const providerMetadataResponseSchema = z.object({
 
 export const modelDiscoveryResponseSchema = z.object({ models: z.array(z.string()) })
 
-export const modelDiscoveryErrorResponseSchema = z.object({
+const modelDiscoveryErrorResponseSchema = z.object({
 	error: z.string(),
 	code: z.enum(["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]).optional(),
 })
