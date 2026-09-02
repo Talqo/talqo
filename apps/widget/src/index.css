@@ -17,8 +17,6 @@
 @theme inline {
 	--color-background: var(--talqo-background);
 	--color-foreground: var(--talqo-foreground);
-	--color-card: var(--talqo-card);
-	--color-card-foreground: var(--talqo-foreground);
 	--color-primary: var(--talqo-primary);
 	--color-primary-foreground: var(--talqo-primary-foreground);
 	--color-muted: var(--talqo-muted);

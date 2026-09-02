@@ -17,7 +17,6 @@
 	--talqo-primary-foreground: var(--talqo-text-on-primary-input);
 	--talqo-background: var(--talqo-background-input);
 	--talqo-foreground: var(--talqo-text-input);
-	--talqo-card: var(--talqo-surface-input);
 	--talqo-muted: var(--talqo-surface-input);
 	--talqo-secondary: var(--talqo-surface-input);
 	--talqo-secondary-foreground: var(--talqo-text-input);

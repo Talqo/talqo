@@ -198,7 +198,7 @@ function WidgetChat({
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
@@ -252,7 +252,7 @@ function WidgetChat({
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
 							autoFocus
-							className="tw:min-w-0 tw:flex-1 tw:rounded-md tw:border tw:border-input tw:bg-background tw:px-3 tw:py-2 tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
+							className="tw:min-w-0 tw:flex-1 tw:rounded-md tw:border tw:border-input tw:bg-input tw:px-3 tw:py-2 tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
 						<button
 							type="submit"

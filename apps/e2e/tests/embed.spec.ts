@@ -100,12 +100,14 @@ test("widget fetches its palette by public token across origins", async ({ page 
 	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", SEEDED_PRIMARY_RGB)
 })
 
-test("widget paints its own surface color, not the background", async ({ page }) => {
+test("widget's panel paints background, and its input box paints surface", async ({ page }) => {
 	await page.goto(baseURL)
 	await page.getByRole("button", { name: "Open chat" }).click()
 
-	// The default surface (#f5f5f5) is a distinct operator input, not derived from background.
-	await expect(page.getByRole("dialog")).toHaveCSS("background-color", "rgb(245, 245, 245)")
+	// The panel shell paints the explicit background color (#ffffff), not surface.
+	await expect(page.getByRole("dialog")).toHaveCSS("background-color", "rgb(255, 255, 255)")
+	// The message input paints the distinct surface color (#f5f5f5).
+	await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCSS("background-color", "rgb(245, 245, 245)")
 })
 
 test("widget still renders in default colors when its token is unknown", async ({ page }) => {

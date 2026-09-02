@@ -58,8 +58,8 @@ test("changing the light text color leaves the light background untouched", asyn
 
 	await page.getByLabel("Text hex value", { exact: true }).fill("#ff00ff")
 
-	// The panel paints the surface color (#f5f5f5), unaffected by the text edit.
-	await expect(panel).toHaveCSS("background-color", "rgb(245, 245, 245)")
+	// The panel paints the background color (#ffffff), unaffected by the text edit.
+	await expect(panel).toHaveCSS("background-color", "rgb(255, 255, 255)")
 })
 
 test("operator switches to the Dark tab and edits an independent palette", async ({ page }) => {
