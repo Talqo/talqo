@@ -26,7 +26,7 @@ async function login(username: string, password: string): Promise<string> {
 }
 
 async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	await sql`TRUNCATE TABLE user_role`
+	await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 	const username = uniqueUsername()
 	const admin = await service.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
@@ -40,7 +40,7 @@ async function createMemberSession(): Promise<string> {
 
 describe("roles", () => {
 	it("reports that setup is needed before any admin exists", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 
 		const response = await app.request("/api/setup")
 
@@ -49,7 +49,7 @@ describe("roles", () => {
 	})
 
 	it("bootstraps the admin account and then reports setup as complete", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const username = uniqueUsername()
 
 		const response = await app.request("/api/setup", {
@@ -61,16 +61,16 @@ describe("roles", () => {
 		expect(response.status).toBe(201)
 		const { user } = (await response.json()) as { user: { id: string; username: string } }
 		expect(user.username).toBe(username)
-		expect(await service.isAdmin(user.id)).toBe(true)
+		expect(await service.authorize(user.id, "admin")).toBe(true)
 
 		const statusResponse = await app.request("/api/setup")
 		expect(await statusResponse.json()).toEqual({ needsSetup: false })
 	})
 
 	it("rejects a second attempt to bootstrap an admin", async () => {
-		await sql`TRUNCATE TABLE user_role`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const seedAdmin = await identity.createAccount({ username: uniqueUsername(), password: "seed-admin-password" })
-		await repo.insertUserRole({ id: crypto.randomUUID(), userId: seedAdmin.id, role: "admin" })
+		await service.grantPermission({ userId: seedAdmin.id, permission: "admin", grantedBy: seedAdmin.id })
 
 		const response = await app.request("/api/setup", {
 			method: "POST",
@@ -81,20 +81,27 @@ describe("roles", () => {
 		expect(response.status).toBe(409)
 	})
 
-	it("reports a user with no role grant as not admin", async () => {
+	it("reports a user with no admin grant as not authorized for admin", async () => {
 		const user = await identity.createAccount({ username: uniqueUsername(), password: "not-an-admin-password" })
 
-		expect(await service.isAdmin(user.id)).toBe(false)
+		expect(await service.authorize(user.id, "admin")).toBe(false)
 	})
 
-	it("enforces at most one admin row at the database level, not just in application code", async () => {
-		await sql`TRUNCATE TABLE user_role`
+	it("enforces at most one admin grant at the database level, not just in application code", async () => {
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
 		const userB = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-2" })
 
 		// Inserts directly via the repo, bypassing bootstrapAdmin's check, to prove the DB constraint itself rejects it.
-		await repo.insertUserRole({ id: crypto.randomUUID(), userId: userA.id, role: "admin" })
-		await expect(repo.insertUserRole({ id: crypto.randomUUID(), userId: userB.id, role: "admin" })).rejects.toThrow()
+		await repo.insertPermissionGrant({
+			id: crypto.randomUUID(),
+			userId: userA.id,
+			permission: "admin",
+			grantedBy: null,
+		})
+		await expect(
+			repo.insertPermissionGrant({ id: crypto.randomUUID(), userId: userB.id, permission: "admin", grantedBy: null }),
+		).rejects.toThrow()
 	})
 })
 
@@ -258,6 +265,18 @@ describe("permission grants", () => {
 		})
 
 		expect(response.status).toBe(400)
+	})
+
+	it("rejects a second admin grant even for the already-admin user", async () => {
+		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
+
+		const response = await app.request("/api/permission-grants", {
+			method: "POST",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ userId: adminId, permission: "admin" }),
+		})
+
+		expect(response.status).toBe(409)
 	})
 
 	it("denies the very next request after revocation, without touching the member's session", async () => {
@@ -462,21 +481,21 @@ describe("list users", () => {
 })
 
 describe("access", () => {
-	it("reports isAdmin true for an admin", async () => {
+	it("reports every registered permission for an admin", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 
 		const response = await app.request("/api/access", { headers: { Cookie: adminCookie } })
 
 		expect(response.status).toBe(200)
-		expect(await response.json()).toMatchObject({ isAdmin: true })
+		expect(await response.json()).toEqual({ permissions: [...service.PERMISSIONS] })
 	})
 
-	it("reports isAdmin false for a non-admin", async () => {
+	it("reports no permissions for an ungranted member", async () => {
 		const memberCookie = await createMemberSession()
 
 		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
 
 		expect(response.status).toBe(200)
-		expect(await response.json()).toMatchObject({ isAdmin: false })
+		expect(await response.json()).toEqual({ permissions: [] })
 	})
 })

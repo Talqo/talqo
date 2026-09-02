@@ -268,7 +268,7 @@ async function getDefaultService(): Promise<ReturnType<typeof createAiProviderSe
 		import("./credential-vault.ts"),
 	]).then(([{ env }, roles, repository, { createCredentialVault }]) =>
 		createAiProviderService({
-			authorize: (userId) => roles.authorize(userId, "ai_provider:manage"),
+			authorize: (userId) => roles.authorize(userId, roles.Permission.AiProviderManage),
 			discover: (input) => discoverProviderModels(input),
 			repository,
 			vault: createCredentialVault(env.APP_SECRET),

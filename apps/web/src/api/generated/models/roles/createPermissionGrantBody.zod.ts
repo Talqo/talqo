@@ -8,7 +8,7 @@ import * as zod from "zod"
 
 export const CreatePermissionGrantBody = zod.object({
 	userId: zod.string().min(1),
-	permission: zod.enum(["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]),
+	permission: zod.enum(["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]),
 })
 
 export type CreatePermissionGrantBody = zod.input<typeof CreatePermissionGrantBody>

@@ -51,8 +51,8 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, "users:invite"))) {
-			return c.json({ error: "Missing users:invite permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await service.authorize(user.id, service.Permission.UsersInvite))) {
+			return c.json({ error: `Missing ${service.Permission.UsersInvite} permission` }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		const { token, expiresAt } = await service.createInvitation(user.id)
@@ -77,8 +77,8 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await service.authorize(user.id, service.Permission.Admin))) {
+			return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -89,13 +89,14 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			)
 		} catch (error) {
 			if (isForeignKeyViolation(error)) return c.json({ error: "User not found" }, HTTP_STATUS.NOT_FOUND)
+			if (isUniqueViolation(error)) return c.json({ error: "An admin account already exists" }, HTTP_STATUS.CONFLICT)
 			throw error
 		}
 	})
 	.openapi(revokePermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.isAdmin(user.id))) {
-			return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await service.authorize(user.id, service.Permission.Admin))) {
+			return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 		}
 
 		await service.revokePermission(c.req.valid("param").id)
@@ -111,8 +112,8 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 })
 
 rolesRoutes.openapi(getUsersRoute, async (c) => {
-	if (!(await service.isAdmin(c.get("user").id))) {
-		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	if (!(await service.authorize(c.get("user").id, service.Permission.Admin))) {
+		return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 	}
 
 	const users = await identity.listUsers()
@@ -121,8 +122,8 @@ rolesRoutes.openapi(getUsersRoute, async (c) => {
 
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
-	if (!(await service.isAdmin(user.id))) {
-		return c.json({ error: "Admin access required" }, HTTP_STATUS.FORBIDDEN)
+	if (!(await service.authorize(user.id, service.Permission.Admin))) {
+		return c.json({ error: "Admin permission required" }, HTTP_STATUS.FORBIDDEN)
 	}
 
 	const targetUserId = c.req.valid("param").userId

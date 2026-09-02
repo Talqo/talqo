@@ -37,7 +37,7 @@ const configuration = {
 
 describe("AI provider configuration", () => {
 	beforeEach(async () => {
-		await sql`TRUNCATE TABLE ai_provider_config, permission_grant, invitation, user_role, session, "user" CASCADE`
+		await sql`TRUNCATE TABLE ai_provider_config, permission_grant, invitation, session, "user" CASCADE`
 	})
 
 	it("stores encrypted credentials and returns only redacted state", async () => {

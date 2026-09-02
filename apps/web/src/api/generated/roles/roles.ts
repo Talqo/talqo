@@ -590,6 +590,11 @@ export type createPermissionGrantResponse404 = {
 	status: 404
 }
 
+export type createPermissionGrantResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
 export type createPermissionGrantResponse500 = {
 	data: ErrorResponse
 	status: 500
@@ -603,6 +608,7 @@ export type createPermissionGrantResponseError = (
 	| createPermissionGrantResponse401
 	| createPermissionGrantResponse403
 	| createPermissionGrantResponse404
+	| createPermissionGrantResponse409
 	| createPermissionGrantResponse500
 ) & {
 	headers: Headers

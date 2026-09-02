@@ -5,7 +5,7 @@ import * as service from "./roles.service.ts"
 export const SEED_ADMIN = { username: "admin", password: "admin123" } as const
 
 export async function reset(): Promise<void> {
-	await sql`TRUNCATE TABLE user_role, invitation, permission_grant`
+	await sql`TRUNCATE TABLE invitation, permission_grant`
 }
 
 // Natural first-deployment permissions: the operator runs agents and invitations,

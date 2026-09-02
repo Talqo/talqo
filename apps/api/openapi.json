@@ -1355,18 +1355,15 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"isAdmin": {
-											"type": "boolean"
-										},
 										"permissions": {
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 											}
 										}
 									},
-									"required": ["isAdmin", "permissions"]
+									"required": ["permissions"]
 								}
 							}
 						}
@@ -1671,7 +1668,7 @@
 									},
 									"permission": {
 										"type": "string",
-										"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+										"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 									}
 								},
 								"required": ["userId", "permission"],
@@ -1748,6 +1745,16 @@
 					},
 					"404": {
 						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -1846,7 +1853,7 @@
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"]
 											}
 										}
 									},
