@@ -9,7 +9,7 @@ import * as zod from "zod"
 export const changePasswordBodyCurrentPasswordMax = 128
 
 export const changePasswordBodyNewPasswordMin = 8
-export const changePasswordBodyNewPasswordMax = 72
+export const changePasswordBodyNewPasswordMax = 128
 
 export const ChangePasswordBody = zod.object({
 	currentPassword: zod.string().min(1).max(changePasswordBodyCurrentPasswordMax),

@@ -49,9 +49,9 @@ export function assertValidUsername(username: string): void {
 }
 
 export function assertValidPassword(password: string): void {
-	if (password.length < PASSWORD_MIN_LENGTH || Buffer.byteLength(password, "utf8") > PASSWORD_MAX_LENGTH) {
+	if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
 		throw new InvalidPasswordFormatError(
-			`Password must be at least ${PASSWORD_MIN_LENGTH} characters and at most ${PASSWORD_MAX_LENGTH} bytes long`,
+			`Password must be between ${PASSWORD_MIN_LENGTH} and ${PASSWORD_MAX_LENGTH} characters`,
 		)
 	}
 }
@@ -74,7 +74,7 @@ export async function login(
 ): Promise<{ expiresAt: Date; token: string; user: PublicUser }> {
 	const user = await repo.findUserByUsername(input.username)
 	// Cap before verify: the supplied password is memory-hard-hashed even for unknown users.
-	const passwordOversized = Buffer.byteLength(input.password, "utf8") > CREDENTIAL_MAX_LENGTH
+	const passwordOversized = input.password.length > CREDENTIAL_MAX_LENGTH
 	const passwordValid =
 		!passwordOversized && (await Bun.password.verify(input.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH))
 
@@ -127,7 +127,7 @@ export async function changePassword(userId: string, currentPassword: string, ne
 	if (!user) throw new UserNotFoundError(`changePassword: user ${userId} not found`)
 
 	// Cap before verify: currentPassword is attacker-controlled yet memory-hard-hashed.
-	if (Buffer.byteLength(currentPassword, "utf8") > CREDENTIAL_MAX_LENGTH) {
+	if (currentPassword.length > CREDENTIAL_MAX_LENGTH) {
 		throw new InvalidPasswordError("Current password is incorrect")
 	}
 	const currentValid = await Bun.password.verify(currentPassword, user.passwordHash)

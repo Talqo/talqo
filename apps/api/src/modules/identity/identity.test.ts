@@ -54,12 +54,6 @@ describe("assertValidPassword", () => {
 	it("rejects a password longer than the maximum length", () => {
 		expect(() => assertValidPassword("a".repeat(PASSWORD_MAX_LENGTH + 1))).toThrow(InvalidPasswordFormatError)
 	})
-
-	it("rejects a password whose UTF-8 bytes exceed the maximum even when its char count does not", () => {
-		// PASSWORD_MAX_LENGTH is a byte cap: 40 multi-byte chars are 80 bytes and must be rejected
-		// before the memory-hard hash.
-		expect(() => assertValidPassword("€".repeat(40))).toThrow(InvalidPasswordFormatError)
-	})
 })
 
 describe("toPublicUser", () => {
