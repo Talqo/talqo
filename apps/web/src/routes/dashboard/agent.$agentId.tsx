@@ -15,6 +15,7 @@ import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-ter
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { WIDGET_FORM_DEFAULTS } from "@/features/widgets/widget-appearance-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
@@ -38,6 +39,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 const AGENT_TABS = ["configuration", "widgets"] as const
+const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
 
 function isAgentTab(value: unknown): value is AgentTab {
@@ -456,13 +458,21 @@ function AgentWidgetsPanel({ agentId, canManage }: { agentId: string; canManage:
 								<CardHeader>
 									<CardTitle>{widget.name}</CardTitle>
 								</CardHeader>
-								<CardContent className="flex items-center gap-2">
-									<span
-										aria-hidden="true"
-										className="size-4 rounded-full border"
-										style={{ backgroundColor: widget.appearance.light.primary }}
-									/>
-									<span className="text-muted-foreground text-sm">{t("widgetSetup.openCustomization")}</span>
+								<CardContent className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5" aria-hidden="true">
+										{LIGHT_PALETTE_KEYS.map((key) => (
+											<span
+												key={key}
+												className="size-4 rounded-full border"
+												style={{ backgroundColor: widget.appearance.light[key] }}
+											/>
+										))}
+									</div>
+									<span className="text-muted-foreground text-sm">
+										{isSupportedLanguage(widget.appearance.language)
+											? supportedLanguages[widget.appearance.language]
+											: widget.appearance.language}
+									</span>
 								</CardContent>
 							</Card>
 						</Link>
