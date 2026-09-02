@@ -320,6 +320,8 @@ export const saveAiProviderConfiguration = async (
 	return { data, status: res.status, headers: res.headers } as saveAiProviderConfigurationResponseSuccess
 }
 
+export const getSaveAiProviderConfigurationMutationKey = () => ["saveAiProviderConfiguration"] as const
+
 export const getSaveAiProviderConfigurationMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -337,7 +339,7 @@ export const getSaveAiProviderConfigurationMutationOptions = <
 	SaveAiProviderConfigurationMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["saveAiProviderConfiguration"]
+	const mutationKey = getSaveAiProviderConfigurationMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -466,6 +468,8 @@ export const discoverAiProviderModels = async (
 	return { data, status: res.status, headers: res.headers } as discoverAiProviderModelsResponseSuccess
 }
 
+export const getDiscoverAiProviderModelsMutationKey = () => ["discoverAiProviderModels"] as const
+
 export const getDiscoverAiProviderModelsMutationOptions = <
 	TError = globalThis.Error & {
 		info?: DiscoverAiProviderModels400 | ErrorResponse | DiscoverAiProviderModels429 | DiscoverAiProviderModels502
@@ -486,7 +490,7 @@ export const getDiscoverAiProviderModelsMutationOptions = <
 	DiscoverAiProviderModelsMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["discoverAiProviderModels"]
+	const mutationKey = getDiscoverAiProviderModelsMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options

@@ -15,22 +15,22 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@ai-sdk/amazon-bedrock": "5.0.61",
-		"@ai-sdk/anthropic": "4.0.41",
-		"@ai-sdk/azure": "4.0.48",
-		"@ai-sdk/google": "4.0.50",
-		"@ai-sdk/mistral": "4.0.32",
-		"@ai-sdk/openai": "4.0.46",
-		"@ai-sdk/openai-compatible": "3.0.35",
+		"@ai-sdk/amazon-bedrock": "5.0.67",
+		"@ai-sdk/anthropic": "4.0.45",
+		"@ai-sdk/azure": "4.0.53",
+		"@ai-sdk/google": "4.0.57",
+		"@ai-sdk/mistral": "4.0.36",
+		"@ai-sdk/openai": "4.0.51",
+		"@ai-sdk/openai-compatible": "3.0.40",
 		"@ai-sdk/provider": "4.0.8",
 		"@azure/identity": "4.13.2",
 		"@hono/zod-openapi": "1.6.1",
 		"@talqo/shared": "workspace:*",
-		"ai": "7.0.77",
+		"ai": "7.0.84",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.13.5",
 		"postgres": "3.4.9",
-		"zod": "4.4.3"
+		"zod": "4.5.4"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",

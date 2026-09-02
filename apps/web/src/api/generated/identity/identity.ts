@@ -102,6 +102,8 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 	return { data, status: res.status, headers: res.headers } as loginResponseSuccess
 }
 
+export const getLoginMutationKey = () => ["login"] as const
+
 export const getLoginMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -109,7 +111,7 @@ export const getLoginMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext> => {
-	const mutationKey = ["login"]
+	const mutationKey = getLoginMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -179,6 +181,8 @@ export const logout = async (options?: RequestInit): Promise<logoutResponseSucce
 	return { data, status: res.status, headers: res.headers } as logoutResponseSuccess
 }
 
+export const getLogoutMutationKey = () => ["logout"] as const
+
 export const getLogoutMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -186,7 +190,7 @@ export const getLogoutMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext> => {
-	const mutationKey = ["logout"]
+	const mutationKey = getLogoutMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -367,6 +371,8 @@ export const updateAccount = async (
 	return { data, status: res.status, headers: res.headers } as updateAccountResponseSuccess
 }
 
+export const getUpdateAccountMutationKey = () => ["updateAccount"] as const
+
 export const getUpdateAccountMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -379,7 +385,7 @@ export const getUpdateAccountMutationOptions = <
 	>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
-	const mutationKey = ["updateAccount"]
+	const mutationKey = getUpdateAccountMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -462,6 +468,8 @@ export const deleteAccount = async (options?: RequestInit): Promise<deleteAccoun
 	return { data, status: res.status, headers: res.headers } as deleteAccountResponseSuccess
 }
 
+export const getDeleteAccountMutationKey = () => ["deleteAccount"] as const
+
 export const getDeleteAccountMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -469,7 +477,7 @@ export const getDeleteAccountMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext> => {
-	const mutationKey = ["deleteAccount"]
+	const mutationKey = getDeleteAccountMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -562,6 +570,8 @@ export const changePassword = async (
 	return { data, status: res.status, headers: res.headers } as changePasswordResponseSuccess
 }
 
+export const getChangePasswordMutationKey = () => ["changePassword"] as const
+
 export const getChangePasswordMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -579,7 +589,7 @@ export const getChangePasswordMutationOptions = <
 	ChangePasswordMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["changePassword"]
+	const mutationKey = getChangePasswordMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -693,6 +703,8 @@ export const completeForcedPasswordChange = async (
 	return { data, status: res.status, headers: res.headers } as completeForcedPasswordChangeResponseSuccess
 }
 
+export const getCompleteForcedPasswordChangeMutationKey = () => ["completeForcedPasswordChange"] as const
+
 export const getCompleteForcedPasswordChangeMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -710,7 +722,7 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["completeForcedPasswordChange"]
+	const mutationKey = getCompleteForcedPasswordChangeMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options

@@ -7,7 +7,7 @@ Also include related tickets/issues here.
 
 ## How to test
 
-<!-- Describe all steps needed to test the changes. -->
+<!-- Describe all steps needed to test the changes by the reviewer. No CI pipeline commands belong here. -->
 
 ## Review / Merge checklist
 
