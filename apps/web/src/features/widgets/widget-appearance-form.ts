@@ -35,7 +35,7 @@ export const widgetFormSchema = z.object({
 })
 
 export type WidgetFormValues = z.infer<typeof widgetFormSchema>
-export type WidgetSchemeFormValues = z.infer<typeof schemeSchema>
+type WidgetSchemeFormValues = z.infer<typeof schemeSchema>
 
 export const WIDGET_FORM_DEFAULTS: Omit<WidgetFormValues, "agentId" | "name"> = {
 	light: DEFAULT_WIDGET_APPEARANCE.light,

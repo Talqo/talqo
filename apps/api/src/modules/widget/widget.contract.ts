@@ -67,7 +67,7 @@ const appearanceResponseSchema = z
 	})
 	.openapi("WidgetAppearance")
 
-export const widgetResponseSchema = z
+const widgetResponseSchema = z
 	.object({
 		id: z.string(),
 		agentId: z.string(),
@@ -94,8 +94,8 @@ const widgetInputSchema = z.object({
 	appearance: appearanceInputSchema,
 })
 
-export const createWidgetRequestSchema = widgetInputSchema
-export const updateWidgetRequestSchema = widgetInputSchema
+const createWidgetRequestSchema = widgetInputSchema
+const updateWidgetRequestSchema = widgetInputSchema
 
 export const widgetDetailResponseSchema = z.object({ widget: widgetResponseSchema })
 export const widgetListResponseSchema = z.object({ widgets: z.array(widgetResponseSchema) })

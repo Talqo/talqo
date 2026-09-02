@@ -5,9 +5,9 @@ import * as repo from "./widget.repository.ts"
 import * as service from "./widget.service.ts"
 
 /** Fixed so the E2E host-page fixture can embed a known widget; real tokens are random. */
-export const E2E_WIDGET_TOKEN = "e2e-marketing-widget-token"
+const E2E_WIDGET_TOKEN = "e2e-marketing-widget-token"
 
-export const E2E_WIDGET_PRIMARY = "#7c3aed"
+const E2E_WIDGET_PRIMARY = "#7c3aed"
 
 export async function reset(): Promise<void> {
 	await sql`TRUNCATE TABLE widget CASCADE`

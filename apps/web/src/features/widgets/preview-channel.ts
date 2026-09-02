@@ -4,7 +4,7 @@ import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
  * Dashboard side of the preview channel; the widget declares the same shape in
  * `apps/widget/src/lib/preview-channel.ts`. Apps never import each other.
  */
-export const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
+const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
 export const PREVIEW_CHANNEL_VERSION = 1
 
 export type PreviewReadyMessage = {
