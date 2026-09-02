@@ -51,6 +51,8 @@
 		"saved": "Saved just now.",
 		"saving": "Saving…",
 		"subheading": "Update the agent's name, behavior, and blocked words.",
+		"tabConfiguration": "Configuration",
+		"tabContext": "Context",
 		"wasDeleted": "This agent was deleted elsewhere. Go back to the list for the current state."
 	},
 	"agentFields": {
@@ -61,6 +63,33 @@
 		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
 		"systemPromptRequired": "System prompt is required.",
 		"wordBlacklist": "Word blacklist"
+	},
+	"agentFiles": {
+		"cardDescription": "Accepted types: {{formats}}. Max {{maxSizeMB}} MB per file.",
+		"cardTitle": "Knowledge files",
+		"delete": "Delete {{name}}",
+		"deleteAction": "Delete file",
+		"deleteCancel": "Cancel",
+		"deleteConfirm": "Delete",
+		"deleteFailed": "The file could not be deleted. Try again.",
+		"deletePrompt": "This permanently removes the file from the agent’s knowledge. This cannot be undone.",
+		"deleteTitle": "Delete file",
+		"deleting": "Deleting…",
+		"dropzone": "Drag files here, or click to browse",
+		"dropzoneHint": "No knowledge files yet. Upload the sources the agent should answer from.",
+		"loadFailed": "Could not load the knowledge files.",
+		"loading": "Loading files…",
+		"rename": "Rename {{name}}",
+		"renameAction": "Rename file",
+		"renameDescription": "Give the file a new name.",
+		"renameExtensionKept": "The {{extension}} extension is kept automatically.",
+		"renameFailed": "The file could not be renamed. Try again.",
+		"renameLabel": "File name",
+		"renameSave": "Rename",
+		"renameTitle": "Rename file",
+		"tooLarge": "Each file must be {{maxSizeMB}} MB or smaller.",
+		"uploadFailed": "Upload failed. Try again.",
+		"uploading": "Uploading…"
 	},
 	"agents": {
 		"create": "Create agent",

@@ -110,8 +110,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Not started |
-| FR-2.15 | Operator can delete files from the knowledge base | Medium | Not started |
+| FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | In progress |
+| FR-2.15 | Operator can delete files from the knowledge base | Medium | Done |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
 | FR-2.17 | Operator can explicitly configure the provider and embedding model identifier used to index knowledge base content | Medium | Done |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |

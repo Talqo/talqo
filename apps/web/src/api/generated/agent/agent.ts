@@ -19,10 +19,15 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import type { CreateAgent201 } from "../models/agent/createAgent201.zod"
 import type { CreateAgentBody } from "../models/agent/createAgentBody.zod"
 import type { GetAgent200 } from "../models/agent/getAgent200.zod"
+import type { ListAgentFiles200 } from "../models/agent/listAgentFiles200.zod"
 import type { ListAgents200 } from "../models/agent/listAgents200.zod"
 import type { RefreshEmbedToken200 } from "../models/agent/refreshEmbedToken200.zod"
+import type { RenameAgentFile200 } from "../models/agent/renameAgentFile200.zod"
+import type { RenameAgentFileBody } from "../models/agent/renameAgentFileBody.zod"
 import type { UpdateAgent200 } from "../models/agent/updateAgent200.zod"
 import type { UpdateAgentBody } from "../models/agent/updateAgentBody.zod"
+import type { UploadAgentFile201 } from "../models/agent/uploadAgentFile201.zod"
+import type { UploadAgentFileBody } from "../models/agent/uploadAgentFileBody.zod"
 import type { ErrorResponse } from "../models/errorResponse.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
@@ -707,4 +712,525 @@ export const useRefreshEmbedToken = <
 	TContext
 > => {
 	return useMutation(getRefreshEmbedTokenMutationOptions(options))
+}
+export type listAgentFilesResponse200 = {
+	data: ListAgentFiles200
+	status: 200
+}
+
+export type listAgentFilesResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type listAgentFilesResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type listAgentFilesResponse404 = {
+	data: ErrorResponse
+	status: 404
+}
+
+export type listAgentFilesResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type listAgentFilesResponseSuccess = listAgentFilesResponse200 & {
+	headers: Headers
+}
+export type listAgentFilesResponseError = (
+	| listAgentFilesResponse401
+	| listAgentFilesResponse403
+	| listAgentFilesResponse404
+	| listAgentFilesResponse500
+) & {
+	headers: Headers
+}
+
+export const getListAgentFilesUrl = (agentId: string) => {
+	return `/api/agents/${agentId}/files`
+}
+
+export const listAgentFiles = async (
+	agentId: string,
+	options?: RequestInit,
+): Promise<listAgentFilesResponseSuccess> => {
+	const res = await fetch(getListAgentFilesUrl(agentId), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: listAgentFilesResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: listAgentFilesResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: listAgentFilesResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as listAgentFilesResponseSuccess
+}
+
+export const getListAgentFilesQueryKey = (agentId: string) => {
+	return [`/api/agents/${agentId}/files`] as const
+}
+
+export const getListAgentFilesQueryOptions = <
+	TData = Awaited<ReturnType<typeof listAgentFiles>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(
+	agentId: string,
+	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>; fetch?: RequestInit },
+) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getListAgentFilesQueryKey(agentId)
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentFiles>>> = ({ signal }) =>
+		listAgentFiles(agentId, { signal, ...fetchOptions })
+
+	return { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof listAgentFiles>>,
+		TError,
+		TData
+	> & { queryKey: QueryKey }
+}
+
+export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
+export type ListAgentFilesQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+
+export function useListAgentFiles<
+	TData = Awaited<ReturnType<typeof listAgentFiles>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(
+	agentId: string,
+	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>; fetch?: RequestInit },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getListAgentFilesQueryOptions(agentId, options)
+
+	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
+export type uploadAgentFileResponse201 = {
+	data: UploadAgentFile201
+	status: 201
+}
+
+export type uploadAgentFileResponse400 = {
+	data: ErrorResponse
+	status: 400
+}
+
+export type uploadAgentFileResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type uploadAgentFileResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type uploadAgentFileResponse404 = {
+	data: ErrorResponse
+	status: 404
+}
+
+export type uploadAgentFileResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
+export type uploadAgentFileResponse413 = {
+	data: ErrorResponse
+	status: 413
+}
+
+export type uploadAgentFileResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type uploadAgentFileResponseSuccess = uploadAgentFileResponse201 & {
+	headers: Headers
+}
+export type uploadAgentFileResponseError = (
+	| uploadAgentFileResponse400
+	| uploadAgentFileResponse401
+	| uploadAgentFileResponse403
+	| uploadAgentFileResponse404
+	| uploadAgentFileResponse409
+	| uploadAgentFileResponse413
+	| uploadAgentFileResponse500
+) & {
+	headers: Headers
+}
+
+export const getUploadAgentFileUrl = (agentId: string) => {
+	return `/api/agents/${agentId}/files`
+}
+
+export const uploadAgentFile = async (
+	agentId: string,
+	uploadAgentFileBody: UploadAgentFileBody,
+	options?: RequestInit,
+): Promise<uploadAgentFileResponseSuccess> => {
+	const formData = new FormData()
+	formData.append(`file`, uploadAgentFileBody.file)
+
+	const res = await fetch(getUploadAgentFileUrl(agentId), {
+		credentials: "include",
+		...options,
+		method: "POST",
+		body: formData,
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: uploadAgentFileResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: uploadAgentFileResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: uploadAgentFileResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as uploadAgentFileResponseSuccess
+}
+
+export const getUploadAgentFileMutationOptions = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof uploadAgentFile>>,
+		TError,
+		UploadAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof uploadAgentFile>>,
+	TError,
+	UploadAgentFileMutationVariables,
+	TContext
+> => {
+	const mutationKey = ["uploadAgentFile"]
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadAgentFile>>, UploadAgentFileMutationVariables> = (
+		props,
+	) => {
+		const { agentId, data } = props ?? {}
+
+		return uploadAgentFile(agentId, data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type UploadAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadAgentFile>>>
+export type UploadAgentFileMutationBody = UploadAgentFileBody
+export type UploadAgentFileMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type UploadAgentFileMutationVariables = { agentId: string; data: UploadAgentFileBody }
+
+export const useUploadAgentFile = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof uploadAgentFile>>,
+		TError,
+		UploadAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationResult<
+	Awaited<ReturnType<typeof uploadAgentFile>>,
+	TError,
+	UploadAgentFileMutationVariables,
+	TContext
+> => {
+	return useMutation(getUploadAgentFileMutationOptions(options))
+}
+export type renameAgentFileResponse200 = {
+	data: RenameAgentFile200
+	status: 200
+}
+
+export type renameAgentFileResponse400 = {
+	data: ErrorResponse
+	status: 400
+}
+
+export type renameAgentFileResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type renameAgentFileResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type renameAgentFileResponse404 = {
+	data: ErrorResponse
+	status: 404
+}
+
+export type renameAgentFileResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
+export type renameAgentFileResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type renameAgentFileResponseSuccess = renameAgentFileResponse200 & {
+	headers: Headers
+}
+export type renameAgentFileResponseError = (
+	| renameAgentFileResponse400
+	| renameAgentFileResponse401
+	| renameAgentFileResponse403
+	| renameAgentFileResponse404
+	| renameAgentFileResponse409
+	| renameAgentFileResponse500
+) & {
+	headers: Headers
+}
+
+export const getRenameAgentFileUrl = (agentId: string, fileName: string) => {
+	return `/api/agents/${agentId}/files/${fileName}`
+}
+
+export const renameAgentFile = async (
+	agentId: string,
+	fileName: string,
+	renameAgentFileBody: RenameAgentFileBody,
+	options?: RequestInit,
+): Promise<renameAgentFileResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
+	}
+	const res = await fetch(getRenameAgentFileUrl(agentId, fileName), {
+		credentials: "include",
+		...options,
+		method: "PATCH",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(renameAgentFileBody),
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: renameAgentFileResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: renameAgentFileResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: renameAgentFileResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as renameAgentFileResponseSuccess
+}
+
+export const getRenameAgentFileMutationOptions = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof renameAgentFile>>,
+		TError,
+		RenameAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof renameAgentFile>>,
+	TError,
+	RenameAgentFileMutationVariables,
+	TContext
+> => {
+	const mutationKey = ["renameAgentFile"]
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof renameAgentFile>>, RenameAgentFileMutationVariables> = (
+		props,
+	) => {
+		const { agentId, fileName, data } = props ?? {}
+
+		return renameAgentFile(agentId, fileName, data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type RenameAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof renameAgentFile>>>
+export type RenameAgentFileMutationBody = RenameAgentFileBody
+export type RenameAgentFileMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type RenameAgentFileMutationVariables = { agentId: string; fileName: string; data: RenameAgentFileBody }
+
+export const useRenameAgentFile = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof renameAgentFile>>,
+		TError,
+		RenameAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationResult<
+	Awaited<ReturnType<typeof renameAgentFile>>,
+	TError,
+	RenameAgentFileMutationVariables,
+	TContext
+> => {
+	return useMutation(getRenameAgentFileMutationOptions(options))
+}
+export type deleteAgentFileResponse204 = {
+	data: void
+	status: 204
+}
+
+export type deleteAgentFileResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type deleteAgentFileResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type deleteAgentFileResponse404 = {
+	data: ErrorResponse
+	status: 404
+}
+
+export type deleteAgentFileResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type deleteAgentFileResponseSuccess = deleteAgentFileResponse204 & {
+	headers: Headers
+}
+export type deleteAgentFileResponseError = (
+	| deleteAgentFileResponse401
+	| deleteAgentFileResponse403
+	| deleteAgentFileResponse404
+	| deleteAgentFileResponse500
+) & {
+	headers: Headers
+}
+
+export const getDeleteAgentFileUrl = (agentId: string, fileName: string) => {
+	return `/api/agents/${agentId}/files/${fileName}`
+}
+
+export const deleteAgentFile = async (
+	agentId: string,
+	fileName: string,
+	options?: RequestInit,
+): Promise<deleteAgentFileResponseSuccess> => {
+	const res = await fetch(getDeleteAgentFileUrl(agentId, fileName), {
+		credentials: "include",
+		...options,
+		method: "DELETE",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: deleteAgentFileResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: deleteAgentFileResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: deleteAgentFileResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as deleteAgentFileResponseSuccess
+}
+
+export const getDeleteAgentFileMutationOptions = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof deleteAgentFile>>,
+		TError,
+		DeleteAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof deleteAgentFile>>,
+	TError,
+	DeleteAgentFileMutationVariables,
+	TContext
+> => {
+	const mutationKey = ["deleteAgentFile"]
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAgentFile>>, DeleteAgentFileMutationVariables> = (
+		props,
+	) => {
+		const { agentId, fileName } = props ?? {}
+
+		return deleteAgentFile(agentId, fileName, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type DeleteAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentFile>>>
+
+export type DeleteAgentFileMutationError = globalThis.Error & { info?: ErrorResponse; status?: number }
+export type DeleteAgentFileMutationVariables = { agentId: string; fileName: string }
+
+export const useDeleteAgentFile = <
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof deleteAgentFile>>,
+		TError,
+		DeleteAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationResult<
+	Awaited<ReturnType<typeof deleteAgentFile>>,
+	TError,
+	DeleteAgentFileMutationVariables,
+	TContext
+> => {
+	return useMutation(getDeleteAgentFileMutationOptions(options))
 }

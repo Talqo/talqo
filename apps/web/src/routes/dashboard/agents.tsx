@@ -1,6 +1,7 @@
 import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { nextDefaultAgentName } from "@/features/agents/default-agent-name"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
@@ -30,6 +31,7 @@ function AgentCardMetric({ icon: Icon, label }: { icon: typeof MessageSquare; la
 }
 
 const FORBIDDEN_STATUS = 403
+const CONFLICT_STATUS = 409
 
 function AgentsPage() {
 	const { t } = useTranslation()
@@ -50,7 +52,7 @@ function AgentsPage() {
 		try {
 			const result = await createAgent.mutateAsync({
 				data: {
-					name: t("agents.defaultName"),
+					name: nextDefaultAgentName(agents?.map((agent) => agent.name) ?? [], t("agents.defaultName")),
 					systemPrompt: t("agents.defaultSystemPrompt"),
 					wordBlacklist: [],
 				},
@@ -59,10 +61,13 @@ function AgentsPage() {
 			await refetch()
 			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id } })
 		} catch (caught) {
+			const status = (caught as CreateAgentMutationError).status
 			setCreateError(
-				(caught as CreateAgentMutationError).status === FORBIDDEN_STATUS
+				status === FORBIDDEN_STATUS
 					? t("agents.manageForbidden")
-					: t("agents.createFailed"),
+					: status === CONFLICT_STATUS
+						? t("agents.nameConflict")
+						: t("agents.createFailed"),
 			)
 		}
 	}

@@ -12,7 +12,7 @@
 		"build": "turbo run build",
 		"ci": "bun run --sequential actions:check contracts:check quality i18n typecheck test build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated | grep .",
-		"contracts:generate": "bun run --cwd apps/api openapi:generate && bunx oxfmt apps/api/openapi.json && bunx orval --config orval.config.ts --fail-on-warnings && bunx oxfmt apps/web/src/api/generated",
+		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x oxfmt apps/api/openapi.json && bun x orval --config orval.config.ts --fail-on-warnings && bun x oxfmt apps/web/src/api/generated",
 		"dev": "bun scripts/dev.ts",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",
 		"e2e": "turbo run e2e --output-logs=errors-only",

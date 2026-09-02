@@ -51,6 +51,8 @@
 		"saved": "Uloženo právě teď.",
 		"saving": "Ukládání…",
 		"subheading": "Aktualizujte název, chování a blokovaná slova agenta.",
+		"tabConfiguration": "Konfigurace",
+		"tabContext": "Kontext",
 		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na aktuální seznam."
 	},
 	"agentFields": {
@@ -61,6 +63,33 @@
 		"systemPromptPlaceholder": "Jste nápomocný asistent zákaznické podpory...",
 		"systemPromptRequired": "Systémový prompt je povinný.",
 		"wordBlacklist": "Blacklist slov"
+	},
+	"agentFiles": {
+		"cardDescription": "Podporované typy: {{formats}}. Maximálně {{maxSizeMB}} MB na soubor.",
+		"cardTitle": "Znalostní soubory",
+		"delete": "Smazat {{name}}",
+		"deleteAction": "Smazat soubor",
+		"deleteCancel": "Zrušit",
+		"deleteConfirm": "Smazat",
+		"deleteFailed": "Soubor se nepodařilo smazat. Zkuste to znovu.",
+		"deletePrompt": "Tímto se soubor trvale odstraní ze znalostí agenta. Tuto akci nelze vrátit zpět.",
+		"deleteTitle": "Smazat soubor",
+		"deleting": "Mazání…",
+		"dropzone": "Přetáhněte soubory sem, nebo klikněte pro výběr",
+		"dropzoneHint": "Zatím žádné znalostní soubory. Nahrajte zdroje, ze kterých má agent odpovídat.",
+		"loadFailed": "Znalostní soubory se nepodařilo načíst.",
+		"loading": "Načítání souborů…",
+		"rename": "Přejmenovat {{name}}",
+		"renameAction": "Přejmenovat soubor",
+		"renameDescription": "Zadejte nový název souboru.",
+		"renameExtensionKept": "Přípona {{extension}} se zachová automaticky.",
+		"renameFailed": "Soubor se nepodařilo přejmenovat. Zkuste to znovu.",
+		"renameLabel": "Název souboru",
+		"renameSave": "Přejmenovat",
+		"renameTitle": "Přejmenovat soubor",
+		"tooLarge": "Každý soubor může mít maximálně {{maxSizeMB}} MB.",
+		"uploadFailed": "Nahrávání se nezdařilo. Zkuste to znovu.",
+		"uploading": "Nahrávání…"
 	},
 	"agents": {
 		"create": "Vytvořit agenta",

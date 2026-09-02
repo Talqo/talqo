@@ -32,6 +32,9 @@ dist/
 # Private files for personal use
 /private/
 
+# Integration-test uploads (TALQO_UPLOAD_DIR in scripts/test-integration.ts); root-only so app code dirs named tmp stay tracked
+/tmp/
+
 # Git worktrees
 .worktrees/
 .claude/worktrees/
