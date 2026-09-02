@@ -1325,7 +1325,7 @@
 									"newPassword": {
 										"type": "string",
 										"minLength": 8,
-										"maxLength": 72
+										"maxLength": 128
 									}
 								},
 								"required": ["currentPassword", "newPassword"]
@@ -1389,7 +1389,7 @@
 									"newPassword": {
 										"type": "string",
 										"minLength": 8,
-										"maxLength": 72
+										"maxLength": 128
 									}
 								},
 								"required": ["newPassword"]
@@ -1549,7 +1549,7 @@
 									"password": {
 										"type": "string",
 										"minLength": 8,
-										"maxLength": 72
+										"maxLength": 128
 									}
 								},
 								"required": ["username", "password"]
@@ -1695,7 +1695,7 @@
 									"password": {
 										"type": "string",
 										"minLength": 8,
-										"maxLength": 72
+										"maxLength": 128
 									}
 								},
 								"required": ["token", "username", "password"]
@@ -2084,7 +2084,7 @@
 									"newPassword": {
 										"type": "string",
 										"minLength": 8,
-										"maxLength": 72
+										"maxLength": 128
 									}
 								},
 								"required": ["newPassword"]

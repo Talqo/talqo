@@ -13,7 +13,7 @@ export const redeemInvitationBodyUsernameMax = 32
 
 export const redeemInvitationBodyUsernameRegExp = new RegExp("^[a-zA-Z0-9_-]+$")
 export const redeemInvitationBodyPasswordMin = 8
-export const redeemInvitationBodyPasswordMax = 72
+export const redeemInvitationBodyPasswordMax = 128
 
 export const RedeemInvitationBody = zod.object({
 	token: zod.string().min(1).max(redeemInvitationBodyTokenMax),
