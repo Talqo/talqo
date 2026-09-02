@@ -14,7 +14,10 @@
 	--talqo-border: #e5e5e5;
 	--talqo-input: #e5e5e5;
 	--talqo-ring: #1a7f4b;
-	--talqo-radius: 0.75rem;
+	--talqo-radius-item: 9999px;
+	--talqo-radius-control: 9999px;
+	--talqo-radius-surface: 0.75rem;
+	--talqo-radius-overlay: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {

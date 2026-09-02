@@ -153,7 +153,7 @@ function WidgetChat({
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-overlay tw:border tw:border-border tw:bg-card tw:shadow-lg"
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
@@ -162,7 +162,7 @@ function WidgetChat({
 						}
 					}}
 				>
-					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
+					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3.5">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 						<button
 							type="button"
@@ -173,7 +173,7 @@ function WidgetChat({
 							<CloseIcon aria-hidden="true" />
 						</button>
 					</header>
-					<div className="tw:flex-1 tw:overflow-y-auto tw:p-3" aria-live="polite">
+					<div className="tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
 						<BubbleGroup>
 							{messages.map((message) => (
 								<Bubble key={message.id} align={message.from === "user" ? "end" : "start"}>
@@ -187,7 +187,7 @@ function WidgetChat({
 							))}
 						</BubbleGroup>
 					</div>
-					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-3">
+					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">
 						<input
 							type="text"
 							value={draft}
@@ -195,12 +195,12 @@ function WidgetChat({
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
 							autoFocus
-							className="tw:min-w-0 tw:flex-1 tw:rounded-md tw:border tw:border-input tw:bg-background tw:px-3 tw:py-2 tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
+							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-background tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
 						<button
 							type="submit"
 							aria-label={t("send")}
-							className="tw:shrink-0 tw:rounded-md tw:bg-primary tw:p-2 tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90"
+							className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90"
 						>
 							<SendIcon aria-hidden="true" />
 						</button>

@@ -79,7 +79,7 @@ export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }:
 				)}
 			</div>
 			{error ? (
-				<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+				<p className="bg-destructive/10 text-destructive rounded-surface p-4 text-sm" role="alert">
 					{error}
 				</p>
 			) : null}
