@@ -20,4 +20,3 @@ export const invitationRegistrationFormSchema = RedeemInvitationBody.omit({ toke
 	.refine(passwordsMatch, passwordConfirmationIssue)
 
 export type CredentialsFormValues = z.infer<typeof credentialsFormSchema>
-export type RegistrationFormValues = z.infer<typeof registrationFormSchema>

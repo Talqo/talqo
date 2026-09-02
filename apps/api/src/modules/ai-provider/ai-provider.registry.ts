@@ -15,11 +15,11 @@ export type AiProviderId = (typeof AI_PROVIDER_IDS)[number]
 export const AUTH_MODES = ["static", "deployment-identity"] as const
 export type AuthMode = (typeof AUTH_MODES)[number]
 
-export const SETTING_FIELDS = ["baseURL", "project", "apiVersion", "region"] as const
-export type SettingField = (typeof SETTING_FIELDS)[number]
+const SETTING_FIELDS = ["baseURL", "project", "apiVersion", "region"] as const
+type SettingField = (typeof SETTING_FIELDS)[number]
 
-export const CREDENTIAL_FIELDS = ["apiKey", "accessKeyId", "secretAccessKey", "sessionToken"] as const
-export type CredentialField = (typeof CREDENTIAL_FIELDS)[number]
+const CREDENTIAL_FIELDS = ["apiKey", "accessKeyId", "secretAccessKey", "sessionToken"] as const
+type CredentialField = (typeof CREDENTIAL_FIELDS)[number]
 
 export type ProviderDefinition = {
 	authModes: readonly AuthMode[]

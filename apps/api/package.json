@@ -26,7 +26,6 @@
 		"@azure/identity": "4.13.2",
 		"@hono/zod-openapi": "1.6.1",
 		"@talqo/shared": "workspace:*",
-		"ai": "7.0.84",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.13.5",
 		"postgres": "3.4.9",

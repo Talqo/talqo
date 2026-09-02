@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 import { internalServerErrorResponse } from "./openapi.ts"
 
-export const healthResponseSchema = z
+const healthResponseSchema = z
 	.object({
 		status: z.literal("ok"),
 	})
