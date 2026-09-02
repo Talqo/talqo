@@ -1,5 +1,7 @@
 {
 	"account": {
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
@@ -10,8 +12,6 @@
 		"email": "E-mail",
 		"emailInvalid": "Zadejte platnou e-mailovou adresu.",
 		"heading": "Účet",
-		"changePassword": "Změnit heslo",
-		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"name": "Jméno",
 		"nameRequired": "Jméno je povinné.",
 		"newPassword": "Nové heslo",
