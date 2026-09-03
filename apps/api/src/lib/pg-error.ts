@@ -22,7 +22,10 @@ export function isForeignKeyViolation(error: unknown): boolean {
 	return hasPgErrorCode(error, FOREIGN_KEY_VIOLATION)
 }
 
-/** ON DELETE RESTRICT blocking a delete, distinct from the 23503 a missing parent raises. */
+/**
+ * ON DELETE RESTRICT blocking a delete. Postgres 18 reports 23001 here; older servers, which a
+ * self-hosted DATABASE_URL may point at, report the plain 23503 an insert also raises.
+ */
 export function isRestrictViolation(error: unknown): boolean {
-	return hasPgErrorCode(error, RESTRICT_VIOLATION)
+	return hasPgErrorCode(error, RESTRICT_VIOLATION) || hasPgErrorCode(error, FOREIGN_KEY_VIOLATION)
 }

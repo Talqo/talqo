@@ -14,13 +14,14 @@ describe("pg error predicates", () => {
 
 	it("recognizes the 23503 an insert raises for a missing parent row", () => {
 		expect(isForeignKeyViolation(wrapped("23503"))).toBe(true)
+		expect(isForeignKeyViolation(wrapped("23001"))).toBe(false)
 	})
 
-	// ON DELETE RESTRICT reports 23001, not 23503.
-	it("recognizes the 23001 an ON DELETE RESTRICT raises", () => {
+	// Postgres 18 reports a blocked delete as 23001; older servers report 23503.
+	it("recognizes an ON DELETE RESTRICT on either server generation", () => {
 		expect(isRestrictViolation(wrapped("23001"))).toBe(true)
-		expect(isForeignKeyViolation(wrapped("23001"))).toBe(false)
-		expect(isRestrictViolation(wrapped("23503"))).toBe(false)
+		expect(isRestrictViolation(wrapped("23503"))).toBe(true)
+		expect(isRestrictViolation(wrapped("23505"))).toBe(false)
 	})
 
 	it("reads the code straight off an unwrapped driver error", () => {
