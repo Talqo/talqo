@@ -1,6 +1,12 @@
 import { createRoot, type Root } from "react-dom/client"
 
-import { EmbeddedWidget, type EmbeddedWidgetProps, type WidgetPosition, type WidgetTheme } from "./embedded-widget"
+import {
+	defaultWidgetPosition,
+	EmbeddedWidget,
+	type EmbeddedWidgetProps,
+	isWidgetPosition,
+	type WidgetTheme,
+} from "./embedded-widget"
 import { isWidgetLanguage } from "./lib/i18n"
 
 let root: Root | null = null
@@ -23,7 +29,7 @@ function embedScriptDataset(): DOMStringMap | undefined {
 function embedProps(): EmbeddedWidgetProps {
 	const dataset = embedScriptDataset()
 	if (!dataset) {
-		return {}
+		return { position: defaultWidgetPosition }
 	}
 	const { talqoEmbedToken, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
 	return {
@@ -32,10 +38,7 @@ function embedProps(): EmbeddedWidgetProps {
 		title: talqoTitle,
 		theme: talqoTheme === "light" || talqoTheme === "dark" ? (talqoTheme as WidgetTheme) : undefined,
 		accent: talqoAccent,
-		position:
-			talqoPosition === "bottom-left" || talqoPosition === "bottom-right"
-				? (talqoPosition as WidgetPosition)
-				: undefined,
+		position: isWidgetPosition(talqoPosition) ? talqoPosition : defaultWidgetPosition,
 	}
 }
 

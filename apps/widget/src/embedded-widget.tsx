@@ -1,9 +1,19 @@
 import { cn } from "@talqo/ui/lib/utils"
-import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
+import {
+	type CSSProperties,
+	type FormEvent,
+	type KeyboardEvent,
+	type PointerEvent as ReactPointerEvent,
+	type RefObject,
+	useEffect,
+	useRef,
+	useState,
+} from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
+import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i18n"
@@ -11,7 +21,15 @@ import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i
 import "./index.css"
 
 export type WidgetTheme = "light" | "dark"
-export type WidgetPosition = "bottom-right" | "bottom-left"
+
+export const widgetPositions = ["bottom-right", "bottom-left"] as const
+export type WidgetPosition = (typeof widgetPositions)[number]
+// Float in the corner by default; embeds can pin it via data-talqo-position.
+export const defaultWidgetPosition: WidgetPosition = "bottom-right"
+
+export function isWidgetPosition(value: unknown): value is WidgetPosition {
+	return typeof value === "string" && widgetPositions.includes(value as WidgetPosition)
+}
 
 export type EmbeddedWidgetProps = {
 	title?: string
@@ -25,6 +43,21 @@ export type EmbeddedWidgetProps = {
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
+}
+
+type ResizeEdge = "top" | "side" | "corner"
+
+const MIN_WIDTH = 280
+const MIN_HEIGHT = 320
+const RESIZE_MARGIN = 32
+
+function clampPanelSize(width: number, height: number): { width: number; height: number } {
+	return {
+		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
+		height: Math.round(
+			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_MARGIN)),
+		),
+	}
 }
 
 type Message = {
@@ -91,6 +124,80 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
+function useResizablePanel(
+	open: boolean,
+	position: WidgetPosition | undefined,
+	panelRef: RefObject<HTMLDivElement | null>,
+) {
+	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+	// Free resize is desktop-only; mobile keeps the default panel size.
+	const [resizable, setResizable] = useState(
+		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,
+	)
+
+	useEffect(() => {
+		const query = window.matchMedia("(min-width: 640px) and (pointer: fine)")
+		const onChange = (event: MediaQueryListEvent) => {
+			setResizable(event.matches)
+			if (!event.matches) {
+				setSize(null)
+			}
+		}
+		query.addEventListener("change", onChange)
+		return () => query.removeEventListener("change", onChange)
+	}, [])
+
+	// Reset the custom size when the chat closes; render-time reset avoids an extra render pass.
+	const [prevOpen, setPrevOpen] = useState(open)
+	if (prevOpen !== open) {
+		setPrevOpen(open)
+		if (!open) {
+			setSize(null)
+		}
+	}
+
+	// Which edge is mid-drag; used to keep its highlight visible while resizing.
+	const [activeEdge, setActiveEdge] = useState<ResizeEdge | null>(null)
+
+	function startResize(edge: ResizeEdge, event: ReactPointerEvent<HTMLDivElement>) {
+		if (event.pointerType === "touch" || !panelRef.current) {
+			return
+		}
+		event.preventDefault()
+		setActiveEdge(edge)
+		const anchor = panelRef.current.getBoundingClientRect()
+		// The panel's bottom screen edge stays pinned: for bottom-right (default)
+		// it is the right edge, for bottom-left the left edge.
+		const side = position === "bottom-left" ? "left" : "right"
+		const anchorX = side === "right" ? anchor.right : anchor.left
+		const anchorBottom = anchor.bottom
+		const pointerId = event.pointerId
+
+		function handleMove(moveEvent: PointerEvent) {
+			if (moveEvent.pointerId !== pointerId) {
+				return
+			}
+			const rawWidth = side === "right" ? anchorX - moveEvent.clientX : moveEvent.clientX - anchorX
+			const rawHeight = anchorBottom - moveEvent.clientY
+			setSize(clampPanelSize(edge === "top" ? anchor.width : rawWidth, edge === "side" ? anchor.height : rawHeight))
+		}
+		function handleEnd(endEvent: PointerEvent) {
+			if (endEvent.pointerId !== pointerId) {
+				return
+			}
+			setActiveEdge(null)
+			window.removeEventListener("pointermove", handleMove)
+			window.removeEventListener("pointerup", handleEnd)
+			window.removeEventListener("pointercancel", handleEnd)
+		}
+		window.addEventListener("pointermove", handleMove)
+		window.addEventListener("pointerup", handleEnd)
+		window.addEventListener("pointercancel", handleEnd)
+	}
+
+	return { size, resizable, startResize, activeEdge }
+}
+
 function WidgetChat({
 	title,
 	theme,
@@ -111,6 +218,7 @@ function WidgetChat({
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
+	const { size, resizable, startResize, activeEdge } = useResizablePanel(open, position, panelRef)
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -128,6 +236,8 @@ function WidgetChat({
 		setMessages((prev) => [...prev, { id: (prev.at(-1)?.id ?? 0) + 1, from: "user", text }])
 		setDraft("")
 	}
+
+	const panelStyle: CSSProperties = size ? { width: size.width, height: size.height } : {}
 
 	const accentStyle: CSSProperties | undefined = accent
 		? ({
@@ -153,7 +263,8 @@ function WidgetChat({
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-2rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					style={panelStyle}
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
@@ -162,6 +273,67 @@ function WidgetChat({
 						}
 					}}
 				>
+					{resizable && (
+						<>
+							<div
+								aria-hidden="true"
+								data-testid="resize-top"
+								className={cn(
+									"tw:absolute tw:-top-1.5 tw:right-3 tw:left-3 tw:z-10 tw:h-3 tw:cursor-ns-resize",
+									// Keep clear of the corner grip: it sits top-left for bottom-right, top-right for bottom-left.
+									position !== "bottom-left" && "tw:left-14",
+									position === "bottom-left" && "tw:right-14",
+								)}
+								onPointerDown={(event) => startResize("top", event)}
+							>
+								<div
+									className={cn(
+										"tw:mx-auto tw:h-1.5 tw:w-12 tw:rounded-full tw:transition-colors",
+										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
+									)}
+								/>
+							</div>
+							<div
+								aria-hidden="true"
+								data-testid="resize-side"
+								className={cn(
+									"tw:absolute tw:top-3 tw:bottom-3 tw:z-10 tw:w-3",
+									position === "bottom-left" ? "tw:-right-1.5 tw:cursor-ew-resize" : "tw:-left-1.5 tw:cursor-ew-resize",
+								)}
+								onPointerDown={(event) => startResize("side", event)}
+							>
+								<div
+									className={cn(
+										"tw:my-auto tw:h-12 tw:w-1.5 tw:rounded-full tw:transition-colors",
+										position === "bottom-left" ? "tw:mr-1 tw:ml-auto" : "tw:mt-auto tw:ml-1",
+										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
+									)}
+								/>
+							</div>
+							<div
+								aria-hidden="true"
+								data-testid="resize-corner"
+								className={cn(
+									"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
+									position === "bottom-left"
+										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
+										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
+									activeEdge === "corner" ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
+								)}
+								onPointerDown={(event) => startResize("corner", event)}
+							>
+								{/* Diagonal grip lines hinting the panel can be stretched. */}
+								<ResizeGripIcon
+									aria-hidden="true"
+									className={cn(
+										"tw:size-full tw:transition-colors",
+										position === "bottom-left" && "tw:-scale-x-100",
+										activeEdge === "corner" ? "tw:text-primary" : "tw:text-muted-foreground",
+									)}
+								/>
+							</div>
+						</>
+					)}
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 						<button

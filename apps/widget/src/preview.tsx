@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client"
 
-import { EmbeddedWidget } from "./embedded-widget"
+import { defaultWidgetPosition, EmbeddedWidget, isWidgetPosition } from "./embedded-widget"
 import { isWidgetLanguage } from "./lib/i18n"
 
 const params = new URLSearchParams(window.location.search)
@@ -20,6 +20,6 @@ createRoot(rootElement).render(
 		language={isWidgetLanguage(language) ? language : undefined}
 		theme={theme === "light" || theme === "dark" ? theme : undefined}
 		accent={params.get("accent") ?? undefined}
-		position={position === "bottom-left" || position === "bottom-right" ? position : undefined}
+		position={isWidgetPosition(position) ? position : defaultWidgetPosition}
 	/>,
 )
