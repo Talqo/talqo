@@ -1,6 +1,6 @@
 import { mock } from "bun:test"
 
-// Preloaded for database-free runs (unit tests, OpenAPI generation): executing a query fails loudly.
+// Preloaded for database-free runs (unit tests, OpenAPI generation).
 process.env.DATABASE_URL ??= "postgres://stub:stub@localhost:5432/stub"
 process.env.NODE_ENV ??= "test"
 

@@ -59,7 +59,8 @@ function createJsonRequest(cookie: string, method: string, path: string, body?: 
 }
 
 beforeEach(async () => {
-	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user"`
+	// CASCADE because `widget` references `agent`.
+	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user" CASCADE`
 })
 
 describe("agent CRUD", () => {

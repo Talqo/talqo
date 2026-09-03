@@ -1,6 +1,6 @@
 {
-	"id": "9c856517-1933-4d2c-bae8-2ae9a75fb2eb",
-	"prevId": "47674939-0b12-41d7-a34a-63dfb09855d2",
+	"id": "d4b78cb4-4ece-4a0f-b1c8-bdb3e612c59b",
+	"prevId": "9c856517-1933-4d2c-bae8-2ae9a75fb2eb",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -556,9 +556,193 @@
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false
+		},
+		"public.widget": {
+			"name": "widget",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"public_token": {
+					"name": "public_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_primary_color": {
+					"name": "light_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_text_on_primary_color": {
+					"name": "light_text_on_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_background_color": {
+					"name": "light_background_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_surface_color": {
+					"name": "light_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_text_color": {
+					"name": "light_text_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_primary_color": {
+					"name": "dark_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_on_primary_color": {
+					"name": "dark_text_on_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_background_color": {
+					"name": "dark_background_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_surface_color": {
+					"name": "dark_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_color": {
+					"name": "dark_text_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"position": {
+					"name": "position",
+					"type": "widget_position",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'bottom-right'"
+				},
+				"theme": {
+					"name": "theme",
+					"type": "widget_theme",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'system'"
+				},
+				"theme_toggle_enabled": {
+					"name": "theme_toggle_enabled",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": true
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'en'"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"widget_agent_id_idx": {
+					"name": "widget_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"widget_agent_id_agent_id_fk": {
+					"name": "widget_agent_id_agent_id_fk",
+					"tableFrom": "widget",
+					"tableTo": "agent",
+					"columnsFrom": ["agent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "restrict",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"widget_public_token_unique": {
+					"name": "widget_public_token_unique",
+					"nullsNotDistinct": false,
+					"columns": ["public_token"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		}
 	},
-	"enums": {},
+	"enums": {
+		"public.widget_position": {
+			"name": "widget_position",
+			"schema": "public",
+			"values": ["bottom-right", "bottom-left"]
+		},
+		"public.widget_theme": {
+			"name": "widget_theme",
+			"schema": "public",
+			"values": ["system", "light", "dark"]
+		}
+	},
 	"schemas": {},
 	"sequences": {},
 	"roles": {},

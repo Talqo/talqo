@@ -15,6 +15,7 @@ graph LR
 
     subgraph "Configuration"
         agent[agent]
+        widget[widget]
         ai_provider["ai-provider"]
         mcp[mcp]
         knowledge[knowledge]
@@ -32,6 +33,8 @@ graph LR
     roles --> identity
 
     agent --> roles
+    widget --> agent
+    widget --> roles
     ai_provider --> roles
     mcp --> roles
     knowledge --> roles
@@ -61,6 +64,7 @@ graph LR
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
 | `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and deployment-global permission grants — owns "who can do what." |
 | `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Deployment-owned agent branding, persona, content policy, and public embed tokens. |
+| `widget` | `WIDGET` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many widgets. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
 | `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. |

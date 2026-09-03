@@ -3,13 +3,14 @@ export const SYSTEM_PROMPT_MAX_LENGTH = 20_000
 export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
 
-import { isUniqueViolation } from "@/lib/pg-error.ts"
+import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 
 import * as repo from "./agent.repository.ts"
 
 export class InvalidAgentInputError extends Error {}
 export class AgentNotFoundError extends Error {}
 export class DuplicateAgentNameError extends Error {}
+export class AgentInUseError extends Error {}
 
 function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 	return {
@@ -76,11 +77,9 @@ export async function listAgents(): Promise<Agent[]> {
 	return (await repo.findAllWithWords()).map(toAgent)
 }
 
-// TODO(conversation): systemPrompt composition + direct-match blacklist enforcement live
-// with send-message orchestration (FR-1.1, NFR-2.2).
+// TODO(conversation): systemPrompt composition and blacklist enforcement (FR-1.1, NFR-2.2).
+// TODO(conversation): rate-limit storage and IP/message limits (NFR-3.5, NFR-3.6).
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
-// TODO(conversation): rate-limit storage + IP/message limits belong to the conversation
-// public boundary (NFR-3.5, NFR-3.6).
 
 export async function getAgent(id: string): Promise<Agent> {
 	const row = await repo.findByIdWithWords(id)
@@ -130,7 +129,15 @@ export async function refreshEmbedToken(id: string): Promise<Agent> {
 }
 
 export async function deleteAgent(id: string): Promise<void> {
-	if (!(await repo.deleteById(id))) {
-		throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
+	try {
+		if (!(await repo.deleteById(id))) {
+			throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
+		}
+	} catch (error) {
+		// `widget.agent_id` is ON DELETE RESTRICT: embedded widgets must be reassigned first.
+		if (isRestrictViolation(error)) {
+			throw new AgentInUseError("Agent still serves one or more widgets")
+		}
+		throw error
 	}
 }

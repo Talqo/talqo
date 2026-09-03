@@ -9,17 +9,19 @@ const SEED_AGENT_PROMPT =
 const SEED_AGENT_BLACKLIST = ["Intercom", "Zendesk"] as const
 
 export async function reset(): Promise<void> {
-	// Dependents first: `blacklist_word` references `agent`.
-	await sql`TRUNCATE TABLE blacklist_word, agent`
+	// Dependents first, and CASCADE because `widget` also references `agent`.
+	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
 }
 
-export async function seed(): Promise<void> {
+export async function seed(): Promise<{ agentId: string }> {
+	const agentId = crypto.randomUUID()
 	await repo.insertWithWords(
 		{
-			id: crypto.randomUUID(),
+			id: agentId,
 			name: SEED_AGENT_NAME,
 			systemPrompt: SEED_AGENT_PROMPT,
 		},
 		[...SEED_AGENT_BLACKLIST],
 	)
+	return { agentId }
 }

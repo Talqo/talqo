@@ -3,7 +3,7 @@ import { createMiddleware } from "hono/factory"
 
 export const rejectMalformedJson = createMiddleware(async (context, next) => {
 	if (context.req.header("Content-Type")?.startsWith("application/json")) {
-		// Empty bodies are valid for bodyless operations whose clients still send the JSON content type.
+		// Bodyless operations still send the JSON content type, so an empty body is valid.
 		if (context.req.header("Content-Length") !== "0") {
 			try {
 				await context.req.json()

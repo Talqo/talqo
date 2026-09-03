@@ -1,7 +1,9 @@
+import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
+
 import { createRoot, type Root } from "react-dom/client"
 
-import { EmbeddedWidget, type EmbeddedWidgetProps, type WidgetPosition, type WidgetTheme } from "./embedded-widget"
-import { isWidgetLanguage } from "./lib/i18n"
+import { EmbeddedWidget } from "./embedded-widget"
+import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./lib/embed-config"
 
 let root: Root | null = null
 
@@ -9,34 +11,21 @@ export type MountTarget = string | HTMLElement
 
 const DEFAULT_TARGET = "#talqo-widget"
 
-function embedScriptDataset(): DOMStringMap | undefined {
-	if (document.currentScript instanceof HTMLScriptElement) {
-		return document.currentScript.dataset
-	}
-	const scripts = document.querySelectorAll<HTMLScriptElement>("script[data-talqo-embed-token]")
+// Past this the widget paints with what it has rather than waiting on a slow API.
+const CONFIG_TIMEOUT_MS = 1500
+
+/** Module scope: `document.currentScript` is null by the time mount() runs. */
+const embedScript: HTMLScriptElement | null =
+	document.currentScript instanceof HTMLScriptElement ? document.currentScript : findEmbedScript()
+
+function findEmbedScript(): HTMLScriptElement | null {
+	const scripts = document.querySelectorAll<HTMLScriptElement>(
+		"script[data-talqo-widget], script[data-talqo-embed-token]",
+	)
 	if (scripts.length > 1) {
 		console.warn("TalqoWidget: multiple embed snippets found; using the first")
 	}
-	return scripts[0]?.dataset
-}
-
-function embedProps(): EmbeddedWidgetProps {
-	const dataset = embedScriptDataset()
-	if (!dataset) {
-		return {}
-	}
-	const { talqoEmbedToken, talqoLanguage, talqoTitle, talqoTheme, talqoAccent, talqoPosition } = dataset
-	return {
-		embedToken: talqoEmbedToken,
-		language: isWidgetLanguage(talqoLanguage) ? talqoLanguage : undefined,
-		title: talqoTitle,
-		theme: talqoTheme === "light" || talqoTheme === "dark" ? (talqoTheme as WidgetTheme) : undefined,
-		accent: talqoAccent,
-		position:
-			talqoPosition === "bottom-left" || talqoPosition === "bottom-right"
-				? (talqoPosition as WidgetPosition)
-				: undefined,
-	}
+	return scripts[0] ?? null
 }
 
 function resolveMountElement(target: MountTarget): HTMLElement | null {
@@ -55,6 +44,28 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	return created
 }
 
+function render(appearance: WidgetAppearanceInput, agentId: string | undefined, hidden: boolean, name?: string) {
+	const dataset = embedScript?.dataset
+	// A per-page `data-talqo-title` outranks the widget's own name.
+	const title = dataset?.talqoTitle ?? name
+	root?.render(<EmbeddedWidget title={title} agentId={agentId} appearance={appearance} hidden={hidden} />)
+}
+
+async function loadConfig(origin: string, publicToken: string, overrides: WidgetAppearanceInput): Promise<void> {
+	try {
+		const response = await fetch(configUrl(origin, publicToken), { signal: AbortSignal.timeout(CONFIG_TIMEOUT_MS) })
+		if (!response.ok) {
+			throw new Error(`config request failed: ${response.status}`)
+		}
+		const { agentId, appearance, name } = parseWidgetConfig(await response.json())
+		render(mergeAppearance(appearance, overrides), agentId, false, name)
+	} catch (error) {
+		// A widget that cannot reach its config must still work, in default colors.
+		console.warn("TalqoWidget: falling back to the default appearance", error)
+		render(overrides, undefined, false)
+	}
+}
+
 export function mount(target: MountTarget = DEFAULT_TARGET) {
 	const element = resolveMountElement(target)
 	if (!element) {
@@ -64,7 +75,21 @@ export function mount(target: MountTarget = DEFAULT_TARGET) {
 
 	unmount()
 	root = createRoot(element)
-	root.render(<EmbeddedWidget {...embedProps()} />)
+
+	const dataset = embedScript?.dataset
+	const publicToken = dataset?.talqoWidget
+	const origin = apiOrigin(embedScript)
+	const overrides = appearanceFromDataset(dataset)
+
+	// Agent-level `data-talqo-embed-token` snippets and the dev harness fetch nothing.
+	if (!publicToken || !origin) {
+		render(overrides, undefined, false)
+		return
+	}
+
+	// Hidden rather than deferred: the box is reserved, and no default-color flash.
+	render(overrides, undefined, true)
+	void loadConfig(origin, publicToken, overrides)
 }
 
 export function unmount() {

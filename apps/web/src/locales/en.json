@@ -51,6 +51,8 @@
 		"saved": "Saved just now.",
 		"saving": "Saving…",
 		"subheading": "Update the agent's name, behavior, and blocked words.",
+		"tabConfiguration": "Configuration",
+		"tabWidgets": "Widgets",
 		"wasDeleted": "This agent was deleted elsewhere. Go back to the list for the current state."
 	},
 	"agentFields": {
@@ -234,15 +236,11 @@
 			"analytics": {
 				"description": "View conversation and usage statistics.",
 				"title": "Analytics"
-			},
-			"widget": {
-				"description": "Configure and preview your embedded widget.",
-				"title": "Widget"
 			}
 		},
 		"heading": "Welcome to Talqo",
 		"openCard": "Open {{title}} →",
-		"subheading": "Manage your agents, widget, and analytics from one place."
+		"subheading": "Manage your agents and analytics from one place."
 	},
 	"header": {
 		"language": "Language",
@@ -259,8 +257,7 @@
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
 		"invitations": "Invitations",
-		"users": "Users",
-		"widget": "Widget"
+		"users": "Users"
 	},
 	"permissions": {
 		"accessDeniedBody": "Ask an admin to grant your account agent access if you need it.",
@@ -283,30 +280,57 @@
 		"subheading": "View accounts and reset passwords."
 	},
 	"widgetSetup": {
-		"accentColor": "Accent color",
-		"accentHex": "Accent color hex value",
+		"agentHelp": "One agent can serve any number of widgets.",
 		"agentLabel": "Agent",
+		"agentPanelDescription": "Widgets serving this agent.",
 		"appearance": "Appearance",
 		"appearanceDescription": "Visual configuration applied to the embedded widget.",
+		"backToAgent": "Back to agent",
 		"backToSetup": "Back to widget setup",
+		"colorBackground": "Background",
+		"colorInvalid": "Use a six-digit hex color, e.g. #1a7f4b.",
+		"colorPrimary": "Brand color",
+		"colorsHelp": "The widget paints with exactly these five colors per scheme; nothing is derived or auto-generated.",
+		"colorSurface": "Surface",
+		"colorText": "Text",
+		"colorTextOnPrimary": "Text on brand color",
+		"contrastWarning": "Low contrast",
 		"copyEmbed": "Copy embed code",
+		"createDescription": "Name the widget; it serves this agent.",
+		"createError": "Could not create the widget. Try again.",
+		"createWidget": "New widget",
+		"creating": "Creating…",
+		"detailSubheading": "Tune the palette and copy the embed snippet.",
 		"embedCode": "Embed code",
-		"embedDescription": "Paste this snippet before the closing body tag of your site.",
-		"empty": "No agents yet. Create one on the Agents page before embedding the widget.",
-		"heading": "Widget setup",
+		"embedDescription": "Paste this snippet before the closing body tag of your site. Appearance changes apply without re-copying it.",
+		"hexValue": "{{label}} hex value",
 		"language": "Language",
 		"livePreview": "Live preview",
-		"livePreviewDescription": "Accent color, position, and language apply to both the snippet and this preview.",
-		"loading": "Loading agents…",
-		"notPersisted": "Configuration is not persisted yet; it previews how the setup screen will behave.",
+		"livePreviewDescription": "The real widget bundle, updating as you type.",
+		"loadError": "Could not load widgets. Refresh to try again.",
+		"loading": "Loading…",
+		"nameLabel": "Name",
+		"namePlaceholder": "Marketing site",
+		"notFound": "Widget not found. It may have been removed.",
+		"noWidgets": "No widgets yet. Create one to get an embed snippet.",
 		"openFullPreview": "Open full-screen preview",
 		"position": "Position",
 		"positionBottomLeft": "Bottom left",
 		"positionBottomRight": "Bottom right",
 		"previewSiteLabel": "your-site.com",
 		"previewUnavailable": "Live preview is not configured for this deployment.",
+		"save": "Save changes",
+		"saved": "Saved just now.",
+		"saveError": "Could not save changes. Try again.",
+		"saving": "Saving…",
 		"scriptUrlMissing": "Set VITE_WIDGET_CDN_URL to the widget.js origin to generate the embed snippet.",
 		"selectAgent": "Select an agent",
-		"subheading": "Embed the chat widget on your site and tune its appearance."
+		"tabDark": "Dark",
+		"tabLight": "Light",
+		"theme": "Default theme",
+		"themeDark": "Dark",
+		"themeLight": "Light",
+		"themeSystem": "Match the visitor's system",
+		"themeToggle": "Let visitors switch light and dark"
 	}
 }

@@ -34,12 +34,12 @@ function ForcePasswordChangePage() {
 		formState: { errors },
 	} = useForm<ForcedPasswordChangeFormValues>({ resolver: zodResolver(forcedPasswordChangeSchema) })
 
-	// No current-password field: logging in with the admin-set password is itself the proof.
+	// No current-password field: the admin-set login is itself the proof.
 	async function onValid(values: ForcedPasswordChangeFormValues) {
 		setError(null)
 		try {
 			await completeForcedPasswordChange.mutateAsync({ data: { newPassword: values.newPassword } })
-			// The server already invalidated this session as part of the password change.
+			// The password change already invalidated this session.
 			await navigate({ to: "/login" })
 		} catch (caught) {
 			const info = (caught as { info?: { error?: string } } | null)?.info

@@ -10,7 +10,7 @@ async function logIn(page: Page, account: { password: string; username: string }
 	await expect(page).toHaveURL("/dashboard")
 }
 
-// Invites a fresh, disposable member so tests that mutate a password never touch the shared seed accounts.
+// Disposable member, so password-mutating tests never touch the shared seed accounts.
 async function inviteMember(page: Page, username: string, password: string) {
 	await logIn(page, ADMIN)
 	await page.getByRole("link", { name: "Invitations" }).click()
@@ -92,7 +92,6 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	// An invited member can accept their invitation and log in.
 	await expect(page).toHaveURL("/login")
 	await expect(page.getByLabel("Confirm password")).toHaveCount(0)
 	await page.getByLabel("Username").fill(memberUsername)
@@ -101,7 +100,6 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 
-	// Logging out redirects to login; a stale UI cannot reuse the session.
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/invitations")
@@ -122,7 +120,6 @@ test("a member changes their own password and must log back in with it", async (
 	await page.getByLabel("Confirm new password").fill(newPassword)
 	await page.getByRole("button", { name: "Change password" }).click()
 
-	// The server invalidates the session as part of the change, landing back on login.
 	await expect(page).toHaveURL("/login")
 	await logIn(page, { username: memberUsername, password: newPassword })
 })
@@ -153,7 +150,6 @@ test("an admin resets a member's password and forces them through a new one", as
 	await expect(memberRow.getByText("Pending password change")).toBeVisible()
 	await page.getByRole("button", { name: "Log out" }).click()
 
-	// The member's old password no longer works, and the admin-set one forces a new-password screen.
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(originalPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
@@ -165,11 +161,9 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/force-password-change")
 
-	// Navigating straight to a dashboard route mid-flow bounces back to the forced screen.
 	await page.goto("/dashboard/agents")
 	await expect(page).toHaveURL("/force-password-change")
 
-	// No current-password field here: logging in with the admin-set password is itself the proof.
 	await page.getByLabel("New password", { exact: true }).fill(memberFinalPassword)
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()

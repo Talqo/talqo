@@ -11,8 +11,24 @@ describe("buildInvitationUrl", () => {
 })
 
 describe("formatInvitationExpiry", () => {
+	const EXPIRY = "2026-08-21T14:00:00.000Z"
+
+	// Piecewise: CLDR moved the date/time separator from "," to " at ", so an ICU upgrade
+	// alone breaks a pinned string.
 	test("formats the expiry in the selected app language", () => {
-		expect(formatInvitationExpiry("2026-08-21T14:00:00.000Z", "en", "UTC")).toBe("Aug 21, 2026, 2:00 PM")
+		const formatted = formatInvitationExpiry(EXPIRY, "en", "UTC")
+
+		expect(formatted).toContain("Aug 21, 2026")
+		expect(formatted).toContain("2:00")
+		expect(formatted).toContain("PM")
+	})
+
+	test("renders the instant in the requested time zone", () => {
+		expect(formatInvitationExpiry(EXPIRY, "en", "Asia/Tokyo")).toContain("11:00")
+	})
+
+	test("follows the requested language down to its clock convention", () => {
+		expect(formatInvitationExpiry(EXPIRY, "cs", "UTC")).toContain("14:00")
 	})
 })
 

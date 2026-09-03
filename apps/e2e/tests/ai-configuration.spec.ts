@@ -51,7 +51,6 @@ test("granted operator configures text and embedding models", async ({ page }) =
 
 	await expect(page.getByText("The model list could not be loaded")).toHaveCount(0)
 
-	// Switching to another provider and back restores the saved values
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "Amazon Bedrock" }).click()
 	await expect(textCard.getByLabel("Base URL")).toHaveCount(0)
@@ -61,7 +60,6 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
 
-	// Re-selecting the current provider keeps the fields untouched
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
 	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")

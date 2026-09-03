@@ -143,6 +143,7 @@
       "version": "0.0.0",
       "devDependencies": {
         "@talqo/typescript-config": "workspace:*",
+        "@types/bun": "1.4.0",
         "typescript": "7.0.2",
       },
     },

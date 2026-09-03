@@ -5,4 +5,4 @@ export {
 	USERNAME_MIN_LENGTH,
 	USERNAME_PATTERN,
 } from "./credentials"
-export { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from "./languages"
+export { isSupportedLanguage, SUPPORTED_LANGUAGES, supportedLanguages, type SupportedLanguage } from "./languages"

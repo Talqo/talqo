@@ -133,8 +133,7 @@ export async function revokePermission(id: string): Promise<void> {
 	await repo.deletePermissionGrant(id)
 }
 
-// Pure and synchronous by design: the authorization decision lives in one small,
-// fully auditable function, separate from where the grants get fetched.
+// Pure and synchronous: the decision stays auditable, separate from fetching the grants.
 export function can(grants: AuthorizationGrant[], permission: Permission): boolean {
 	return effectivePermissions(grants).includes(permission)
 }

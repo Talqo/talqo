@@ -1,25 +1,64 @@
+import {
+	DEFAULT_WIDGET_APPEARANCE,
+	isHexColor,
+	isWidgetPosition,
+	isWidgetTheme,
+	type WidgetAppearance,
+	type WidgetAppearanceInput,
+	type WidgetPosition,
+	type WidgetScheme,
+	type WidgetSchemeInput,
+} from "@talqo/shared/widget-appearance"
 import { cn } from "@talqo/ui/lib/utils"
-import { type CSSProperties, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react"
+import {
+	type CSSProperties,
+	type FormEvent,
+	type KeyboardEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
+import MoonIcon from "./assets/icons/moon.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
+import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
-import { createWidgetI18n, isWidgetLanguage, type WidgetLanguage } from "./lib/i18n"
+import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 
 import "./index.css"
 
-export type WidgetTheme = "light" | "dark"
-export type WidgetPosition = "bottom-right" | "bottom-left"
-
 export type EmbeddedWidgetProps = {
 	title?: string
-	language?: WidgetLanguage
-	embedToken?: string
-	theme?: WidgetTheme
-	accent?: string
-	position?: WidgetPosition
+	agentId?: string
+	appearance?: WidgetAppearanceInput
+	/** Held invisible (but laid out) until the fetched configuration settles. */
+	hidden?: boolean
+	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
+	forcedScheme?: ColorScheme
+}
+
+type ColorScheme = "light" | "dark"
+
+const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+
+/** Missing `matchMedia` reads as light: the widget may mount into a document without it. */
+function usePrefersDark(): boolean {
+	const subscribe = useCallback((onChange: () => void) => {
+		const media = globalThis.matchMedia?.(DARK_SCHEME_QUERY)
+		media?.addEventListener("change", onChange)
+		return () => media?.removeEventListener("change", onChange)
+	}, [])
+
+	return useSyncExternalStore(
+		subscribe,
+		() => globalThis.matchMedia?.(DARK_SCHEME_QUERY)?.matches ?? false,
+		() => false,
+	)
 }
 
 const positionClasses: Record<WidgetPosition, string> = {
@@ -41,35 +80,30 @@ function messageText(message: Message, t: (key: string) => string): string | und
 	return message.text
 }
 
-function sanitizeAccent(accent: string | undefined): string | undefined {
-	return accent && /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : undefined
+function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
+	return {
+		primary: isHexColor(input?.primary) ? input.primary : fallback.primary,
+		textOnPrimary: isHexColor(input?.textOnPrimary) ? input.textOnPrimary : fallback.textOnPrimary,
+		background: isHexColor(input?.background) ? input.background : fallback.background,
+		surface: isHexColor(input?.surface) ? input.surface : fallback.surface,
+		text: isHexColor(input?.text) ? input.text : fallback.text,
+	}
 }
 
-const HEX_RADIX = 16
-const RED_START = 1
-const RED_END = 3
-const GREEN_START = 3
-const GREEN_END = 5
-const BLUE_START = 5
-const BLUE_END = 7
-const RED_LUMINANCE_WEIGHT = 0.299
-const GREEN_LUMINANCE_WEIGHT = 0.587
-const BLUE_LUMINANCE_WEIGHT = 0.114
-const MAX_COLOR_CHANNEL = 255
-const LIGHT_ACCENT_THRESHOLD = 0.6
-
-// Derive a contrast-safe foreground from the accent's luminance; a light accent
-// needs dark text rather than the default white --talqo-primary-foreground.
-function accentForeground(accent: string | undefined): string | undefined {
-	if (!accent) {
-		return undefined
+/**
+ * Falls back per field: an invalid hex reaching a var() invalidates every declaration
+ * referencing it, blanking the whole widget instead of degrading one color.
+ */
+function resolveAppearance(appearance: WidgetAppearanceInput | undefined): WidgetAppearance {
+	return {
+		light: resolveScheme(appearance?.light, DEFAULT_WIDGET_APPEARANCE.light),
+		dark: resolveScheme(appearance?.dark, DEFAULT_WIDGET_APPEARANCE.dark),
+		position: isWidgetPosition(appearance?.position) ? appearance.position : DEFAULT_WIDGET_APPEARANCE.position,
+		theme: isWidgetTheme(appearance?.theme) ? appearance.theme : DEFAULT_WIDGET_APPEARANCE.theme,
+		themeToggle:
+			typeof appearance?.themeToggle === "boolean" ? appearance.themeToggle : DEFAULT_WIDGET_APPEARANCE.themeToggle,
+		language: isWidgetLanguage(appearance?.language) ? appearance.language : DEFAULT_WIDGET_APPEARANCE.language,
 	}
-	const r = Number.parseInt(accent.slice(RED_START, RED_END), HEX_RADIX)
-	const g = Number.parseInt(accent.slice(GREEN_START, GREEN_END), HEX_RADIX)
-	const b = Number.parseInt(accent.slice(BLUE_START, BLUE_END), HEX_RADIX)
-	const luminance =
-		(RED_LUMINANCE_WEIGHT * r + GREEN_LUMINANCE_WEIGHT * g + BLUE_LUMINANCE_WEIGHT * b) / MAX_COLOR_CHANNEL
-	return luminance > LIGHT_ACCENT_THRESHOLD ? "#1a2e23" : "#ffffff"
 }
 
 function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement | null) {
@@ -93,24 +127,26 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 
 function WidgetChat({
 	title,
-	theme,
-	accent,
-	embedToken,
-	position,
+	agentId,
+	appearance,
+	hidden,
+	forcedScheme,
 }: {
 	title?: string
-	theme?: WidgetTheme
-	accent?: string
-	embedToken?: string
-	position?: WidgetPosition
+	agentId?: string
+	appearance: WidgetAppearance
+	hidden?: boolean
+	forcedScheme?: ColorScheme
 }) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
 	const [messages, setMessages] = useState<Message[]>([{ id: 1, from: "assistant", i18nKey: "greeting" }])
 	const [draft, setDraft] = useState("")
+	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
+	const prefersDark = usePrefersDark()
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -118,6 +154,13 @@ function WidgetChat({
 		}
 		wasOpen.current = open
 	}, [open])
+
+	// Visitor choice (FR-2.21) beats the operator default, which beats the host's preference.
+	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
+	const operatorScheme: ColorScheme =
+		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme
+	const scheme = forcedScheme ?? visitorScheme ?? operatorScheme
+	const active = scheme === "dark" ? appearance.dark : appearance.light
 
 	function handleSend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
@@ -129,31 +172,33 @@ function WidgetChat({
 		setDraft("")
 	}
 
-	const accentStyle: CSSProperties | undefined = accent
-		? ({
-				"--talqo-primary": accent,
-				"--talqo-primary-foreground": accentForeground(accent),
-				"--talqo-ring": accent,
-			} as CSSProperties)
-		: undefined
+	const paletteStyle = {
+		"--talqo-primary-input": active.primary,
+		"--talqo-text-on-primary-input": active.textOnPrimary,
+		"--talqo-background-input": active.background,
+		"--talqo-surface-input": active.surface,
+		"--talqo-text-input": active.text,
+		// visibility, not display: nothing shifts when the fetched configuration paints.
+		...(hidden && { visibility: "hidden" }),
+	} as CSSProperties
 
 	return (
 		<div
 			className={cn(
 				"talqo-widget tw:flex tw:flex-col tw:gap-3 tw:font-sans tw:text-foreground",
-				position ? positionClasses[position] : "tw:items-end",
-				theme === "dark" && "dark",
-				theme === "light" && "light",
+				positionClasses[appearance.position],
+				scheme === "dark" && "dark",
 			)}
-			style={accentStyle}
-			data-embed-token={embedToken}
+			style={paletteStyle}
+			data-agent={agentId}
+			data-scheme={scheme}
 		>
 			{open && (
 				<div
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-card tw:shadow-lg"
+					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
@@ -164,14 +209,26 @@ function WidgetChat({
 				>
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
-						<button
-							type="button"
-							onClick={() => setOpen(false)}
-							aria-label={t("closeChat")}
-							className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
-						>
-							<CloseIcon aria-hidden="true" />
-						</button>
+						<div className="tw:flex tw:items-center tw:gap-1">
+							{appearance.themeToggle && (
+								<button
+									type="button"
+									onClick={() => setVisitorScheme(scheme === "dark" ? "light" : "dark")}
+									aria-label={scheme === "dark" ? t("switchToLight") : t("switchToDark")}
+									className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+								>
+									{scheme === "dark" ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
+								</button>
+							)}
+							<button
+								type="button"
+								onClick={() => setOpen(false)}
+								aria-label={t("closeChat")}
+								className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+							>
+								<CloseIcon aria-hidden="true" />
+							</button>
+						</div>
 					</header>
 					<div className="tw:flex-1 tw:overflow-y-auto tw:p-3" aria-live="polite">
 						<BubbleGroup>
@@ -195,7 +252,7 @@ function WidgetChat({
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
 							autoFocus
-							className="tw:min-w-0 tw:flex-1 tw:rounded-md tw:border tw:border-input tw:bg-background tw:px-3 tw:py-2 tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
+							className="tw:min-w-0 tw:flex-1 tw:rounded-md tw:border tw:border-input tw:bg-input tw:px-3 tw:py-2 tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
 						<button
 							type="submit"
@@ -222,24 +279,17 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, language = "en", embedToken, theme, accent, position }: EmbeddedWidgetProps) {
-	const [i18n] = useState(() => createWidgetI18n(isWidgetLanguage(language) ? language : "en"))
+export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedScheme }: EmbeddedWidgetProps) {
+	const resolved = resolveAppearance(appearance)
+	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
 	useEffect(() => {
-		if (isWidgetLanguage(language)) {
-			i18n.changeLanguage(language)
-		}
-	}, [i18n, language])
+		i18n.changeLanguage(resolved.language)
+	}, [i18n, resolved.language])
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat
-				title={title}
-				embedToken={embedToken}
-				theme={theme}
-				accent={sanitizeAccent(accent)}
-				position={position}
-			/>
+			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} forcedScheme={forcedScheme} />
 		</I18nextProvider>
 	)
 }

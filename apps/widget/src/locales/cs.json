@@ -5,5 +5,7 @@
 	"messageLabel": "Zpráva",
 	"openChat": "Otevřít chat",
 	"placeholder": "Napište zprávu...",
-	"send": "Odeslat"
+	"send": "Odeslat",
+	"switchToDark": "Přepnout na tmavý motiv",
+	"switchToLight": "Přepnout na světlý motiv"
 }

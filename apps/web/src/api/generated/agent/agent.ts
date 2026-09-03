@@ -501,6 +501,11 @@ export type deleteAgentResponse404 = {
 	status: 404
 }
 
+export type deleteAgentResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
 export type deleteAgentResponse500 = {
 	data: ErrorResponse
 	status: 500
@@ -513,6 +518,7 @@ export type deleteAgentResponseError = (
 	| deleteAgentResponse401
 	| deleteAgentResponse403
 	| deleteAgentResponse404
+	| deleteAgentResponse409
 	| deleteAgentResponse500
 ) & {
 	headers: Headers
