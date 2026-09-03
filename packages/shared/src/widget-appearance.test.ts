@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+	CONTRAST_AA_NORMAL,
 	contrastRatio,
 	DEFAULT_DARK_SCHEME,
 	DEFAULT_LIGHT_SCHEME,
@@ -49,10 +50,16 @@ describe("contrastRatio", () => {
 	})
 
 	test("both default schemes pair clear AA for normal text", () => {
-		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.background, DEFAULT_LIGHT_SCHEME.text)).toBeGreaterThan(4.5)
-		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.primary, DEFAULT_LIGHT_SCHEME.textOnPrimary)).toBeGreaterThan(4.5)
-		expect(contrastRatio(DEFAULT_DARK_SCHEME.background, DEFAULT_DARK_SCHEME.text)).toBeGreaterThan(4.5)
-		expect(contrastRatio(DEFAULT_DARK_SCHEME.primary, DEFAULT_DARK_SCHEME.textOnPrimary)).toBeGreaterThan(4.5)
+		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.background, DEFAULT_LIGHT_SCHEME.text)).toBeGreaterThan(
+			CONTRAST_AA_NORMAL,
+		)
+		expect(contrastRatio(DEFAULT_LIGHT_SCHEME.primary, DEFAULT_LIGHT_SCHEME.textOnPrimary)).toBeGreaterThan(
+			CONTRAST_AA_NORMAL,
+		)
+		expect(contrastRatio(DEFAULT_DARK_SCHEME.background, DEFAULT_DARK_SCHEME.text)).toBeGreaterThan(CONTRAST_AA_NORMAL)
+		expect(contrastRatio(DEFAULT_DARK_SCHEME.primary, DEFAULT_DARK_SCHEME.textOnPrimary)).toBeGreaterThan(
+			CONTRAST_AA_NORMAL,
+		)
 	})
 
 	test("dark is a distinct palette, not a derivation of light", () => {

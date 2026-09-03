@@ -5,6 +5,10 @@ const operator = {
 	password: process.env.E2E_OPERATOR_PASSWORD,
 }
 
+type SeededWidget = { id: string; name: string; agentId: string; appearance: unknown }
+
+let seeded: SeededWidget[] = []
+
 test.beforeEach(async ({ page }) => {
 	if (!operator.username || !operator.password) {
 		throw new Error("E2E_OPERATOR_* missing — scripts/test-e2e.ts provides them from the API seed")
@@ -14,10 +18,25 @@ test.beforeEach(async ({ page }) => {
 	await page.getByLabel("Password", { exact: true }).fill(operator.password)
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
+
+	// The suite seeds once but these tests save, so a retry would start from mutated state.
+	seeded = ((await (await page.request.get("/api/widgets")).json()) as { widgets: SeededWidget[] }).widgets
+
 	// Widget customization lives on the owning agent's page.
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
 	await page.getByRole("link", { name: /Website Assistant/ }).click()
 	await page.getByRole("tab", { name: "Widgets" }).click()
+})
+
+// Runs even when the test fails, which is exactly when the state is left dirty.
+test.afterEach(async ({ page }) => {
+	await Promise.all(
+		seeded.map((widget) =>
+			page.request.put(`/api/widgets/${widget.id}`, {
+				data: { name: widget.name, agentId: widget.agentId, appearance: widget.appearance },
+			}),
+		),
+	)
 })
 
 test("operator customizes a widget and the preview follows without reloading", async ({ page }) => {
