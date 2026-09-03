@@ -39,6 +39,19 @@ export function appearanceFromDataset(dataset: DOMStringMap | undefined): Widget
 	return definedEntries(overrides)
 }
 
+/** Attributes last: a per-page override outranks the stored config, one color at a time. */
+export function mergeAppearance(
+	config: WidgetAppearanceInput,
+	overrides: WidgetAppearanceInput,
+): WidgetAppearanceInput {
+	return {
+		...config,
+		...overrides,
+		light: { ...config.light, ...overrides.light },
+		dark: { ...config.dark, ...overrides.dark },
+	}
+}
+
 function parseBoolean(value: string | undefined): boolean | undefined {
 	if (value === "true") {
 		return true

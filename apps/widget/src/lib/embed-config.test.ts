@@ -1,7 +1,7 @@
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, configUrl, parseWidgetConfig } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./embed-config"
 
 // Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
@@ -66,6 +66,26 @@ describe("appearanceFromDataset", () => {
 			theme: "neon",
 			language: "xx",
 		})
+	})
+})
+
+describe("mergeAppearance", () => {
+	const stored = {
+		light: { primary: "#1a7f4b", background: "#ffffff", text: "#171717" },
+		dark: { primary: "#34d399", background: "#0a0a0a" },
+		position: "bottom-right",
+	}
+
+	test("patches one color without dropping the rest of the stored scheme", () => {
+		expect(mergeAppearance(stored, { light: { primary: "#123456" } })).toEqual({
+			light: { primary: "#123456", background: "#ffffff", text: "#171717" },
+			dark: { primary: "#34d399", background: "#0a0a0a" },
+			position: "bottom-right",
+		})
+	})
+
+	test("overrides top-level values and leaves untouched schemes alone", () => {
+		expect(mergeAppearance(stored, { position: "bottom-left" })).toEqual({ ...stored, position: "bottom-left" })
 	})
 })
 

@@ -3,7 +3,7 @@ import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 import { createRoot, type Root } from "react-dom/client"
 
 import { EmbeddedWidget } from "./embedded-widget"
-import { apiOrigin, appearanceFromDataset, configUrl, parseWidgetConfig } from "./lib/embed-config"
+import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./lib/embed-config"
 
 let root: Root | null = null
 
@@ -58,8 +58,7 @@ async function loadConfig(origin: string, publicToken: string, overrides: Widget
 			throw new Error(`config request failed: ${response.status}`)
 		}
 		const { agentId, appearance, name } = parseWidgetConfig(await response.json())
-		// Attributes last: an explicit per-page override outranks the stored config.
-		render({ ...appearance, ...overrides }, agentId, false, name)
+		render(mergeAppearance(appearance, overrides), agentId, false, name)
 	} catch (error) {
 		// A widget that cannot reach its config must still work, in default colors.
 		console.warn("TalqoWidget: falling back to the default appearance", error)
