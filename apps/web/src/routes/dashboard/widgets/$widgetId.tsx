@@ -463,7 +463,8 @@ function WidgetDetailPage() {
 									<Button type="submit" disabled={updateWidget.isPending}>
 										{updateWidget.isPending ? t("widgetSetup.saving") : t("widgetSetup.save")}
 									</Button>
-									{updateWidget.isSuccess && !updateWidget.isPending && (
+									{/* `isSuccess` never clears on its own; the save resets the form, so a new edit drops it. */}
+									{updateWidget.isSuccess && !updateWidget.isPending && !formState.isDirty && (
 										<span className="text-muted-foreground text-sm">{t("widgetSetup.saved")}</span>
 									)}
 								</div>

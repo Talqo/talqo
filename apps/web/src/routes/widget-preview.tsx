@@ -1,4 +1,4 @@
-import { useGetWidget } from "@/api/generated/widget/widget.ts"
+import { getGetWidgetQueryKey, useGetWidget } from "@/api/generated/widget/widget.ts"
 import { WidgetPreview } from "@/features/widgets/components/widget-preview"
 import { toAppearance, toFormValues } from "@/features/widgets/widget-appearance-form"
 import { Button } from "@talqo/ui/components/button"
@@ -17,7 +17,10 @@ export const Route = createFileRoute("/widget-preview")({
 function WidgetPreviewPage() {
 	const { t } = useTranslation()
 	const { widget: widgetId } = Route.useSearch()
-	const { data: widgetResponse, isLoading } = useGetWidget(widgetId)
+	// The generated hook only gates on null/undefined, so an empty id would call the list endpoint.
+	const { data: widgetResponse, isLoading } = useGetWidget(widgetId, {
+		query: { queryKey: getGetWidgetQueryKey(widgetId), enabled: widgetId !== "" },
+	})
 	const widget = widgetResponse?.data.widget
 
 	return (
