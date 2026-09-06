@@ -6,8 +6,6 @@ const DEFAULT_API_PORT = 3000
 const MAX_PORT = 65_535
 const MIN_APP_SECRET_BYTES = 32
 
-// Ephemeral dev/test default (/tmp/talqo on Linux); production must set
-// TALQO_UPLOAD_DIR explicitly — see docs/adr/0012-agent-upload-storage.md.
 const DEFAULT_UPLOAD_DIR = join(tmpdir(), "talqo")
 
 const appSecretSchema = z

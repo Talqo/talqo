@@ -33,14 +33,10 @@ function serialize(file: files.StoredFile) {
 	return { ...file, createdAt: file.createdAt.toISOString() }
 }
 
-// The agent must exist before any file operation: with no agent↔context table, the
-// agent row is the only thing that proves the upload directory belongs to a live agent.
 async function requireAgent(agentId: string): Promise<void> {
 	await agent.getAgent(agentId)
 }
 
-// Reject oversized upload bodies before hono buffers the whole multipart body: the
-// 10 MB file limit inside validateUpload would otherwise run only after a full-body copy.
 const uploadBodyLimit = bodyLimit({
 	maxSize: files.MAX_UPLOAD_BODY_BYTES,
 	onError: (c) => c.json({ error: "Upload exceeds the size limit" }, HTTP_STATUS.PAYLOAD_TOO_LARGE),

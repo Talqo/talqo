@@ -218,6 +218,8 @@ export const createAgent = async (
 	return { data, status: res.status, headers: res.headers } as createAgentResponseSuccess
 }
 
+export const getCreateAgentMutationKey = () => ["createAgent"] as const
+
 export const getCreateAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -225,7 +227,7 @@ export const getCreateAgentMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext> => {
-	const mutationKey = ["createAgent"]
+	const mutationKey = getCreateAgentMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -443,6 +445,8 @@ export const updateAgent = async (
 	return { data, status: res.status, headers: res.headers } as updateAgentResponseSuccess
 }
 
+export const getUpdateAgentMutationKey = () => ["updateAgent"] as const
+
 export const getUpdateAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -450,7 +454,7 @@ export const getUpdateAgentMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext> => {
-	const mutationKey = ["updateAgent"]
+	const mutationKey = getUpdateAgentMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -502,6 +506,11 @@ export type deleteAgentResponse404 = {
 	status: 404
 }
 
+export type deleteAgentResponse409 = {
+	data: ErrorResponse
+	status: 409
+}
+
 export type deleteAgentResponse500 = {
 	data: ErrorResponse
 	status: 500
@@ -514,6 +523,7 @@ export type deleteAgentResponseError = (
 	| deleteAgentResponse401
 	| deleteAgentResponse403
 	| deleteAgentResponse404
+	| deleteAgentResponse409
 	| deleteAgentResponse500
 ) & {
 	headers: Headers
@@ -542,6 +552,8 @@ export const deleteAgent = async (agentId: string, options?: RequestInit): Promi
 	return { data, status: res.status, headers: res.headers } as deleteAgentResponseSuccess
 }
 
+export const getDeleteAgentMutationKey = () => ["deleteAgent"] as const
+
 export const getDeleteAgentMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -549,7 +561,7 @@ export const getDeleteAgentMutationOptions = <
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
 	fetch?: RequestInit
 }): UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
-	const mutationKey = ["deleteAgent"]
+	const mutationKey = getDeleteAgentMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -645,6 +657,8 @@ export const refreshEmbedToken = async (
 	return { data, status: res.status, headers: res.headers } as refreshEmbedTokenResponseSuccess
 }
 
+export const getRefreshEmbedTokenMutationKey = () => ["refreshEmbedToken"] as const
+
 export const getRefreshEmbedTokenMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -662,7 +676,7 @@ export const getRefreshEmbedTokenMutationOptions = <
 	RefreshEmbedTokenMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["refreshEmbedToken"]
+	const mutationKey = getRefreshEmbedTokenMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -898,6 +912,8 @@ export const uploadAgentFile = async (
 	return { data, status: res.status, headers: res.headers } as uploadAgentFileResponseSuccess
 }
 
+export const getUploadAgentFileMutationKey = () => ["uploadAgentFile"] as const
+
 export const getUploadAgentFileMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -915,7 +931,7 @@ export const getUploadAgentFileMutationOptions = <
 	UploadAgentFileMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["uploadAgentFile"]
+	const mutationKey = getUploadAgentFileMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -1043,6 +1059,8 @@ export const renameAgentFile = async (
 	return { data, status: res.status, headers: res.headers } as renameAgentFileResponseSuccess
 }
 
+export const getRenameAgentFileMutationKey = () => ["renameAgentFile"] as const
+
 export const getRenameAgentFileMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -1060,7 +1078,7 @@ export const getRenameAgentFileMutationOptions = <
 	RenameAgentFileMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["renameAgentFile"]
+	const mutationKey = getRenameAgentFileMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
@@ -1167,6 +1185,8 @@ export const deleteAgentFile = async (
 	return { data, status: res.status, headers: res.headers } as deleteAgentFileResponseSuccess
 }
 
+export const getDeleteAgentFileMutationKey = () => ["deleteAgentFile"] as const
+
 export const getDeleteAgentFileMutationOptions = <
 	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
 	TContext = unknown,
@@ -1184,7 +1204,7 @@ export const getDeleteAgentFileMutationOptions = <
 	DeleteAgentFileMutationVariables,
 	TContext
 > => {
-	const mutationKey = ["deleteAgentFile"]
+	const mutationKey = getDeleteAgentFileMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options

@@ -7,16 +7,13 @@ import { z } from "zod"
 /* eslint-disable no-magic-numbers */
 export const MAX_FILE_SIZE_MB = 10
 export const BYTES_PER_MB = 1024 * 1024
-// 255 keeps file names portable across filesystems and cheap to validate.
 export const MAX_FILE_NAME_LENGTH = 255
-// One MB covers multipart framing around the raw file body so the route body limit rejects oversized uploads.
 export const MULTIPART_MARGIN_BYTES = 1024 * 1024
 /* eslint-enable no-magic-numbers */
 
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB
 export const MAX_UPLOAD_BODY_BYTES = MAX_FILE_SIZE_BYTES + MULTIPART_MARGIN_BYTES
 
-// Client-declared MIME types are not trustworthy (sniffed text becomes text/plain), so validate by extension.
 export const ALLOWED_EXTENSIONS = [".docx", ".md", ".pdf", ".txt"] as const
 const ALLOWED_EXTENSION_SET: ReadonlySet<string> = new Set(ALLOWED_EXTENSIONS)
 
@@ -65,7 +62,6 @@ export function validateUpload(file: { name: string; size: number }): void {
 	}
 }
 
-// Resolve a rename target: empty → error, keep the original extension, then validate.
 export function resolveRenameTarget(name: string, requested: string): string {
 	const trimmed = requested.trim()
 	if (!trimmed) throw new InvalidFileError("File name must not be empty")
