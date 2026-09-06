@@ -8,7 +8,7 @@ import { z } from "zod"
 export const MAX_FILE_SIZE_MB = 10
 export const BYTES_PER_MB = 1024 * 1024
 export const MAX_FILE_NAME_LENGTH = 255
-export const MULTIPART_MARGIN_BYTES = 1024 * 1024
+const MULTIPART_MARGIN_BYTES = 1024 * 1024
 /* eslint-enable no-magic-numbers */
 
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB

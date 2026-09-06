@@ -23,7 +23,6 @@ export const forbiddenResponse = errorResponse("Permission denied")
 export const notFoundResponse = errorResponse("Resource not found")
 export const conflictResponse = errorResponse("Request conflicts with current state")
 export const payloadTooLargeResponse = errorResponse("Payload too large")
-export const tooManyRequestsResponse = errorResponse("Too many requests")
 export const internalServerErrorResponse = errorResponse("Unexpected server error")
 
 export const noContentResponse = {

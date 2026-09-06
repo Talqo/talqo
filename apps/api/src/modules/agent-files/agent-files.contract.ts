@@ -13,7 +13,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 import { MAX_FILE_NAME_LENGTH } from "./agent-files.service.ts"
 
-export const agentFileSchema = z
+const agentFileSchema = z
 	.object({
 		name: z.string(),
 		sizeBytes: z.number().int().nonnegative(),
@@ -42,7 +42,7 @@ const fileParamsSchema = z.object({
 // Overridden to OpenAPI's binary string so clients generate an upload field.
 const fileFieldSchema = z.custom<File>((value) => value instanceof File).openapi({ type: "string", format: "binary" })
 
-export const renameAgentFileRequestSchema = z.object({
+const renameAgentFileRequestSchema = z.object({
 	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
 })
 
