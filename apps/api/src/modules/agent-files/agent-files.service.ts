@@ -24,6 +24,10 @@ const fileNameSchema = z
 	.min(1, "File name must not be empty")
 	.max(MAX_FILE_NAME_LENGTH, `File name exceeds the ${MAX_FILE_NAME_LENGTH} character limit`)
 	.refine((name) => !FORBIDDEN_NAME_CHARS.test(name), "File name contains forbidden characters")
+	.refine(
+		(name) => Buffer.byteLength(name, "utf8") <= MAX_FILE_NAME_LENGTH,
+		`File name exceeds the ${MAX_FILE_NAME_LENGTH} byte limit`,
+	)
 
 export type StoredFile = {
 	name: string
@@ -34,6 +38,7 @@ export type StoredFile = {
 export class FileExistsError extends Error {}
 export class FileNotFoundError extends Error {}
 export class InvalidFileError extends Error {}
+export class FileTooLargeError extends InvalidFileError {}
 
 function agentDir(agentId: string): string {
 	return join(env.TALQO_UPLOAD_DIR, agentId)
@@ -58,7 +63,7 @@ export function validateUpload(file: { name: string; size: number }): void {
 	}
 	validateName(file.name)
 	if (file.size > MAX_FILE_SIZE_BYTES) {
-		throw new InvalidFileError(`File exceeds the ${MAX_FILE_SIZE_MB} MB size limit`)
+		throw new FileTooLargeError(`File exceeds the ${MAX_FILE_SIZE_MB} MB size limit`)
 	}
 }
 

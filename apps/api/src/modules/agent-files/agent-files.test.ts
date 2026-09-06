@@ -27,6 +27,16 @@ describe("validateUpload", () => {
 		)
 	})
 
+	it("rejects a multibyte name that fits the character limit but exceeds 255 bytes", () => {
+		const name = `${"é".repeat(252)}.md`
+		expect(name.length).toBe(MAX_FILE_NAME_LENGTH)
+		expect(() => validateUpload({ name, size: 1 })).toThrow(InvalidFileError)
+	})
+
+	it("accepts a name at exactly 255 bytes", () => {
+		expect(() => validateUpload({ name: `${"a".repeat(251)}.pdf`, size: 1 })).not.toThrow()
+	})
+
 	it("rejects empty and overlong names", () => {
 		expect(() => validateUpload({ name: "", size: 1 })).toThrow(InvalidFileError)
 		expect(() => validateUpload({ name: `${"a".repeat(MAX_FILE_NAME_LENGTH)}.pdf`, size: 1 })).toThrow(InvalidFileError)

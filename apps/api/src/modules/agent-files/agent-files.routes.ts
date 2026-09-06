@@ -17,6 +17,9 @@ import {
 import * as files from "./agent-files.service.ts"
 
 function mapDomainError(error: unknown): { body: { error: string }; status: number } | null {
+	if (error instanceof files.FileTooLargeError) {
+		return { body: { error: error.message }, status: HTTP_STATUS.PAYLOAD_TOO_LARGE }
+	}
 	if (error instanceof files.InvalidFileError) {
 		return { body: { error: error.message }, status: HTTP_STATUS.BAD_REQUEST }
 	}

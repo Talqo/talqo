@@ -7,6 +7,8 @@ import { afterAll, beforeEach, describe, expect, it } from "bun:test"
 import { readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
 
+import { MAX_FILE_SIZE_BYTES } from "./agent-files.service.ts"
+
 // Set by scripts/test-integration.ts; integration tests must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
@@ -120,6 +122,19 @@ describe("agent knowledge files", () => {
 			body: form,
 		})
 		expect(response.status).toBe(400)
+	})
+
+	it("rejects an oversized file with 413 over HTTP", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Oversize")
+		const form = new FormData()
+		form.append("file", new File([new Uint8Array(MAX_FILE_SIZE_BYTES + 1)], "big.pdf", { type: "application/pdf" }))
+		const response = await app.request(`/api/agents/${agentId}/files`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+			body: form,
+		})
+		expect(response.status).toBe(413)
 	})
 
 	it("returns 404 when the agent does not exist", async () => {

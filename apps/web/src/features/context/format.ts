@@ -10,10 +10,12 @@ export function formatBytes(sizeBytes: number): string {
 }
 
 export function formatFileDate(iso: string, language: string): string {
+	const date = new Date(iso)
+	if (Number.isNaN(date.getTime())) return iso
 	return new Intl.DateTimeFormat(language, {
 		dateStyle: "medium",
 		timeStyle: "short",
-	}).format(new Date(iso))
+	}).format(date)
 }
 
 export function splitExtension(name: string): { base: string; extension: string } {

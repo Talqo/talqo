@@ -27,6 +27,10 @@ describe("formatFileDate", () => {
 		expect(formatted).toContain("25")
 		expect(formatted).toContain("2026")
 	})
+
+	test("returns the raw value for an unparseable date instead of throwing", () => {
+		expect(formatFileDate("not-a-date", "en-US")).toBe("not-a-date")
+	})
 })
 
 describe("splitExtension", () => {

@@ -78,6 +78,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		const files = Array.from(fileList)
 		if (maxSizeBytes !== undefined && files.some((file) => file.size > maxSizeBytes)) {
 			setFileError(t("agentFiles.tooLarge", { maxSizeMB: maxSizeMB ?? 0 }))
+			if (fileInputRef.current) fileInputRef.current.value = ""
 			return
 		}
 		try {
@@ -145,9 +146,9 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		<Card>
 			<CardHeader>
 				<CardTitle>{t("agentFiles.cardTitle")}</CardTitle>
-				<CardDescription>
-					{t("agentFiles.cardDescription", { maxSizeMB: maxSizeMB ?? "…", formats: formats ?? "…" })}
-				</CardDescription>
+				{maxSizeMB !== undefined && formats !== undefined && (
+					<CardDescription>{t("agentFiles.cardDescription", { maxSizeMB, formats })}</CardDescription>
+				)}
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{canManage && (
@@ -186,7 +187,9 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 						<p className="text-sm font-medium">
 							{uploadFile.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
 						</p>
-						<p className="text-muted-foreground text-xs">{t("agentFiles.dropzoneHint")}</p>
+						{files.length === 0 && !filesQuery.isLoading && !filesQuery.isError && (
+							<p className="text-muted-foreground text-xs">{t("agentFiles.dropzoneHint")}</p>
+						)}
 					</div>
 				)}
 				{fileError && (
