@@ -67,9 +67,13 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(changePasswordRoute, async (c) => {
 		const body = c.req.valid("json")
 		try {
-			await service.changePassword(c.get("user").id, body.currentPassword, body.newPassword)
-			// changePassword invalidates all sessions for the user, including this request's.
-			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
+			// changePassword invalidates every other session but keeps this one, so the user stays signed in.
+			await service.changePassword(
+				c.get("user").id,
+				body.currentPassword,
+				body.newPassword,
+				getCookie(c, SESSION_COOKIE),
+			)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {
@@ -81,9 +85,8 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(completeForcedPasswordChangeRoute, async (c) => {
 		const body = c.req.valid("json")
 		try {
-			await service.completeForcedPasswordChange(c.get("user").id, body.newPassword)
-			// The change invalidates every session for the user, including this request's.
-			deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
+			// completeForcedPasswordChange invalidates every other session but keeps this one, so the user stays signed in.
+			await service.completeForcedPasswordChange(c.get("user").id, body.newPassword, getCookie(c, SESSION_COOKIE))
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof service.PasswordChangeNotRequiredError) {

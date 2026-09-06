@@ -15,6 +15,7 @@
 		"newPassword": "New password",
 		"newPasswordError": "Password must be {{min}}-{{max}} characters.",
 		"passwordMismatchError": "Passwords do not match.",
+		"passwordSaved": "Password changed.",
 		"profile": "Profile",
 		"profileDescription": "Your operator name.",
 		"profileSaved": "Profile saved.",

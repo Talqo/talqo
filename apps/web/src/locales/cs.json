@@ -15,6 +15,7 @@
 		"newPassword": "Nové heslo",
 		"newPasswordError": "Heslo musí mít {{min}}-{{max}} znaků.",
 		"passwordMismatchError": "Hesla se neshodují.",
+		"passwordSaved": "Heslo změněno.",
 		"profile": "Profil",
 		"profileDescription": "Vaše jméno operátora.",
 		"profileSaved": "Profil uložen.",

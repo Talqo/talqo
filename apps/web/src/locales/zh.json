@@ -15,6 +15,7 @@
 		"newPassword": "新密码",
 		"newPasswordError": "密码长度必须为 {{min}}-{{max}} 个字符。",
 		"passwordMismatchError": "两次输入的密码不一致。",
+		"passwordSaved": "密码已修改。",
 		"profile": "个人资料",
 		"profileDescription": "您的操作员姓名。",
 		"profileSaved": "个人资料已保存。",

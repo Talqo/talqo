@@ -25,6 +25,9 @@ async function inviteMember(page: Page, username: string, password: string) {
 	await page.getByLabel("Password", { exact: true }).fill(password)
 	await page.getByLabel("Confirm password").fill(password)
 	await page.getByRole("button", { name: "Create account" }).click()
+	// Accepting an invitation signs the member straight in.
+	await expect(page).toHaveURL("/dashboard")
+	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 }
 
@@ -49,7 +52,7 @@ test("root redirects to login when setup status is unavailable", async ({ page }
 	await expect(page).toHaveURL("/login")
 })
 
-test("admin invites a member and the member logs in", async ({ page }) => {
+test("admin invites a member and the member lands signed in", async ({ page }) => {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(ADMIN.username)
 	await page.getByLabel("Password", { exact: true }).fill(ADMIN.password)
@@ -92,11 +95,7 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	await expect(page).toHaveURL("/login")
-	await expect(page.getByLabel("Confirm password")).toHaveCount(0)
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+	// An invited member is signed in right after accepting, no login round-trip.
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 
@@ -106,7 +105,7 @@ test("admin invites a member and the member logs in", async ({ page }) => {
 	await expect(page).toHaveURL("/login")
 })
 
-test("a member changes their own password and must log back in with it", async ({ page }) => {
+test("a member changes their own password and stays signed in", async ({ page }) => {
 	const memberUsername = `member_${Date.now()}_self`
 	const originalPassword = "member-original-password"
 	const newPassword = "member-self-chosen-password"
@@ -120,6 +119,19 @@ test("a member changes their own password and must log back in with it", async (
 	await page.getByLabel("Confirm new password").fill(newPassword)
 	await page.getByRole("button", { name: "Change password" }).click()
 
+	// A self-service change keeps the session: confirmation in place, no login round-trip.
+	await expect(page).toHaveURL("/dashboard/account")
+	await expect(page.getByText("Password changed.")).toBeVisible()
+	await page.getByRole("link", { name: "Dashboard" }).click()
+	await expect(page).toHaveURL("/dashboard")
+
+	// The old password is dead; the new one works for fresh logins.
+	await page.getByRole("button", { name: "Log out" }).click()
+	await expect(page).toHaveURL("/login")
+	await page.getByLabel("Username").fill(memberUsername)
+	await page.getByLabel("Password", { exact: true }).fill(originalPassword)
+	await page.getByRole("button", { name: "Log in" }).click()
+	await expect(page.getByRole("alert")).toBeVisible()
 	await expect(page).toHaveURL("/login")
 	await logIn(page, { username: memberUsername, password: newPassword })
 })
@@ -167,7 +179,8 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByLabel("New password", { exact: true }).fill(memberFinalPassword)
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()
-	await expect(page).toHaveURL("/login")
 
-	await logIn(page, { username: memberUsername, password: memberFinalPassword })
+	// The forced change keeps the session, landing straight on the dashboard.
+	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 })

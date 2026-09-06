@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { asc, eq } from "drizzle-orm"
+import { and, asc, eq, ne } from "drizzle-orm"
 
 import { session, user } from "./identity.schema.ts"
 
@@ -64,6 +64,12 @@ export async function deleteSessionByTokenHash(tokenHash: string): Promise<void>
 	await db.delete(session).where(eq(session.tokenHash, tokenHash))
 }
 
-export async function deleteAllSessionsForUser(userId: string): Promise<void> {
-	await db.delete(session).where(eq(session.userId, userId))
+export async function deleteAllSessionsForUser(userId: string, keepTokenHash?: string): Promise<void> {
+	await db
+		.delete(session)
+		.where(
+			keepTokenHash
+				? and(eq(session.userId, userId), ne(session.tokenHash, keepTokenHash))
+				: eq(session.userId, userId),
+		)
 }

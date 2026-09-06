@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -113,20 +113,22 @@ function ProfileCard({ name }: { name: string }) {
 
 function PasswordCard() {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
-	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
+	const [saved, setSaved] = useState(false)
+	// Remounts the form after a successful change so stale passwords don't linger in the fields.
+	const [formKey, setFormKey] = useState(0)
 	const changePassword = useChangePassword()
 
 	async function handleSubmit(input: { confirmPassword: string; currentPassword: string; newPassword: string }) {
 		setError(null)
+		setSaved(false)
 		try {
 			await changePassword.mutateAsync({
 				data: { currentPassword: input.currentPassword, newPassword: input.newPassword },
 			})
-			// The server already invalidated this session as part of the password change.
-			queryClient.clear()
-			await navigate({ to: "/login" })
+			// The server keeps this session alive for a self-service change, so no login round-trip.
+			setSaved(true)
+			setFormKey((key) => key + 1)
 		} catch (caught) {
 			const info = (caught as { info?: { error?: string } } | null)?.info
 			setError(info?.error ?? t("auth.errorFallback"))
@@ -139,13 +141,15 @@ function PasswordCard() {
 				<CardTitle>{t("account.changePassword")}</CardTitle>
 				<CardDescription>{t("account.changePasswordDescription")}</CardDescription>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="space-y-4">
 				<ChangePasswordForm
+					key={formKey}
 					error={error}
 					onSubmit={handleSubmit}
 					submitLabel={t("account.changePassword")}
 					submitting={changePassword.isPending}
 				/>
+				{saved && <output className="text-muted-foreground block text-sm">{t("account.passwordSaved")}</output>}
 			</CardContent>
 		</Card>
 	)
