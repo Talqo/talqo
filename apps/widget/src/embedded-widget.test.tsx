@@ -1,3 +1,5 @@
+import type { Root } from "react-dom/client"
+
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
 
 await import("./test-setup")
@@ -6,7 +8,7 @@ await import("./test-setup")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { EmbeddedWidget } = await import("./embedded-widget")
-const { createRoot, type Root } = await import("react-dom/client")
+const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 
 function render(element: React.ReactElement): HTMLElement {
@@ -241,12 +243,10 @@ describe("EmbeddedWidget resize", () => {
 		stubViewport(1024, 768)
 	})
 
-	test("shows resize handles on desktop when the chat is open", async () => {
+	test("shows the corner resize grip on desktop when the chat is open", async () => {
 		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
 
 		await openChat()
-		expect(host.querySelector('[data-testid="resize-top"]')).not.toBeNull()
-		expect(host.querySelector('[data-testid="resize-side"]')).not.toBeNull()
 		expect(host.querySelector('[data-testid="resize-corner"]')).not.toBeNull()
 	})
 
@@ -287,32 +287,12 @@ describe("EmbeddedWidget resize", () => {
 		expect(panel()?.style.height).toBe("320px")
 	})
 
-	test("clamps the panel to the viewport", async () => {
+	test("clamps the panel to the viewport, keeping the launcher row below", async () => {
 		await openChat()
 		await dragCornerTo(-1000, -1000)
+		// width: 1024-32=992; height: 768-92=676 (launcher row + top clearance).
 		expect(panel()?.style.width).toBe("992px")
-		expect(panel()?.style.height).toBe("736px")
-	})
-
-	test("bottom-left position anchors on the left and grows rightwards", async () => {
-		await act(async () => {
-			root.unmount()
-		})
-		host.remove()
-		host = document.createElement("div")
-		document.body.append(host)
-		root = createRoot(host)
-		await act(async () => {
-			root.render(<EmbeddedWidget position="bottom-left" />)
-		})
-		await act(async () => {})
-
-		await openChat()
-		// Panel is anchored at left/bottom; dragging the pointer right grows it.
-		await dragCornerTo(600, 300)
-		// left=500, bottom=500 → width=600-500=100 → clamped to 280; height=500-300=320
-		expect(panel()?.style.width).toBe("280px")
-		expect(panel()?.style.height).toBe("320px")
+		expect(panel()?.style.height).toBe("676px")
 	})
 
 	test("bottom-left position anchors on the left and grows rightwards", async () => {
@@ -336,13 +316,13 @@ describe("EmbeddedWidget resize", () => {
 		expect(panel()?.style.height).toBe("320px")
 	})
 
-	test("closing and reopening resets the custom size", async () => {
+	test("closing and reopening keeps the custom size", async () => {
 		await openChat()
 		await dragCornerTo(300, 300)
 		expect(panel()?.style.width).toBe("520px")
 
 		await openChat() // close
 		await openChat() // reopen
-		expect(panel()?.style.width).toBe("")
+		expect(panel()?.style.width).toBe("520px")
 	})
 })

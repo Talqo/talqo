@@ -69,17 +69,20 @@ const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
 }
 
-type ResizeEdge = "top" | "side" | "corner"
-
 const MIN_WIDTH = 280
 const MIN_HEIGHT = 320
+// Horizontal margin keeps the panel off the screen sides.
 const RESIZE_MARGIN = 32
+// Vertical budget excludes the launcher row below the panel (16px offset + 12px gap
+// + 48px launcher) plus a 16px top clearance, so the panel can never grow past the
+// top of the screen.
+const RESIZE_HEIGHT_MARGIN = 92
 
 function clampPanelSize(width: number, height: number): { width: number; height: number } {
 	return {
 		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
 		height: Math.round(
-			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_MARGIN)),
+			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_HEIGHT_MARGIN)),
 		),
 	}
 }
@@ -143,11 +146,7 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
-function useResizablePanel(
-	open: boolean,
-	position: WidgetPosition | undefined,
-	panelRef: RefObject<HTMLDivElement | null>,
-) {
+function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLDivElement | null>) {
 	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
 	// Free resize is desktop-only; mobile keeps the default panel size.
 	const [resizable, setResizable] = useState(
@@ -166,24 +165,15 @@ function useResizablePanel(
 		return () => query.removeEventListener("change", onChange)
 	}, [])
 
-	// Reset the custom size when the chat closes; render-time reset avoids an extra render pass.
-	const [prevOpen, setPrevOpen] = useState(open)
-	if (prevOpen !== open) {
-		setPrevOpen(open)
-		if (!open) {
-			setSize(null)
-		}
-	}
+	// Grip highlight stays on while a drag is in flight.
+	const [resizing, setResizing] = useState(false)
 
-	// Which edge is mid-drag; used to keep its highlight visible while resizing.
-	const [activeEdge, setActiveEdge] = useState<ResizeEdge | null>(null)
-
-	function startResize(edge: ResizeEdge, event: ReactPointerEvent<HTMLDivElement>) {
+	function startResize(event: ReactPointerEvent<HTMLDivElement>) {
 		if (event.pointerType === "touch" || !panelRef.current) {
 			return
 		}
 		event.preventDefault()
-		setActiveEdge(edge)
+		setResizing(true)
 		const anchor = panelRef.current.getBoundingClientRect()
 		// The panel's bottom screen edge stays pinned: for bottom-right (default)
 		// it is the right edge, for bottom-left the left edge.
@@ -198,13 +188,13 @@ function useResizablePanel(
 			}
 			const rawWidth = side === "right" ? anchorX - moveEvent.clientX : moveEvent.clientX - anchorX
 			const rawHeight = anchorBottom - moveEvent.clientY
-			setSize(clampPanelSize(edge === "top" ? anchor.width : rawWidth, edge === "side" ? anchor.height : rawHeight))
+			setSize(clampPanelSize(rawWidth, rawHeight))
 		}
 		function handleEnd(endEvent: PointerEvent) {
 			if (endEvent.pointerId !== pointerId) {
 				return
 			}
-			setActiveEdge(null)
+			setResizing(false)
 			window.removeEventListener("pointermove", handleMove)
 			window.removeEventListener("pointerup", handleEnd)
 			window.removeEventListener("pointercancel", handleEnd)
@@ -214,7 +204,7 @@ function useResizablePanel(
 		window.addEventListener("pointercancel", handleEnd)
 	}
 
-	return { size, resizable, startResize, activeEdge }
+	return { size, resizable, startResize, resizing }
 }
 
 function WidgetChat({
@@ -240,7 +230,7 @@ function WidgetChat({
 	const wasOpen = useRef(false)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
-	const { size, resizable, startResize, activeEdge } = useResizablePanel(open, position, panelRef)
+	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -290,11 +280,13 @@ function WidgetChat({
 			data-scheme={scheme}
 		>
 			{open && (
+				// max-h leaves room below for the launcher row plus a top clearance:
+				// 16px offset + 12px gap + 48px launcher + 16px clearance = 5.75rem.
 				<div
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-2rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
+					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
 					style={panelStyle}
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
@@ -305,65 +297,30 @@ function WidgetChat({
 					}}
 				>
 					{resizable && (
-						<>
-							<div
+						// Only the corner grip: it resizes width and height in one drag and
+						// never collides with the header like the edge handles did.
+						<div
+							aria-hidden="true"
+							data-testid="resize-corner"
+							className={cn(
+								"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
+								position === "bottom-left"
+									? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
+									: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
+								resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
+							)}
+							onPointerDown={startResize}
+						>
+							{/* Diagonal grip lines hinting the panel can be stretched. */}
+							<ResizeGripIcon
 								aria-hidden="true"
-								data-testid="resize-top"
 								className={cn(
-									"tw:absolute tw:-top-1.5 tw:right-3 tw:left-3 tw:z-10 tw:h-3 tw:cursor-ns-resize",
-									// Keep clear of the corner grip: it sits top-left for bottom-right, top-right for bottom-left.
-									position !== "bottom-left" && "tw:left-14",
-									position === "bottom-left" && "tw:right-14",
+									"tw:size-full tw:transition-colors",
+									position === "bottom-left" && "tw:-scale-x-100",
+									resizing ? "tw:text-primary" : "tw:text-muted-foreground",
 								)}
-								onPointerDown={(event) => startResize("top", event)}
-							>
-								<div
-									className={cn(
-										"tw:mx-auto tw:h-1.5 tw:w-12 tw:rounded-full tw:transition-colors",
-										activeEdge === "top" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
-									)}
-								/>
-							</div>
-							<div
-								aria-hidden="true"
-								data-testid="resize-side"
-								className={cn(
-									"tw:absolute tw:top-3 tw:bottom-3 tw:z-10 tw:w-3",
-									position === "bottom-left" ? "tw:-right-1.5 tw:cursor-ew-resize" : "tw:-left-1.5 tw:cursor-ew-resize",
-								)}
-								onPointerDown={(event) => startResize("side", event)}
-							>
-								<div
-									className={cn(
-										"tw:my-auto tw:h-12 tw:w-1.5 tw:rounded-full tw:transition-colors",
-										position === "bottom-left" ? "tw:mr-1 tw:ml-auto" : "tw:mt-auto tw:ml-1",
-										activeEdge === "side" ? "tw:bg-primary" : "tw:bg-transparent tw:group-hover:bg-muted-foreground/80",
-									)}
-								/>
-							</div>
-							<div
-								aria-hidden="true"
-								data-testid="resize-corner"
-								className={cn(
-									"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
-									position === "bottom-left"
-										? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
-										: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
-									activeEdge === "corner" ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
-								)}
-								onPointerDown={(event) => startResize("corner", event)}
-							>
-								{/* Diagonal grip lines hinting the panel can be stretched. */}
-								<ResizeGripIcon
-									aria-hidden="true"
-									className={cn(
-										"tw:size-full tw:transition-colors",
-										position === "bottom-left" && "tw:-scale-x-100",
-										activeEdge === "corner" ? "tw:text-primary" : "tw:text-muted-foreground",
-									)}
-								/>
-							</div>
-						</>
+							/>
+						</div>
 					)}
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
