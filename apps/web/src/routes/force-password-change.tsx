@@ -40,8 +40,8 @@ function ForcePasswordChangePage() {
 		setError(null)
 		try {
 			await completeForcedPasswordChange.mutateAsync({ data: { newPassword: values.newPassword } })
-			// The password change already invalidated this session.
-			await navigate({ to: "/login" })
+			// The server keeps this session alive, so the member lands signed in.
+			await navigate({ to: "/dashboard" })
 		} catch (caught) {
 			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
