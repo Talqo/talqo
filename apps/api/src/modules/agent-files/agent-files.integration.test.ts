@@ -55,7 +55,7 @@ function upload(cookie: string, agentId: string, name = "a.md", contents = "hell
 }
 
 beforeEach(async () => {
-	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, user_role, session, "user"`
+	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user" CASCADE`
 	await rm(UPLOAD_ROOT, { force: true, recursive: true })
 })
 
