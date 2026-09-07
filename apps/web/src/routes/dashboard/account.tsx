@@ -41,7 +41,7 @@ function ProfileCard({ name }: { name: string }) {
 		register,
 		handleSubmit,
 		reset,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm<ProfileFormValues>({
 		resolver: zodResolver(profileSchema),
 		defaultValues: { name },
@@ -55,7 +55,6 @@ function ProfileCard({ name }: { name: string }) {
 	async function onValid(input: ProfileFormValues) {
 		setServerError(null)
 		setSaved(false)
-		if (input.name === name) return
 		try {
 			const result = await updateAccount.mutateAsync({ data: { username: input.name } })
 			// Point the session cache at the renamed user without a refetch; the card stays
@@ -102,7 +101,7 @@ function ProfileCard({ name }: { name: string }) {
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
 				</CardContent>
 				<CardFooter className="border-t-0 bg-transparent">
-					<Button type="submit" disabled={updateAccount.isPending}>
+					<Button type="submit" disabled={updateAccount.isPending || !isDirty}>
 						{t("account.saveProfile")}
 					</Button>
 				</CardFooter>
