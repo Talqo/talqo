@@ -31,15 +31,9 @@ const userResponseSchema = z
 	})
 	.openapi("User")
 
-<<<<<<< HEAD
-const loginRequestSchema = z.object({
-	username: z.string().min(1),
-	password: z.string().min(1),
-=======
 export const loginRequestSchema = z.object({
 	username: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
 	password: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
->>>>>>> de69a6c9 (fix: cap unbounded input to prevent oversized-payload DoS)
 })
 
 export const sessionResponseSchema = z.object({
@@ -50,13 +44,8 @@ const updateAccountRequestSchema = z.object({
 	username: usernameSchema,
 })
 
-<<<<<<< HEAD
-const changePasswordRequestSchema = z.object({
-	currentPassword: z.string().min(1),
-=======
 export const changePasswordRequestSchema = z.object({
 	currentPassword: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
->>>>>>> de69a6c9 (fix: cap unbounded input to prevent oversized-payload DoS)
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
 

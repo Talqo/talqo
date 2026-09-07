@@ -55,13 +55,8 @@ export const createInvitationResponseSchema = z.object({
 	expiresAt: z.iso.datetime(),
 })
 
-<<<<<<< HEAD
 const redeemInvitationRequestSchema = z.object({
-	token: z.string().min(1),
-=======
-export const redeemInvitationRequestSchema = z.object({
 	token: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
->>>>>>> de69a6c9 (fix: cap unbounded input to prevent oversized-payload DoS)
 	username: usernameSchema,
 	password: passwordSchema,
 })
