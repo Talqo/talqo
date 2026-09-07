@@ -148,21 +148,28 @@ test("account deletion stays disabled until the account deletion API exists", as
 })
 
 test("operator renames the account through the profile form", async ({ page }) => {
-	await logIn(page, OPERATOR)
+	// A throwaway member isolates the rename: the seeded operator stays untouched,
+	// so a failure mid-test cannot corrupt the shared fixtures for later tests.
+	const username = `e2e_rename_${Date.now()}`
+	await page.request.post("/api/auth/login", { data: { username: "e2e_admin", password: TEST_PASSWORD } })
+	const invite = await page.request.post("/api/invitations")
+	const { token } = (await invite.json()) as { token: string }
+	const redeem = await page.request.post("/api/invitations/redeem", {
+		data: { token, username, password: TEST_PASSWORD },
+	})
+	expect(redeem.ok()).toBe(true)
+
+	// Redeem issues the session itself, so the throwaway account is already signed in.
 	await page.goto("/dashboard/account")
 	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
 
-	// The profile form pre-fills the real operator name and persists a rename.
 	const nameInput = page.getByLabel("Name", { exact: true })
-	await expect(nameInput).toHaveValue(OPERATOR.username)
-	await nameInput.fill("e2e_granted_renamed")
+	await expect(nameInput).toHaveValue(username)
+	// Save stays disabled while the profile is pristine.
+	await expect(page.getByRole("button", { name: "Save profile" })).toBeDisabled()
+	await nameInput.fill(`${username}_2`)
 	await page.getByRole("button", { name: "Save profile" }).click()
 	await expect(page.getByText("Profile saved.")).toBeVisible()
 	await page.reload()
-	await expect(page.getByLabel("Name")).toHaveValue("e2e_granted_renamed")
-
-	// Rename back so other tests keep finding the seeded operator name.
-	await page.getByLabel("Name").fill(OPERATOR.username)
-	await page.getByRole("button", { name: "Save profile" }).click()
-	await expect(page.getByText("Profile saved.")).toBeVisible()
+	await expect(page.getByLabel("Name")).toHaveValue(`${username}_2`)
 })
