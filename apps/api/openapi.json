@@ -390,7 +390,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -424,7 +425,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -520,7 +522,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -529,13 +532,15 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentials": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 4096
 														}
 													}
 												},
@@ -559,7 +564,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -568,7 +574,8 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													}
 												},
@@ -596,7 +603,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -605,13 +613,15 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentials": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 4096
 														}
 													},
 													"credentialSource": {
@@ -639,7 +649,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -648,7 +659,8 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentialSource": {
@@ -709,7 +721,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -743,7 +756,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -859,13 +873,15 @@
 											"settings": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 2048
 												}
 											},
 											"credentials": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 4096
 												}
 											},
 											"storedCredentialRole": {
@@ -898,7 +914,8 @@
 											"settings": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 2048
 												}
 											}
 										},
@@ -1036,11 +1053,13 @@
 								"properties": {
 									"username": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"password": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									}
 								},
 								"required": ["username", "password"]
@@ -1300,7 +1319,8 @@
 								"properties": {
 									"currentPassword": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"newPassword": {
 										"type": "string",
@@ -1663,7 +1683,8 @@
 								"properties": {
 									"token": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"username": {
 										"type": "string",
@@ -1750,7 +1771,8 @@
 								"properties": {
 									"userId": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"permission": {
 										"type": "string",
