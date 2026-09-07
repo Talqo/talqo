@@ -1,4 +1,3 @@
-import { useLogin } from "@/api/generated/identity/identity.ts"
 import { useBootstrapAdmin } from "@/api/generated/roles/roles.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
@@ -17,13 +16,12 @@ function SetupPage() {
 	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
 	const bootstrapAdmin = useBootstrapAdmin()
-	const login = useLogin()
 
 	async function handleSubmit(input: { password: string; username: string }) {
 		setError(null)
 		try {
+			// The API sets the session cookie on bootstrap, so the admin lands signed in.
 			await bootstrapAdmin.mutateAsync({ data: input })
-			await login.mutateAsync({ data: input })
 			queryClient.clear()
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
@@ -40,7 +38,7 @@ function SetupPage() {
 				onSubmit={handleSubmit}
 				requireConfirmation={true}
 				submitLabel={t("auth.setup.submit")}
-				submitting={bootstrapAdmin.isPending || login.isPending}
+				submitting={bootstrapAdmin.isPending}
 			/>
 		</AuthShell>
 	)

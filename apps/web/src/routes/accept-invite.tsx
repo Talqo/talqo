@@ -1,4 +1,3 @@
-import { useLogin } from "@/api/generated/identity/identity.ts"
 import { useRedeemInvitation } from "@/api/generated/roles/roles.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
@@ -21,14 +20,12 @@ function AcceptInvitePage() {
 	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
 	const redeemInvitation = useRedeemInvitation()
-	const login = useLogin()
 
 	async function handleSubmit(input: { password: string; username: string }) {
 		setError(null)
 		try {
+			// The API sets the session cookie on redeem, so the member lands signed in.
 			await redeemInvitation.mutateAsync({ data: { token, ...input } })
-			// Sign the new member straight in, same as the setup flow.
-			await login.mutateAsync({ data: input })
 			queryClient.clear()
 			await navigate({ to: "/dashboard" })
 		} catch (caught) {
@@ -56,7 +53,7 @@ function AcceptInvitePage() {
 				onSubmit={handleSubmit}
 				requireConfirmation={true}
 				submitLabel={t("auth.acceptInvite.submit")}
-				submitting={redeemInvitation.isPending || login.isPending}
+				submitting={redeemInvitation.isPending}
 			/>
 		</AuthShell>
 	)

@@ -67,6 +67,23 @@ export async function createAccount(input: { password: string; username: string 
 	return toPublicUser(user)
 }
 
+export async function createSession(
+	userId: string,
+	context: { ipAddress?: string; userAgent?: string } = {},
+): Promise<{ expiresAt: Date; token: string }> {
+	const token = generateOpaqueToken()
+	const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
+	await repo.insertSession({
+		id: crypto.randomUUID(),
+		tokenHash: hashOpaqueToken(token),
+		userId,
+		expiresAt,
+		ipAddress: context.ipAddress,
+		userAgent: context.userAgent,
+	})
+	return { token, expiresAt }
+}
+
 export async function login(
 	input: { password: string; username: string },
 	context: { ipAddress?: string; userAgent?: string } = {},
@@ -78,17 +95,7 @@ export async function login(
 		throw new InvalidCredentialsError("Invalid username or password")
 	}
 
-	const token = generateOpaqueToken()
-	const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
-	await repo.insertSession({
-		id: crypto.randomUUID(),
-		tokenHash: hashOpaqueToken(token),
-		userId: user.id,
-		expiresAt,
-		ipAddress: context.ipAddress,
-		userAgent: context.userAgent,
-	})
-
+	const { token, expiresAt } = await createSession(user.id, context)
 	return { token, expiresAt, user: toPublicUser(user) }
 }
 

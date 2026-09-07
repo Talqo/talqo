@@ -1,9 +1,11 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
+import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
+import { setCookie } from "hono/cookie"
 
 import {
 	accessResponseSchema,
@@ -38,6 +40,9 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(bootstrapAdminRoute, async (c) => {
 		try {
 			const user = await service.bootstrapAdmin(c.req.valid("json"))
+			// Set the session now: the setup page lands signed in without a second login round-trip.
+			const { token, expiresAt } = await identity.createSession(user.id)
+			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
 			return c.json(bootstrapAdminResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.AdminAlreadyExistsError) {
@@ -64,6 +69,9 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(redeemInvitationRoute, async (c) => {
 		try {
 			const user = await service.redeemInvitation(c.req.valid("json"))
+			// Set the session now: accepting an invitation lands the member signed in.
+			const { token, expiresAt } = await identity.createSession(user.id)
+			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
 			return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof service.InvalidInvitationError) {

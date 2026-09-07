@@ -1,6 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
-import { env } from "@/config/env.ts"
+import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isUniqueViolation } from "@/lib/pg-error.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -19,15 +19,6 @@ import {
 import * as service from "./identity.service.ts"
 
 const { SESSION_COOKIE } = service
-
-function sessionCookieOptions() {
-	return {
-		httpOnly: true,
-		sameSite: "Lax" as const,
-		secure: env.NODE_ENV === "production",
-		path: "/",
-	}
-}
 
 const authRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(loginRoute, async (c) => {
