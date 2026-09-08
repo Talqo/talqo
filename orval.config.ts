@@ -25,7 +25,7 @@ export default defineConfig({
 					forceSuccessResponse: true,
 				},
 				query: {
-					shouldExportQueryKey: true,
+					shouldExportKeys: true,
 					signal: true,
 				},
 				zod: {
