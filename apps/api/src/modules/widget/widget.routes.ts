@@ -24,10 +24,10 @@ const CONFIG_MAX_AGE_SECONDS = 60
 
 function mapDomainError(error: unknown) {
 	if (error instanceof service.WidgetNotFoundError) {
-		return { code: PROBLEM_CODES.WIDGET_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND }
+		return { code: PROBLEM_CODES.WIDGET_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	}
 	if (error instanceof service.UnknownAgentError) {
-		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND }
+		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	}
 	return null
 }
@@ -52,7 +52,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
@@ -67,7 +67,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
@@ -82,7 +82,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
@@ -97,7 +97,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
@@ -118,7 +118,7 @@ export const widgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }
 			return c.json(widgetConfigResponseSchema.parse(config), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	},

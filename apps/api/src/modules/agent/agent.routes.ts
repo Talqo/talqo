@@ -17,22 +17,6 @@ import {
 } from "./agent.contract.ts"
 import * as service from "./agent.service.ts"
 
-function mapDomainError(error: unknown) {
-	if (error instanceof service.InvalidAgentInputError) {
-		return { code: PROBLEM_CODES.AGENT_INVALID, status: HTTP_STATUS.BAD_REQUEST }
-	}
-	if (error instanceof service.AgentNotFoundError) {
-		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND }
-	}
-	if (error instanceof service.DuplicateAgentNameError) {
-		return { code: PROBLEM_CODES.AGENT_NAME_TAKEN, status: HTTP_STATUS.CONFLICT }
-	}
-	if (error instanceof service.AgentInUseError) {
-		return { code: PROBLEM_CODES.AGENT_IN_USE, status: HTTP_STATUS.CONFLICT }
-	}
-	return null
-}
-
 // Contract schemas serialize timestamps as ISO strings.
 function serialize(agent: service.Agent) {
 	return { ...agent, createdAt: agent.createdAt.toISOString(), updatedAt: agent.updatedAt.toISOString() }
@@ -59,8 +43,12 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			const agent = await service.createAgent(c.req.valid("json"))
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
 		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (error instanceof service.InvalidAgentInputError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_INVALID, HTTP_STATUS.BAD_REQUEST)
+			}
+			if (error instanceof service.DuplicateAgentNameError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})
@@ -74,8 +62,9 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			const agent = await service.getAgent(c.req.valid("param").agentId)
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (error instanceof service.AgentNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
 			throw error
 		}
 	})
@@ -89,8 +78,15 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			const agent = await service.updateAgent(c.req.valid("param").agentId, c.req.valid("json"))
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (error instanceof service.InvalidAgentInputError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_INVALID, HTTP_STATUS.BAD_REQUEST)
+			}
+			if (error instanceof service.AgentNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
+			if (error instanceof service.DuplicateAgentNameError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})
@@ -104,8 +100,9 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			const agent = await service.refreshEmbedToken(c.req.valid("param").agentId)
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (error instanceof service.AgentNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
 			throw error
 		}
 	})
@@ -119,8 +116,12 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			await service.deleteAgent(c.req.valid("param").agentId)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status as never)
+			if (error instanceof service.AgentNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
+			if (error instanceof service.AgentInUseError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_IN_USE, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})
