@@ -42,7 +42,7 @@ export const PROBLEM_CODES = {
 export type ProblemCode = (typeof PROBLEM_CODES)[keyof typeof PROBLEM_CODES]
 
 const PROBLEM_TYPE_BASE = "https://docs.talqo.chat/problems#" as const
-export const PROBLEM_CODE_VALUES = Object.values(PROBLEM_CODES) as [ProblemCode, ...ProblemCode[]]
+const PROBLEM_CODE_VALUES = Object.values(PROBLEM_CODES) as [ProblemCode, ...ProblemCode[]]
 
 export type ProblemDetails = {
 	readonly code: ProblemCode

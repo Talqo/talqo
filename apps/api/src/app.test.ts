@@ -210,12 +210,13 @@ describe("api", () => {
 		expect(console.error).toHaveBeenCalled()
 	})
 
-	it("registers API endpoints with method-specific routes only", () => {
+	it("keeps API endpoint routes method-specific", () => {
 		const wildcardApiRoutes = app.routes
 			.filter((route) => route.method === "ALL" && route.path.startsWith("/api/"))
 			.map((route) => route.path)
 
-		expect(wildcardApiRoutes).toEqual(["/api/*", "/api/*"])
+		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
+		expect(wildcardApiRoutes).toEqual(["/api/widget-config/*"])
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
@@ -260,6 +261,18 @@ describe("api", () => {
 		const operations = Object.values(paths).flatMap((operationsByMethod) => Object.values(operationsByMethod))
 		for (const operation of operations) {
 			expect(operation.operationId).toBeDefined()
+			const payloadTooLarge = operation.responses?.["413"] as {
+				content?: {
+					"application/problem+json"?: {
+						schema?: { oneOf?: Array<{ properties?: { code?: { const?: string } } }> }
+					}
+				}
+			}
+			expect(
+				payloadTooLarge.content?.["application/problem+json"]?.schema?.oneOf?.map(
+					(schema) => schema.properties?.code?.const,
+				),
+			).toEqual(["payload-too-large"])
 		}
 
 		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])
@@ -272,7 +285,7 @@ describe("api", () => {
 				properties?: { code?: { const?: string }; type?: { const?: string } }
 			}>
 		}
-		expect(problemSchema.oneOf).toHaveLength(27)
+		expect(problemSchema.oneOf).toHaveLength(30)
 		for (const schema of problemSchema.oneOf ?? []) {
 			expect(schema.additionalProperties).toBe(false)
 			expect(schema.properties?.type?.const).toBe(`https://docs.talqo.chat/problems#${schema.properties?.code?.const}`)

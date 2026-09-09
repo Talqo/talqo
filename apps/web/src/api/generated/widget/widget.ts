@@ -21,26 +21,31 @@ import type { CreateWidget400 } from "../models/widget/createWidget400.zod"
 import type { CreateWidget401 } from "../models/widget/createWidget401.zod"
 import type { CreateWidget403 } from "../models/widget/createWidget403.zod"
 import type { CreateWidget404 } from "../models/widget/createWidget404.zod"
+import type { CreateWidget413 } from "../models/widget/createWidget413.zod"
 import type { CreateWidget500 } from "../models/widget/createWidget500.zod"
 import type { CreateWidgetBody } from "../models/widget/createWidgetBody.zod"
 import type { DeleteWidget400 } from "../models/widget/deleteWidget400.zod"
 import type { DeleteWidget401 } from "../models/widget/deleteWidget401.zod"
 import type { DeleteWidget403 } from "../models/widget/deleteWidget403.zod"
 import type { DeleteWidget404 } from "../models/widget/deleteWidget404.zod"
+import type { DeleteWidget413 } from "../models/widget/deleteWidget413.zod"
 import type { DeleteWidget500 } from "../models/widget/deleteWidget500.zod"
 import type { GetWidget200 } from "../models/widget/getWidget200.zod"
 import type { GetWidget400 } from "../models/widget/getWidget400.zod"
 import type { GetWidget401 } from "../models/widget/getWidget401.zod"
 import type { GetWidget403 } from "../models/widget/getWidget403.zod"
 import type { GetWidget404 } from "../models/widget/getWidget404.zod"
+import type { GetWidget413 } from "../models/widget/getWidget413.zod"
 import type { GetWidget500 } from "../models/widget/getWidget500.zod"
 import type { GetWidgetConfig400 } from "../models/widget/getWidgetConfig400.zod"
 import type { GetWidgetConfig404 } from "../models/widget/getWidgetConfig404.zod"
+import type { GetWidgetConfig413 } from "../models/widget/getWidgetConfig413.zod"
 import type { GetWidgetConfig500 } from "../models/widget/getWidgetConfig500.zod"
 import type { ListWidgets200 } from "../models/widget/listWidgets200.zod"
 import type { ListWidgets400 } from "../models/widget/listWidgets400.zod"
 import type { ListWidgets401 } from "../models/widget/listWidgets401.zod"
 import type { ListWidgets403 } from "../models/widget/listWidgets403.zod"
+import type { ListWidgets413 } from "../models/widget/listWidgets413.zod"
 import type { ListWidgets500 } from "../models/widget/listWidgets500.zod"
 import type { ListWidgetsParams } from "../models/widget/listWidgetsParams.zod"
 import type { UpdateWidget200 } from "../models/widget/updateWidget200.zod"
@@ -48,6 +53,7 @@ import type { UpdateWidget400 } from "../models/widget/updateWidget400.zod"
 import type { UpdateWidget401 } from "../models/widget/updateWidget401.zod"
 import type { UpdateWidget403 } from "../models/widget/updateWidget403.zod"
 import type { UpdateWidget404 } from "../models/widget/updateWidget404.zod"
+import type { UpdateWidget413 } from "../models/widget/updateWidget413.zod"
 import type { UpdateWidget500 } from "../models/widget/updateWidget500.zod"
 import type { UpdateWidgetBody } from "../models/widget/updateWidgetBody.zod"
 import type { WidgetConfig } from "../models/widget/widgetConfig.zod"
@@ -91,6 +97,11 @@ export type listWidgetsResponse403 = {
 	status: 403
 }
 
+export type listWidgetsResponse413 = {
+	data: ListWidgets413
+	status: 413
+}
+
 export type listWidgetsResponse500 = {
 	data: ListWidgets500
 	status: 500
@@ -103,6 +114,7 @@ export type listWidgetsResponseError = (
 	| listWidgetsResponse400
 	| listWidgetsResponse401
 	| listWidgetsResponse403
+	| listWidgetsResponse413
 	| listWidgetsResponse500
 ) & {
 	headers: Headers
@@ -151,7 +163,7 @@ export const getListWidgetsQueryKey = (params?: ListWidgetsParams) => {
 export const getListWidgetsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listWidgets>>,
 	TError = globalThis.Error & {
-		info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets500
+		info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets413 | ListWidgets500
 		status?: number
 	},
 >(
@@ -174,14 +186,14 @@ export const getListWidgetsQueryOptions = <
 
 export type ListWidgetsQueryResult = NonNullable<Awaited<ReturnType<typeof listWidgets>>>
 export type ListWidgetsQueryError = globalThis.Error & {
-	info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets500
+	info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets413 | ListWidgets500
 	status?: number
 }
 
 export function useListWidgets<
 	TData = Awaited<ReturnType<typeof listWidgets>>,
 	TError = globalThis.Error & {
-		info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets500
+		info?: ListWidgets400 | ListWidgets401 | ListWidgets403 | ListWidgets413 | ListWidgets500
 		status?: number
 	},
 >(
@@ -220,6 +232,11 @@ export type createWidgetResponse404 = {
 	status: 404
 }
 
+export type createWidgetResponse413 = {
+	data: CreateWidget413
+	status: 413
+}
+
 export type createWidgetResponse500 = {
 	data: CreateWidget500
 	status: 500
@@ -233,6 +250,7 @@ export type createWidgetResponseError = (
 	| createWidgetResponse401
 	| createWidgetResponse403
 	| createWidgetResponse404
+	| createWidgetResponse413
 	| createWidgetResponse500
 ) & {
 	headers: Headers
@@ -276,7 +294,7 @@ export const getCreateWidgetMutationKey = () => ["createWidget"] as const
 
 export const getCreateWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget500
+		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -310,14 +328,14 @@ export const getCreateWidgetMutationOptions = <
 export type CreateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof createWidget>>>
 export type CreateWidgetMutationBody = CreateWidgetBody
 export type CreateWidgetMutationError = globalThis.Error & {
-	info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget500
+	info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
 	status?: number
 }
 export type CreateWidgetMutationVariables = { data: CreateWidgetBody }
 
 export const useCreateWidget = <
 	TError = globalThis.Error & {
-		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget500
+		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -357,6 +375,11 @@ export type getWidgetResponse404 = {
 	status: 404
 }
 
+export type getWidgetResponse413 = {
+	data: GetWidget413
+	status: 413
+}
+
 export type getWidgetResponse500 = {
 	data: GetWidget500
 	status: 500
@@ -370,6 +393,7 @@ export type getWidgetResponseError = (
 	| getWidgetResponse401
 	| getWidgetResponse403
 	| getWidgetResponse404
+	| getWidgetResponse413
 	| getWidgetResponse500
 ) & {
 	headers: Headers
@@ -405,7 +429,7 @@ export const getGetWidgetQueryKey = (widgetId: string) => {
 export const getGetWidgetQueryOptions = <
 	TData = Awaited<ReturnType<typeof getWidget>>,
 	TError = globalThis.Error & {
-		info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500
+		info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget413 | GetWidget500
 		status?: number
 	},
 >(
@@ -429,14 +453,14 @@ export const getGetWidgetQueryOptions = <
 
 export type GetWidgetQueryResult = NonNullable<Awaited<ReturnType<typeof getWidget>>>
 export type GetWidgetQueryError = globalThis.Error & {
-	info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500
+	info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget413 | GetWidget500
 	status?: number
 }
 
 export function useGetWidget<
 	TData = Awaited<ReturnType<typeof getWidget>>,
 	TError = globalThis.Error & {
-		info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500
+		info?: GetWidget400 | GetWidget401 | GetWidget403 | GetWidget404 | GetWidget413 | GetWidget500
 		status?: number
 	},
 >(
@@ -475,6 +499,11 @@ export type updateWidgetResponse404 = {
 	status: 404
 }
 
+export type updateWidgetResponse413 = {
+	data: UpdateWidget413
+	status: 413
+}
+
 export type updateWidgetResponse500 = {
 	data: UpdateWidget500
 	status: 500
@@ -488,6 +517,7 @@ export type updateWidgetResponseError = (
 	| updateWidgetResponse401
 	| updateWidgetResponse403
 	| updateWidgetResponse404
+	| updateWidgetResponse413
 	| updateWidgetResponse500
 ) & {
 	headers: Headers
@@ -532,7 +562,7 @@ export const getUpdateWidgetMutationKey = () => ["updateWidget"] as const
 
 export const getUpdateWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget500
+		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -566,14 +596,14 @@ export const getUpdateWidgetMutationOptions = <
 export type UpdateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof updateWidget>>>
 export type UpdateWidgetMutationBody = UpdateWidgetBody
 export type UpdateWidgetMutationError = globalThis.Error & {
-	info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget500
+	info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
 	status?: number
 }
 export type UpdateWidgetMutationVariables = { widgetId: string; data: UpdateWidgetBody }
 
 export const useUpdateWidget = <
 	TError = globalThis.Error & {
-		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget500
+		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -613,6 +643,11 @@ export type deleteWidgetResponse404 = {
 	status: 404
 }
 
+export type deleteWidgetResponse413 = {
+	data: DeleteWidget413
+	status: 413
+}
+
 export type deleteWidgetResponse500 = {
 	data: DeleteWidget500
 	status: 500
@@ -626,6 +661,7 @@ export type deleteWidgetResponseError = (
 	| deleteWidgetResponse401
 	| deleteWidgetResponse403
 	| deleteWidgetResponse404
+	| deleteWidgetResponse413
 	| deleteWidgetResponse500
 ) & {
 	headers: Headers
@@ -658,7 +694,7 @@ export const getDeleteWidgetMutationKey = () => ["deleteWidget"] as const
 
 export const getDeleteWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+		info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget413 | DeleteWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -692,14 +728,14 @@ export const getDeleteWidgetMutationOptions = <
 export type DeleteWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWidget>>>
 
 export type DeleteWidgetMutationError = globalThis.Error & {
-	info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+	info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget413 | DeleteWidget500
 	status?: number
 }
 export type DeleteWidgetMutationVariables = { widgetId: string }
 
 export const useDeleteWidget = <
 	TError = globalThis.Error & {
-		info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+		info?: DeleteWidget400 | DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget413 | DeleteWidget500
 		status?: number
 	},
 	TContext = unknown,
@@ -734,6 +770,11 @@ export type getWidgetConfigResponse404 = {
 	status: 404
 }
 
+export type getWidgetConfigResponse413 = {
+	data: GetWidgetConfig413
+	status: 413
+}
+
 export type getWidgetConfigResponse500 = {
 	data: GetWidgetConfig500
 	status: 500
@@ -746,6 +787,7 @@ export type getWidgetConfigResponseError = (
 	| getWidgetConfigResponse304
 	| getWidgetConfigResponse400
 	| getWidgetConfigResponse404
+	| getWidgetConfigResponse413
 	| getWidgetConfigResponse500
 ) & {
 	headers: Headers
@@ -785,7 +827,7 @@ export const getGetWidgetConfigQueryKey = (token: string) => {
 export const getGetWidgetConfigQueryOptions = <
 	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
 	TError = globalThis.Error & {
-		info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig500
+		info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig413 | GetWidgetConfig500
 		status?: number
 	},
 >(
@@ -811,14 +853,14 @@ export const getGetWidgetConfigQueryOptions = <
 
 export type GetWidgetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getWidgetConfig>>>
 export type GetWidgetConfigQueryError = globalThis.Error & {
-	info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig500
+	info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig413 | GetWidgetConfig500
 	status?: number
 }
 
 export function useGetWidgetConfig<
 	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
 	TError = globalThis.Error & {
-		info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig500
+		info?: void | GetWidgetConfig400 | GetWidgetConfig404 | GetWidgetConfig413 | GetWidgetConfig500
 		status?: number
 	},
 >(

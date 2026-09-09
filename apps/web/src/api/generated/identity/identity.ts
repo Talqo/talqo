@@ -18,32 +18,39 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { ChangePassword400 } from "../models/identity/changePassword400.zod"
 import type { ChangePassword401 } from "../models/identity/changePassword401.zod"
+import type { ChangePassword413 } from "../models/identity/changePassword413.zod"
 import type { ChangePassword500 } from "../models/identity/changePassword500.zod"
 import type { ChangePasswordBody } from "../models/identity/changePasswordBody.zod"
 import type { CompleteForcedPasswordChange400 } from "../models/identity/completeForcedPasswordChange400.zod"
 import type { CompleteForcedPasswordChange401 } from "../models/identity/completeForcedPasswordChange401.zod"
 import type { CompleteForcedPasswordChange409 } from "../models/identity/completeForcedPasswordChange409.zod"
+import type { CompleteForcedPasswordChange413 } from "../models/identity/completeForcedPasswordChange413.zod"
 import type { CompleteForcedPasswordChange500 } from "../models/identity/completeForcedPasswordChange500.zod"
 import type { CompleteForcedPasswordChangeBody } from "../models/identity/completeForcedPasswordChangeBody.zod"
 import type { DeleteAccount400 } from "../models/identity/deleteAccount400.zod"
 import type { DeleteAccount401 } from "../models/identity/deleteAccount401.zod"
 import type { DeleteAccount403 } from "../models/identity/deleteAccount403.zod"
+import type { DeleteAccount413 } from "../models/identity/deleteAccount413.zod"
 import type { DeleteAccount500 } from "../models/identity/deleteAccount500.zod"
 import type { GetSession200 } from "../models/identity/getSession200.zod"
 import type { GetSession400 } from "../models/identity/getSession400.zod"
+import type { GetSession413 } from "../models/identity/getSession413.zod"
 import type { GetSession500 } from "../models/identity/getSession500.zod"
 import type { Login200 } from "../models/identity/login200.zod"
 import type { Login400 } from "../models/identity/login400.zod"
 import type { Login401 } from "../models/identity/login401.zod"
+import type { Login413 } from "../models/identity/login413.zod"
 import type { Login500 } from "../models/identity/login500.zod"
 import type { LoginBody } from "../models/identity/loginBody.zod"
 import type { Logout400 } from "../models/identity/logout400.zod"
+import type { Logout413 } from "../models/identity/logout413.zod"
 import type { Logout500 } from "../models/identity/logout500.zod"
 import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
 import type { UpdateAccount400 } from "../models/identity/updateAccount400.zod"
 import type { UpdateAccount401 } from "../models/identity/updateAccount401.zod"
 import type { UpdateAccount403 } from "../models/identity/updateAccount403.zod"
 import type { UpdateAccount409 } from "../models/identity/updateAccount409.zod"
+import type { UpdateAccount413 } from "../models/identity/updateAccount413.zod"
 import type { UpdateAccount500 } from "../models/identity/updateAccount500.zod"
 import type { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
 
@@ -81,6 +88,11 @@ export type loginResponse401 = {
 	status: 401
 }
 
+export type loginResponse413 = {
+	data: Login413
+	status: 413
+}
+
 export type loginResponse500 = {
 	data: Login500
 	status: 500
@@ -89,7 +101,7 @@ export type loginResponse500 = {
 export type loginResponseSuccess = loginResponse200 & {
 	headers: Headers
 }
-export type loginResponseError = (loginResponse400 | loginResponse401 | loginResponse500) & {
+export type loginResponseError = (loginResponse400 | loginResponse401 | loginResponse413 | loginResponse500) & {
 	headers: Headers
 }
 
@@ -127,7 +139,7 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 export const getLoginMutationKey = () => ["login"] as const
 
 export const getLoginMutationOptions = <
-	TError = globalThis.Error & { info?: Login400 | Login401 | Login500; status?: number },
+	TError = globalThis.Error & { info?: Login400 | Login401 | Login413 | Login500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
@@ -151,11 +163,14 @@ export const getLoginMutationOptions = <
 
 export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
 export type LoginMutationBody = LoginBody
-export type LoginMutationError = globalThis.Error & { info?: Login400 | Login401 | Login500; status?: number }
+export type LoginMutationError = globalThis.Error & {
+	info?: Login400 | Login401 | Login413 | Login500
+	status?: number
+}
 export type LoginMutationVariables = { data: LoginBody }
 
 export const useLogin = <
-	TError = globalThis.Error & { info?: Login400 | Login401 | Login500; status?: number },
+	TError = globalThis.Error & { info?: Login400 | Login401 | Login413 | Login500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
@@ -173,6 +188,11 @@ export type logoutResponse400 = {
 	status: 400
 }
 
+export type logoutResponse413 = {
+	data: Logout413
+	status: 413
+}
+
 export type logoutResponse500 = {
 	data: Logout500
 	status: 500
@@ -181,7 +201,7 @@ export type logoutResponse500 = {
 export type logoutResponseSuccess = logoutResponse204 & {
 	headers: Headers
 }
-export type logoutResponseError = (logoutResponse400 | logoutResponse500) & {
+export type logoutResponseError = (logoutResponse400 | logoutResponse413 | logoutResponse500) & {
 	headers: Headers
 }
 
@@ -211,7 +231,7 @@ export const logout = async (options?: RequestInit): Promise<logoutResponseSucce
 export const getLogoutMutationKey = () => ["logout"] as const
 
 export const getLogoutMutationOptions = <
-	TError = globalThis.Error & { info?: Logout400 | Logout500; status?: number },
+	TError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -233,10 +253,10 @@ export const getLogoutMutationOptions = <
 
 export type LogoutMutationResult = NonNullable<Awaited<ReturnType<typeof logout>>>
 
-export type LogoutMutationError = globalThis.Error & { info?: Logout400 | Logout500; status?: number }
+export type LogoutMutationError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number }
 
 export const useLogout = <
-	TError = globalThis.Error & { info?: Logout400 | Logout500; status?: number },
+	TError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -254,6 +274,11 @@ export type getSessionResponse400 = {
 	status: 400
 }
 
+export type getSessionResponse413 = {
+	data: GetSession413
+	status: 413
+}
+
 export type getSessionResponse500 = {
 	data: GetSession500
 	status: 500
@@ -262,7 +287,7 @@ export type getSessionResponse500 = {
 export type getSessionResponseSuccess = getSessionResponse200 & {
 	headers: Headers
 }
-export type getSessionResponseError = (getSessionResponse400 | getSessionResponse500) & {
+export type getSessionResponseError = (getSessionResponse400 | getSessionResponse413 | getSessionResponse500) & {
 	headers: Headers
 }
 
@@ -295,7 +320,7 @@ export const getGetSessionQueryKey = () => {
 
 export const getGetSessionQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession400 | GetSession500; status?: number },
+	TError = globalThis.Error & { info?: GetSession400 | GetSession413 | GetSession500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -315,11 +340,14 @@ export const getGetSessionQueryOptions = <
 }
 
 export type GetSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSession>>>
-export type GetSessionQueryError = globalThis.Error & { info?: GetSession400 | GetSession500; status?: number }
+export type GetSessionQueryError = globalThis.Error & {
+	info?: GetSession400 | GetSession413 | GetSession500
+	status?: number
+}
 
 export function useGetSession<
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession400 | GetSession500; status?: number },
+	TError = globalThis.Error & { info?: GetSession400 | GetSession413 | GetSession500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -356,6 +384,11 @@ export type updateAccountResponse409 = {
 	status: 409
 }
 
+export type updateAccountResponse413 = {
+	data: UpdateAccount413
+	status: 413
+}
+
 export type updateAccountResponse500 = {
 	data: UpdateAccount500
 	status: 500
@@ -369,6 +402,7 @@ export type updateAccountResponseError = (
 	| updateAccountResponse401
 	| updateAccountResponse403
 	| updateAccountResponse409
+	| updateAccountResponse413
 	| updateAccountResponse500
 ) & {
 	headers: Headers
@@ -413,7 +447,13 @@ export const getUpdateAccountMutationKey = () => ["updateAccount"] as const
 
 export const getUpdateAccountMutationOptions = <
 	TError = globalThis.Error & {
-		info?: UpdateAccount400 | UpdateAccount401 | UpdateAccount403 | UpdateAccount409 | UpdateAccount500
+		info?:
+			| UpdateAccount400
+			| UpdateAccount401
+			| UpdateAccount403
+			| UpdateAccount409
+			| UpdateAccount413
+			| UpdateAccount500
 		status?: number
 	},
 	TContext = unknown,
@@ -447,14 +487,20 @@ export const getUpdateAccountMutationOptions = <
 export type UpdateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccount>>>
 export type UpdateAccountMutationBody = UpdateAccountBody
 export type UpdateAccountMutationError = globalThis.Error & {
-	info?: UpdateAccount400 | UpdateAccount401 | UpdateAccount403 | UpdateAccount409 | UpdateAccount500
+	info?: UpdateAccount400 | UpdateAccount401 | UpdateAccount403 | UpdateAccount409 | UpdateAccount413 | UpdateAccount500
 	status?: number
 }
 export type UpdateAccountMutationVariables = { data: UpdateAccountBody }
 
 export const useUpdateAccount = <
 	TError = globalThis.Error & {
-		info?: UpdateAccount400 | UpdateAccount401 | UpdateAccount403 | UpdateAccount409 | UpdateAccount500
+		info?:
+			| UpdateAccount400
+			| UpdateAccount401
+			| UpdateAccount403
+			| UpdateAccount409
+			| UpdateAccount413
+			| UpdateAccount500
 		status?: number
 	},
 	TContext = unknown,
@@ -489,6 +535,11 @@ export type deleteAccountResponse403 = {
 	status: 403
 }
 
+export type deleteAccountResponse413 = {
+	data: DeleteAccount413
+	status: 413
+}
+
 export type deleteAccountResponse500 = {
 	data: DeleteAccount500
 	status: 500
@@ -501,6 +552,7 @@ export type deleteAccountResponseError = (
 	| deleteAccountResponse400
 	| deleteAccountResponse401
 	| deleteAccountResponse403
+	| deleteAccountResponse413
 	| deleteAccountResponse500
 ) & {
 	headers: Headers
@@ -534,7 +586,7 @@ export const getDeleteAccountMutationKey = () => ["deleteAccount"] as const
 
 export const getDeleteAccountMutationOptions = <
 	TError = globalThis.Error & {
-		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount500
+		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
 		status?: number
 	},
 	TContext = unknown,
@@ -559,13 +611,13 @@ export const getDeleteAccountMutationOptions = <
 export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
 
 export type DeleteAccountMutationError = globalThis.Error & {
-	info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount500
+	info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
 	status?: number
 }
 
 export const useDeleteAccount = <
 	TError = globalThis.Error & {
-		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount500
+		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
 		status?: number
 	},
 	TContext = unknown,
@@ -590,6 +642,11 @@ export type changePasswordResponse401 = {
 	status: 401
 }
 
+export type changePasswordResponse413 = {
+	data: ChangePassword413
+	status: 413
+}
+
 export type changePasswordResponse500 = {
 	data: ChangePassword500
 	status: 500
@@ -601,6 +658,7 @@ export type changePasswordResponseSuccess = changePasswordResponse204 & {
 export type changePasswordResponseError = (
 	| changePasswordResponse400
 	| changePasswordResponse401
+	| changePasswordResponse413
 	| changePasswordResponse500
 ) & {
 	headers: Headers
@@ -644,7 +702,10 @@ export const changePassword = async (
 export const getChangePasswordMutationKey = () => ["changePassword"] as const
 
 export const getChangePasswordMutationOptions = <
-	TError = globalThis.Error & { info?: ChangePassword400 | ChangePassword401 | ChangePassword500; status?: number },
+	TError = globalThis.Error & {
+		info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -681,13 +742,16 @@ export const getChangePasswordMutationOptions = <
 export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
 export type ChangePasswordMutationBody = ChangePasswordBody
 export type ChangePasswordMutationError = globalThis.Error & {
-	info?: ChangePassword400 | ChangePassword401 | ChangePassword500
+	info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
 	status?: number
 }
 export type ChangePasswordMutationVariables = { data: ChangePasswordBody }
 
 export const useChangePassword = <
-	TError = globalThis.Error & { info?: ChangePassword400 | ChangePassword401 | ChangePassword500; status?: number },
+	TError = globalThis.Error & {
+		info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -725,6 +789,11 @@ export type completeForcedPasswordChangeResponse409 = {
 	status: 409
 }
 
+export type completeForcedPasswordChangeResponse413 = {
+	data: CompleteForcedPasswordChange413
+	status: 413
+}
+
 export type completeForcedPasswordChangeResponse500 = {
 	data: CompleteForcedPasswordChange500
 	status: 500
@@ -737,6 +806,7 @@ export type completeForcedPasswordChangeResponseError = (
 	| completeForcedPasswordChangeResponse400
 	| completeForcedPasswordChangeResponse401
 	| completeForcedPasswordChangeResponse409
+	| completeForcedPasswordChangeResponse413
 	| completeForcedPasswordChangeResponse500
 ) & {
 	headers: Headers
@@ -785,6 +855,7 @@ export const getCompleteForcedPasswordChangeMutationOptions = <
 			| CompleteForcedPasswordChange400
 			| CompleteForcedPasswordChange401
 			| CompleteForcedPasswordChange409
+			| CompleteForcedPasswordChange413
 			| CompleteForcedPasswordChange500
 		status?: number
 	},
@@ -831,6 +902,7 @@ export type CompleteForcedPasswordChangeMutationError = globalThis.Error & {
 		| CompleteForcedPasswordChange400
 		| CompleteForcedPasswordChange401
 		| CompleteForcedPasswordChange409
+		| CompleteForcedPasswordChange413
 		| CompleteForcedPasswordChange500
 	status?: number
 }
@@ -842,6 +914,7 @@ export const useCompleteForcedPasswordChange = <
 			| CompleteForcedPasswordChange400
 			| CompleteForcedPasswordChange401
 			| CompleteForcedPasswordChange409
+			| CompleteForcedPasswordChange413
 			| CompleteForcedPasswordChange500
 		status?: number
 	},

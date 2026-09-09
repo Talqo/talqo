@@ -31,11 +31,11 @@ describe("widget CRUD authentication boundary", () => {
 		expect((await app.request("/api/widgets/any-id")).status).toBe(401)
 	})
 
-	it("does not exempt a config-shaped path nested under the CRUD namespace", async () => {
-		expect((await app.request("/api/widgets/any-id/config")).status).toBe(401)
+	it("does not treat a config-shaped path nested under the CRUD namespace as an endpoint", async () => {
+		expect((await app.request("/api/widgets/any-id/config")).status).toBe(404)
 	})
 
-	it("does not exempt a deeper path under the public prefix", async () => {
-		expect((await app.request("/api/widget-config/token/extra")).status).toBe(401)
+	it("does not treat a deeper path under the public prefix as an endpoint", async () => {
+		expect((await app.request("/api/widget-config/token/extra")).status).toBe(404)
 	})
 })

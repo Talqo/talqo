@@ -47,10 +47,3 @@ export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(asyn
 	c.set("user", session.user)
 	return next()
 })
-
-export const requireAdmin = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
-	if (!(await roles.authorize(c.get("user").id, roles.Permission.Admin))) {
-		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-	}
-	return next()
-})

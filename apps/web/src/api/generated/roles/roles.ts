@@ -19,12 +19,14 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
 import type { BootstrapAdmin400 } from "../models/roles/bootstrapAdmin400.zod"
 import type { BootstrapAdmin409 } from "../models/roles/bootstrapAdmin409.zod"
+import type { BootstrapAdmin413 } from "../models/roles/bootstrapAdmin413.zod"
 import type { BootstrapAdmin500 } from "../models/roles/bootstrapAdmin500.zod"
 import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
 import type { CreateInvitation400 } from "../models/roles/createInvitation400.zod"
 import type { CreateInvitation401 } from "../models/roles/createInvitation401.zod"
 import type { CreateInvitation403 } from "../models/roles/createInvitation403.zod"
+import type { CreateInvitation413 } from "../models/roles/createInvitation413.zod"
 import type { CreateInvitation500 } from "../models/roles/createInvitation500.zod"
 import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
 import type { CreatePermissionGrant400 } from "../models/roles/createPermissionGrant400.zod"
@@ -32,40 +34,48 @@ import type { CreatePermissionGrant401 } from "../models/roles/createPermissionG
 import type { CreatePermissionGrant403 } from "../models/roles/createPermissionGrant403.zod"
 import type { CreatePermissionGrant404 } from "../models/roles/createPermissionGrant404.zod"
 import type { CreatePermissionGrant409 } from "../models/roles/createPermissionGrant409.zod"
+import type { CreatePermissionGrant413 } from "../models/roles/createPermissionGrant413.zod"
 import type { CreatePermissionGrant500 } from "../models/roles/createPermissionGrant500.zod"
 import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
 import type { GetAccess200 } from "../models/roles/getAccess200.zod"
 import type { GetAccess400 } from "../models/roles/getAccess400.zod"
 import type { GetAccess401 } from "../models/roles/getAccess401.zod"
 import type { GetAccess403 } from "../models/roles/getAccess403.zod"
+import type { GetAccess413 } from "../models/roles/getAccess413.zod"
 import type { GetAccess500 } from "../models/roles/getAccess500.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
 import type { GetMyPermissions400 } from "../models/roles/getMyPermissions400.zod"
 import type { GetMyPermissions401 } from "../models/roles/getMyPermissions401.zod"
 import type { GetMyPermissions403 } from "../models/roles/getMyPermissions403.zod"
+import type { GetMyPermissions413 } from "../models/roles/getMyPermissions413.zod"
 import type { GetMyPermissions500 } from "../models/roles/getMyPermissions500.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
 import type { GetSetupStatus400 } from "../models/roles/getSetupStatus400.zod"
+import type { GetSetupStatus413 } from "../models/roles/getSetupStatus413.zod"
 import type { GetSetupStatus500 } from "../models/roles/getSetupStatus500.zod"
 import type { ListUsers200 } from "../models/roles/listUsers200.zod"
 import type { ListUsers400 } from "../models/roles/listUsers400.zod"
 import type { ListUsers401 } from "../models/roles/listUsers401.zod"
 import type { ListUsers403 } from "../models/roles/listUsers403.zod"
+import type { ListUsers413 } from "../models/roles/listUsers413.zod"
 import type { ListUsers500 } from "../models/roles/listUsers500.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitation400 } from "../models/roles/redeemInvitation400.zod"
 import type { RedeemInvitation409 } from "../models/roles/redeemInvitation409.zod"
+import type { RedeemInvitation413 } from "../models/roles/redeemInvitation413.zod"
 import type { RedeemInvitation500 } from "../models/roles/redeemInvitation500.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
 import type { ResetUserPassword400 } from "../models/roles/resetUserPassword400.zod"
 import type { ResetUserPassword401 } from "../models/roles/resetUserPassword401.zod"
 import type { ResetUserPassword403 } from "../models/roles/resetUserPassword403.zod"
 import type { ResetUserPassword404 } from "../models/roles/resetUserPassword404.zod"
+import type { ResetUserPassword413 } from "../models/roles/resetUserPassword413.zod"
 import type { ResetUserPassword500 } from "../models/roles/resetUserPassword500.zod"
 import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
 import type { RevokePermissionGrant400 } from "../models/roles/revokePermissionGrant400.zod"
 import type { RevokePermissionGrant401 } from "../models/roles/revokePermissionGrant401.zod"
 import type { RevokePermissionGrant403 } from "../models/roles/revokePermissionGrant403.zod"
+import type { RevokePermissionGrant413 } from "../models/roles/revokePermissionGrant413.zod"
 import type { RevokePermissionGrant500 } from "../models/roles/revokePermissionGrant500.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
@@ -107,6 +117,11 @@ export type getAccessResponse403 = {
 	status: 403
 }
 
+export type getAccessResponse413 = {
+	data: GetAccess413
+	status: 413
+}
+
 export type getAccessResponse500 = {
 	data: GetAccess500
 	status: 500
@@ -119,6 +134,7 @@ export type getAccessResponseError = (
 	| getAccessResponse400
 	| getAccessResponse401
 	| getAccessResponse403
+	| getAccessResponse413
 	| getAccessResponse500
 ) & {
 	headers: Headers
@@ -153,7 +169,10 @@ export const getGetAccessQueryKey = () => {
 
 export const getGetAccessQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & { info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess500; status?: number },
+	TError = globalThis.Error & {
+		info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess413 | GetAccess500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
 	fetch?: RequestInit
@@ -174,13 +193,16 @@ export const getGetAccessQueryOptions = <
 
 export type GetAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAccess>>>
 export type GetAccessQueryError = globalThis.Error & {
-	info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess500
+	info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess413 | GetAccess500
 	status?: number
 }
 
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & { info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess500; status?: number },
+	TError = globalThis.Error & {
+		info?: GetAccess400 | GetAccess401 | GetAccess403 | GetAccess413 | GetAccess500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
 	fetch?: RequestInit
@@ -202,6 +224,11 @@ export type getSetupStatusResponse400 = {
 	status: 400
 }
 
+export type getSetupStatusResponse413 = {
+	data: GetSetupStatus413
+	status: 413
+}
+
 export type getSetupStatusResponse500 = {
 	data: GetSetupStatus500
 	status: 500
@@ -210,7 +237,11 @@ export type getSetupStatusResponse500 = {
 export type getSetupStatusResponseSuccess = getSetupStatusResponse200 & {
 	headers: Headers
 }
-export type getSetupStatusResponseError = (getSetupStatusResponse400 | getSetupStatusResponse500) & {
+export type getSetupStatusResponseError = (
+	| getSetupStatusResponse400
+	| getSetupStatusResponse413
+	| getSetupStatusResponse500
+) & {
 	headers: Headers
 }
 
@@ -244,7 +275,7 @@ export const getGetSetupStatusQueryKey = () => {
 
 export const getGetSetupStatusQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: GetSetupStatus400 | GetSetupStatus500; status?: number },
+	TError = globalThis.Error & { info?: GetSetupStatus400 | GetSetupStatus413 | GetSetupStatus500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>
 	fetch?: RequestInit
@@ -265,13 +296,13 @@ export const getGetSetupStatusQueryOptions = <
 
 export type GetSetupStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSetupStatus>>>
 export type GetSetupStatusQueryError = globalThis.Error & {
-	info?: GetSetupStatus400 | GetSetupStatus500
+	info?: GetSetupStatus400 | GetSetupStatus413 | GetSetupStatus500
 	status?: number
 }
 
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: GetSetupStatus400 | GetSetupStatus500; status?: number },
+	TError = globalThis.Error & { info?: GetSetupStatus400 | GetSetupStatus413 | GetSetupStatus500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>
 	fetch?: RequestInit
@@ -298,6 +329,11 @@ export type bootstrapAdminResponse409 = {
 	status: 409
 }
 
+export type bootstrapAdminResponse413 = {
+	data: BootstrapAdmin413
+	status: 413
+}
+
 export type bootstrapAdminResponse500 = {
 	data: BootstrapAdmin500
 	status: 500
@@ -309,6 +345,7 @@ export type bootstrapAdminResponseSuccess = bootstrapAdminResponse201 & {
 export type bootstrapAdminResponseError = (
 	| bootstrapAdminResponse400
 	| bootstrapAdminResponse409
+	| bootstrapAdminResponse413
 	| bootstrapAdminResponse500
 ) & {
 	headers: Headers
@@ -352,7 +389,10 @@ export const bootstrapAdmin = async (
 export const getBootstrapAdminMutationKey = () => ["bootstrapAdmin"] as const
 
 export const getBootstrapAdminMutationOptions = <
-	TError = globalThis.Error & { info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin500; status?: number },
+	TError = globalThis.Error & {
+		info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -389,13 +429,16 @@ export const getBootstrapAdminMutationOptions = <
 export type BootstrapAdminMutationResult = NonNullable<Awaited<ReturnType<typeof bootstrapAdmin>>>
 export type BootstrapAdminMutationBody = BootstrapAdminBody
 export type BootstrapAdminMutationError = globalThis.Error & {
-	info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin500
+	info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
 	status?: number
 }
 export type BootstrapAdminMutationVariables = { data: BootstrapAdminBody }
 
 export const useBootstrapAdmin = <
-	TError = globalThis.Error & { info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin500; status?: number },
+	TError = globalThis.Error & {
+		info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -433,6 +476,11 @@ export type createInvitationResponse403 = {
 	status: 403
 }
 
+export type createInvitationResponse413 = {
+	data: CreateInvitation413
+	status: 413
+}
+
 export type createInvitationResponse500 = {
 	data: CreateInvitation500
 	status: 500
@@ -445,6 +493,7 @@ export type createInvitationResponseError = (
 	| createInvitationResponse400
 	| createInvitationResponse401
 	| createInvitationResponse403
+	| createInvitationResponse413
 	| createInvitationResponse500
 ) & {
 	headers: Headers
@@ -478,7 +527,7 @@ export const getCreateInvitationMutationKey = () => ["createInvitation"] as cons
 
 export const getCreateInvitationMutationOptions = <
 	TError = globalThis.Error & {
-		info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+		info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation413 | CreateInvitation500
 		status?: number
 	},
 	TContext = unknown,
@@ -503,13 +552,13 @@ export const getCreateInvitationMutationOptions = <
 export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
 
 export type CreateInvitationMutationError = globalThis.Error & {
-	info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+	info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation413 | CreateInvitation500
 	status?: number
 }
 
 export const useCreateInvitation = <
 	TError = globalThis.Error & {
-		info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+		info?: CreateInvitation400 | CreateInvitation401 | CreateInvitation403 | CreateInvitation413 | CreateInvitation500
 		status?: number
 	},
 	TContext = unknown,
@@ -534,6 +583,11 @@ export type redeemInvitationResponse409 = {
 	status: 409
 }
 
+export type redeemInvitationResponse413 = {
+	data: RedeemInvitation413
+	status: 413
+}
+
 export type redeemInvitationResponse500 = {
 	data: RedeemInvitation500
 	status: 500
@@ -545,6 +599,7 @@ export type redeemInvitationResponseSuccess = redeemInvitationResponse201 & {
 export type redeemInvitationResponseError = (
 	| redeemInvitationResponse400
 	| redeemInvitationResponse409
+	| redeemInvitationResponse413
 	| redeemInvitationResponse500
 ) & {
 	headers: Headers
@@ -589,7 +644,7 @@ export const getRedeemInvitationMutationKey = () => ["redeemInvitation"] as cons
 
 export const getRedeemInvitationMutationOptions = <
 	TError = globalThis.Error & {
-		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation500
+		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
 		status?: number
 	},
 	TContext = unknown,
@@ -629,14 +684,14 @@ export const getRedeemInvitationMutationOptions = <
 export type RedeemInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof redeemInvitation>>>
 export type RedeemInvitationMutationBody = RedeemInvitationBody
 export type RedeemInvitationMutationError = globalThis.Error & {
-	info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation500
+	info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
 	status?: number
 }
 export type RedeemInvitationMutationVariables = { data: RedeemInvitationBody }
 
 export const useRedeemInvitation = <
 	TError = globalThis.Error & {
-		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation500
+		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
 		status?: number
 	},
 	TContext = unknown,
@@ -686,6 +741,11 @@ export type createPermissionGrantResponse409 = {
 	status: 409
 }
 
+export type createPermissionGrantResponse413 = {
+	data: CreatePermissionGrant413
+	status: 413
+}
+
 export type createPermissionGrantResponse500 = {
 	data: CreatePermissionGrant500
 	status: 500
@@ -700,6 +760,7 @@ export type createPermissionGrantResponseError = (
 	| createPermissionGrantResponse403
 	| createPermissionGrantResponse404
 	| createPermissionGrantResponse409
+	| createPermissionGrantResponse413
 	| createPermissionGrantResponse500
 ) & {
 	headers: Headers
@@ -750,6 +811,7 @@ export const getCreatePermissionGrantMutationOptions = <
 			| CreatePermissionGrant403
 			| CreatePermissionGrant404
 			| CreatePermissionGrant409
+			| CreatePermissionGrant413
 			| CreatePermissionGrant500
 		status?: number
 	},
@@ -796,6 +858,7 @@ export type CreatePermissionGrantMutationError = globalThis.Error & {
 		| CreatePermissionGrant403
 		| CreatePermissionGrant404
 		| CreatePermissionGrant409
+		| CreatePermissionGrant413
 		| CreatePermissionGrant500
 	status?: number
 }
@@ -809,6 +872,7 @@ export const useCreatePermissionGrant = <
 			| CreatePermissionGrant403
 			| CreatePermissionGrant404
 			| CreatePermissionGrant409
+			| CreatePermissionGrant413
 			| CreatePermissionGrant500
 		status?: number
 	},
@@ -849,6 +913,11 @@ export type revokePermissionGrantResponse403 = {
 	status: 403
 }
 
+export type revokePermissionGrantResponse413 = {
+	data: RevokePermissionGrant413
+	status: 413
+}
+
 export type revokePermissionGrantResponse500 = {
 	data: RevokePermissionGrant500
 	status: 500
@@ -861,6 +930,7 @@ export type revokePermissionGrantResponseError = (
 	| revokePermissionGrantResponse400
 	| revokePermissionGrantResponse401
 	| revokePermissionGrantResponse403
+	| revokePermissionGrantResponse413
 	| revokePermissionGrantResponse500
 ) & {
 	headers: Headers
@@ -897,7 +967,12 @@ export const getRevokePermissionGrantMutationKey = () => ["revokePermissionGrant
 
 export const getRevokePermissionGrantMutationOptions = <
 	TError = globalThis.Error & {
-		info?: RevokePermissionGrant400 | RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+		info?:
+			| RevokePermissionGrant400
+			| RevokePermissionGrant401
+			| RevokePermissionGrant403
+			| RevokePermissionGrant413
+			| RevokePermissionGrant500
 		status?: number
 	},
 	TContext = unknown,
@@ -937,14 +1012,24 @@ export const getRevokePermissionGrantMutationOptions = <
 export type RevokePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof revokePermissionGrant>>>
 
 export type RevokePermissionGrantMutationError = globalThis.Error & {
-	info?: RevokePermissionGrant400 | RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+	info?:
+		| RevokePermissionGrant400
+		| RevokePermissionGrant401
+		| RevokePermissionGrant403
+		| RevokePermissionGrant413
+		| RevokePermissionGrant500
 	status?: number
 }
 export type RevokePermissionGrantMutationVariables = { id: string }
 
 export const useRevokePermissionGrant = <
 	TError = globalThis.Error & {
-		info?: RevokePermissionGrant400 | RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+		info?:
+			| RevokePermissionGrant400
+			| RevokePermissionGrant401
+			| RevokePermissionGrant403
+			| RevokePermissionGrant413
+			| RevokePermissionGrant500
 		status?: number
 	},
 	TContext = unknown,
@@ -984,6 +1069,11 @@ export type getMyPermissionsResponse403 = {
 	status: 403
 }
 
+export type getMyPermissionsResponse413 = {
+	data: GetMyPermissions413
+	status: 413
+}
+
 export type getMyPermissionsResponse500 = {
 	data: GetMyPermissions500
 	status: 500
@@ -996,6 +1086,7 @@ export type getMyPermissionsResponseError = (
 	| getMyPermissionsResponse400
 	| getMyPermissionsResponse401
 	| getMyPermissionsResponse403
+	| getMyPermissionsResponse413
 	| getMyPermissionsResponse500
 ) & {
 	headers: Headers
@@ -1032,7 +1123,7 @@ export const getGetMyPermissionsQueryKey = () => {
 export const getGetMyPermissionsQueryOptions = <
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
 	TError = globalThis.Error & {
-		info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+		info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions413 | GetMyPermissions500
 		status?: number
 	},
 >(options?: {
@@ -1055,14 +1146,14 @@ export const getGetMyPermissionsQueryOptions = <
 
 export type GetMyPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPermissions>>>
 export type GetMyPermissionsQueryError = globalThis.Error & {
-	info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+	info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions413 | GetMyPermissions500
 	status?: number
 }
 
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
 	TError = globalThis.Error & {
-		info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+		info?: GetMyPermissions400 | GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions413 | GetMyPermissions500
 		status?: number
 	},
 >(options?: {
@@ -1096,6 +1187,11 @@ export type listUsersResponse403 = {
 	status: 403
 }
 
+export type listUsersResponse413 = {
+	data: ListUsers413
+	status: 413
+}
+
 export type listUsersResponse500 = {
 	data: ListUsers500
 	status: 500
@@ -1108,6 +1204,7 @@ export type listUsersResponseError = (
 	| listUsersResponse400
 	| listUsersResponse401
 	| listUsersResponse403
+	| listUsersResponse413
 	| listUsersResponse500
 ) & {
 	headers: Headers
@@ -1142,7 +1239,10 @@ export const getListUsersQueryKey = () => {
 
 export const getListUsersQueryOptions = <
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & { info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers500; status?: number },
+	TError = globalThis.Error & {
+		info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers413 | ListUsers500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
 	fetch?: RequestInit
@@ -1163,13 +1263,16 @@ export const getListUsersQueryOptions = <
 
 export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
 export type ListUsersQueryError = globalThis.Error & {
-	info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers500
+	info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers413 | ListUsers500
 	status?: number
 }
 
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & { info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers500; status?: number },
+	TError = globalThis.Error & {
+		info?: ListUsers400 | ListUsers401 | ListUsers403 | ListUsers413 | ListUsers500
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
 	fetch?: RequestInit
@@ -1206,6 +1309,11 @@ export type resetUserPasswordResponse404 = {
 	status: 404
 }
 
+export type resetUserPasswordResponse413 = {
+	data: ResetUserPassword413
+	status: 413
+}
+
 export type resetUserPasswordResponse500 = {
 	data: ResetUserPassword500
 	status: 500
@@ -1219,6 +1327,7 @@ export type resetUserPasswordResponseError = (
 	| resetUserPasswordResponse401
 	| resetUserPasswordResponse403
 	| resetUserPasswordResponse404
+	| resetUserPasswordResponse413
 	| resetUserPasswordResponse500
 ) & {
 	headers: Headers
@@ -1269,6 +1378,7 @@ export const getResetUserPasswordMutationOptions = <
 			| ResetUserPassword401
 			| ResetUserPassword403
 			| ResetUserPassword404
+			| ResetUserPassword413
 			| ResetUserPassword500
 		status?: number
 	},
@@ -1314,6 +1424,7 @@ export type ResetUserPasswordMutationError = globalThis.Error & {
 		| ResetUserPassword401
 		| ResetUserPassword403
 		| ResetUserPassword404
+		| ResetUserPassword413
 		| ResetUserPassword500
 	status?: number
 }
@@ -1326,6 +1437,7 @@ export const useResetUserPassword = <
 			| ResetUserPassword401
 			| ResetUserPassword403
 			| ResetUserPassword404
+			| ResetUserPassword413
 			| ResetUserPassword500
 		status?: number
 	},

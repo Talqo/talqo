@@ -1,7 +1,8 @@
 import type { ProblemCode } from "./http/problem.ts"
 
 import { app } from "./app.ts"
-import { allProblemsOpenApiSchema, problemSchema } from "./http/problem.ts"
+import { allProblemsOpenApiSchema, PROBLEM_CODES, problemSchema } from "./http/problem.ts"
+import { HTTP_STATUS } from "./http/status.ts"
 
 type ProblemResponseMetadata = {
 	"x-problem-codes"?: string[]
@@ -23,6 +24,14 @@ export function createOpenApiDocument() {
 	for (const pathItem of Object.values(document.paths ?? {})) {
 		for (const operation of Object.values(pathItem)) {
 			if (typeof operation !== "object" || operation === null || !("responses" in operation)) continue
+			operation.responses[HTTP_STATUS.PAYLOAD_TOO_LARGE] ??= {
+				content: {
+					"application/problem+json": {
+						schema: problemSchema([PROBLEM_CODES.PAYLOAD_TOO_LARGE]),
+					},
+				},
+				description: "https://docs.talqo.chat/problems",
+			}
 			for (const responseValue of Object.values(operation.responses)) {
 				const response = responseValue as ProblemResponseMetadata
 				const codes = response["x-problem-codes"]
