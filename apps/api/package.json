@@ -11,7 +11,7 @@
 		"dev": "bun --watch src/index.ts",
 		"openapi:generate": "bun --preload ./no-database.preload.ts src/openapi.ts",
 		"test": "bun test --preload ./no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts'",
-		"test:integration": "bun ../../scripts/test-integration.ts",
+		"test:integration": "bun --no-env-file ../../scripts/test-integration.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
