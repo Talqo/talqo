@@ -180,6 +180,23 @@
 					}
 				},
 				"required": ["version", "agentId", "name", "appearance"]
+			},
+			"AgentFile": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"sizeBytes": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": ["name", "sizeBytes", "createdAt"]
 			}
 		},
 		"parameters": {}
@@ -390,7 +407,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -424,7 +442,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -520,7 +539,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -529,13 +549,15 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentials": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 4096
 														}
 													}
 												},
@@ -559,7 +581,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -568,7 +591,8 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													}
 												},
@@ -596,7 +620,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -605,13 +630,15 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentials": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 4096
 														}
 													},
 													"credentialSource": {
@@ -639,7 +666,8 @@
 													},
 													"modelId": {
 														"type": "string",
-														"minLength": 1
+														"minLength": 1,
+														"maxLength": 256
 													},
 													"authMode": {
 														"type": "string",
@@ -648,7 +676,8 @@
 													"settings": {
 														"type": "object",
 														"additionalProperties": {
-															"type": "string"
+															"type": "string",
+															"maxLength": 2048
 														}
 													},
 													"credentialSource": {
@@ -709,7 +738,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -743,7 +773,8 @@
 												"settings": {
 													"type": "object",
 													"additionalProperties": {
-														"type": "string"
+														"type": "string",
+														"maxLength": 2048
 													}
 												},
 												"hasCredentials": {
@@ -859,13 +890,15 @@
 											"settings": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 2048
 												}
 											},
 											"credentials": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 4096
 												}
 											},
 											"storedCredentialRole": {
@@ -898,7 +931,8 @@
 											"settings": {
 												"type": "object",
 												"additionalProperties": {
-													"type": "string"
+													"type": "string",
+													"maxLength": 2048
 												}
 											}
 										},
@@ -1036,11 +1070,13 @@
 								"properties": {
 									"username": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"password": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									}
 								},
 								"required": ["username", "password"]
@@ -1300,7 +1336,8 @@
 								"properties": {
 									"currentPassword": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"newPassword": {
 										"type": "string",
@@ -1663,7 +1700,8 @@
 								"properties": {
 									"token": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"username": {
 										"type": "string",
@@ -1750,7 +1788,8 @@
 								"properties": {
 									"userId": {
 										"type": "string",
-										"minLength": 1
+										"minLength": 1,
+										"maxLength": 128
 									},
 									"permission": {
 										"type": "string",
@@ -3255,6 +3294,423 @@
 					},
 					"304": {
 						"description": "Configuration unchanged since the supplied ETag"
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/files": {
+			"get": {
+				"operationId": "listAgentFiles",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Knowledge files uploaded for the agent",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"files": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/AgentFile"
+											}
+										},
+										"maxSizeBytes": {
+											"type": "integer",
+											"exclusiveMinimum": 0
+										},
+										"maxNameLength": {
+											"type": "integer",
+											"exclusiveMinimum": 0
+										},
+										"allowedExtensions": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										}
+									},
+									"required": ["files", "maxSizeBytes", "maxNameLength", "allowedExtensions"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"operationId": "uploadAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									}
+								},
+								"required": ["file"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "File uploaded",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
+										}
+									},
+									"required": ["file"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Payload too large",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/files/{fileName}": {
+			"patch": {
+				"operationId": "renameAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 255
+									}
+								},
+								"required": ["name"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "File renamed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"file": {
+											"$ref": "#/components/schemas/AgentFile"
+										}
+									},
+									"required": ["file"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Resource not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Request conflicts with current state",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Unexpected server error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"401": {
+						"description": "Authentication required",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Permission denied",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
 					},
 					"404": {
 						"description": "Resource not found",

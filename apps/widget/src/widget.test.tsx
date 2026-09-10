@@ -40,6 +40,14 @@ describe("widget mount", () => {
 		expect(document.querySelector("#missing-target")).toBeNull()
 	})
 
+	test("floats bottom-right when the embed sets no position", async () => {
+		mount()
+
+		const root = await widgetRoot()
+		expect(root.className).toContain("tw:fixed")
+		expect(root.className).toContain("tw:right-4")
+	})
+
 	test("warns instead of throwing for an invalid selector target", () => {
 		expect(() => mount("foo")).not.toThrow()
 		expect(document.querySelector("#talqo-widget")).toBeNull()

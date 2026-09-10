@@ -12,6 +12,7 @@ import { getListWidgetsQueryKey, useCreateWidget, useListWidgets } from "@/api/g
 import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
+import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { WIDGET_FORM_DEFAULTS } from "@/features/widgets/widget-appearance-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -38,7 +39,7 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-const AGENT_TABS = ["configuration", "widgets"] as const
+const AGENT_TABS = ["configuration", "context", "widgets"] as const
 const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
 
@@ -198,6 +199,7 @@ function AgentConfigPage() {
 			>
 				<TabsList>
 					<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
+					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
 					<TabsTrigger value="widgets">{t("agentConfig.tabWidgets")}</TabsTrigger>
 				</TabsList>
 				<TabsContent value="configuration" className="space-y-6">
@@ -361,6 +363,9 @@ function AgentConfigPage() {
 							</CardContent>
 						</Card>
 					)}
+				</TabsContent>
+				<TabsContent value="context">
+					<AgentFilesCard agentId={agentId} canManage={canManage} />
 				</TabsContent>
 				<TabsContent value="widgets">
 					<AgentWidgetsPanel agentId={agentId} canManage={canManage} />

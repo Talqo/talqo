@@ -6,18 +6,26 @@
  */
 import * as zod from "zod"
 
+export const discoverAiProviderModelsBodyOneSettingsMaxOne = 2048
+
+export const discoverAiProviderModelsBodyOneCredentialsMaxOne = 4096
+
+export const discoverAiProviderModelsBodyTwoSettingsMaxOne = 2048
+
 export const DiscoverAiProviderModelsBody = zod.union([
 	zod.object({
 		providerId: zod.enum(["openai", "anthropic", "google", "mistral", "azure", "amazon-bedrock", "openai-compatible"]),
 		authMode: zod.enum(["static"]),
-		settings: zod.record(zod.string(), zod.string()),
-		credentials: zod.record(zod.string(), zod.string()).optional(),
+		settings: zod.record(zod.string(), zod.string().max(discoverAiProviderModelsBodyOneSettingsMaxOne)),
+		credentials: zod
+			.record(zod.string(), zod.string().max(discoverAiProviderModelsBodyOneCredentialsMaxOne))
+			.optional(),
 		storedCredentialRole: zod.enum(["text", "embedding"]).optional(),
 	}),
 	zod.object({
 		providerId: zod.enum(["openai", "anthropic", "google", "mistral", "azure", "amazon-bedrock", "openai-compatible"]),
 		authMode: zod.enum(["deployment-identity"]),
-		settings: zod.record(zod.string(), zod.string()),
+		settings: zod.record(zod.string(), zod.string().max(discoverAiProviderModelsBodyTwoSettingsMaxOne)),
 	}),
 ])
 
