@@ -14,6 +14,8 @@ import {
 	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
+	type PointerEvent as ReactPointerEvent,
+	type RefObject,
 	useCallback,
 	useEffect,
 	useRef,
@@ -25,6 +27,7 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
+import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
@@ -64,6 +67,24 @@ function usePrefersDark(): boolean {
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
+}
+
+const MIN_WIDTH = 280
+const MIN_HEIGHT = 320
+// Horizontal margin keeps the panel off the screen sides.
+const RESIZE_MARGIN = 32
+// Vertical budget excludes the launcher row below the panel (16px offset + 12px gap
+// + 48px launcher) plus a 16px top clearance, so the panel can never grow past the
+// top of the screen.
+const RESIZE_HEIGHT_MARGIN = 92
+
+function clampPanelSize(width: number, height: number): { width: number; height: number } {
+	return {
+		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
+		height: Math.round(
+			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_HEIGHT_MARGIN)),
+		),
+	}
 }
 
 type Message = {
@@ -125,6 +146,67 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
+function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLDivElement | null>) {
+	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
+	// Free resize is desktop-only; mobile keeps the default panel size.
+	const [resizable, setResizable] = useState(
+		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,
+	)
+
+	useEffect(() => {
+		const query = window.matchMedia("(min-width: 640px) and (pointer: fine)")
+		const onChange = (event: MediaQueryListEvent) => {
+			setResizable(event.matches)
+			if (!event.matches) {
+				setSize(null)
+			}
+		}
+		query.addEventListener("change", onChange)
+		return () => query.removeEventListener("change", onChange)
+	}, [])
+
+	// Grip highlight stays on while a drag is in flight.
+	const [resizing, setResizing] = useState(false)
+
+	function startResize(event: ReactPointerEvent<HTMLDivElement>) {
+		if (event.pointerType === "touch" || !panelRef.current) {
+			return
+		}
+		event.preventDefault()
+		setResizing(true)
+		const anchor = panelRef.current.getBoundingClientRect()
+		// The panel's bottom screen edge stays pinned: for bottom-right (default)
+		// it is the right edge, for bottom-left the left edge.
+		const side = position === "bottom-left" ? "left" : "right"
+		const anchorX = side === "right" ? anchor.right : anchor.left
+		const anchorBottom = anchor.bottom
+		const pointerId = event.pointerId
+
+		function handleMove(moveEvent: PointerEvent) {
+			if (moveEvent.pointerId !== pointerId) {
+				return
+			}
+			const rawWidth = side === "right" ? anchorX - moveEvent.clientX : moveEvent.clientX - anchorX
+			const rawHeight = anchorBottom - moveEvent.clientY
+			setSize(clampPanelSize(rawWidth, rawHeight))
+		}
+		function handleEnd(endEvent: PointerEvent) {
+			if (endEvent.pointerId !== pointerId) {
+				return
+			}
+			setResizing(false)
+			window.removeEventListener("pointermove", handleMove)
+			window.removeEventListener("pointerup", handleEnd)
+			window.removeEventListener("pointercancel", handleEnd)
+		}
+		window.addEventListener("pointermove", handleMove)
+		window.addEventListener("pointerup", handleEnd)
+		window.addEventListener("pointercancel", handleEnd)
+	}
+
+	return { size, resizable, startResize, resizing }
+}
+
 function WidgetChat({
 	title,
 	agentId,
@@ -147,6 +229,8 @@ function WidgetChat({
 	const panelRef = useRef<HTMLDivElement>(null)
 	const wasOpen = useRef(false)
 	const prefersDark = usePrefersDark()
+	const position = appearance.position
+	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -182,6 +266,8 @@ function WidgetChat({
 		...(hidden && { visibility: "hidden" }),
 	} as CSSProperties
 
+	const panelStyle: CSSProperties = size ? { width: size.width, height: size.height } : {}
+
 	return (
 		<div
 			className={cn(
@@ -194,11 +280,14 @@ function WidgetChat({
 			data-scheme={scheme}
 		>
 			{open && (
+				// max-h leaves room below for the launcher row plus a top clearance:
+				// 16px offset + 12px gap + 48px launcher + 16px clearance = 5.75rem.
 				<div
 					role="dialog"
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:flex tw:h-96 tw:w-80 tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
+					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-xl tw:border tw:border-border tw:bg-background tw:shadow-lg"
+					style={panelStyle}
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
 							setOpen(false)
@@ -207,6 +296,32 @@ function WidgetChat({
 						}
 					}}
 				>
+					{resizable && (
+						// Only the corner grip: it resizes width and height in one drag and
+						// never collides with the header like the edge handles did.
+						<div
+							aria-hidden="true"
+							data-testid="resize-corner"
+							className={cn(
+								"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
+								position === "bottom-left"
+									? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
+									: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
+								resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
+							)}
+							onPointerDown={startResize}
+						>
+							{/* Diagonal grip lines hinting the panel can be stretched. */}
+							<ResizeGripIcon
+								aria-hidden="true"
+								className={cn(
+									"tw:size-full tw:transition-colors",
+									position === "bottom-left" && "tw:-scale-x-100",
+									resizing ? "tw:text-primary" : "tw:text-muted-foreground",
+								)}
+							/>
+						</div>
+					)}
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 						<div className="tw:flex tw:items-center tw:gap-1">
