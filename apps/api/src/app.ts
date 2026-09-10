@@ -67,6 +67,8 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
 		}
 		if (response instanceof Response) {
+			if (response.status < MIN_ERROR_STATUS || response.status > MAX_ERROR_STATUS) return response
+
 			let parsed: unknown
 			try {
 				parsed = await response.clone().json()
@@ -75,9 +77,11 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 			}
 			const problem = problemDetailsSchema.safeParse(parsed)
 			const code = problem.success ? problem.data.code : PROBLEM_CODES.REQUEST_FAILED
-			if (response.status >= MIN_ERROR_STATUS && response.status <= MAX_ERROR_STATUS) {
-				return problemResponse(context, code, response.status as never)
+			const normalized = problemResponse(context, code, response.status as never)
+			for (const [name, value] of response.headers) {
+				if (name.toLowerCase() !== "content-type") normalized.headers.append(name, value)
 			}
+			return normalized
 		}
 	}
 

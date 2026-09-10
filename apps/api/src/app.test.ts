@@ -130,7 +130,7 @@ describe("api", () => {
 		using _ = spyOn(console, "error").mockImplementation(() => {})
 
 		const carried = new Response(JSON.stringify({ error: "Payment required" }), {
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", "Retry-After": "30" },
 			status: 402,
 		})
 		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
@@ -142,6 +142,7 @@ describe("api", () => {
 
 		expect(response.status).toBe(402)
 		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+		expect(response.headers.get("Retry-After")).toBe("30")
 		expect(await response.json()).toEqual({
 			code: "request-failed",
 			type: "https://docs.talqo.chat/problems#request-failed",
@@ -155,7 +156,7 @@ describe("api", () => {
 				code: "permission-denied",
 				type: "https://docs.talqo.chat/problems#permission-denied",
 			}),
-			{ headers: { "Content-Type": "application/json" }, status: 403 },
+			{ headers: { "Content-Type": "application/json", "Set-Cookie": "session=; Max-Age=0" }, status: 403 },
 		)
 		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
 
@@ -166,10 +167,21 @@ describe("api", () => {
 
 		expect(response.status).toBe(403)
 		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+		expect(response.headers.get("Set-Cookie")).toBe("session=; Max-Age=0")
 		expect(await response.json()).toEqual({
 			code: "permission-denied",
 			type: "https://docs.talqo.chat/problems#permission-denied",
 		})
+	})
+
+	it("passes through non-error responses carried by response-bearing errors", async () => {
+		const carried = new Response(null, { headers: { Location: "/login" }, status: 302 })
+		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
+
+		const response = await handleError(error, {} as Context)
+
+		expect(response).toBe(carried)
+		expect(response.headers.get("Location")).toBe("/login")
 	})
 
 	it("normalizes response-bearing errors when their response cannot be cloned", async () => {
