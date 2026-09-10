@@ -68,6 +68,23 @@ export async function createAccount(input: { password: string; username: string 
 	return toPublicUser(user)
 }
 
+export async function createSession(
+	userId: string,
+	context: { ipAddress?: string; userAgent?: string } = {},
+): Promise<{ expiresAt: Date; token: string }> {
+	const token = generateOpaqueToken()
+	const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
+	await repo.insertSession({
+		id: crypto.randomUUID(),
+		tokenHash: hashOpaqueToken(token),
+		userId,
+		expiresAt,
+		ipAddress: context.ipAddress,
+		userAgent: context.userAgent,
+	})
+	return { token, expiresAt }
+}
+
 export async function login(
 	input: { password: string; username: string },
 	context: { ipAddress?: string; userAgent?: string } = {},
@@ -82,17 +99,7 @@ export async function login(
 		throw new InvalidCredentialsError("Invalid username or password")
 	}
 
-	const token = generateOpaqueToken()
-	const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
-	await repo.insertSession({
-		id: crypto.randomUUID(),
-		tokenHash: hashOpaqueToken(token),
-		userId: user.id,
-		expiresAt,
-		ipAddress: context.ipAddress,
-		userAgent: context.userAgent,
-	})
-
+	const { token, expiresAt } = await createSession(user.id, context)
 	return { token, expiresAt, user: toPublicUser(user) }
 }
 
@@ -115,14 +122,26 @@ export async function getSession(token: string): Promise<{ expiresAt: Date; user
 	return { user: toPublicUser(row.user), expiresAt: row.session.expiresAt }
 }
 
-async function rotatePassword(userId: string, newPassword: string, mustChangePassword: boolean): Promise<void> {
+async function rotatePassword(
+	userId: string,
+	newPassword: string,
+	mustChangePassword: boolean,
+	keepTokenHash?: string,
+): Promise<void> {
 	assertValidPassword(newPassword)
 	const passwordHash = await Bun.password.hash(newPassword)
 	await repo.updatePasswordHash(userId, passwordHash, mustChangePassword)
-	await repo.deleteAllSessionsForUser(userId)
+	await repo.deleteAllSessionsForUser(userId, keepTokenHash)
 }
 
-export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+// Self-service rotation keeps the requesting session alive (keepToken) so the user stays
+// signed in; every other session is still invalidated.
+export async function changePassword(
+	userId: string,
+	currentPassword: string,
+	newPassword: string,
+	keepToken?: string,
+): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`changePassword: user ${userId} not found`)
 
@@ -133,18 +152,22 @@ export async function changePassword(userId: string, currentPassword: string, ne
 	const currentValid = await Bun.password.verify(currentPassword, user.passwordHash)
 	if (!currentValid) throw new InvalidPasswordError("Current password is incorrect")
 
-	await rotatePassword(userId, newPassword, false)
+	await rotatePassword(userId, newPassword, false, keepToken ? hashOpaqueToken(keepToken) : undefined)
 }
 
-// Skips the current-password proof; safe only because mustChangePassword is server-set.
-export async function completeForcedPasswordChange(userId: string, newPassword: string): Promise<void> {
+// Skips the current-password proof; safe only because mustChangePassword is server-set, never caller-set.
+export async function completeForcedPasswordChange(
+	userId: string,
+	newPassword: string,
+	keepToken?: string,
+): Promise<void> {
 	const user = await repo.findUserById(userId)
 	if (!user) throw new UserNotFoundError(`completeForcedPasswordChange: user ${userId} not found`)
 	if (!user.mustChangePassword) {
 		throw new PasswordChangeNotRequiredError("No password change is currently required")
 	}
 
-	await rotatePassword(userId, newPassword, false)
+	await rotatePassword(userId, newPassword, false, keepToken ? hashOpaqueToken(keepToken) : undefined)
 }
 
 // mustChangePassword: an admin knowing the password must not be a durable state.

@@ -70,6 +70,7 @@ describe("identity", () => {
 
 	it("requires the current password to change password", async () => {
 		const { cookie, username, password } = await createAndLogin()
+		const secondCookie = extractSessionCookie(await login(username, password))
 
 		const wrongAttempt = await app.request("/api/me/password", {
 			method: "PATCH",
@@ -84,6 +85,12 @@ describe("identity", () => {
 			body: JSON.stringify({ currentPassword: password, newPassword: "new-password-123" }),
 		})
 		expect(correctAttempt.status).toBe(204)
+
+		// The changing session survives so the user stays signed in; other sessions die.
+		const keptSession = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
+		expect((await keptSession.json()) as { user: unknown }).not.toEqual({ user: null })
+		const droppedSession = await app.request("/api/auth/session", { headers: { Cookie: secondCookie } })
+		expect(await droppedSession.json()).toEqual({ user: null })
 
 		expect((await login(username, password)).status).toBe(401)
 		expect((await login(username, "new-password-123")).status).toBe(200)
@@ -118,6 +125,11 @@ describe("identity", () => {
 
 		expect(response.status).toBe(204)
 		expect((await repo.findUserById(user.id))?.mustChangePassword).toBe(false)
+
+		// The completing session survives so the member lands signed in.
+		const keptSession = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
+		expect((await keptSession.json()) as { user: unknown }).not.toEqual({ user: null })
+
 		expect((await login(username, "reset-password-321")).status).toBe(401)
 		expect((await login(username, "self-chosen-after-reset-000")).status).toBe(200)
 	})

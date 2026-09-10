@@ -1,6 +1,7 @@
 import { useBootstrapAdmin } from "@/api/generated/roles/roles.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { CredentialsForm } from "@/features/authentication/components/credentials-form.tsx"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -12,14 +13,17 @@ export const Route = createFileRoute("/setup")({
 function SetupPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
+	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
 	const bootstrapAdmin = useBootstrapAdmin()
 
 	async function handleSubmit(input: { password: string; username: string }) {
 		setError(null)
 		try {
+			// The API sets the session cookie on bootstrap, so the admin lands signed in.
 			await bootstrapAdmin.mutateAsync({ data: input })
-			await navigate({ to: "/login" })
+			queryClient.clear()
+			await navigate({ to: "/dashboard" })
 		} catch (caught) {
 			// Orval fetch errors expose the parsed error body as `info.error`.
 			const info = (caught as { info?: { error?: string } } | null)?.info

@@ -1,13 +1,20 @@
-import { useChangePassword } from "@/api/generated/identity/identity.ts"
+import {
+	getGetSessionQueryKey,
+	useChangePassword,
+	useGetSession,
+	useUpdateAccount,
+} from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
+import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -17,44 +24,51 @@ export const Route = createFileRoute("/dashboard/account")({
 	component: AccountPage,
 })
 
-const accountSchema = z.object({
-	name: z.string().min(1),
-	email: z.string().email(),
+const profileSchema = z.object({
+	name: z.string().min(USERNAME_MIN_LENGTH).max(USERNAME_MAX_LENGTH).regex(USERNAME_PATTERN),
 })
 
-type AccountFormValues = z.infer<typeof accountSchema>
+type ProfileFormValues = z.infer<typeof profileSchema>
 
-type Operator = {
-	name: string
-	email: string
-}
-
-// TODO(account-api): Replace this placeholder when the operator profile endpoint exists.
-const placeholderOperator: Operator = {
-	name: "Talqo Operator",
-	email: "operator@talqo.dev",
-}
-
-function ProfileCard({ operator }: { operator: Operator }) {
+function ProfileCard({ name }: { name: string }) {
 	const { t } = useTranslation()
+	const queryClient = useQueryClient()
+	const updateAccount = useUpdateAccount()
+	const [serverError, setServerError] = useState<string | null>(null)
 	const [saved, setSaved] = useState(false)
 
 	const {
 		register,
 		handleSubmit,
 		reset,
-		formState: { errors },
-	} = useForm<AccountFormValues>({
-		resolver: zodResolver(accountSchema),
-		defaultValues: { name: operator.name, email: operator.email },
+		formState: { errors, isDirty },
+	} = useForm<ProfileFormValues>({
+		resolver: zodResolver(profileSchema),
+		defaultValues: { name },
 	})
 
+	// Follow external name changes (e.g. after a successful save) without clobbering edits.
 	useEffect(() => {
-		reset({ name: operator.name, email: operator.email })
-	}, [operator, reset])
+		reset({ name })
+	}, [name, reset])
 
-	function onValid() {
-		setSaved(true)
+	async function onValid(input: ProfileFormValues) {
+		setServerError(null)
+		setSaved(false)
+		try {
+			const result = await updateAccount.mutateAsync({ data: { username: input.name } })
+			// Point the session cache at the renamed user without a refetch; the card stays
+			// mounted so the confirmation state below survives.
+			queryClient.setQueryData(getGetSessionQueryKey(), (old?: { data: { user: unknown } }) => ({
+				...old,
+				data: { user: result.data.user },
+			}))
+			setSaved(true)
+		} catch (caught) {
+			// Orval fetch errors expose the parsed error body as `info.error`.
+			const info = (caught as { info?: { error?: string } } | null)?.info
+			setServerError(info?.error ?? t("auth.errorFallback"))
+		}
 	}
 
 	return (
@@ -67,23 +81,29 @@ function ProfileCard({ operator }: { operator: Operator }) {
 				<CardContent className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="account-name">{t("account.name")}</Label>
-						<Input id="account-name" aria-invalid={errors.name ? true : undefined} {...register("name")} />
-						{errors.name && <p className="text-destructive text-xs">{t("account.nameRequired")}</p>}
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="account-email">{t("account.email")}</Label>
 						<Input
-							id="account-email"
-							type="email"
-							aria-invalid={errors.email ? true : undefined}
-							{...register("email")}
+							id="account-name"
+							autoComplete="username"
+							aria-invalid={errors.name ? true : undefined}
+							{...register("name")}
 						/>
-						{errors.email && <p className="text-destructive text-xs">{t("account.emailInvalid")}</p>}
+						{errors.name && (
+							<p className="text-destructive text-xs" role="alert">
+								{t("account.nameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+							</p>
+						)}
 					</div>
+					{serverError && (
+						<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+							{serverError}
+						</p>
+					)}
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
 				</CardContent>
-				<CardFooter>
-					<Button type="submit">{t("account.saveProfile")}</Button>
+				<CardFooter className="border-t-0 bg-transparent">
+					<Button type="submit" disabled={updateAccount.isPending || !isDirty}>
+						{t("account.saveProfile")}
+					</Button>
 				</CardFooter>
 			</form>
 		</Card>
@@ -92,18 +112,22 @@ function ProfileCard({ operator }: { operator: Operator }) {
 
 function PasswordCard() {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
 	const [error, setError] = useState<string | null>(null)
+	const [saved, setSaved] = useState(false)
+	// Remounts the form after a successful change so stale passwords don't linger in the fields.
+	const [formKey, setFormKey] = useState(0)
 	const changePassword = useChangePassword()
 
 	async function handleSubmit(input: { confirmPassword: string; currentPassword: string; newPassword: string }) {
 		setError(null)
+		setSaved(false)
 		try {
 			await changePassword.mutateAsync({
 				data: { currentPassword: input.currentPassword, newPassword: input.newPassword },
 			})
-			// The password change already invalidated this session.
-			await navigate({ to: "/login" })
+			// The server keeps this session alive for a self-service change, so no login round-trip.
+			setSaved(true)
+			setFormKey((key) => key + 1)
 		} catch (caught) {
 			const info = (caught as { info?: { error?: string } } | null)?.info
 			setError(info?.error ?? t("auth.errorFallback"))
@@ -116,13 +140,15 @@ function PasswordCard() {
 				<CardTitle>{t("account.changePassword")}</CardTitle>
 				<CardDescription>{t("account.changePasswordDescription")}</CardDescription>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="space-y-4">
 				<ChangePasswordForm
+					key={formKey}
 					error={error}
 					onSubmit={handleSubmit}
 					submitLabel={t("account.changePassword")}
 					submitting={changePassword.isPending}
 				/>
+				{saved && <output className="text-muted-foreground block text-sm">{t("account.passwordSaved")}</output>}
 			</CardContent>
 		</Card>
 	)
@@ -151,11 +177,16 @@ function DangerZoneCard() {
 
 function AccountPage() {
 	const { t } = useTranslation()
+	const session = useGetSession()
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
-			<ProfileCard operator={placeholderOperator} />
+			{session.isPending ? (
+				<p className="text-muted-foreground">{t("auth.loading")}</p>
+			) : (
+				<ProfileCard name={session.data?.data.user?.username ?? ""} />
+			)}
 			<PasswordCard />
 			<DangerZoneCard />
 		</div>
