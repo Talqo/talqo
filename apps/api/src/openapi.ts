@@ -5,7 +5,7 @@ import { allProblemsOpenApiSchema, PROBLEM_CODES, problemSchema } from "./http/p
 import { HTTP_STATUS } from "./http/status.ts"
 
 type ProblemResponseMetadata = {
-	"x-problem-codes"?: string[]
+	"x-problem-codes"?: readonly ProblemCode[]
 	content?: { "application/problem+json"?: { schema?: unknown } }
 }
 
@@ -39,7 +39,7 @@ export function createOpenApiDocument() {
 				const codes = response["x-problem-codes"]
 				const media = response.content?.["application/problem+json"]
 				if (!codes || !media?.schema) continue
-				media.schema = problemSchema(codes as ProblemCode[])
+				media.schema = problemSchema(codes)
 				delete response["x-problem-codes"]
 			}
 		}

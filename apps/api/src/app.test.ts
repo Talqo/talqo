@@ -3,6 +3,7 @@ import type { Context } from "hono"
 import { describe, expect, it, spyOn } from "bun:test"
 
 import { app, handleError } from "./app.ts"
+import { PROBLEM_CODES } from "./http/problem.ts"
 import { createOpenApiDocument } from "./openapi.ts"
 
 describe("api", () => {
@@ -151,6 +152,8 @@ describe("api", () => {
 	})
 
 	it("reserializes valid problems carried by response-bearing errors", async () => {
+		using _ = spyOn(console, "error").mockImplementation(() => {})
+
 		const carried = new Response(
 			JSON.stringify({
 				code: "permission-denied",
@@ -172,6 +175,7 @@ describe("api", () => {
 			code: "permission-denied",
 			type: "https://docs.talqo.chat/problems#permission-denied",
 		})
+		expect(console.error).not.toHaveBeenCalled()
 	})
 
 	it("passes through non-error responses carried by response-bearing errors", async () => {
@@ -296,7 +300,7 @@ describe("api", () => {
 				properties?: { code?: { const?: string }; type?: { const?: string } }
 			}>
 		}
-		expect(problemSchema.oneOf).toHaveLength(33)
+		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
 		for (const schema of problemSchema.oneOf ?? []) {
 			expect(schema.additionalProperties).toBe(false)
 			expect(schema.properties?.type?.const).toBe(`https://docs.talqo.chat/problems#${schema.properties?.code?.const}`)

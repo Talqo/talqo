@@ -1,5 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 import type { Context } from "hono"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
@@ -77,7 +78,7 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 			}
 			const problem = problemDetailsSchema.safeParse(parsed)
 			const code = problem.success ? problem.data.code : PROBLEM_CODES.REQUEST_FAILED
-			const normalized = problemResponse(context, code, response.status as never)
+			const normalized = problemResponse(context, code, response.status as ContentfulStatusCode)
 			for (const [name, value] of response.headers) {
 				if (name.toLowerCase() !== "content-type") normalized.headers.append(name, value)
 			}
