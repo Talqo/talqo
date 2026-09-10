@@ -111,7 +111,6 @@ const listWidgetsQuerySchema = z.object({
 })
 
 const notModifiedResponse = { description: "Configuration unchanged since the supplied ETag" } as const
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
@@ -127,7 +126,6 @@ export const listWidgetsRoute = createRoute({
 	request: { query: listWidgetsQuerySchema },
 	responses: {
 		200: { content: { "application/json": { schema: widgetListResponseSchema } }, description: "All widgets" },
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		500: serverError,
@@ -162,7 +160,6 @@ export const getWidgetRoute = createRoute({
 	request: { params: widgetParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "One widget" },
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: widgetNotFound,
@@ -199,7 +196,6 @@ export const deleteWidgetRoute = createRoute({
 	request: { params: widgetParamsSchema },
 	responses: {
 		204: noContentResponse,
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: widgetNotFound,
@@ -220,7 +216,6 @@ export const getWidgetConfigRoute = createRoute({
 			description: "Public appearance for the embedded widget",
 		},
 		304: notModifiedResponse,
-		400: malformedJson,
 		404: widgetNotFound,
 		500: serverError,
 	},

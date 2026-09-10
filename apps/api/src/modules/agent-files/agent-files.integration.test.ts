@@ -9,6 +9,8 @@ import { join } from "node:path"
 
 import { MAX_FILE_SIZE_BYTES } from "./agent-files.service.ts"
 
+const LARGE_UPLOAD_BYTES = 300_000
+
 // Set by scripts/test-integration.ts; integration tests must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
@@ -141,6 +143,13 @@ describe("agent knowledge files", () => {
 			body: form,
 		})
 		await expectProblem(response, 413, "payload-too-large")
+	})
+
+	it("accepts a file larger than the JSON body limit", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Large upload")
+
+		expect((await upload(cookie, agentId, "large.md", "x".repeat(LARGE_UPLOAD_BYTES))).status).toBe(201)
 	})
 
 	it("returns 404 when the agent does not exist", async () => {

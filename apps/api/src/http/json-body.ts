@@ -7,9 +7,14 @@ import { createMiddleware } from "hono/factory"
 // Hard ceiling for inbound bodies; generous for the largest payload (system prompts up to 20k chars).
 const REQUEST_BODY_MAX_BYTES = 262_144
 
-export const rejectOversizedBody = bodyLimit({
+const rejectOversizedJsonBody = bodyLimit({
 	maxSize: REQUEST_BODY_MAX_BYTES,
 	onError: (context) => problemResponse(context, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE),
+})
+
+export const rejectOversizedBody = createMiddleware(async (context, next) => {
+	if (!context.req.header("Content-Type")?.startsWith("application/json")) return next()
+	return rejectOversizedJsonBody(context, next)
 })
 
 export const rejectMalformedJson = createMiddleware(async (context, next) => {

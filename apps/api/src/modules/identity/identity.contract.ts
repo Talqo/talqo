@@ -49,7 +49,6 @@ const forcedPasswordChangeRequestSchema = z.object({
 
 const userEnvelopeSchema = z.object({ user: userResponseSchema })
 
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const passwordRequired = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
@@ -78,7 +77,6 @@ export const logoutRoute = createRoute({
 	tags: ["Identity"],
 	responses: {
 		204: noContentResponse,
-		400: malformedJson,
 		500: serverError,
 	},
 })
@@ -90,7 +88,6 @@ export const getSessionRoute = createRoute({
 	tags: ["Identity"],
 	responses: {
 		200: { content: { "application/json": { schema: sessionResponseSchema } }, description: "Current session" },
-		400: malformedJson,
 		500: serverError,
 	},
 })
@@ -161,7 +158,6 @@ export const deleteAccountRoute = createRoute({
 	security: sessionSecurity,
 	responses: {
 		204: noContentResponse,
-		400: malformedJson,
 		401: authRequired,
 		403: passwordRequired,
 		500: serverError,

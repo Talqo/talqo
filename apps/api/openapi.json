@@ -707,32 +707,6 @@
 							}
 						}
 					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -856,32 +830,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -948,32 +896,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -1116,32 +1038,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -1208,32 +1104,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -2326,58 +2196,6 @@
 					"204": {
 						"description": "No content"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -2434,58 +2252,6 @@
 								}
 							}
 						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -2746,32 +2512,6 @@
 					"204": {
 						"description": "No content"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -2823,32 +2563,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -3261,32 +2975,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -3339,32 +3027,6 @@
 							}
 						}
 					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -3414,58 +3076,6 @@
 								}
 							}
 						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -3706,32 +3316,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -3798,32 +3382,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -4347,32 +3905,6 @@
 					"204": {
 						"description": "No content"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -4439,32 +3971,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -4525,32 +4031,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -4602,32 +4082,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -4683,32 +4137,6 @@
 										}
 									},
 									"required": ["users"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
 								}
 							}
 						}
@@ -4779,32 +4207,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -5109,32 +4511,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -5201,32 +4577,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -5553,32 +4903,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -5671,32 +4995,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -6044,32 +5342,6 @@
 					"204": {
 						"description": "No content"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -6189,32 +5461,6 @@
 							}
 						}
 					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -6276,32 +5522,6 @@
 										}
 									},
 									"required": ["agent"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
 								}
 							}
 						}
@@ -6399,32 +5619,6 @@
 							}
 						}
 					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -6489,32 +5683,6 @@
 										}
 									},
 									"required": ["widgets"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
 								}
 							}
 						}
@@ -6585,32 +5753,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -6985,32 +6127,6 @@
 							}
 						}
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -7103,32 +6219,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -7513,32 +6603,6 @@
 					"204": {
 						"description": "No content"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"401": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -7632,32 +6696,6 @@
 							}
 						}
 					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
-					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -7715,32 +6753,6 @@
 					"304": {
 						"description": "Configuration unchanged since the supplied ETag"
 					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						}
-					},
 					"404": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -7766,32 +6778,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -7871,32 +6857,6 @@
 										}
 									},
 									"required": ["files", "maxSizeBytes", "maxNameLength", "allowedExtensions"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
 								}
 							}
 						}
@@ -7993,32 +6953,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
@@ -8686,21 +7620,6 @@
 											},
 											"required": ["code", "type"],
 											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
 										}
 									]
 								}
@@ -8814,32 +7733,6 @@
 								}
 							}
 						}
-					},
-					"413": {
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
-								}
-							}
-						},
-						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",

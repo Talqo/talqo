@@ -6,16 +6,10 @@
  */
 import * as zod from "zod"
 
-export const DeleteAgentFile400 = zod.union([
-	zod.object({
-		code: zod.literal("agent-file-invalid"),
-		type: zod.literal("https://docs.talqo.chat/problems#agent-file-invalid"),
-	}),
-	zod.object({
-		code: zod.literal("malformed-json"),
-		type: zod.literal("https://docs.talqo.chat/problems#malformed-json"),
-	}),
-])
+export const DeleteAgentFile400 = zod.object({
+	code: zod.literal("agent-file-invalid"),
+	type: zod.literal("https://docs.talqo.chat/problems#agent-file-invalid"),
+})
 
 export type DeleteAgentFile400 = zod.input<typeof DeleteAgentFile400>
 export type DeleteAgentFile400Output = zod.output<typeof DeleteAgentFile400>

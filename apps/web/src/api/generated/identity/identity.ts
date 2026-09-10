@@ -27,14 +27,10 @@ import type { CompleteForcedPasswordChange409 } from "../models/identity/complet
 import type { CompleteForcedPasswordChange413 } from "../models/identity/completeForcedPasswordChange413.zod"
 import type { CompleteForcedPasswordChange500 } from "../models/identity/completeForcedPasswordChange500.zod"
 import type { CompleteForcedPasswordChangeBody } from "../models/identity/completeForcedPasswordChangeBody.zod"
-import type { DeleteAccount400 } from "../models/identity/deleteAccount400.zod"
 import type { DeleteAccount401 } from "../models/identity/deleteAccount401.zod"
 import type { DeleteAccount403 } from "../models/identity/deleteAccount403.zod"
-import type { DeleteAccount413 } from "../models/identity/deleteAccount413.zod"
 import type { DeleteAccount500 } from "../models/identity/deleteAccount500.zod"
 import type { GetSession200 } from "../models/identity/getSession200.zod"
-import type { GetSession400 } from "../models/identity/getSession400.zod"
-import type { GetSession413 } from "../models/identity/getSession413.zod"
 import type { GetSession500 } from "../models/identity/getSession500.zod"
 import type { Login200 } from "../models/identity/login200.zod"
 import type { Login400 } from "../models/identity/login400.zod"
@@ -42,8 +38,6 @@ import type { Login401 } from "../models/identity/login401.zod"
 import type { Login413 } from "../models/identity/login413.zod"
 import type { Login500 } from "../models/identity/login500.zod"
 import type { LoginBody } from "../models/identity/loginBody.zod"
-import type { Logout400 } from "../models/identity/logout400.zod"
-import type { Logout413 } from "../models/identity/logout413.zod"
 import type { Logout500 } from "../models/identity/logout500.zod"
 import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
 import type { UpdateAccount400 } from "../models/identity/updateAccount400.zod"
@@ -183,16 +177,6 @@ export type logoutResponse204 = {
 	status: 204
 }
 
-export type logoutResponse400 = {
-	data: Logout400
-	status: 400
-}
-
-export type logoutResponse413 = {
-	data: Logout413
-	status: 413
-}
-
 export type logoutResponse500 = {
 	data: Logout500
 	status: 500
@@ -201,7 +185,7 @@ export type logoutResponse500 = {
 export type logoutResponseSuccess = logoutResponse204 & {
 	headers: Headers
 }
-export type logoutResponseError = (logoutResponse400 | logoutResponse413 | logoutResponse500) & {
+export type logoutResponseError = logoutResponse500 & {
 	headers: Headers
 }
 
@@ -231,7 +215,7 @@ export const logout = async (options?: RequestInit): Promise<logoutResponseSucce
 export const getLogoutMutationKey = () => ["logout"] as const
 
 export const getLogoutMutationOptions = <
-	TError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number },
+	TError = globalThis.Error & { info?: Logout500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -253,10 +237,10 @@ export const getLogoutMutationOptions = <
 
 export type LogoutMutationResult = NonNullable<Awaited<ReturnType<typeof logout>>>
 
-export type LogoutMutationError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number }
+export type LogoutMutationError = globalThis.Error & { info?: Logout500; status?: number }
 
 export const useLogout = <
-	TError = globalThis.Error & { info?: Logout400 | Logout413 | Logout500; status?: number },
+	TError = globalThis.Error & { info?: Logout500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -269,16 +253,6 @@ export type getSessionResponse200 = {
 	status: 200
 }
 
-export type getSessionResponse400 = {
-	data: GetSession400
-	status: 400
-}
-
-export type getSessionResponse413 = {
-	data: GetSession413
-	status: 413
-}
-
 export type getSessionResponse500 = {
 	data: GetSession500
 	status: 500
@@ -287,7 +261,7 @@ export type getSessionResponse500 = {
 export type getSessionResponseSuccess = getSessionResponse200 & {
 	headers: Headers
 }
-export type getSessionResponseError = (getSessionResponse400 | getSessionResponse413 | getSessionResponse500) & {
+export type getSessionResponseError = getSessionResponse500 & {
 	headers: Headers
 }
 
@@ -320,7 +294,7 @@ export const getGetSessionQueryKey = () => {
 
 export const getGetSessionQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession400 | GetSession413 | GetSession500; status?: number },
+	TError = globalThis.Error & { info?: GetSession500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -340,14 +314,11 @@ export const getGetSessionQueryOptions = <
 }
 
 export type GetSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSession>>>
-export type GetSessionQueryError = globalThis.Error & {
-	info?: GetSession400 | GetSession413 | GetSession500
-	status?: number
-}
+export type GetSessionQueryError = globalThis.Error & { info?: GetSession500; status?: number }
 
 export function useGetSession<
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession400 | GetSession413 | GetSession500; status?: number },
+	TError = globalThis.Error & { info?: GetSession500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -520,11 +491,6 @@ export type deleteAccountResponse204 = {
 	status: 204
 }
 
-export type deleteAccountResponse400 = {
-	data: DeleteAccount400
-	status: 400
-}
-
 export type deleteAccountResponse401 = {
 	data: DeleteAccount401
 	status: 401
@@ -533,11 +499,6 @@ export type deleteAccountResponse401 = {
 export type deleteAccountResponse403 = {
 	data: DeleteAccount403
 	status: 403
-}
-
-export type deleteAccountResponse413 = {
-	data: DeleteAccount413
-	status: 413
 }
 
 export type deleteAccountResponse500 = {
@@ -549,10 +510,8 @@ export type deleteAccountResponseSuccess = deleteAccountResponse204 & {
 	headers: Headers
 }
 export type deleteAccountResponseError = (
-	| deleteAccountResponse400
 	| deleteAccountResponse401
 	| deleteAccountResponse403
-	| deleteAccountResponse413
 	| deleteAccountResponse500
 ) & {
 	headers: Headers
@@ -585,10 +544,7 @@ export const deleteAccount = async (options?: RequestInit): Promise<deleteAccoun
 export const getDeleteAccountMutationKey = () => ["deleteAccount"] as const
 
 export const getDeleteAccountMutationOptions = <
-	TError = globalThis.Error & {
-		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
-		status?: number
-	},
+	TError = globalThis.Error & { info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
@@ -611,15 +567,12 @@ export const getDeleteAccountMutationOptions = <
 export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
 
 export type DeleteAccountMutationError = globalThis.Error & {
-	info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
+	info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500
 	status?: number
 }
 
 export const useDeleteAccount = <
-	TError = globalThis.Error & {
-		info?: DeleteAccount400 | DeleteAccount401 | DeleteAccount403 | DeleteAccount413 | DeleteAccount500
-		status?: number
-	},
+	TError = globalThis.Error & { info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>

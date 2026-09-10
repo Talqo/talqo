@@ -280,11 +280,10 @@ describe("api", () => {
 					}
 				}
 			}
-			expect(
-				payloadTooLarge.content?.["application/problem+json"]?.schema?.oneOf?.map(
-					(schema) => schema.properties?.code?.const,
-				),
-			).toEqual(["payload-too-large"])
+			const payloadTooLargeCodes = payloadTooLarge?.content?.["application/problem+json"]?.schema?.oneOf?.map(
+				(schema) => schema.properties?.code?.const,
+			)
+			expect(payloadTooLargeCodes).toEqual("requestBody" in operation ? ["payload-too-large"] : undefined)
 		}
 
 		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])

@@ -37,7 +37,6 @@ const renameAgentFileRequestSchema = z.object({
 	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
 })
 
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const invalidFile = problemResponse([
 	PROBLEM_CODES.AGENT_FILE_INVALID,
 	PROBLEM_CODES.INVALID_REQUEST,
@@ -63,7 +62,6 @@ export const listAgentFilesRoute = createRoute({
 			content: { "application/json": { schema: agentFileListResponseSchema } },
 			description: "Knowledge files uploaded for the agent",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: agentNotFound,
@@ -126,7 +124,7 @@ export const deleteAgentFileRoute = createRoute({
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,
-		400: problemResponse([PROBLEM_CODES.AGENT_FILE_INVALID, PROBLEM_CODES.MALFORMED_JSON]),
+		400: problemResponse([PROBLEM_CODES.AGENT_FILE_INVALID]),
 		401: authRequired,
 		403: forbidden,
 		404: fileOrAgentNotFound,

@@ -24,13 +24,15 @@ export function createOpenApiDocument() {
 	for (const pathItem of Object.values(document.paths ?? {})) {
 		for (const operation of Object.values(pathItem)) {
 			if (typeof operation !== "object" || operation === null || !("responses" in operation)) continue
-			operation.responses[HTTP_STATUS.PAYLOAD_TOO_LARGE] ??= {
-				content: {
-					"application/problem+json": {
-						schema: problemSchema([PROBLEM_CODES.PAYLOAD_TOO_LARGE]),
+			if ("requestBody" in operation) {
+				operation.responses[HTTP_STATUS.PAYLOAD_TOO_LARGE] ??= {
+					content: {
+						"application/problem+json": {
+							schema: problemSchema([PROBLEM_CODES.PAYLOAD_TOO_LARGE]),
+						},
 					},
-				},
-				description: "https://docs.talqo.chat/problems",
+					description: "https://docs.talqo.chat/problems",
+				}
 			}
 			for (const responseValue of Object.values(operation.responses)) {
 				const response = responseValue as ProblemResponseMetadata

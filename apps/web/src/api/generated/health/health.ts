@@ -8,7 +8,6 @@ import type { QueryFunction, QueryKey, UseQueryOptions, UseQueryResult } from "@
  */
 import { useQuery } from "@tanstack/react-query"
 
-import type { GetHealth413 } from "../models/health/getHealth413.zod"
 import type { GetHealth500 } from "../models/health/getHealth500.zod"
 import type { HealthResponse } from "../models/health/healthResponse.zod"
 
@@ -36,11 +35,6 @@ export type getHealthResponse200 = {
 	status: 200
 }
 
-export type getHealthResponse413 = {
-	data: GetHealth413
-	status: 413
-}
-
 export type getHealthResponse500 = {
 	data: GetHealth500
 	status: 500
@@ -49,7 +43,7 @@ export type getHealthResponse500 = {
 export type getHealthResponseSuccess = getHealthResponse200 & {
 	headers: Headers
 }
-export type getHealthResponseError = (getHealthResponse413 | getHealthResponse500) & {
+export type getHealthResponseError = getHealthResponse500 & {
 	headers: Headers
 }
 
@@ -82,7 +76,7 @@ export const getGetHealthQueryKey = () => {
 
 export const getGetHealthQueryOptions = <
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: GetHealth413 | GetHealth500; status?: number },
+	TError = globalThis.Error & { info?: GetHealth500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>
 	fetch?: RequestInit
@@ -102,11 +96,11 @@ export const getGetHealthQueryOptions = <
 }
 
 export type GetHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getHealth>>>
-export type GetHealthQueryError = globalThis.Error & { info?: GetHealth413 | GetHealth500; status?: number }
+export type GetHealthQueryError = globalThis.Error & { info?: GetHealth500; status?: number }
 
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: GetHealth413 | GetHealth500; status?: number },
+	TError = globalThis.Error & { info?: GetHealth500; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>
 	fetch?: RequestInit

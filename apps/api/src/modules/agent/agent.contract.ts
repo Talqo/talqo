@@ -37,7 +37,6 @@ const agentParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
 })
 
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const invalidAgent = problemResponse([
 	PROBLEM_CODES.AGENT_INVALID,
 	PROBLEM_CODES.INVALID_REQUEST,
@@ -56,7 +55,6 @@ export const listAgentsRoute = createRoute({
 	security: sessionSecurity,
 	responses: {
 		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "All agents" },
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		500: serverError,
@@ -91,7 +89,6 @@ export const getAgentRoute = createRoute({
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "One agent" },
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: agentNotFound,
@@ -132,7 +129,6 @@ export const refreshEmbedTokenRoute = createRoute({
 			content: { "application/json": { schema: agentDetailResponseSchema } },
 			description: "Embed token rotated; the old value is orphaned",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: agentNotFound,
@@ -149,7 +145,6 @@ export const deleteAgentRoute = createRoute({
 	request: { params: agentParamsSchema },
 	responses: {
 		204: noContentResponse,
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		404: agentNotFound,

@@ -105,7 +105,6 @@ export const configurationResponseSchema = z.object({
 	embedding: redactedRoleSchema.extend({ credentialSource: credentialSourceSchema }).nullable(),
 })
 
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
@@ -126,7 +125,6 @@ export const listAiProvidersRoute = createRoute({
 			content: { "application/json": { schema: providerMetadataResponseSchema } },
 			description: "Supported AI providers",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		500: serverError,
@@ -144,7 +142,6 @@ export const getAiProviderConfigurationRoute = createRoute({
 			content: { "application/json": { schema: configurationResponseSchema } },
 			description: "Redacted AI provider configuration",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: forbidden,
 		500: serverError,

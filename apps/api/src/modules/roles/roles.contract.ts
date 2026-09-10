@@ -78,7 +78,6 @@ export const myPermissionsResponseSchema = z.object({
 	permissions: z.array(z.enum(PERMISSIONS)),
 })
 
-const malformedJson = problemResponse([PROBLEM_CODES.MALFORMED_JSON])
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const passwordRequired = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
@@ -98,7 +97,6 @@ export const myPermissionsRoute = createRoute({
 			content: { "application/json": { schema: myPermissionsResponseSchema } },
 			description: "Effective permissions",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: passwordRequired,
 		500: serverError,
@@ -136,7 +134,6 @@ export const getAccessRoute = createRoute({
 			content: { "application/json": { schema: accessResponseSchema } },
 			description: "Effective access for the current user",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: passwordRequired,
 		500: serverError,
@@ -150,7 +147,6 @@ export const getSetupStatusRoute = createRoute({
 	tags: ["Roles"],
 	responses: {
 		200: { content: { "application/json": { schema: setupStatusResponseSchema } }, description: "Setup status" },
-		400: malformedJson,
 		500: serverError,
 	},
 })
@@ -185,7 +181,6 @@ export const createInvitationRoute = createRoute({
 			content: { "application/json": { schema: createInvitationResponseSchema } },
 			description: "Invitation created",
 		},
-		400: malformedJson,
 		401: authRequired,
 		403: invitationForbidden,
 		500: serverError,
@@ -240,7 +235,6 @@ export const revokePermissionGrantRoute = createRoute({
 	request: { params: permissionGrantParamsSchema },
 	responses: {
 		204: noContentResponse,
-		400: malformedJson,
 		401: authRequired,
 		403: adminRequired,
 		500: serverError,
@@ -255,7 +249,6 @@ export const getUsersRoute = createRoute({
 	security: sessionSecurity,
 	responses: {
 		200: { content: { "application/json": { schema: userListResponseSchema } }, description: "All users" },
-		400: malformedJson,
 		401: authRequired,
 		403: adminRequired,
 		500: serverError,
