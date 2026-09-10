@@ -30,5 +30,10 @@
 
 	--talqo-destructive: #e5484d;
 
-	--talqo-radius: 0.75rem;
+	--talqo-radius-item: 9999px;
+	--talqo-radius-control: 9999px;
+	--talqo-radius-surface: 0.75rem;
+	--talqo-radius-overlay: 0.75rem;
+	--talqo-spacing-control: 2.5rem;
+	--talqo-spacing-control-padding: 1rem;
 }

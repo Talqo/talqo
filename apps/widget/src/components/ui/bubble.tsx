@@ -38,7 +38,7 @@ function BubbleContent({
 		<div
 			data-slot="bubble-content"
 			className={cn(
-				"tw:wrap-break-word tw:w-fit tw:min-w-0 tw:max-w-full tw:rounded-xl tw:px-3 tw:py-2 tw:text-sm tw:leading-relaxed tw:group-data-[align=end]/bubble:self-end",
+				"tw:wrap-break-word tw:w-fit tw:min-w-0 tw:max-w-full tw:rounded-surface tw:px-3.5 tw:py-2.5 tw:text-sm tw:leading-relaxed tw:group-data-[align=end]/bubble:self-end",
 				bubbleContentVariants[variant],
 				className,
 			)}
