@@ -31,7 +31,7 @@ function FieldInput({
 			<Autocomplete.Input id={id} placeholder={placeholder} render={<Input className="pr-8" />} />
 			<Autocomplete.Trigger
 				aria-label={triggerLabel}
-				className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1.5 inline-flex size-6 -translate-y-1/2 items-center justify-center rounded-md outline-none"
+				className="text-muted-foreground hover:text-foreground size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none"
 			>
 				{loading ? <LoaderCircleIcon className="size-4 animate-spin" /> : <ChevronsUpDownIcon className="size-4" />}
 			</Autocomplete.Trigger>
@@ -76,14 +76,14 @@ export function ModelAutocomplete({
 			</div>
 			<Combobox.Portal>
 				<Combobox.Positioner sideOffset={4} className="isolate z-50">
-					<Combobox.Popup className="bg-popover text-popover-foreground ring-foreground/10 relative max-h-72 w-(--anchor-width) min-w-36 overflow-x-hidden overflow-y-auto rounded-lg py-1 shadow-md ring-1">
-						<Combobox.Empty className="text-muted-foreground px-2.5 py-2 text-xs">{emptyLabel}</Combobox.Empty>
+					<Combobox.Popup className="bg-popover text-popover-foreground ring-foreground/10 rounded-overlay relative max-h-72 w-(--anchor-width) min-w-36 overflow-x-hidden overflow-y-auto p-1 shadow-md ring-1">
+						<Combobox.Empty className="text-muted-foreground px-3 py-2 text-xs">{emptyLabel}</Combobox.Empty>
 						<Combobox.List>
 							{(model: string) => (
 								<Combobox.Item
 									key={model}
 									value={model}
-									className="data-highlighted:bg-accent data-highlighted:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2.5 text-sm outline-none select-none"
+									className="data-highlighted:bg-accent data-highlighted:text-accent-foreground min-h-item rounded-item relative flex w-full cursor-default items-center gap-2 pr-8 pl-3 text-sm outline-none select-none"
 								>
 									{model}
 									<Combobox.ItemIndicator className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">

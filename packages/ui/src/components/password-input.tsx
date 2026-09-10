@@ -16,12 +16,12 @@ function PasswordInput({ className, hideLabel, showLabel, ...props }: PasswordIn
 
 	return (
 		<div className="relative">
-			<Input type={visible ? "text" : "password"} className={cn("pr-8", className)} {...props} />
+			<Input type={visible ? "text" : "password"} className={cn("pr-11", className)} {...props} />
 			<Button
 				type="button"
 				variant="ghost"
 				size="icon-sm"
-				className="absolute inset-y-0 right-0.5 my-auto"
+				className="absolute inset-y-0 right-1 my-auto"
 				onClick={() => setVisible((current) => !current)}
 				aria-label={visible ? hideLabel : showLabel}
 				tabIndex={-1}

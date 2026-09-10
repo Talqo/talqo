@@ -98,7 +98,7 @@ function ResetPasswordDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" size="sm" disabled={disabled} />} nativeButton={false}>
+			<DialogTrigger render={<Button variant="outline" disabled={disabled} />} nativeButton={false}>
 				{t("users.resetPassword")}
 			</DialogTrigger>
 			<DialogContent>
@@ -106,7 +106,9 @@ function ResetPasswordDialog({
 					<DialogTitle>{t("users.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
 					<DialogDescription>{t("users.resetDialogDescription")}</DialogDescription>
 				</DialogHeader>
-				<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">{t("users.resetWarning")}</p>
+				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm">
+					{t("users.resetWarning")}
+				</p>
 				<form onSubmit={handleSubmit(onValid)} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor={`reset-new-password-${targetUser.id}`}>{t("account.newPassword")}</Label>
@@ -149,7 +151,7 @@ function ResetPasswordDialog({
 						)}
 					</div>
 					{error ? (
-						<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+						<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
 							{error}
 						</p>
 					) : null}

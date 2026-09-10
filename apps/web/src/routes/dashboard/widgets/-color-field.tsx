@@ -28,7 +28,7 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 					type="color"
 					value={isHexColor(value) ? value : "#000000"}
 					onChange={(event) => onChange(event.target.value)}
-					className="h-9 w-12 cursor-pointer rounded-md border bg-transparent p-1"
+					className="h-control rounded-control w-12 cursor-pointer border bg-transparent p-1"
 				/>
 				<Input
 					value={value}
