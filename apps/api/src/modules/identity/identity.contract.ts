@@ -7,6 +7,7 @@ import {
 	unauthorizedResponse,
 } from "@/http/openapi.ts"
 import { createRoute, z } from "@hono/zod-openapi"
+import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
 import {
 	PASSWORD_MAX_LENGTH,
@@ -30,9 +31,9 @@ const userResponseSchema = z
 	})
 	.openapi("User")
 
-const loginRequestSchema = z.object({
-	username: z.string().min(1),
-	password: z.string().min(1),
+export const loginRequestSchema = z.object({
+	username: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
+	password: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
 })
 
 export const sessionResponseSchema = z.object({
@@ -43,8 +44,8 @@ const updateAccountRequestSchema = z.object({
 	username: usernameSchema,
 })
 
-const changePasswordRequestSchema = z.object({
-	currentPassword: z.string().min(1),
+export const changePasswordRequestSchema = z.object({
+	currentPassword: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
 	newPassword: z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH),
 })
 

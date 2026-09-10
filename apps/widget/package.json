@@ -14,21 +14,21 @@
 	"dependencies": {
 		"@talqo/shared": "workspace:*",
 		"@talqo/ui": "workspace:*",
-		"i18next": "^26.4.0",
+		"i18next": "^26.4.2",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
-		"react-i18next": "^17.0.12"
+		"react-i18next": "^17.0.13"
 	},
 	"devDependencies": {
-		"@happy-dom/global-registrator": "^20.12.0",
+		"@happy-dom/global-registrator": "^20.14.0",
 		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
-		"@types/bun": "^1.4.0",
+		"@types/bun": "1.4.1",
 		"@types/react": "19.2.18",
-		"@types/react-dom": "19.2.5",
+		"@types/react-dom": "19.2.7",
 		"@vitejs/plugin-react": "6.1.1",
-		"i18next-cli": "1.71.3",
-		"postcss": "^8.5.25",
+		"i18next-cli": "1.73.1",
+		"postcss": "^8.5.28",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",

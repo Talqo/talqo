@@ -13,8 +13,8 @@
 	"dependencies": {
 		"@tanstack/react-router": "1.170.32",
 		"@tanstack/react-start": "1.168.49",
-		"fumadocs-core": "16.15.4",
-		"fumadocs-ui": "16.15.4",
+		"fumadocs-core": "16.15.7",
+		"fumadocs-ui": "16.15.7",
 		"react": "19.2.8",
 		"react-dom": "19.2.8"
 	},
@@ -23,7 +23,7 @@
 		"@talqo/typescript-config": "workspace:*",
 		"@types/mdx": "2.0.14",
 		"@types/react": "19.2.18",
-		"@types/react-dom": "19.2.5",
+		"@types/react-dom": "19.2.7",
 		"@vitejs/plugin-react": "6.1.1",
 		"fumadocs-mdx": "15.4.0",
 		"tailwindcss": "4.3.3",

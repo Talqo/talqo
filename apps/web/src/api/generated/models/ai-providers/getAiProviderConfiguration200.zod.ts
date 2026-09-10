@@ -8,6 +8,10 @@ import * as zod from "zod"
 
 export const getAiProviderConfiguration200RevisionMin = 0
 
+export const getAiProviderConfiguration200TextSettingsMaxOne = 2048
+
+export const getAiProviderConfiguration200EmbeddingSettingsMaxOne = 2048
+
 export const GetAiProviderConfiguration200 = zod.object({
 	revision: zod.int().min(getAiProviderConfiguration200RevisionMin),
 	health: zod.enum(["unconfigured", "configured", "unusable"]),
@@ -24,7 +28,7 @@ export const GetAiProviderConfiguration200 = zod.object({
 			]),
 			modelId: zod.string(),
 			authMode: zod.enum(["static", "deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string()),
+			settings: zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200TextSettingsMaxOne)),
 			hasCredentials: zod.boolean(),
 		})
 		.nullable(),
@@ -41,7 +45,7 @@ export const GetAiProviderConfiguration200 = zod.object({
 			]),
 			modelId: zod.string(),
 			authMode: zod.enum(["static", "deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string()),
+			settings: zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200EmbeddingSettingsMaxOne)),
 			hasCredentials: zod.boolean(),
 			credentialSource: zod.enum(["text", "separate", "deployment-identity"]),
 		})
