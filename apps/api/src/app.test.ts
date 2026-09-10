@@ -216,7 +216,7 @@ describe("api", () => {
 			.map((route) => route.path)
 
 		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
-		expect(wildcardApiRoutes).toEqual(["/api/widget-config/*"])
+		expect(wildcardApiRoutes).toEqual(["/api/widget-config/*", "/api/agents/:agentId/files"])
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
@@ -285,7 +285,7 @@ describe("api", () => {
 				properties?: { code?: { const?: string }; type?: { const?: string } }
 			}>
 		}
-		expect(problemSchema.oneOf).toHaveLength(30)
+		expect(problemSchema.oneOf).toHaveLength(33)
 		for (const schema of problemSchema.oneOf ?? []) {
 			expect(schema.additionalProperties).toBe(false)
 			expect(schema.properties?.type?.const).toBe(`https://docs.talqo.chat/problems#${schema.properties?.code?.const}`)

@@ -35,6 +35,7 @@ import type { DeleteAgentFile400 } from "../models/agent/deleteAgentFile400.zod"
 import type { DeleteAgentFile401 } from "../models/agent/deleteAgentFile401.zod"
 import type { DeleteAgentFile403 } from "../models/agent/deleteAgentFile403.zod"
 import type { DeleteAgentFile404 } from "../models/agent/deleteAgentFile404.zod"
+import type { DeleteAgentFile413 } from "../models/agent/deleteAgentFile413.zod"
 import type { DeleteAgentFile500 } from "../models/agent/deleteAgentFile500.zod"
 import type { GetAgent200 } from "../models/agent/getAgent200.zod"
 import type { GetAgent400 } from "../models/agent/getAgent400.zod"
@@ -48,6 +49,7 @@ import type { ListAgentFiles400 } from "../models/agent/listAgentFiles400.zod"
 import type { ListAgentFiles401 } from "../models/agent/listAgentFiles401.zod"
 import type { ListAgentFiles403 } from "../models/agent/listAgentFiles403.zod"
 import type { ListAgentFiles404 } from "../models/agent/listAgentFiles404.zod"
+import type { ListAgentFiles413 } from "../models/agent/listAgentFiles413.zod"
 import type { ListAgentFiles500 } from "../models/agent/listAgentFiles500.zod"
 import type { ListAgents200 } from "../models/agent/listAgents200.zod"
 import type { ListAgents400 } from "../models/agent/listAgents400.zod"
@@ -68,6 +70,7 @@ import type { RenameAgentFile401 } from "../models/agent/renameAgentFile401.zod"
 import type { RenameAgentFile403 } from "../models/agent/renameAgentFile403.zod"
 import type { RenameAgentFile404 } from "../models/agent/renameAgentFile404.zod"
 import type { RenameAgentFile409 } from "../models/agent/renameAgentFile409.zod"
+import type { RenameAgentFile413 } from "../models/agent/renameAgentFile413.zod"
 import type { RenameAgentFile500 } from "../models/agent/renameAgentFile500.zod"
 import type { RenameAgentFileBody } from "../models/agent/renameAgentFileBody.zod"
 import type { UpdateAgent200 } from "../models/agent/updateAgent200.zod"
@@ -981,6 +984,11 @@ export type listAgentFilesResponse404 = {
 	status: 404
 }
 
+export type listAgentFilesResponse413 = {
+	data: ListAgentFiles413
+	status: 413
+}
+
 export type listAgentFilesResponse500 = {
 	data: ListAgentFiles500
 	status: 500
@@ -994,6 +1002,7 @@ export type listAgentFilesResponseError = (
 	| listAgentFilesResponse401
 	| listAgentFilesResponse403
 	| listAgentFilesResponse404
+	| listAgentFilesResponse413
 	| listAgentFilesResponse500
 ) & {
 	headers: Headers
@@ -1033,7 +1042,13 @@ export const getListAgentFilesQueryKey = (agentId: string) => {
 export const getListAgentFilesQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
 	TError = globalThis.Error & {
-		info?: ListAgentFiles400 | ListAgentFiles401 | ListAgentFiles403 | ListAgentFiles404 | ListAgentFiles500
+		info?:
+			| ListAgentFiles400
+			| ListAgentFiles401
+			| ListAgentFiles403
+			| ListAgentFiles404
+			| ListAgentFiles413
+			| ListAgentFiles500
 		status?: number
 	},
 >(
@@ -1056,14 +1071,26 @@ export const getListAgentFilesQueryOptions = <
 
 export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
 export type ListAgentFilesQueryError = globalThis.Error & {
-	info?: ListAgentFiles400 | ListAgentFiles401 | ListAgentFiles403 | ListAgentFiles404 | ListAgentFiles500
+	info?:
+		| ListAgentFiles400
+		| ListAgentFiles401
+		| ListAgentFiles403
+		| ListAgentFiles404
+		| ListAgentFiles413
+		| ListAgentFiles500
 	status?: number
 }
 
 export function useListAgentFiles<
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
 	TError = globalThis.Error & {
-		info?: ListAgentFiles400 | ListAgentFiles401 | ListAgentFiles403 | ListAgentFiles404 | ListAgentFiles500
+		info?:
+			| ListAgentFiles400
+			| ListAgentFiles401
+			| ListAgentFiles403
+			| ListAgentFiles404
+			| ListAgentFiles413
+			| ListAgentFiles500
 		status?: number
 	},
 >(
@@ -1285,6 +1312,11 @@ export type renameAgentFileResponse409 = {
 	status: 409
 }
 
+export type renameAgentFileResponse413 = {
+	data: RenameAgentFile413
+	status: 413
+}
+
 export type renameAgentFileResponse500 = {
 	data: RenameAgentFile500
 	status: 500
@@ -1299,6 +1331,7 @@ export type renameAgentFileResponseError = (
 	| renameAgentFileResponse403
 	| renameAgentFileResponse404
 	| renameAgentFileResponse409
+	| renameAgentFileResponse413
 	| renameAgentFileResponse500
 ) & {
 	headers: Headers
@@ -1351,6 +1384,7 @@ export const getRenameAgentFileMutationOptions = <
 			| RenameAgentFile403
 			| RenameAgentFile404
 			| RenameAgentFile409
+			| RenameAgentFile413
 			| RenameAgentFile500
 		status?: number
 	},
@@ -1396,6 +1430,7 @@ export type RenameAgentFileMutationError = globalThis.Error & {
 		| RenameAgentFile403
 		| RenameAgentFile404
 		| RenameAgentFile409
+		| RenameAgentFile413
 		| RenameAgentFile500
 	status?: number
 }
@@ -1409,6 +1444,7 @@ export const useRenameAgentFile = <
 			| RenameAgentFile403
 			| RenameAgentFile404
 			| RenameAgentFile409
+			| RenameAgentFile413
 			| RenameAgentFile500
 		status?: number
 	},
@@ -1454,6 +1490,11 @@ export type deleteAgentFileResponse404 = {
 	status: 404
 }
 
+export type deleteAgentFileResponse413 = {
+	data: DeleteAgentFile413
+	status: 413
+}
+
 export type deleteAgentFileResponse500 = {
 	data: DeleteAgentFile500
 	status: 500
@@ -1467,6 +1508,7 @@ export type deleteAgentFileResponseError = (
 	| deleteAgentFileResponse401
 	| deleteAgentFileResponse403
 	| deleteAgentFileResponse404
+	| deleteAgentFileResponse413
 	| deleteAgentFileResponse500
 ) & {
 	headers: Headers
@@ -1504,7 +1546,13 @@ export const getDeleteAgentFileMutationKey = () => ["deleteAgentFile"] as const
 
 export const getDeleteAgentFileMutationOptions = <
 	TError = globalThis.Error & {
-		info?: DeleteAgentFile400 | DeleteAgentFile401 | DeleteAgentFile403 | DeleteAgentFile404 | DeleteAgentFile500
+		info?:
+			| DeleteAgentFile400
+			| DeleteAgentFile401
+			| DeleteAgentFile403
+			| DeleteAgentFile404
+			| DeleteAgentFile413
+			| DeleteAgentFile500
 		status?: number
 	},
 	TContext = unknown,
@@ -1543,14 +1591,26 @@ export const getDeleteAgentFileMutationOptions = <
 export type DeleteAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentFile>>>
 
 export type DeleteAgentFileMutationError = globalThis.Error & {
-	info?: DeleteAgentFile400 | DeleteAgentFile401 | DeleteAgentFile403 | DeleteAgentFile404 | DeleteAgentFile500
+	info?:
+		| DeleteAgentFile400
+		| DeleteAgentFile401
+		| DeleteAgentFile403
+		| DeleteAgentFile404
+		| DeleteAgentFile413
+		| DeleteAgentFile500
 	status?: number
 }
 export type DeleteAgentFileMutationVariables = { agentId: string; fileName: string }
 
 export const useDeleteAgentFile = <
 	TError = globalThis.Error & {
-		info?: DeleteAgentFile400 | DeleteAgentFile401 | DeleteAgentFile403 | DeleteAgentFile404 | DeleteAgentFile500
+		info?:
+			| DeleteAgentFile400
+			| DeleteAgentFile401
+			| DeleteAgentFile403
+			| DeleteAgentFile404
+			| DeleteAgentFile413
+			| DeleteAgentFile500
 		status?: number
 	},
 	TContext = unknown,

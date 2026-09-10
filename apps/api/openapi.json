@@ -7994,6 +7994,32 @@
 							}
 						}
 					},
+					"413": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "payload-too-large",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#payload-too-large",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "https://docs.talqo.chat/problems"
+					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -8556,6 +8582,32 @@
 							}
 						}
 					},
+					"413": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "payload-too-large",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#payload-too-large",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "https://docs.talqo.chat/problems"
+					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
@@ -8762,6 +8814,32 @@
 								}
 							}
 						}
+					},
+					"413": {
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "payload-too-large",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#payload-too-large",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "https://docs.talqo.chat/problems"
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
