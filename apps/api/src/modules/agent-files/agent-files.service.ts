@@ -1,6 +1,6 @@
 import { env } from "@/config/env.ts"
 import { constants as fsConstants } from "node:fs"
-import { copyFile, mkdir, readdir, rm, stat, unlink, writeFile } from "node:fs/promises"
+import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
 import { extname, join } from "node:path"
 import { z } from "zod"
 
@@ -101,6 +101,15 @@ export async function put(agentId: string, name: string, data: ArrayBuffer): Pro
 		throw error
 	}
 	return buildFile(name, await stat(path))
+}
+
+export async function get(agentId: string, name: string): Promise<Uint8Array> {
+	try {
+		return await readFile(join(agentDir(agentId), name))
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new FileNotFoundError(`File ${name} not found`)
+		throw error
+	}
 }
 
 // COPYFILE_EXCL must succeed before removing the source: otherwise renaming to an existing name would clobber it.

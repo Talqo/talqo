@@ -7,7 +7,7 @@
 import * as zod from "zod"
 
 export const UploadAgentFileBody = zod.object({
-	file: zod.instanceof(File),
+	file: zod.instanceof(Blob),
 })
 
 export type UploadAgentFileBody = zod.input<typeof UploadAgentFileBody>

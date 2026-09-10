@@ -973,6 +973,130 @@ export const useUploadAgentFile = <
 > => {
 	return useMutation(getUploadAgentFileMutationOptions(options))
 }
+export type downloadAgentFileResponse200 = {
+	data: Blob
+	status: 200
+}
+
+export type downloadAgentFileResponse400 = {
+	data: ErrorResponse
+	status: 400
+}
+
+export type downloadAgentFileResponse401 = {
+	data: ErrorResponse
+	status: 401
+}
+
+export type downloadAgentFileResponse403 = {
+	data: ErrorResponse
+	status: 403
+}
+
+export type downloadAgentFileResponse404 = {
+	data: ErrorResponse
+	status: 404
+}
+
+export type downloadAgentFileResponse500 = {
+	data: ErrorResponse
+	status: 500
+}
+
+export type downloadAgentFileResponseSuccess = downloadAgentFileResponse200 & {
+	headers: Headers
+}
+export type downloadAgentFileResponseError = (
+	| downloadAgentFileResponse400
+	| downloadAgentFileResponse401
+	| downloadAgentFileResponse403
+	| downloadAgentFileResponse404
+	| downloadAgentFileResponse500
+) & {
+	headers: Headers
+}
+
+export const getDownloadAgentFileUrl = (agentId: string, fileName: string) => {
+	return `/api/agents/${agentId}/files/${fileName}`
+}
+
+export const downloadAgentFile = async (
+	agentId: string,
+	fileName: string,
+	options?: RequestInit,
+): Promise<downloadAgentFileResponseSuccess> => {
+	const res = await fetch(getDownloadAgentFileUrl(agentId, fileName), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	if (!res.ok) {
+		const errorBody = [204, 205, 304].includes(res.status) ? null : await res.text()
+
+		const err: globalThis.Error & { info?: downloadAgentFileResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: downloadAgentFileResponseError["data"] = errorBody ? JSON.parse(errorBody) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const body = [204, 205, 304].includes(res.status) ? null : await res.blob()
+	const data: downloadAgentFileResponseSuccess["data"] = body as downloadAgentFileResponseSuccess["data"]
+	return { data, status: res.status, headers: res.headers } as downloadAgentFileResponseSuccess
+}
+
+export const getDownloadAgentFileQueryKey = (agentId: string, fileName: string) => {
+	return [`/api/agents/${agentId}/files/${fileName}`] as const
+}
+
+export const getDownloadAgentFileQueryOptions = <
+	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(
+	agentId: string,
+	fileName: string,
+	options?: {
+		query?: UseQueryOptions<Awaited<ReturnType<typeof downloadAgentFile>>, TError, TData>
+		fetch?: RequestInit
+	},
+) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getDownloadAgentFileQueryKey(agentId, fileName)
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadAgentFile>>> = ({ signal }) =>
+		downloadAgentFile(agentId, fileName, { signal, ...fetchOptions })
+
+	return {
+		queryKey,
+		queryFn,
+		enabled: agentId !== null && agentId !== undefined && fileName !== null && fileName !== undefined,
+		...queryOptions,
+	} as UseQueryOptions<Awaited<ReturnType<typeof downloadAgentFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadAgentFileQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAgentFile>>>
+export type DownloadAgentFileQueryError = globalThis.Error & { info?: ErrorResponse; status?: number }
+
+export function useDownloadAgentFile<
+	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
+	TError = globalThis.Error & { info?: ErrorResponse; status?: number },
+>(
+	agentId: string,
+	fileName: string,
+	options?: {
+		query?: UseQueryOptions<Awaited<ReturnType<typeof downloadAgentFile>>, TError, TData>
+		fetch?: RequestInit
+	},
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	const queryOptions = getDownloadAgentFileQueryOptions(agentId, fileName, options)
+
+	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
 export type renameAgentFileResponse200 = {
 	data: RenameAgentFile200
 	status: 200

@@ -4,7 +4,7 @@ import { ChangePasswordForm } from "@/features/authentication/components/change-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -81,10 +81,8 @@ function ProfileCard({ operator }: { operator: Operator }) {
 						{errors.email && <p className="text-destructive text-xs">{t("account.emailInvalid")}</p>}
 					</div>
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
-				</CardContent>
-				<CardFooter>
 					<Button type="submit">{t("account.saveProfile")}</Button>
-				</CardFooter>
+				</CardContent>
 			</form>
 		</Card>
 	)
