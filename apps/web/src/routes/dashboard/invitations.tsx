@@ -97,7 +97,7 @@ function InvitationsPage() {
 						{t("auth.invitations.create")}
 					</Button>
 					{error ? (
-						<p className="bg-destructive/10 text-destructive rounded-surface p-4 text-sm" role="alert">
+						<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
 							{error}
 						</p>
 					) : null}

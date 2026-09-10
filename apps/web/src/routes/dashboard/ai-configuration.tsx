@@ -480,7 +480,7 @@ function AiConfigurationPage() {
 			{configuration.health === "unusable" && (
 				<p
 					role="alert"
-					className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface border p-4 text-sm"
+					className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface p-surface-padding border text-sm"
 				>
 					{t("aiConfiguration.unusableWarning")}
 				</p>
