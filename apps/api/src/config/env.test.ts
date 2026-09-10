@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import { parseEnv } from "./env.ts"
 
@@ -31,7 +33,11 @@ describe("parseEnv", () => {
 
 	it("rejects a missing APP_SECRET in production", () => {
 		expect(() =>
-			parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "production" }),
+			parseEnv({
+				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+				NODE_ENV: "production",
+				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
+			}),
 		).toThrow(/APP_SECRET/)
 	})
 
@@ -71,12 +77,29 @@ describe("parseEnv", () => {
 				APP_SECRET: Buffer.alloc(32).toString("base64url"),
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				NODE_ENV: "production",
+				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			}),
 		).toThrow(/APP_SECRET/)
 	})
 
+	it("rejects a missing TALQO_UPLOAD_DIR in production", () => {
+		expect(() =>
+			parseEnv({
+				APP_SECRET,
+				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+				NODE_ENV: "production",
+			}),
+		).toThrow(/TALQO_UPLOAD_DIR/)
+	})
+
 	it("rejects a missing NODE_ENV", () => {
 		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })).toThrow(/NODE_ENV/)
+	})
+
+	it("defaults TALQO_UPLOAD_DIR to a talqo directory in the OS temp dir", () => {
+		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" })
+
+		expect(env.TALQO_UPLOAD_DIR).toBe(join(tmpdir(), "talqo"))
 	})
 
 	it("rejects a missing DATABASE_URL", () => {
