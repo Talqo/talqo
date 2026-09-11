@@ -51,10 +51,10 @@ widget or custom browser UI
 | --- | --- |
 | `embed` | Agent association, appearance, public embed token, token rotation, and integration validity |
 | `agent` | Saved system prompt, blacklist, existing configuration, and agent deletion |
-| `conversation` | Session credentials, conversations, messages, generation lifecycle, domain concurrency, and orchestration |
+| `conversation` | Session credentials, conversations, messages, daily allowance counters, generation reservations/lifecycle, and orchestration |
 | `ai-provider` | Operation-scoped configured text model; credentials remain private |
 | `usage` | Normalize and persist input/output counts attributed to each model-call attempt |
-| API HTTP infrastructure | Trusted client-IP resolution and reusable network-limit infrastructure |
+| API HTTP infrastructure | Trusted client-IP resolution, address normalization, and rate-limit HTTP response mapping |
 | `packages/sdk` | Public configuration fetching, observable chat state, sessions, storage, transport, streaming, and recovery |
 | `apps/widget` | Embedding and UI presentation, using the SDK for all API communication |
 
@@ -90,7 +90,7 @@ Already dispatched provider work may still consume resources. Cancellation on in
 
 ## Sessions And Durable Data
 
-One session owns one conversation in this milestone. There is no separate visitor entity grouping conversations. A session uses a 32-byte cryptographically random bearer credential; persist only its hash on the server. Send it in an authorization header, never a URL.
+One session owns one conversation in this milestone. There is no separate visitor entity grouping conversations. A session uses a 32-byte unguessable bearer credential; persist only its hash on the server. Send it in an authorization header, never a URL. The bootstrap mechanism below allows the server to reissue the same credential after a lost response without persisting its plaintext.
 
 Creating a session and accepting its first message is one operation. It validates the embed and atomically acquires the question allowance/concurrency reservation while creating the conversation and initial turn. There is no public endpoint for creating empty sessions. Fetching appearance or opening the widget creates no conversation.
 
@@ -108,7 +108,7 @@ Persist messages with stable IDs, roles, ordering, timestamps, and completion ou
 
 Retain transcripts and usage indefinitely unless the operator deletes the agent. Starting a new chat, hitting a length limit, deleting an embed, and rotating a token do not delete them. Preserve the original agent attribution when an embed is reassigned.
 
-Deleting an agent permanently deletes its conversations, messages, generation attempts, sessions, and associated usage. The confirmation must explicitly state that conversation and usage history will be permanently deleted and cannot be recovered. Existing constraints concerning attached embeds remain unless the implementation deliberately handles their removal; do not silently change unrelated deletion rules.
+Deleting an agent permanently deletes its conversations, messages, generation attempts, sessions, and associated usage. The confirmation must explicitly state that conversation and usage history will be permanently deleted and cannot be recovered. Preserve the existing restriction on deleting agents with attached embeds: the operator must first remove or reassign those embeds. Conversation history itself does not block agent deletion.
 
 Use database referential integrity to prevent orphaned records and late generation results from recreating deleted data. Owner-declared foreign keys and cascades can implement dependent cleanup without runtime imports into another module's repository. Record this cross-owner deletion invariant and cascade policy in the architecture/ADR update. Agent deletion must race safely with sends, finalization, and usage writes; active provider work is aborted where possible.
 
@@ -132,13 +132,15 @@ There is no separate 8,000-character user-message ceiling. The assembled-input b
 4. Invoke the configured model with assembled input and stream typed events for acceptance, assistant text, and terminal outcome.
 5. Persist assistant output and usage server-side, independent of the browser receiving the final event.
 
-Use a documented POST streaming protocol consumable through browser fetch, with versioned typed events. The SDK owns framing, decoding across network chunk boundaries, event validation, and server-ID reconciliation. Public request/response and stream-event schemas originate in API contracts; generate reusable wire types into the SDK from API-owned artifacts rather than importing app source or copying schemas.
+Use server-sent event framing over a POST response consumed through browser fetch, with versioned typed JSON events. Do not use browser EventSource, which does not provide the required POST and authorization-header interface. The SDK owns framing, decoding across network chunk boundaries, event validation, and server-ID reconciliation. Public request/response and stream-event schemas originate in API contracts; generate reusable wire types into the SDK from API-owned artifacts rather than importing app source or copying schemas.
 
 ### Idempotency
 
 A request ID identifies one send in its session. Identical resubmission cannot start another generation or consume another allowance. A duplicate ID with different text is rejected. A completed duplicate can return its recorded outcome; live-stream replay is not required.
 
-For first-message requests whose credential response is lost, the client must retain a private high-entropy creation/recovery capability for that pending operation. First-message deduplication and recovery must not use a guessable request ID as history authorization, mint a second generation, or expose a session credential to another embed caller. Document and test this bootstrap-specific capability in the transport contract before implementation of the SDK lifecycle.
+Before a first-message request, the SDK generates and retains a private 32-byte random bootstrap secret alongside its request ID. The API derives the session credential using HMAC-SHA-256 with a purpose-specific application-secret-derived key over an unambiguous encoding of the embed ID, access version, request ID, and bootstrap secret. Persist a hash of the bootstrap secret bound to that accepted operation, never its plaintext. Enforce uniqueness of the bootstrap operation within the embed access version.
+
+A read-only bootstrap-recovery operation requires the same secret and request ID, validates the embed's current access version and the stored secret hash, and reissues the derived credential for the already accepted session. It never creates a session or starts generation. A request ID or public embed token alone cannot recover credentials/history. If the operation was not accepted, recovery reports that fact; an explicit resubmission with the same bootstrap identity remains idempotent even if the original request arrives late. The SDK removes its pending bootstrap secret after securely storing the returned session credential. These secrets must not appear in URLs, logs, or analytics. Rotating the application secret invalidates pending bootstrap recovery; already issued session credentials remain hash-verifiable.
 
 After an uncertain network result, reload the accepted turn's state rather than generate again. If still running, use bounded refreshes until terminal. Refreshes do not consume question allowances; general HTTP flood protection remains a deployment concern. There is no second configurable refresh quota in this release.
 
