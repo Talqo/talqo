@@ -243,6 +243,8 @@ Build a workspace package with declared exports appropriate for eventual public 
 
 The widget owns draft text, focus, scrolling, panel state, resizing, themes, accessibility, and localization. It has no separate transcript store, direct API fetches, session lifecycle, stream parser, or generation retry logic. It renders SDK configuration and may apply supported local presentation overrides.
 
+Provide a New chat button in the chat-panel header beside the existing theme/close controls. An icon button must have a localized accessible name and tooltip. It is available whenever a conversation exists, not only after reaching a length limit; disable it during initialization and while a reset is already pending. Invoke the SDK's `startNewChat()` rather than clearing widget-owned message state. If generation is active, the SDK first requests cancellation. On successful reset, show the initial greeting, preserve any unsent draft, and focus the message input. Keep the current conversation visible and report an error if reset fails. The conversation-length notice exposes the same New chat action. Reset does not delete server history or reset the network allowance, and the initial UI greeting is not added to model history.
+
 | State | UI behavior |
 | --- | --- |
 | Initializing | Loading feedback; sending unavailable until ready |
@@ -297,6 +299,7 @@ Required coverage:
 - Agent-deletion confirmation and deletion races; embed deletion and token rotation preserve history/usage.
 - SDK snapshots, subscriptions, storage failures, reload restoration, duplicate sends, cancellation, new chat, and disposal.
 - Widget rendering and accessible error states on desktop and mobile.
+- Header New chat button, keyboard access, active-generation reset, draft preservation, input focus, and the equivalent conversation-length action; verify old server history remains and the network allowance does not reset.
 - Browser E2E using real Talqo API/database and an external fake provider extended to stream model responses, not just list models. Seed data remains API-owned and isolated.
 
 Run during implementation:
