@@ -9,6 +9,8 @@ import { join } from "node:path"
 
 import { MAX_FILE_SIZE_BYTES } from "./agent-files.service.ts"
 
+const LARGE_UPLOAD_BYTES = 300_000
+
 // Set by scripts/test-integration.ts; integration tests must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
@@ -54,6 +56,12 @@ function upload(cookie: string, agentId: string, name = "a.md", contents = "hell
 	const form = new FormData()
 	form.append("file", new File([contents], name, { type: "text/markdown" }))
 	return app.request(`/api/agents/${agentId}/files`, { method: "POST", headers: { Cookie: cookie }, body: form })
+}
+
+async function expectProblem(response: Response, status: number, code: string) {
+	expect(response.status).toBe(status)
+	expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+	expect(await response.json()).toEqual({ code, type: `https://docs.talqo.chat/problems#${code}` })
 }
 
 beforeEach(async () => {
@@ -108,7 +116,7 @@ describe("agent knowledge files", () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Dupes")
 		expect((await upload(cookie, agentId)).status).toBe(201)
-		expect((await upload(cookie, agentId)).status).toBe(409)
+		await expectProblem(await upload(cookie, agentId), 409, "agent-file-name-taken")
 	})
 
 	it("rejects a disallowed file type with 400", async () => {
@@ -121,7 +129,7 @@ describe("agent knowledge files", () => {
 			headers: { Cookie: cookie },
 			body: form,
 		})
-		expect(response.status).toBe(400)
+		await expectProblem(response, 400, "agent-file-invalid")
 	})
 
 	it("rejects an oversized file with 413 over HTTP", async () => {
@@ -134,13 +142,20 @@ describe("agent knowledge files", () => {
 			headers: { Cookie: cookie },
 			body: form,
 		})
-		expect(response.status).toBe(413)
+		await expectProblem(response, 413, "payload-too-large")
+	})
+
+	it("accepts a file larger than the JSON body limit", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Large upload")
+
+		expect((await upload(cookie, agentId, "large.md", "x".repeat(LARGE_UPLOAD_BYTES))).status).toBe(201)
 	})
 
 	it("returns 404 when the agent does not exist", async () => {
 		const { cookie } = await createAdminSession()
 		const response = await app.request(`/api/agents/${crypto.randomUUID()}/files`, { headers: { Cookie: cookie } })
-		expect(response.status).toBe(404)
+		await expectProblem(response, 404, "agent-not-found")
 	})
 
 	it("rejects path traversal through the file name", async () => {
@@ -151,7 +166,7 @@ describe("agent knowledge files", () => {
 			method: "DELETE",
 			headers: { Cookie: cookie },
 		})
-		expect(response.status).toBe(400)
+		await expectProblem(response, 400, "agent-file-invalid")
 	})
 
 	it("denies file operations to a member with only agents:read", async () => {
@@ -159,7 +174,7 @@ describe("agent knowledge files", () => {
 		const agentId = await createAgent(cookie, "Perm")
 		const reader = await createReaderSession(userId)
 		const response = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
-		expect(response.status).toBe(403)
+		await expectProblem(response, 403, "permission-denied")
 	})
 
 	it("removes the upload directory when the agent is deleted", async () => {

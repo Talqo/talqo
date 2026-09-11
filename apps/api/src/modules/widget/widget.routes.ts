@@ -1,5 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -21,12 +22,12 @@ import * as service from "./widget.service.ts"
 // stale-while-revalidate: a shared cache would serve it past the window ADR-0013 promises.
 const CONFIG_MAX_AGE_SECONDS = 60
 
-function mapDomainError(error: unknown): { body: { error: string }; status: number } | null {
+function mapDomainError(error: unknown) {
 	if (error instanceof service.WidgetNotFoundError) {
-		return { body: { error: "Widget not found" }, status: HTTP_STATUS.NOT_FOUND }
+		return { code: PROBLEM_CODES.WIDGET_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	}
 	if (error instanceof service.UnknownAgentError) {
-		return { body: { error: "Agent not found" }, status: HTTP_STATUS.NOT_FOUND }
+		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	}
 	return null
 }
@@ -34,16 +35,16 @@ function mapDomainError(error: unknown): { body: { error: string }; status: numb
 export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(listWidgetsRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 		const { agentId } = c.req.valid("query")
 		return c.json(widgetListResponseSchema.parse({ widgets: await service.listWidgets(agentId) }), HTTP_STATUS.OK)
 	})
 	.openapi(createWidgetRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -51,14 +52,14 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
 	.openapi(getWidgetRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:read"))) {
-			return c.json({ error: "Missing agents:read permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -66,14 +67,14 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
 	.openapi(updateWidgetRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -81,14 +82,14 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json(widgetDetailResponseSchema.parse({ widget }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
 	.openapi(deleteWidgetRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await roles.authorize(user.id, "agents:manage"))) {
-			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 
 		try {
@@ -96,7 +97,7 @@ export const widgetRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	})
@@ -117,7 +118,7 @@ export const widgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }
 			return c.json(widgetConfigResponseSchema.parse(config), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
-			if (mapped) return c.json(mapped.body, mapped.status as never)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
 			throw error
 		}
 	},

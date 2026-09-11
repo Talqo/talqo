@@ -1,6 +1,7 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
 import { env } from "@/config/env.ts"
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isUniqueViolation } from "@/lib/pg-error.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -37,7 +38,7 @@ const authRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.json({ user }, HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.InvalidCredentialsError) {
-				return c.json({ error: error.message }, HTTP_STATUS.UNAUTHORIZED)
+				return problemResponse(c, PROBLEM_CODES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED)
 			}
 			throw error
 		}
@@ -60,7 +61,7 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
 			return c.json({ user }, HTTP_STATUS.OK)
 		} catch (error) {
-			if (isUniqueViolation(error)) return c.json({ error: "Username already in use" }, HTTP_STATUS.CONFLICT)
+			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
 			throw error
 		}
 	})
@@ -73,7 +74,7 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof service.InvalidPasswordError) {
-				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+				return problemResponse(c, PROBLEM_CODES.CURRENT_PASSWORD_INCORRECT, HTTP_STATUS.BAD_REQUEST)
 			}
 			throw error
 		}
@@ -87,7 +88,7 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof service.PasswordChangeNotRequiredError) {
-				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+				return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_NOT_REQUIRED, HTTP_STATUS.CONFLICT)
 			}
 			throw error
 		}

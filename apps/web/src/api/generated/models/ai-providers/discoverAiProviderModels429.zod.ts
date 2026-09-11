@@ -7,8 +7,8 @@
 import * as zod from "zod"
 
 export const DiscoverAiProviderModels429 = zod.object({
-	error: zod.string(),
-	code: zod.enum(["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]).optional(),
+	code: zod.literal("provider-rate-limited"),
+	type: zod.literal("https://docs.talqo.chat/problems#provider-rate-limited"),
 })
 
 export type DiscoverAiProviderModels429 = zod.input<typeof DiscoverAiProviderModels429>

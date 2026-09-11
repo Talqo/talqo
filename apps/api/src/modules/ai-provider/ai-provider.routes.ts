@@ -1,5 +1,6 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
 
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
@@ -22,7 +23,7 @@ export const aiProviderRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 			return c.json(providerMetadataResponseSchema.parse({ providers }), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.PermissionDeniedError) {
-				return c.json({ error: error.message }, HTTP_STATUS.FORBIDDEN)
+				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 			}
 			throw error
 		}
@@ -33,7 +34,7 @@ export const aiProviderRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 			return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.PermissionDeniedError) {
-				return c.json({ error: error.message }, HTTP_STATUS.FORBIDDEN)
+				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 			}
 			throw error
 		}
@@ -44,13 +45,13 @@ export const aiProviderRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 			return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.PermissionDeniedError) {
-				return c.json({ error: error.message }, HTTP_STATUS.FORBIDDEN)
+				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 			}
 			if (error instanceof service.RevisionConflictError) {
-				return c.json({ error: error.message }, HTTP_STATUS.CONFLICT)
+				return problemResponse(c, PROBLEM_CODES.CONFIGURATION_CONFLICT, HTTP_STATUS.CONFLICT)
 			}
 			if (error instanceof service.InvalidConfigurationError) {
-				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+				return problemResponse(c, PROBLEM_CODES.INVALID_AI_PROVIDER_CONFIGURATION, HTTP_STATUS.BAD_REQUEST)
 			}
 			throw error
 		}
@@ -61,19 +62,25 @@ export const aiProviderRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>(
 			return c.json(modelDiscoveryResponseSchema.parse({ models }), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.PermissionDeniedError) {
-				return c.json({ error: error.message }, HTTP_STATUS.FORBIDDEN)
+				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 			}
 			if (error instanceof service.InvalidConfigurationError) {
-				return c.json({ error: error.message }, HTTP_STATUS.BAD_REQUEST)
+				return problemResponse(c, PROBLEM_CODES.INVALID_AI_PROVIDER_CONFIGURATION, HTTP_STATUS.BAD_REQUEST)
 			}
 			if (error instanceof ModelDiscoveryError) {
 				if (error.code === "unauthorized") {
-					return c.json({ error: error.message, code: error.code }, HTTP_STATUS.BAD_REQUEST)
+					return problemResponse(c, PROBLEM_CODES.PROVIDER_CREDENTIALS_REJECTED, HTTP_STATUS.BAD_REQUEST)
 				}
 				if (error.code === "rate-limited") {
-					return c.json({ error: error.message, code: error.code }, HTTP_STATUS.TOO_MANY_REQUESTS)
+					return problemResponse(c, PROBLEM_CODES.PROVIDER_RATE_LIMITED, HTTP_STATUS.TOO_MANY_REQUESTS)
 				}
-				return c.json({ error: error.message, code: error.code }, HTTP_STATUS.BAD_GATEWAY)
+				if (error.code === "unreachable") {
+					return problemResponse(c, PROBLEM_CODES.PROVIDER_UNREACHABLE, HTTP_STATUS.BAD_GATEWAY)
+				}
+				if (error.code === "unsupported") {
+					return problemResponse(c, PROBLEM_CODES.MODEL_DISCOVERY_UNSUPPORTED, HTTP_STATUS.BAD_GATEWAY)
+				}
+				return problemResponse(c, PROBLEM_CODES.PROVIDER_ERROR, HTTP_STATUS.BAD_GATEWAY)
 			}
 			throw error
 		}

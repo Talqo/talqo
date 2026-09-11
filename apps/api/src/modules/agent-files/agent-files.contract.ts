@@ -1,14 +1,5 @@
-import {
-	badRequestResponse,
-	conflictResponse,
-	forbiddenResponse,
-	internalServerErrorResponse,
-	noContentResponse,
-	notFoundResponse,
-	payloadTooLargeResponse,
-	sessionSecurity,
-	unauthorizedResponse,
-} from "@/http/openapi.ts"
+import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { MAX_FILE_NAME_LENGTH } from "./agent-files.service.ts"
@@ -46,6 +37,19 @@ const renameAgentFileRequestSchema = z.object({
 	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
 })
 
+const invalidFile = problemResponse([
+	PROBLEM_CODES.AGENT_FILE_INVALID,
+	PROBLEM_CODES.INVALID_REQUEST,
+	PROBLEM_CODES.MALFORMED_JSON,
+])
+const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const agentNotFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND])
+const fileOrAgentNotFound = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_FOUND, PROBLEM_CODES.AGENT_NOT_FOUND])
+const fileNameTaken = problemResponse([PROBLEM_CODES.AGENT_FILE_NAME_TAKEN])
+const payloadTooLarge = problemResponse([PROBLEM_CODES.PAYLOAD_TOO_LARGE])
+const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
+
 export const listAgentFilesRoute = createRoute({
 	method: "get",
 	path: "/{agentId}/files",
@@ -58,10 +62,10 @@ export const listAgentFilesRoute = createRoute({
 			content: { "application/json": { schema: agentFileListResponseSchema } },
 			description: "Knowledge files uploaded for the agent",
 		},
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		500: serverError,
 	},
 })
 
@@ -80,13 +84,13 @@ export const uploadAgentFileRoute = createRoute({
 	},
 	responses: {
 		201: { content: { "application/json": { schema: agentFileDetailResponseSchema } }, description: "File uploaded" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		409: conflictResponse,
-		413: payloadTooLargeResponse,
-		500: internalServerErrorResponse,
+		400: invalidFile,
+		401: authRequired,
+		403: forbidden,
+		404: agentNotFound,
+		409: fileNameTaken,
+		413: payloadTooLarge,
+		500: serverError,
 	},
 })
 
@@ -102,12 +106,12 @@ export const renameAgentFileRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: agentFileDetailResponseSchema } }, description: "File renamed" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		409: conflictResponse,
-		500: internalServerErrorResponse,
+		400: invalidFile,
+		401: authRequired,
+		403: forbidden,
+		404: fileOrAgentNotFound,
+		409: fileNameTaken,
+		500: serverError,
 	},
 })
 
@@ -120,9 +124,10 @@ export const deleteAgentFileRoute = createRoute({
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: problemResponse([PROBLEM_CODES.AGENT_FILE_INVALID]),
+		401: authRequired,
+		403: forbidden,
+		404: fileOrAgentNotFound,
+		500: serverError,
 	},
 })

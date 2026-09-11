@@ -1,12 +1,5 @@
-import {
-	badRequestResponse,
-	forbiddenResponse,
-	internalServerErrorResponse,
-	noContentResponse,
-	notFoundResponse,
-	sessionSecurity,
-	unauthorizedResponse,
-} from "@/http/openapi.ts"
+import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import { HEX_COLOR_MESSAGE, HEX_COLOR_PATTERN, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
@@ -118,6 +111,11 @@ const listWidgetsQuerySchema = z.object({
 })
 
 const notModifiedResponse = { description: "Configuration unchanged since the supplied ETag" } as const
+const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
+const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const widgetNotFound = problemResponse([PROBLEM_CODES.WIDGET_NOT_FOUND])
+const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 
 export const listWidgetsRoute = createRoute({
 	method: "get",
@@ -128,9 +126,9 @@ export const listWidgetsRoute = createRoute({
 	request: { query: listWidgetsQuerySchema },
 	responses: {
 		200: { content: { "application/json": { schema: widgetListResponseSchema } }, description: "All widgets" },
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		500: internalServerErrorResponse,
+		401: authRequired,
+		403: forbidden,
+		500: serverError,
 	},
 })
 
@@ -145,11 +143,11 @@ export const createWidgetRoute = createRoute({
 	},
 	responses: {
 		201: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "Widget created" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: invalidRequest,
+		401: authRequired,
+		403: forbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
+		500: serverError,
 	},
 })
 
@@ -162,10 +160,10 @@ export const getWidgetRoute = createRoute({
 	request: { params: widgetParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "One widget" },
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		401: authRequired,
+		403: forbidden,
+		404: widgetNotFound,
+		500: serverError,
 	},
 })
 
@@ -181,11 +179,11 @@ export const updateWidgetRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: widgetDetailResponseSchema } }, description: "Widget updated" },
-		400: badRequestResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		400: invalidRequest,
+		401: authRequired,
+		403: forbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.WIDGET_NOT_FOUND]),
+		500: serverError,
 	},
 })
 
@@ -198,10 +196,10 @@ export const deleteWidgetRoute = createRoute({
 	request: { params: widgetParamsSchema },
 	responses: {
 		204: noContentResponse,
-		401: unauthorizedResponse,
-		403: forbiddenResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		401: authRequired,
+		403: forbidden,
+		404: widgetNotFound,
+		500: serverError,
 	},
 })
 
@@ -218,7 +216,7 @@ export const getWidgetConfigRoute = createRoute({
 			description: "Public appearance for the embedded widget",
 		},
 		304: notModifiedResponse,
-		404: notFoundResponse,
-		500: internalServerErrorResponse,
+		404: widgetNotFound,
+		500: serverError,
 	},
 })

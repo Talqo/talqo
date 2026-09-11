@@ -6,10 +6,24 @@
  */
 import * as zod from "zod"
 
-export const DiscoverAiProviderModels400 = zod.object({
-	error: zod.string(),
-	code: zod.enum(["unauthorized", "unreachable", "rate-limited", "unsupported", "provider-error"]).optional(),
-})
+export const DiscoverAiProviderModels400 = zod.union([
+	zod.object({
+		code: zod.literal("invalid-ai-provider-configuration"),
+		type: zod.literal("https://docs.talqo.chat/problems#invalid-ai-provider-configuration"),
+	}),
+	zod.object({
+		code: zod.literal("invalid-request"),
+		type: zod.literal("https://docs.talqo.chat/problems#invalid-request"),
+	}),
+	zod.object({
+		code: zod.literal("malformed-json"),
+		type: zod.literal("https://docs.talqo.chat/problems#malformed-json"),
+	}),
+	zod.object({
+		code: zod.literal("provider-credentials-rejected"),
+		type: zod.literal("https://docs.talqo.chat/problems#provider-credentials-rejected"),
+	}),
+])
 
 export type DiscoverAiProviderModels400 = zod.input<typeof DiscoverAiProviderModels400>
 export type DiscoverAiProviderModels400Output = zod.output<typeof DiscoverAiProviderModels400>
