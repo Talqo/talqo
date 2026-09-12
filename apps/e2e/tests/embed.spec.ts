@@ -12,15 +12,16 @@ const DEFAULT_PRIMARY_RGB = "rgb(26, 127, 75)"
 
 let server: Server
 let baseURL: string
+let apiOrigin: string
 
 test.beforeAll(async () => {
-	const token = process.env.E2E_WIDGET_TOKEN
+	const token = process.env.E2E_EMBED_TOKEN
 	const apiPort = process.env.TALQO_API_PORT
-	if (!token) throw new Error("E2E_WIDGET_TOKEN missing — scripts/test-e2e.ts provides it from the API seed")
+	if (!token) throw new Error("E2E_EMBED_TOKEN missing — scripts/test-e2e.ts provides it from the API seed")
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 
 	// A different origin from the host page below, so the config request exercises CORS.
-	const apiOrigin = `http://127.0.0.1:${apiPort}`
+	apiOrigin = `http://127.0.0.1:${apiPort}`
 	const template = await readFile(HOST_HTML_PATH, "utf8")
 	const configured = template.replace("__TOKEN__", token).replace("__API_ORIGIN__", apiOrigin)
 	const unknownToken = template.replace("__TOKEN__", "not-a-real-token").replace("__API_ORIGIN__", apiOrigin)
@@ -116,4 +117,88 @@ test("widget still renders in default colors when its token is unknown", async (
 	const launcher = page.getByRole("button", { name: "Open chat" })
 	await expect(launcher).toBeVisible()
 	await expect(launcher).toHaveCSS("background-color", DEFAULT_PRIMARY_RGB)
+})
+
+test("widget streams a durable multi-turn chat, cancels, and starts a new chat without resetting allowance", async ({
+	page,
+	request,
+}) => {
+	const providerUrl = process.env.E2E_PROVIDER_URL
+	if (!providerUrl) throw new Error("E2E_PROVIDER_URL missing — scripts/test-e2e.ts provides it")
+	const providerControlOrigin = new URL(providerUrl).origin
+
+	await page.goto(baseURL)
+	await page.getByRole("button", { name: "Open chat" }).click()
+	const dialog = page.getByRole("dialog")
+	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const send = async (text: string) => {
+		await messageInput.fill(text)
+		await dialog.getByRole("button", { name: "Send" }).click()
+	}
+
+	await send("Give me the first answer")
+	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
+	await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
+
+	await send("Prove you received the earlier turn")
+	await expect(
+		dialog.getByText("History verified: system prompt, first question, and first answer.", { exact: true }),
+	).toBeVisible()
+	const captured = (await (await request.get(`${providerControlOrigin}/control/requests`)).json()) as {
+		requests: { messages: { content: unknown; role: string }[] }[]
+	}
+	expect(captured.requests[1]?.messages).toEqual([
+		{ role: "system", content: expect.stringContaining("support assistant") },
+		{ role: "user", content: "Give me the first answer" },
+		{ role: "assistant", content: "First streamed answer." },
+		{ role: "user", content: "Prove you received the earlier turn" },
+	])
+
+	await page.reload()
+	await page.getByRole("button", { name: "Open chat" }).click()
+	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Prove you received the earlier turn", { exact: true })).toBeVisible()
+	await expect(
+		dialog.getByText("History verified: system prompt, first question, and first answer.", { exact: true }),
+	).toBeVisible()
+
+	await send("Stream until I cancel")
+	await expect(dialog.getByText("Cancellation partial output", { exact: true })).toBeVisible()
+	await dialog.getByRole("button", { name: "Stop generating" }).click()
+	await expect(dialog.getByText("Response cancelled", { exact: true })).toBeVisible()
+	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
+
+	await page.evaluate(() => {
+		const entry = Object.entries(localStorage).find(([key]) => key.startsWith("talqo:chat:v1:"))
+		const stored: unknown = entry?.[1] ? JSON.parse(entry[1]) : undefined
+		if (!stored || typeof stored !== "object" || !("credential" in stored) || typeof stored.credential !== "string") {
+			throw new Error("Expected the widget to persist its session credential")
+		}
+		;(window as unknown as { e2eOldCredential?: string }).e2eOldCredential = stored.credential
+	})
+
+	await dialog.getByRole("button", { name: "New chat" }).click()
+	await expect(dialog.getByText("Hi there! How can I help you today?", { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Give me the first answer", { exact: true })).toHaveCount(0)
+
+	const oldSession = await page.evaluate(async (origin) => {
+		const credential = (window as unknown as { e2eOldCredential?: string }).e2eOldCredential
+		if (!credential) throw new Error("Expected retained E2E session credential")
+		const response = await fetch(`${origin}/api/chat/session`, {
+			headers: { Authorization: `Bearer ${credential}` },
+		})
+		if (!response.ok) throw new Error(`Old session lookup failed with ${response.status}`)
+		return (await response.json()) as { messages: { outcome: string; role: string; text: string }[] }
+	}, apiOrigin)
+	expect(oldSession.messages).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ role: "assistant", text: "First streamed answer.", outcome: "completed" }),
+			expect.objectContaining({ role: "assistant", text: "Cancellation partial output", outcome: "cancelled" }),
+		]),
+	)
+
+	await send("The allowance must not reset")
+	await expect(dialog.getByRole("alert")).toContainText("daily message allowance has been reached")
 })

@@ -25,6 +25,8 @@ export type ChatMessage = {
 
 export type ChatError = {
 	code: string
+	type?: string
+	status?: number
 	message: string
 	retryAt?: string
 	retriable: boolean

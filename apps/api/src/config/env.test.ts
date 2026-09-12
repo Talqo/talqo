@@ -17,6 +17,45 @@ describe("parseEnv", () => {
 		expect(env.DATABASE_URL).toBe("postgres://talqo:talqo@127.0.0.1:5432/talqo")
 		expect(env.TALQO_API_PORT).toBe(3000)
 		expect(env.NODE_ENV).toBe("development")
+		expect(env.TALQO_CHAT_DAILY_MESSAGE_LIMIT).toBe(100)
+		expect(env.TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP).toBe(2)
+		expect(env.TALQO_TRUSTED_PROXY_CIDRS).toEqual([])
+		expect(env.TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH).toBe(64)
+		expect(env.TALQO_CHAT_MAX_INPUT_CHARACTERS).toBe(400_000)
+		expect(env.TALQO_CHAT_MAX_OUTPUT_TOKENS).toBe(16_384)
+		expect(env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS).toBe(120)
+	})
+
+	it("parses chat policy and trusted proxy CIDRs", () => {
+		const env = parseEnv({
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			NODE_ENV: "test",
+			TALQO_CHAT_DAILY_MESSAGE_LIMIT: "7",
+			TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP: "3",
+			TALQO_TRUSTED_PROXY_CIDRS: "10.0.0.0/8, 2001:db8::/32",
+			TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH: "96",
+			TALQO_CHAT_MAX_INPUT_CHARACTERS: "1234",
+			TALQO_CHAT_MAX_OUTPUT_TOKENS: "512",
+			TALQO_CHAT_GENERATION_TIMEOUT_SECONDS: "9",
+		})
+
+		expect(env).toMatchObject({
+			TALQO_CHAT_DAILY_MESSAGE_LIMIT: 7,
+			TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP: 3,
+			TALQO_TRUSTED_PROXY_CIDRS: ["10.0.0.0/8", "2001:db8::/32"],
+			TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH: 96,
+			TALQO_CHAT_MAX_INPUT_CHARACTERS: 1234,
+			TALQO_CHAT_MAX_OUTPUT_TOKENS: 512,
+			TALQO_CHAT_GENERATION_TIMEOUT_SECONDS: 9,
+		})
+	})
+
+	it("rejects invalid chat policy, IPv6 prefixes, and proxy CIDRs", () => {
+		const base = { DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" }
+		expect(() => parseEnv({ ...base, TALQO_CHAT_DAILY_MESSAGE_LIMIT: "0" })).toThrow()
+		expect(() => parseEnv({ ...base, TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH: "129" })).toThrow()
+		expect(() => parseEnv({ ...base, TALQO_TRUSTED_PROXY_CIDRS: "not-a-cidr" })).toThrow()
 	})
 
 	it("rejects an invalid NODE_ENV", () => {
@@ -25,10 +64,10 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
-	it("allows a missing APP_SECRET outside production", () => {
-		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" })
-
-		expect(env.APP_SECRET).toBeUndefined()
+	it("rejects a missing APP_SECRET because chat credentials and network hashes require it", () => {
+		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" })).toThrow(
+			/APP_SECRET/,
+		)
 	})
 
 	it("rejects a missing APP_SECRET in production", () => {
@@ -97,7 +136,11 @@ describe("parseEnv", () => {
 	})
 
 	it("defaults TALQO_UPLOAD_DIR to a talqo directory in the OS temp dir", () => {
-		const env = parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "development" })
+		const env = parseEnv({
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			NODE_ENV: "development",
+		})
 
 		expect(env.TALQO_UPLOAD_DIR).toBe(join(tmpdir(), "talqo"))
 	})

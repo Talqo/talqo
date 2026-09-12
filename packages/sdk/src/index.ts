@@ -1,4 +1,5 @@
-export { ChatClientError, createChatClient, MissingChatTransportError } from "./chat-client"
+export { ChatClientError, createChatClient } from "./chat-client"
+export { ChatTransportError, createFetchChatTransport, type FetchChatTransportOptions } from "./fetch-transport"
 export { parseSseStream, SseParseError, type SseEventParser } from "./sse"
 export {
 	CHAT_STORAGE_VERSION,

@@ -93,16 +93,8 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getLoginUrl(), {
 		credentials: "include",
@@ -460,16 +452,8 @@ export const updateAccount = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getUpdateAccountUrl(), {
 		credentials: "include",
@@ -724,16 +708,8 @@ export const changePassword = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getChangePasswordUrl(), {
 		credentials: "include",
@@ -890,16 +866,8 @@ export const completeForcedPasswordChange = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getCompleteForcedPasswordChangeUrl(), {
 		credentials: "include",

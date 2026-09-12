@@ -3,9 +3,11 @@ import { $ } from "bun"
 import { withTestDatabase } from "./test-database.ts"
 
 const RESERVED_PORT_COUNT = 4
+const PLAYWRIGHT_ARGUMENT_OFFSET = 2
 const root = (await $`git rev-parse --show-toplevel`.quiet().text()).trim()
 const apiDirectory = `${root}/apps/api`
 const e2eDirectory = `${root}/apps/e2e`
+const playwrightArguments = Bun.argv.slice(PLAYWRIGHT_ARGUMENT_OFFSET)
 const reservations = Array.from({ length: RESERVED_PORT_COUNT }, () =>
 	Bun.serve({ fetch: () => new Response(), hostname: "0.0.0.0", port: 0 }),
 )
@@ -13,7 +15,7 @@ const [apiPort, webPort, widgetPort, providerPort] = reservations.map(({ port })
 
 type SeedResult = {
 	operator: { password: string; username: string }
-	widgetToken: string
+	embedToken: string
 }
 
 function seedResult(output: string): SeedResult {
@@ -34,6 +36,7 @@ await withTestDatabase(async (databaseEnv) => {
 		TALQO_API_PORT: apiPort,
 		TALQO_WEB_PORT: webPort,
 		TALQO_WIDGET_PORT: widgetPort,
+		TALQO_CHAT_DAILY_MESSAGE_LIMIT: "3",
 		E2E_PROVIDER_PORT: providerPort,
 		E2E_PROVIDER_URL: `http://127.0.0.1:${providerPort}/v1`,
 	}
@@ -43,11 +46,11 @@ await withTestDatabase(async (databaseEnv) => {
 		// Passed through the environment so apps/e2e never imports API source.
 		const seeded = seedResult(await $`bun run db:seed`.cwd(apiDirectory).env(env).text())
 		releasePorts()
-		await $`bunx playwright test --project=chromium`.cwd(e2eDirectory).env({
+		await $`bunx playwright test --project=chromium ${playwrightArguments}`.cwd(e2eDirectory).env({
 			...env,
 			E2E_OPERATOR_USERNAME: seeded.operator.username,
 			E2E_OPERATOR_PASSWORD: seeded.operator.password,
-			E2E_WIDGET_TOKEN: seeded.widgetToken,
+			E2E_EMBED_TOKEN: seeded.embedToken,
 		})
 	} finally {
 		releasePorts()

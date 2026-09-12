@@ -24,6 +24,8 @@ Update this guide in the same change as any decision that changes architecture, 
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
+| Embed-owned public identity | Integration tokens and revocation versions | [ADR-0013](adr/0013-own-public-integration-identity-in-embeds.md) |
+| Durable public chat | Session, transport, persistence, and browser-state boundaries | [ADR-0014](adr/0014-keep-public-chat-state-durable.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
@@ -54,7 +56,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the public browser SDK. It generates or owns transport appropriate to its public API; the widget consumes the SDK.
+- `packages/sdk` is the framework-independent browser chat SDK. It owns observable chat state, session/bootstrap credentials, storage fallback, stream parsing, cancellation, and recovery; the widget consumes that state instead of duplicating it. The package is workspace-private until an explicit publishing decision is made.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -103,6 +105,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema file may reference another module's table only to declare a database foreign key. This schema-only exception does not grant query or write ownership.
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
+- Database foreign keys enforce the deliberate cross-owner deletion invariant: deleting an agent cascades its conversations, sessions, attempts, messages, daily counters, and usage. Attached embeds still restrict agent deletion and must first be deleted or reassigned. Deleting an embed sets retained conversation/session embed references to null rather than deleting chat data.
 
 ### Contracts And Routes
 
@@ -110,6 +113,8 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
+- `embed` owns public integration identity and appearance. Canonical operator routes use `/api/embeds`, and canonical public configuration uses `/api/embed-config/:embedToken` without exposing an agent ID. `/api/widget-config/:token` remains only as a non-contract compatibility adapter for shipped widget snippets.
+- `conversation` owns public chat routes under `/api/chat`. First send and bootstrap recovery identify an embed by public token; all subsequent history, send, attempt, and cancellation access uses the private session bearer credential. The server always derives the agent and never accepts a public agent override.
 
 ### Persistence And Migrations
 
@@ -121,6 +126,18 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.
 - Coordinate foreign keys and other changes spanning schema owners. The table owner approves destructive or compatibility-sensitive changes.
 - Generated files are reproducible artifacts and are never hand-edited.
+
+### Public Chat Runtime
+
+`conversation` owns the end-user send operation and orchestrates acyclic calls to `embed`, `agent`, `ai-provider`, and `usage`. One end-user session authorizes exactly one conversation. The API stores only hashes of 32-byte session and bootstrap secrets; a purpose-bound HMAC derivation lets a client recover the same credential after an uncertain first response without storing credential plaintext server-side. Embed `accessVersion` is checked on every authenticated session operation, so token rotation, reassignment, or embed deletion revokes access without deleting history.
+
+The model input is the agent's current saved system prompt, every fully completed user/assistant pair in order, and the current user message. Public clients cannot supply history or system instructions. Chat does not retrieve knowledge, create embeddings, invoke MCP tools, or summarize. Failed, cancelled, blocked, or interrupted pairs remain visible but do not enter later prompts. The API rejects input that exceeds the configured Unicode code-point bound and never silently truncates history.
+
+The first message atomically creates the session/conversation and accepts the first attempt; there is no empty-session endpoint. PostgreSQL daily counters and generation leases enforce accepted-question limits and concurrent generations per agent and normalized client network across API instances. Limits are not per person, billing quotas, token caps, or deployment-wide consumption pools. Expired leases become interrupted attempts and fenced lease tokens prevent late workers from overwriting recovery.
+
+Messages and partial assistant output are durable. A disconnected browser does not cancel provider work; authenticated cancellation records intent server-side. Public streaming is versioned JSON in SSE framing over a `POST` fetch response, not `EventSource`, because sends require a request body and later sends require an `Authorization: Bearer` header. Problems before streaming use RFC 9457; terminal stream failures use typed events.
+
+`usage` stores one idempotent row per actual model-call attempt with agent, conversation, provider, model, outcome, and unified `inputTokens`/`outputTokens`. Provider counts are normalized when usable; otherwise either side is approximated from all model-visible input or API-observed output. Totals may therefore be approximate and are analytics, not invoice reconciliation. Rejected requests that never invoke a model create no usage row.
 
 ### Tests And Data
 
@@ -152,8 +169,8 @@ The flow is one-way and deterministic:
 ```text
 module contracts + route metadata
   -> API-owned OpenAPI document
-  -> consumer-specific generated clients
-  -> dashboard + widget + SDK + integrations
+  -> consumer-specific generated clients or transports
+  -> dashboard + SDK + widget + integrations
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
@@ -164,6 +181,7 @@ module contracts + route metadata
 - Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 - Every API error uses strict RFC 9457 `application/problem+json` with only an API-owned `type` URI and stable `code`; consumers localize codes independently.
+- Streaming clients consume `POST` responses with fetch and parse SSE framing across arbitrary network chunks. Browser `EventSource` is outside the public chat boundary.
 
 ## Web
 
@@ -207,6 +225,7 @@ apps/web/src/
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
 - `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
 - The widget consumes `packages/sdk` and never imports API app source.
+- The widget owns presentation only: draft input, focus, scrolling, panel state, resizing, theme, accessibility, and localization. The SDK owns the transcript, configuration fetch, session lifecycle, generation state, and recovery.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
 - Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
 

@@ -12,11 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as EmbedPreviewRouteImport } from './routes/embed-preview'
 import { Route as ForcePasswordChangeRouteImport } from './routes/force-password-change'
 import { Route as InvitationsRouteImport } from './routes/invitations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SetupRouteImport } from './routes/setup'
-import { Route as WidgetPreviewRouteImport } from './routes/widget-preview'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
@@ -25,7 +25,7 @@ import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analy
 import { Route as DashboardInvitationsRouteImport } from './routes/dashboard/invitations'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
-import { Route as DashboardWidgetsWidgetIdRouteImport } from './routes/dashboard/widgets/$widgetId'
+import { Route as DashboardEmbedsEmbedIdRouteImport } from './routes/dashboard/embeds/$embedId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +40,11 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
 const DashboardRouteRoute = DashboardRouteRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmbedPreviewRoute = EmbedPreviewRouteImport.update({
+  id: '/embed-preview',
+  path: '/embed-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForcePasswordChangeRoute = ForcePasswordChangeRouteImport.update({
@@ -60,11 +65,6 @@ const LoginRoute = LoginRouteImport.update({
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
   path: '/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WidgetPreviewRoute = WidgetPreviewRouteImport.update({
-  id: '/widget-preview',
-  path: '/widget-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -108,22 +108,21 @@ const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
   path: '/agent/$agentId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
-const DashboardWidgetsWidgetIdRoute =
-  DashboardWidgetsWidgetIdRouteImport.update({
-    id: '/widgets/$widgetId',
-    path: '/widgets/$widgetId',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
+const DashboardEmbedsEmbedIdRoute = DashboardEmbedsEmbedIdRouteImport.update({
+  id: '/embeds/$embedId',
+  path: '/embeds/$embedId',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
+  '/embed-preview': typeof EmbedPreviewRoute
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
-  '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
@@ -132,16 +131,16 @@ export interface FileRoutesByFullPath {
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
-  '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
+  '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
+  '/embed-preview': typeof EmbedPreviewRoute
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
-  '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
@@ -150,18 +149,18 @@ export interface FileRoutesByTo {
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
-  '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
+  '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
+  '/embed-preview': typeof EmbedPreviewRoute
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/invitations': typeof InvitationsRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
-  '/widget-preview': typeof WidgetPreviewRoute
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
@@ -170,7 +169,7 @@ export interface FileRoutesById {
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
-  '/dashboard/widgets/$widgetId': typeof DashboardWidgetsWidgetIdRoute
+  '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,11 +177,11 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/accept-invite'
+    | '/embed-preview'
     | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
-    | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
@@ -191,16 +190,16 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
-    | '/dashboard/widgets/$widgetId'
+    | '/dashboard/embeds/$embedId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/accept-invite'
+    | '/embed-preview'
     | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
-    | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
@@ -209,17 +208,17 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
-    | '/dashboard/widgets/$widgetId'
+    | '/dashboard/embeds/$embedId'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/accept-invite'
+    | '/embed-preview'
     | '/force-password-change'
     | '/invitations'
     | '/login'
     | '/setup'
-    | '/widget-preview'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
@@ -228,18 +227,18 @@ export interface FileRouteTypes {
     | '/dashboard/users'
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
-    | '/dashboard/widgets/$widgetId'
+    | '/dashboard/embeds/$embedId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AcceptInviteRoute: typeof AcceptInviteRoute
+  EmbedPreviewRoute: typeof EmbedPreviewRoute
   ForcePasswordChangeRoute: typeof ForcePasswordChangeRoute
   InvitationsRoute: typeof InvitationsRoute
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
-  WidgetPreviewRoute: typeof WidgetPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -263,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/embed-preview': {
+      id: '/embed-preview'
+      path: '/embed-preview'
+      fullPath: '/embed-preview'
+      preLoaderRoute: typeof EmbedPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/force-password-change': {
@@ -291,13 +297,6 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup'
       preLoaderRoute: typeof SetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/widget-preview': {
-      id: '/widget-preview'
-      path: '/widget-preview'
-      fullPath: '/widget-preview'
-      preLoaderRoute: typeof WidgetPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -356,11 +355,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAgentAgentIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/widgets/$widgetId': {
-      id: '/dashboard/widgets/$widgetId'
-      path: '/widgets/$widgetId'
-      fullPath: '/dashboard/widgets/$widgetId'
-      preLoaderRoute: typeof DashboardWidgetsWidgetIdRouteImport
+    '/dashboard/embeds/$embedId': {
+      id: '/dashboard/embeds/$embedId'
+      path: '/embeds/$embedId'
+      fullPath: '/dashboard/embeds/$embedId'
+      preLoaderRoute: typeof DashboardEmbedsEmbedIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
   }
@@ -375,7 +374,7 @@ interface DashboardRouteRouteChildren {
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
-  DashboardWidgetsWidgetIdRoute: typeof DashboardWidgetsWidgetIdRoute
+  DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -387,7 +386,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
-  DashboardWidgetsWidgetIdRoute: DashboardWidgetsWidgetIdRoute,
+  DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
@@ -398,11 +397,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
+  EmbedPreviewRoute: EmbedPreviewRoute,
   ForcePasswordChangeRoute: ForcePasswordChangeRoute,
   InvitationsRoute: InvitationsRoute,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
-  WidgetPreviewRoute: WidgetPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

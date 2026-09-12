@@ -1,3 +1,5 @@
+import type { ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+
 import {
 	DEFAULT_WIDGET_APPEARANCE,
 	isHexColor,
@@ -31,6 +33,7 @@ import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 
 import "./index.css"
@@ -43,6 +46,10 @@ export type EmbeddedWidgetProps = {
 	hidden?: boolean
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
+}
+
+export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
+	client: ChatClient
 }
 
 type ColorScheme = "light" | "dark"
@@ -85,20 +92,6 @@ function clampPanelSize(width: number, height: number): { width: number; height:
 			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_HEIGHT_MARGIN)),
 		),
 	}
-}
-
-type Message = {
-	id: number
-	from: "assistant" | "user"
-	text?: string
-	i18nKey?: "greeting"
-}
-
-function messageText(message: Message, t: (key: string) => string): string | undefined {
-	if (message.i18nKey === "greeting") {
-		return t("greeting")
-	}
-	return message.text
 }
 
 function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
@@ -207,30 +200,124 @@ function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefOb
 	return { size, resizable, startResize, resizing }
 }
 
+type ChatPresentation = {
+	snapshot?: ChatSnapshot
+	client?: ChatClient
+	unavailable?: boolean
+}
+
+const EMPTY_MESSAGES: readonly ChatMessage[] = []
+
+function errorText(error: ChatError, t: (key: string, options?: Record<string, unknown>) => string): string {
+	switch (error.code) {
+		case "chat-daily-allowance-exceeded":
+			return t("errorDailyAllowance", {
+				reset: error.retryAt ? new Date(error.retryAt).toLocaleString() : t("nextUtcDay"),
+			})
+		case "chat-concurrency-limit":
+			return t("errorConcurrency")
+		case "chat-session-busy":
+			return t("errorSessionBusy")
+		case "chat-conversation-too-long":
+			return t("errorConversationFull")
+		case "chat-session-unauthorized":
+			return t("errorSessionUnauthorized")
+		case "embed-not-found":
+			return t("errorEmbedUnavailable")
+		case "storage_unavailable":
+			return t("errorStorageUnavailable")
+		case "reset_failed":
+			return t("errorResetFailed")
+		case "cancel_failed":
+			return t("errorCancelFailed")
+		case "transport_error":
+			return t("errorTransport")
+		case "chat-client-address-unavailable":
+			return t("errorNetworkUnavailable")
+		case "invalid-request":
+		case "chat-request-conflict":
+			return t("errorInvalidRequest")
+		case "provider-error":
+			return t("errorProvider")
+		default:
+			return t("errorGeneric")
+	}
+}
+
+function outcomeText(outcome: ChatMessage["outcome"], t: (key: string) => string): string | undefined {
+	switch (outcome) {
+		case "failed":
+			return t("outcomeFailed")
+		case "cancelled":
+			return t("outcomeCancelled")
+		case "blocked":
+			return t("outcomeBlocked")
+		case "interrupted":
+			return t("outcomeInterrupted")
+		default:
+			return undefined
+	}
+}
+
 function WidgetChat({
 	title,
 	agentId,
 	appearance,
 	hidden,
 	forcedScheme,
+	snapshot,
+	client,
+	unavailable,
 }: {
 	title?: string
 	agentId?: string
 	appearance: WidgetAppearance
 	hidden?: boolean
 	forcedScheme?: ColorScheme
-}) {
+} & ChatPresentation) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
-	const [messages, setMessages] = useState<Message[]>([{ id: 1, from: "assistant", i18nKey: "greeting" }])
 	const [draft, setDraft] = useState("")
+	const [submitting, setSubmitting] = useState(false)
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
+	const inputRef = useRef<HTMLInputElement>(null)
+	const draftRef = useRef("")
+	const pendingSend = useRef<{ originalDraft: string; text: string; messageIds: Set<string> } | undefined>(undefined)
 	const wasOpen = useRef(false)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
+	const messages = snapshot?.messages ?? EMPTY_MESSAGES
+	const initialization = snapshot?.initialization ?? (unavailable ? "error" : "ready")
+	const generation = snapshot?.generation ?? "idle"
+	const resetting = snapshot?.reset === "resetting"
+	const activeGeneration = generation !== "idle"
+	const unusable = unavailable || initialization === "error"
+	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
+	const visibleError = unavailable
+		? ({ code: "embed-not-found", message: "", retriable: false, newChatAvailable: false } satisfies ChatError)
+		: snapshot?.error
+
+	useEffect(() => {
+		draftRef.current = draft
+	}, [draft])
+
+	useEffect(() => {
+		const pending = pendingSend.current
+		if (!pending) return
+		const accepted = messages.some(
+			(message) =>
+				!pending.messageIds.has(message.id) &&
+				message.role === "user" &&
+				message.text === pending.text &&
+				message.outcome === "completed",
+		)
+		if (!accepted) return
+		pendingSend.current = undefined
+		if (draftRef.current === pending.originalDraft) setDraft("")
+	}, [messages])
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -246,14 +333,39 @@ function WidgetChat({
 	const scheme = forcedScheme ?? visitorScheme ?? operatorScheme
 	const active = scheme === "dark" ? appearance.dark : appearance.light
 
-	function handleSend(event: FormEvent<HTMLFormElement>) {
+	async function handleSend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		const text = draft.trim()
-		if (!text) {
+		if (!text || disabled || !client) {
 			return
 		}
-		setMessages((prev) => [...prev, { id: (prev.at(-1)?.id ?? 0) + 1, from: "user", text }])
-		setDraft("")
+		pendingSend.current = { originalDraft: draft, text, messageIds: new Set(messages.map(({ id }) => id)) }
+		setSubmitting(true)
+		try {
+			await client.sendMessage(text)
+		} catch {
+			pendingSend.current = undefined
+		} finally {
+			setSubmitting(false)
+		}
+	}
+
+	async function handleNewChat() {
+		if (!client || resetting || initialization !== "ready") return
+		try {
+			await client.startNewChat()
+			inputRef.current?.focus()
+		} catch {
+			// The SDK snapshot owns the reset failure and retained transcript.
+		}
+	}
+
+	async function handleCancel() {
+		try {
+			await client?.cancelResponse()
+		} catch {
+			// The SDK snapshot owns cancellation recovery and errors.
+		}
 	}
 
 	const paletteStyle = {
@@ -325,6 +437,18 @@ function WidgetChat({
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3.5">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 						<div className="tw:flex tw:items-center tw:gap-1">
+							{messages.length > 0 && (
+								<button
+									type="button"
+									onClick={() => void handleNewChat()}
+									disabled={initialization !== "ready" || resetting}
+									aria-label={t("newChat")}
+									title={t("newChatTooltip")}
+									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:text-xl tw:leading-none tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
+								>
+									<span aria-hidden="true">+</span>
+								</button>
+							)}
 							{appearance.themeToggle && (
 								<button
 									type="button"
@@ -347,32 +471,101 @@ function WidgetChat({
 					</header>
 					<div className="tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
 						<BubbleGroup>
-							{messages.map((message) => (
-								<Bubble key={message.id} align={message.from === "user" ? "end" : "start"}>
-									<BubbleContent
-										variant={message.from === "user" ? "default" : "muted"}
-										className={cn(message.from === "assistant" && "tw:text-foreground")}
-									>
-										{messageText(message, t)}
+							{messages.length === 0 && initialization === "ready" && !unusable && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										{t("greeting")}
 									</BubbleContent>
 								</Bubble>
+							)}
+							{messages.map((message) => (
+								<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
+									<BubbleContent
+										variant={message.role === "user" ? "default" : "muted"}
+										className={cn(message.role === "assistant" && "tw:text-foreground")}
+									>
+										{message.text}
+									</BubbleContent>
+									{outcomeText(message.outcome, t) && (
+										<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
+											{outcomeText(message.outcome, t)}
+										</span>
+									)}
+								</Bubble>
 							))}
+							{initialization === "loading" && (
+								<p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
+							)}
+							{snapshot?.recovery === "pending" && (
+								<p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
+							)}
+							{snapshot?.recovery === "unavailable" && (
+								<p role="alert" className="tw:text-destructive tw:text-sm">
+									{t("recoveryUnavailable")}
+								</p>
+							)}
+							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage_unavailable" && (
+								<p role="status" className="tw:text-muted-foreground tw:text-sm">
+									{t("errorStorageUnavailable")}
+								</p>
+							)}
+							{visibleError && (
+								<div
+									role="alert"
+									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-muted tw:p-3 tw:text-sm"
+								>
+									<p>{errorText(visibleError, t)}</p>
+									{visibleError.code === "chat-daily-allowance-exceeded" &&
+										(visibleError.retryAt ?? snapshot?.retryAt) && (
+											<time dateTime={visibleError.retryAt ?? snapshot?.retryAt}>
+												{t("allowanceReset", {
+													reset: new Date((visibleError.retryAt ?? snapshot?.retryAt)!).toLocaleString(),
+												})}
+											</time>
+										)}
+									{(visibleError.code === "chat-conversation-too-long" || visibleError.newChatAvailable) && (
+										<button
+											type="button"
+											onClick={() => void handleNewChat()}
+											disabled={resetting}
+											aria-label={t("newChat")}
+											className="tw:rounded-control tw:bg-primary tw:px-3 tw:py-2 tw:text-primary-foreground tw:disabled:opacity-50"
+										>
+											{t("newChat")}
+										</button>
+									)}
+								</div>
+							)}
+							{activeGeneration && (
+								<button
+									type="button"
+									onClick={() => void handleCancel()}
+									disabled={generation === "cancelling"}
+									aria-label={t("stopGenerating")}
+									className="tw:self-center tw:rounded-control tw:border tw:border-border tw:px-3 tw:py-2 tw:text-sm tw:disabled:opacity-50"
+								>
+									{generation === "cancelling" ? t("stopping") : t("stopGenerating")}
+								</button>
+							)}
 						</BubbleGroup>
 					</div>
 					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">
 						<input
+							ref={inputRef}
 							type="text"
 							value={draft}
 							onChange={(event) => setDraft(event.target.value)}
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
 							autoFocus
+							disabled={disabled}
 							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
 						<button
 							type="submit"
 							aria-label={t("send")}
-							className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90"
+							disabled={disabled || draft.trim().length === 0}
+							className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
 						>
 							<SendIcon aria-hidden="true" />
 						</button>
@@ -405,6 +598,58 @@ export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedSchem
 	return (
 		<I18nextProvider i18n={i18n}>
 			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} forcedScheme={forcedScheme} />
+		</I18nextProvider>
+	)
+}
+
+export function ConnectedEmbeddedWidget({
+	client,
+	title,
+	agentId,
+	appearance,
+	hidden,
+	forcedScheme,
+}: ConnectedEmbeddedWidgetProps) {
+	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
+	const [initializationFailed, setInitializationFailed] = useState(false)
+	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
+	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
+	const [i18n] = useState(() => createWidgetI18n(resolved.language))
+
+	useEffect(() => {
+		void client.initialize().catch(() => setInitializationFailed(true))
+		return () => client.dispose()
+	}, [client])
+
+	useEffect(() => {
+		i18n.changeLanguage(resolved.language)
+	}, [i18n, resolved.language])
+
+	return (
+		<I18nextProvider i18n={i18n}>
+			<WidgetChat
+				title={title ?? snapshot.configuration?.title}
+				agentId={agentId}
+				appearance={resolved}
+				hidden={
+					hidden ||
+					(snapshot.configuration === undefined && !initializationFailed && snapshot.initialization !== "error")
+				}
+				forcedScheme={forcedScheme}
+				snapshot={snapshot}
+				client={client}
+				unavailable={initializationFailed && snapshot.initialization !== "error"}
+			/>
+		</I18nextProvider>
+	)
+}
+
+export function UnavailableEmbeddedWidget(props: EmbeddedWidgetProps) {
+	const resolved = resolveAppearance(props.appearance)
+	const [i18n] = useState(() => createWidgetI18n(resolved.language))
+	return (
+		<I18nextProvider i18n={i18n}>
+			<WidgetChat {...props} appearance={resolved} unavailable />
 		</I18nextProvider>
 	)
 }

@@ -1,6 +1,6 @@
 # Conceptual Entity Relationship Diagram
 
-Entities and relationships only — no columns or types. Column-level design is deferred until each module's implementation settles on what it actually needs.
+Entities and relationships only; implementation schemas remain authoritative for columns and types.
 
 ```mermaid
 erDiagram
@@ -12,19 +12,20 @@ erDiagram
     AUDIT_LOG
 
     AGENT
-    WIDGET
+    EMBED
     BLACKLIST_WORD
-    AGENT_IP_RATE_LIMIT
 
     MCP_CONFIG
     AI_PROVIDER_CONFIG
 
-    END_USER_SESSION
+    CONVERSATION_SESSION
     CONVERSATION
-    MESSAGE
+    CONVERSATION_ATTEMPT
+    CONVERSATION_MESSAGE
+    CONVERSATION_DAILY_COUNTER
 
     FILE_EMBEDDING
-    USAGE_RECORD
+    CONVERSATION_USAGE
 
     USER ||--o{ SESSION : authenticates
     USER ||--o{ USER_ROLE : has
@@ -32,13 +33,20 @@ erDiagram
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
-    AGENT ||--o{ WIDGET : serves
+    AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
-    AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
     AGENT ||--o{ FILE_EMBEDDING : embeds
 
-    AGENT ||--o{ END_USER_SESSION : receives
-    END_USER_SESSION ||--o{ CONVERSATION : contains
-    CONVERSATION ||--o{ MESSAGE : includes
-    MESSAGE ||--o{ USAGE_RECORD : tracks
+    AGENT ||--o{ CONVERSATION : receives
+    AGENT ||--o{ CONVERSATION_DAILY_COUNTER : limits
+    EMBED o|--o{ CONVERSATION : originated
+    EMBED o|--o{ CONVERSATION_SESSION : authorizes
+    CONVERSATION ||--|| CONVERSATION_SESSION : authorizes
+    CONVERSATION ||--o{ CONVERSATION_ATTEMPT : accepts
+    CONVERSATION ||--o{ CONVERSATION_MESSAGE : includes
+    CONVERSATION_SESSION ||--o{ CONVERSATION_ATTEMPT : submits
+    CONVERSATION_ATTEMPT ||--|{ CONVERSATION_MESSAGE : produces
+    CONVERSATION_ATTEMPT ||--o| CONVERSATION_USAGE : records
 ```
+
+One session authorizes one conversation. An embed's public token and `accessVersion` establish initial access, while only the hash of the private session credential is retained. Embed rotation, reassignment, or deletion revokes session access; nullable embed references preserve history after embed deletion. Agent deletion cascades conversations, sessions, attempts, messages, daily counters, and usage.

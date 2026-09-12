@@ -19,11 +19,22 @@ import { ProblemProviderCredentialsRejected } from "./ai-providers/problemProvid
 import { ProblemProviderError } from "./ai-providers/problemProviderError.zod"
 import { ProblemProviderRateLimited } from "./ai-providers/problemProviderRateLimited.zod"
 import { ProblemProviderUnreachable } from "./ai-providers/problemProviderUnreachable.zod"
+import { ProblemEmbedNotFound } from "./embed/problemEmbedNotFound.zod"
 import { ProblemCurrentPasswordIncorrect } from "./identity/problemCurrentPasswordIncorrect.zod"
 import { ProblemInvalidCredentials } from "./identity/problemInvalidCredentials.zod"
 import { ProblemPasswordChangeNotRequired } from "./identity/problemPasswordChangeNotRequired.zod"
 import { ProblemAgentNotFound } from "./problemAgentNotFound.zod"
 import { ProblemAuthenticationRequired } from "./problemAuthenticationRequired.zod"
+import { ProblemChatBootstrapNotAccepted } from "./problemChatBootstrapNotAccepted.zod"
+import { ProblemChatClientAddressUnavailable } from "./problemChatClientAddressUnavailable.zod"
+import { ProblemChatConcurrencyLimit } from "./problemChatConcurrencyLimit.zod"
+import { ProblemChatContextLimit } from "./problemChatContextLimit.zod"
+import { ProblemChatConversationTooLong } from "./problemChatConversationTooLong.zod"
+import { ProblemChatDailyAllowanceExceeded } from "./problemChatDailyAllowanceExceeded.zod"
+import { ProblemChatInputIncompatible } from "./problemChatInputIncompatible.zod"
+import { ProblemChatRequestConflict } from "./problemChatRequestConflict.zod"
+import { ProblemChatSessionBusy } from "./problemChatSessionBusy.zod"
+import { ProblemChatSessionUnauthorized } from "./problemChatSessionUnauthorized.zod"
 import { ProblemInternalServerError } from "./problemInternalServerError.zod"
 import { ProblemInvalidRequest } from "./problemInvalidRequest.zod"
 import { ProblemMalformedJson } from "./problemMalformedJson.zod"
@@ -38,7 +49,6 @@ import { ProblemAdminAlreadyExists } from "./roles/problemAdminAlreadyExists.zod
 import { ProblemInvalidInvitation } from "./roles/problemInvalidInvitation.zod"
 import { ProblemSelfPasswordResetNotAllowed } from "./roles/problemSelfPasswordResetNotAllowed.zod"
 import { ProblemUserNotFound } from "./roles/problemUserNotFound.zod"
-import { ProblemWidgetNotFound } from "./widget/problemWidgetNotFound.zod"
 
 export const ProblemDetails = zod.union([
 	ProblemAdminAccessRequired,
@@ -51,8 +61,19 @@ export const ProblemDetails = zod.union([
 	ProblemAgentNameTaken,
 	ProblemAgentNotFound,
 	ProblemAuthenticationRequired,
+	ProblemChatBootstrapNotAccepted,
+	ProblemChatClientAddressUnavailable,
+	ProblemChatConcurrencyLimit,
+	ProblemChatContextLimit,
+	ProblemChatConversationTooLong,
+	ProblemChatDailyAllowanceExceeded,
+	ProblemChatInputIncompatible,
+	ProblemChatRequestConflict,
+	ProblemChatSessionBusy,
+	ProblemChatSessionUnauthorized,
 	ProblemConfigurationConflict,
 	ProblemCurrentPasswordIncorrect,
+	ProblemEmbedNotFound,
 	ProblemInternalServerError,
 	ProblemInvalidAiProviderConfiguration,
 	ProblemInvalidCredentials,
@@ -72,7 +93,6 @@ export const ProblemDetails = zod.union([
 	ProblemRouteNotFound,
 	ProblemSelfPasswordResetNotAllowed,
 	ProblemUserNotFound,
-	ProblemWidgetNotFound,
 	ProblemUsernameTaken,
 ])
 

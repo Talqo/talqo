@@ -1,0 +1,95 @@
+CREATE TYPE "public"."conversation_attempt_status" AS ENUM('accepted', 'running', 'completed', 'failed', 'cancelled', 'blocked', 'interrupted');--> statement-breakpoint
+CREATE TYPE "public"."conversation_message_outcome" AS ENUM('streaming', 'completed', 'failed', 'cancelled', 'blocked', 'interrupted');--> statement-breakpoint
+CREATE TYPE "public"."conversation_message_role" AS ENUM('user', 'assistant');--> statement-breakpoint
+CREATE TABLE "conversation" (
+	"id" text PRIMARY KEY NOT NULL,
+	"agent_id" text NOT NULL,
+	"embed_id" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "conversation_attempt" (
+	"id" text PRIMARY KEY NOT NULL,
+	"conversation_id" text NOT NULL,
+	"session_id" text NOT NULL,
+	"request_id" text NOT NULL,
+	"request_text_hash" text NOT NULL,
+	"input_text" text NOT NULL,
+	"status" "conversation_attempt_status" DEFAULT 'accepted' NOT NULL,
+	"network_hash" text NOT NULL,
+	"lease_token" text NOT NULL,
+	"lease_expires_at" timestamp with time zone NOT NULL,
+	"cancellation_requested_at" timestamp with time zone,
+	"provider" text,
+	"model" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "conversation_daily_counter" (
+	"agent_id" text NOT NULL,
+	"network_hash" text NOT NULL,
+	"day" text NOT NULL,
+	"count" integer NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "conversation_message" (
+	"id" text PRIMARY KEY NOT NULL,
+	"conversation_id" text NOT NULL,
+	"attempt_id" text NOT NULL,
+	"role" "conversation_message_role" NOT NULL,
+	"text" text NOT NULL,
+	"outcome" "conversation_message_outcome" NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "conversation_session" (
+	"id" text PRIMARY KEY NOT NULL,
+	"conversation_id" text NOT NULL,
+	"embed_id" text,
+	"embed_access_version" integer NOT NULL,
+	"credential_hash" text NOT NULL,
+	"bootstrap_request_id" text NOT NULL,
+	"bootstrap_secret_hash" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "conversation_session_conversation_id_unique" UNIQUE("conversation_id"),
+	CONSTRAINT "conversation_session_credential_hash_unique" UNIQUE("credential_hash")
+);
+--> statement-breakpoint
+CREATE TABLE "conversation_usage" (
+	"attempt_id" text PRIMARY KEY NOT NULL,
+	"agent_id" text NOT NULL,
+	"conversation_id" text NOT NULL,
+	"provider" text NOT NULL,
+	"model" text NOT NULL,
+	"outcome" text NOT NULL,
+	"input_tokens" integer NOT NULL,
+	"output_tokens" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation" ADD CONSTRAINT "conversation_embed_id_embed_id_fk" FOREIGN KEY ("embed_id") REFERENCES "public"."embed"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_attempt" ADD CONSTRAINT "conversation_attempt_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_attempt" ADD CONSTRAINT "conversation_attempt_session_id_conversation_session_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."conversation_session"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_daily_counter" ADD CONSTRAINT "conversation_daily_counter_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_message" ADD CONSTRAINT "conversation_message_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_message" ADD CONSTRAINT "conversation_message_attempt_id_conversation_attempt_id_fk" FOREIGN KEY ("attempt_id") REFERENCES "public"."conversation_attempt"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_session" ADD CONSTRAINT "conversation_session_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_session" ADD CONSTRAINT "conversation_session_embed_id_embed_id_fk" FOREIGN KEY ("embed_id") REFERENCES "public"."embed"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_usage" ADD CONSTRAINT "conversation_usage_attempt_id_conversation_attempt_id_fk" FOREIGN KEY ("attempt_id") REFERENCES "public"."conversation_attempt"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_usage" ADD CONSTRAINT "conversation_usage_agent_id_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "public"."agent"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "conversation_usage" ADD CONSTRAINT "conversation_usage_conversation_id_conversation_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversation"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "conversation_agent_id_idx" ON "conversation" USING btree ("agent_id");--> statement-breakpoint
+CREATE INDEX "conversation_embed_id_idx" ON "conversation" USING btree ("embed_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "conversation_attempt_session_request_unique_idx" ON "conversation_attempt" USING btree ("session_id","request_id");--> statement-breakpoint
+CREATE INDEX "conversation_attempt_active_network_idx" ON "conversation_attempt" USING btree ("network_hash","status","lease_expires_at");--> statement-breakpoint
+CREATE INDEX "conversation_attempt_conversation_id_idx" ON "conversation_attempt" USING btree ("conversation_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "conversation_daily_counter_unique_idx" ON "conversation_daily_counter" USING btree ("agent_id","network_hash","day");--> statement-breakpoint
+CREATE INDEX "conversation_message_order_idx" ON "conversation_message" USING btree ("conversation_id","created_at","id");--> statement-breakpoint
+CREATE UNIQUE INDEX "conversation_session_bootstrap_unique_idx" ON "conversation_session" USING btree ("embed_id","embed_access_version","bootstrap_request_id");--> statement-breakpoint
+CREATE INDEX "conversation_session_embed_id_idx" ON "conversation_session" USING btree ("embed_id");--> statement-breakpoint
+CREATE INDEX "conversation_usage_agent_id_idx" ON "conversation_usage" USING btree ("agent_id");--> statement-breakpoint
+CREATE INDEX "conversation_usage_conversation_id_idx" ON "conversation_usage" USING btree ("conversation_id");
