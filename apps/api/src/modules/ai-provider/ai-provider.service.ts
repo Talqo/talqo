@@ -1,3 +1,6 @@
+import { APICallError, type LanguageModelV4 } from "@ai-sdk/provider"
+import { streamText as aiStreamText } from "ai"
+
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
 import type { CredentialEnvelope, createCredentialVault } from "./credential-vault.ts"
@@ -20,9 +23,41 @@ type Repository = {
 	): Promise<StoredConfiguration | undefined>
 }
 
+export type TextMessage = { content: string; role: "assistant" | "system" | "user" }
+type RuntimeTextMessage = { content: string; role: "assistant" | "user" }
+export type TextGenerationInput = {
+	maxOutputTokens: number
+	messages: TextMessage[]
+	signal: AbortSignal
+	timeoutMs: number
+}
+type RawGenerationEvent =
+	| { text: string; type: "text" }
+	| {
+			outcome: "cancelled" | "completed" | "failed" | "interrupted"
+			type: "finish"
+			usage: {
+				inputTokens?: number
+				inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number; noCacheTokens?: number }
+				outputTokens?: number
+				outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
+				totalTokens?: number
+			}
+	  }
+type Generate = (input: {
+	instructions?: string
+	maxOutputTokens: number
+	maxRetries: 0
+	messages: RuntimeTextMessage[]
+	model: LanguageModelV4
+	signal: AbortSignal
+	timeoutMs: number
+}) => AsyncIterable<RawGenerationEvent>
+
 type ServiceDependencies = {
 	authorize(userId: string): Promise<boolean>
 	discover(input: DiscoveryRequest): Promise<string[]>
+	generate?: Generate
 	repository: Repository
 	vault: Vault
 }
@@ -38,7 +73,54 @@ type RedactedConfiguration = {
 export class PermissionDeniedError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidConfigurationError extends Error {}
-class UnusableConfigurationError extends Error {}
+export class UnusableConfigurationError extends Error {}
+export class ProviderContextLimitError extends Error {}
+const BAD_REQUEST_STATUS = 400
+const PAYLOAD_TOO_LARGE_STATUS = 413
+
+function isContextLimitError(error: unknown): boolean {
+	if (
+		!APICallError.isInstance(error) ||
+		(error.statusCode !== BAD_REQUEST_STATUS && error.statusCode !== PAYLOAD_TOO_LARGE_STATUS)
+	) {
+		return false
+	}
+	const details = [error.message, error.responseBody, JSON.stringify(error.data ?? null)].join(" ")
+	return /context[_ -]?(?:length|window|limit)|maximum context|input.+too (?:large|long)|too many tokens/i.test(details)
+}
+
+const defaultGenerate: Generate = async function* (input) {
+	const result = aiStreamText({
+		model: input.model,
+		instructions: input.instructions,
+		messages: input.messages,
+		maxOutputTokens: input.maxOutputTokens,
+		maxRetries: input.maxRetries,
+		abortSignal: input.signal,
+		timeout: input.timeoutMs,
+	})
+	try {
+		for await (const text of result.textStream) yield { type: "text", text }
+		const usage = await result.usage
+		yield {
+			type: "finish",
+			outcome: "completed",
+			usage: {
+				inputTokens: usage.inputTokens,
+				inputTokenDetails: usage.inputTokenDetails,
+				outputTokens: usage.outputTokens,
+				outputTokenDetails: usage.outputTokenDetails,
+				totalTokens: usage.totalTokens,
+			},
+		}
+	} catch (error) {
+		if (input.signal.aborted) {
+			yield { type: "finish", outcome: "cancelled", usage: {} }
+			return
+		}
+		throw error
+	}
+}
 
 function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
 	const firstKeys = Object.keys(first)
@@ -255,6 +337,46 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				throw new UnusableConfigurationError("AI provider configuration is unusable")
 			}
 		},
+		async *streamText(input: TextGenerationInput) {
+			const stored = await dependencies.repository.find()
+			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
+			try {
+				const credentials = stored.text.credentials
+					? dependencies.vault.decrypt(stored.text.credentials, {
+							configId: CONFIG_ID,
+							providerId: stored.text.providerId,
+							role: "text",
+						})
+					: undefined
+				const model = createProviderModel({ ...stored.text, role: "text", credentials }) as LanguageModelV4
+				const generate = dependencies.generate ?? defaultGenerate
+				const [firstMessage, ...remainingMessages] = input.messages
+				const instructions = firstMessage?.role === "system" ? firstMessage.content : undefined
+				const messages = (instructions === undefined ? input.messages : remainingMessages) as RuntimeTextMessage[]
+				yield { type: "start" as const, provider: stored.text.providerId, model: stored.text.modelId }
+				for await (const event of generate({
+					...input,
+					...(instructions === undefined ? {} : { instructions }),
+					messages,
+					model,
+					maxRetries: 0,
+				})) {
+					if (event.type === "text") {
+						yield event
+					} else {
+						yield {
+							...event,
+							provider: stored.text.providerId,
+							model: stored.text.modelId,
+						}
+					}
+				}
+			} catch (error) {
+				if (error instanceof UnusableConfigurationError) throw error
+				if (isContextLimitError(error)) throw new ProviderContextLimitError("Provider context limit exceeded")
+				throw new UnusableConfigurationError("AI provider configuration is unusable")
+			}
+		},
 	}
 }
 
@@ -291,4 +413,8 @@ export async function saveConfiguration(userId: string, input: SaveConfiguration
 
 export async function discoverModels(userId: string, input: DiscoverModelsInput) {
 	return (await getDefaultService()).discoverModels(userId, input)
+}
+
+export async function streamText(input: TextGenerationInput) {
+	return (await getDefaultService()).streamText(input)
 }

@@ -6,10 +6,10 @@ import type {
 	ChatMessage,
 	ChatMessageOutcome,
 	ChatSnapshot,
-	ChatTransport,
 	SessionState,
 } from "./types"
 
+import { ChatTransportError, createFetchChatTransport } from "./fetch-transport"
 import {
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
@@ -37,13 +37,6 @@ const BASE64_LOW_FOUR_BITS = 15
 const BASE64_LOW_SIX_BITS = 63
 const SECOND_BYTE_OFFSET = 1
 const THIRD_BYTE_OFFSET = 2
-
-export class MissingChatTransportError extends Error {
-	constructor() {
-		super("No ChatTransport was provided; HTTP integration awaits generated API contracts")
-		this.name = "MissingChatTransportError"
-	}
-}
 
 export class ChatClientError extends Error {
 	readonly detail: ChatError
@@ -102,9 +95,10 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 }
 
 function transportError(error: unknown): ChatError {
+	if (error instanceof ChatTransportError) return error.detail
 	return {
 		code: "transport_error",
-		message: error instanceof Error ? error.message : "The chat transport failed",
+		message: "The chat transport failed",
 		retriable: true,
 		newChatAvailable: false,
 	}
@@ -139,6 +133,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomBytes = options.randomBytes ?? defaultRandomBytes
 	const now = options.now ?? (() => new Date())
+	const transport = options.transport ?? createFetchChatTransport()
 
 	let snapshot = createSnapshot()
 	const storage = createResilientStorage(
@@ -180,11 +175,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (disposed) throw new Error("Chat client is disposed")
 	}
 
-	function requireTransport(): ChatTransport {
-		if (options.transport === undefined) throw new MissingChatTransportError()
-		return options.transport
-	}
-
 	function context(signal: AbortSignal) {
 		return { apiUrl: options.apiUrl, embedToken: options.embedToken, signal }
 	}
@@ -206,7 +196,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
-	function beginRecoveryPolling(transport: ChatTransport): void {
+	function beginRecoveryPolling(): void {
 		if (credential === undefined || activeGenerationId === undefined || disposed) return
 		recoveryController?.abort()
 		const controller = new AbortController()
@@ -245,7 +235,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (initialization === "ready") return
 		if (initializePromise !== undefined) return initializePromise
 		initializePromise = (async () => {
-			const transport = requireTransport()
 			initialization = "loading"
 			publish()
 			const controller = new AbortController()
@@ -280,7 +269,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				}
 				initialization = "ready"
 				publish()
-				beginRecoveryPolling(transport)
+				beginRecoveryPolling()
 			} catch (cause) {
 				initialization = "error"
 				error = transportError(cause)
@@ -306,7 +295,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
 		if (activeSend !== undefined || generation !== "idle") throw new Error("A chat response is already active")
 		if (text.length === 0) throw new Error("Message text must not be empty")
-		const transport = requireTransport()
 		if (credential === undefined && pendingBootstrap !== undefined && pendingBootstrap.text !== text) {
 			throw new Error("The pending first message must be recovered before sending different text")
 		}
@@ -404,7 +392,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				generation = "recovery"
 				recovery = "pending"
 				error = transportError(cause)
-				if (credential !== undefined && activeGenerationId !== undefined) beginRecoveryPolling(transport)
+				if (credential !== undefined && activeGenerationId !== undefined) beginRecoveryPolling()
 			}
 			publish()
 			throw cause
@@ -416,7 +404,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function cancelResponse(): Promise<void> {
 		requireUsable()
 		if (generation === "idle") return
-		const transport = requireTransport()
 		generation = "cancelling"
 		publish()
 		try {

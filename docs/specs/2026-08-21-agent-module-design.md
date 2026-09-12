@@ -1,5 +1,7 @@
 # Agent Module Design
 
+> Historical note: the agent-level embed-token portions of this design are superseded by [ADR-0013](../adr/0013-own-public-integration-identity-in-embeds.md). Public integration tokens and access versions now belong to embeds.
+
 ## Summary
 
 Implement the agent configuration capability as an API module under `apps/api/src/modules/agent/` and replace the dashboard's in-memory agent store with authenticated API-backed state. The first version owns an agent's name, raw system prompt, and word blacklist. It deliberately excludes AI-provider, MCP, knowledge, conversation, rate-limit, public-token, widget-appearance, and analytics behavior.

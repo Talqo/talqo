@@ -1,7 +1,6 @@
-import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, mergeAppearance } from "./embed-config"
 
 // Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
@@ -116,56 +115,5 @@ describe("apiOrigin", () => {
 
 	test("is undefined without a script, so no fetch is attempted", () => {
 		expect(apiOrigin(null)).toBeUndefined()
-	})
-})
-
-describe("configUrl", () => {
-	test("targets the public config path", () => {
-		expect(configUrl("https://api.example.com", "tok_123")).toBe("https://api.example.com/api/widget-config/tok_123")
-	})
-
-	test("encodes a token containing URL-significant characters", () => {
-		expect(configUrl("https://api.example.com", "a/b?c")).toBe("https://api.example.com/api/widget-config/a%2Fb%3Fc")
-	})
-})
-
-describe("parseWidgetConfig", () => {
-	const appearance = { light: { primary: "#123456" }, position: "bottom-left" }
-
-	test("extracts the appearance, agent, and name from a current payload", () => {
-		const result = parseWidgetConfig({
-			version: WIDGET_CONFIG_VERSION,
-			agentId: "agent-1",
-			name: "Marketing site",
-			appearance,
-		})
-
-		expect(result.agentId).toBe("agent-1")
-		expect(result.name).toBe("Marketing site")
-		expect(result.appearance).toEqual(appearance)
-	})
-
-	// Degrade, never throw: a widget on a customer page must survive a bad response.
-	test("yields no overrides for a future or missing version", () => {
-		expect(parseWidgetConfig({ version: 99, appearance }).appearance).toEqual({})
-		expect(parseWidgetConfig({ appearance }).appearance).toEqual({})
-	})
-
-	test("yields no overrides when the appearance is missing or not an object", () => {
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION }).appearance).toEqual({})
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: "green" }).appearance).toEqual({})
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: [] }).appearance).toEqual({})
-	})
-
-	test("yields no overrides for a non-object payload", () => {
-		expect(parseWidgetConfig(undefined).appearance).toEqual({})
-		expect(parseWidgetConfig(null).appearance).toEqual({})
-		expect(parseWidgetConfig("nope").appearance).toEqual({})
-	})
-
-	test("ignores a non-string agent id and name", () => {
-		const result = parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, agentId: 7, name: 7, appearance })
-		expect(result.agentId).toBeUndefined()
-		expect(result.name).toBeUndefined()
 	})
 })

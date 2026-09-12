@@ -232,7 +232,12 @@ describe("api", () => {
 			.map((route) => route.path)
 
 		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
-		expect(wildcardApiRoutes).toEqual(["/api/widget-config/*", "/api/agents/:agentId/files"])
+		expect(wildcardApiRoutes).toEqual([
+			"/api/embed-config/*",
+			"/api/widget-config/*",
+			"/api/chat/*",
+			"/api/agents/:agentId/files",
+		])
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
@@ -250,7 +255,6 @@ describe("api", () => {
 				"/api/ai-providers",
 				"/api/agents",
 				"/api/agents/{agentId}",
-				"/api/agents/{agentId}/embed-token/refresh",
 				"/api/agents/{agentId}/files",
 				"/api/agents/{agentId}/files/{fileName}",
 				"/api/auth/login",
@@ -266,9 +270,17 @@ describe("api", () => {
 				"/api/permission-grants/{id}",
 				"/api/setup",
 				"/api/users",
-				"/api/widget-config/{token}",
-				"/api/widgets",
-				"/api/widgets/{widgetId}",
+				"/api/embed-config/{embedToken}",
+				"/api/chat/{embedToken}/messages",
+				"/api/chat/{embedToken}/bootstrap-recovery",
+				"/api/chat/{embedToken}/bootstrap-cancel",
+				"/api/chat/messages",
+				"/api/chat/session",
+				"/api/chat/cancel",
+				"/api/chat/attempts/{generationId}",
+				"/api/embeds",
+				"/api/embeds/{embedId}",
+				"/api/embeds/{embedId}/embed-token/rotate",
 				"/api/users/{userId}/password",
 				"/health",
 			].toSorted(),

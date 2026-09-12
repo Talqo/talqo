@@ -1,10 +1,12 @@
 import * as agent from "@/modules/agent/agent.seed.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.seed.ts"
+import * as conversation from "@/modules/conversation/conversation.repository.ts"
+import * as embed from "@/modules/embed/embed.seed.ts"
 import * as identity from "@/modules/identity/identity.seed.ts"
 import * as identityService from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
 import * as rolesService from "@/modules/roles/roles.service.ts"
-import * as widget from "@/modules/widget/widget.seed.ts"
+import * as usage from "@/modules/usage/usage.repository.ts"
 
 import { sql } from "./client.ts"
 
@@ -18,12 +20,14 @@ const TEST_USERS = {
 
 export type SeedResult = {
 	operator: { password: string; username: string }
-	widgetToken: string
+	embedToken: string
 }
 
 export async function seed(): Promise<SeedResult | null> {
 	// Dependents first: module tables must be clear before identity truncates `user`.
-	await widget.reset()
+	await usage.reset()
+	await conversation.reset()
+	await embed.reset()
 	await agent.reset()
 	await aiProvider.reset()
 	await roles.reset()
@@ -41,9 +45,12 @@ export async function seed(): Promise<SeedResult | null> {
 		})
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:manage", userId: granted.id })
 		await rolesService.grantPermission({ grantedBy: admin.id, permission: "agents:read", userId: viewer.id })
+		const providerBaseUrl = Bun.env.E2E_PROVIDER_URL
+		if (!providerBaseUrl) throw new Error("E2E_PROVIDER_URL is required to seed the test AI provider")
+		await aiProvider.seed(providerBaseUrl)
 		const { agentId } = await agent.seed()
-		const { publicToken } = await widget.seed(agentId)
-		return { operator: { username: TEST_USERS.granted, password: TEST_PASSWORD }, widgetToken: publicToken }
+		const { embedToken } = await embed.seed(agentId)
+		return { operator: { username: TEST_USERS.granted, password: TEST_PASSWORD }, embedToken }
 	}
 
 	return null

@@ -1,3 +1,4 @@
+import { APICallError } from "@ai-sdk/provider"
 import { describe, expect, it } from "bun:test"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
@@ -7,6 +8,7 @@ import {
 	createAiProviderService,
 	InvalidConfigurationError,
 	PermissionDeniedError,
+	ProviderContextLimitError,
 	RevisionConflictError,
 } from "./ai-provider.service.ts"
 import { createCredentialVault } from "./credential-vault.ts"
@@ -49,11 +51,12 @@ const input: SaveConfigurationInput = {
 	},
 }
 
-function createMemoryService(authorized = true) {
+function createMemoryService(authorized = true, generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
 		authorize: async () => authorized,
 		vault: createCredentialVault(APP_SECRET),
+		generate,
 		discover: async () => ["model-a"],
 		repository: {
 			find: async () => stored,
@@ -158,5 +161,111 @@ describe("AI provider service", () => {
 
 		expect(models.text.modelId).toBe("gpt-5-mini")
 		expect(models.embedding.modelId).toBe("text-embedding-3-small")
+	})
+
+	it("streams only the configured text model with retries disabled and normalized usage", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "text", text: "Hello" } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				usage: { inputTokens: 5, outputTokens: 2 },
+			} as const
+		})
+		await service.saveConfiguration("user-1", input)
+		const controller = new AbortController()
+
+		const events = []
+		for await (const event of service.streamText({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 77,
+			timeoutMs: 9000,
+			signal: controller.signal,
+		})) {
+			events.push(event)
+		}
+
+		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal: controller.signal })
+		expect(call?.model).toMatchObject({ modelId: "gpt-5-mini" })
+		expect(events).toEqual([
+			{ type: "start", provider: "openai", model: "gpt-5-mini" },
+			{ type: "text", text: "Hello" },
+			{
+				type: "finish",
+				outcome: "completed",
+				usage: { inputTokens: 5, outputTokens: 2 },
+				provider: "openai",
+				model: "gpt-5-mini",
+			},
+		])
+	})
+
+	it("passes the system prompt as AI SDK instructions instead of a model message", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		await Array.fromAsync(
+			service.streamText({
+				messages: [
+					{ role: "system", content: "Answer as the configured agent." },
+					{ role: "user", content: "Hi" },
+				],
+				maxOutputTokens: 10,
+				timeoutMs: 1000,
+				signal: new AbortController().signal,
+			}),
+		)
+
+		expect(call).toMatchObject({
+			instructions: "Answer as the configured agent.",
+			messages: [{ role: "user", content: "Hi" }],
+		})
+	})
+
+	it("does not instantiate the configured embedding model for text generation", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		await Array.fromAsync(
+			service.streamText({
+				messages: [{ role: "user", content: "Hi" }],
+				maxOutputTokens: 10,
+				timeoutMs: 1000,
+				signal: new AbortController().signal,
+			}),
+		)
+	})
+
+	it("normalizes provider context-window rejections without exposing their body", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message: "maximum context length exceeded: sensitive provider body",
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody: '{"code":"context_length_exceeded"}',
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		await expect(
+			Array.fromAsync(
+				service.streamText({
+					messages: [{ role: "user", content: "Hi" }],
+					maxOutputTokens: 10,
+					timeoutMs: 1000,
+					signal: new AbortController().signal,
+				}),
+			),
+		).rejects.toBeInstanceOf(ProviderContextLimitError)
 	})
 })

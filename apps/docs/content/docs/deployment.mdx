@@ -11,4 +11,20 @@ Set `APP_SECRET` before running database migrations or starting the API. The API
 openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
 ```
 
-Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes stored provider credentials unusable, and the credentials must be entered again after replacing it.
+Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes stored provider credentials unusable, and the credentials must be entered again after replacing it. Changing it also invalidates pending first-message bootstrap recovery, but already issued chat bearer credentials remain hash-verifiable.
+
+## End-user chat policy
+
+| Variable                                       | Default  | Purpose                                                                |
+| ---------------------------------------------- | -------- | ---------------------------------------------------------------------- |
+| `TALQO_CHAT_DAILY_MESSAGE_LIMIT`               | `100`    | Accepted questions per agent and normalized client network per UTC day |
+| `TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP` | `2`      | Active generations per agent and normalized client network             |
+| `TALQO_CHAT_MAX_INPUT_CHARACTERS`              | `400000` | Unicode code-point limit for the complete model input                  |
+| `TALQO_CHAT_MAX_OUTPUT_TOKENS`                 | `16384`  | Provider output ceiling                                                |
+| `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS`        | `120`    | Maximum model-call duration                                            |
+| `TALQO_TRUSTED_PROXY_CIDRS`                    | Empty    | Comma-separated proxy networks whose forwarding metadata is trusted    |
+| `TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH`          | `64`     | IPv6 network prefix used for allowance and concurrency identity        |
+
+The API rejects invalid values at startup. These controls apply per agent/network, not deployment-wide, and do not implement billing or token quotas.
+
+Configure `TALQO_TRUSTED_PROXY_CIDRS` only for proxies that actually terminate client connections. With no trusted proxy CIDRs, Talqo uses the direct peer address and ignores forwarding headers. Native IPv6 clients share a `/64` by default; this resists temporary-address churn but can make visitors on the same network share an allowance. A narrower grouping such as `/128` reduces sharing and increases bypass risk.

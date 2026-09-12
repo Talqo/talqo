@@ -33,7 +33,6 @@ import type { ProblemAgentFileNotFoundOrAgentNotFound } from "../models/agent/pr
 import type { ProblemAgentInUse } from "../models/agent/problemAgentInUse.zod"
 import type { ProblemAgentInvalidOrInvalidRequestOrMalformedJson } from "../models/agent/problemAgentInvalidOrInvalidRequestOrMalformedJson.zod"
 import type { ProblemAgentNameTaken } from "../models/agent/problemAgentNameTaken.zod"
-import type { RefreshEmbedToken200 } from "../models/agent/refreshEmbedToken200.zod"
 import type { RenameAgentFile200 } from "../models/agent/renameAgentFile200.zod"
 import type { RenameAgentFileBody } from "../models/agent/renameAgentFileBody.zod"
 import type { UpdateAgent200 } from "../models/agent/updateAgent200.zod"
@@ -283,16 +282,8 @@ export const createAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getCreateAgentUrl(), {
 		credentials: "include",
@@ -652,16 +643,8 @@ export const updateAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getUpdateAgentUrl(agentId), {
 		credentials: "include",
@@ -900,156 +883,6 @@ export const useDeleteAgent = <
 	queryClient?: QueryClient,
 ): UseMutationResult<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
 	return useMutation(getDeleteAgentMutationOptions(options), queryClient)
-}
-export type refreshEmbedTokenResponse200 = {
-	data: RefreshEmbedToken200
-	status: 200
-}
-
-export type refreshEmbedTokenResponse401 = {
-	data: ProblemAuthenticationRequired
-	status: 401
-}
-
-export type refreshEmbedTokenResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
-	status: 403
-}
-
-export type refreshEmbedTokenResponse404 = {
-	data: ProblemAgentNotFound
-	status: 404
-}
-
-export type refreshEmbedTokenResponse500 = {
-	data: ProblemInternalServerError
-	status: 500
-}
-
-export type refreshEmbedTokenResponseSuccess = refreshEmbedTokenResponse200 & {
-	headers: Headers
-}
-export type refreshEmbedTokenResponseError = (
-	| refreshEmbedTokenResponse401
-	| refreshEmbedTokenResponse403
-	| refreshEmbedTokenResponse404
-	| refreshEmbedTokenResponse500
-) & {
-	headers: Headers
-}
-
-export const getRefreshEmbedTokenUrl = (agentId: string) => {
-	return `/api/agents/${agentId}/embed-token/refresh`
-}
-
-export const refreshEmbedToken = async (
-	agentId: string,
-	options?: RequestInit,
-): Promise<refreshEmbedTokenResponseSuccess> => {
-	const res = await fetch(getRefreshEmbedTokenUrl(agentId), {
-		credentials: "include",
-		...options,
-		method: "POST",
-	})
-
-	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-	if (!res.ok) {
-		const err: globalThis.Error & { info?: refreshEmbedTokenResponseError["data"]; status?: number } =
-			new globalThis.Error()
-		const data: refreshEmbedTokenResponseError["data"] = body ? JSON.parse(body) : {}
-		err.info = data
-		err.status = res.status
-		throw err
-	}
-	const data: refreshEmbedTokenResponseSuccess["data"] = body ? JSON.parse(body) : {}
-	return { data, status: res.status, headers: res.headers } as refreshEmbedTokenResponseSuccess
-}
-
-export const getRefreshEmbedTokenMutationKey = () => ["refreshEmbedToken"] as const
-
-export const getRefreshEmbedTokenMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
-	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof refreshEmbedToken>>,
-		TError,
-		RefreshEmbedTokenMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationOptions<
-	Awaited<ReturnType<typeof refreshEmbedToken>>,
-	TError,
-	RefreshEmbedTokenMutationVariables,
-	TContext
-> => {
-	const mutationKey = getRefreshEmbedTokenMutationKey()
-	const { mutation: mutationOptions, fetch: fetchOptions } = options
-		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
-			? options
-			: { ...options, mutation: { ...options.mutation, mutationKey } }
-		: { mutation: { mutationKey }, fetch: undefined }
-
-	const mutationFn: MutationFunction<
-		Awaited<ReturnType<typeof refreshEmbedToken>>,
-		RefreshEmbedTokenMutationVariables
-	> = (props) => {
-		const { agentId } = props ?? {}
-
-		return refreshEmbedToken(agentId, fetchOptions)
-	}
-
-	return { mutationFn, ...mutationOptions }
-}
-
-export type RefreshEmbedTokenMutationResult = NonNullable<Awaited<ReturnType<typeof refreshEmbedToken>>>
-
-export type RefreshEmbedTokenMutationError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemInternalServerError
-	status?: number
-}
-export type RefreshEmbedTokenMutationVariables = { agentId: string }
-
-export const useRefreshEmbedToken = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
-	TContext = unknown,
->(
-	options?: {
-		mutation?: UseMutationOptions<
-			Awaited<ReturnType<typeof refreshEmbedToken>>,
-			TError,
-			RefreshEmbedTokenMutationVariables,
-			TContext
-		>
-		fetch?: RequestInit
-	},
-	queryClient?: QueryClient,
-): UseMutationResult<
-	Awaited<ReturnType<typeof refreshEmbedToken>>,
-	TError,
-	RefreshEmbedTokenMutationVariables,
-	TContext
-> => {
-	return useMutation(getRefreshEmbedTokenMutationOptions(options), queryClient)
 }
 export type listAgentFilesResponse200 = {
 	data: ListAgentFiles200
@@ -1507,16 +1340,8 @@ export const renameAgentFile = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Symbol.iterator in h) {
-			return Object.fromEntries(
-				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-			)
-		}
-		const headers: Record<string, string | readonly string[]> = {}
-		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-			if (value !== undefined) headers[name] = value
-		}
-		return headers
+		if (Array.isArray(h)) return Object.fromEntries(h)
+		return h
 	}
 	const res = await fetch(getRenameAgentFileUrl(agentId, fileName), {
 		credentials: "include",

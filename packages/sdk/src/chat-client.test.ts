@@ -1,12 +1,6 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
 
-import {
-	createChatClient,
-	MissingChatTransportError,
-	type ChatConfiguration,
-	type ChatEvent,
-	type ChatTransport,
-} from "./index"
+import { createChatClient, type ChatConfiguration, type ChatEvent, type ChatTransport } from "./index"
 import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from "./storage"
 
 const configuration: ChatConfiguration = {
@@ -44,9 +38,40 @@ function baseTransport(overrides: Partial<ChatTransport> = {}): ChatTransport {
 }
 
 describe("createChatClient", () => {
-	test("constructs without side effects and reports a deliberately missing transport", async () => {
+	test("constructs without side effects and uses the production transport by default", async () => {
 		let storageReads = 0
 		let randomCalls = 0
+		using fetchSpy = spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					version: 1,
+					name: "Support",
+					appearance: {
+						light: {
+							primary: "#111111",
+							textOnPrimary: "#ffffff",
+							background: "#ffffff",
+							surface: "#eeeeee",
+							text: "#111111",
+						},
+						dark: {
+							primary: "#eeeeee",
+							textOnPrimary: "#111111",
+							background: "#111111",
+							surface: "#222222",
+							text: "#ffffff",
+						},
+						position: "bottom-right",
+						theme: "system",
+						themeToggle: true,
+						language: "en",
+					},
+				}),
+				{
+					headers: { "Content-Type": "application/json" },
+				},
+			),
+		)
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -66,7 +91,10 @@ describe("createChatClient", () => {
 
 		expect(storageReads).toBe(0)
 		expect(randomCalls).toBe(0)
-		await expect(client.initialize()).rejects.toBeInstanceOf(MissingChatTransportError)
+		expect(fetchSpy).not.toHaveBeenCalled()
+		await client.initialize()
+		expect(fetchSpy).toHaveBeenCalledTimes(1)
+		expect(client.getSnapshot().configuration?.title).toBe("Support")
 	})
 
 	test("initializes configuration and restores server history from a stored credential", async () => {

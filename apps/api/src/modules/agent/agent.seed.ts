@@ -9,7 +9,7 @@ const SEED_AGENT_PROMPT =
 const SEED_AGENT_BLACKLIST = ["Intercom", "Zendesk"] as const
 
 export async function reset(): Promise<void> {
-	// Dependents first, and CASCADE because `widget` also references `agent`.
+	// Dependents first, and CASCADE because `embed` also references `agent`.
 	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
 }
 

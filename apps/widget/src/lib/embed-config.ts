@@ -1,7 +1,5 @@
 import type { WidgetAppearanceInput, WidgetSchemeInput } from "@talqo/shared/widget-appearance"
 
-import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
-
 function definedEntries(overrides: Record<string, unknown>): Record<string, unknown> {
 	return Object.fromEntries(Object.entries(overrides).filter(([, value]) => value !== undefined))
 }
@@ -76,34 +74,5 @@ export function apiOrigin(script: HTMLScriptElement | null): string | undefined 
 		return script?.src ? new URL(script.src).origin : undefined
 	} catch {
 		return undefined
-	}
-}
-
-export function configUrl(origin: string, publicToken: string): string {
-	return `${origin}/api/widget-config/${encodeURIComponent(publicToken)}`
-}
-
-/** Unknown shapes yield no overrides, so a misbehaving endpoint degrades the widget to its defaults. */
-export function parseWidgetConfig(payload: unknown): {
-	agentId?: string
-	name?: string
-	appearance: WidgetAppearanceInput
-} {
-	if (typeof payload !== "object" || payload === null) {
-		return { appearance: {} }
-	}
-	const body = payload as { agentId?: unknown; appearance?: unknown; name?: unknown; version?: unknown }
-	if (
-		body.version !== WIDGET_CONFIG_VERSION ||
-		typeof body.appearance !== "object" ||
-		body.appearance === null ||
-		Array.isArray(body.appearance)
-	) {
-		return { appearance: {} }
-	}
-	return {
-		agentId: typeof body.agentId === "string" ? body.agentId : undefined,
-		name: typeof body.name === "string" ? body.name : undefined,
-		appearance: body.appearance as WidgetAppearanceInput,
 	}
 }

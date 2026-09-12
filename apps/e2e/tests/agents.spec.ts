@@ -14,7 +14,7 @@ async function logIn(page: Page, account: { password: string; username: string }
 	await expect(page).toHaveURL("/dashboard")
 }
 
-test("manager creates, configures, embeds, and deletes an agent through the real API", async ({ page }) => {
+test("manager creates, configures, and deletes an agent through the real API", async ({ page }) => {
 	await logIn(page, OPERATOR)
 
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
@@ -42,14 +42,7 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
 
-	const tokenInput = page.getByLabel("Embed token", { exact: true })
-	const firstToken = await tokenInput.inputValue()
-	expect(firstToken).toMatch(/^[0-9a-f-]{36}$/)
-	await page.getByRole("button", { name: "Refresh token" }).click()
-	const refreshDialog = page.getByRole("dialog")
-	await expect(refreshDialog.getByText(/stops working/)).toBeVisible()
-	await refreshDialog.getByRole("button", { name: "Refresh token" }).click()
-	await expect(tokenInput).not.toHaveValue(firstToken)
+	await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 
 	await page.getByRole("link", { name: "Analytics", exact: true }).click()
 	await page.getByRole("combobox", { name: "Select an agent" }).click()
@@ -87,14 +80,13 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(page.getByLabel("Name")).toBeDisabled()
 	await expect(page.getByLabel("System prompt")).toBeDisabled()
 	await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
-	await expect(page.getByLabel("Embed token", { exact: true })).toBeVisible()
+	await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
-	await expect(page.getByRole("button", { name: "Refresh token" })).toHaveCount(0)
 	await expect(page.getByText("Danger zone")).toHaveCount(0)
 
-	// Widgets ride on the same permission, so their controls must disappear too.
-	await page.getByRole("tab", { name: "Widgets" }).click()
-	await expect(page.getByRole("button", { name: "New widget" })).toHaveCount(0)
+	// Embeds ride on the same permission, so their controls must disappear too.
+	await page.getByRole("tab", { name: "Embeds" }).click()
+	await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
 	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
 
 	await expect(page.getByLabel("Name")).toBeDisabled()

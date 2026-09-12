@@ -1,0 +1,77 @@
+---
+title: Embed and chat integration
+description: Configure the widget or stateful browser SDK for public end-user chat.
+---
+
+## Terminology and availability
+
+An **embed** is a public integration configuration. It selects one agent and owns its appearance, public embed token, and access version. The **widget** is Talqo's pre-built UI for an embed. The embed token is visible in the host page and is not a visitor credential.
+
+The public chat API, SDK fetch transport, and production widget integration are implemented. The workspace package `@talqo/sdk` remains private, so use it within this repository and do not present it as an npm installation until a separate publishing decision is made.
+
+## Widget snippet
+
+Create an embed in the dashboard and use the generated snippet. Its canonical shape is:
+
+```html
+<script
+	src="https://your-widget-host/widget.js"
+	data-talqo-embed-token="your-embed-token"
+	data-talqo-api="https://your-talqo-api"
+></script>
+```
+
+Omit `data-talqo-api` when `widget.js` and the API share an origin. New integrations use `data-talqo-embed-token`. Existing `data-talqo-widget` snippets and `/api/widget-config/:token` configuration requests remain compatibility paths, but agent-level embed tokens are not supported.
+
+Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
+
+## SDK lifecycle
+
+Workspace consumers create one client for an API origin and embed token. The built-in fetch transport is used by default; `transport` remains injectable for specialized environments and tests:
+
+```ts
+import { createChatClient } from "@talqo/sdk"
+
+const chat = createChatClient({
+	apiUrl: "https://your-talqo-api",
+	embedToken: "your-embed-token",
+})
+
+const unsubscribe = chat.subscribe(() => render(chat.getSnapshot()))
+
+await chat.initialize()
+await chat.sendMessage("How can I get started?")
+
+// These preserve server-side history.
+await chat.cancelResponse()
+await chat.startNewChat()
+
+unsubscribe()
+chat.dispose()
+```
+
+Construction performs no network work. `initialize()` loads embed configuration and restores server history if storage contains a valid bearer credential. The snapshot owns messages, streaming/generation state, structured errors, recovery, and persistence status; UI code owns rendering, drafts, focus, and localization.
+
+By default, the SDK lazily uses host-page `localStorage`, keyed by API origin and embed token. Supply `createMemoryStorage()` or another `AsyncStorage` adapter when persistence is inappropriate. If persistent storage fails, the client falls back to memory and cannot promise reload recovery. Host-page scripts can read local storage, so the widget does not protect credentials from a compromised host page.
+
+The transport maps the API-owned OpenAPI contracts under `/api/embed-config/:embedToken` and `/api/chat`. First send, bootstrap recovery, and bootstrap cancellation include the embed token in the path. History, later sends, attempt recovery, and normal cancellation send the private credential as `Authorization: Bearer <credential>`. Message sends consume the `POST` response body as a stream rather than buffering it as JSON.
+
+## Chat behavior
+
+Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge, create embeddings, or call MCP tools. Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
+
+Streaming uses versioned JSON events in SSE framing over a POST response consumed with fetch. It is not browser `EventSource`. Session history and subsequent sends require the private bearer credential; the public embed token alone cannot read a conversation.
+
+## Limits and network identity
+
+The API enforces a daily accepted-question allowance and concurrent-generation cap independently for each agent and normalized client network. All embeds and sessions for that agent share the network allowance. This is not a billing quota, token allowance, deployment-wide pool, DDoS defense, or reliable count of people.
+
+IPv4 uses the full address, IPv4-mapped IPv6 shares the IPv4 identity, and native IPv6 defaults to a `/64` network. A `/64` reduces bypass through temporary IPv6 addresses but can group unrelated visitors behind one network; `/128` separates addresses more narrowly and is easier to bypass. Forwarded addresses are trusted only through configured proxy CIDRs. An incorrect trusted-proxy configuration can group clients incorrectly or make chat unavailable.
+
+## Rotation, retention, and deletion
+
+Rotating an embed token has no overlap period. Update installed snippets immediately. Rotation increments `accessVersion`, so the old token cannot fetch configuration or start chat and sessions created under the old version lose access. Reassigning or deleting an embed also revokes its sessions. These operations retain conversations and usage and cannot undo provider work already dispatched.
+
+Talqo otherwise retains chat history and usage without automatic expiry. Deleting an agent permanently deletes its conversations, sessions, attempts, messages, network counters, and usage. Attached embeds must be deleted or reassigned before the agent can be deleted.
+
+Usage stores unified numeric input and output token counts for each actual model-call attempt. Talqo uses valid provider counts when available and approximates a missing side from the complete input or observed output. Counts include the system prompt and resent completed history on every call, can undercount unobserved cancelled output or hidden reasoning, and are not invoice reconciliation.
