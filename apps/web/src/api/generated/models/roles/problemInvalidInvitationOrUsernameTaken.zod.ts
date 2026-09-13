@@ -6,16 +6,10 @@
  */
 import * as zod from "zod"
 
-export const ProblemInvalidInvitationOrUsernameTaken = zod.union([
-	zod.object({
-		code: zod.enum(["invalid-invitation"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-invitation"]),
-	}),
-	zod.object({
-		code: zod.enum(["username-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
-	}),
-])
+import { ProblemUsernameTaken } from "../problemUsernameTaken.zod"
+import { ProblemInvalidInvitation } from "./problemInvalidInvitation.zod"
+
+export const ProblemInvalidInvitationOrUsernameTaken = zod.union([ProblemInvalidInvitation, ProblemUsernameTaken])
 
 export type ProblemInvalidInvitationOrUsernameTaken = zod.input<typeof ProblemInvalidInvitationOrUsernameTaken>
 export type ProblemInvalidInvitationOrUsernameTakenOutput = zod.output<typeof ProblemInvalidInvitationOrUsernameTaken>

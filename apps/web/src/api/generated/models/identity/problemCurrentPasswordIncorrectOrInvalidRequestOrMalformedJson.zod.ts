@@ -6,19 +6,14 @@
  */
 import * as zod from "zod"
 
+import { ProblemInvalidRequest } from "../problemInvalidRequest.zod"
+import { ProblemMalformedJson } from "../problemMalformedJson.zod"
+import { ProblemCurrentPasswordIncorrect } from "./problemCurrentPasswordIncorrect.zod"
+
 export const ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson = zod.union([
-	zod.object({
-		code: zod.enum(["current-password-incorrect"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-request"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-	}),
-	zod.object({
-		code: zod.enum(["malformed-json"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-	}),
+	ProblemCurrentPasswordIncorrect,
+	ProblemInvalidRequest,
+	ProblemMalformedJson,
 ])
 
 export type ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson = zod.input<

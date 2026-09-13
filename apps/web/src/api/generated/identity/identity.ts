@@ -24,7 +24,6 @@ import type { LoginBody } from "../models/identity/loginBody.zod"
 import type { ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson } from "../models/identity/problemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson.zod"
 import type { ProblemInvalidCredentials } from "../models/identity/problemInvalidCredentials.zod"
 import type { ProblemPasswordChangeNotRequired } from "../models/identity/problemPasswordChangeNotRequired.zod"
-import type { ProblemUsernameTaken } from "../models/identity/problemUsernameTaken.zod"
 import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
 import type { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
 import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
@@ -32,6 +31,7 @@ import type { ProblemInternalServerError } from "../models/problemInternalServer
 import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
 import type { ProblemPasswordChangeRequired } from "../models/problemPasswordChangeRequired.zod"
 import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
+import type { ProblemUsernameTaken } from "../models/problemUsernameTaken.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 

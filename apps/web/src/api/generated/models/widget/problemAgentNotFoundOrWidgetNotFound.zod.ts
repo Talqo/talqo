@@ -6,16 +6,10 @@
  */
 import * as zod from "zod"
 
-export const ProblemAgentNotFoundOrWidgetNotFound = zod.union([
-	zod.object({
-		code: zod.enum(["agent-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["widget-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#widget-not-found"]),
-	}),
-])
+import { ProblemAgentNotFound } from "../problemAgentNotFound.zod"
+import { ProblemWidgetNotFound } from "./problemWidgetNotFound.zod"
+
+export const ProblemAgentNotFoundOrWidgetNotFound = zod.union([ProblemAgentNotFound, ProblemWidgetNotFound])
 
 export type ProblemAgentNotFoundOrWidgetNotFound = zod.input<typeof ProblemAgentNotFoundOrWidgetNotFound>
 export type ProblemAgentNotFoundOrWidgetNotFoundOutput = zod.output<typeof ProblemAgentNotFoundOrWidgetNotFound>

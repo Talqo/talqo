@@ -6,15 +6,12 @@
  */
 import * as zod from "zod"
 
+import { ProblemPasswordChangeRequired } from "../problemPasswordChangeRequired.zod"
+import { ProblemAdminAccessRequired } from "./problemAdminAccessRequired.zod"
+
 export const ProblemAdminAccessRequiredOrPasswordChangeRequired = zod.union([
-	zod.object({
-		code: zod.enum(["admin-access-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
-	}),
-	zod.object({
-		code: zod.enum(["password-change-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#password-change-required"]),
-	}),
+	ProblemAdminAccessRequired,
+	ProblemPasswordChangeRequired,
 ])
 
 export type ProblemAdminAccessRequiredOrPasswordChangeRequired = zod.input<

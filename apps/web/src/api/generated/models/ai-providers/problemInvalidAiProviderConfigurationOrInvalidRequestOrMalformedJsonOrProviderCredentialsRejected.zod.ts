@@ -6,24 +6,17 @@
  */
 import * as zod from "zod"
 
+import { ProblemInvalidRequest } from "../problemInvalidRequest.zod"
+import { ProblemMalformedJson } from "../problemMalformedJson.zod"
+import { ProblemInvalidAiProviderConfiguration } from "./problemInvalidAiProviderConfiguration.zod"
+import { ProblemProviderCredentialsRejected } from "./problemProviderCredentialsRejected.zod"
+
 export const ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected =
 	zod.union([
-		zod.object({
-			code: zod.enum(["invalid-ai-provider-configuration"]),
-			type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
-		}),
-		zod.object({
-			code: zod.enum(["invalid-request"]),
-			type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-		}),
-		zod.object({
-			code: zod.enum(["malformed-json"]),
-			type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-		}),
-		zod.object({
-			code: zod.enum(["provider-credentials-rejected"]),
-			type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
-		}),
+		ProblemInvalidAiProviderConfiguration,
+		ProblemInvalidRequest,
+		ProblemMalformedJson,
+		ProblemProviderCredentialsRejected,
 	])
 
 export type ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected =

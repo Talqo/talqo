@@ -6,19 +6,14 @@
  */
 import * as zod from "zod"
 
+import { ProblemInvalidRequest } from "../problemInvalidRequest.zod"
+import { ProblemMalformedJson } from "../problemMalformedJson.zod"
+import { ProblemSelfPasswordResetNotAllowed } from "./problemSelfPasswordResetNotAllowed.zod"
+
 export const ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed = zod.union([
-	zod.object({
-		code: zod.enum(["invalid-request"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-	}),
-	zod.object({
-		code: zod.enum(["malformed-json"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-	}),
-	zod.object({
-		code: zod.enum(["self-password-reset-not-allowed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
-	}),
+	ProblemInvalidRequest,
+	ProblemMalformedJson,
+	ProblemSelfPasswordResetNotAllowed,
 ])
 
 export type ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed = zod.input<

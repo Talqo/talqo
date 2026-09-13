@@ -294,17 +294,19 @@ describe("api", () => {
 		expect(new Set(operationIds).size).toBe(operationIds.length)
 		expect(operationIds.every((operationId) => operationId.length > 0)).toBe(true)
 
-		const problemSchema = document.components?.schemas?.ProblemDetails as {
-			oneOf?: Array<{
-				additionalProperties?: boolean
-				properties?: { code?: { const?: string; enum?: string[] }; type?: { const?: string; enum?: string[] } }
-			}>
-		}
+		const schemas = document.components?.schemas ?? {}
+		const problemSchema = schemas.ProblemDetails as { oneOf?: Array<{ $ref?: string }> }
 		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
-		for (const schema of problemSchema.oneOf ?? []) {
+		for (const reference of problemSchema.oneOf ?? []) {
+			const name = reference.$ref?.replace("#/components/schemas/", "") ?? ""
+			const schema = schemas[name] as {
+				additionalProperties?: boolean
+				properties?: { code?: { enum?: string[] }; type?: { enum?: string[] } }
+			}
+			expect(reference.$ref).toStartWith("#/components/schemas/Problem")
 			expect(schema.additionalProperties).toBe(false)
-			const code = schema.properties?.code?.const ?? schema.properties?.code?.enum?.[0]
-			const type = schema.properties?.type?.const ?? schema.properties?.type?.enum?.[0]
+			const code = schema.properties?.code?.enum?.[0]
+			const type = schema.properties?.type?.enum?.[0]
 			expect(type).toBe(`https://docs.talqo.chat/problems#${code}`)
 		}
 
@@ -317,26 +319,10 @@ describe("api", () => {
 		}
 		const loginProblemRef = loginBadRequest.content?.["application/problem+json"]?.schema?.$ref
 		expect(loginProblemRef).toBe("#/components/schemas/ProblemInvalidRequestOrMalformedJson")
-		const loginProblems =
-			(
-				document.components?.schemas?.ProblemInvalidRequestOrMalformedJson as
-					| {
-							oneOf?: Array<{
-								properties?: {
-									code?: { const?: string; enum?: string[] }
-									type?: { const?: string; enum?: string[] }
-								}
-							}>
-					  }
-					| undefined
-			)?.oneOf ?? []
-		const loginProblemCodes = loginProblems.map(
-			(schema) => schema.properties?.code?.const ?? schema.properties?.code?.enum?.[0],
-		)
-		expect(loginProblemCodes).toEqual(expect.arrayContaining(["invalid-request", "malformed-json"]))
-		expect(loginProblems).not.toBeEmpty()
-		expect(loginProblems.map((schema) => schema.properties?.type?.const ?? schema.properties?.type?.enum?.[0])).toEqual(
-			loginProblemCodes.map((code) => `https://docs.talqo.chat/problems#${code}`),
-		)
+		const loginProblems = schemas.ProblemInvalidRequestOrMalformedJson as { oneOf?: Array<{ $ref?: string }> }
+		expect(loginProblems.oneOf?.map((schema) => schema.$ref)).toEqual([
+			"#/components/schemas/ProblemInvalidRequest",
+			"#/components/schemas/ProblemMalformedJson",
+		])
 	})
 })

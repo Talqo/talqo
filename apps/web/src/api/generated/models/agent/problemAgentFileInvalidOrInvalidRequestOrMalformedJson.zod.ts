@@ -6,19 +6,14 @@
  */
 import * as zod from "zod"
 
+import { ProblemInvalidRequest } from "../problemInvalidRequest.zod"
+import { ProblemMalformedJson } from "../problemMalformedJson.zod"
+import { ProblemAgentFileInvalid } from "./problemAgentFileInvalid.zod"
+
 export const ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson = zod.union([
-	zod.object({
-		code: zod.enum(["agent-file-invalid"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-invalid"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-request"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-	}),
-	zod.object({
-		code: zod.enum(["malformed-json"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-	}),
+	ProblemAgentFileInvalid,
+	ProblemInvalidRequest,
+	ProblemMalformedJson,
 ])
 
 export type ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson = zod.input<

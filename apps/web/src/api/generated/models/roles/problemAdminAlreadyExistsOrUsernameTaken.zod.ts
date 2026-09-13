@@ -6,16 +6,10 @@
  */
 import * as zod from "zod"
 
-export const ProblemAdminAlreadyExistsOrUsernameTaken = zod.union([
-	zod.object({
-		code: zod.enum(["admin-already-exists"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
-	}),
-	zod.object({
-		code: zod.enum(["username-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
-	}),
-])
+import { ProblemUsernameTaken } from "../problemUsernameTaken.zod"
+import { ProblemAdminAlreadyExists } from "./problemAdminAlreadyExists.zod"
+
+export const ProblemAdminAlreadyExistsOrUsernameTaken = zod.union([ProblemAdminAlreadyExists, ProblemUsernameTaken])
 
 export type ProblemAdminAlreadyExistsOrUsernameTaken = zod.input<typeof ProblemAdminAlreadyExistsOrUsernameTaken>
 export type ProblemAdminAlreadyExistsOrUsernameTakenOutput = zod.output<typeof ProblemAdminAlreadyExistsOrUsernameTaken>

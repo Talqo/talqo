@@ -6,19 +6,14 @@
  */
 import * as zod from "zod"
 
+import { ProblemModelDiscoveryUnsupported } from "./problemModelDiscoveryUnsupported.zod"
+import { ProblemProviderError } from "./problemProviderError.zod"
+import { ProblemProviderUnreachable } from "./problemProviderUnreachable.zod"
+
 export const ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable = zod.union([
-	zod.object({
-		code: zod.enum(["model-discovery-unsupported"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-error"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-error"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-unreachable"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-unreachable"]),
-	}),
+	ProblemModelDiscoveryUnsupported,
+	ProblemProviderError,
+	ProblemProviderUnreachable,
 ])
 
 export type ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable = zod.input<
