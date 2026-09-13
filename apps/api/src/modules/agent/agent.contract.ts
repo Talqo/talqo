@@ -1,4 +1,4 @@
-import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
@@ -76,6 +76,7 @@ export const createAgentRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		409: problemResponse([PROBLEM_CODES.AGENT_NAME_TAKEN]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -113,6 +114,7 @@ export const updateAgentRoute = createRoute({
 		403: forbidden,
 		404: agentNotFound,
 		409: problemResponse([PROBLEM_CODES.AGENT_NAME_TAKEN]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })

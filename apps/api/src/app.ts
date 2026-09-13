@@ -34,6 +34,7 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 	name: "session",
 	type: "apiKey",
 })
+app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
 app.use("*", rejectOversizedBody)

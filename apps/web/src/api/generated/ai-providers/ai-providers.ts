@@ -17,30 +17,20 @@ import type {
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { DiscoverAiProviderModels200 } from "../models/ai-providers/discoverAiProviderModels200.zod"
-import type { DiscoverAiProviderModels400 } from "../models/ai-providers/discoverAiProviderModels400.zod"
-import type { DiscoverAiProviderModels401 } from "../models/ai-providers/discoverAiProviderModels401.zod"
-import type { DiscoverAiProviderModels403 } from "../models/ai-providers/discoverAiProviderModels403.zod"
-import type { DiscoverAiProviderModels413 } from "../models/ai-providers/discoverAiProviderModels413.zod"
-import type { DiscoverAiProviderModels429 } from "../models/ai-providers/discoverAiProviderModels429.zod"
-import type { DiscoverAiProviderModels500 } from "../models/ai-providers/discoverAiProviderModels500.zod"
-import type { DiscoverAiProviderModels502 } from "../models/ai-providers/discoverAiProviderModels502.zod"
 import type { DiscoverAiProviderModelsBody } from "../models/ai-providers/discoverAiProviderModelsBody.zod"
 import type { GetAiProviderConfiguration200 } from "../models/ai-providers/getAiProviderConfiguration200.zod"
-import type { GetAiProviderConfiguration401 } from "../models/ai-providers/getAiProviderConfiguration401.zod"
-import type { GetAiProviderConfiguration403 } from "../models/ai-providers/getAiProviderConfiguration403.zod"
-import type { GetAiProviderConfiguration500 } from "../models/ai-providers/getAiProviderConfiguration500.zod"
 import type { ListAiProviders200 } from "../models/ai-providers/listAiProviders200.zod"
-import type { ListAiProviders401 } from "../models/ai-providers/listAiProviders401.zod"
-import type { ListAiProviders403 } from "../models/ai-providers/listAiProviders403.zod"
-import type { ListAiProviders500 } from "../models/ai-providers/listAiProviders500.zod"
+import type { ProblemConfigurationConflict } from "../models/ai-providers/problemConfigurationConflict.zod"
+import type { ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson } from "../models/ai-providers/problemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson.zod"
+import type { ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected } from "../models/ai-providers/problemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected.zod"
+import type { ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable } from "../models/ai-providers/problemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable.zod"
+import type { ProblemProviderRateLimited } from "../models/ai-providers/problemProviderRateLimited.zod"
 import type { SaveAiProviderConfiguration200 } from "../models/ai-providers/saveAiProviderConfiguration200.zod"
-import type { SaveAiProviderConfiguration400 } from "../models/ai-providers/saveAiProviderConfiguration400.zod"
-import type { SaveAiProviderConfiguration401 } from "../models/ai-providers/saveAiProviderConfiguration401.zod"
-import type { SaveAiProviderConfiguration403 } from "../models/ai-providers/saveAiProviderConfiguration403.zod"
-import type { SaveAiProviderConfiguration409 } from "../models/ai-providers/saveAiProviderConfiguration409.zod"
-import type { SaveAiProviderConfiguration413 } from "../models/ai-providers/saveAiProviderConfiguration413.zod"
-import type { SaveAiProviderConfiguration500 } from "../models/ai-providers/saveAiProviderConfiguration500.zod"
 import type { SaveAiProviderConfigurationBody } from "../models/ai-providers/saveAiProviderConfigurationBody.zod"
+import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
+import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
+import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
+import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -67,17 +57,17 @@ export type listAiProvidersResponse200 = {
 }
 
 export type listAiProvidersResponse401 = {
-	data: ListAiProviders401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type listAiProvidersResponse403 = {
-	data: ListAiProviders403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type listAiProvidersResponse500 = {
-	data: ListAiProviders500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -122,7 +112,10 @@ export const getListAiProvidersQueryKey = () => {
 
 export const getListAiProvidersQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAiProviders>>,
-	TError = globalThis.Error & { info?: ListAiProviders401 | ListAiProviders403 | ListAiProviders500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
 	fetch?: RequestInit
@@ -143,13 +136,16 @@ export const getListAiProvidersQueryOptions = <
 
 export type ListAiProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof listAiProviders>>>
 export type ListAiProvidersQueryError = globalThis.Error & {
-	info?: ListAiProviders401 | ListAiProviders403 | ListAiProviders500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 	status?: number
 }
 
 export function useListAiProviders<
 	TData = Awaited<ReturnType<typeof listAiProviders>>,
-	TError = globalThis.Error & { info?: ListAiProviders401 | ListAiProviders403 | ListAiProviders500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
 	fetch?: RequestInit
@@ -167,17 +163,17 @@ export type getAiProviderConfigurationResponse200 = {
 }
 
 export type getAiProviderConfigurationResponse401 = {
-	data: GetAiProviderConfiguration401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type getAiProviderConfigurationResponse403 = {
-	data: GetAiProviderConfiguration403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type getAiProviderConfigurationResponse500 = {
-	data: GetAiProviderConfiguration500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -225,7 +221,7 @@ export const getGetAiProviderConfigurationQueryKey = () => {
 export const getGetAiProviderConfigurationQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
 	TError = globalThis.Error & {
-		info?: GetAiProviderConfiguration401 | GetAiProviderConfiguration403 | GetAiProviderConfiguration500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
 >(options?: {
@@ -248,14 +244,14 @@ export const getGetAiProviderConfigurationQueryOptions = <
 
 export type GetAiProviderConfigurationQueryResult = NonNullable<Awaited<ReturnType<typeof getAiProviderConfiguration>>>
 export type GetAiProviderConfigurationQueryError = globalThis.Error & {
-	info?: GetAiProviderConfiguration401 | GetAiProviderConfiguration403 | GetAiProviderConfiguration500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 	status?: number
 }
 
 export function useGetAiProviderConfiguration<
 	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
 	TError = globalThis.Error & {
-		info?: GetAiProviderConfiguration401 | GetAiProviderConfiguration403 | GetAiProviderConfiguration500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
 >(options?: {
@@ -275,32 +271,32 @@ export type saveAiProviderConfigurationResponse200 = {
 }
 
 export type saveAiProviderConfigurationResponse400 = {
-	data: SaveAiProviderConfiguration400
+	data: ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type saveAiProviderConfigurationResponse401 = {
-	data: SaveAiProviderConfiguration401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type saveAiProviderConfigurationResponse403 = {
-	data: SaveAiProviderConfiguration403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type saveAiProviderConfigurationResponse409 = {
-	data: SaveAiProviderConfiguration409
+	data: ProblemConfigurationConflict
 	status: 409
 }
 
 export type saveAiProviderConfigurationResponse413 = {
-	data: SaveAiProviderConfiguration413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type saveAiProviderConfigurationResponse500 = {
-	data: SaveAiProviderConfiguration500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -358,12 +354,12 @@ export const getSaveAiProviderConfigurationMutationKey = () => ["saveAiProviderC
 export const getSaveAiProviderConfigurationMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| SaveAiProviderConfiguration400
-			| SaveAiProviderConfiguration401
-			| SaveAiProviderConfiguration403
-			| SaveAiProviderConfiguration409
-			| SaveAiProviderConfiguration413
-			| SaveAiProviderConfiguration500
+			| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemConfigurationConflict
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -406,12 +402,12 @@ export type SaveAiProviderConfigurationMutationResult = NonNullable<
 export type SaveAiProviderConfigurationMutationBody = SaveAiProviderConfigurationBody
 export type SaveAiProviderConfigurationMutationError = globalThis.Error & {
 	info?:
-		| SaveAiProviderConfiguration400
-		| SaveAiProviderConfiguration401
-		| SaveAiProviderConfiguration403
-		| SaveAiProviderConfiguration409
-		| SaveAiProviderConfiguration413
-		| SaveAiProviderConfiguration500
+		| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemConfigurationConflict
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type SaveAiProviderConfigurationMutationVariables = { data: SaveAiProviderConfigurationBody }
@@ -419,12 +415,12 @@ export type SaveAiProviderConfigurationMutationVariables = { data: SaveAiProvide
 export const useSaveAiProviderConfiguration = <
 	TError = globalThis.Error & {
 		info?:
-			| SaveAiProviderConfiguration400
-			| SaveAiProviderConfiguration401
-			| SaveAiProviderConfiguration403
-			| SaveAiProviderConfiguration409
-			| SaveAiProviderConfiguration413
-			| SaveAiProviderConfiguration500
+			| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemConfigurationConflict
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -450,37 +446,37 @@ export type discoverAiProviderModelsResponse200 = {
 }
 
 export type discoverAiProviderModelsResponse400 = {
-	data: DiscoverAiProviderModels400
+	data: ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected
 	status: 400
 }
 
 export type discoverAiProviderModelsResponse401 = {
-	data: DiscoverAiProviderModels401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type discoverAiProviderModelsResponse403 = {
-	data: DiscoverAiProviderModels403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type discoverAiProviderModelsResponse413 = {
-	data: DiscoverAiProviderModels413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type discoverAiProviderModelsResponse429 = {
-	data: DiscoverAiProviderModels429
+	data: ProblemProviderRateLimited
 	status: 429
 }
 
 export type discoverAiProviderModelsResponse500 = {
-	data: DiscoverAiProviderModels500
+	data: ProblemInternalServerError
 	status: 500
 }
 
 export type discoverAiProviderModelsResponse502 = {
-	data: DiscoverAiProviderModels502
+	data: ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
 	status: 502
 }
 
@@ -539,13 +535,13 @@ export const getDiscoverAiProviderModelsMutationKey = () => ["discoverAiProvider
 export const getDiscoverAiProviderModelsMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| DiscoverAiProviderModels400
-			| DiscoverAiProviderModels401
-			| DiscoverAiProviderModels403
-			| DiscoverAiProviderModels413
-			| DiscoverAiProviderModels429
-			| DiscoverAiProviderModels500
-			| DiscoverAiProviderModels502
+			| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemPayloadTooLarge
+			| ProblemProviderRateLimited
+			| ProblemInternalServerError
+			| ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
 		status?: number
 	},
 	TContext = unknown,
@@ -586,13 +582,13 @@ export type DiscoverAiProviderModelsMutationResult = NonNullable<Awaited<ReturnT
 export type DiscoverAiProviderModelsMutationBody = DiscoverAiProviderModelsBody
 export type DiscoverAiProviderModelsMutationError = globalThis.Error & {
 	info?:
-		| DiscoverAiProviderModels400
-		| DiscoverAiProviderModels401
-		| DiscoverAiProviderModels403
-		| DiscoverAiProviderModels413
-		| DiscoverAiProviderModels429
-		| DiscoverAiProviderModels500
-		| DiscoverAiProviderModels502
+		| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemPayloadTooLarge
+		| ProblemProviderRateLimited
+		| ProblemInternalServerError
+		| ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
 	status?: number
 }
 export type DiscoverAiProviderModelsMutationVariables = { data: DiscoverAiProviderModelsBody }
@@ -600,13 +596,13 @@ export type DiscoverAiProviderModelsMutationVariables = { data: DiscoverAiProvid
 export const useDiscoverAiProviderModels = <
 	TError = globalThis.Error & {
 		info?:
-			| DiscoverAiProviderModels400
-			| DiscoverAiProviderModels401
-			| DiscoverAiProviderModels403
-			| DiscoverAiProviderModels413
-			| DiscoverAiProviderModels429
-			| DiscoverAiProviderModels500
-			| DiscoverAiProviderModels502
+			| ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemPayloadTooLarge
+			| ProblemProviderRateLimited
+			| ProblemInternalServerError
+			| ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
 		status?: number
 	},
 	TContext = unknown,
