@@ -13,12 +13,12 @@ export async function reset(): Promise<void> {
 	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
 }
 
-export async function seed(): Promise<{ agentId: string }> {
+export async function seed(name = SEED_AGENT_NAME): Promise<{ agentId: string }> {
 	const agentId = crypto.randomUUID()
 	await repo.insertWithWords(
 		{
 			id: agentId,
-			name: SEED_AGENT_NAME,
+			name,
 			systemPrompt: SEED_AGENT_PROMPT,
 		},
 		[...SEED_AGENT_BLACKLIST],

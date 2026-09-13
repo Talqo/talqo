@@ -24,6 +24,7 @@ import {
 	DailyAllowanceExceededError,
 	getConversationService,
 	InvalidChatInputError,
+	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
@@ -70,6 +71,8 @@ function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Res
 	}
 	if (error instanceof InvalidChatInputError)
 		return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+	if (error instanceof ProviderUnavailableError)
+		return problemResponse(c, PROBLEM_CODES.PROVIDER_ERROR, HTTP_STATUS.BAD_GATEWAY)
 	return undefined
 }
 

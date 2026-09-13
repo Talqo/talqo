@@ -27,15 +27,24 @@ test.beforeAll(async () => {
 	const unknownToken = template.replace("__TOKEN__", "not-a-real-token").replace("__API_ORIGIN__", apiOrigin)
 
 	server = createServer((req, res) => {
-		if (req.url === "/") {
-			res.writeHead(200, { "content-type": "text/html" }).end(configured)
+		const requestUrl = new URL(req.url ?? "/", "http://localhost")
+		if (requestUrl.pathname === "/") {
+			const perTestToken = requestUrl.searchParams.get("token")
+			res
+				.writeHead(200, { "content-type": "text/html" })
+				.end(
+					perTestToken ? template.replace("__TOKEN__", perTestToken).replace("__API_ORIGIN__", apiOrigin) : configured,
+				)
 			return
 		}
-		if (req.url === "/unknown-token") {
+		if (requestUrl.pathname === "/unknown-token") {
 			res.writeHead(200, { "content-type": "text/html" }).end(unknownToken)
 			return
 		}
-		const file = req.url === "/widget.js" || req.url === "/widget.css" ? path.join(DIST, req.url.slice(1)) : null
+		const file =
+			requestUrl.pathname === "/widget.js" || requestUrl.pathname === "/widget.css"
+				? path.join(DIST, requestUrl.pathname.slice(1))
+				: null
 		if (!file) {
 			res.writeHead(404).end()
 			return
@@ -58,6 +67,12 @@ test.beforeAll(async () => {
 
 test.afterAll(() => {
 	server.close()
+})
+
+test.afterEach(async ({ request }, testInfo) => {
+	if (!testInfo.title.includes("durable multi-turn chat")) return
+	const providerUrl = process.env.E2E_PROVIDER_URL
+	if (providerUrl) await expect(await request.post(`${new URL(providerUrl).origin}/control/reset`)).toBeOK()
 })
 
 test("built widget boots, mounts, and stays styled on a bare host page", async ({ page }) => {
@@ -122,12 +137,14 @@ test("widget still renders in default colors when its token is unknown", async (
 test("widget streams a durable multi-turn chat, cancels, and starts a new chat without resetting allowance", async ({
 	page,
 	request,
-}) => {
+}, testInfo) => {
 	const providerUrl = process.env.E2E_PROVIDER_URL
 	if (!providerUrl) throw new Error("E2E_PROVIDER_URL missing — scripts/test-e2e.ts provides it")
 	const providerControlOrigin = new URL(providerUrl).origin
+	await expect(await request.post(`${providerControlOrigin}/control/reset`)).toBeOK()
+	const chatToken = `e2e-chat-${testInfo.project.name}-${testInfo.retry}`
 
-	await page.goto(baseURL)
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(chatToken)}`)
 	await page.getByRole("button", { name: "Open chat" }).click()
 	const dialog = page.getByRole("dialog")
 	const messageInput = dialog.getByRole("textbox", { name: "Message" })
@@ -165,6 +182,7 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 	).toBeVisible()
 
 	await send("Stream until I cancel")
+	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
 	await expect(dialog.getByText("Cancellation partial output", { exact: true })).toBeVisible()
 	await dialog.getByRole("button", { name: "Stop generating" }).click()
 	await expect(dialog.getByText("Response cancelled", { exact: true })).toBeVisible()
@@ -195,7 +213,11 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 	expect(oldSession.messages).toEqual(
 		expect.arrayContaining([
 			expect.objectContaining({ role: "assistant", text: "First streamed answer.", outcome: "completed" }),
-			expect.objectContaining({ role: "assistant", text: "Cancellation partial output", outcome: "cancelled" }),
+			expect.objectContaining({
+				role: "assistant",
+				text: "Cancellation partial output remains visible",
+				outcome: "cancelled",
+			}),
 		]),
 	)
 

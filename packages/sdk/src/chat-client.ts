@@ -27,6 +27,8 @@ const DEFAULT_RECOVERY_DELAYS = [ONE_SECOND_MS, TWO_SECONDS_MS, FIVE_SECONDS_MS]
 const REQUEST_ID_BYTES = 16
 const BOOTSTRAP_SECRET_BYTES = 32
 const MAX_RECOVERY_POLLS = 25
+const HTTP_CLIENT_ERROR = 400
+const HTTP_SERVER_ERROR = 500
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 const BASE64_BYTE_GROUP_SIZE = 3
 const BASE64_FIRST_SHIFT = 2
@@ -129,6 +131,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		| undefined
 	let initializationController: AbortController | undefined
 	let recoveryController: AbortController | undefined
+	let cancellationController: AbortController | undefined
+	let cancellationPromise: Promise<void> | undefined
 	const listeners = new Set<() => void>()
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomBytes = options.randomBytes ?? defaultRandomBytes
@@ -196,8 +200,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
-	function beginRecoveryPolling(): void {
-		if (credential === undefined || activeGenerationId === undefined || disposed) return
+	function beginSessionRecoveryPolling(): void {
+		if (credential === undefined || disposed) return
 		recoveryController?.abort()
 		const controller = new AbortController()
 		recoveryController = controller
@@ -218,13 +222,68 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					if (controller.signal.aborted) return
 				}
 			}
-			if (!disposed && activeGenerationId !== undefined) {
+			if (!disposed && generation === "recovery") {
 				recovery = "unavailable"
 				messages = freezeMessages(
 					messages.map((message) =>
 						message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
 					),
 				)
+				publish()
+			}
+		})()
+	}
+
+	async function acceptRecoveredBootstrap(recoveredCredential: string, controller: AbortController): Promise<void> {
+		await persist({ version: CHAT_STORAGE_VERSION, credential: recoveredCredential })
+		credential = recoveredCredential
+		pendingBootstrap = undefined
+		try {
+			applySession(await transport.loadSession({ ...context(controller.signal), credential }))
+			if (activeGenerationId !== undefined) beginSessionRecoveryPolling()
+		} catch (cause) {
+			if (controller.signal.aborted) throw cause
+			generation = "recovery"
+			recovery = "pending"
+			publish()
+			beginSessionRecoveryPolling()
+		}
+	}
+
+	function beginBootstrapRecoveryPolling(completedPolls = 0): void {
+		if (credential !== undefined || pendingBootstrap === undefined || disposed) return
+		recoveryController?.abort()
+		const controller = new AbortController()
+		recoveryController = controller
+		generation = "recovery"
+		recovery = "pending"
+		publish()
+		void (async () => {
+			const delays = options.recoveryDelays ?? DEFAULT_RECOVERY_DELAYS
+			for (let poll = completedPolls; poll < MAX_RECOVERY_POLLS; poll += 1) {
+				try {
+					const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
+					// oxlint-disable-next-line no-await-in-loop -- recovery probes must remain bounded and sequential.
+					await wait(delay, controller.signal)
+					if (pendingBootstrap === undefined || credential !== undefined) return
+					// oxlint-disable-next-line no-await-in-loop -- recovery probes must remain bounded and sequential.
+					const result = await transport.recoverBootstrap({
+						...context(controller.signal),
+						requestId: pendingBootstrap.requestId,
+						bootstrapSecret: pendingBootstrap.bootstrapSecret,
+					})
+					if (result.status === "accepted") {
+						// oxlint-disable-next-line no-await-in-loop -- acceptance transitions into the single session recovery path.
+						await acceptRecoveredBootstrap(result.credential, controller)
+						return
+					}
+					if (result.status === "unavailable") break
+				} catch {
+					if (controller.signal.aborted) return
+				}
+			}
+			if (!disposed && pendingBootstrap !== undefined && credential === undefined) {
+				recovery = "unavailable"
 				publish()
 			}
 		})()
@@ -240,6 +299,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			const controller = new AbortController()
 			initializationController = controller
 			try {
+				let recoveredBootstrap = false
 				const [loadedConfiguration, serialized] = await Promise.all([
 					transport.loadConfiguration(context(controller.signal)),
 					storage.getItem(storageKey),
@@ -257,19 +317,19 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						bootstrapSecret: record.pending.bootstrapSecret,
 					})
 					if (result.status === "accepted") {
-						credential = result.credential
-						pendingBootstrap = undefined
-						await persist({ version: CHAT_STORAGE_VERSION, credential })
-					} else {
+						await acceptRecoveredBootstrap(result.credential, controller)
+						recoveredBootstrap = true
+					} else if (result.status === "unavailable") {
 						recovery = "unavailable"
 					}
 				}
-				if (credential !== undefined) {
+				if (credential !== undefined && !recoveredBootstrap) {
 					applySession(await transport.loadSession({ ...context(controller.signal), credential }))
 				}
 				initialization = "ready"
 				publish()
-				beginRecoveryPolling()
+				if (activeGenerationId !== undefined) beginSessionRecoveryPolling()
+				else if (pendingBootstrap !== undefined && recovery !== "unavailable") beginBootstrapRecoveryPolling(1)
 			} catch (cause) {
 				initialization = "error"
 				error = transportError(cause)
@@ -293,11 +353,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function sendMessage(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
-		if (activeSend !== undefined || generation !== "idle") throw new Error("A chat response is already active")
-		if (text.length === 0) throw new Error("Message text must not be empty")
-		if (credential === undefined && pendingBootstrap !== undefined && pendingBootstrap.text !== text) {
-			throw new Error("The pending first message must be recovered before sending different text")
+		if (activeSend !== undefined) throw new Error("A chat response is already active")
+		if (credential === undefined && pendingBootstrap !== undefined) {
+			throw new Error("The pending first message must be recovered before sending another message")
 		}
+		if (generation !== "idle") throw new Error("A chat response is already active")
+		if (text.length === 0) throw new Error("Message text must not be empty")
 		const requestId = pendingBootstrap?.requestId ?? encodeBase64Url(randomBytes(REQUEST_ID_BYTES))
 		const bootstrapSecret =
 			credential === undefined
@@ -323,6 +384,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		let userId = localUserId
 		let assistantId: string | undefined
 		let terminalReceived = false
+		let accepted = false
 		try {
 			const events = await transport.sendMessage({
 				...context(controller.signal),
@@ -333,7 +395,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			})
 			for await (const event of events) {
 				if (disposed) return
+				if (!accepted && event.type !== "accepted") {
+					throw new Error(`Chat stream emitted ${event.type} before acceptance`)
+				}
+				if (accepted && event.type === "accepted") throw new Error("Chat stream emitted acceptance more than once")
 				if (event.type === "accepted") {
+					accepted = true
 					userId = event.userMessage.id
 					activeGenerationId = event.generationId
 					messages = freezeMessages(
@@ -381,7 +448,24 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			if (!terminalReceived) throw new Error("Chat stream closed without a terminal event")
 		} catch (cause) {
-			if (send.cancellationRequested) {
+			const status = cause instanceof ChatTransportError ? cause.detail.status : undefined
+			const definitelyRejected =
+				!accepted && status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
+			if (definitelyRejected) {
+				messages = freezeMessages(messages.filter((message) => message.id !== localUserId))
+				if (bootstrapSecret !== undefined) {
+					pendingBootstrap = undefined
+					try {
+						await storage.removeItem(storageKey)
+					} catch {
+						// The rejection remains definite even when its bootstrap record cannot be removed.
+					}
+				}
+				generation = "idle"
+				recovery = "idle"
+				error = transportError(cause)
+				retryAt = error.retryAt
+			} else if (send.cancellationRequested) {
 				if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome: "cancelled" }))
 				generation = "idle"
 				recovery = "idle"
@@ -392,7 +476,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				generation = "recovery"
 				recovery = "pending"
 				error = transportError(cause)
-				if (credential !== undefined && activeGenerationId !== undefined) beginRecoveryPolling()
+				retryAt = error.retryAt
+				if (credential !== undefined) beginSessionRecoveryPolling()
+				else if (pendingBootstrap !== undefined) beginBootstrapRecoveryPolling()
 			}
 			publish()
 			throw cause
@@ -401,37 +487,49 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	async function cancelResponse(): Promise<void> {
+	function cancelResponse(): Promise<void> {
 		requireUsable()
-		if (generation === "idle") return
+		if (cancellationPromise !== undefined) return cancellationPromise
+		if (generation === "idle") return Promise.resolve()
+		const previousGeneration = generation
+		const controller = new AbortController()
+		cancellationController = controller
 		generation = "cancelling"
 		publish()
-		try {
-			if (activeSend !== undefined) activeSend.cancellationRequested = true
-			if (credential !== undefined || activeSend?.bootstrapSecret !== undefined) {
-				await transport.cancelResponse({
-					...context(new AbortController().signal),
-					...(credential === undefined ? {} : { credential }),
-					...(activeGenerationId === undefined ? {} : { generationId: activeGenerationId }),
-					...(activeSend?.bootstrapSecret === undefined
-						? {}
-						: { requestId: activeSend.requestId, bootstrapSecret: activeSend.bootstrapSecret }),
-				})
+		let cancellation!: Promise<void>
+		cancellation = (async () => {
+			try {
+				if (credential !== undefined || activeSend?.bootstrapSecret !== undefined) {
+					await transport.cancelResponse({
+						...context(controller.signal),
+						...(credential === undefined ? {} : { credential }),
+						...(activeGenerationId === undefined ? {} : { generationId: activeGenerationId }),
+						...(activeSend?.bootstrapSecret === undefined
+							? {}
+							: { requestId: activeSend.requestId, bootstrapSecret: activeSend.bootstrapSecret }),
+					})
+				}
+				if (activeSend !== undefined) {
+					activeSend.cancellationRequested = true
+					activeSend.controller.abort(new Error("Chat response cancelled"))
+				}
+				recoveryController?.abort()
+				generation = "idle"
+				recovery = "idle"
+				activeGenerationId = undefined
+				publish()
+			} catch (cause) {
+				generation = previousGeneration
+				error = { ...transportError(cause), code: "cancel_failed" }
+				publish()
+				throw cause
+			} finally {
+				if (cancellationController === controller) cancellationController = undefined
+				if (cancellationPromise === cancellation) cancellationPromise = undefined
 			}
-			if (activeSend !== undefined) {
-				activeSend.controller.abort(new Error("Chat response cancelled"))
-			}
-			recoveryController?.abort()
-			generation = "idle"
-			recovery = "idle"
-			activeGenerationId = undefined
-			publish()
-		} catch (cause) {
-			generation = activeGenerationId === undefined ? "sending" : "recovery"
-			error = { ...transportError(cause), code: "cancel_failed" }
-			publish()
-			throw cause
-		}
+		})()
+		cancellationPromise = cancellation
+		return cancellation
 	}
 
 	async function startNewChat(): Promise<void> {
@@ -441,7 +539,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 		try {
 			if (generation !== "idle" || activeGenerationId !== undefined) await cancelResponse()
+			const wasFallback = storage.isFallback()
 			await storage.removeItem(storageKey)
+			if (!wasFallback && storage.isFallback()) {
+				throw new Error("Persistent chat credential could not be removed")
+			}
 			recoveryController?.abort()
 			credential = undefined
 			pendingBootstrap = undefined
@@ -451,6 +553,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			recovery = "idle"
 			error = undefined
 			retryAt = undefined
+			if (configuration !== undefined) initialization = "ready"
 		} catch (cause) {
 			error = { ...transportError(cause), code: "reset_failed" }
 			throw cause
@@ -476,6 +579,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			disposed = true
 			initializationController?.abort(new Error("Chat client disposed"))
 			activeSend?.controller.abort(new Error("Chat client disposed"))
+			cancellationController?.abort(new Error("Chat client disposed"))
 			recoveryController?.abort()
 			listeners.clear()
 		},

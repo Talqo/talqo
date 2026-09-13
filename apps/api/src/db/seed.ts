@@ -17,6 +17,8 @@ const TEST_USERS = {
 	ungranted: "e2e_ungranted",
 	viewer: "e2e_viewer",
 } as const
+const E2E_CHAT_PROJECTS = ["chromium", "firefox", "webkit"] as const
+const E2E_CHAT_ATTEMPTS = 3
 
 export type SeedResult = {
 	operator: { password: string; username: string }
@@ -50,6 +52,14 @@ export async function seed(): Promise<SeedResult | null> {
 		await aiProvider.seed(providerBaseUrl)
 		const { agentId } = await agent.seed()
 		const { embedToken } = await embed.seed(agentId)
+		for (const project of E2E_CHAT_PROJECTS) {
+			for (let retry = 0; retry < E2E_CHAT_ATTEMPTS; retry += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- deterministic seed fixtures are created serially.
+				const chatAgent = await agent.seed(`Chat ${project} ${retry}`)
+				// oxlint-disable-next-line no-await-in-loop -- each embed belongs to the preceding retry-isolated agent.
+				await embed.seed(chatAgent.agentId, `e2e-chat-${project}-${retry}`, false)
+			}
+		}
 		return { operator: { username: TEST_USERS.granted, password: TEST_PASSWORD }, embedToken }
 	}
 

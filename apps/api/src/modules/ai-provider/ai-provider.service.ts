@@ -31,6 +31,7 @@ export type TextGenerationInput = {
 	signal: AbortSignal
 	timeoutMs: number
 }
+export type PrepareTextOperationInput = Omit<TextGenerationInput, "signal">
 type RawGenerationEvent =
 	| { text: string; type: "text" }
 	| {
@@ -87,6 +88,36 @@ function isContextLimitError(error: unknown): boolean {
 	}
 	const details = [error.message, error.responseBody, JSON.stringify(error.data ?? null)].join(" ")
 	return /context[_ -]?(?:length|window|limit)|maximum context|input.+too (?:large|long)|too many tokens/i.test(details)
+}
+
+async function* invokePreparedOperation(
+	generate: Generate,
+	input: PrepareTextOperationInput & {
+		instructions?: string
+		messages: RuntimeTextMessage[]
+		model: LanguageModelV4
+		modelId: string
+		providerId: string
+		signal: AbortSignal
+	},
+) {
+	try {
+		for await (const event of generate({
+			instructions: input.instructions,
+			messages: input.messages,
+			model: input.model,
+			maxOutputTokens: input.maxOutputTokens,
+			maxRetries: 0,
+			signal: input.signal,
+			timeoutMs: input.timeoutMs,
+		})) {
+			if (event.type === "text") yield event
+			else yield { ...event, provider: input.providerId, model: input.modelId }
+		}
+	} catch (error) {
+		if (isContextLimitError(error)) throw new ProviderContextLimitError("Provider context limit exceeded")
+		throw error
+	}
 }
 
 const defaultGenerate: Generate = async function* (input) {
@@ -337,7 +368,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				throw new UnusableConfigurationError("AI provider configuration is unusable")
 			}
 		},
-		async *streamText(input: TextGenerationInput) {
+		async prepareTextOperation(input: PrepareTextOperationInput) {
 			const stored = await dependencies.repository.find()
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
@@ -349,33 +380,35 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 						})
 					: undefined
 				const model = createProviderModel({ ...stored.text, role: "text", credentials }) as LanguageModelV4
-				const generate = dependencies.generate ?? defaultGenerate
 				const [firstMessage, ...remainingMessages] = input.messages
 				const instructions = firstMessage?.role === "system" ? firstMessage.content : undefined
 				const messages = (instructions === undefined ? input.messages : remainingMessages) as RuntimeTextMessage[]
-				yield { type: "start" as const, provider: stored.text.providerId, model: stored.text.modelId }
-				for await (const event of generate({
-					...input,
-					...(instructions === undefined ? {} : { instructions }),
-					messages,
-					model,
-					maxRetries: 0,
-				})) {
-					if (event.type === "text") {
-						yield event
-					} else {
-						yield {
-							...event,
-							provider: stored.text.providerId,
-							model: stored.text.modelId,
-						}
-					}
+				const generate = dependencies.generate ?? defaultGenerate
+				return {
+					provider: stored.text.providerId,
+					model: stored.text.modelId,
+					invoke(signal: AbortSignal) {
+						return invokePreparedOperation(generate, {
+							...input,
+							...(instructions === undefined ? {} : { instructions }),
+							messages,
+							model,
+							providerId: stored.text.providerId,
+							modelId: stored.text.modelId,
+							signal,
+						})
+					},
 				}
 			} catch (error) {
 				if (error instanceof UnusableConfigurationError) throw error
-				if (isContextLimitError(error)) throw new ProviderContextLimitError("Provider context limit exceeded")
 				throw new UnusableConfigurationError("AI provider configuration is unusable")
 			}
+		},
+		async *streamText(input: TextGenerationInput) {
+			const { signal, ...operationInput } = input
+			const prepared = await this.prepareTextOperation(operationInput)
+			yield { type: "start" as const, provider: prepared.provider, model: prepared.model }
+			for await (const event of prepared.invoke(signal)) yield event
 		},
 	}
 }
@@ -417,4 +450,8 @@ export async function discoverModels(userId: string, input: DiscoverModelsInput)
 
 export async function streamText(input: TextGenerationInput) {
 	return (await getDefaultService()).streamText(input)
+}
+
+export async function prepareTextOperation(input: PrepareTextOperationInput) {
+	return (await getDefaultService()).prepareTextOperation(input)
 }
