@@ -1,4 +1,4 @@
-import { problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
@@ -170,6 +170,7 @@ export const saveAiProviderConfigurationRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		409: problemResponse([PROBLEM_CODES.CONFIGURATION_CONFLICT]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -196,6 +197,7 @@ export const discoverAiProviderModelsRoute = createRoute({
 		]),
 		401: authRequired,
 		403: forbidden,
+		413: payloadTooLargeResponse,
 		429: problemResponse([PROBLEM_CODES.PROVIDER_RATE_LIMITED]),
 		500: serverError,
 		502: providerError,

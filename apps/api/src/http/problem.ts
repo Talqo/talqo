@@ -40,9 +40,12 @@ export const PROBLEM_CODES = {
 } as const
 
 export type ProblemCode = (typeof PROBLEM_CODES)[keyof typeof PROBLEM_CODES]
+export type ProblemCodeSet = readonly [ProblemCode, ...ProblemCode[]]
 
 const PROBLEM_TYPE_BASE = "https://docs.talqo.chat/problems#" as const
-const PROBLEM_CODE_VALUES = Object.values(PROBLEM_CODES) as [ProblemCode, ...ProblemCode[]]
+const [firstProblemCode, ...remainingProblemCodes] = Object.values(PROBLEM_CODES)
+if (!firstProblemCode) throw new Error("At least one problem code is required")
+const PROBLEM_CODE_VALUES = [firstProblemCode, ...remainingProblemCodes] satisfies ProblemCodeSet
 
 export type ProblemDetails = {
 	readonly code: ProblemCode
@@ -62,30 +65,44 @@ export const PROBLEMS = Object.freeze(
 	>,
 )
 
-export const problemDetailsSchema = z
-	.object({
-		code: z.enum(PROBLEM_CODE_VALUES),
-		type: z.string().url(),
-	})
-	.strict()
-	.refine((problem) => problem.type === PROBLEMS[problem.code].type, { path: ["type"] })
-	.openapi("ProblemDetails")
-
-export function problemSchema(codes: readonly ProblemCode[]) {
-	return {
-		oneOf: codes.map((code) => ({
-			additionalProperties: false,
-			properties: {
-				code: { const: code, type: "string" },
-				type: { const: problemDetails(code).type, type: "string" },
-			},
-			required: ["code", "type"],
-			type: "object",
-		})),
-	}
+function problemSchemaName(codes: readonly ProblemCode[]) {
+	const suffix = codes
+		.map((code) =>
+			code
+				.split("-")
+				.map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`)
+				.join(""),
+		)
+		.join("Or")
+	return `Problem${suffix}`
 }
 
-export const allProblemsOpenApiSchema = problemSchema(PROBLEM_CODE_VALUES)
+function createProblemSchema(codes: readonly ProblemCode[], name: string) {
+	const alternatives = codes.map((code) =>
+		z
+			.object({
+				code: z.literal(code),
+				type: z.literal(problemDetails(code).type),
+			})
+			.strict(),
+	)
+	return z.union(alternatives).openapi(name, undefined, { unionPreferredType: "oneOf" })
+}
+
+const problemSchemas = new Map<string, ReturnType<typeof createProblemSchema>>()
+
+export function problemSchema(codes: ProblemCodeSet) {
+	const canonicalCodes = [...new Set(codes)].toSorted()
+	const componentName = problemSchemaName(canonicalCodes)
+	const existing = problemSchemas.get(componentName)
+	if (existing) return existing
+
+	const schema = createProblemSchema(canonicalCodes, componentName)
+	problemSchemas.set(componentName, schema)
+	return schema
+}
+
+export const problemDetailsSchema = createProblemSchema(PROBLEM_CODE_VALUES, "ProblemDetails")
 
 export function problemResponse<C extends ProblemCode, S extends ContentfulStatusCode>(
 	context: Context,

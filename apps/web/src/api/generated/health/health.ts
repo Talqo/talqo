@@ -8,8 +8,8 @@ import type { QueryFunction, QueryKey, UseQueryOptions, UseQueryResult } from "@
  */
 import { useQuery } from "@tanstack/react-query"
 
-import type { GetHealth500 } from "../models/health/getHealth500.zod"
 import type { HealthResponse } from "../models/health/healthResponse.zod"
+import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -36,7 +36,7 @@ export type getHealthResponse200 = {
 }
 
 export type getHealthResponse500 = {
-	data: GetHealth500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -76,7 +76,7 @@ export const getGetHealthQueryKey = () => {
 
 export const getGetHealthQueryOptions = <
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: GetHealth500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>
 	fetch?: RequestInit
@@ -96,11 +96,11 @@ export const getGetHealthQueryOptions = <
 }
 
 export type GetHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getHealth>>>
-export type GetHealthQueryError = globalThis.Error & { info?: GetHealth500; status?: number }
+export type GetHealthQueryError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
 
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: GetHealth500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>
 	fetch?: RequestInit

@@ -280,14 +280,14 @@ describe("api", () => {
 			const payloadTooLarge = operation.responses?.["413"] as {
 				content?: {
 					"application/problem+json"?: {
-						schema?: { oneOf?: Array<{ properties?: { code?: { const?: string } } }> }
+						schema?: { $ref?: string }
 					}
 				}
 			}
-			const payloadTooLargeCodes = payloadTooLarge?.content?.["application/problem+json"]?.schema?.oneOf?.map(
-				(schema) => schema.properties?.code?.const,
+			const payloadTooLargeRef = payloadTooLarge?.content?.["application/problem+json"]?.schema?.$ref
+			expect(payloadTooLargeRef).toBe(
+				"requestBody" in operation ? "#/components/schemas/ProblemPayloadTooLarge" : undefined,
 			)
-			expect(payloadTooLargeCodes).toEqual("requestBody" in operation ? ["payload-too-large"] : undefined)
 		}
 
 		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])
@@ -297,29 +297,46 @@ describe("api", () => {
 		const problemSchema = document.components?.schemas?.ProblemDetails as {
 			oneOf?: Array<{
 				additionalProperties?: boolean
-				properties?: { code?: { const?: string }; type?: { const?: string } }
+				properties?: { code?: { const?: string; enum?: string[] }; type?: { const?: string; enum?: string[] } }
 			}>
 		}
 		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
 		for (const schema of problemSchema.oneOf ?? []) {
 			expect(schema.additionalProperties).toBe(false)
-			expect(schema.properties?.type?.const).toBe(`https://docs.talqo.chat/problems#${schema.properties?.code?.const}`)
+			const code = schema.properties?.code?.const ?? schema.properties?.code?.enum?.[0]
+			const type = schema.properties?.type?.const ?? schema.properties?.type?.enum?.[0]
+			expect(type).toBe(`https://docs.talqo.chat/problems#${code}`)
 		}
 
 		const loginBadRequest = paths["/api/auth/login"]?.post?.responses?.["400"] as {
 			content?: {
 				"application/problem+json"?: {
-					schema?: { oneOf?: Array<{ properties?: { code?: { const?: string }; type?: { const?: string } } }> }
+					schema?: { $ref?: string }
 				}
 			}
 		}
-		const loginProblems = loginBadRequest.content?.["application/problem+json"]?.schema?.oneOf ?? []
-		expect(loginProblems.map((schema) => schema.properties?.code?.const)).toEqual(
-			expect.arrayContaining(["invalid-request", "malformed-json"]),
+		const loginProblemRef = loginBadRequest.content?.["application/problem+json"]?.schema?.$ref
+		expect(loginProblemRef).toBe("#/components/schemas/ProblemInvalidRequestOrMalformedJson")
+		const loginProblems =
+			(
+				document.components?.schemas?.ProblemInvalidRequestOrMalformedJson as
+					| {
+							oneOf?: Array<{
+								properties?: {
+									code?: { const?: string; enum?: string[] }
+									type?: { const?: string; enum?: string[] }
+								}
+							}>
+					  }
+					| undefined
+			)?.oneOf ?? []
+		const loginProblemCodes = loginProblems.map(
+			(schema) => schema.properties?.code?.const ?? schema.properties?.code?.enum?.[0],
 		)
+		expect(loginProblemCodes).toEqual(expect.arrayContaining(["invalid-request", "malformed-json"]))
 		expect(loginProblems).not.toBeEmpty()
-		expect(loginProblems.map((schema) => schema.properties?.type?.const)).toEqual(
-			loginProblems.map((schema) => `https://docs.talqo.chat/problems#${schema.properties?.code?.const}`),
+		expect(loginProblems.map((schema) => schema.properties?.type?.const ?? schema.properties?.type?.enum?.[0])).toEqual(
+			loginProblemCodes.map((code) => `https://docs.talqo.chat/problems#${code}`),
 		)
 	})
 })

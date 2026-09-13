@@ -1,4 +1,4 @@
-import { Login400 } from "@/api/generated/models/identity/login400.zod.ts"
+import { ProblemInvalidRequestOrMalformedJson } from "@/api/generated/models/problemInvalidRequestOrMalformedJson.zod.ts"
 import cs from "@/locales/cs.json"
 import en from "@/locales/en.json"
 import zh from "@/locales/zh.json"
@@ -21,13 +21,13 @@ describe("getProblemMessage", () => {
 
 	it("keeps generated response code and type pairs aligned", () => {
 		expect(
-			Login400.safeParse({
+			ProblemInvalidRequestOrMalformedJson.safeParse({
 				code: "invalid-request",
 				type: "https://docs.talqo.chat/problems#invalid-request",
 			}).success,
 		).toBe(true)
 		expect(
-			Login400.safeParse({
+			ProblemInvalidRequestOrMalformedJson.safeParse({
 				code: "invalid-request",
 				type: "https://docs.talqo.chat/problems#malformed-json",
 			}).success,

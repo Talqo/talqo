@@ -16,55 +16,30 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
+import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
+import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
+import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
+import type { ProblemPasswordChangeRequired } from "../models/problemPasswordChangeRequired.zod"
+import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
+import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
 import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
-import type { BootstrapAdmin400 } from "../models/roles/bootstrapAdmin400.zod"
-import type { BootstrapAdmin409 } from "../models/roles/bootstrapAdmin409.zod"
-import type { BootstrapAdmin413 } from "../models/roles/bootstrapAdmin413.zod"
-import type { BootstrapAdmin500 } from "../models/roles/bootstrapAdmin500.zod"
 import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
-import type { CreateInvitation401 } from "../models/roles/createInvitation401.zod"
-import type { CreateInvitation403 } from "../models/roles/createInvitation403.zod"
-import type { CreateInvitation500 } from "../models/roles/createInvitation500.zod"
 import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
-import type { CreatePermissionGrant400 } from "../models/roles/createPermissionGrant400.zod"
-import type { CreatePermissionGrant401 } from "../models/roles/createPermissionGrant401.zod"
-import type { CreatePermissionGrant403 } from "../models/roles/createPermissionGrant403.zod"
-import type { CreatePermissionGrant404 } from "../models/roles/createPermissionGrant404.zod"
-import type { CreatePermissionGrant409 } from "../models/roles/createPermissionGrant409.zod"
-import type { CreatePermissionGrant413 } from "../models/roles/createPermissionGrant413.zod"
-import type { CreatePermissionGrant500 } from "../models/roles/createPermissionGrant500.zod"
 import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
 import type { GetAccess200 } from "../models/roles/getAccess200.zod"
-import type { GetAccess401 } from "../models/roles/getAccess401.zod"
-import type { GetAccess403 } from "../models/roles/getAccess403.zod"
-import type { GetAccess500 } from "../models/roles/getAccess500.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
-import type { GetMyPermissions401 } from "../models/roles/getMyPermissions401.zod"
-import type { GetMyPermissions403 } from "../models/roles/getMyPermissions403.zod"
-import type { GetMyPermissions500 } from "../models/roles/getMyPermissions500.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
-import type { GetSetupStatus500 } from "../models/roles/getSetupStatus500.zod"
 import type { ListUsers200 } from "../models/roles/listUsers200.zod"
-import type { ListUsers401 } from "../models/roles/listUsers401.zod"
-import type { ListUsers403 } from "../models/roles/listUsers403.zod"
-import type { ListUsers500 } from "../models/roles/listUsers500.zod"
+import type { ProblemAdminAccessRequiredOrPasswordChangeRequired } from "../models/roles/problemAdminAccessRequiredOrPasswordChangeRequired.zod"
+import type { ProblemAdminAlreadyExists } from "../models/roles/problemAdminAlreadyExists.zod"
+import type { ProblemAdminAlreadyExistsOrUsernameTaken } from "../models/roles/problemAdminAlreadyExistsOrUsernameTaken.zod"
+import type { ProblemInvalidInvitationOrUsernameTaken } from "../models/roles/problemInvalidInvitationOrUsernameTaken.zod"
+import type { ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed } from "../models/roles/problemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed.zod"
+import type { ProblemUserNotFound } from "../models/roles/problemUserNotFound.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
-import type { RedeemInvitation400 } from "../models/roles/redeemInvitation400.zod"
-import type { RedeemInvitation409 } from "../models/roles/redeemInvitation409.zod"
-import type { RedeemInvitation413 } from "../models/roles/redeemInvitation413.zod"
-import type { RedeemInvitation500 } from "../models/roles/redeemInvitation500.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
-import type { ResetUserPassword400 } from "../models/roles/resetUserPassword400.zod"
-import type { ResetUserPassword401 } from "../models/roles/resetUserPassword401.zod"
-import type { ResetUserPassword403 } from "../models/roles/resetUserPassword403.zod"
-import type { ResetUserPassword404 } from "../models/roles/resetUserPassword404.zod"
-import type { ResetUserPassword413 } from "../models/roles/resetUserPassword413.zod"
-import type { ResetUserPassword500 } from "../models/roles/resetUserPassword500.zod"
 import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
-import type { RevokePermissionGrant401 } from "../models/roles/revokePermissionGrant401.zod"
-import type { RevokePermissionGrant403 } from "../models/roles/revokePermissionGrant403.zod"
-import type { RevokePermissionGrant500 } from "../models/roles/revokePermissionGrant500.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -91,17 +66,17 @@ export type getAccessResponse200 = {
 }
 
 export type getAccessResponse401 = {
-	data: GetAccess401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type getAccessResponse403 = {
-	data: GetAccess403
+	data: ProblemPasswordChangeRequired
 	status: 403
 }
 
 export type getAccessResponse500 = {
-	data: GetAccess500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -141,7 +116,10 @@ export const getGetAccessQueryKey = () => {
 
 export const getGetAccessQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & { info?: GetAccess401 | GetAccess403 | GetAccess500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
 	fetch?: RequestInit
@@ -162,13 +140,16 @@ export const getGetAccessQueryOptions = <
 
 export type GetAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAccess>>>
 export type GetAccessQueryError = globalThis.Error & {
-	info?: GetAccess401 | GetAccess403 | GetAccess500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
 	status?: number
 }
 
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & { info?: GetAccess401 | GetAccess403 | GetAccess500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>
 	fetch?: RequestInit
@@ -186,7 +167,7 @@ export type getSetupStatusResponse200 = {
 }
 
 export type getSetupStatusResponse500 = {
-	data: GetSetupStatus500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -227,7 +208,7 @@ export const getGetSetupStatusQueryKey = () => {
 
 export const getGetSetupStatusQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: GetSetupStatus500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>
 	fetch?: RequestInit
@@ -247,11 +228,11 @@ export const getGetSetupStatusQueryOptions = <
 }
 
 export type GetSetupStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSetupStatus>>>
-export type GetSetupStatusQueryError = globalThis.Error & { info?: GetSetupStatus500; status?: number }
+export type GetSetupStatusQueryError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
 
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: GetSetupStatus500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>
 	fetch?: RequestInit
@@ -269,22 +250,22 @@ export type bootstrapAdminResponse201 = {
 }
 
 export type bootstrapAdminResponse400 = {
-	data: BootstrapAdmin400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type bootstrapAdminResponse409 = {
-	data: BootstrapAdmin409
+	data: ProblemAdminAlreadyExistsOrUsernameTaken
 	status: 409
 }
 
 export type bootstrapAdminResponse413 = {
-	data: BootstrapAdmin413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type bootstrapAdminResponse500 = {
-	data: BootstrapAdmin500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -339,7 +320,11 @@ export const getBootstrapAdminMutationKey = () => ["bootstrapAdmin"] as const
 
 export const getBootstrapAdminMutationOptions = <
 	TError = globalThis.Error & {
-		info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAdminAlreadyExistsOrUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -378,14 +363,22 @@ export const getBootstrapAdminMutationOptions = <
 export type BootstrapAdminMutationResult = NonNullable<Awaited<ReturnType<typeof bootstrapAdmin>>>
 export type BootstrapAdminMutationBody = BootstrapAdminBody
 export type BootstrapAdminMutationError = globalThis.Error & {
-	info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAdminAlreadyExistsOrUsernameTaken
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type BootstrapAdminMutationVariables = { data: BootstrapAdminBody }
 
 export const useBootstrapAdmin = <
 	TError = globalThis.Error & {
-		info?: BootstrapAdmin400 | BootstrapAdmin409 | BootstrapAdmin413 | BootstrapAdmin500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAdminAlreadyExistsOrUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -411,17 +404,17 @@ export type createInvitationResponse201 = {
 }
 
 export type createInvitationResponse401 = {
-	data: CreateInvitation401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type createInvitationResponse403 = {
-	data: CreateInvitation403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type createInvitationResponse500 = {
-	data: CreateInvitation500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -464,7 +457,7 @@ export const getCreateInvitationMutationKey = () => ["createInvitation"] as cons
 
 export const getCreateInvitationMutationOptions = <
 	TError = globalThis.Error & {
-		info?: CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -489,13 +482,13 @@ export const getCreateInvitationMutationOptions = <
 export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
 
 export type CreateInvitationMutationError = globalThis.Error & {
-	info?: CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 	status?: number
 }
 
 export const useCreateInvitation = <
 	TError = globalThis.Error & {
-		info?: CreateInvitation401 | CreateInvitation403 | CreateInvitation500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -511,22 +504,22 @@ export type redeemInvitationResponse201 = {
 }
 
 export type redeemInvitationResponse400 = {
-	data: RedeemInvitation400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type redeemInvitationResponse409 = {
-	data: RedeemInvitation409
+	data: ProblemInvalidInvitationOrUsernameTaken
 	status: 409
 }
 
 export type redeemInvitationResponse413 = {
-	data: RedeemInvitation413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type redeemInvitationResponse500 = {
-	data: RedeemInvitation500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -581,7 +574,11 @@ export const getRedeemInvitationMutationKey = () => ["redeemInvitation"] as cons
 
 export const getRedeemInvitationMutationOptions = <
 	TError = globalThis.Error & {
-		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemInvalidInvitationOrUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -621,14 +618,22 @@ export const getRedeemInvitationMutationOptions = <
 export type RedeemInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof redeemInvitation>>>
 export type RedeemInvitationMutationBody = RedeemInvitationBody
 export type RedeemInvitationMutationError = globalThis.Error & {
-	info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemInvalidInvitationOrUsernameTaken
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type RedeemInvitationMutationVariables = { data: RedeemInvitationBody }
 
 export const useRedeemInvitation = <
 	TError = globalThis.Error & {
-		info?: RedeemInvitation400 | RedeemInvitation409 | RedeemInvitation413 | RedeemInvitation500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemInvalidInvitationOrUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -654,37 +659,37 @@ export type createPermissionGrantResponse201 = {
 }
 
 export type createPermissionGrantResponse400 = {
-	data: CreatePermissionGrant400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type createPermissionGrantResponse401 = {
-	data: CreatePermissionGrant401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type createPermissionGrantResponse403 = {
-	data: CreatePermissionGrant403
+	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
 	status: 403
 }
 
 export type createPermissionGrantResponse404 = {
-	data: CreatePermissionGrant404
+	data: ProblemUserNotFound
 	status: 404
 }
 
 export type createPermissionGrantResponse409 = {
-	data: CreatePermissionGrant409
+	data: ProblemAdminAlreadyExists
 	status: 409
 }
 
 export type createPermissionGrantResponse413 = {
-	data: CreatePermissionGrant413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type createPermissionGrantResponse500 = {
-	data: CreatePermissionGrant500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -743,13 +748,13 @@ export const getCreatePermissionGrantMutationKey = () => ["createPermissionGrant
 export const getCreatePermissionGrantMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| CreatePermissionGrant400
-			| CreatePermissionGrant401
-			| CreatePermissionGrant403
-			| CreatePermissionGrant404
-			| CreatePermissionGrant409
-			| CreatePermissionGrant413
-			| CreatePermissionGrant500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemUserNotFound
+			| ProblemAdminAlreadyExists
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -790,13 +795,13 @@ export type CreatePermissionGrantMutationResult = NonNullable<Awaited<ReturnType
 export type CreatePermissionGrantMutationBody = CreatePermissionGrantBody
 export type CreatePermissionGrantMutationError = globalThis.Error & {
 	info?:
-		| CreatePermissionGrant400
-		| CreatePermissionGrant401
-		| CreatePermissionGrant403
-		| CreatePermissionGrant404
-		| CreatePermissionGrant409
-		| CreatePermissionGrant413
-		| CreatePermissionGrant500
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemAdminAccessRequiredOrPasswordChangeRequired
+		| ProblemUserNotFound
+		| ProblemAdminAlreadyExists
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type CreatePermissionGrantMutationVariables = { data: CreatePermissionGrantBody }
@@ -804,13 +809,13 @@ export type CreatePermissionGrantMutationVariables = { data: CreatePermissionGra
 export const useCreatePermissionGrant = <
 	TError = globalThis.Error & {
 		info?:
-			| CreatePermissionGrant400
-			| CreatePermissionGrant401
-			| CreatePermissionGrant403
-			| CreatePermissionGrant404
-			| CreatePermissionGrant409
-			| CreatePermissionGrant413
-			| CreatePermissionGrant500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemUserNotFound
+			| ProblemAdminAlreadyExists
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -836,17 +841,17 @@ export type revokePermissionGrantResponse204 = {
 }
 
 export type revokePermissionGrantResponse401 = {
-	data: RevokePermissionGrant401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type revokePermissionGrantResponse403 = {
-	data: RevokePermissionGrant403
+	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
 	status: 403
 }
 
 export type revokePermissionGrantResponse500 = {
-	data: RevokePermissionGrant500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -892,7 +897,10 @@ export const getRevokePermissionGrantMutationKey = () => ["revokePermissionGrant
 
 export const getRevokePermissionGrantMutationOptions = <
 	TError = globalThis.Error & {
-		info?: RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -932,14 +940,17 @@ export const getRevokePermissionGrantMutationOptions = <
 export type RevokePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof revokePermissionGrant>>>
 
 export type RevokePermissionGrantMutationError = globalThis.Error & {
-	info?: RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+	info?: ProblemAuthenticationRequired | ProblemAdminAccessRequiredOrPasswordChangeRequired | ProblemInternalServerError
 	status?: number
 }
 export type RevokePermissionGrantMutationVariables = { id: string }
 
 export const useRevokePermissionGrant = <
 	TError = globalThis.Error & {
-		info?: RevokePermissionGrant401 | RevokePermissionGrant403 | RevokePermissionGrant500
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -965,17 +976,17 @@ export type getMyPermissionsResponse200 = {
 }
 
 export type getMyPermissionsResponse401 = {
-	data: GetMyPermissions401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type getMyPermissionsResponse403 = {
-	data: GetMyPermissions403
+	data: ProblemPasswordChangeRequired
 	status: 403
 }
 
 export type getMyPermissionsResponse500 = {
-	data: GetMyPermissions500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -1021,7 +1032,7 @@ export const getGetMyPermissionsQueryKey = () => {
 export const getGetMyPermissionsQueryOptions = <
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
 	TError = globalThis.Error & {
-		info?: GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
 		status?: number
 	},
 >(options?: {
@@ -1044,14 +1055,14 @@ export const getGetMyPermissionsQueryOptions = <
 
 export type GetMyPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPermissions>>>
 export type GetMyPermissionsQueryError = globalThis.Error & {
-	info?: GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
 	status?: number
 }
 
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
 	TError = globalThis.Error & {
-		info?: GetMyPermissions401 | GetMyPermissions403 | GetMyPermissions500
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
 		status?: number
 	},
 >(options?: {
@@ -1071,17 +1082,17 @@ export type listUsersResponse200 = {
 }
 
 export type listUsersResponse401 = {
-	data: ListUsers401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type listUsersResponse403 = {
-	data: ListUsers403
+	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
 	status: 403
 }
 
 export type listUsersResponse500 = {
-	data: ListUsers500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -1121,7 +1132,13 @@ export const getListUsersQueryKey = () => {
 
 export const getListUsersQueryOptions = <
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & { info?: ListUsers401 | ListUsers403 | ListUsers500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
 	fetch?: RequestInit
@@ -1142,13 +1159,19 @@ export const getListUsersQueryOptions = <
 
 export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
 export type ListUsersQueryError = globalThis.Error & {
-	info?: ListUsers401 | ListUsers403 | ListUsers500
+	info?: ProblemAuthenticationRequired | ProblemAdminAccessRequiredOrPasswordChangeRequired | ProblemInternalServerError
 	status?: number
 }
 
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & { info?: ListUsers401 | ListUsers403 | ListUsers500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemInternalServerError
+		status?: number
+	},
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>
 	fetch?: RequestInit
@@ -1166,32 +1189,32 @@ export type resetUserPasswordResponse204 = {
 }
 
 export type resetUserPasswordResponse400 = {
-	data: ResetUserPassword400
+	data: ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
 	status: 400
 }
 
 export type resetUserPasswordResponse401 = {
-	data: ResetUserPassword401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type resetUserPasswordResponse403 = {
-	data: ResetUserPassword403
+	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
 	status: 403
 }
 
 export type resetUserPasswordResponse404 = {
-	data: ResetUserPassword404
+	data: ProblemUserNotFound
 	status: 404
 }
 
 export type resetUserPasswordResponse413 = {
-	data: ResetUserPassword413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type resetUserPasswordResponse500 = {
-	data: ResetUserPassword500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -1250,12 +1273,12 @@ export const getResetUserPasswordMutationKey = () => ["resetUserPassword"] as co
 export const getResetUserPasswordMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| ResetUserPassword400
-			| ResetUserPassword401
-			| ResetUserPassword403
-			| ResetUserPassword404
-			| ResetUserPassword413
-			| ResetUserPassword500
+			| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemUserNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -1296,12 +1319,12 @@ export type ResetUserPasswordMutationResult = NonNullable<Awaited<ReturnType<typ
 export type ResetUserPasswordMutationBody = ResetUserPasswordBody
 export type ResetUserPasswordMutationError = globalThis.Error & {
 	info?:
-		| ResetUserPassword400
-		| ResetUserPassword401
-		| ResetUserPassword403
-		| ResetUserPassword404
-		| ResetUserPassword413
-		| ResetUserPassword500
+		| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
+		| ProblemAuthenticationRequired
+		| ProblemAdminAccessRequiredOrPasswordChangeRequired
+		| ProblemUserNotFound
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type ResetUserPasswordMutationVariables = { userId: string; data: ResetUserPasswordBody }
@@ -1309,12 +1332,12 @@ export type ResetUserPasswordMutationVariables = { userId: string; data: ResetUs
 export const useResetUserPassword = <
 	TError = globalThis.Error & {
 		info?:
-			| ResetUserPassword400
-			| ResetUserPassword401
-			| ResetUserPassword403
-			| ResetUserPassword404
-			| ResetUserPassword413
-			| ResetUserPassword500
+			| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
+			| ProblemAuthenticationRequired
+			| ProblemAdminAccessRequiredOrPasswordChangeRequired
+			| ProblemUserNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,

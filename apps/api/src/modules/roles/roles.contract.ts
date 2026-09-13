@@ -1,4 +1,4 @@
-import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import {
 	PASSWORD_MAX_LENGTH,
@@ -166,6 +166,7 @@ export const bootstrapAdminRoute = createRoute({
 		},
 		400: invalidRequest,
 		409: problemResponse([PROBLEM_CODES.ADMIN_ALREADY_EXISTS, PROBLEM_CODES.USERNAME_TAKEN]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -202,6 +203,7 @@ export const redeemInvitationRoute = createRoute({
 		},
 		400: invalidRequest,
 		409: problemResponse([PROBLEM_CODES.INVALID_INVITATION, PROBLEM_CODES.USERNAME_TAKEN]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -222,6 +224,7 @@ export const createPermissionGrantRoute = createRoute({
 		403: adminRequired,
 		404: userNotFound,
 		409: problemResponse([PROBLEM_CODES.ADMIN_ALREADY_EXISTS]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -275,6 +278,7 @@ export const resetUserPasswordRoute = createRoute({
 		401: authRequired,
 		403: adminRequired,
 		404: userNotFound,
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })

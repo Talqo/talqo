@@ -16,37 +16,22 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
-import type { ChangePassword400 } from "../models/identity/changePassword400.zod"
-import type { ChangePassword401 } from "../models/identity/changePassword401.zod"
-import type { ChangePassword413 } from "../models/identity/changePassword413.zod"
-import type { ChangePassword500 } from "../models/identity/changePassword500.zod"
 import type { ChangePasswordBody } from "../models/identity/changePasswordBody.zod"
-import type { CompleteForcedPasswordChange400 } from "../models/identity/completeForcedPasswordChange400.zod"
-import type { CompleteForcedPasswordChange401 } from "../models/identity/completeForcedPasswordChange401.zod"
-import type { CompleteForcedPasswordChange409 } from "../models/identity/completeForcedPasswordChange409.zod"
-import type { CompleteForcedPasswordChange413 } from "../models/identity/completeForcedPasswordChange413.zod"
-import type { CompleteForcedPasswordChange500 } from "../models/identity/completeForcedPasswordChange500.zod"
 import type { CompleteForcedPasswordChangeBody } from "../models/identity/completeForcedPasswordChangeBody.zod"
-import type { DeleteAccount401 } from "../models/identity/deleteAccount401.zod"
-import type { DeleteAccount403 } from "../models/identity/deleteAccount403.zod"
-import type { DeleteAccount500 } from "../models/identity/deleteAccount500.zod"
 import type { GetSession200 } from "../models/identity/getSession200.zod"
-import type { GetSession500 } from "../models/identity/getSession500.zod"
 import type { Login200 } from "../models/identity/login200.zod"
-import type { Login400 } from "../models/identity/login400.zod"
-import type { Login401 } from "../models/identity/login401.zod"
-import type { Login413 } from "../models/identity/login413.zod"
-import type { Login500 } from "../models/identity/login500.zod"
 import type { LoginBody } from "../models/identity/loginBody.zod"
-import type { Logout500 } from "../models/identity/logout500.zod"
+import type { ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson } from "../models/identity/problemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson.zod"
+import type { ProblemInvalidCredentials } from "../models/identity/problemInvalidCredentials.zod"
+import type { ProblemPasswordChangeNotRequired } from "../models/identity/problemPasswordChangeNotRequired.zod"
+import type { ProblemUsernameTaken } from "../models/identity/problemUsernameTaken.zod"
 import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
-import type { UpdateAccount400 } from "../models/identity/updateAccount400.zod"
-import type { UpdateAccount401 } from "../models/identity/updateAccount401.zod"
-import type { UpdateAccount403 } from "../models/identity/updateAccount403.zod"
-import type { UpdateAccount409 } from "../models/identity/updateAccount409.zod"
-import type { UpdateAccount413 } from "../models/identity/updateAccount413.zod"
-import type { UpdateAccount500 } from "../models/identity/updateAccount500.zod"
 import type { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
+import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
+import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
+import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
+import type { ProblemPasswordChangeRequired } from "../models/problemPasswordChangeRequired.zod"
+import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
 
 type AwaitedInput<T> = PromiseLike<T> | T
 
@@ -73,22 +58,22 @@ export type loginResponse200 = {
 }
 
 export type loginResponse400 = {
-	data: Login400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type loginResponse401 = {
-	data: Login401
+	data: ProblemInvalidCredentials
 	status: 401
 }
 
 export type loginResponse413 = {
-	data: Login413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type loginResponse500 = {
-	data: Login500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -133,7 +118,14 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 export const getLoginMutationKey = () => ["login"] as const
 
 export const getLoginMutationOptions = <
-	TError = globalThis.Error & { info?: Login400 | Login401 | Login413 | Login500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemInvalidCredentials
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
@@ -158,13 +150,24 @@ export const getLoginMutationOptions = <
 export type LoginMutationResult = NonNullable<Awaited<ReturnType<typeof login>>>
 export type LoginMutationBody = LoginBody
 export type LoginMutationError = globalThis.Error & {
-	info?: Login400 | Login401 | Login413 | Login500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemInvalidCredentials
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type LoginMutationVariables = { data: LoginBody }
 
 export const useLogin = <
-	TError = globalThis.Error & { info?: Login400 | Login401 | Login413 | Login500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemInvalidCredentials
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
@@ -178,7 +181,7 @@ export type logoutResponse204 = {
 }
 
 export type logoutResponse500 = {
-	data: Logout500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -215,7 +218,7 @@ export const logout = async (options?: RequestInit): Promise<logoutResponseSucce
 export const getLogoutMutationKey = () => ["logout"] as const
 
 export const getLogoutMutationOptions = <
-	TError = globalThis.Error & { info?: Logout500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -237,10 +240,10 @@ export const getLogoutMutationOptions = <
 
 export type LogoutMutationResult = NonNullable<Awaited<ReturnType<typeof logout>>>
 
-export type LogoutMutationError = globalThis.Error & { info?: Logout500; status?: number }
+export type LogoutMutationError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
 
 export const useLogout = <
-	TError = globalThis.Error & { info?: Logout500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
@@ -254,7 +257,7 @@ export type getSessionResponse200 = {
 }
 
 export type getSessionResponse500 = {
-	data: GetSession500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -294,7 +297,7 @@ export const getGetSessionQueryKey = () => {
 
 export const getGetSessionQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -314,11 +317,11 @@ export const getGetSessionQueryOptions = <
 }
 
 export type GetSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSession>>>
-export type GetSessionQueryError = globalThis.Error & { info?: GetSession500; status?: number }
+export type GetSessionQueryError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
 
 export function useGetSession<
 	TData = Awaited<ReturnType<typeof getSession>>,
-	TError = globalThis.Error & { info?: GetSession500; status?: number },
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
 	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
 	fetch?: RequestInit
@@ -336,32 +339,32 @@ export type updateAccountResponse200 = {
 }
 
 export type updateAccountResponse400 = {
-	data: UpdateAccount400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type updateAccountResponse401 = {
-	data: UpdateAccount401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type updateAccountResponse403 = {
-	data: UpdateAccount403
+	data: ProblemPasswordChangeRequired
 	status: 403
 }
 
 export type updateAccountResponse409 = {
-	data: UpdateAccount409
+	data: ProblemUsernameTaken
 	status: 409
 }
 
 export type updateAccountResponse413 = {
-	data: UpdateAccount413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type updateAccountResponse500 = {
-	data: UpdateAccount500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -419,12 +422,12 @@ export const getUpdateAccountMutationKey = () => ["updateAccount"] as const
 export const getUpdateAccountMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| UpdateAccount400
-			| UpdateAccount401
-			| UpdateAccount403
-			| UpdateAccount409
-			| UpdateAccount413
-			| UpdateAccount500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequired
+			| ProblemUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -458,7 +461,13 @@ export const getUpdateAccountMutationOptions = <
 export type UpdateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccount>>>
 export type UpdateAccountMutationBody = UpdateAccountBody
 export type UpdateAccountMutationError = globalThis.Error & {
-	info?: UpdateAccount400 | UpdateAccount401 | UpdateAccount403 | UpdateAccount409 | UpdateAccount413 | UpdateAccount500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequired
+		| ProblemUsernameTaken
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type UpdateAccountMutationVariables = { data: UpdateAccountBody }
@@ -466,12 +475,12 @@ export type UpdateAccountMutationVariables = { data: UpdateAccountBody }
 export const useUpdateAccount = <
 	TError = globalThis.Error & {
 		info?:
-			| UpdateAccount400
-			| UpdateAccount401
-			| UpdateAccount403
-			| UpdateAccount409
-			| UpdateAccount413
-			| UpdateAccount500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequired
+			| ProblemUsernameTaken
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -492,17 +501,17 @@ export type deleteAccountResponse204 = {
 }
 
 export type deleteAccountResponse401 = {
-	data: DeleteAccount401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type deleteAccountResponse403 = {
-	data: DeleteAccount403
+	data: ProblemPasswordChangeRequired
 	status: 403
 }
 
 export type deleteAccountResponse500 = {
-	data: DeleteAccount500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -544,7 +553,10 @@ export const deleteAccount = async (options?: RequestInit): Promise<deleteAccoun
 export const getDeleteAccountMutationKey = () => ["deleteAccount"] as const
 
 export const getDeleteAccountMutationOptions = <
-	TError = globalThis.Error & { info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
@@ -567,12 +579,15 @@ export const getDeleteAccountMutationOptions = <
 export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
 
 export type DeleteAccountMutationError = globalThis.Error & {
-	info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
 	status?: number
 }
 
 export const useDeleteAccount = <
-	TError = globalThis.Error & { info?: DeleteAccount401 | DeleteAccount403 | DeleteAccount500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
+		status?: number
+	},
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
@@ -586,22 +601,22 @@ export type changePasswordResponse204 = {
 }
 
 export type changePasswordResponse400 = {
-	data: ChangePassword400
+	data: ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type changePasswordResponse401 = {
-	data: ChangePassword401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type changePasswordResponse413 = {
-	data: ChangePassword413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type changePasswordResponse500 = {
-	data: ChangePassword500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -656,7 +671,11 @@ export const getChangePasswordMutationKey = () => ["changePassword"] as const
 
 export const getChangePasswordMutationOptions = <
 	TError = globalThis.Error & {
-		info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
+		info?:
+			| ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -695,14 +714,22 @@ export const getChangePasswordMutationOptions = <
 export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
 export type ChangePasswordMutationBody = ChangePasswordBody
 export type ChangePasswordMutationError = globalThis.Error & {
-	info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
+	info?:
+		| ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type ChangePasswordMutationVariables = { data: ChangePasswordBody }
 
 export const useChangePassword = <
 	TError = globalThis.Error & {
-		info?: ChangePassword400 | ChangePassword401 | ChangePassword413 | ChangePassword500
+		info?:
+			| ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -728,27 +755,27 @@ export type completeForcedPasswordChangeResponse204 = {
 }
 
 export type completeForcedPasswordChangeResponse400 = {
-	data: CompleteForcedPasswordChange400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type completeForcedPasswordChangeResponse401 = {
-	data: CompleteForcedPasswordChange401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type completeForcedPasswordChangeResponse409 = {
-	data: CompleteForcedPasswordChange409
+	data: ProblemPasswordChangeNotRequired
 	status: 409
 }
 
 export type completeForcedPasswordChangeResponse413 = {
-	data: CompleteForcedPasswordChange413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type completeForcedPasswordChangeResponse500 = {
-	data: CompleteForcedPasswordChange500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -805,11 +832,11 @@ export const getCompleteForcedPasswordChangeMutationKey = () => ["completeForced
 export const getCompleteForcedPasswordChangeMutationOptions = <
 	TError = globalThis.Error & {
 		info?:
-			| CompleteForcedPasswordChange400
-			| CompleteForcedPasswordChange401
-			| CompleteForcedPasswordChange409
-			| CompleteForcedPasswordChange413
-			| CompleteForcedPasswordChange500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeNotRequired
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -852,11 +879,11 @@ export type CompleteForcedPasswordChangeMutationResult = NonNullable<
 export type CompleteForcedPasswordChangeMutationBody = CompleteForcedPasswordChangeBody
 export type CompleteForcedPasswordChangeMutationError = globalThis.Error & {
 	info?:
-		| CompleteForcedPasswordChange400
-		| CompleteForcedPasswordChange401
-		| CompleteForcedPasswordChange409
-		| CompleteForcedPasswordChange413
-		| CompleteForcedPasswordChange500
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeNotRequired
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type CompleteForcedPasswordChangeMutationVariables = { data: CompleteForcedPasswordChangeBody }
@@ -864,11 +891,11 @@ export type CompleteForcedPasswordChangeMutationVariables = { data: CompleteForc
 export const useCompleteForcedPasswordChange = <
 	TError = globalThis.Error & {
 		info?:
-			| CompleteForcedPasswordChange400
-			| CompleteForcedPasswordChange401
-			| CompleteForcedPasswordChange409
-			| CompleteForcedPasswordChange413
-			| CompleteForcedPasswordChange500
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeNotRequired
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,

@@ -13,6 +13,505 @@
 			}
 		},
 		"schemas": {
+			"ProblemDetails": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-access-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-already-exists"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-already-exists"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-in-use"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-in-use"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["authentication-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#authentication-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["configuration-conflict"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#configuration-conflict"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["current-password-incorrect"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#current-password-incorrect"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["internal-server-error"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#internal-server-error"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-ai-provider-configuration"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-credentials"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-credentials"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-invitation"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-invitation"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["model-discovery-unsupported"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#model-discovery-unsupported"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-not-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-not-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["payload-too-large"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#payload-too-large"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["permission-denied"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#permission-denied"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-credentials-rejected"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-credentials-rejected"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-error"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-error"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-rate-limited"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-rate-limited"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-unreachable"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-unreachable"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["request-failed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#request-failed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["route-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#route-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["self-password-reset-not-allowed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["user-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#user-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["widget-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#widget-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["username-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#username-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
 			"HealthResponse": {
 				"type": "object",
 				"properties": {
@@ -23,502 +522,294 @@
 				},
 				"required": ["status"]
 			},
-			"ProblemDetails": {
+			"ProblemInternalServerError": {
 				"oneOf": [
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "admin-access-required",
-								"type": "string"
+								"type": "string",
+								"enum": ["internal-server-error"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#admin-access-required",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#internal-server-error"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAuthenticationRequired": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["authentication-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#authentication-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemPasswordChangeRequiredOrPermissionDenied": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "admin-already-exists",
-								"type": "string"
+								"type": "string",
+								"enum": ["permission-denied"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#admin-already-exists",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#permission-denied"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-ai-provider-configuration"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-file-invalid",
-								"type": "string"
+								"type": "string",
+								"enum": ["invalid-request"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-file-invalid",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-file-name-taken",
-								"type": "string"
+								"type": "string",
+								"enum": ["malformed-json"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-file-name-taken",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemConfigurationConflict": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["configuration-conflict"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#configuration-conflict"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemPayloadTooLarge": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["payload-too-large"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#payload-too-large"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-ai-provider-configuration"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-file-not-found",
-								"type": "string"
+								"type": "string",
+								"enum": ["invalid-request"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-file-not-found",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-invalid",
-								"type": "string"
+								"type": "string",
+								"enum": ["malformed-json"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-invalid",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-in-use",
-								"type": "string"
+								"type": "string",
+								"enum": ["provider-credentials-rejected"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-in-use",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-credentials-rejected"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemProviderRateLimited": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-rate-limited"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-rate-limited"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["model-discovery-unsupported"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#model-discovery-unsupported"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-name-taken",
-								"type": "string"
+								"type": "string",
+								"enum": ["provider-error"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-name-taken",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-error"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
 					},
 					{
-						"additionalProperties": false,
+						"type": "object",
 						"properties": {
 							"code": {
-								"const": "agent-not-found",
-								"type": "string"
+								"type": "string",
+								"enum": ["provider-unreachable"]
 							},
 							"type": {
-								"const": "https://docs.talqo.chat/problems#agent-not-found",
-								"type": "string"
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-unreachable"]
 							}
 						},
 						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "authentication-required",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#authentication-required",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "configuration-conflict",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#configuration-conflict",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "current-password-incorrect",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#current-password-incorrect",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "internal-server-error",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#internal-server-error",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "invalid-ai-provider-configuration",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "invalid-credentials",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#invalid-credentials",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "invalid-invitation",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#invalid-invitation",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "invalid-request",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#invalid-request",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "malformed-json",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#malformed-json",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "model-discovery-unsupported",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#model-discovery-unsupported",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "password-change-not-required",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#password-change-not-required",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "password-change-required",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#password-change-required",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "payload-too-large",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#payload-too-large",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "permission-denied",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#permission-denied",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "provider-credentials-rejected",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#provider-credentials-rejected",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "provider-error",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#provider-error",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "provider-rate-limited",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#provider-rate-limited",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "provider-unreachable",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#provider-unreachable",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "request-failed",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#request-failed",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "route-not-found",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#route-not-found",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "self-password-reset-not-allowed",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#self-password-reset-not-allowed",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "user-not-found",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#user-not-found",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "widget-not-found",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#widget-not-found",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
-					},
-					{
-						"additionalProperties": false,
-						"properties": {
-							"code": {
-								"const": "username-taken",
-								"type": "string"
-							},
-							"type": {
-								"const": "https://docs.talqo.chat/problems#username-taken",
-								"type": "string"
-							}
-						},
-						"required": ["code", "type"],
-						"type": "object"
+						"additionalProperties": false
 					}
 				]
 			},
@@ -537,6 +828,165 @@
 				},
 				"required": ["id", "username", "mustChangePassword"]
 			},
+			"ProblemInvalidRequestOrMalformedJson": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemInvalidCredentials": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-credentials"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-credentials"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemPasswordChangeRequired": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemUsernameTaken": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["username-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#username-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["current-password-incorrect"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#current-password-incorrect"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemPasswordChangeNotRequired": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-not-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-not-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
 			"RoleUser": {
 				"type": "object",
 				"properties": {
@@ -551,6 +1001,195 @@
 					}
 				},
 				"required": ["id", "username", "mustChangePassword"]
+			},
+			"ProblemAdminAlreadyExistsOrUsernameTaken": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-already-exists"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-already-exists"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["username-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#username-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemInvalidInvitationOrUsernameTaken": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-invitation"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-invitation"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["username-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#username-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAdminAccessRequiredOrPasswordChangeRequired": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-access-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemUserNotFound": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["user-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#user-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAdminAlreadyExists": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-already-exists"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-already-exists"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["self-password-reset-not-allowed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
 			},
 			"Agent": {
 				"type": "object",
@@ -584,6 +1223,112 @@
 					}
 				},
 				"required": ["id", "name", "systemPrompt", "embedToken", "wordBlacklist", "createdAt", "updatedAt"]
+			},
+			"ProblemAgentInvalidOrInvalidRequestOrMalformedJson": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentNameTaken": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentNotFound": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentInUse": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-in-use"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-in-use"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
 			},
 			"Widget": {
 				"type": "object",
@@ -653,6 +1398,59 @@
 				},
 				"required": ["primary", "textOnPrimary", "background", "surface", "text"]
 			},
+			"ProblemWidgetNotFound": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["widget-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#widget-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentNotFoundOrWidgetNotFound": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["widget-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#widget-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
 			"WidgetConfig": {
 				"type": "object",
 				"properties": {
@@ -687,6 +1485,127 @@
 					}
 				},
 				"required": ["name", "sizeBytes", "createdAt"]
+			},
+			"ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentFileNameTaken": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentFileNotFoundOrAgentNotFound": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
+			},
+			"ProblemAgentFileInvalid": {
+				"oneOf": [
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					}
+				]
 			}
 		},
 		"parameters": {}
@@ -712,23 +1631,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -835,23 +1738,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -861,38 +1748,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -902,23 +1758,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -1043,23 +1883,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -1069,38 +1893,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -1110,23 +1903,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -1437,53 +2214,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-ai-provider-configuration",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -1493,23 +2224,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -1519,38 +2234,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -1560,75 +2244,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "configuration-conflict",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#configuration-conflict",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemConfigurationConflict"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -1752,68 +2388,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-ai-provider-configuration",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-ai-provider-configuration",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "provider-credentials-rejected",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#provider-credentials-rejected",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected"
 								}
 							}
 						}
@@ -1823,23 +2398,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -1849,90 +2408,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"429": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "provider-rate-limited",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#provider-rate-limited",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemProviderRateLimited"
 								}
 							}
 						}
@@ -1942,23 +2438,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -1968,53 +2448,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "model-discovery-unsupported",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#model-discovery-unsupported",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "provider-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#provider-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "provider-unreachable",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#provider-unreachable",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable"
 								}
 							}
 						}
@@ -2071,38 +2505,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -2112,75 +2515,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-credentials",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-credentials",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidCredentials"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2201,23 +2556,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2258,23 +2597,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2332,38 +2655,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -2373,23 +2665,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -2399,23 +2675,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
 								}
 							}
 						}
@@ -2425,75 +2685,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "username-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#username-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemUsernameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2517,23 +2729,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -2543,23 +2739,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
 								}
 							}
 						}
@@ -2569,23 +2749,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2634,53 +2798,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "current-password-incorrect",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#current-password-incorrect",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -2690,75 +2808,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2802,38 +2872,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -2843,23 +2882,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -2869,75 +2892,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-not-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-not-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeNotRequired"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -2980,23 +2955,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -3006,23 +2965,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
 								}
 							}
 						}
@@ -3032,23 +2975,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3082,23 +3009,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3154,38 +3065,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -3195,90 +3075,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-already-exists",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-already-exists",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "username-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#username-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAlreadyExistsOrUsernameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3321,23 +3138,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -3347,38 +3148,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -3388,23 +3158,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3467,38 +3221,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -3508,90 +3231,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-invitation",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-invitation",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "username-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#username-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidInvitationOrUsernameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3672,38 +3332,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -3713,23 +3342,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -3739,38 +3352,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-access-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-access-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
 								}
 							}
 						}
@@ -3780,23 +3362,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "user-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#user-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemUserNotFound"
 								}
 							}
 						}
@@ -3806,75 +3372,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-already-exists",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-already-exists",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAlreadyExists"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -3910,23 +3428,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -3936,38 +3438,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-access-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-access-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
 								}
 							}
 						}
@@ -3977,23 +3448,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4036,23 +3491,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4062,23 +3501,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
 								}
 							}
 						}
@@ -4088,23 +3511,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4146,23 +3553,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4172,38 +3563,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-access-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-access-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
 								}
 							}
 						}
@@ -4213,23 +3573,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4283,53 +3627,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "self-password-reset-not-allowed",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#self-password-reset-not-allowed",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed"
 								}
 							}
 						}
@@ -4339,23 +3637,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4365,38 +3647,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "admin-access-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#admin-access-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
 								}
 							}
 						}
@@ -4406,75 +3657,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "user-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#user-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemUserNotFound"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4516,23 +3719,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4542,38 +3729,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -4583,23 +3739,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4668,53 +3808,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-invalid",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-invalid",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentInvalidOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -4724,23 +3818,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4750,38 +3828,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -4791,75 +3838,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-name-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-name-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -4908,23 +3907,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -4934,38 +3917,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -4975,23 +3927,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -5001,23 +3937,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5096,53 +4016,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-invalid",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-invalid",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentInvalidOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -5152,23 +4026,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -5178,38 +4036,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -5219,23 +4046,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -5245,75 +4056,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-name-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-name-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5347,23 +4110,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -5373,38 +4120,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -5414,23 +4130,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -5440,23 +4140,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-in-use",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-in-use",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentInUse"
 								}
 							}
 						}
@@ -5466,23 +4150,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5531,23 +4199,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -5557,38 +4209,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -5598,23 +4219,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -5624,23 +4229,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5692,23 +4281,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -5718,38 +4291,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -5759,23 +4301,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5907,38 +4433,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -5948,23 +4443,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -5974,38 +4453,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -6015,75 +4463,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -6132,23 +4532,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -6158,38 +4542,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -6199,23 +4552,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "widget-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#widget-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemWidgetNotFound"
 								}
 							}
 						}
@@ -6225,23 +4562,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -6383,38 +4704,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -6424,23 +4714,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -6450,38 +4724,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -6491,90 +4734,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "widget-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#widget-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFoundOrWidgetNotFound"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -6608,23 +4788,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -6634,38 +4798,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -6675,23 +4808,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "widget-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#widget-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemWidgetNotFound"
 								}
 							}
 						}
@@ -6701,23 +4818,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -6758,23 +4859,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "widget-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#widget-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemWidgetNotFound"
 								}
 							}
 						}
@@ -6784,23 +4869,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -6866,23 +4935,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -6892,38 +4945,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -6933,23 +4955,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -6959,23 +4965,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -7039,53 +5029,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-invalid",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-invalid",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -7095,23 +5039,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -7121,38 +5049,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -7162,23 +5059,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentNotFound"
 								}
 							}
 						}
@@ -7188,23 +5069,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-name-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-name-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileNameTaken"
 								}
 							}
 						}
@@ -7214,23 +5079,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
 						}
@@ -7240,23 +5089,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -7331,53 +5164,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-invalid",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-invalid",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "invalid-request",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#invalid-request",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "malformed-json",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#malformed-json",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson"
 								}
 							}
 						}
@@ -7387,23 +5174,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -7413,38 +5184,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -7454,38 +5194,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileNotFoundOrAgentNotFound"
 								}
 							}
 						}
@@ -7495,75 +5204,27 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-name-taken",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-name-taken",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileNameTaken"
 								}
 							}
 						}
 					},
 					"413": {
+						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "payload-too-large",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#payload-too-large",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
 								}
 							}
-						},
-						"description": "https://docs.talqo.chat/problems"
+						}
 					},
 					"500": {
 						"description": "https://docs.talqo.chat/problems",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -7605,23 +5266,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-invalid",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-invalid",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileInvalid"
 								}
 							}
 						}
@@ -7631,23 +5276,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "authentication-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#authentication-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 								}
 							}
 						}
@@ -7657,38 +5286,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "password-change-required",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#password-change-required",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "permission-denied",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#permission-denied",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
 								}
 							}
 						}
@@ -7698,38 +5296,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-file-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-file-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										},
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "agent-not-found",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#agent-not-found",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemAgentFileNotFoundOrAgentNotFound"
 								}
 							}
 						}
@@ -7739,23 +5306,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"oneOf": [
-										{
-											"additionalProperties": false,
-											"properties": {
-												"code": {
-													"const": "internal-server-error",
-													"type": "string"
-												},
-												"type": {
-													"const": "https://docs.talqo.chat/problems#internal-server-error",
-													"type": "string"
-												}
-											},
-											"required": ["code", "type"],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}

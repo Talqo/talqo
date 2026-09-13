@@ -1,4 +1,4 @@
-import { noContentResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
@@ -147,6 +147,7 @@ export const createWidgetRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })
@@ -183,6 +184,7 @@ export const updateWidgetRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.WIDGET_NOT_FOUND]),
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })

@@ -16,37 +16,20 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
+import type { ProblemAgentNotFound } from "../models/problemAgentNotFound.zod"
+import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
+import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
+import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
+import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
+import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
 import type { CreateWidget201 } from "../models/widget/createWidget201.zod"
-import type { CreateWidget400 } from "../models/widget/createWidget400.zod"
-import type { CreateWidget401 } from "../models/widget/createWidget401.zod"
-import type { CreateWidget403 } from "../models/widget/createWidget403.zod"
-import type { CreateWidget404 } from "../models/widget/createWidget404.zod"
-import type { CreateWidget413 } from "../models/widget/createWidget413.zod"
-import type { CreateWidget500 } from "../models/widget/createWidget500.zod"
 import type { CreateWidgetBody } from "../models/widget/createWidgetBody.zod"
-import type { DeleteWidget401 } from "../models/widget/deleteWidget401.zod"
-import type { DeleteWidget403 } from "../models/widget/deleteWidget403.zod"
-import type { DeleteWidget404 } from "../models/widget/deleteWidget404.zod"
-import type { DeleteWidget500 } from "../models/widget/deleteWidget500.zod"
 import type { GetWidget200 } from "../models/widget/getWidget200.zod"
-import type { GetWidget401 } from "../models/widget/getWidget401.zod"
-import type { GetWidget403 } from "../models/widget/getWidget403.zod"
-import type { GetWidget404 } from "../models/widget/getWidget404.zod"
-import type { GetWidget500 } from "../models/widget/getWidget500.zod"
-import type { GetWidgetConfig404 } from "../models/widget/getWidgetConfig404.zod"
-import type { GetWidgetConfig500 } from "../models/widget/getWidgetConfig500.zod"
 import type { ListWidgets200 } from "../models/widget/listWidgets200.zod"
-import type { ListWidgets401 } from "../models/widget/listWidgets401.zod"
-import type { ListWidgets403 } from "../models/widget/listWidgets403.zod"
-import type { ListWidgets500 } from "../models/widget/listWidgets500.zod"
 import type { ListWidgetsParams } from "../models/widget/listWidgetsParams.zod"
+import type { ProblemAgentNotFoundOrWidgetNotFound } from "../models/widget/problemAgentNotFoundOrWidgetNotFound.zod"
+import type { ProblemWidgetNotFound } from "../models/widget/problemWidgetNotFound.zod"
 import type { UpdateWidget200 } from "../models/widget/updateWidget200.zod"
-import type { UpdateWidget400 } from "../models/widget/updateWidget400.zod"
-import type { UpdateWidget401 } from "../models/widget/updateWidget401.zod"
-import type { UpdateWidget403 } from "../models/widget/updateWidget403.zod"
-import type { UpdateWidget404 } from "../models/widget/updateWidget404.zod"
-import type { UpdateWidget413 } from "../models/widget/updateWidget413.zod"
-import type { UpdateWidget500 } from "../models/widget/updateWidget500.zod"
 import type { UpdateWidgetBody } from "../models/widget/updateWidgetBody.zod"
 import type { WidgetConfig } from "../models/widget/widgetConfig.zod"
 
@@ -75,17 +58,17 @@ export type listWidgetsResponse200 = {
 }
 
 export type listWidgetsResponse401 = {
-	data: ListWidgets401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type listWidgetsResponse403 = {
-	data: ListWidgets403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type listWidgetsResponse500 = {
-	data: ListWidgets500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -138,7 +121,10 @@ export const getListWidgetsQueryKey = (params?: ListWidgetsParams) => {
 
 export const getListWidgetsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listWidgets>>,
-	TError = globalThis.Error & { info?: ListWidgets401 | ListWidgets403 | ListWidgets500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
 >(
 	params?: ListWidgetsParams,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
@@ -159,13 +145,16 @@ export const getListWidgetsQueryOptions = <
 
 export type ListWidgetsQueryResult = NonNullable<Awaited<ReturnType<typeof listWidgets>>>
 export type ListWidgetsQueryError = globalThis.Error & {
-	info?: ListWidgets401 | ListWidgets403 | ListWidgets500
+	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 	status?: number
 }
 
 export function useListWidgets<
 	TData = Awaited<ReturnType<typeof listWidgets>>,
-	TError = globalThis.Error & { info?: ListWidgets401 | ListWidgets403 | ListWidgets500; status?: number },
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
 >(
 	params?: ListWidgetsParams,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
@@ -183,32 +172,32 @@ export type createWidgetResponse201 = {
 }
 
 export type createWidgetResponse400 = {
-	data: CreateWidget400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type createWidgetResponse401 = {
-	data: CreateWidget401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type createWidgetResponse403 = {
-	data: CreateWidget403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type createWidgetResponse404 = {
-	data: CreateWidget404
+	data: ProblemAgentNotFound
 	status: 404
 }
 
 export type createWidgetResponse413 = {
-	data: CreateWidget413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type createWidgetResponse500 = {
-	data: CreateWidget500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -264,7 +253,13 @@ export const getCreateWidgetMutationKey = () => ["createWidget"] as const
 
 export const getCreateWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -298,14 +293,26 @@ export const getCreateWidgetMutationOptions = <
 export type CreateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof createWidget>>>
 export type CreateWidgetMutationBody = CreateWidgetBody
 export type CreateWidgetMutationError = globalThis.Error & {
-	info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemAgentNotFound
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type CreateWidgetMutationVariables = { data: CreateWidgetBody }
 
 export const useCreateWidget = <
 	TError = globalThis.Error & {
-		info?: CreateWidget400 | CreateWidget401 | CreateWidget403 | CreateWidget404 | CreateWidget413 | CreateWidget500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -326,22 +333,22 @@ export type getWidgetResponse200 = {
 }
 
 export type getWidgetResponse401 = {
-	data: GetWidget401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type getWidgetResponse403 = {
-	data: GetWidget403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type getWidgetResponse404 = {
-	data: GetWidget404
+	data: ProblemWidgetNotFound
 	status: 404
 }
 
 export type getWidgetResponse500 = {
-	data: GetWidget500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -386,7 +393,14 @@ export const getGetWidgetQueryKey = (widgetId: string) => {
 
 export const getGetWidgetQueryOptions = <
 	TData = Awaited<ReturnType<typeof getWidget>>,
-	TError = globalThis.Error & { info?: GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
 >(
 	widgetId: string,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>; fetch?: RequestInit },
@@ -408,13 +422,24 @@ export const getGetWidgetQueryOptions = <
 
 export type GetWidgetQueryResult = NonNullable<Awaited<ReturnType<typeof getWidget>>>
 export type GetWidgetQueryError = globalThis.Error & {
-	info?: GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500
+	info?:
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemWidgetNotFound
+		| ProblemInternalServerError
 	status?: number
 }
 
 export function useGetWidget<
 	TData = Awaited<ReturnType<typeof getWidget>>,
-	TError = globalThis.Error & { info?: GetWidget401 | GetWidget403 | GetWidget404 | GetWidget500; status?: number },
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
 >(
 	widgetId: string,
 	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>; fetch?: RequestInit },
@@ -432,32 +457,32 @@ export type updateWidgetResponse200 = {
 }
 
 export type updateWidgetResponse400 = {
-	data: UpdateWidget400
+	data: ProblemInvalidRequestOrMalformedJson
 	status: 400
 }
 
 export type updateWidgetResponse401 = {
-	data: UpdateWidget401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type updateWidgetResponse403 = {
-	data: UpdateWidget403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type updateWidgetResponse404 = {
-	data: UpdateWidget404
+	data: ProblemAgentNotFoundOrWidgetNotFound
 	status: 404
 }
 
 export type updateWidgetResponse413 = {
-	data: UpdateWidget413
+	data: ProblemPayloadTooLarge
 	status: 413
 }
 
 export type updateWidgetResponse500 = {
-	data: UpdateWidget500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -514,7 +539,13 @@ export const getUpdateWidgetMutationKey = () => ["updateWidget"] as const
 
 export const getUpdateWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFoundOrWidgetNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -548,14 +579,26 @@ export const getUpdateWidgetMutationOptions = <
 export type UpdateWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof updateWidget>>>
 export type UpdateWidgetMutationBody = UpdateWidgetBody
 export type UpdateWidgetMutationError = globalThis.Error & {
-	info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
+	info?:
+		| ProblemInvalidRequestOrMalformedJson
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemAgentNotFoundOrWidgetNotFound
+		| ProblemPayloadTooLarge
+		| ProblemInternalServerError
 	status?: number
 }
 export type UpdateWidgetMutationVariables = { widgetId: string; data: UpdateWidgetBody }
 
 export const useUpdateWidget = <
 	TError = globalThis.Error & {
-		info?: UpdateWidget400 | UpdateWidget401 | UpdateWidget403 | UpdateWidget404 | UpdateWidget413 | UpdateWidget500
+		info?:
+			| ProblemInvalidRequestOrMalformedJson
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFoundOrWidgetNotFound
+			| ProblemPayloadTooLarge
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -576,22 +619,22 @@ export type deleteWidgetResponse204 = {
 }
 
 export type deleteWidgetResponse401 = {
-	data: DeleteWidget401
+	data: ProblemAuthenticationRequired
 	status: 401
 }
 
 export type deleteWidgetResponse403 = {
-	data: DeleteWidget403
+	data: ProblemPasswordChangeRequiredOrPermissionDenied
 	status: 403
 }
 
 export type deleteWidgetResponse404 = {
-	data: DeleteWidget404
+	data: ProblemWidgetNotFound
 	status: 404
 }
 
 export type deleteWidgetResponse500 = {
-	data: DeleteWidget500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -634,7 +677,11 @@ export const getDeleteWidgetMutationKey = () => ["deleteWidget"] as const
 
 export const getDeleteWidgetMutationOptions = <
 	TError = globalThis.Error & {
-		info?: DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -668,14 +715,22 @@ export const getDeleteWidgetMutationOptions = <
 export type DeleteWidgetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWidget>>>
 
 export type DeleteWidgetMutationError = globalThis.Error & {
-	info?: DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+	info?:
+		| ProblemAuthenticationRequired
+		| ProblemPasswordChangeRequiredOrPermissionDenied
+		| ProblemWidgetNotFound
+		| ProblemInternalServerError
 	status?: number
 }
 export type DeleteWidgetMutationVariables = { widgetId: string }
 
 export const useDeleteWidget = <
 	TError = globalThis.Error & {
-		info?: DeleteWidget401 | DeleteWidget403 | DeleteWidget404 | DeleteWidget500
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
 		status?: number
 	},
 	TContext = unknown,
@@ -701,12 +756,12 @@ export type getWidgetConfigResponse304 = {
 }
 
 export type getWidgetConfigResponse404 = {
-	data: GetWidgetConfig404
+	data: ProblemWidgetNotFound
 	status: 404
 }
 
 export type getWidgetConfigResponse500 = {
-	data: GetWidgetConfig500
+	data: ProblemInternalServerError
 	status: 500
 }
 
@@ -754,7 +809,7 @@ export const getGetWidgetConfigQueryKey = (token: string) => {
 
 export const getGetWidgetConfigQueryOptions = <
 	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
-	TError = globalThis.Error & { info?: void | GetWidgetConfig404 | GetWidgetConfig500; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
 >(
 	token: string,
 	options?: {
@@ -778,13 +833,13 @@ export const getGetWidgetConfigQueryOptions = <
 
 export type GetWidgetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getWidgetConfig>>>
 export type GetWidgetConfigQueryError = globalThis.Error & {
-	info?: void | GetWidgetConfig404 | GetWidgetConfig500
+	info?: void | ProblemWidgetNotFound | ProblemInternalServerError
 	status?: number
 }
 
 export function useGetWidgetConfig<
 	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
-	TError = globalThis.Error & { info?: void | GetWidgetConfig404 | GetWidgetConfig500; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
 >(
 	token: string,
 	options?: {
