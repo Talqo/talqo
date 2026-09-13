@@ -57,6 +57,13 @@
 			"when": 1789148580923,
 			"tag": "0007_bizarre_avengers",
 			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1789282735128,
+			"tag": "0008_mighty_bug",
+			"breakpoints": true
 		}
 	]
 }

@@ -10,6 +10,7 @@ import {
 	PermissionDeniedError,
 	ProviderContextLimitError,
 	RevisionConflictError,
+	UnusableConfigurationError,
 } from "./ai-provider.service.ts"
 import { createCredentialVault } from "./credential-vault.ts"
 
@@ -267,5 +268,47 @@ describe("AI provider service", () => {
 				}),
 			),
 		).rejects.toBeInstanceOf(ProviderContextLimitError)
+	})
+
+	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 77,
+			timeoutMs: 9000,
+		})
+
+		expect(call).toBeUndefined()
+		expect(prepared).toMatchObject({ provider: "openai", model: "gpt-5-mini" })
+		const signal = new AbortController().signal
+		await Array.fromAsync(prepared.invoke(signal))
+		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal })
+	})
+
+	it("rejects corrupted stored credentials during preparation before provider invocation", async () => {
+		let invoked = false
+		const { service, getStored } = createMemoryService(true, async function* () {
+			invoked = true
+			yield* []
+		})
+		await service.saveConfiguration("user-1", input)
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
+		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }
+
+		await expect(
+			service.prepareTextOperation({
+				messages: [{ role: "user", content: "Hi" }],
+				maxOutputTokens: 77,
+				timeoutMs: 9000,
+			}),
+		).rejects.toBeInstanceOf(UnusableConfigurationError)
+		expect(invoked).toBe(false)
 	})
 })

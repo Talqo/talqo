@@ -20,6 +20,7 @@ const HEARTBEAT_MS = 5_000
 const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
+const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
 
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
 
@@ -34,16 +35,22 @@ type GenerationEvent =
 			usage: usageService.ProviderUsage
 	  }
 
+type PreparedOperation = {
+	invoke(signal: AbortSignal): AsyncIterable<GenerationEvent>
+	model: string
+	provider: string
+}
+
 type Dependencies = {
 	appSecret: string
+	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	generate(input: {
+	prepare(input: {
 		maxOutputTokens: number
 		messages: aiProvider.TextMessage[]
-		signal: AbortSignal
 		timeoutMs: number
-	}): AsyncIterable<GenerationEvent>
+	}): Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
@@ -92,6 +99,7 @@ export class DailyAllowanceExceededError extends Error {}
 export class ConcurrentGenerationLimitError extends Error {}
 export class SessionBusyError extends Error {}
 export class InvalidChatInputError extends Error {}
+export class ProviderUnavailableError extends Error {}
 
 function requireToken(value: string | undefined, bytes: number, name: string): string {
 	if (!value || !isCanonicalBase64Url(value, bytes)) throw new InvalidChatInputError(`${name} is invalid`)
@@ -136,24 +144,47 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 	return messages.map((message) => message.content).join("\n")
 }
 
-async function recoverExpiredAttempts(): Promise<void> {
+async function drainPendingUsageFinalizations(): Promise<void> {
 	await Promise.all(
-		(await repository.recoverExpired()).map(async (expired) => {
+		(await repository.listPendingUsageFinalizations()).map(async (pending) => {
+			const normalized =
+				pending.inputTokens === null || pending.outputTokens === null
+					? usageService.normalizeUsage({ inputText: pending.inputText, outputText: pending.assistantText })
+					: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
+			if (pending.inputTokens === null || pending.outputTokens === null) {
+				await repository.stageRecoveredUsageCandidate(
+					pending.attemptId,
+					pending.outcome,
+					normalized.inputTokens,
+					normalized.outputTokens,
+				)
+			}
 			try {
 				await usageService.recordUsage({
-					attemptId: expired.attemptId,
-					agentId: expired.agentId,
-					conversationId: expired.conversationId,
-					provider: expired.provider,
-					model: expired.model,
-					outcome: "interrupted",
-					...usageService.normalizeUsage({ inputText: expired.inputText, outputText: expired.assistantText }),
+					attemptId: pending.attemptId,
+					agentId: pending.agentId,
+					conversationId: pending.conversationId,
+					provider: pending.provider,
+					model: pending.model,
+					outcome: pending.outcome,
+					...normalized,
 				})
 			} catch (error) {
-				if (!isForeignKeyViolation(error)) throw error
+				if (isForeignKeyViolation(error)) return
+				throw error
 			}
+			await repository.markUsageRecorded({
+				attemptId: pending.attemptId,
+				outcome: pending.outcome,
+				...normalized,
+			})
 		}),
 	)
+}
+
+async function recoverExpiredAttempts(): Promise<void> {
+	await repository.recoverExpired()
+	await drainPendingUsageFinalizations()
 }
 
 export function createConversationService(dependencies: Dependencies) {
@@ -172,6 +203,7 @@ export function createConversationService(dependencies: Dependencies) {
 		accepted: repository.AcceptedAttempt,
 		agent: agentService.Agent,
 		messages: aiProvider.TextMessage[],
+		prepared: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 	): Promise<void> {
 		const { attempt, assistantMessage } = accepted
@@ -182,8 +214,8 @@ export function createConversationService(dependencies: Dependencies) {
 		let observedOutput = ""
 		let lastHeartbeat = Date.now()
 		let outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" = "failed"
-		let provider = "unknown"
-		let model = "unknown"
+		let provider = prepared.provider
+		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
 		let publicError = {
 			code: "provider-error",
@@ -203,12 +235,8 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 		}, CANCELLATION_POLL_MS)
 		try {
-			for await (const event of dependencies.generate({
-				messages,
-				maxOutputTokens: dependencies.maxOutputTokens,
-				timeoutMs: dependencies.timeoutMs,
-				signal: controller.signal,
-			})) {
+			if (!(await repository.markProviderInvoked(attempt.id, attempt.leaseToken, provider, model))) return
+			for await (const event of prepared.invoke(controller.signal)) {
 				if (event.type === "start") {
 					provider = event.provider
 					model = event.model
@@ -231,12 +259,7 @@ export function createConversationService(dependencies: Dependencies) {
 					outcome = event.outcome
 				}
 			}
-			if (outcome === "completed") {
-				const tail = filter.finish()
-				if (tail && (await repository.appendOutput(attempt.id, attempt.leaseToken, tail))) {
-					emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: tail })
-				}
-			} else if (controller.signal.aborted && outcome !== "blocked") {
+			if (controller.signal.aborted && outcome !== "blocked") {
 				outcome = "cancelled"
 			}
 		} catch (error) {
@@ -261,28 +284,29 @@ export function createConversationService(dependencies: Dependencies) {
 			clearInterval(poll)
 			controllers.delete(attempt.id)
 		}
+		if (outcome !== "blocked") {
+			const tail = filter.finish()
+			if (tail && (await repository.appendOutput(attempt.id, attempt.leaseToken, tail))) {
+				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: tail })
+			}
+		}
 
 		const normalized = usageService.normalizeUsage({
 			inputText: promptText(messages),
 			outputText: observedOutput,
 			usage: providerUsage,
 		})
-		try {
-			await usageService.recordUsage({
+		if (
+			await repository.stageFinalization({
 				attemptId: attempt.id,
-				agentId: agent.id,
-				conversationId: accepted.conversationId,
+				leaseToken: attempt.leaseToken,
 				provider,
 				model,
 				outcome,
 				...normalized,
 			})
-		} catch (error) {
-			// Agent deletion cascades the attempt; detached provider work must end without recreating it.
-			if (isForeignKeyViolation(error)) return
-			throw error
-		}
-		if (await repository.finishAttempt(attempt.id, attempt.leaseToken, outcome, provider, model)) {
+		) {
+			await drainPendingUsageFinalizations()
 			if (outcome === "failed") {
 				emit({
 					version: 1,
@@ -298,7 +322,7 @@ export function createConversationService(dependencies: Dependencies) {
 
 	return {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}) {
-			await recoverExpiredAttempts()
+			await drainPendingUsageFinalizations()
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
 			requireToken(input.requestId, REQUEST_ID_BYTES, "Request ID")
 			let session: repository.SessionContext | undefined
@@ -338,33 +362,59 @@ export function createConversationService(dependencies: Dependencies) {
 				}
 			}
 			const agent = await agentService.getAgent(agentId)
-			const history = session ? await repository.listMessages(session.conversationId) : []
-			const messages = completedPrompt(agent.systemPrompt, history, input.text)
-			if ([...promptText(messages)].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
-
-			let accepted: repository.AcceptedAttempt
-			try {
-				accepted = await repository.acceptAttempt({
-					agentId,
-					bootstrap,
-					conversationId: session?.conversationId,
-					sessionId: session?.sessionId,
-					requestId: input.requestId,
-					requestTextHash: hashSecret(input.text),
-					inputText: promptText(messages),
-					messageText: input.text,
-					networkHash: input.networkHash,
-					dailyLimit: dependencies.dailyLimit,
-					concurrencyLimit: dependencies.concurrencyLimit,
-				})
-			} catch (error) {
-				if (error instanceof repository.AllowanceExceededRepositoryError) throw new DailyAllowanceExceededError()
-				if (error instanceof repository.ConcurrencyExceededRepositoryError) throw new ConcurrentGenerationLimitError()
-				if (error instanceof repository.SessionBusyRepositoryError) throw new SessionBusyError()
-				if (error instanceof repository.BootstrapUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
-				if (error instanceof repository.RequestConflictRepositoryError) throw new RequestConflictError()
-				throw error
+			async function prepareAndAccept(attempt: number): Promise<{
+				accepted: repository.AcceptedAttempt
+				messages: aiProvider.TextMessage[]
+				prepared: PreparedOperation
+			}> {
+				const history = session
+					? await repository.getHistorySnapshot(session.conversationId)
+					: { messages: [], revision: 0, latestCompletedMessageId: null }
+				const messages = completedPrompt(agent.systemPrompt, history.messages, input.text)
+				if ([...promptText(messages)].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+				let prepared: PreparedOperation
+				try {
+					prepared = await dependencies.prepare({
+						messages,
+						maxOutputTokens: dependencies.maxOutputTokens,
+						timeoutMs: dependencies.timeoutMs,
+					})
+				} catch {
+					throw new ProviderUnavailableError("The configured text provider is unavailable")
+				}
+				await dependencies.beforeAccept?.(attempt)
+				try {
+					const accepted = await repository.acceptAttempt({
+						agentId,
+						bootstrap,
+						conversationId: session?.conversationId,
+						sessionId: session?.sessionId,
+						requestId: input.requestId,
+						requestTextHash: hashSecret(input.text),
+						historyRevision: history.revision,
+						historyTailId: history.latestCompletedMessageId,
+						inputText: promptText(messages),
+						messageText: input.text,
+						networkHash: input.networkHash,
+						dailyLimit: dependencies.dailyLimit,
+						concurrencyLimit: dependencies.concurrencyLimit,
+					})
+					return { accepted, messages, prepared }
+				} catch (error) {
+					if (error instanceof repository.StaleHistoryRepositoryError) {
+						if (attempt + 1 < MAX_HISTORY_ACCEPT_ATTEMPTS) return prepareAndAccept(attempt + 1)
+						throw new SessionBusyError("Conversation history changed repeatedly")
+					}
+					if (error instanceof repository.AllowanceExceededRepositoryError) throw new DailyAllowanceExceededError()
+					if (error instanceof repository.ConcurrencyExceededRepositoryError) throw new ConcurrentGenerationLimitError()
+					if (error instanceof repository.SessionBusyRepositoryError) throw new SessionBusyError()
+					if (error instanceof repository.BootstrapUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
+					if (error instanceof repository.RequestConflictRepositoryError) throw new RequestConflictError()
+					throw error
+				}
 			}
+			const { accepted, messages, prepared } = await prepareAndAccept(0)
+			await drainPendingUsageFinalizations()
 			if (accepted.attempt.requestTextHash !== hashSecret(input.text)) throw new RequestConflictError()
 			const acceptedEvent: ChatEvent = {
 				version: 1,
@@ -382,7 +432,7 @@ export function createConversationService(dependencies: Dependencies) {
 			if (accepted.duplicate && accepted.attempt.status !== "accepted" && accepted.attempt.status !== "running") {
 				emit({ version: 1, type: "terminal", outcome: accepted.attempt.status })
 			}
-			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, emit)
+			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 
@@ -472,9 +522,6 @@ export function getConversationService() {
 		maxInputCharacters: env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
 		maxOutputTokens: env.TALQO_CHAT_MAX_OUTPUT_TOKENS,
 		timeoutMs: env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND,
-		generate: async function* (input) {
-			const stream = await aiProvider.streamText(input)
-			for await (const event of stream) yield event
-		},
+		prepare: (input) => aiProvider.prepareTextOperation(input),
 	}))
 }

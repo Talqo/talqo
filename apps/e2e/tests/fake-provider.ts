@@ -135,6 +135,11 @@ Bun.serve({
 			return Response.json({ data: [{ id: "chat-model" }, { id: "embedding-model" }] })
 		}
 		if (pathname === "/control/requests" && request.method === "GET") return Response.json({ requests })
+		if (pathname === "/control/reset" && request.method === "POST") {
+			for (const pending of pendingStreams.splice(0)) pending.release()
+			requests.length = 0
+			return new Response(null, { status: 204 })
+		}
 		if (pathname === "/control/release" && request.method === "POST") {
 			const pending = pendingStreams.shift()
 			if (!pending) return Response.json({ error: "No provider stream is waiting" }, { status: 409 })

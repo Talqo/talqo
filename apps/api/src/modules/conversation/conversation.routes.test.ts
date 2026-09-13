@@ -3,6 +3,7 @@ import { describe, expect, it } from "bun:test"
 
 import { chatEventSchema } from "./conversation.contract.ts"
 import { createConversationRoutes } from "./conversation.routes.ts"
+import { ProviderUnavailableError } from "./conversation.service.ts"
 
 const REQUEST_ID = Buffer.alloc(16, 1).toString("base64url")
 const BOOTSTRAP_SECRET = Buffer.alloc(32, 2).toString("base64url")
@@ -14,11 +15,12 @@ function parseEvents(body: string) {
 		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
 }
 
-function routes(failure = false) {
+function routes(failure: "none" | "post-accept" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void) => {
 			calls.push(input)
+			if (failure === "pre-accept") throw new ProviderUnavailableError()
 			emit({
 				version: 1,
 				type: "accepted",
@@ -28,7 +30,7 @@ function routes(failure = false) {
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			})
-			if (failure) {
+			if (failure === "post-accept") {
 				emit({
 					version: 1,
 					type: "error",
@@ -156,7 +158,7 @@ describe("public conversation routes", () => {
 	})
 
 	it("emits a schema-valid error event after acceptance", async () => {
-		const { app } = routes(true)
+		const { app } = routes("post-accept")
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -165,5 +167,18 @@ describe("public conversation routes", () => {
 
 		expect(response.status).toBe(200)
 		expect(parseEvents(await response.text()).map((event) => event.type)).toEqual(["accepted", "error"])
+	})
+
+	it("returns an RFC problem when provider preparation fails before acceptance", async () => {
+		const { app } = routes("pre-accept")
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET, text: "hi" }),
+		})
+
+		expect(response.status).toBe(502)
+		expect(response.headers.get("content-type")).toContain("application/problem+json")
+		expect(await response.json()).toMatchObject({ code: "provider-error" })
 	})
 })

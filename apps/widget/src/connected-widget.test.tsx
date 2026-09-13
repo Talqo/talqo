@@ -293,16 +293,25 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("offers new chat when a revoked stored session has no loadable messages", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
+			initialization: "error",
 			messages: [],
 			error: error("chat-session-unauthorized", { newChatAvailable: true }),
 		})
+		store.onInitialize(async () => {
+			throw new Error("revoked")
+		})
+		store.onNewChat(async () => store.setSnapshot(READY_SNAPSHOT))
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
+		await draft("keep draft")
 
 		const reset = host.querySelector<HTMLButtonElement>("button[aria-label='New chat']")
 		expect(reset).not.toBeNull()
+		expect(reset?.disabled).toBe(false)
 		await act(async () => reset?.click())
 		expect(store.calls.newChat).toBe(1)
+		expect(input().value).toBe("keep draft")
+		expect(input().disabled).toBe(false)
 	})
 
 	test("renders initialization, reset time, recovery, outcomes, and generic errors", async () => {

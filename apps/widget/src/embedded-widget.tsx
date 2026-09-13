@@ -299,6 +299,11 @@ function WidgetChat({
 	const visibleError = unavailable
 		? ({ code: "embed-not-found", message: "", retriable: false, newChatAvailable: false } satisfies ChatError)
 		: snapshot?.error
+	const canStartNewChat =
+		client !== undefined &&
+		!resetting &&
+		(initialization === "ready" ||
+			(initialization === "error" && snapshot?.configuration !== undefined && visibleError?.newChatAvailable === true))
 
 	useEffect(() => {
 		draftRef.current = draft
@@ -351,7 +356,7 @@ function WidgetChat({
 	}
 
 	async function handleNewChat() {
-		if (!client || resetting || initialization !== "ready") return
+		if (!canStartNewChat) return
 		try {
 			await client.startNewChat()
 			inputRef.current?.focus()
@@ -441,7 +446,7 @@ function WidgetChat({
 								<button
 									type="button"
 									onClick={() => void handleNewChat()}
-									disabled={initialization !== "ready" || resetting}
+									disabled={!canStartNewChat}
 									aria-label={t("newChat")}
 									title={t("newChatTooltip")}
 									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:text-xl tw:leading-none tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
@@ -527,7 +532,7 @@ function WidgetChat({
 										<button
 											type="button"
 											onClick={() => void handleNewChat()}
-											disabled={resetting}
+											disabled={!canStartNewChat}
 											aria-label={t("newChat")}
 											className="tw:rounded-control tw:bg-primary tw:px-3 tw:py-2 tw:text-primary-foreground tw:disabled:opacity-50"
 										>
@@ -638,7 +643,9 @@ export function ConnectedEmbeddedWidget({
 				forcedScheme={forcedScheme}
 				snapshot={snapshot}
 				client={client}
-				unavailable={initializationFailed && snapshot.initialization !== "error"}
+				unavailable={
+					initializationFailed && snapshot.initialization !== "error" && snapshot.configuration === undefined
+				}
 			/>
 		</I18nextProvider>
 	)

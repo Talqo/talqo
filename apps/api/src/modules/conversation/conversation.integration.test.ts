@@ -1,6 +1,6 @@
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import { ProviderContextLimitError } from "@/modules/ai-provider/ai-provider.service.ts"
+import { ProviderContextLimitError, type TextMessage } from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
@@ -11,6 +11,8 @@ import {
 	ConcurrentGenerationLimitError,
 	createConversationService,
 	DailyAllowanceExceededError,
+	getConversationService,
+	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
@@ -49,25 +51,45 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 			maxInputCharacters: 400_000,
 			maxOutputTokens: 100,
 			timeoutMs: 10_000,
-			generate: async function* (input) {
-				prompts.push(input.messages)
-				yield { type: "text", text: outputs[call] ?? "answer" } as const
-				call += 1
-				yield {
-					type: "finish",
-					outcome: "completed",
-					provider: "fake",
-					model: "fake-model",
-					usage: { inputTokens: 8, outputTokens: 2 },
-				} as const
-			},
+			prepare: async (input) => ({
+				provider: "fake",
+				model: "fake-model",
+				invoke: async function* () {
+					prompts.push(input.messages)
+					yield { type: "text", text: outputs[call] ?? "answer" } as const
+					call += 1
+					yield {
+						type: "finish",
+						outcome: "completed",
+						provider: "fake",
+						model: "fake-model",
+						usage: { inputTokens: 8, outputTokens: 2 },
+					} as const
+				},
+			}),
 		}),
 	}
 }
 
 function customService(
-	generate: Parameters<typeof createConversationService>[0]["generate"],
+	generate: (input: {
+		maxOutputTokens: number
+		messages: TextMessage[]
+		signal: AbortSignal
+		timeoutMs: number
+	}) => AsyncIterable<
+		| { model: string; provider: string; type: "start" }
+		| { text: string; type: "text" }
+		| {
+				model: string
+				outcome: "cancelled" | "completed" | "failed" | "interrupted"
+				provider: string
+				type: "finish"
+				usage: usage.ProviderUsage
+		  }
+	>,
 	policy: { dailyLimit?: number; concurrencyLimit?: number } = {},
+	beforeAccept?: (attempt: number) => Promise<void>,
 ) {
 	return createConversationService({
 		appSecret: APP_SECRET,
@@ -76,7 +98,12 @@ function customService(
 		maxInputCharacters: 400_000,
 		maxOutputTokens: 100,
 		timeoutMs: 10_000,
-		generate,
+		...(beforeAccept ? { beforeAccept } : {}),
+		prepare: async (input) => ({
+			provider: "fake",
+			model: "fake-model",
+			invoke: (signal) => generate({ ...input, signal }),
+		}),
 	})
 }
 
@@ -215,16 +242,18 @@ describe("conversation lifecycle", () => {
 			FROM conversation_usage
 		`
 		if (!storedUsage) throw new Error("Expected persisted usage")
-		await usage.recordUsage({
+		const usageRecord = {
 			attemptId: String(storedUsage.attempt_id),
 			agentId: String(storedUsage.agent_id),
 			conversationId: String(storedUsage.conversation_id),
 			provider: String(storedUsage.provider),
 			model: String(storedUsage.model),
 			outcome: String(storedUsage.outcome),
-			inputTokens: 999,
-			outputTokens: 999,
-		})
+			inputTokens: Number(storedUsage.input_tokens),
+			outputTokens: Number(storedUsage.output_tokens),
+		}
+		await expect(usage.recordUsage(usageRecord)).resolves.toBeUndefined()
+		await expect(usage.recordUsage({ ...usageRecord, inputTokens: 999, outputTokens: 999 })).rejects.toBeDefined()
 		expect((await sql`SELECT input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
 			input_tokens: 8,
 			output_tokens: 2,
@@ -529,6 +558,26 @@ describe("conversation lifecycle", () => {
 			(await sql`SELECT count(*)::int AS count FROM conversation_usage WHERE attempt_id = ${sent.generationId}`)[0]
 				?.count,
 		).toBe(1)
+		expect(
+			(
+				await sql`
+					SELECT a.final_outcome, a.usage_input_tokens, a.usage_output_tokens,
+						a.usage_recorded_at IS NOT NULL AS recorded, u.outcome,
+						u.input_tokens, u.output_tokens
+					FROM conversation_attempt a
+					JOIN conversation_usage u ON u.attempt_id = a.id
+					WHERE a.id = ${sent.generationId}
+				`
+			)[0],
+		).toMatchObject({
+			final_outcome: "interrupted",
+			outcome: "interrupted",
+			recorded: true,
+			usage_input_tokens: expect.any(Number),
+			usage_output_tokens: expect.any(Number),
+			input_tokens: expect.any(Number),
+			output_tokens: expect.any(Number),
+		})
 		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)
 		const next = await service().service.send({
 			embedToken: createdEmbed.embedToken,
@@ -606,5 +655,234 @@ describe("conversation lifecycle", () => {
 		await second.done
 
 		expect(events.at(-1)).toMatchObject({ error: { code: "chat-context-limit", newChatAvailable: true } })
+	})
+
+	it("rejects every worker write after its lease expires", async () => {
+		const { createdEmbed } = await fixture()
+		const started = deferred()
+		const gate = deferred()
+		const instance = customService(async function* () {
+			started.resolve()
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			await gate.promise
+		})
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "expire",
+			networkHash: "network-a",
+		})
+		await started.promise
+		const [attempt] = await sql`SELECT lease_token FROM conversation_attempt WHERE id = ${sent.generationId}`
+		const leaseToken = String(attempt?.lease_token)
+		await sql`
+			UPDATE conversation_attempt
+			SET cancellation_requested_at = now(), lease_expires_at = now() - interval '1 second'
+			WHERE id = ${sent.generationId}
+		`
+
+		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(false)
+		expect(await repository.setAttribution(sent.generationId, leaseToken, "late", "late")).toBe(false)
+		expect(await repository.appendOutput(sent.generationId, leaseToken, "late")).toBe(false)
+		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(false)
+		expect(
+			await repository.stageFinalization({
+				attemptId: sent.generationId,
+				leaseToken,
+				outcome: "completed",
+				provider: "late",
+				model: "late",
+				inputTokens: 1,
+				outputTokens: 1,
+			}),
+		).toBe(false)
+		gate.resolve()
+		await sent.done
+	})
+
+	it("atomically interrupts an expired session attempt before admitting its replacement", async () => {
+		const { createdEmbed } = await fixture()
+		const started = deferred()
+		const gate = deferred()
+		const owner = customService(async function* () {
+			started.resolve()
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			await gate.promise
+			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+		})
+		const expired = await owner.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "expires",
+			networkHash: "network-a",
+		})
+		await started.promise
+		await sql`UPDATE conversation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${expired.generationId}`
+
+		const replacement = await service().service.send({
+			credential: expired.credential,
+			requestId: REQUEST_2,
+			text: "replacement",
+			networkHash: "network-a",
+		})
+		expect((await sql`SELECT status FROM conversation_attempt WHERE id = ${expired.generationId}`)[0]?.status).toBe(
+			"interrupted",
+		)
+		gate.resolve()
+		await Promise.all([expired.done, replacement.done])
+	})
+
+	it("persists a short safe tail when generation fails", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = customService(async function* () {
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "text", text: "tiny" } as const
+			throw new Error("failed")
+		})
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "fail",
+			networkHash: "network-a",
+		})
+		await sent.done
+
+		expect((await instance.getAttempt(sent.credential!, sent.generationId)).assistantText).toBe("tiny")
+		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
+	})
+
+	it("persists a short safe tail when generation is cancelled", async () => {
+		const { createdEmbed } = await fixture()
+		const started = deferred()
+		const instance = customService(async function* (input) {
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "text", text: "tiny" } as const
+			started.resolve()
+			await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }))
+			yield { type: "finish", outcome: "cancelled", provider: "fake", model: "fake-model", usage: {} } as const
+		})
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "cancel",
+			networkHash: "network-a",
+		})
+		await started.promise
+		await instance.cancel(sent.credential!, sent.generationId)
+		await sent.done
+
+		expect((await instance.getAttempt(sent.credential!, sent.generationId)).assistantText).toBe("tiny")
+		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
+	})
+
+	it("rejects unusable provider configuration before acceptance without charging or creating data", async () => {
+		const { createdEmbed } = await fixture()
+		await sql`DELETE FROM ai_provider_config`
+
+		await expect(
+			getConversationService().send({
+				embedToken: createdEmbed.embedToken,
+				bootstrapSecret: BOOTSTRAP_1,
+				requestId: REQUEST_1,
+				text: "must not accept",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(ProviderUnavailableError)
+		const [counts] = await sql`
+			SELECT
+				(SELECT count(*) FROM conversation)::int AS conversations,
+				(SELECT count(*) FROM conversation_attempt)::int AS attempts,
+				(SELECT count(*) FROM conversation_daily_counter)::int AS allowance,
+				(SELECT count(*) FROM conversation_usage)::int AS usage
+		`
+		expect(counts).toMatchObject({ conversations: 0, attempts: 0, allowance: 0, usage: 0 })
+	})
+
+	it("recreates usage from durable finalization state after a crash before insertion", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const sent = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "durable",
+			networkHash: "network-a",
+		})
+		await sent.done
+		await sql`DELETE FROM conversation_usage WHERE attempt_id = ${sent.generationId}`
+		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
+
+		await instance.service.getSession(sent.credential!)
+
+		expect((await sql`SELECT outcome, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
+			outcome: "completed",
+			input_tokens: 8,
+			output_tokens: 2,
+		})
+		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM conversation_attempt`)[0]?.recorded).toBe(
+			true,
+		)
+		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
+		await instance.service.getSession(sent.credential!)
+		expect((await sql`SELECT count(*)::int AS count FROM conversation_usage`)[0]?.count).toBe(1)
+		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM conversation_attempt`)[0]?.recorded).toBe(
+			true,
+		)
+	})
+
+	it("reloads full completed history when a turn completes after the optimistic snapshot", async () => {
+		const { createdEmbed } = await fixture()
+		const initialService = service(["initial"]).service
+		const initial = await initialService.send({
+			embedToken: createdEmbed.embedToken,
+			bootstrapSecret: BOOTSTRAP_1,
+			requestId: REQUEST_1,
+			text: "first",
+			networkHash: "network-a",
+		})
+		await initial.done
+		const rival = service(["raced"]).service
+		const prompts: TextMessage[][] = []
+		const main = customService(
+			async function* (input) {
+				prompts.push(input.messages)
+				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			},
+			{},
+			async (attempt) => {
+				if (attempt !== 0) return
+				const raced = await rival.send({
+					credential: initial.credential,
+					requestId: REQUEST_2,
+					text: "racing turn",
+					networkHash: "network-a",
+				})
+				await raced.done
+			},
+		)
+
+		const sent = await main.send({
+			credential: initial.credential,
+			requestId: REQUEST_3,
+			text: "after race",
+			networkHash: "network-a",
+		})
+		await sent.done
+
+		expect(prompts).toEqual([
+			[
+				{ role: "system", content: "System" },
+				{ role: "user", content: "first" },
+				{ role: "assistant", content: "initial" },
+				{ role: "user", content: "racing turn" },
+				{ role: "assistant", content: "raced" },
+				{ role: "user", content: "after race" },
+			],
+		])
+		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(3)
 	})
 })

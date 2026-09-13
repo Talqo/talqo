@@ -4666,6 +4666,32 @@
 								}
 							}
 						}
+					},
+					"502": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
 					}
 				}
 			}
@@ -4754,6 +4780,32 @@
 							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemInternalServerError"
+								}
+							}
+						}
+					},
+					"502": {
+						"description": "https://docs.talqo.chat/problems",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"oneOf": [
+										{
+											"additionalProperties": false,
+											"properties": {
+												"code": {
+													"const": "provider-error",
+													"type": "string"
+												},
+												"type": {
+													"const": "https://docs.talqo.chat/problems#provider-error",
+													"type": "string"
+												}
+											},
+											"required": ["code", "type"],
+											"type": "object"
+										}
+									]
 								}
 							}
 						}

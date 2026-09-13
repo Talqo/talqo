@@ -113,6 +113,7 @@ export const bootstrapSendRoute = createRoute({
 		401: commonProblems,
 		409: commonProblems,
 		429: commonProblems,
+		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
@@ -129,6 +130,7 @@ export const sendRoute = createRoute({
 		401: commonProblems,
 		409: commonProblems,
 		429: commonProblems,
+		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })

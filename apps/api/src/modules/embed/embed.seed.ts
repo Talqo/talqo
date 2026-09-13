@@ -13,7 +13,11 @@ export async function reset(): Promise<void> {
 	await sql`TRUNCATE TABLE embed CASCADE`
 }
 
-export async function seed(agentId: string): Promise<{ embedToken: string }> {
+export async function seed(
+	agentId: string,
+	embedToken = E2E_EMBED_TOKEN,
+	includeSupportPortal = true,
+): Promise<{ embedToken: string }> {
 	const marketing = await service.createEmbed({
 		agentId,
 		name: "Marketing site",
@@ -23,13 +27,15 @@ export async function seed(agentId: string): Promise<{ embedToken: string }> {
 		},
 	})
 	// Pinned afterwards so the service needs no test-only parameter.
-	await repo.setEmbedToken(marketing.id, E2E_EMBED_TOKEN)
+	await repo.setEmbedToken(marketing.id, embedToken)
 
-	await service.createEmbed({
-		agentId,
-		name: "Support portal",
-		appearance: { ...DEFAULT_WIDGET_APPEARANCE, position: "bottom-left" },
-	})
+	if (includeSupportPortal) {
+		await service.createEmbed({
+			agentId,
+			name: "Support portal",
+			appearance: { ...DEFAULT_WIDGET_APPEARANCE, position: "bottom-left" },
+		})
+	}
 
-	return { embedToken: E2E_EMBED_TOKEN }
+	return { embedToken }
 }
