@@ -24,8 +24,9 @@ const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
 const FIVE_SECONDS_MS = 5_000
 const DEFAULT_RECOVERY_DELAYS = [ONE_SECOND_MS, TWO_SECONDS_MS, FIVE_SECONDS_MS] as const
-const MAX_RECOVERY_POLLS = 25
+const MAX_RECOVERY_POLLS = 65
 const HTTP_CLIENT_ERROR = 400
+const HTTP_UNAUTHORIZED = 401
 const HTTP_SERVER_ERROR = 500
 
 export class ChatClientError extends Error {
@@ -189,6 +190,24 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					// oxlint-disable-next-line no-await-in-loop
 					await wait(delay, controller.signal)
 					if (credential === undefined) return
+					if (pendingMessage !== undefined) {
+						const pending = pendingMessage
+						// oxlint-disable-next-line no-await-in-loop
+						const events = await transport.sendMessage({
+							...context(controller.signal),
+							credential,
+							requestId: pending.requestId,
+							text: pending.text,
+						})
+						// Obtaining a successful response proves the idempotent request was accepted.
+						// oxlint-disable-next-line no-await-in-loop
+						await events[Symbol.asyncIterator]().return?.()
+						if (pendingMessage?.requestId === pending.requestId) {
+							pendingMessage = undefined
+							// oxlint-disable-next-line no-await-in-loop
+							await persist({ version: CHAT_STORAGE_VERSION, credential })
+						}
+					}
 					// oxlint-disable-next-line no-await-in-loop
 					const session = await transport.loadSession({ ...context(controller.signal), credential })
 					// oxlint-disable-next-line no-await-in-loop
@@ -228,23 +247,20 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				const record = readChatStorageRecord(serialized)
 				credential = record?.credential
 				pendingMessage = record?.pending
-				if (credential !== undefined) {
-					try {
-						await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
-					} catch (cause) {
-						if (pendingMessage === undefined) throw cause
-						messages = freezeMessages([
-							{
-								id: `pending:${pendingMessage.requestId}`,
-								role: "user",
-								text: pendingMessage.text,
-								createdAt: now().toISOString(),
-								outcome: "interrupted",
-							},
-						])
-						generation = "recovery"
-						recovery = "pending"
-					}
+				if (credential !== undefined && pendingMessage === undefined) {
+					await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
+				} else if (pendingMessage !== undefined) {
+					messages = freezeMessages([
+						{
+							id: `pending:${pendingMessage.requestId}`,
+							role: "user",
+							text: pendingMessage.text,
+							createdAt: now().toISOString(),
+							outcome: "interrupted",
+						},
+					])
+					generation = "recovery"
+					recovery = "pending"
 				}
 				initialization = "ready"
 				publish()
@@ -275,7 +291,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {
-			throw new Error("The pending first message must be recovered before sending another message")
+			throw new Error("The pending message must be recovered before sending another message")
 		}
 		if (generation !== "idle") throw new Error("A chat response is already active")
 		if (text.length === 0) throw new Error("Message text must not be empty")
@@ -286,10 +302,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const controller = new AbortController()
 		const send = { controller, cancellationRequested: false }
 		activeSend = send
-		if (newSession) {
-			pendingMessage = { requestId, text }
-			await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential, pending: pendingMessage })
-		}
+		pendingMessage = { requestId, text }
+		await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential, pending: pendingMessage })
 		const localUserId = `pending:${requestId}`
 		messages = freezeMessages([
 			...messages,
@@ -340,10 +354,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						},
 					])
 					generation = "streaming"
-					if (newSession) {
-						pendingMessage = undefined
-						await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
-					}
+					pendingMessage = undefined
+					await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
 					publish()
 				} else if (event.type === "delta") {
 					assistantId = event.assistantMessageId
@@ -370,14 +382,16 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				!accepted && status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
 			if (definitelyRejected) {
 				messages = freezeMessages(messages.filter((message) => message.id !== localUserId))
+				pendingMessage = undefined
 				if (newSession) {
 					credential = undefined
-					pendingMessage = undefined
 					try {
 						await storage.removeItem(storageKey)
 					} catch {
 						// The rejection remains definite even when its local record cannot be removed.
 					}
+				} else {
+					await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
 				}
 				generation = "idle"
 				recovery = "idle"
@@ -411,6 +425,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const previousGeneration = generation
 		const controller = new AbortController()
 		cancellationController = controller
+		const preAcceptance = activeSend !== undefined && activeGenerationId === undefined
+		if (preAcceptance && activeSend !== undefined) {
+			activeSend.cancellationRequested = true
+			activeSend.controller.abort(new Error("Chat response cancelled"))
+		}
 		generation = "cancelling"
 		publish()
 		let cancellation!: Promise<void>
@@ -433,6 +452,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				activeGenerationId = undefined
 				publish()
 			} catch (cause) {
+				if (preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED) {
+					recoveryController?.abort()
+					generation = "idle"
+					recovery = "idle"
+					activeGenerationId = undefined
+					publish()
+					return
+				}
 				generation = previousGeneration
 				error = { ...transportError(cause), code: "cancel_failed" }
 				publish()

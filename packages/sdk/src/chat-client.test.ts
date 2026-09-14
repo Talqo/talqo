@@ -312,16 +312,17 @@ describe("createChatClient", () => {
 	test("polls an uncertain first session to completion without regenerating", async () => {
 		const storage = createMemoryStorage()
 		let loads = 0
-		let sends = 0
+		const sends: { credential: string; requestId: string; text: string }[] = []
 		const credential = "22222222-2222-4222-8222-222222222222"
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			storage,
 			transport: baseTransport({
-				sendMessage: async () => {
-					sends += 1
-					throw new Error("connection lost")
+				sendMessage: async (input) => {
+					sends.push({ credential: input.credential, requestId: input.requestId, text: input.text })
+					if (sends.length === 1) throw new Error("connection lost")
+					return streamFrom([])
 				},
 				loadSession: async () => {
 					loads += 1
@@ -352,7 +353,8 @@ describe("createChatClient", () => {
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
 
-		expect(sends).toBe(1)
+		expect(sends).toHaveLength(2)
+		expect(sends[1]).toEqual(sends[0])
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
 		expect(
@@ -363,14 +365,54 @@ describe("createChatClient", () => {
 		})
 	})
 
+	test("confirms an uncertain established send before accepting an idle session", async () => {
+		const storage = createMemoryStorage()
+		const credential = "22222222-2222-4222-8222-222222222222"
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential }),
+		)
+		const sends: { credential: string; requestId: string; text: string }[] = []
+		let loads = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				loadSession: async () => {
+					loads += 1
+					return { messages: [], activeGeneration: undefined }
+				},
+				sendMessage: async (input) => {
+					sends.push({ credential: input.credential, requestId: input.requestId, text: input.text })
+					if (sends.length === 1) throw new Error("connection lost")
+					return streamFrom([])
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
+
+		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+
+		expect(loads).toBe(2)
+		expect(sends).toHaveLength(2)
+		expect(sends[1]).toEqual(sends[0])
+	})
+
 	test("continues session recovery when the first load fails", async () => {
 		let loads = 0
+		let sends = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			transport: baseTransport({
 				sendMessage: async () => {
-					throw new Error("connection lost")
+					sends += 1
+					if (sends === 1) throw new Error("connection lost")
+					return streamFrom([])
 				},
 				loadSession: async () => {
 					loads += 1
@@ -393,6 +435,37 @@ describe("createChatClient", () => {
 
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
+	})
+
+	test("keeps polling beyond the default generation timeout window", async () => {
+		let loads = 0
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					if (sends === 1) throw new Error("connection lost")
+					return streamFrom([])
+				},
+				loadSession: async () => {
+					loads += 1
+					return {
+						messages: [],
+						activeGeneration: loads <= 25 ? { id: "generation" } : undefined,
+					}
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
+
+		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+
+		expect(loads).toBe(26)
 	})
 
 	for (const rejection of [
@@ -435,7 +508,7 @@ describe("createChatClient", () => {
 		})
 	}
 
-	test("bounds first-session recovery and never generates the pending request again", async () => {
+	test("bounds retries of the exact pending request", async () => {
 		let loads = 0
 		let sends = 0
 		const client = createChatClient({
@@ -458,10 +531,10 @@ describe("createChatClient", () => {
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
 
-		expect(loads).toBe(25)
-		await expect(client.sendMessage("hello")).rejects.toThrow("recovered before sending")
-		await expect(client.sendMessage("different")).rejects.toThrow("recovered before sending")
-		expect(sends).toBe(1)
+		expect(loads).toBe(0)
+		await expect(client.sendMessage("hello")).rejects.toThrow("pending message")
+		await expect(client.sendMessage("different")).rejects.toThrow("pending message")
+		expect(sends).toBe(66)
 	})
 
 	for (const event of [
@@ -599,13 +672,14 @@ describe("createChatClient", () => {
 		})
 
 		await client.initialize()
+		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
 
 		expect(loads).toBe(1)
 		expect(client.getSnapshot().messages).toHaveLength(1)
 		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential })
 	})
 
-	test("polls but never resubmits an unaccepted stored first message", async () => {
+	test("resubmits a stored pending message with its original identity", async () => {
 		const storage = createMemoryStorage()
 		const pending = { requestId: "request", text: "hello" }
 		await storage.setItem(
@@ -634,10 +708,10 @@ describe("createChatClient", () => {
 
 		await client.initialize()
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
-		await expect(client.sendMessage("hello")).rejects.toThrow("recovered before sending")
+		await expect(client.sendMessage("hello")).rejects.toThrow("already active")
 
-		expect(loads).toBe(26)
-		expect(sends).toBe(0)
+		expect(loads).toBe(65)
+		expect(sends).toBe(1)
 	})
 
 	test("uses the stored bearer to cancel before acceptance", async () => {
@@ -654,6 +728,10 @@ describe("createChatClient", () => {
 							return {
 								next: () =>
 									new Promise<IteratorResult<ChatEvent>>((_resolve, reject) => {
+										if (signal.aborted) {
+											reject(signal.reason)
+											return
+										}
 										signal.addEventListener("abort", () => reject(signal.reason), { once: true })
 									}),
 							}
@@ -848,19 +926,35 @@ describe("createChatClient", () => {
 		expect(sentCredential).toBe("credential")
 	})
 
-	test("treats a disconnect after failed cancellation as uncertain recovery", async () => {
-		const stream = deferred<IteratorResult<ChatEvent>>()
+	test("aborts a pre-accept send when server cancellation is not yet authorized", async () => {
 		const sendStarted = deferred<void>()
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			transport: baseTransport({
-				sendMessage: async () => {
+				sendMessage: async ({ signal }) => {
 					sendStarted.resolve()
-					return { [Symbol.asyncIterator]: () => ({ next: () => stream.promise }) }
+					return {
+						[Symbol.asyncIterator]: () => ({
+							next: () =>
+								new Promise<IteratorResult<ChatEvent>>((_resolve, reject) => {
+									if (signal.aborted) {
+										reject(signal.reason)
+										return
+									}
+									signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+								}),
+						}),
+					}
 				},
 				cancelResponse: async () => {
-					throw new Error("cancel failed")
+					throw new ChatTransportError({
+						code: "chat-session-unauthorized",
+						status: 401,
+						message: "not accepted",
+						retriable: false,
+						newChatAvailable: true,
+					})
 				},
 				loadSession: async () => {
 					throw new Error("not accepted")
@@ -872,13 +966,10 @@ describe("createChatClient", () => {
 		await client.initialize()
 		const sending = client.sendMessage("hello")
 		await sendStarted.promise
-		await expect(client.cancelResponse()).rejects.toThrow("cancel failed")
-		stream.reject(new Error("disconnected"))
-		await expect(sending).rejects.toThrow("disconnected")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		await client.cancelResponse()
+		await expect(sending).rejects.toThrow("cancelled")
 
-		expect(client.getSnapshot()).toMatchObject({ generation: "recovery", recovery: "unavailable" })
-		expect(client.getSnapshot().messages[0]).toMatchObject({ outcome: "interrupted" })
+		expect(client.getSnapshot()).toMatchObject({ generation: "idle", recovery: "idle" })
 	})
 
 	test("confirms cancellation only after the server request succeeds", async () => {

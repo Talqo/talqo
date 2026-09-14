@@ -10,6 +10,11 @@
 				"in": "cookie",
 				"name": "session",
 				"type": "apiKey"
+			},
+			"ChatBearer": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "UUID"
 			}
 		},
 		"schemas": {
@@ -4544,6 +4549,11 @@
 			"post": {
 				"operationId": "sendChatMessage",
 				"tags": ["Conversation"],
+				"security": [
+					{
+						"ChatBearer": []
+					}
+				],
 				"parameters": [
 					{
 						"schema": {
@@ -4663,6 +4673,11 @@
 			"get": {
 				"operationId": "getChatSession",
 				"tags": ["Conversation"],
+				"security": [
+					{
+						"ChatBearer": []
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Conversation history",
@@ -4740,6 +4755,11 @@
 			"get": {
 				"operationId": "getChatGeneration",
 				"tags": ["Conversation"],
+				"security": [
+					{
+						"ChatBearer": []
+					}
+				],
 				"parameters": [
 					{
 						"schema": {
@@ -4801,6 +4821,11 @@
 			"post": {
 				"operationId": "cancelChatGeneration",
 				"tags": ["Conversation"],
+				"security": [
+					{
+						"ChatBearer": []
+					}
+				],
 				"requestBody": {
 					"required": false,
 					"content": {

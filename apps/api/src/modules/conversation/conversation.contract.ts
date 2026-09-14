@@ -1,9 +1,9 @@
 import { CHAT_ABSOLUTE_MAX_INPUT_CHARACTERS } from "@/config/env.ts"
-import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
+import { chatBearerSecurity, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
-const requestIdSchema = z.uuid()
+const requestIdSchema = z.uuid({ version: "v4" })
 
 const terminalOutcome = z.enum(["completed", "failed", "cancelled", "blocked", "interrupted"])
 const chatErrorSchema = z.object({
@@ -81,6 +81,7 @@ export const sendRoute = createRoute({
 	path: "/{embedToken}/messages",
 	operationId: "sendChatMessage",
 	tags: ["Conversation"],
+	security: chatBearerSecurity,
 	request: {
 		params: embedParams,
 		body: { required: true, content: { "application/json": { schema: sendBody } } },
@@ -102,6 +103,7 @@ export const sessionRoute = createRoute({
 	path: "/session",
 	operationId: "getChatSession",
 	tags: ["Conversation"],
+	security: chatBearerSecurity,
 	responses: {
 		200: { content: { "application/json": { schema: sessionStateSchema } }, description: "Conversation history" },
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
@@ -114,6 +116,7 @@ export const cancelRoute = createRoute({
 	path: "/cancel",
 	operationId: "cancelChatGeneration",
 	tags: ["Conversation"],
+	security: chatBearerSecurity,
 	request: { body: { required: false, content: { "application/json": { schema: cancelBody } } } },
 	responses: {
 		204: { description: "Cancellation requested" },
@@ -128,6 +131,7 @@ export const attemptRoute = createRoute({
 	path: "/attempts/{generationId}",
 	operationId: "getChatGeneration",
 	tags: ["Conversation"],
+	security: chatBearerSecurity,
 	request: {
 		params: z.object({ generationId: z.string().openapi({ param: { name: "generationId", in: "path" } }) }),
 	},

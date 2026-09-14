@@ -35,6 +35,11 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 	name: "session",
 	type: "apiKey",
 })
+app.openAPIRegistry.registerComponent("securitySchemes", "ChatBearer", {
+	type: "http",
+	scheme: "bearer",
+	bearerFormat: "UUID",
+})
 app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))

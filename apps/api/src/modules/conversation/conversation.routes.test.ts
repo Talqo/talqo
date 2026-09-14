@@ -1,3 +1,4 @@
+import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
 
@@ -15,11 +16,12 @@ function parseEvents(body: string) {
 		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
 }
 
-function routes(failure: "none" | "post-accept" | "pre-accept" = "none") {
+function routes(failure: "embed" | "none" | "post-accept" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void) => {
 			calls.push(input)
+			if (failure === "embed") throw new EmbedNotFoundError()
 			if (failure === "pre-accept") throw new ProviderUnavailableError()
 			emit({
 				version: 1,
@@ -141,12 +143,12 @@ describe("public conversation routes", () => {
 		expect(response.status).toBe(400)
 	})
 
-	it("rejects non-UUID request IDs before calling the service", async () => {
+	it("rejects non-v4 request IDs before calling the service", async () => {
 		const { app, calls } = routes()
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
 			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: "request", text: "hi" }),
+			body: JSON.stringify({ requestId: "11111111-1111-1111-8111-111111111111", text: "hi" }),
 		})
 
 		expect(response.status).toBe(400)
@@ -177,5 +179,17 @@ describe("public conversation routes", () => {
 		expect(response.status).toBe(502)
 		expect(response.headers.get("content-type")).toContain("application/problem+json")
 		expect(await response.json()).toMatchObject({ code: "provider-error" })
+	})
+
+	it("maps an invalid or rotated embed token before streaming", async () => {
+		const { app } = routes("embed")
+		const response = await app.request("/chat/rotated/messages", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+
+		expect(response.status).toBe(404)
+		expect(await response.json()).toMatchObject({ code: "embed-not-found" })
 	})
 })

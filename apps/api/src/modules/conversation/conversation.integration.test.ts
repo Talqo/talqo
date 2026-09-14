@@ -159,6 +159,15 @@ describe("conversation lifecycle", () => {
 			"answer",
 		])
 		await expect(first.service.getSession(CREDENTIAL_2)).rejects.toBeInstanceOf(SessionUnauthorizedError)
+		await expect(
+			first.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: "66666666-6666-1666-8666-666666666666",
+				requestId: REQUEST_2,
+				text: "predictable credential",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(SessionUnauthorizedError)
 	})
 
 	it("deduplicates identical requests, rejects conflicting text, and sends complete history", async () => {

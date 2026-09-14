@@ -302,6 +302,19 @@ describe("api", () => {
 		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])
 		expect(new Set(operationIds).size).toBe(operationIds.length)
 		expect(operationIds.every((operationId) => operationId.length > 0)).toBe(true)
+		expect(document.components?.securitySchemes?.ChatBearer).toEqual({
+			type: "http",
+			scheme: "bearer",
+			bearerFormat: "UUID",
+		})
+		for (const path of [
+			"/api/chat/{embedToken}/messages",
+			"/api/chat/session",
+			"/api/chat/cancel",
+			"/api/chat/attempts/{generationId}",
+		] as const) {
+			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
+		}
 
 		const schemas = document.components?.schemas ?? {}
 		const problemSchema = schemas.ProblemDetails as { oneOf?: Array<{ $ref?: string }> }

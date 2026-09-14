@@ -136,7 +136,7 @@ Use server-sent event framing over a POST response consumed through browser fetc
 
 A UUIDv4 request ID identifies one send in its session. Identical resubmission cannot start another generation or consume another allowance. A duplicate ID with different text is rejected. A completed duplicate can return its recorded outcome; live-stream replay is not required.
 
-The SDK stores the first request ID and text with its UUID credential until acceptance. After an uncertain response it loads the session with that credential. No special bootstrap secret, credential derivation, recovery endpoint, or cancellation endpoint exists.
+The SDK stores each request ID and text until acceptance. After an uncertain response it retries that exact idempotent request, then loads the session with its UUID credential. No special bootstrap secret, credential derivation, recovery endpoint, or cancellation endpoint exists.
 
 After an uncertain network result, reload the accepted turn's state rather than generate again. If still running, use bounded refreshes until terminal. Refreshes do not consume question allowances; general HTTP flood protection remains a deployment concern. There is no second configurable refresh quota in this release.
 
