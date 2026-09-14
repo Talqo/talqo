@@ -1,5 +1,5 @@
 import { CHAT_ABSOLUTE_MAX_INPUT_CHARACTERS } from "@/config/env.ts"
-import { problemResponse } from "@/http/openapi.ts"
+import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
@@ -112,6 +112,7 @@ export const bootstrapSendRoute = createRoute({
 		400: commonProblems,
 		401: commonProblems,
 		409: commonProblems,
+		413: payloadTooLargeResponse,
 		429: commonProblems,
 		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
@@ -129,6 +130,7 @@ export const sendRoute = createRoute({
 		400: commonProblems,
 		401: commonProblems,
 		409: commonProblems,
+		413: payloadTooLargeResponse,
 		429: commonProblems,
 		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
@@ -148,6 +150,7 @@ export const recoverRoute = createRoute({
 		},
 		404: problemResponse([PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED]),
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
+		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
@@ -173,6 +176,7 @@ export const cancelRoute = createRoute({
 	responses: {
 		204: { description: "Cancellation requested" },
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
+		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
@@ -191,6 +195,7 @@ export const bootstrapCancelRoute = createRoute({
 		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON]),
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
 		404: problemResponse([PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED]),
+		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
