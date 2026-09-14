@@ -31,7 +31,3 @@ export async function recordUsage(value: UsageRecord): Promise<void> {
 		throw new UsageConflictError("Attempt usage conflicts with its persisted finalization")
 	}
 }
-
-export async function reset(): Promise<void> {
-	await db.delete(conversationUsage)
-}

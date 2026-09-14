@@ -31,6 +31,7 @@
 				"TALQO_WEB_PORT",
 				"TALQO_WIDGET_PORT",
 				"VITE_WIDGET_CDN_URL",
+				"VITE_WIDGET_DEMO_API_URL",
 				"VITE_WIDGET_PREVIEW_URL"
 			],
 			"persistent": true

@@ -1,6 +1,16 @@
-import { sql } from "@/db/client.ts"
+import * as repo from "./identity.repository.ts"
+import * as service from "./identity.service.ts"
 
-export async function reset(): Promise<void> {
-	// CASCADE is required: Postgres refuses to truncate `user` while roles' tables still reference it.
-	await sql`TRUNCATE TABLE session, "user" CASCADE`
+async function seedAccount(username: string, password: string): Promise<string> {
+	const existing = await repo.findUserByUsername(username)
+	if (existing) return existing.id
+	return (await service.createAccount({ username, password })).id
+}
+
+export async function seedAdmin(): Promise<string> {
+	return seedAccount("admin", "admin123")
+}
+
+export async function seedUser(): Promise<void> {
+	await seedAccount("user", "user1234")
 }

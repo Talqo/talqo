@@ -6,18 +6,16 @@ import path from "node:path"
 const DIST = path.resolve(import.meta.dirname, "../../widget/dist")
 const HOST_HTML_PATH = path.resolve(import.meta.dirname, "fixtures/host.html")
 
-// The seeded widget's brand color, as rgb() for toHaveCSS.
-const SEEDED_PRIMARY_RGB = "rgb(124, 58, 237)"
 const DEFAULT_PRIMARY_RGB = "rgb(26, 127, 75)"
 
 let server: Server
 let baseURL: string
 let apiOrigin: string
+let chatFixture: { agentId: string; embedId?: string } | undefined
 
 test.beforeAll(async () => {
-	const token = process.env.E2E_EMBED_TOKEN
+	const token = "talqo-development-embed-token"
 	const apiPort = process.env.TALQO_API_PORT
-	if (!token) throw new Error("E2E_EMBED_TOKEN missing — scripts/test-e2e.ts provides it from the API seed")
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 
 	// A different origin from the host page below, so the config request exercises CORS.
@@ -71,8 +69,13 @@ test.afterAll(() => {
 
 test.afterEach(async ({ request }, testInfo) => {
 	if (!testInfo.title.includes("durable multi-turn chat")) return
-	const providerUrl = process.env.E2E_PROVIDER_URL
+	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
 	if (providerUrl) await expect(await request.post(`${new URL(providerUrl).origin}/control/reset`)).toBeOK()
+	if (chatFixture) {
+		if (chatFixture.embedId) await expect(await request.delete(`/api/embeds/${chatFixture.embedId}`)).toBeOK()
+		await expect(await request.delete(`/api/agents/${chatFixture.agentId}`)).toBeOK()
+		chatFixture = undefined
+	}
 })
 
 test("built widget boots, mounts, and stays styled on a bare host page", async ({ page }) => {
@@ -113,7 +116,7 @@ test("widget fetches its palette by public token across origins", async ({ page 
 	await page.goto(baseURL)
 
 	// One assertion for the whole chain: token lookup, CORS, and the fetched color painting.
-	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", SEEDED_PRIMARY_RGB)
+	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", DEFAULT_PRIMARY_RGB)
 })
 
 test("widget's panel paints background, and its input box paints surface", async ({ page }) => {
@@ -138,13 +141,35 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 	page,
 	request,
 }, testInfo) => {
-	const providerUrl = process.env.E2E_PROVIDER_URL
-	if (!providerUrl) throw new Error("E2E_PROVIDER_URL missing — scripts/test-e2e.ts provides it")
+	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
+	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
 	const providerControlOrigin = new URL(providerUrl).origin
 	await expect(await request.post(`${providerControlOrigin}/control/reset`)).toBeOK()
-	const chatToken = `e2e-chat-${testInfo.project.name}-${testInfo.retry}`
+	const admin = { username: "admin", password: "admin123" }
+	await expect(await request.post(`${apiOrigin}/api/auth/login`, { data: admin })).toBeOK()
+	const agentResponse = await request.post(`${apiOrigin}/api/agents`, {
+		data: {
+			name: `Chat ${testInfo.project.name} ${testInfo.retry}`,
+			systemPrompt: "You are the support assistant on our company website.",
+			wordBlacklist: ["Intercom", "Zendesk"],
+		},
+	})
+	await expect(agentResponse).toBeOK()
+	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
+	chatFixture = { agentId: agent.id }
+	const baselineEmbeds = (await (await request.get(`${apiOrigin}/api/embeds`)).json()) as {
+		embeds: { appearance: unknown }[]
+	}
+	const appearance = baselineEmbeds.embeds[0]?.appearance
+	if (!appearance) throw new Error("Shared seed embed is missing")
+	const embedResponse = await request.post(`${apiOrigin}/api/embeds`, {
+		data: { agentId: agent.id, name: "Chat test", appearance },
+	})
+	await expect(embedResponse).toBeOK()
+	const { embed } = (await embedResponse.json()) as { embed: { embedToken: string; id: string } }
+	chatFixture.embedId = embed.id
 
-	await page.goto(`${baseURL}/?token=${encodeURIComponent(chatToken)}`)
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embed.embedToken)}`)
 	await page.getByRole("button", { name: "Open chat" }).click()
 	const dialog = page.getByRole("dialog")
 	const messageInput = dialog.getByRole("textbox", { name: "Message" })

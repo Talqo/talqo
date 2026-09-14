@@ -735,7 +735,3 @@ export async function recoverExpired(): Promise<void> {
 			.where(lt(conversationDailyCounter.day, now.toISOString().slice(0, DATE_PREFIX_LENGTH)))
 	})
 }
-
-export async function reset(): Promise<void> {
-	await db.delete(conversation)
-}

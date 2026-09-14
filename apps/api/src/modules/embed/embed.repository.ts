@@ -52,11 +52,6 @@ export async function rotateEmbedToken(id: string, embedToken: string): Promise<
 	return row
 }
 
-/** Seed-only: lets the deterministic E2E fixture embed a known token. */
-export async function setEmbedToken(id: string, embedToken: string): Promise<void> {
-	await db.update(embed).set({ embedToken, updatedAt: new Date() }).where(eq(embed.id, id))
-}
-
 export async function deleteEmbed(id: string): Promise<void> {
 	await db.delete(embed).where(eq(embed.id, id))
 }
