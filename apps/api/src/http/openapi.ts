@@ -20,3 +20,4 @@ export const noContentResponse = {
 } as const
 
 export const sessionSecurity = [{ SessionCookie: [] }]
+export const chatBearerSecurity = [{ ChatBearer: [] }]

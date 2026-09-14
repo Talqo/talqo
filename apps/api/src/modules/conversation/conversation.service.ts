@@ -16,7 +16,7 @@ const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
 const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
-const UUID_SCHEMA = z.uuid()
+const UUID_SCHEMA = z.uuid({ version: "v4" })
 
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
 

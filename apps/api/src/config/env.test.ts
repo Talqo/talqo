@@ -52,8 +52,9 @@ describe("parseEnv", () => {
 	})
 
 	it("rejects invalid chat policy, IPv6 prefixes, and proxy CIDRs", () => {
-		const base = { DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" }
+		const base = { APP_SECRET, DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" }
 		expect(() => parseEnv({ ...base, TALQO_CHAT_DAILY_MESSAGE_LIMIT: "0" })).toThrow()
+		expect(() => parseEnv({ ...base, TALQO_CHAT_GENERATION_TIMEOUT_SECONDS: "301" })).toThrow()
 		expect(() => parseEnv({ ...base, TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH: "129" })).toThrow()
 		expect(() => parseEnv({ ...base, TALQO_TRUSTED_PROXY_CIDRS: "not-a-cidr" })).toThrow()
 	})

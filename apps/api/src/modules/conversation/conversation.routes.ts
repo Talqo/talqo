@@ -4,6 +4,7 @@ import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
@@ -39,6 +40,8 @@ function bearer(header: string | undefined): string | undefined {
 }
 
 function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Response | undefined {
+	if (error instanceof EmbedNotFoundError)
+		return problemResponse(c, PROBLEM_CODES.EMBED_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 	if (error instanceof SessionUnauthorizedError)
 		return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
 	if (error instanceof RequestConflictError)
