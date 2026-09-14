@@ -150,8 +150,8 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-3.1 | Developer can send messages through a framework-independent observable chat client without using the pre-built widget UI | High | Done |
 | FR-3.2 | SDK parses versioned SSE from POST fetch responses and exposes incrementally updated assistant messages | High | Done |
-| FR-3.3 | SDK owns one-conversation session bootstrap, bearer persistence, history restoration, cancellation, new-chat behavior, and bounded recovery | High | Done |
-| FR-3.4 | SDK uses the embed token only to select/bootstrap an integration, then uses the private session bearer credential for history and subsequent sends | High | Done |
+| FR-3.3 | SDK owns one-conversation bearer persistence, history restoration, cancellation, new-chat behavior, and bounded recovery | High | Done |
+| FR-3.4 | SDK uses the embed token to select an integration and a private UUID bearer credential for chat operations | High | Done |
 | FR-3.5 | SDK loads server-side embed appearance and exposes it in its observable snapshot | Medium | Done |
 
 ## 4. Non-Functional Requirements
@@ -181,7 +181,7 @@ Talqo is related to these repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
-| NFR-3.2 | Operator endpoints require login; public health, embed configuration, first-send, and bootstrap operations are explicit exceptions, while session operations require a private bearer credential | | High | Done |
+| NFR-3.2 | Operator endpoints require login; public health and embed configuration are explicit exceptions, while chat session operations require a private bearer credential | | High | Done |
 | NFR-3.3 | Public callers identify an integration using an embed token and cannot select an agent; rotation, reassignment, or deletion revokes sessions through embed `accessVersion` without deleting history | Related to FR-3.4 | High | Done |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
 | NFR-3.5 | API atomically enforces daily accepted questions and concurrent generations per agent and normalized client network using PostgreSQL | This is shared-network abuse control, not unique-person identification or DDoS protection | High | Done |

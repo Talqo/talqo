@@ -7,7 +7,7 @@ description: Configure the widget or stateful browser SDK for public end-user ch
 
 An **embed** is a public integration configuration. It selects one agent and owns its appearance, public embed token, and access version. The **widget** is Talqo's pre-built UI for an embed. The embed token is visible in the host page and is not a visitor credential.
 
-The public chat API, SDK fetch transport, and production widget integration are implemented. The workspace package `@talqo/sdk` remains private, so use it within this repository and do not present it as an npm installation until a separate publishing decision is made.
+`@talqo/sdk` is workspace-private; use it only within this repository until publication is approved.
 
 ## Widget snippet
 
@@ -54,7 +54,7 @@ Construction performs no network work. `initialize()` loads embed configuration 
 
 By default, the SDK lazily uses host-page `localStorage`, keyed by API origin and embed token. Supply `createMemoryStorage()` or another `AsyncStorage` adapter when persistence is inappropriate. If persistent storage fails, the client falls back to memory and cannot promise reload recovery. Host-page scripts can read local storage, so the widget does not protect credentials from a compromised host page.
 
-The transport maps the API-owned OpenAPI contracts under `/api/embed-config/:embedToken` and `/api/chat`. First send, bootstrap recovery, and bootstrap cancellation include the embed token in the path. History, later sends, attempt recovery, and normal cancellation send the private credential as `Authorization: Bearer <credential>`. Message sends consume the `POST` response body as a stream rather than buffering it as JSON.
+The transport maps the API-owned OpenAPI contracts under `/api/embed-config/:embedToken` and `/api/chat`. Every send includes the embed token in the path and the private credential as `Authorization: Bearer <credential>`; history, attempt recovery, and cancellation use the same bearer. Message sends consume the `POST` response body as a stream rather than buffering it as JSON.
 
 ## Chat behavior
 

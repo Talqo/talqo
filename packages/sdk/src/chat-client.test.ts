@@ -47,7 +47,6 @@ function baseTransport(overrides: Partial<ChatTransport> = {}): ChatTransport {
 	return {
 		loadConfiguration: async () => configuration,
 		loadSession: async () => ({ messages: [], activeGeneration: undefined }),
-		recoverBootstrap: async () => ({ status: "not-accepted" }),
 		sendMessage: async () => streamFrom([]),
 		cancelResponse: async () => undefined,
 		...overrides,
@@ -55,6 +54,52 @@ function baseTransport(overrides: Partial<ChatTransport> = {}): ChatTransport {
 }
 
 describe("createChatClient", () => {
+	test("stores a UUID bearer before the first send", async () => {
+		const storage = createMemoryStorage()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		const credential = "22222222-2222-4222-8222-222222222222"
+		const requestId = "11111111-1111-4111-8111-111111111111"
+		const values = [credential, requestId]
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			transport: baseTransport({
+				sendMessage: async (input) => {
+					expect({ credential: input.credential, requestId: input.requestId, text: input.text }).toEqual({
+						credential,
+						requestId,
+						text: "hello",
+					})
+					expect(readChatStorageRecord(await storage.getItem(key))).toEqual({
+						version: 1,
+						credential,
+						pending: { requestId, text: "hello" },
+					})
+					return streamFrom([
+						{
+							type: "accepted",
+							requestId: input.requestId,
+							generationId: "generation",
+							userMessage: { id: "user", createdAt: "now" },
+							assistantMessage: { id: "assistant", createdAt: "now" },
+						},
+						{ type: "terminal", outcome: "completed" },
+					])
+				},
+			}),
+			randomUUID: () => values.shift()!,
+		})
+		await client.initialize()
+
+		await client.sendMessage("hello")
+
+		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({
+			version: 1,
+			credential,
+		})
+	})
+
 	test("constructs without side effects and uses the production transport by default", async () => {
 		let storageReads = 0
 		let randomCalls = 0
@@ -100,9 +145,9 @@ describe("createChatClient", () => {
 				setItem: async () => undefined,
 				removeItem: async () => undefined,
 			},
-			randomBytes: () => {
+			randomUUID: () => {
 				randomCalls += 1
-				return new Uint8Array(32)
+				return "11111111-1111-4111-8111-111111111111"
 			},
 		})
 
@@ -143,7 +188,7 @@ describe("createChatClient", () => {
 		expect(Object.isFrozen(client.getSnapshot().messages)).toBe(true)
 	})
 
-	test("publishes optimistic and streamed messages, reconciles IDs, and persists the credential", async () => {
+	test("publishes optimistic and streamed messages and reconciles IDs", async () => {
 		const storage = createMemoryStorage()
 		const transport = baseTransport({
 			sendMessage: async () =>
@@ -151,7 +196,6 @@ describe("createChatClient", () => {
 					{
 						type: "accepted",
 						requestId: "server-request",
-						credential: "credential",
 						generationId: "generation",
 						userMessage: { id: "server-user", createdAt: "2026-09-11T00:00:00Z" },
 						assistantMessage: { id: "server-assistant", createdAt: "2026-09-11T00:00:01Z" },
@@ -161,13 +205,15 @@ describe("createChatClient", () => {
 					{ type: "terminal", outcome: "completed" },
 				]),
 		})
-		let calls = 0
+		const credential = "22222222-2222-4222-8222-222222222222"
+		const requestId = "11111111-1111-4111-8111-111111111111"
+		const values = [credential, requestId]
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			storage,
 			transport,
-			randomBytes: (length) => new Uint8Array(length).fill(++calls),
+			randomUUID: () => values.shift()!,
 		})
 		await client.initialize()
 		const observed: string[][] = []
@@ -185,8 +231,8 @@ describe("createChatClient", () => {
 		const stored = readChatStorageRecord(
 			await storage.getItem(createChatStorageKey("https://api.example.test", "embed")),
 		)
-		expect(stored).toEqual({ version: 1, credential: "credential" })
-		expect(calls).toBe(2)
+		expect(stored).toEqual({ version: 1, credential })
+		expect(values).toEqual([])
 	})
 
 	test("allows only one send and never regenerates after an uncertain transport failure", async () => {
@@ -202,7 +248,7 @@ describe("createChatClient", () => {
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			transport,
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 		})
 		await client.initialize()
 		const first = client.sendMessage("first")
@@ -215,7 +261,7 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().messages[0]).toMatchObject({ text: "first", outcome: "interrupted" })
 	})
 
-	test("clears a definitely rejected bootstrap and permits a different send", async () => {
+	test("clears a definitely rejected first session and permits a different send", async () => {
 		const storage = createMemoryStorage()
 		const rejection = new ChatTransportError({
 			code: "chat-daily-allowance-exceeded",
@@ -238,7 +284,6 @@ describe("createChatClient", () => {
 						{
 							type: "accepted",
 							requestId: "second",
-							credential: "credential",
 							generationId: "generation",
 							userMessage: { id: "u2", createdAt: "now" },
 							assistantMessage: { id: "a2", createdAt: "now" },
@@ -247,7 +292,7 @@ describe("createChatClient", () => {
 					])
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length).fill(sends + 1),
+			randomUUID: () => crypto.randomUUID(),
 		})
 		await client.initialize()
 
@@ -264,11 +309,11 @@ describe("createChatClient", () => {
 		expect(sends).toBe(2)
 	})
 
-	test("polls uncertain bootstrap recovery through accepted session completion without regenerating", async () => {
+	test("polls an uncertain first session to completion without regenerating", async () => {
 		const storage = createMemoryStorage()
-		const recoveries: { requestId: string; bootstrapSecret: string }[] = []
 		let loads = 0
 		let sends = 0
+		const credential = "22222222-2222-4222-8222-222222222222"
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
@@ -277,12 +322,6 @@ describe("createChatClient", () => {
 				sendMessage: async () => {
 					sends += 1
 					throw new Error("connection lost")
-				},
-				recoverBootstrap: async ({ requestId, bootstrapSecret }) => {
-					recoveries.push({ requestId, bootstrapSecret })
-					return recoveries.length === 1
-						? { status: "not-accepted" as const }
-						: { status: "accepted" as const, credential: "credential" }
 				},
 				loadSession: async () => {
 					loads += 1
@@ -303,7 +342,10 @@ describe("createChatClient", () => {
 							}
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length).fill(length),
+			randomUUID: (() => {
+				const values = [credential, "11111111-1111-4111-8111-111111111111"]
+				return () => values.shift()!
+			})(),
 			recoveryDelays: [0],
 		})
 		await client.initialize()
@@ -311,19 +353,17 @@ describe("createChatClient", () => {
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
 
 		expect(sends).toBe(1)
-		expect(recoveries).toHaveLength(2)
-		expect(recoveries[1]).toEqual(recoveries[0])
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
 		expect(
 			readChatStorageRecord(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))),
 		).toEqual({
 			version: 1,
-			credential: "credential",
+			credential,
 		})
 	})
 
-	test("continues session recovery when the first load after bootstrap acceptance fails", async () => {
+	test("continues session recovery when the first load fails", async () => {
 		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -332,7 +372,6 @@ describe("createChatClient", () => {
 				sendMessage: async () => {
 					throw new Error("connection lost")
 				},
-				recoverBootstrap: async () => ({ status: "accepted", credential: "credential" }),
 				loadSession: async () => {
 					loads += 1
 					if (loads === 1) throw new Error("session temporarily unavailable")
@@ -345,7 +384,7 @@ describe("createChatClient", () => {
 					}
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
 		})
 		await client.initialize()
@@ -380,9 +419,11 @@ describe("createChatClient", () => {
 					sendMessage: async () => {
 						throw rejection
 					},
-					recoverBootstrap: async () => ({ status: "unavailable" }),
+					loadSession: async () => {
+						throw rejection
+					},
 				}),
-				randomBytes: (length) => new Uint8Array(length),
+				randomUUID: () => "11111111-1111-4111-8111-111111111111",
 				recoveryDelays: [0],
 			})
 			await client.initialize()
@@ -394,8 +435,8 @@ describe("createChatClient", () => {
 		})
 	}
 
-	test("bounds not-accepted bootstrap recovery and never generates the pending request again", async () => {
-		let recoveries = 0
+	test("bounds first-session recovery and never generates the pending request again", async () => {
+		let loads = 0
 		let sends = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -405,19 +446,19 @@ describe("createChatClient", () => {
 					sends += 1
 					throw new Error("connection lost")
 				},
-				recoverBootstrap: async () => {
-					recoveries += 1
-					return { status: "not-accepted" }
+				loadSession: async () => {
+					loads += 1
+					throw new Error("not accepted")
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
 
-		expect(recoveries).toBe(25)
+		expect(loads).toBe(25)
 		await expect(client.sendMessage("hello")).rejects.toThrow("recovered before sending")
 		await expect(client.sendMessage("different")).rejects.toThrow("recovered before sending")
 		expect(sends).toBe(1)
@@ -438,9 +479,11 @@ describe("createChatClient", () => {
 				embedToken: "embed",
 				transport: baseTransport({
 					sendMessage: async () => streamFrom([event]),
-					recoverBootstrap: async () => ({ status: "unavailable" }),
+					loadSession: async () => {
+						throw new Error("not accepted")
+					},
 				}),
-				randomBytes: (length) => new Uint8Array(length),
+				randomUUID: () => "11111111-1111-4111-8111-111111111111",
 				recoveryDelays: [0],
 			})
 			await client.initialize()
@@ -497,14 +540,13 @@ describe("createChatClient", () => {
 						{
 							type: "accepted",
 							requestId: "request",
-							credential: "credential",
 							generationId: "generation",
 							userMessage: { id: "u1", createdAt: "now" },
 							assistantMessage: { id: "a1", createdAt: "now" },
 						},
 					]),
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
 		})
 		await client.initialize()
@@ -531,65 +573,62 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
 	})
 
-	test("recovers a pending bootstrap on initialize and reloads accepted history", async () => {
+	test("recovers a pending first message on initialize", async () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
+		const credential = "22222222-2222-4222-8222-222222222222"
 		await storage.setItem(
 			key,
-			JSON.stringify({ version: 1, pending: { requestId: "request", bootstrapSecret: "bootstrap", text: "hello" } }),
+			JSON.stringify({ version: 1, credential, pending: { requestId: "request", text: "hello" } }),
 		)
-		let recovered = false
+		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			storage,
 			transport: baseTransport({
-				recoverBootstrap: async (input) => {
-					expect(input).toMatchObject({ requestId: "request", bootstrapSecret: "bootstrap" })
-					recovered = true
-					return { status: "accepted", credential: "credential" }
+				loadSession: async (input) => {
+					expect(input.credential).toBe(credential)
+					loads += 1
+					return {
+						messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
+						activeGeneration: undefined,
+					}
 				},
-				loadSession: async () => ({
-					messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
-					activeGeneration: undefined,
-				}),
 			}),
 		})
 
 		await client.initialize()
 
-		expect(recovered).toBe(true)
+		expect(loads).toBe(1)
 		expect(client.getSnapshot().messages).toHaveLength(1)
-		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential: "credential" })
+		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential })
 	})
 
-	test("recovers but never resubmits a stored not-accepted bootstrap", async () => {
+	test("polls but never resubmits an unaccepted stored first message", async () => {
 		const storage = createMemoryStorage()
-		const pending = { requestId: "request", bootstrapSecret: "bootstrap", text: "hello" }
+		const pending = { requestId: "request", text: "hello" }
 		await storage.setItem(
 			createChatStorageKey("https://api.example.test", "embed"),
-			JSON.stringify({ version: 1, pending }),
+			JSON.stringify({ version: 1, credential: "credential", pending }),
 		)
-		let recoveries = 0
+		let loads = 0
 		let sends = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			storage,
 			transport: baseTransport({
-				recoverBootstrap: async (input) => {
-					expect(input).toMatchObject({ requestId: pending.requestId, bootstrapSecret: pending.bootstrapSecret })
-					recoveries += 1
-					return { status: "not-accepted" }
+				loadSession: async (input) => {
+					expect(input.credential).toBe("credential")
+					loads += 1
+					throw new Error("not accepted")
 				},
 				sendMessage: async () => {
 					sends += 1
 					return streamFrom([])
 				},
 			}),
-			randomBytes: () => {
-				throw new Error("must reuse pending bootstrap")
-			},
 			recoveryDelays: [0],
 		})
 
@@ -597,11 +636,11 @@ describe("createChatClient", () => {
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
 		await expect(client.sendMessage("hello")).rejects.toThrow("recovered before sending")
 
-		expect(recoveries).toBe(25)
+		expect(loads).toBe(26)
 		expect(sends).toBe(0)
 	})
 
-	test("uses the bootstrap capability to cancel before acceptance", async () => {
+	test("uses the stored bearer to cancel before acceptance", async () => {
 		const started = deferred<void>()
 		let cancellation: Parameters<ChatTransport["cancelResponse"]>[0] | undefined
 		const client = createChatClient({
@@ -625,7 +664,7 @@ describe("createChatClient", () => {
 					cancellation = input
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length).fill(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 		})
 		await client.initialize()
 		const sending = client.sendMessage("hello")
@@ -634,7 +673,7 @@ describe("createChatClient", () => {
 		await client.cancelResponse()
 		await expect(sending).rejects.toThrow("cancelled")
 
-		expect(cancellation).toMatchObject({ requestId: expect.any(String), bootstrapSecret: expect.any(String) })
+		expect(cancellation).toMatchObject({ credential: "11111111-1111-4111-8111-111111111111" })
 	})
 
 	test("dispose aborts initialization transport work", async () => {
@@ -823,9 +862,11 @@ describe("createChatClient", () => {
 				cancelResponse: async () => {
 					throw new Error("cancel failed")
 				},
-				recoverBootstrap: async () => ({ status: "unavailable" }),
+				loadSession: async () => {
+					throw new Error("not accepted")
+				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
 		})
 		await client.initialize()
@@ -855,7 +896,6 @@ describe("createChatClient", () => {
 							yield {
 								type: "accepted" as const,
 								requestId: "request",
-								credential: "credential",
 								generationId: "generation",
 								userMessage: { id: "u1", createdAt: "now" },
 								assistantMessage: { id: "a1", createdAt: "now" },
@@ -879,7 +919,7 @@ describe("createChatClient", () => {
 					await cancellation.promise
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 		})
 		await client.initialize()
 		const sending = client.sendMessage("hello")
@@ -933,7 +973,7 @@ describe("createChatClient", () => {
 					})
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 		})
 		await client.initialize()
 		void client.sendMessage("hello").catch(() => undefined)
@@ -974,7 +1014,7 @@ describe("createChatClient", () => {
 					return pending.promise
 				},
 			}),
-			randomBytes: (length) => new Uint8Array(length),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 		})
 		client.subscribe(() => {
 			notifications += 1

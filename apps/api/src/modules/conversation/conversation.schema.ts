@@ -58,18 +58,9 @@ export const conversationSession = pgTable(
 		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
 		embedAccessVersion: integer("embed_access_version").notNull(),
 		credentialHash: text("credential_hash").notNull().unique(),
-		bootstrapRequestId: text("bootstrap_request_id").notNull(),
-		bootstrapSecretHash: text("bootstrap_secret_hash").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
-	(table) => [
-		uniqueIndex("conversation_session_bootstrap_unique_idx").on(
-			table.embedId,
-			table.embedAccessVersion,
-			table.bootstrapRequestId,
-		),
-		index("conversation_session_embed_id_idx").on(table.embedId),
-	],
+	(table) => [index("conversation_session_embed_id_idx").on(table.embedId)],
 )
 
 export const conversationAttempt = pgTable(
@@ -83,7 +74,6 @@ export const conversationAttempt = pgTable(
 			.notNull()
 			.references(() => conversationSession.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
-		requestTextHash: text("request_text_hash").notNull(),
 		inputText: text("input_text").notNull(),
 		status: conversationAttemptStatus("status").notNull().default("accepted"),
 		networkHash: text("network_hash").notNull(),

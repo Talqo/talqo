@@ -59,8 +59,21 @@ describe("chat storage", () => {
 			version: CHAT_STORAGE_VERSION,
 			credential: "secret",
 		})
+		expect(
+			readChatStorageRecord(
+				JSON.stringify({
+					version: CHAT_STORAGE_VERSION,
+					credential: "secret",
+					pending: { requestId: "request", text: "hello" },
+				}),
+			),
+		).toEqual({
+			version: CHAT_STORAGE_VERSION,
+			credential: "secret",
+			pending: { requestId: "request", text: "hello" },
+		})
 		expect(readChatStorageRecord('{"version":2,"credential":"secret"}')).toBeNull()
-		expect(readChatStorageRecord('{"version":1,"pending":{"requestId":"id"}}')).toBeNull()
+		expect(readChatStorageRecord('{"version":1,"pending":{"requestId":"id","text":"hello"}}')).toBeNull()
 		expect(readChatStorageRecord("not-json")).toBeNull()
 	})
 })

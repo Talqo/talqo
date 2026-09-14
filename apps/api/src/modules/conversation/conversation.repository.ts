@@ -34,7 +34,7 @@ export type AcceptedAttempt = {
 export class AllowanceExceededRepositoryError extends Error {}
 export class ConcurrencyExceededRepositoryError extends Error {}
 export class SessionBusyRepositoryError extends Error {}
-export class BootstrapUnauthorizedRepositoryError extends Error {}
+export class SessionUnauthorizedRepositoryError extends Error {}
 export class RequestConflictRepositoryError extends Error {}
 export class StaleHistoryRepositoryError extends Error {}
 
@@ -62,10 +62,8 @@ async function acquireAcceptanceLocks(
 	identityKey: string,
 	networkKey: string,
 ): Promise<void> {
-	// Identity is always acquired before network, so overlapping session/bootstrap requests cannot deadlock.
 	for (const key of [`1:${identityKey}`, `2:${networkKey}`]) {
-		// This is intentionally sequential: advisory lock order is a correctness invariant.
-		// eslint-disable-next-line no-await-in-loop
+		// oxlint-disable-next-line no-await-in-loop -- fixed identity-before-network order prevents deadlocks.
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`)
 	}
 }
@@ -89,25 +87,6 @@ export async function findSessionByCredentialHash(credentialHash: string): Promi
 		.limit(1)
 	if (!row || !row.embedId) return undefined
 	return { ...row, embedId: row.embedId }
-}
-
-export async function findBootstrap(
-	embedId: string,
-	accessVersion: number,
-	requestId: string,
-): Promise<typeof conversationSession.$inferSelect | undefined> {
-	const [row] = await db
-		.select()
-		.from(conversationSession)
-		.where(
-			and(
-				eq(conversationSession.embedId, embedId),
-				eq(conversationSession.embedAccessVersion, accessVersion),
-				eq(conversationSession.bootstrapRequestId, requestId),
-			),
-		)
-		.limit(1)
-	return row
 }
 
 export async function listMessages(conversationId: string): Promise<(typeof conversationMessage.$inferSelect)[]> {
@@ -168,102 +147,62 @@ async function interruptExpiredAttempts(
 
 export async function acceptAttempt(input: {
 	agentId: string
-	bootstrap?: {
-		bootstrapRequestId: string
-		bootstrapSecretHash: string
-		credentialHash: string
-		embedAccessVersion: number
-		embedId: string
-	}
-	conversationId?: string
 	dailyLimit: number
+	credentialHash: string
+	embedAccessVersion: number
+	embedId: string
 	inputText: string
 	messageText: string
 	networkHash: string
 	requestId: string
-	requestTextHash: string
 	historyRevision: number
 	historyTailId: string | null
-	sessionId?: string
 	concurrencyLimit: number
 }): Promise<AcceptedAttempt> {
 	return db.transaction(async (tx) => {
-		const identityKey = input.bootstrap
-			? `bootstrap:${input.bootstrap.embedId}:${input.bootstrap.embedAccessVersion}:${input.bootstrap.bootstrapRequestId}`
-			: `session:${input.sessionId ?? "missing"}`
-		await acquireAcceptanceLocks(tx, identityKey, `network:${input.agentId}:${input.networkHash}`)
+		await acquireAcceptanceLocks(tx, `session:${input.credentialHash}`, `network:${input.agentId}:${input.networkHash}`)
 
-		let sessionId = input.sessionId
-		let conversationId = input.conversationId
-		if (input.bootstrap) {
-			const [validEmbed] = await tx
-				.select({ id: embed.id })
-				.from(embed)
-				.where(
-					and(
-						eq(embed.id, input.bootstrap.embedId),
-						eq(embed.accessVersion, input.bootstrap.embedAccessVersion),
-						eq(embed.agentId, input.agentId),
-					),
-				)
-				.for("update")
-				.limit(1)
-			if (!validEmbed) throw new Error("Embed access changed")
-			const [existingSession] = await tx
-				.select()
-				.from(conversationSession)
-				.where(
-					and(
-						eq(conversationSession.embedId, input.bootstrap.embedId),
-						eq(conversationSession.embedAccessVersion, input.bootstrap.embedAccessVersion),
-						eq(conversationSession.bootstrapRequestId, input.bootstrap.bootstrapRequestId),
-					),
-				)
-				.limit(1)
-			if (existingSession) {
-				if (
-					existingSession.bootstrapSecretHash !== input.bootstrap.bootstrapSecretHash ||
-					existingSession.credentialHash !== input.bootstrap.credentialHash
-				) {
-					throw new BootstrapUnauthorizedRepositoryError()
-				}
-				sessionId = existingSession.id
-				conversationId = existingSession.conversationId
-			} else {
-				conversationId = crypto.randomUUID()
-				sessionId = crypto.randomUUID()
-				await tx.insert(conversation).values({
-					id: conversationId,
-					agentId: input.agentId,
-					embedId: input.bootstrap.embedId,
-				})
-				await tx.insert(conversationSession).values({
-					id: sessionId,
-					conversationId,
-					embedId: input.bootstrap.embedId,
-					embedAccessVersion: input.bootstrap.embedAccessVersion,
-					credentialHash: input.bootstrap.credentialHash,
-					bootstrapRequestId: input.bootstrap.bootstrapRequestId,
-					bootstrapSecretHash: input.bootstrap.bootstrapSecretHash,
-				})
+		const [validEmbed] = await tx
+			.select({ id: embed.id })
+			.from(embed)
+			.where(
+				and(
+					eq(embed.id, input.embedId),
+					eq(embed.accessVersion, input.embedAccessVersion),
+					eq(embed.agentId, input.agentId),
+				),
+			)
+			.for("update")
+			.limit(1)
+		if (!validEmbed) throw new SessionUnauthorizedRepositoryError()
+
+		const [existingSession] = await tx
+			.select()
+			.from(conversationSession)
+			.where(eq(conversationSession.credentialHash, input.credentialHash))
+			.limit(1)
+		let sessionId = existingSession?.id
+		let conversationId = existingSession?.conversationId
+		if (existingSession) {
+			if (
+				existingSession.embedId !== input.embedId ||
+				existingSession.embedAccessVersion !== input.embedAccessVersion
+			) {
+				throw new SessionUnauthorizedRepositoryError()
 			}
+		} else {
+			conversationId = crypto.randomUUID()
+			sessionId = crypto.randomUUID()
+			await tx.insert(conversation).values({ id: conversationId, agentId: input.agentId, embedId: input.embedId })
+			await tx.insert(conversationSession).values({
+				id: sessionId,
+				conversationId,
+				embedId: input.embedId,
+				embedAccessVersion: input.embedAccessVersion,
+				credentialHash: input.credentialHash,
+			})
 		}
 		if (!sessionId || !conversationId) throw new Error("Session context is required")
-		if (!input.bootstrap) {
-			const [validSession] = await tx
-				.select({ id: conversationSession.id })
-				.from(conversationSession)
-				.innerJoin(
-					embed,
-					and(
-						eq(embed.id, conversationSession.embedId),
-						eq(embed.accessVersion, conversationSession.embedAccessVersion),
-					),
-				)
-				.where(and(eq(conversationSession.id, sessionId), eq(conversationSession.conversationId, conversationId)))
-				.limit(1)
-			if (!validSession) throw new BootstrapUnauthorizedRepositoryError()
-		}
 		const now = new Date()
 		await interruptExpiredAttempts(
 			tx,
@@ -283,7 +222,6 @@ export async function acceptAttempt(input: {
 			.where(and(eq(conversationAttempt.sessionId, sessionId), eq(conversationAttempt.requestId, input.requestId)))
 			.limit(1)
 		if (duplicate) {
-			if (duplicate.requestTextHash !== input.requestTextHash) throw new RequestConflictRepositoryError()
 			const messages = await tx
 				.select()
 				.from(conversationMessage)
@@ -291,6 +229,7 @@ export async function acceptAttempt(input: {
 			const userMessage = messages.find((message) => message.role === "user")
 			const assistantMessage = messages.find((message) => message.role === "assistant")
 			if (!userMessage || !assistantMessage) throw new Error("Attempt messages missing")
+			if (userMessage.text !== input.messageText) throw new RequestConflictRepositoryError()
 			return { attempt: duplicate, userMessage, assistantMessage, sessionId, conversationId, duplicate: true }
 		}
 		const [historyState] = await tx
@@ -353,7 +292,6 @@ export async function acceptAttempt(input: {
 				conversationId,
 				sessionId,
 				requestId: input.requestId,
-				requestTextHash: input.requestTextHash,
 				inputText: input.inputText,
 				networkHash: input.networkHash,
 				leaseToken,
@@ -639,58 +577,6 @@ export async function requestCancellation(sessionId: string, attemptId?: string)
 		.where(and(...conditions))
 		.returning({ id: conversationAttempt.id })
 	return rows.length > 0
-}
-
-export async function requestBootstrapCancellation(input: {
-	bootstrapSecretHash: string
-	embedAccessVersion: number
-	embedId: string
-	requestId: string
-}): Promise<{ attemptId?: string; status: "accepted" | "not-accepted" }> {
-	return db.transaction(async (tx) => {
-		await tx.execute(
-			sql`SELECT pg_advisory_xact_lock(hashtextextended(${`1:bootstrap:${input.embedId}:${input.embedAccessVersion}:${input.requestId}`}, 0))`,
-		)
-		const [validEmbed] = await tx
-			.select({ id: embed.id })
-			.from(embed)
-			.where(and(eq(embed.id, input.embedId), eq(embed.accessVersion, input.embedAccessVersion)))
-			.for("update")
-			.limit(1)
-		if (!validEmbed) return { status: "not-accepted" }
-		const [session] = await tx
-			.select()
-			.from(conversationSession)
-			.where(
-				and(
-					eq(conversationSession.embedId, input.embedId),
-					eq(conversationSession.embedAccessVersion, input.embedAccessVersion),
-					eq(conversationSession.bootstrapRequestId, input.requestId),
-				),
-			)
-			.limit(1)
-		if (!session) return { status: "not-accepted" }
-		if (session.bootstrapSecretHash !== input.bootstrapSecretHash) {
-			throw new BootstrapUnauthorizedRepositoryError()
-		}
-		const [attempt] = await tx
-			.select({ id: conversationAttempt.id })
-			.from(conversationAttempt)
-			.where(and(eq(conversationAttempt.sessionId, session.id), eq(conversationAttempt.requestId, input.requestId)))
-			.limit(1)
-		if (!attempt) return { status: "not-accepted" }
-		await tx
-			.update(conversationAttempt)
-			.set({ cancellationRequestedAt: new Date(), updatedAt: new Date() })
-			.where(
-				and(
-					eq(conversationAttempt.id, attempt.id),
-					inArray(conversationAttempt.status, ACTIVE_STATUSES),
-					gt(conversationAttempt.leaseExpiresAt, new Date()),
-				),
-			)
-		return { status: "accepted", attemptId: attempt.id }
-	})
 }
 
 export async function getActiveAttempt(sessionId: string): Promise<{ id: string } | undefined> {

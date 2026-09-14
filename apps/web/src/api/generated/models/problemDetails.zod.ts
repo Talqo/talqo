@@ -25,7 +25,6 @@ import { ProblemInvalidCredentials } from "./identity/problemInvalidCredentials.
 import { ProblemPasswordChangeNotRequired } from "./identity/problemPasswordChangeNotRequired.zod"
 import { ProblemAgentNotFound } from "./problemAgentNotFound.zod"
 import { ProblemAuthenticationRequired } from "./problemAuthenticationRequired.zod"
-import { ProblemChatBootstrapNotAccepted } from "./problemChatBootstrapNotAccepted.zod"
 import { ProblemChatClientAddressUnavailable } from "./problemChatClientAddressUnavailable.zod"
 import { ProblemChatConcurrencyLimit } from "./problemChatConcurrencyLimit.zod"
 import { ProblemChatContextLimit } from "./problemChatContextLimit.zod"
@@ -61,7 +60,6 @@ export const ProblemDetails = zod.union([
 	ProblemAgentNameTaken,
 	ProblemAgentNotFound,
 	ProblemAuthenticationRequired,
-	ProblemChatBootstrapNotAccepted,
 	ProblemChatClientAddressUnavailable,
 	ProblemChatConcurrencyLimit,
 	ProblemChatContextLimit,

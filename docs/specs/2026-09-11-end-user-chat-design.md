@@ -1,10 +1,8 @@
 # End-User Chat, Embeds, And SDK Design
 
-## Purpose And Review Status
+## Purpose
 
 Deliver public, anonymous, multi-turn streaming chat through the embedded widget and a stateful, framework-independent browser SDK. The model receives the saved agent system prompt, completed conversation history, and current user message. There is no retrieval or tool execution.
-
-The design sections were discussed and approved in conversation. This consolidated document requires the user's final written-spec review before implementation. This document is a design, not a claim that the functionality exists.
 
 ## Scope And Approach
 
@@ -62,11 +60,11 @@ Follow `docs/architecture.md`: cross-module runtime imports use service files; r
 
 Expose a text-only runtime model operation from `ai-provider`; do not construct or call an embedding model for chat. This does not otherwise redesign the existing provider-configuration contract.
 
-Add focused implementation TODO comments at the conversation orchestration points for future knowledge retrieval, MCP tools, and the corresponding expanded usage inputs. Do not scaffold empty modules, plugin interfaces, or fake retrieval/tool implementations.
+Retrieval and MCP integrations are out of scope; do not add placeholder modules or interfaces.
 
 ## Embed Identity And Migration
 
-An agent has multiple embeds. Each embed owns its own visual configuration and public embed token and references exactly one agent. The current widgets tab and widget-configuration backend represent this domain under the wrong name.
+An agent has multiple embeds. Each embed owns its visual configuration and public token and references one agent.
 
 - Rename that domain, dashboard terminology, relevant routes/contracts, tests, and documentation to embeds.
 - Remove the agent's separate embed-token column, API fields, UI, and rotation operation.
@@ -90,7 +88,7 @@ Already dispatched provider work may still consume resources. Cancellation on in
 
 ## Sessions And Durable Data
 
-One session owns one conversation in this milestone. There is no separate visitor entity grouping conversations. A session uses a 32-byte unguessable bearer credential; persist only its hash on the server. Send it in an authorization header, never a URL. The bootstrap mechanism below allows the server to reissue the same credential after a lost response without persisting its plaintext.
+One session owns one conversation in this milestone. There is no separate visitor entity grouping conversations. Before first send, the SDK creates and stores a UUIDv4 bearer credential. Persist only its SHA-256 hash on the server. Send it in an authorization header, never a URL.
 
 Creating a session and accepting its first message is one operation. It validates the embed and atomically acquires the question allowance/concurrency reservation while creating the conversation and initial turn. There is no public endpoint for creating empty sessions. Fetching appearance or opening the widget creates no conversation.
 
@@ -126,8 +124,8 @@ There is no separate 8,000-character user-message ceiling. The assembled-input b
 
 ## Send Lifecycle, Streaming, And Recovery
 
-1. The SDK creates a request ID and presents a pending user message.
-2. The API authenticates the session, or validates the embed for a first message, and checks input, allowances, and concurrency.
+1. The SDK stores a session credential, creates a request ID, and presents a pending user message.
+2. The API validates the embed and credential, then checks input, allowances, and concurrency.
 3. Atomically accept the turn and acquire reservations before contacting the provider.
 4. Invoke the configured model with assembled input and stream typed events for acceptance, assistant text, and terminal outcome.
 5. Persist assistant output and usage server-side, independent of the browser receiving the final event.
@@ -136,11 +134,9 @@ Use server-sent event framing over a POST response consumed through browser fetc
 
 ### Idempotency
 
-A request ID identifies one send in its session. Identical resubmission cannot start another generation or consume another allowance. A duplicate ID with different text is rejected. A completed duplicate can return its recorded outcome; live-stream replay is not required.
+A UUIDv4 request ID identifies one send in its session. Identical resubmission cannot start another generation or consume another allowance. A duplicate ID with different text is rejected. A completed duplicate can return its recorded outcome; live-stream replay is not required.
 
-Before a first-message request, the SDK generates and retains a private 32-byte random bootstrap secret alongside its request ID. The API derives the session credential using HMAC-SHA-256 with a purpose-specific application-secret-derived key over an unambiguous encoding of the embed ID, access version, request ID, and bootstrap secret. Persist a hash of the bootstrap secret bound to that accepted operation, never its plaintext. Enforce uniqueness of the bootstrap operation within the embed access version.
-
-A read-only bootstrap-recovery operation requires the same secret and request ID, validates the embed's current access version and the stored secret hash, and reissues the derived credential for the already accepted session. It never creates a session or starts generation. A request ID or public embed token alone cannot recover credentials/history. If the operation was not accepted, recovery reports that fact; an explicit resubmission with the same bootstrap identity remains idempotent even if the original request arrives late. The SDK removes its pending bootstrap secret after securely storing the returned session credential. These secrets must not appear in URLs, logs, or analytics. Rotating the application secret invalidates pending bootstrap recovery; already issued session credentials remain hash-verifiable.
+The SDK stores the first request ID and text with its UUID credential until acceptance. After an uncertain response it loads the session with that credential. No special bootstrap secret, credential derivation, recovery endpoint, or cancellation endpoint exists.
 
 After an uncertain network result, reload the accepted turn's state rather than generate again. If still running, use bounded refreshes until terminal. Refreshes do not consume question allowances; general HTTP flood protection remains a deployment concern. There is no second configurable refresh quota in this release.
 
@@ -210,9 +206,9 @@ Account idempotently by attempt ID. Receiving a duplicate final event, SDK retry
 
 ## Stateful Browser SDK
 
-The SDK does the heavy lifting. It is not merely generated endpoint wrappers. It remains framework-independent, with no React dependency, while the widget subscribes through React's external-store integration.
+The framework-independent SDK has no React dependency; the widget subscribes through React's external-store integration.
 
-Proposed public surface:
+Public surface:
 
 ```ts
 const chat = createChatClient({ apiUrl, embedToken, storage });
@@ -225,12 +221,10 @@ await chat.startNewChat();
 chat.dispose();
 ```
 
-Method names can be refined during contract implementation without changing the responsibilities below:
-
 - Construction performs no network work. Initialize fetches configuration, including colors, and restores history if a credential exists.
 - The snapshot exposes embed configuration, transcript, initialization/generation status, structured error, and retry/reset time.
 - Streaming changes the assistant message in the observable snapshot; consumers do not parse events or concatenate chunks.
-- Send owns optimistic messages, session bootstrap, server-ID reconciliation, and at-most-one local active send.
+- Send owns optimistic messages, credential creation, server-ID reconciliation, and at-most-one local active send.
 - Server concurrency and authorization still apply; the SDK is not a security boundary.
 - New chat cancels active work before detaching from it, clears the selected credential/transcript, and creates no empty server conversation.
 - Dispose releases listeners, refresh work, and local connections. It does not erase history or implicitly promise server cancellation.
@@ -314,7 +308,7 @@ bun run contracts:check
 bun run i18n:fix
 ```
 
-Run workflow checks only if workflows change. This design-only change does not claim those implementation checks have run.
+Run workflow checks only when workflows change.
 
 ## Documentation And Implementation Order
 
@@ -325,5 +319,3 @@ Run workflow checks only if workflows change. This design-only change does not c
 5. Complete operator deletion warnings, generated contracts/locales, integration tests, E2E, and public integration documentation.
 
 Update `docs/architecture.md`, the module diagram, ERD, and affected SRS requirements with the implementation. Record durable decisions, including embed identity, session authorization, and cross-owner deletion semantics, in ADRs. Explicitly reconcile older agent-token requirements, deployment-wide token-cap requirements, and the widget/SDK ownership gap with this approved scope rather than leaving contradictory promises.
-
-The terminal state of this brainstorming task is an approved written design. Do not begin implementation solely because this file has been written or committed.

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { conversationUsage } from "./usage.schema.ts"
 
 export type UsageRecord = typeof conversationUsage.$inferInsert
-export class UsageConflictError extends Error {}
+class UsageConflictError extends Error {}
 
 export async function recordUsage(value: UsageRecord): Promise<void> {
 	const inserted = await db

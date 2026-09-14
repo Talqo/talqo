@@ -4,9 +4,8 @@ import { ChatTransportError, createFetchChatTransport, type ChatEvent } from "./
 
 const API_URL = "https://api.example.test/root/"
 const EMBED_TOKEN = "embed/token ?"
-const CREDENTIAL = "private credential"
-const REQUEST_ID = "AAAAAAAAAAAAAAAAAAAAAA"
-const BOOTSTRAP_SECRET = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
+const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
 const APPEARANCE = {
 	light: {
 		primary: "#111111",
@@ -124,34 +123,7 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
-	test("posts bootstrap recovery secrets in JSON and maps not-accepted only", async () => {
-		const fake = recordingFetch([
-			jsonResponse({ status: "accepted", credential: CREDENTIAL }),
-			problem("chat-bootstrap-not-accepted", 404),
-			problem("embed-not-found", 404),
-		])
-		const transport = createFetchChatTransport({ fetch: fake.fetch })
-		const input = { ...context(), requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET }
-
-		expect(await transport.recoverBootstrap(input)).toEqual({ status: "accepted", credential: CREDENTIAL })
-		expect(await transport.recoverBootstrap(input)).toEqual({ status: "not-accepted" })
-		expect(await rejectedDetail(transport.recoverBootstrap(input))).toMatchObject({
-			code: "embed-not-found",
-			status: 404,
-			retriable: false,
-		})
-		expect(fake.calls[0]).toMatchObject({
-			url: "https://api.example.test/api/chat/embed%2Ftoken%20%3F/bootstrap-recovery",
-			init: {
-				method: "POST",
-				body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET }),
-				headers: { Accept: "application/json", "Content-Type": "application/json" },
-			},
-		})
-		for (const call of fake.calls) expect(call.url).not.toContain(BOOTSTRAP_SECRET)
-	})
-
-	test("uses bootstrap and established send routes without retries", async () => {
+	test("uses one bearer-authenticated send route without retries", async () => {
 		const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
 		const fake = recordingFetch([streamResponse([terminal]), streamResponse([terminal])])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
@@ -160,7 +132,7 @@ describe("createFetchChatTransport", () => {
 			await transport.sendMessage({
 				...context(),
 				requestId: REQUEST_ID,
-				bootstrapSecret: BOOTSTRAP_SECRET,
+				credential: CREDENTIAL,
 				text: "first",
 			}),
 		)
@@ -178,12 +150,16 @@ describe("createFetchChatTransport", () => {
 			url: "https://api.example.test/api/chat/embed%2Ftoken%20%3F/messages",
 			init: {
 				method: "POST",
-				body: JSON.stringify({ requestId: REQUEST_ID, text: "first", bootstrapSecret: BOOTSTRAP_SECRET }),
-				headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
+				body: JSON.stringify({ requestId: REQUEST_ID, text: "first" }),
+				headers: {
+					Accept: "text/event-stream",
+					Authorization: `Bearer ${CREDENTIAL}`,
+					"Content-Type": "application/json",
+				},
 			},
 		})
 		expect(fake.calls[1]).toMatchObject({
-			url: "https://api.example.test/api/chat/messages",
+			url: "https://api.example.test/api/chat/embed%2Ftoken%20%3F/messages",
 			init: {
 				method: "POST",
 				body: JSON.stringify({ requestId: REQUEST_ID, text: "second" }),
@@ -201,7 +177,6 @@ describe("createFetchChatTransport", () => {
 			version: 1,
 			type: "accepted",
 			requestId: REQUEST_ID,
-			credential: CREDENTIAL,
 			generationId: "generation",
 			userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z" },
 			assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
@@ -234,7 +209,6 @@ describe("createFetchChatTransport", () => {
 			{
 				type: "accepted",
 				requestId: REQUEST_ID,
-				credential: CREDENTIAL,
 				generationId: "generation",
 				userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
@@ -345,16 +319,11 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
-	test("uses bearer versus bootstrap cancellation bodies and treats bootstrap 404 as idempotent", async () => {
-		const fake = recordingFetch([new Response(null, { status: 204 }), problem("chat-bootstrap-not-accepted", 404)])
+	test("uses bearer-authenticated cancellation", async () => {
+		const fake = recordingFetch([new Response(null, { status: 204 })])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
 		await transport.cancelResponse({ ...context(), credential: CREDENTIAL, generationId: "generation" })
-		await transport.cancelResponse({
-			...context(),
-			requestId: REQUEST_ID,
-			bootstrapSecret: BOOTSTRAP_SECRET,
-		})
 
 		expect(fake.calls[0]).toMatchObject({
 			url: "https://api.example.test/api/chat/cancel",
@@ -365,13 +334,6 @@ describe("createFetchChatTransport", () => {
 					Authorization: `Bearer ${CREDENTIAL}`,
 					"Content-Type": "application/json",
 				},
-			},
-		})
-		expect(fake.calls[1]).toMatchObject({
-			url: "https://api.example.test/api/chat/embed%2Ftoken%20%3F/bootstrap-cancel",
-			init: {
-				body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET }),
-				headers: { Accept: "application/json", "Content-Type": "application/json" },
 			},
 		})
 	})

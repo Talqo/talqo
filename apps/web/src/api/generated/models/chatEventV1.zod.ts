@@ -6,21 +6,11 @@
  */
 import * as zod from "zod"
 
-export const chatEventV1OneRequestIdMin = 22
-export const chatEventV1OneRequestIdMax = 22
-
-export const chatEventV1OneRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-
 export const ChatEventV1 = zod.union([
 	zod.object({
 		version: zod.literal(1),
 		type: zod.enum(["accepted"]),
-		requestId: zod
-			.string()
-			.min(chatEventV1OneRequestIdMin)
-			.max(chatEventV1OneRequestIdMax)
-			.regex(chatEventV1OneRequestIdRegExp),
-		credential: zod.string().optional(),
+		requestId: zod.uuid(),
 		generationId: zod.string(),
 		userMessage: zod.object({
 			id: zod.string(),

@@ -47,22 +47,8 @@
 		{
 			"idx": 6,
 			"version": "7",
-			"when": 1789140868953,
-			"tag": "0006_embed-domain",
-			"breakpoints": true
-		},
-		{
-			"idx": 7,
-			"version": "7",
-			"when": 1789148580923,
-			"tag": "0007_bizarre_avengers",
-			"breakpoints": true
-		},
-		{
-			"idx": 8,
-			"version": "7",
-			"when": 1789282735128,
-			"tag": "0008_mighty_bug",
+			"when": 1789395861227,
+			"tag": "0006_end-user-chat",
 			"breakpoints": true
 		}
 	]

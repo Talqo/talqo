@@ -46,9 +46,6 @@
 						"$ref": "#/components/schemas/ProblemAuthenticationRequired"
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatBootstrapNotAccepted"
-					},
-					{
 						"$ref": "#/components/schemas/ProblemChatClientAddressUnavailable"
 					},
 					{
@@ -291,21 +288,6 @@
 					"type": {
 						"type": "string",
 						"enum": ["https://docs.talqo.chat/problems#authentication-required"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatBootstrapNotAccepted": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-bootstrap-not-accepted"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-bootstrap-not-accepted"]
 					}
 				},
 				"required": ["code", "type"],
@@ -1103,12 +1085,7 @@
 							},
 							"requestId": {
 								"type": "string",
-								"minLength": 22,
-								"maxLength": 22,
-								"pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
-							},
-							"credential": {
-								"type": "string"
+								"format": "uuid"
 							},
 							"generationId": {
 								"type": "string"
@@ -4565,7 +4542,7 @@
 		},
 		"/api/chat/{embedToken}/messages": {
 			"post": {
-				"operationId": "bootstrapChatMessage",
+				"operationId": "sendChatMessage",
 				"tags": ["Conversation"],
 				"parameters": [
 					{
@@ -4586,126 +4563,7 @@
 								"properties": {
 									"requestId": {
 										"type": "string",
-										"minLength": 22,
-										"maxLength": 22,
-										"pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
-									},
-									"text": {
-										"type": "string",
-										"minLength": 1
-									},
-									"bootstrapSecret": {
-										"type": "string",
-										"minLength": 43,
-										"maxLength": 43,
-										"pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
-									}
-								},
-								"required": ["requestId", "text", "bootstrapSecret"]
-							}
-						}
-					}
-				},
-				"responses": {
-					"200": {
-						"description": "Version 1 chat events",
-						"content": {
-							"text/event-stream": {
-								"schema": {
-									"$ref": "#/components/schemas/ChatEventV1"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
-								}
-							}
-						}
-					},
-					"429": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
-								}
-							}
-						}
-					},
-					"502": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemProviderError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/chat/messages": {
-			"post": {
-				"operationId": "sendChatMessage",
-				"tags": ["Conversation"],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"minLength": 22,
-										"maxLength": 22,
-										"pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
+										"format": "uuid"
 									},
 									"text": {
 										"type": "string",
@@ -4794,109 +4652,6 @@
 							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemProviderError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/chat/{embedToken}/bootstrap-recovery": {
-			"post": {
-				"operationId": "recoverChatBootstrap",
-				"tags": ["Conversation"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "embedToken",
-						"in": "path"
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"minLength": 22,
-										"maxLength": 22,
-										"pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
-									},
-									"bootstrapSecret": {
-										"type": "string",
-										"minLength": 43,
-										"maxLength": 43,
-										"pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
-									}
-								},
-								"required": ["requestId", "bootstrapSecret"]
-							}
-						}
-					}
-				},
-				"responses": {
-					"200": {
-						"description": "Recovered credential",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"status": {
-											"type": "string",
-											"enum": ["accepted"]
-										},
-										"credential": {
-											"type": "string"
-										}
-									},
-									"required": ["status", "credential"]
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatBootstrapNotAccepted"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
 								}
 							}
 						}
@@ -5071,102 +4826,6 @@
 							"application/problem+json": {
 								"schema": {
 									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/chat/{embedToken}/bootstrap-cancel": {
-			"post": {
-				"operationId": "cancelChatBootstrapGeneration",
-				"tags": ["Conversation"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "embedToken",
-						"in": "path"
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"requestId": {
-										"type": "string",
-										"minLength": 22,
-										"maxLength": 22,
-										"pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"
-									},
-									"bootstrapSecret": {
-										"type": "string",
-										"minLength": 43,
-										"maxLength": 43,
-										"pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
-									}
-								},
-								"required": ["requestId", "bootstrapSecret"]
-							}
-						}
-					}
-				},
-				"responses": {
-					"204": {
-						"description": "Cancellation requested for the accepted bootstrap generation"
-					},
-					"400": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatBootstrapNotAccepted"
 								}
 							}
 						}

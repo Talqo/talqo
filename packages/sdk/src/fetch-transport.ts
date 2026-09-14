@@ -1,12 +1,6 @@
 import type { ChatError, ChatEvent, ChatTransport } from "./types"
 
-import {
-	ChatEventV1,
-	EmbedConfig,
-	GetChatSessionResponse,
-	ProblemDetails,
-	RecoverChatBootstrapResponse,
-} from "./generated/contracts"
+import { ChatEventV1, EmbedConfig, GetChatSessionResponse, ProblemDetails } from "./generated/contracts"
 import { parseSseStream } from "./sse"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -27,7 +21,6 @@ export class ChatTransportError extends Error {
 }
 
 const PROBLEM_TYPE_BASE = "https://docs.talqo.chat/problems#"
-const HTTP_NOT_FOUND = 404
 const HTTP_TOO_MANY_REQUESTS = 429
 const HTTP_SERVER_ERROR = 500
 const MILLISECONDS_PER_SECOND = 1_000
@@ -77,11 +70,7 @@ function isExactEvent(value: unknown): boolean {
 	switch (value.type) {
 		case "accepted":
 			return (
-				hasExactKeys(
-					value,
-					["version", "type", "requestId", "generationId", "userMessage", "assistantMessage"],
-					["credential"],
-				) &&
+				hasExactKeys(value, ["version", "type", "requestId", "generationId", "userMessage", "assistantMessage"]) &&
 				hasExactKeys(value.userMessage, ["id", "createdAt"]) &&
 				hasExactKeys(value.assistantMessage, ["id", "createdAt"])
 			)
@@ -117,7 +106,6 @@ async function* responseChunks(body: ReadableStream<Uint8Array>, signal: AbortSi
 	signal.addEventListener("abort", abort, { once: true })
 	try {
 		while (true) {
-			// This read is cancelled by the signal listener above.
 			// oxlint-disable-next-line no-await-in-loop -- stream chunks must be read sequentially.
 			const result = await reader.read()
 			if (signal.aborted) throw signal.reason
@@ -276,50 +264,14 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			return { messages: parsed.data.messages, activeGeneration: parsed.data.activeGeneration }
 		},
 
-		async recoverBootstrap(input) {
-			const response = await fetchImplementation(
-				endpoint(input.apiUrl, `/api/chat/${encodeURIComponent(input.embedToken)}/bootstrap-recovery`),
-				{
-					method: "POST",
-					signal: input.signal,
-					headers: JSON_POST_HEADERS,
-					body: JSON.stringify({ requestId: input.requestId, bootstrapSecret: input.bootstrapSecret }),
-				},
-			)
-			if (!response.ok) {
-				const error = await problemError(response, input.signal, now)
-				if (response.status === HTTP_NOT_FOUND && error.detail.code === "chat-bootstrap-not-accepted") {
-					return { status: "not-accepted" }
-				}
-				throw error
-			}
-			const value = await readJson(response, input.signal)
-			const parsed = RecoverChatBootstrapResponse.safeParse(value)
-			if (!hasExactKeys(value, ["status", "credential"]) || !parsed.success) throw invalidResponse(response.status)
-			return parsed.data
-		},
-
 		async sendMessage(input) {
-			const bootstrap = input.credential === undefined
-			if (bootstrap && input.bootstrapSecret === undefined)
-				throw new Error("A bootstrap secret is required for a first message")
 			const response = await fetchImplementation(
-				endpoint(
-					input.apiUrl,
-					bootstrap ? `/api/chat/${encodeURIComponent(input.embedToken)}/messages` : "/api/chat/messages",
-				),
+				endpoint(input.apiUrl, `/api/chat/${encodeURIComponent(input.embedToken)}/messages`),
 				{
 					method: "POST",
 					signal: input.signal,
-					headers: {
-						...SSE_POST_HEADERS,
-						...(input.credential === undefined ? {} : { Authorization: `Bearer ${input.credential}` }),
-					},
-					body: JSON.stringify({
-						requestId: input.requestId,
-						text: input.text,
-						...(input.bootstrapSecret === undefined ? {} : { bootstrapSecret: input.bootstrapSecret }),
-					}),
+					headers: { ...SSE_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
+					body: JSON.stringify({ requestId: input.requestId, text: input.text }),
 				},
 			)
 			await requireSuccess(response, input.signal, now)
@@ -330,37 +282,13 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 		},
 
 		async cancelResponse(input) {
-			const bootstrap = input.credential === undefined
-			if (bootstrap && (input.requestId === undefined || input.bootstrapSecret === undefined)) {
-				throw new Error("Bootstrap cancellation requires its private identity")
-			}
-			const response = await fetchImplementation(
-				endpoint(
-					input.apiUrl,
-					bootstrap ? `/api/chat/${encodeURIComponent(input.embedToken)}/bootstrap-cancel` : "/api/chat/cancel",
-				),
-				{
-					method: "POST",
-					signal: input.signal,
-					headers: {
-						...JSON_POST_HEADERS,
-						...(input.credential === undefined ? {} : { Authorization: `Bearer ${input.credential}` }),
-					},
-					body: JSON.stringify(
-						bootstrap
-							? { requestId: input.requestId, bootstrapSecret: input.bootstrapSecret }
-							: input.generationId === undefined
-								? {}
-								: { generationId: input.generationId },
-					),
-				},
-			)
-			if (!response.ok) {
-				const error = await problemError(response, input.signal, now)
-				if (bootstrap && response.status === HTTP_NOT_FOUND && error.detail.code === "chat-bootstrap-not-accepted")
-					return
-				throw error
-			}
+			const response = await fetchImplementation(endpoint(input.apiUrl, "/api/chat/cancel"), {
+				method: "POST",
+				signal: input.signal,
+				headers: { ...JSON_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
+				body: JSON.stringify(input.generationId === undefined ? {} : { generationId: input.generationId }),
+			})
+			await requireSuccess(response, input.signal, now)
 		},
 	}
 }

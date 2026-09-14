@@ -12,16 +12,15 @@ export type BrowserStorage = {
 
 export const CHAT_STORAGE_VERSION = 1 as const
 
-export type PendingBootstrap = {
+export type PendingMessage = {
 	requestId: string
-	bootstrapSecret: string
 	text: string
 }
 
 export type ChatStorageRecord = {
 	version: typeof CHAT_STORAGE_VERSION
-	credential?: string
-	pending?: PendingBootstrap
+	credential: string
+	pending?: PendingMessage
 }
 
 export type ResilientStorage = AsyncStorage & {
@@ -84,14 +83,12 @@ export function createChatStorageKey(apiUrl: string, embedToken: string): string
 	return `talqo:chat:v${CHAT_STORAGE_VERSION}:${encodeURIComponent(normalizedUrl)}:${encodeURIComponent(embedToken)}`
 }
 
-function isPendingBootstrap(value: unknown): value is PendingBootstrap {
+function isPendingMessage(value: unknown): value is PendingMessage {
 	return (
 		typeof value === "object" &&
 		value !== null &&
 		"requestId" in value &&
 		typeof value.requestId === "string" &&
-		"bootstrapSecret" in value &&
-		typeof value.bootstrapSecret === "string" &&
 		"text" in value &&
 		typeof value.text === "string"
 	)
@@ -101,9 +98,8 @@ function isChatStorageRecord(value: unknown): value is ChatStorageRecord {
 	if (typeof value !== "object" || value === null || !("version" in value) || value.version !== CHAT_STORAGE_VERSION) {
 		return false
 	}
-	if ("credential" in value && value.credential !== undefined && typeof value.credential !== "string") return false
-	if ("pending" in value && value.pending !== undefined && !isPendingBootstrap(value.pending)) return false
-	return "credential" in value || "pending" in value
+	if (!("credential" in value) || typeof value.credential !== "string") return false
+	return !("pending" in value) || value.pending === undefined || isPendingMessage(value.pending)
 }
 
 export function readChatStorageRecord(serialized: string | null): ChatStorageRecord | null {

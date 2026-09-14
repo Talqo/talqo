@@ -3,25 +3,7 @@ import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
-import { BOOTSTRAP_SECRET_BYTES, isCanonicalBase64Url, REQUEST_ID_BYTES } from "./conversation-crypto.ts"
-
-const REQUEST_ID_ENCODED_LENGTH = 22
-const BOOTSTRAP_SECRET_ENCODED_LENGTH = 43
-const REQUEST_ID_PATTERN = /^[A-Za-z0-9_-]{21}[AQgw]$/
-const BOOTSTRAP_SECRET_PATTERN = /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/
-
-const fixedToken = (bytes: number, encodedLength: number, pattern: RegExp) =>
-	z
-		.string()
-		.length(encodedLength)
-		.regex(pattern)
-		.refine((value) => isCanonicalBase64Url(value, bytes))
-const requestIdSchema = fixedToken(REQUEST_ID_BYTES, REQUEST_ID_ENCODED_LENGTH, REQUEST_ID_PATTERN)
-const bootstrapSecretSchema = fixedToken(
-	BOOTSTRAP_SECRET_BYTES,
-	BOOTSTRAP_SECRET_ENCODED_LENGTH,
-	BOOTSTRAP_SECRET_PATTERN,
-)
+const requestIdSchema = z.uuid()
 
 const terminalOutcome = z.enum(["completed", "failed", "cancelled", "blocked", "interrupted"])
 const chatErrorSchema = z.object({
@@ -37,7 +19,6 @@ export const chatEventSchema = z
 			version: z.literal(1),
 			type: z.literal("accepted"),
 			requestId: requestIdSchema,
-			credential: z.string().optional(),
 			generationId: z.string(),
 			userMessage: z.object({ id: z.string(), createdAt: z.iso.datetime() }),
 			assistantMessage: z.object({ id: z.string(), createdAt: z.iso.datetime() }),
@@ -77,9 +58,6 @@ const sendBody = z.object({
 		.min(1)
 		.refine((text) => [...text].length <= CHAT_ABSOLUTE_MAX_INPUT_CHARACTERS),
 })
-const bootstrapSendBody = sendBody.extend({ bootstrapSecret: bootstrapSecretSchema })
-export const bootstrapIdentityBody = z.object({ requestId: requestIdSchema, bootstrapSecret: bootstrapSecretSchema })
-const recoveryBody = bootstrapIdentityBody
 const cancelBody = z.object({ generationId: z.string().optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })
 const commonProblems = problemResponse([
@@ -98,14 +76,14 @@ const sseResponse = {
 	description: "Version 1 chat events",
 } as const
 
-export const bootstrapSendRoute = createRoute({
+export const sendRoute = createRoute({
 	method: "post",
 	path: "/{embedToken}/messages",
-	operationId: "bootstrapChatMessage",
+	operationId: "sendChatMessage",
 	tags: ["Conversation"],
 	request: {
 		params: embedParams,
-		body: { required: true, content: { "application/json": { schema: bootstrapSendBody } } },
+		body: { required: true, content: { "application/json": { schema: sendBody } } },
 	},
 	responses: {
 		200: sseResponse,
@@ -115,42 +93,6 @@ export const bootstrapSendRoute = createRoute({
 		413: payloadTooLargeResponse,
 		429: commonProblems,
 		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
-		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
-	},
-})
-
-export const sendRoute = createRoute({
-	method: "post",
-	path: "/messages",
-	operationId: "sendChatMessage",
-	tags: ["Conversation"],
-	request: { body: { required: true, content: { "application/json": { schema: sendBody } } } },
-	responses: {
-		200: sseResponse,
-		400: commonProblems,
-		401: commonProblems,
-		409: commonProblems,
-		413: payloadTooLargeResponse,
-		429: commonProblems,
-		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
-		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
-	},
-})
-
-export const recoverRoute = createRoute({
-	method: "post",
-	path: "/{embedToken}/bootstrap-recovery",
-	operationId: "recoverChatBootstrap",
-	tags: ["Conversation"],
-	request: { params: embedParams, body: { required: true, content: { "application/json": { schema: recoveryBody } } } },
-	responses: {
-		200: {
-			content: { "application/json": { schema: z.object({ status: z.literal("accepted"), credential: z.string() }) } },
-			description: "Recovered credential",
-		},
-		404: problemResponse([PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED]),
-		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
-		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
@@ -176,25 +118,6 @@ export const cancelRoute = createRoute({
 	responses: {
 		204: { description: "Cancellation requested" },
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
-		413: payloadTooLargeResponse,
-		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
-	},
-})
-
-export const bootstrapCancelRoute = createRoute({
-	method: "post",
-	path: "/{embedToken}/bootstrap-cancel",
-	operationId: "cancelChatBootstrapGeneration",
-	tags: ["Conversation"],
-	request: {
-		params: embedParams,
-		body: { required: true, content: { "application/json": { schema: bootstrapIdentityBody } } },
-	},
-	responses: {
-		204: { description: "Cancellation requested for the accepted bootstrap generation" },
-		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON]),
-		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
-		404: problemResponse([PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED]),
 		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},

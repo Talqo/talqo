@@ -448,10 +448,6 @@ export async function discoverModels(userId: string, input: DiscoverModelsInput)
 	return (await getDefaultService()).discoverModels(userId, input)
 }
 
-export async function streamText(input: TextGenerationInput) {
-	return (await getDefaultService()).streamText(input)
-}
-
 export async function prepareTextOperation(input: PrepareTextOperationInput) {
 	return (await getDefaultService()).prepareTextOperation(input)
 }

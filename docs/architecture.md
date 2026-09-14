@@ -114,7 +114,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
 - `embed` owns public integration identity and appearance. Canonical operator routes use `/api/embeds`, and canonical public configuration uses `/api/embed-config/:embedToken` without exposing an agent ID. `/api/widget-config/:token` remains only as a non-contract compatibility adapter for shipped widget snippets.
-- `conversation` owns public chat routes under `/api/chat`. First send and bootstrap recovery identify an embed by public token; all subsequent history, send, attempt, and cancellation access uses the private session bearer credential. The server always derives the agent and never accepts a public agent override.
+- `conversation` owns public chat routes under `/api/chat`. Sends identify an embed by public token and use a private session bearer credential; history, attempts, and cancellation use the credential. The server derives the agent and never accepts a public agent override.
 
 ### Persistence And Migrations
 
@@ -129,13 +129,13 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 ### Public Chat Runtime
 
-`conversation` owns the end-user send operation and orchestrates acyclic calls to `embed`, `agent`, `ai-provider`, and `usage`. One end-user session authorizes exactly one conversation. The API stores only hashes of 32-byte session and bootstrap secrets; a purpose-bound HMAC derivation lets a client recover the same credential after an uncertain first response without storing credential plaintext server-side. Embed `accessVersion` is checked on every authenticated session operation, so token rotation, reassignment, or embed deletion revokes access without deleting history.
+`conversation` owns the end-user send operation and orchestrates acyclic calls to `embed`, `agent`, `ai-provider`, and `usage`. One end-user session authorizes one conversation. The SDK stores a client-issued UUIDv4 credential before first send; the API stores only its SHA-256 hash. Embed `accessVersion` is checked on authenticated operations, so token rotation, reassignment, or embed deletion revokes access without deleting history.
 
 The model input is the agent's current saved system prompt, every fully completed user/assistant pair in order, and the current user message. Public clients cannot supply history or system instructions. Chat does not retrieve knowledge, create embeddings, invoke MCP tools, or summarize. Failed, cancelled, blocked, or interrupted pairs remain visible but do not enter later prompts. The API rejects input that exceeds the configured Unicode code-point bound and never silently truncates history.
 
 The first message atomically creates the session/conversation and accepts the first attempt; there is no empty-session endpoint. PostgreSQL daily counters and generation leases enforce accepted-question limits and concurrent generations per agent and normalized client network across API instances. Limits are not per person, billing quotas, token caps, or deployment-wide consumption pools. Expired leases become interrupted attempts and fenced lease tokens prevent late workers from overwriting recovery.
 
-Messages and partial assistant output are durable. A disconnected browser does not cancel provider work; authenticated cancellation records intent server-side. Public streaming is versioned JSON in SSE framing over a `POST` fetch response, not `EventSource`, because sends require a request body and later sends require an `Authorization: Bearer` header. Problems before streaming use RFC 9457; terminal stream failures use typed events.
+Messages and partial assistant output are durable. A disconnected browser does not cancel provider work; authenticated cancellation records intent server-side. Public streaming is versioned JSON in SSE framing over an authenticated `POST` fetch response, not `EventSource`. Problems before streaming use RFC 9457; terminal stream failures use typed events.
 
 `usage` stores one idempotent row per actual model-call attempt with agent, conversation, provider, model, outcome, and unified `inputTokens`/`outputTokens`. Provider counts are normalized when usable; otherwise either side is approximated from all model-visible input or API-observed output. Totals may therefore be approximate and are analytics, not invoice reconciliation. Rejected requests that never invoke a model create no usage row.
 
