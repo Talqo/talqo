@@ -11,11 +11,10 @@ export {
 	type AsyncStorage,
 	type BrowserStorage,
 	type ChatStorageRecord,
-	type PendingBootstrap,
+	type PendingMessage,
 	type ResilientStorage,
 } from "./storage"
 export type {
-	BootstrapRecovery,
 	ChatClient,
 	ChatClientOptions,
 	ChatConfiguration,

@@ -18,12 +18,11 @@ import {
 	SessionUnauthorizedError,
 } from "./conversation.service.ts"
 
-const APP_SECRET = Buffer.alloc(32, 6).toString("base64url")
-const REQUEST_1 = Buffer.alloc(16, 1).toString("base64url")
-const REQUEST_2 = Buffer.alloc(16, 2).toString("base64url")
-const REQUEST_3 = Buffer.alloc(16, 3).toString("base64url")
-const BOOTSTRAP_1 = Buffer.alloc(32, 1).toString("base64url")
-const BOOTSTRAP_2 = Buffer.alloc(32, 2).toString("base64url")
+const REQUEST_1 = "11111111-1111-4111-8111-111111111111"
+const REQUEST_2 = "22222222-2222-4222-8222-222222222222"
+const REQUEST_3 = "33333333-3333-4333-8333-333333333333"
+const CREDENTIAL_1 = "44444444-4444-4444-8444-444444444444"
+const CREDENTIAL_2 = "55555555-5555-4555-8555-555555555555"
 
 async function fixture() {
 	const createdAgent = await agent.createAgent({
@@ -45,7 +44,6 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 	return {
 		prompts,
 		service: createConversationService({
-			appSecret: APP_SECRET,
 			dailyLimit: policy.dailyLimit ?? 100,
 			concurrencyLimit: policy.concurrencyLimit ?? 2,
 			maxInputCharacters: 400_000,
@@ -92,7 +90,6 @@ function customService(
 	beforeAccept?: (attempt: number) => Promise<void>,
 ) {
 	return createConversationService({
-		appSecret: APP_SECRET,
 		dailyLimit: policy.dailyLimit ?? 100,
 		concurrencyLimit: policy.concurrencyLimit ?? 2,
 		maxInputCharacters: 400_000,
@@ -145,30 +142,23 @@ beforeEach(async () => {
 })
 
 describe("conversation lifecycle", () => {
-	it("recovers a first-send credential and isolates history", async () => {
+	it("creates a bearer-authenticated conversation and isolates history", async () => {
 		const { createdEmbed } = await fixture()
 		const first = service()
 		const accepted = await first.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "hello",
 			networkHash: "network-a",
 		})
 		await accepted.done
 
-		expect(
-			await first.service.recoverBootstrap({
-				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_1,
-				requestId: REQUEST_1,
-			}),
-		).toEqual({ status: "accepted", credential: accepted.credential! })
-		expect((await first.service.getSession(accepted.credential!)).messages.map((message) => message.text)).toEqual([
+		expect((await first.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
 			"hello",
 			"answer",
 		])
-		await expect(first.service.getSession("another-secret")).rejects.toBeInstanceOf(SessionUnauthorizedError)
+		await expect(first.service.getSession(CREDENTIAL_2)).rejects.toBeInstanceOf(SessionUnauthorizedError)
 	})
 
 	it("deduplicates identical requests, rejects conflicting text, and sends complete history", async () => {
@@ -176,7 +166,7 @@ describe("conversation lifecycle", () => {
 		const instance = service(["one", "two"])
 		const first = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "first",
 			networkHash: "network-a",
@@ -185,7 +175,8 @@ describe("conversation lifecycle", () => {
 		const duplicateEvents: { type: string }[] = []
 		const duplicate = await instance.service.send(
 			{
-				credential: first.credential,
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
 				requestId: REQUEST_1,
 				text: "first",
 				networkHash: "network-a",
@@ -196,7 +187,8 @@ describe("conversation lifecycle", () => {
 		expect(duplicateEvents.map((event) => event.type)).toEqual(["accepted", "terminal"])
 		await expect(
 			instance.service.send({
-				credential: first.credential,
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
 				requestId: REQUEST_1,
 				text: "changed",
 				networkHash: "network-a",
@@ -204,7 +196,8 @@ describe("conversation lifecycle", () => {
 		).rejects.toBeInstanceOf(RequestConflictError)
 
 		const second = await instance.service.send({
-			credential: first.credential,
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_2,
 			text: "second",
 			networkHash: "network-a",
@@ -223,7 +216,7 @@ describe("conversation lifecycle", () => {
 		const instance = service()
 		const sent = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "hello",
 			networkHash: "network-a",
@@ -231,7 +224,7 @@ describe("conversation lifecycle", () => {
 		await sent.done
 		await embed.rotateEmbedToken(createdEmbed.id)
 
-		await expect(instance.service.getSession(sent.credential!)).rejects.toBeInstanceOf(SessionUnauthorizedError)
+		await expect(instance.service.getSession(CREDENTIAL_1)).rejects.toBeInstanceOf(SessionUnauthorizedError)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
 		expect((await sql`SELECT input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
 			input_tokens: 8,
@@ -265,7 +258,7 @@ describe("conversation lifecycle", () => {
 		const instance = service(["one", "two"], { dailyLimit: 1 })
 		const first = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "first",
 			networkHash: "network-a",
@@ -275,7 +268,7 @@ describe("conversation lifecycle", () => {
 		await expect(
 			instance.service.send({
 				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_2,
+				credential: CREDENTIAL_2,
 				requestId: REQUEST_2,
 				text: "second",
 				networkHash: "network-a",
@@ -301,7 +294,7 @@ describe("conversation lifecycle", () => {
 		const secondInstance = customService(generate, { concurrencyLimit: 1 })
 		const first = await firstInstance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "first",
 			networkHash: "network-a",
@@ -310,7 +303,7 @@ describe("conversation lifecycle", () => {
 		await expect(
 			secondInstance.send({
 				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_2,
+				credential: CREDENTIAL_2,
 				requestId: REQUEST_2,
 				text: "second",
 				networkHash: "network-a",
@@ -320,13 +313,13 @@ describe("conversation lifecycle", () => {
 		await first.done
 	})
 
-	it("serializes duplicate bootstrap acceptance across networks and charges once", async () => {
+	it("serializes duplicate first-send acceptance across networks and charges once", async () => {
 		const { createdEmbed } = await fixture()
 		const firstInstance = service().service
 		const secondInstance = service().service
 		const input = {
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "same",
 		}
@@ -342,13 +335,13 @@ describe("conversation lifecycle", () => {
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(1)
 	})
 
-	it("rejects concurrent bootstrap text conflicts without double charging", async () => {
+	it("rejects concurrent first-send text conflicts without double charging", async () => {
 		const { createdEmbed } = await fixture()
 		const firstInstance = service().service
 		const secondInstance = service().service
 		const common = {
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 		}
 		const results = await Promise.allSettled([
@@ -371,15 +364,15 @@ describe("conversation lifecycle", () => {
 		const otherInstance = customService(cancellationGeneration)
 		const sent = await owner.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "cancel me",
 			networkHash: "network-a",
 		})
-		await otherInstance.cancel(sent.credential!, sent.generationId)
+		await otherInstance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 
-		expect((await owner.getAttempt(sent.credential!, sent.generationId)).status).toBe("cancelled")
+		expect((await owner.getAttempt(CREDENTIAL_1, sent.generationId)).status).toBe("cancelled")
 		expect((await sql`SELECT provider, model, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
 			provider: "fake",
 			model: "fake-model",
@@ -393,7 +386,7 @@ describe("conversation lifecycle", () => {
 		const instance = service()
 		const sent = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "hello",
 			networkHash: "network-a",
@@ -422,7 +415,7 @@ describe("conversation lifecycle", () => {
 		const sent = await instance.send(
 			{
 				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_1,
+				credential: CREDENTIAL_1,
 				requestId: REQUEST_1,
 				text: "hello",
 				networkHash: "network-a",
@@ -435,7 +428,7 @@ describe("conversation lifecycle", () => {
 		expect(JSON.stringify(events)).not.toContain("provider secret")
 	})
 
-	it("cancels an accepted first send using only its private bootstrap identity", async () => {
+	it("cancels an accepted first send through another service instance", async () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
 		const generate = async function* (input: { signal: AbortSignal }) {
@@ -453,37 +446,17 @@ describe("conversation lifecycle", () => {
 		const otherInstance = customService(generate)
 		const sent = await owner.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
-			text: "cancel bootstrap",
+			text: "cancel first send",
 			networkHash: "network-a",
 		})
 		await started.promise
 
-		expect(
-			await otherInstance.cancelBootstrap({
-				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_1,
-				requestId: REQUEST_1,
-			}),
-		).toBe("accepted")
+		await otherInstance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
-		expect((await owner.getAttempt(sent.credential!, sent.generationId)).status).toBe("cancelled")
-		expect(
-			await otherInstance.cancelBootstrap({
-				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_2,
-				requestId: REQUEST_2,
-			}),
-		).toBe("not-accepted")
+		expect((await owner.getAttempt(CREDENTIAL_1, sent.generationId)).status).toBe("cancelled")
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
-		await expect(
-			otherInstance.cancelBootstrap({
-				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_2,
-				requestId: REQUEST_1,
-			}),
-		).rejects.toBeInstanceOf(SessionUnauthorizedError)
 	})
 
 	it("serializes concurrent sends for one session even when network keys differ", async () => {
@@ -503,7 +476,7 @@ describe("conversation lifecycle", () => {
 		})
 		const initial = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "initial",
 			networkHash: "network-a",
@@ -511,8 +484,20 @@ describe("conversation lifecycle", () => {
 		await initial.done
 
 		const results = await Promise.allSettled([
-			instance.send({ credential: initial.credential, requestId: REQUEST_2, text: "one", networkHash: "network-a" }),
-			instance.send({ credential: initial.credential, requestId: REQUEST_3, text: "two", networkHash: "network-b" }),
+			instance.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_2,
+				text: "one",
+				networkHash: "network-a",
+			}),
+			instance.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_3,
+				text: "two",
+				networkHash: "network-b",
+			}),
 		])
 		expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1)
 		const rejected = results.find((result) => result.status === "rejected")
@@ -541,7 +526,7 @@ describe("conversation lifecycle", () => {
 		})
 		const sent = await owner.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "recover",
 			networkHash: "network-a",
@@ -549,10 +534,10 @@ describe("conversation lifecycle", () => {
 		await started.promise
 		await sql`UPDATE conversation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${sent.generationId}`
 
-		await customService(emptyGeneration).getSession(sent.credential!)
+		await customService(emptyGeneration).getSession(CREDENTIAL_1)
 		gate.resolve()
 		await sent.done
-		const state = await owner.getAttempt(sent.credential!, sent.generationId)
+		const state = await owner.getAttempt(CREDENTIAL_1, sent.generationId)
 		expect(state).toMatchObject({ status: "interrupted", assistantText: "" })
 		expect(
 			(await sql`SELECT count(*)::int AS count FROM conversation_usage WHERE attempt_id = ${sent.generationId}`)[0]
@@ -581,7 +566,7 @@ describe("conversation lifecycle", () => {
 		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)
 		const next = await service().service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_2,
+			credential: CREDENTIAL_2,
 			requestId: REQUEST_2,
 			text: "after recovery",
 			networkHash: "network-a",
@@ -601,7 +586,7 @@ describe("conversation lifecycle", () => {
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "delete",
 			networkHash: "network-a",
@@ -620,7 +605,7 @@ describe("conversation lifecycle", () => {
 		const first = await fresh.send(
 			{
 				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_1,
+				credential: CREDENTIAL_1,
 				requestId: REQUEST_1,
 				text: "fresh",
 				networkHash: "network-a",
@@ -641,7 +626,7 @@ describe("conversation lifecycle", () => {
 		})
 		const first = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "first",
 			networkHash: "network-a",
@@ -649,7 +634,13 @@ describe("conversation lifecycle", () => {
 		await first.done
 		const events: { error?: { code: string; newChatAvailable: boolean }; type: string }[] = []
 		const second = await instance.send(
-			{ credential: first.credential, requestId: REQUEST_2, text: "second", networkHash: "network-a" },
+			{
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_2,
+				text: "second",
+				networkHash: "network-a",
+			},
 			(event) => events.push(event),
 		)
 		await second.done
@@ -668,7 +659,7 @@ describe("conversation lifecycle", () => {
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "expire",
 			networkHash: "network-a",
@@ -713,7 +704,7 @@ describe("conversation lifecycle", () => {
 		})
 		const expired = await owner.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "expires",
 			networkHash: "network-a",
@@ -722,7 +713,8 @@ describe("conversation lifecycle", () => {
 		await sql`UPDATE conversation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${expired.generationId}`
 
 		const replacement = await service().service.send({
-			credential: expired.credential,
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_2,
 			text: "replacement",
 			networkHash: "network-a",
@@ -743,14 +735,14 @@ describe("conversation lifecycle", () => {
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "fail",
 			networkHash: "network-a",
 		})
 		await sent.done
 
-		expect((await instance.getAttempt(sent.credential!, sent.generationId)).assistantText).toBe("tiny")
+		expect((await instance.getAttempt(CREDENTIAL_1, sent.generationId)).assistantText).toBe("tiny")
 		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
 	})
 
@@ -766,16 +758,16 @@ describe("conversation lifecycle", () => {
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "cancel",
 			networkHash: "network-a",
 		})
 		await started.promise
-		await instance.cancel(sent.credential!, sent.generationId)
+		await instance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 
-		expect((await instance.getAttempt(sent.credential!, sent.generationId)).assistantText).toBe("tiny")
+		expect((await instance.getAttempt(CREDENTIAL_1, sent.generationId)).assistantText).toBe("tiny")
 		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
 	})
 
@@ -786,7 +778,7 @@ describe("conversation lifecycle", () => {
 		await expect(
 			getConversationService().send({
 				embedToken: createdEmbed.embedToken,
-				bootstrapSecret: BOOTSTRAP_1,
+				credential: CREDENTIAL_1,
 				requestId: REQUEST_1,
 				text: "must not accept",
 				networkHash: "network-a",
@@ -807,7 +799,7 @@ describe("conversation lifecycle", () => {
 		const instance = service()
 		const sent = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "durable",
 			networkHash: "network-a",
@@ -816,7 +808,7 @@ describe("conversation lifecycle", () => {
 		await sql`DELETE FROM conversation_usage WHERE attempt_id = ${sent.generationId}`
 		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
 
-		await instance.service.getSession(sent.credential!)
+		await instance.service.getSession(CREDENTIAL_1)
 
 		expect((await sql`SELECT outcome, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
 			outcome: "completed",
@@ -827,7 +819,7 @@ describe("conversation lifecycle", () => {
 			true,
 		)
 		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
-		await instance.service.getSession(sent.credential!)
+		await instance.service.getSession(CREDENTIAL_1)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation_usage`)[0]?.count).toBe(1)
 		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM conversation_attempt`)[0]?.recorded).toBe(
 			true,
@@ -839,7 +831,7 @@ describe("conversation lifecycle", () => {
 		const initialService = service(["initial"]).service
 		const initial = await initialService.send({
 			embedToken: createdEmbed.embedToken,
-			bootstrapSecret: BOOTSTRAP_1,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_1,
 			text: "first",
 			networkHash: "network-a",
@@ -856,7 +848,8 @@ describe("conversation lifecycle", () => {
 			async (attempt) => {
 				if (attempt !== 0) return
 				const raced = await rival.send({
-					credential: initial.credential,
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
 					requestId: REQUEST_2,
 					text: "racing turn",
 					networkHash: "network-a",
@@ -866,7 +859,8 @@ describe("conversation lifecycle", () => {
 		)
 
 		const sent = await main.send({
-			credential: initial.credential,
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
 			requestId: REQUEST_3,
 			text: "after race",
 			networkHash: "network-a",

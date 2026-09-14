@@ -14,7 +14,6 @@ export const PROBLEM_CODES = {
 	AGENT_NAME_TAKEN: "agent-name-taken",
 	AGENT_NOT_FOUND: "agent-not-found",
 	AUTHENTICATION_REQUIRED: "authentication-required",
-	CHAT_BOOTSTRAP_NOT_ACCEPTED: "chat-bootstrap-not-accepted",
 	CHAT_CLIENT_ADDRESS_UNAVAILABLE: "chat-client-address-unavailable",
 	CHAT_CONCURRENCY_LIMIT: "chat-concurrency-limit",
 	CHAT_CONTEXT_LIMIT: "chat-context-limit",

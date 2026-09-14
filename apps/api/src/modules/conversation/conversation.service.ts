@@ -2,17 +2,12 @@ import { env } from "@/config/env.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
-import {
-	BOOTSTRAP_SECRET_BYTES,
-	hashSecret,
-	isCanonicalBase64Url,
-	REQUEST_ID_BYTES,
-} from "@/modules/conversation/conversation-crypto.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
+import { createHash } from "node:crypto"
+import { z } from "zod"
 
 import { createBlacklistFilter } from "./blacklist.ts"
-import { deriveSessionCredential } from "./conversation-crypto.ts"
 import * as repository from "./conversation.repository.ts"
 
 const CANCELLATION_POLL_MS = 500
@@ -21,6 +16,7 @@ const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
 const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
+const UUID_SCHEMA = z.uuid()
 
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
 
@@ -42,7 +38,6 @@ type PreparedOperation = {
 }
 
 type Dependencies = {
-	appSecret: string
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
@@ -56,7 +51,7 @@ type Dependencies = {
 	timeoutMs: number
 }
 
-export type ChatMessage = {
+type ChatMessage = {
 	createdAt: string
 	id: string
 	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" | "streaming"
@@ -68,7 +63,6 @@ export type ChatEvent =
 	| {
 			version: 1
 			assistantMessage: { createdAt: string; id: string }
-			credential?: string
 			generationId: string
 			requestId: string
 			type: "accepted"
@@ -84,9 +78,8 @@ export type ChatEvent =
 	  }
 
 type SendInput = {
-	bootstrapSecret?: string
-	credential?: string
-	embedToken?: string
+	credential: string
+	embedToken: string
 	networkHash: string
 	requestId: string
 	text: string
@@ -101,9 +94,15 @@ export class SessionBusyError extends Error {}
 export class InvalidChatInputError extends Error {}
 export class ProviderUnavailableError extends Error {}
 
-function requireToken(value: string | undefined, bytes: number, name: string): string {
-	if (!value || !isCanonicalBase64Url(value, bytes)) throw new InvalidChatInputError(`${name} is invalid`)
+function requireUuid(value: string, name: string): string {
+	if (!UUID_SCHEMA.safeParse(value).success) throw new InvalidChatInputError(`${name} is invalid`)
 	return value
+}
+
+function hashCredential(credential: string): string {
+	if (!UUID_SCHEMA.safeParse(credential).success)
+		throw new SessionUnauthorizedError("A valid session credential is required")
+	return createHash("sha256").update(credential).digest("base64url")
 }
 
 function publicMessage(message: Awaited<ReturnType<typeof repository.listMessages>>[number]): ChatMessage {
@@ -134,8 +133,6 @@ function completedPrompt(
 			prompt.push({ role: "user", content: user.text }, { role: "assistant", content: assistant.text })
 		}
 	}
-	// TODO(knowledge): Include retrieved knowledge in model input and usage accounting.
-	// TODO(mcp): Include MCP tool inputs/results in model input and usage accounting.
 	prompt.push({ role: "user", content: text })
 	return prompt
 }
@@ -190,11 +187,8 @@ async function recoverExpiredAttempts(): Promise<void> {
 export function createConversationService(dependencies: Dependencies) {
 	const controllers = new Map<string, AbortController>()
 
-	async function authenticate(credential: string | undefined): Promise<repository.SessionContext> {
-		if (!credential || !isCanonicalBase64Url(credential, BOOTSTRAP_SECRET_BYTES)) {
-			throw new SessionUnauthorizedError("A valid bearer session credential is required")
-		}
-		const session = await repository.findSessionByCredentialHash(hashSecret(credential))
+	async function authenticate(credential: string): Promise<repository.SessionContext> {
+		const session = await repository.findSessionByCredentialHash(hashCredential(credential))
 		if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
 		return session
 	}
@@ -324,43 +318,17 @@ export function createConversationService(dependencies: Dependencies) {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}) {
 			await drainPendingUsageFinalizations()
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
-			requireToken(input.requestId, REQUEST_ID_BYTES, "Request ID")
-			let session: repository.SessionContext | undefined
-			let credential: string | undefined
-			let bootstrap:
-				| {
-						bootstrapRequestId: string
-						bootstrapSecretHash: string
-						credentialHash: string
-						embedAccessVersion: number
-						embedId: string
-				  }
-				| undefined
-			let agentId: string
-			if (input.credential) {
-				session = await authenticate(input.credential)
-				agentId = session.agentId
-			} else {
-				if (!input.embedToken) {
-					throw new InvalidChatInputError("First send requires an embed token and bootstrap secret")
-				}
-				const bootstrapSecret = requireToken(input.bootstrapSecret, BOOTSTRAP_SECRET_BYTES, "Bootstrap secret")
-				const embed = await embedService.getEmbedByToken(input.embedToken)
-				agentId = embed.agentId
-				credential = deriveSessionCredential(dependencies.appSecret, {
-					embedId: embed.id,
-					accessVersion: embed.accessVersion,
-					requestId: input.requestId,
-					bootstrapSecret,
-				})
-				bootstrap = {
-					embedId: embed.id,
-					embedAccessVersion: embed.accessVersion,
-					bootstrapRequestId: input.requestId,
-					bootstrapSecretHash: hashSecret(bootstrapSecret),
-					credentialHash: hashSecret(credential),
-				}
+			requireUuid(input.requestId, "Request ID")
+			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
+			const credentialHash = hashCredential(input.credential)
+			const session = await repository.findSessionByCredentialHash(credentialHash)
+			if (
+				session &&
+				(session.embedId !== currentEmbed.id || session.embedAccessVersion !== currentEmbed.accessVersion)
+			) {
+				throw new SessionUnauthorizedError("Session does not belong to this embed")
 			}
+			const agentId = currentEmbed.agentId
 			const agent = await agentService.getAgent(agentId)
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedAttempt
@@ -386,11 +354,10 @@ export function createConversationService(dependencies: Dependencies) {
 				try {
 					const accepted = await repository.acceptAttempt({
 						agentId,
-						bootstrap,
-						conversationId: session?.conversationId,
-						sessionId: session?.sessionId,
+						credentialHash,
+						embedAccessVersion: currentEmbed.accessVersion,
+						embedId: currentEmbed.id,
 						requestId: input.requestId,
-						requestTextHash: hashSecret(input.text),
 						historyRevision: history.revision,
 						historyTailId: history.latestCompletedMessageId,
 						inputText: promptText(messages),
@@ -408,20 +375,18 @@ export function createConversationService(dependencies: Dependencies) {
 					if (error instanceof repository.AllowanceExceededRepositoryError) throw new DailyAllowanceExceededError()
 					if (error instanceof repository.ConcurrencyExceededRepositoryError) throw new ConcurrentGenerationLimitError()
 					if (error instanceof repository.SessionBusyRepositoryError) throw new SessionBusyError()
-					if (error instanceof repository.BootstrapUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
+					if (error instanceof repository.SessionUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
 					if (error instanceof repository.RequestConflictRepositoryError) throw new RequestConflictError()
 					throw error
 				}
 			}
 			const { accepted, messages, prepared } = await prepareAndAccept(0)
 			await drainPendingUsageFinalizations()
-			if (accepted.attempt.requestTextHash !== hashSecret(input.text)) throw new RequestConflictError()
 			const acceptedEvent: ChatEvent = {
 				version: 1,
 				type: "accepted",
 				requestId: input.requestId,
 				generationId: accepted.attempt.id,
-				...(credential ? { credential } : {}),
 				userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
 				assistantMessage: {
 					id: accepted.assistantMessage.id,
@@ -434,32 +399,6 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
-		},
-
-		async recoverBootstrap(input: { bootstrapSecret: string; embedToken: string; requestId: string }) {
-			requireToken(input.requestId, REQUEST_ID_BYTES, "Request ID")
-			const bootstrapSecret = requireToken(input.bootstrapSecret, BOOTSTRAP_SECRET_BYTES, "Bootstrap secret")
-			let embed: embedService.Embed
-			try {
-				embed = await embedService.getEmbedByToken(input.embedToken)
-			} catch (error) {
-				if (error instanceof embedService.EmbedNotFoundError) return { status: "unavailable" as const }
-				throw error
-			}
-			const session = await repository.findBootstrap(embed.id, embed.accessVersion, input.requestId)
-			if (!session) return { status: "not-accepted" as const }
-			if (session.bootstrapSecretHash !== hashSecret(bootstrapSecret)) {
-				throw new SessionUnauthorizedError("Bootstrap secret does not match")
-			}
-			return {
-				status: "accepted" as const,
-				credential: deriveSessionCredential(dependencies.appSecret, {
-					embedId: embed.id,
-					accessVersion: embed.accessVersion,
-					requestId: input.requestId,
-					bootstrapSecret,
-				}),
-			}
 		},
 
 		async getSession(credential: string) {
@@ -477,31 +416,6 @@ export function createConversationService(dependencies: Dependencies) {
 			if (generationId) controllers.get(generationId)?.abort()
 		},
 
-		async cancelBootstrap(input: { bootstrapSecret: string; embedToken: string; requestId: string }) {
-			requireToken(input.requestId, REQUEST_ID_BYTES, "Request ID")
-			const bootstrapSecret = requireToken(input.bootstrapSecret, BOOTSTRAP_SECRET_BYTES, "Bootstrap secret")
-			let embed: embedService.Embed
-			try {
-				embed = await embedService.getEmbedByToken(input.embedToken)
-			} catch (error) {
-				if (error instanceof embedService.EmbedNotFoundError) return "not-accepted" as const
-				throw error
-			}
-			try {
-				const result = await repository.requestBootstrapCancellation({
-					embedId: embed.id,
-					embedAccessVersion: embed.accessVersion,
-					requestId: input.requestId,
-					bootstrapSecretHash: hashSecret(bootstrapSecret),
-				})
-				if (result.attemptId) controllers.get(result.attemptId)?.abort()
-				return result.status
-			} catch (error) {
-				if (error instanceof repository.BootstrapUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
-				throw error
-			}
-		},
-
 		async getAttempt(credential: string, generationId: string) {
 			await recoverExpiredAttempts()
 			const session = await authenticate(credential)
@@ -516,7 +430,6 @@ let defaultService: ReturnType<typeof createConversationService> | undefined
 
 export function getConversationService() {
 	return (defaultService ??= createConversationService({
-		appSecret: env.APP_SECRET,
 		dailyLimit: env.TALQO_CHAT_DAILY_MESSAGE_LIMIT,
 		concurrencyLimit: env.TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP,
 		maxInputCharacters: env.TALQO_CHAT_MAX_INPUT_CHARACTERS,

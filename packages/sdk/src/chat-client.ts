@@ -24,21 +24,9 @@ const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
 const FIVE_SECONDS_MS = 5_000
 const DEFAULT_RECOVERY_DELAYS = [ONE_SECOND_MS, TWO_SECONDS_MS, FIVE_SECONDS_MS] as const
-const REQUEST_ID_BYTES = 16
-const BOOTSTRAP_SECRET_BYTES = 32
 const MAX_RECOVERY_POLLS = 25
 const HTTP_CLIENT_ERROR = 400
 const HTTP_SERVER_ERROR = 500
-const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-const BASE64_BYTE_GROUP_SIZE = 3
-const BASE64_FIRST_SHIFT = 2
-const BASE64_SECOND_SHIFT = 4
-const BASE64_THIRD_SHIFT = 6
-const BASE64_LOW_TWO_BITS = 3
-const BASE64_LOW_FOUR_BITS = 15
-const BASE64_LOW_SIX_BITS = 63
-const SECOND_BYTE_OFFSET = 1
-const THIRD_BYTE_OFFSET = 2
 
 export class ChatClientError extends Error {
 	readonly detail: ChatError
@@ -50,28 +38,10 @@ export class ChatClientError extends Error {
 	}
 }
 
-function defaultRandomBytes(length: number): Uint8Array {
+function defaultRandomUUID(): string {
 	const crypto = globalThis.crypto
 	if (crypto === undefined) throw new Error("Web Crypto is required to generate chat credentials")
-	return crypto.getRandomValues(new Uint8Array(length))
-}
-
-function encodeBase64Url(bytes: Uint8Array): string {
-	let encoded = ""
-	for (let index = 0; index < bytes.length; index += BASE64_BYTE_GROUP_SIZE) {
-		const first = bytes[index] ?? 0
-		const second = bytes[index + SECOND_BYTE_OFFSET]
-		const third = bytes[index + THIRD_BYTE_OFFSET]
-		encoded += BASE64_ALPHABET[first >> BASE64_FIRST_SHIFT]
-		encoded +=
-			BASE64_ALPHABET[((first & BASE64_LOW_TWO_BITS) << BASE64_SECOND_SHIFT) | ((second ?? 0) >> BASE64_SECOND_SHIFT)]
-		if (second !== undefined) {
-			encoded +=
-				BASE64_ALPHABET[((second & BASE64_LOW_FOUR_BITS) << BASE64_FIRST_SHIFT) | ((third ?? 0) >> BASE64_THIRD_SHIFT)]
-		}
-		if (third !== undefined) encoded += BASE64_ALPHABET[third & BASE64_LOW_SIX_BITS]
-	}
-	return encoded
+	return crypto.randomUUID()
 }
 
 function freezeConfiguration(configuration: ChatConfiguration): ChatConfiguration {
@@ -117,7 +87,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let error: ChatError | undefined
 	let retryAt: string | undefined
 	let credential: string | undefined
-	let pendingBootstrap: ChatStorageRecord["pending"]
+	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
@@ -125,8 +95,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		| {
 				controller: AbortController
 				cancellationRequested: boolean
-				requestId: string
-				bootstrapSecret: string | undefined
 		  }
 		| undefined
 	let initializationController: AbortController | undefined
@@ -135,7 +103,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let cancellationPromise: Promise<void> | undefined
 	const listeners = new Set<() => void>()
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
-	const randomBytes = options.randomBytes ?? defaultRandomBytes
+	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
 	const transport = options.transport ?? createFetchChatTransport()
 
@@ -200,6 +168,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
+	async function acceptSession(session: SessionState): Promise<void> {
+		applySession(session)
+		if (pendingMessage === undefined || credential === undefined) return
+		pendingMessage = undefined
+		await persist({ version: CHAT_STORAGE_VERSION, credential })
+	}
+
 	function beginSessionRecoveryPolling(): void {
 		if (credential === undefined || disposed) return
 		recoveryController?.abort()
@@ -216,7 +191,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					if (credential === undefined) return
 					// oxlint-disable-next-line no-await-in-loop
 					const session = await transport.loadSession({ ...context(controller.signal), credential })
-					applySession(session)
+					// oxlint-disable-next-line no-await-in-loop
+					await acceptSession(session)
 					if (session.activeGeneration === undefined) return
 				} catch {
 					if (controller.signal.aborted) return
@@ -234,61 +210,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		})()
 	}
 
-	async function acceptRecoveredBootstrap(recoveredCredential: string, controller: AbortController): Promise<void> {
-		await persist({ version: CHAT_STORAGE_VERSION, credential: recoveredCredential })
-		credential = recoveredCredential
-		pendingBootstrap = undefined
-		try {
-			applySession(await transport.loadSession({ ...context(controller.signal), credential }))
-			if (activeGenerationId !== undefined) beginSessionRecoveryPolling()
-		} catch (cause) {
-			if (controller.signal.aborted) throw cause
-			generation = "recovery"
-			recovery = "pending"
-			publish()
-			beginSessionRecoveryPolling()
-		}
-	}
-
-	function beginBootstrapRecoveryPolling(completedPolls = 0): void {
-		if (credential !== undefined || pendingBootstrap === undefined || disposed) return
-		recoveryController?.abort()
-		const controller = new AbortController()
-		recoveryController = controller
-		generation = "recovery"
-		recovery = "pending"
-		publish()
-		void (async () => {
-			const delays = options.recoveryDelays ?? DEFAULT_RECOVERY_DELAYS
-			for (let poll = completedPolls; poll < MAX_RECOVERY_POLLS; poll += 1) {
-				try {
-					const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
-					// oxlint-disable-next-line no-await-in-loop -- recovery probes must remain bounded and sequential.
-					await wait(delay, controller.signal)
-					if (pendingBootstrap === undefined || credential !== undefined) return
-					// oxlint-disable-next-line no-await-in-loop -- recovery probes must remain bounded and sequential.
-					const result = await transport.recoverBootstrap({
-						...context(controller.signal),
-						requestId: pendingBootstrap.requestId,
-						bootstrapSecret: pendingBootstrap.bootstrapSecret,
-					})
-					if (result.status === "accepted") {
-						// oxlint-disable-next-line no-await-in-loop -- acceptance transitions into the single session recovery path.
-						await acceptRecoveredBootstrap(result.credential, controller)
-						return
-					}
-					if (result.status === "unavailable") break
-				} catch {
-					if (controller.signal.aborted) return
-				}
-			}
-			if (!disposed && pendingBootstrap !== undefined && credential === undefined) {
-				recovery = "unavailable"
-				publish()
-			}
-		})()
-	}
-
 	async function initialize(): Promise<void> {
 		requireUsable()
 		if (initialization === "ready") return
@@ -299,7 +220,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			const controller = new AbortController()
 			initializationController = controller
 			try {
-				let recoveredBootstrap = false
 				const [loadedConfiguration, serialized] = await Promise.all([
 					transport.loadConfiguration(context(controller.signal)),
 					storage.getItem(storageKey),
@@ -307,29 +227,29 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				configuration = freezeConfiguration(loadedConfiguration)
 				const record = readChatStorageRecord(serialized)
 				credential = record?.credential
-				pendingBootstrap = record?.pending
-				if (credential === undefined && record?.pending !== undefined) {
-					recovery = "pending"
-					publish()
-					const result = await transport.recoverBootstrap({
-						...context(controller.signal),
-						requestId: record.pending.requestId,
-						bootstrapSecret: record.pending.bootstrapSecret,
-					})
-					if (result.status === "accepted") {
-						await acceptRecoveredBootstrap(result.credential, controller)
-						recoveredBootstrap = true
-					} else if (result.status === "unavailable") {
-						recovery = "unavailable"
+				pendingMessage = record?.pending
+				if (credential !== undefined) {
+					try {
+						await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
+					} catch (cause) {
+						if (pendingMessage === undefined) throw cause
+						messages = freezeMessages([
+							{
+								id: `pending:${pendingMessage.requestId}`,
+								role: "user",
+								text: pendingMessage.text,
+								createdAt: now().toISOString(),
+								outcome: "interrupted",
+							},
+						])
+						generation = "recovery"
+						recovery = "pending"
 					}
-				}
-				if (credential !== undefined && !recoveredBootstrap) {
-					applySession(await transport.loadSession({ ...context(controller.signal), credential }))
 				}
 				initialization = "ready"
 				publish()
 				if (activeGenerationId !== undefined) beginSessionRecoveryPolling()
-				else if (pendingBootstrap !== undefined && recovery !== "unavailable") beginBootstrapRecoveryPolling(1)
+				else if (pendingMessage !== undefined) beginSessionRecoveryPolling()
 			} catch (cause) {
 				initialization = "error"
 				error = transportError(cause)
@@ -354,22 +274,21 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
-		if (credential === undefined && pendingBootstrap !== undefined) {
+		if (pendingMessage !== undefined) {
 			throw new Error("The pending first message must be recovered before sending another message")
 		}
 		if (generation !== "idle") throw new Error("A chat response is already active")
 		if (text.length === 0) throw new Error("Message text must not be empty")
-		const requestId = pendingBootstrap?.requestId ?? encodeBase64Url(randomBytes(REQUEST_ID_BYTES))
-		const bootstrapSecret =
-			credential === undefined
-				? (pendingBootstrap?.bootstrapSecret ?? encodeBase64Url(randomBytes(BOOTSTRAP_SECRET_BYTES)))
-				: undefined
+		const newSession = credential === undefined
+		credential ??= randomUUID()
+		const sendCredential = credential
+		const requestId = randomUUID()
 		const controller = new AbortController()
-		const send = { controller, cancellationRequested: false, requestId, bootstrapSecret }
+		const send = { controller, cancellationRequested: false }
 		activeSend = send
-		if (bootstrapSecret !== undefined) {
-			pendingBootstrap = { requestId, bootstrapSecret, text }
-			await persist({ version: CHAT_STORAGE_VERSION, pending: pendingBootstrap })
+		if (newSession) {
+			pendingMessage = { requestId, text }
+			await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential, pending: pendingMessage })
 		}
 		const localUserId = `pending:${requestId}`
 		messages = freezeMessages([
@@ -390,8 +309,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				...context(controller.signal),
 				text,
 				requestId,
-				...(credential === undefined ? {} : { credential }),
-				...(bootstrapSecret === undefined ? {} : { bootstrapSecret }),
+				credential: sendCredential,
 			})
 			for await (const event of events) {
 				if (disposed) return
@@ -422,10 +340,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						},
 					])
 					generation = "streaming"
-					if (event.credential !== undefined) {
-						credential = event.credential
-						pendingBootstrap = undefined
-						await persist({ version: CHAT_STORAGE_VERSION, credential })
+					if (newSession) {
+						pendingMessage = undefined
+						await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
 					}
 					publish()
 				} else if (event.type === "delta") {
@@ -453,12 +370,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				!accepted && status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
 			if (definitelyRejected) {
 				messages = freezeMessages(messages.filter((message) => message.id !== localUserId))
-				if (bootstrapSecret !== undefined) {
-					pendingBootstrap = undefined
+				if (newSession) {
+					credential = undefined
+					pendingMessage = undefined
 					try {
 						await storage.removeItem(storageKey)
 					} catch {
-						// The rejection remains definite even when its bootstrap record cannot be removed.
+						// The rejection remains definite even when its local record cannot be removed.
 					}
 				}
 				generation = "idle"
@@ -477,8 +395,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				recovery = "pending"
 				error = transportError(cause)
 				retryAt = error.retryAt
-				if (credential !== undefined) beginSessionRecoveryPolling()
-				else if (pendingBootstrap !== undefined) beginBootstrapRecoveryPolling()
+				beginSessionRecoveryPolling()
 			}
 			publish()
 			throw cause
@@ -499,14 +416,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		let cancellation!: Promise<void>
 		cancellation = (async () => {
 			try {
-				if (credential !== undefined || activeSend?.bootstrapSecret !== undefined) {
+				if (credential !== undefined) {
 					await transport.cancelResponse({
 						...context(controller.signal),
-						...(credential === undefined ? {} : { credential }),
+						credential,
 						...(activeGenerationId === undefined ? {} : { generationId: activeGenerationId }),
-						...(activeSend?.bootstrapSecret === undefined
-							? {}
-							: { requestId: activeSend.requestId, bootstrapSecret: activeSend.bootstrapSecret }),
 					})
 				}
 				if (activeSend !== undefined) {
@@ -546,7 +460,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			recoveryController?.abort()
 			credential = undefined
-			pendingBootstrap = undefined
+			pendingMessage = undefined
 			activeGenerationId = undefined
 			messages = freezeMessages([])
 			generation = "idle"

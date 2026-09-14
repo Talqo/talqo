@@ -8,16 +8,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
-import {
-	attemptRoute,
-	bootstrapCancelRoute,
-	bootstrapSendRoute,
-	cancelRoute,
-	recoverRoute,
-	sendRoute,
-	sessionRoute,
-	sessionStateSchema,
-} from "./conversation.contract.ts"
+import { attemptRoute, cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
 import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
@@ -32,7 +23,7 @@ import {
 
 type ConversationService = Pick<
 	ReturnType<typeof getConversationService>,
-	"cancel" | "cancelBootstrap" | "getAttempt" | "getSession" | "recoverBootstrap" | "send"
+	"cancel" | "getAttempt" | "getSession" | "send"
 >
 export type ChatBindings = { peerAddress?: string }
 type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): string | undefined } }) => {
@@ -97,7 +88,7 @@ export function createConversationRoutes(
 
 	const activeService = () => service ?? getConversationService()
 
-	async function send(c: Context<{ Bindings: ChatBindings }>, first: boolean) {
+	async function send(c: Context<{ Bindings: ChatBindings }>) {
 		const peer = peerSource(c)
 		const normalized = resolveClientNetwork(
 			peer.peerAddress,
@@ -121,14 +112,17 @@ export function createConversationRoutes(
 			} else pending.push(bytes)
 		}
 		try {
-			const body = await c.req.json<{ bootstrapSecret?: string; requestId: string; text: string }>()
+			const credential = bearer(c.req.header("authorization"))
+			if (!credential) throw new SessionUnauthorizedError()
+			const embedToken = c.req.param("embedToken")
+			if (!embedToken) throw new InvalidChatInputError()
+			const body = await c.req.json<{ requestId: string; text: string }>()
 			const result = await activeService().send(
 				{
 					...body,
+					credential,
+					embedToken,
 					networkHash: hashClientNetwork(normalized, env.APP_SECRET),
-					...(first
-						? { embedToken: c.req.param("embedToken") }
-						: { credential: bearer(c.req.header("authorization")) }),
 				},
 				emit,
 			)
@@ -160,24 +154,7 @@ export function createConversationRoutes(
 	}
 
 	return routes
-		.openapi(bootstrapSendRoute, (c) => send(c, true))
-		.openapi(sendRoute, (c) => send(c, false))
-		.openapi(recoverRoute, async (c) => {
-			try {
-				const result = await activeService().recoverBootstrap({
-					...c.req.valid("json"),
-					embedToken: c.req.valid("param").embedToken,
-				})
-				if (result.status !== "accepted") {
-					return problemResponse(c, PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED, HTTP_STATUS.NOT_FOUND) as never
-				}
-				return c.json(result, HTTP_STATUS.OK)
-			} catch (error) {
-				const mapped = mapError(c, error)
-				if (mapped) return mapped as never
-				throw error
-			}
-		})
+		.openapi(sendRoute, send)
 		.openapi(sessionRoute, async (c) => {
 			try {
 				const credential = bearer(c.req.header("authorization"))
@@ -206,22 +183,6 @@ export function createConversationRoutes(
 				if (!credential) throw new SessionUnauthorizedError()
 				const body = c.req.valid("json") as { generationId?: string } | undefined
 				await activeService().cancel(credential, body?.generationId)
-				return c.body(null, HTTP_STATUS.NO_CONTENT)
-			} catch (error) {
-				const mapped = mapError(c, error)
-				if (mapped) return mapped as never
-				throw error
-			}
-		})
-		.openapi(bootstrapCancelRoute, async (c) => {
-			try {
-				const result = await activeService().cancelBootstrap({
-					...c.req.valid("json"),
-					embedToken: c.req.valid("param").embedToken,
-				})
-				if (result === "not-accepted") {
-					return problemResponse(c, PROBLEM_CODES.CHAT_BOOTSTRAP_NOT_ACCEPTED, HTTP_STATUS.NOT_FOUND) as never
-				}
 				return c.body(null, HTTP_STATUS.NO_CONTENT)
 			} catch (error) {
 				const mapped = mapError(c, error)

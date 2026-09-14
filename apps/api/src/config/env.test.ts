@@ -64,7 +64,7 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
-	it("rejects a missing APP_SECRET because chat credentials and network hashes require it", () => {
+	it("rejects a missing APP_SECRET because provider credentials and network hashes require it", () => {
 		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", NODE_ENV: "test" })).toThrow(
 			/APP_SECRET/,
 		)

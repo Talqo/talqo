@@ -78,13 +78,6 @@ export const PROBLEMS = [
 		guidance: "Log in and retry.",
 	},
 	{
-		code: "chat-bootstrap-not-accepted",
-		title: "Chat bootstrap not accepted",
-		status: "404",
-		meaning: "No accepted first message matches the supplied private bootstrap identity.",
-		guidance: "Resubmit the original first message with the same request ID and bootstrap secret.",
-	},
-	{
 		code: "chat-client-address-unavailable",
 		title: "Chat client network unavailable",
 		status: "400",

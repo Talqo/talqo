@@ -86,14 +86,6 @@ export const ProblemAuthenticationRequired = zod.object({
 export type ProblemAuthenticationRequired = zod.input<typeof ProblemAuthenticationRequired>
 export type ProblemAuthenticationRequiredOutput = zod.output<typeof ProblemAuthenticationRequired>
 
-export const ProblemChatBootstrapNotAccepted = zod.object({
-	code: zod.enum(["chat-bootstrap-not-accepted"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-bootstrap-not-accepted"]),
-})
-
-export type ProblemChatBootstrapNotAccepted = zod.input<typeof ProblemChatBootstrapNotAccepted>
-export type ProblemChatBootstrapNotAcceptedOutput = zod.output<typeof ProblemChatBootstrapNotAccepted>
-
 export const ProblemChatClientAddressUnavailable = zod.object({
 	code: zod.enum(["chat-client-address-unavailable"]),
 	type: zod.enum(["https://docs.talqo.chat/problems#chat-client-address-unavailable"]),
@@ -361,7 +353,6 @@ export const ProblemDetails = zod.union([
 	ProblemAgentNameTaken,
 	ProblemAgentNotFound,
 	ProblemAuthenticationRequired,
-	ProblemChatBootstrapNotAccepted,
 	ProblemChatClientAddressUnavailable,
 	ProblemChatConcurrencyLimit,
 	ProblemChatContextLimit,
@@ -604,21 +595,11 @@ export const EmbedConfig = zod.object({
 export type EmbedConfig = zod.input<typeof EmbedConfig>
 export type EmbedConfigOutput = zod.output<typeof EmbedConfig>
 
-export const chatEventV1OneRequestIdMin = 22
-export const chatEventV1OneRequestIdMax = 22
-
-export const chatEventV1OneRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-
 export const ChatEventV1 = zod.union([
 	zod.object({
 		version: zod.literal(1),
 		type: zod.enum(["accepted"]),
-		requestId: zod
-			.string()
-			.min(chatEventV1OneRequestIdMin)
-			.max(chatEventV1OneRequestIdMax)
-			.regex(chatEventV1OneRequestIdRegExp),
-		credential: zod.string().optional(),
+		requestId: zod.uuid(),
 		generationId: zod.string(),
 		userMessage: zod.object({
 			id: zod.string(),
@@ -831,82 +812,16 @@ export const GetEmbedConfigParams = zod.object({
 
 export const GetEmbedConfigResponse = EmbedConfig
 
-export const BootstrapChatMessageParams = zod.object({
+export const SendChatMessageParams = zod.object({
 	embedToken: zod.string(),
 })
 
-export const bootstrapChatMessageBodyRequestIdMin = 22
-export const bootstrapChatMessageBodyRequestIdMax = 22
-
-export const bootstrapChatMessageBodyRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-
-export const bootstrapChatMessageBodyBootstrapSecretMin = 43
-export const bootstrapChatMessageBodyBootstrapSecretMax = 43
-
-export const bootstrapChatMessageBodyBootstrapSecretRegExp = new RegExp("^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$")
-
-export const BootstrapChatMessageBody = zod.object({
-	requestId: zod
-		.string()
-		.min(bootstrapChatMessageBodyRequestIdMin)
-		.max(bootstrapChatMessageBodyRequestIdMax)
-		.regex(bootstrapChatMessageBodyRequestIdRegExp),
-	text: zod.string().min(1),
-	bootstrapSecret: zod
-		.string()
-		.min(bootstrapChatMessageBodyBootstrapSecretMin)
-		.max(bootstrapChatMessageBodyBootstrapSecretMax)
-		.regex(bootstrapChatMessageBodyBootstrapSecretRegExp),
-})
-
-export const BootstrapChatMessageResponse = zod.unknown()
-
-export const sendChatMessageBodyRequestIdMin = 22
-export const sendChatMessageBodyRequestIdMax = 22
-
-export const sendChatMessageBodyRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-
 export const SendChatMessageBody = zod.object({
-	requestId: zod
-		.string()
-		.min(sendChatMessageBodyRequestIdMin)
-		.max(sendChatMessageBodyRequestIdMax)
-		.regex(sendChatMessageBodyRequestIdRegExp),
+	requestId: zod.uuid(),
 	text: zod.string().min(1),
 })
 
 export const SendChatMessageResponse = zod.unknown()
-
-export const RecoverChatBootstrapParams = zod.object({
-	embedToken: zod.string(),
-})
-
-export const recoverChatBootstrapBodyRequestIdMin = 22
-export const recoverChatBootstrapBodyRequestIdMax = 22
-
-export const recoverChatBootstrapBodyRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-export const recoverChatBootstrapBodyBootstrapSecretMin = 43
-export const recoverChatBootstrapBodyBootstrapSecretMax = 43
-
-export const recoverChatBootstrapBodyBootstrapSecretRegExp = new RegExp("^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$")
-
-export const RecoverChatBootstrapBody = zod.object({
-	requestId: zod
-		.string()
-		.min(recoverChatBootstrapBodyRequestIdMin)
-		.max(recoverChatBootstrapBodyRequestIdMax)
-		.regex(recoverChatBootstrapBodyRequestIdRegExp),
-	bootstrapSecret: zod
-		.string()
-		.min(recoverChatBootstrapBodyBootstrapSecretMin)
-		.max(recoverChatBootstrapBodyBootstrapSecretMax)
-		.regex(recoverChatBootstrapBodyBootstrapSecretRegExp),
-})
-
-export const RecoverChatBootstrapResponse = zod.strictObject({
-	status: zod.enum(["accepted"]),
-	credential: zod.string(),
-})
 
 export const GetChatSessionResponse = zod.strictObject({
 	messages: zod.array(
@@ -940,33 +855,3 @@ export const CancelChatGenerationBody = zod.object({
 })
 
 export const CancelChatGenerationResponse = zod.void()
-
-export const CancelChatBootstrapGenerationParams = zod.object({
-	embedToken: zod.string(),
-})
-
-export const cancelChatBootstrapGenerationBodyRequestIdMin = 22
-export const cancelChatBootstrapGenerationBodyRequestIdMax = 22
-
-export const cancelChatBootstrapGenerationBodyRequestIdRegExp = new RegExp("^[A-Za-z0-9_-]{21}[AQgw]$")
-export const cancelChatBootstrapGenerationBodyBootstrapSecretMin = 43
-export const cancelChatBootstrapGenerationBodyBootstrapSecretMax = 43
-
-export const cancelChatBootstrapGenerationBodyBootstrapSecretRegExp = new RegExp(
-	"^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$",
-)
-
-export const CancelChatBootstrapGenerationBody = zod.object({
-	requestId: zod
-		.string()
-		.min(cancelChatBootstrapGenerationBodyRequestIdMin)
-		.max(cancelChatBootstrapGenerationBodyRequestIdMax)
-		.regex(cancelChatBootstrapGenerationBodyRequestIdRegExp),
-	bootstrapSecret: zod
-		.string()
-		.min(cancelChatBootstrapGenerationBodyBootstrapSecretMin)
-		.max(cancelChatBootstrapGenerationBodyBootstrapSecretMax)
-		.regex(cancelChatBootstrapGenerationBodyBootstrapSecretRegExp),
-})
-
-export const CancelChatBootstrapGenerationResponse = zod.void()

@@ -5,8 +5,8 @@ import { chatEventSchema } from "./conversation.contract.ts"
 import { createConversationRoutes } from "./conversation.routes.ts"
 import { ProviderUnavailableError } from "./conversation.service.ts"
 
-const REQUEST_ID = Buffer.alloc(16, 1).toString("base64url")
-const BOOTSTRAP_SECRET = Buffer.alloc(32, 2).toString("base64url")
+const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
+const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
 
 function parseEvents(body: string) {
 	return body
@@ -26,7 +26,6 @@ function routes(failure: "none" | "post-accept" | "pre-accept" = "none") {
 				type: "accepted",
 				requestId: REQUEST_ID,
 				generationId: "generation",
-				credential: "credential",
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			})
@@ -51,7 +50,6 @@ function routes(failure: "none" | "post-accept" | "pre-accept" = "none") {
 				type: "accepted" as const,
 				requestId: REQUEST_ID,
 				generationId: "generation",
-				credential: "credential",
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 				duplicate: false,
@@ -60,8 +58,6 @@ function routes(failure: "none" | "post-accept" | "pre-accept" = "none") {
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		getAttempt: async () => ({ id: "generation", status: "running" as const, assistantText: "partial" }),
-		recoverBootstrap: async () => ({ status: "not-accepted" as const }),
-		cancelBootstrap: async () => "accepted" as const,
 		cancel: async () => undefined,
 	}
 	const app = new OpenAPIHono().route(
@@ -76,8 +72,8 @@ describe("public conversation routes", () => {
 		const { app, calls } = routes()
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET, text: "hi" }),
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
 		})
 
 		expect(response.status).toBe(200)
@@ -85,11 +81,20 @@ describe("public conversation routes", () => {
 		const body = await response.text()
 		expect(body).toContain("event: chat")
 		expect(parseEvents(body).map((event) => event.type)).toEqual(["accepted", "delta", "terminal"])
-		expect(calls[0]).toMatchObject({ networkHash: expect.any(String), embedToken: "embed" })
+		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, networkHash: expect.any(String), embedToken: "embed" })
 	})
 
-	it("requires a bearer credential for history and cancellation", async () => {
+	it("requires a bearer credential for sends, history, and cancellation", async () => {
 		const { app } = routes()
+		expect(
+			(
+				await app.request("/chat/embed/messages", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+				})
+			).status,
+		).toBe(401)
 		expect((await app.request("/chat/session")).status).toBe(401)
 		expect((await app.request("/chat/cancel", { method: "POST" })).status).toBe(401)
 		expect(
@@ -104,12 +109,6 @@ describe("public conversation routes", () => {
 		})
 		expect(attempt.status).toBe(200)
 		expect(await attempt.json()).toEqual({ id: "generation", status: "running", assistantText: "partial" })
-		const bootstrapCancel = await app.request("/chat/embed/bootstrap-cancel", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET }),
-		})
-		expect(bootstrapCancel.status).toBe(204)
 	})
 
 	it("rejects generation when no trustworthy peer address exists", async () => {
@@ -129,8 +128,6 @@ describe("public conversation routes", () => {
 					}),
 					getSession: async () => ({ messages: [], activeGeneration: undefined }),
 					getAttempt: async () => ({ id: "generation", status: "running" as const, assistantText: "" }),
-					recoverBootstrap: async () => ({ status: "not-accepted" as const }),
-					cancelBootstrap: async () => "not-accepted" as const,
 					cancel: async () => undefined,
 				},
 				() => ({ peerAddress: undefined, forwardedFor: undefined }),
@@ -138,18 +135,18 @@ describe("public conversation routes", () => {
 		)
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET, text: "hi" }),
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
 		})
 		expect(response.status).toBe(400)
 	})
 
-	it("rejects non-canonical request and bootstrap secrets before calling the service", async () => {
+	it("rejects non-UUID request IDs before calling the service", async () => {
 		const { app, calls } = routes()
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: "request", bootstrapSecret: "bootstrap", text: "hi" }),
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: "request", text: "hi" }),
 		})
 
 		expect(response.status).toBe(400)
@@ -161,8 +158,8 @@ describe("public conversation routes", () => {
 		const { app } = routes("post-accept")
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET, text: "hi" }),
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
 		})
 
 		expect(response.status).toBe(200)
@@ -173,8 +170,8 @@ describe("public conversation routes", () => {
 		const { app } = routes("pre-accept")
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, bootstrapSecret: BOOTSTRAP_SECRET, text: "hi" }),
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
 		})
 
 		expect(response.status).toBe(502)

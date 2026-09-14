@@ -52,16 +52,10 @@ export type SessionState = {
 	activeGeneration: { id: string } | undefined
 }
 
-export type BootstrapRecovery =
-	| { status: "accepted"; credential: string }
-	| { status: "not-accepted" }
-	| { status: "unavailable" }
-
 export type ChatEvent =
 	| {
 			type: "accepted"
 			requestId: string
-			credential?: string
 			generationId: string
 			userMessage: { id: string; createdAt: string }
 			assistantMessage: { id: string; createdAt: string }
@@ -79,21 +73,17 @@ export type TransportContext = {
 export type ChatTransport = {
 	loadConfiguration(input: TransportContext): Promise<ChatConfiguration>
 	loadSession(input: TransportContext & { credential: string }): Promise<SessionState>
-	recoverBootstrap(input: TransportContext & { requestId: string; bootstrapSecret: string }): Promise<BootstrapRecovery>
 	sendMessage(
 		input: TransportContext & {
 			text: string
 			requestId: string
-			credential?: string
-			bootstrapSecret?: string
+			credential: string
 		},
 	): Promise<AsyncIterable<ChatEvent>>
 	cancelResponse(
 		input: TransportContext & {
-			credential?: string
+			credential: string
 			generationId?: string
-			requestId?: string
-			bootstrapSecret?: string
 		},
 	): Promise<void>
 }
@@ -103,7 +93,7 @@ export type ChatClientOptions = {
 	embedToken: string
 	storage?: AsyncStorage
 	transport?: ChatTransport
-	randomBytes?: (length: number) => Uint8Array
+	randomUUID?: () => string
 	now?: () => Date
 	recoveryDelays?: readonly number[]
 }

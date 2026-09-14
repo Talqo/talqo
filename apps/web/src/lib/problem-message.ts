@@ -17,7 +17,6 @@ const PROBLEM_TRANSLATORS = {
 	"agent-name-taken": (t) => t("problems.agent-name-taken"),
 	"agent-not-found": (t) => t("problems.agent-not-found"),
 	"authentication-required": (t) => t("problems.authentication-required"),
-	"chat-bootstrap-not-accepted": (t) => t("problems.request-failed"),
 	"chat-client-address-unavailable": (t) => t("problems.request-failed"),
 	"chat-concurrency-limit": (t) => t("problems.request-failed"),
 	"chat-context-limit": (t) => t("problems.request-failed"),

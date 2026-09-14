@@ -1,6 +1,6 @@
 # Agent Module Design
 
-> Historical note: the agent-level embed-token portions of this design are superseded by [ADR-0013](../adr/0013-own-public-integration-identity-in-embeds.md). Public integration tokens and access versions now belong to embeds.
+Public integration tokens and access versions belong to embeds, not agents; see [ADR-0013](../adr/0013-own-public-integration-identity-in-embeds.md).
 
 ## Summary
 
