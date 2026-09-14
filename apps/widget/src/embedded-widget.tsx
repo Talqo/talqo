@@ -31,6 +31,7 @@ import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
 import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
+import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { mergeAppearance } from "./lib/embed-config"
@@ -541,17 +542,6 @@ function WidgetChat({
 									)}
 								</div>
 							)}
-							{activeGeneration && (
-								<button
-									type="button"
-									onClick={() => void handleCancel()}
-									disabled={generation === "cancelling"}
-									aria-label={t("stopGenerating")}
-									className="tw:self-center tw:rounded-control tw:border tw:border-border tw:px-3 tw:py-2 tw:text-sm tw:disabled:opacity-50"
-								>
-									{generation === "cancelling" ? t("stopping") : t("stopGenerating")}
-								</button>
-							)}
 						</BubbleGroup>
 					</div>
 					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">
@@ -566,14 +556,26 @@ function WidgetChat({
 							disabled={disabled}
 							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
-						<button
-							type="submit"
-							aria-label={t("send")}
-							disabled={disabled || draft.trim().length === 0}
-							className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
-						>
-							<SendIcon aria-hidden="true" />
-						</button>
+						{activeGeneration ? (
+							<button
+								type="button"
+								onClick={() => void handleCancel()}
+								aria-label={generation === "cancelling" ? t("stopping") : t("stopGenerating")}
+								disabled={generation === "cancelling"}
+								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
+							>
+								<StopIcon aria-hidden="true" />
+							</button>
+						) : (
+							<button
+								type="submit"
+								aria-label={t("send")}
+								disabled={disabled || draft.trim().length === 0}
+								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
+							>
+								<SendIcon aria-hidden="true" />
+							</button>
+						)}
 					</form>
 				</div>
 			)}
