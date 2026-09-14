@@ -13,17 +13,6 @@ const reservations = Array.from({ length: RESERVED_PORT_COUNT }, () =>
 )
 const [apiPort, webPort, widgetPort, providerPort] = reservations.map(({ port }) => String(port))
 
-type SeedResult = {
-	operator: { password: string; username: string }
-	embedToken: string
-}
-
-function seedResult(output: string): SeedResult {
-	const line = output.trim().split("\n").at(-1)
-	if (!line) throw new Error("db:seed produced no output to hand to Playwright")
-	return JSON.parse(line) as SeedResult
-}
-
 function releasePorts() {
 	for (const reservation of reservations.splice(0)) reservation.stop(true)
 }
@@ -37,20 +26,20 @@ await withTestDatabase(async (databaseEnv) => {
 		TALQO_WEB_PORT: webPort,
 		TALQO_WIDGET_PORT: widgetPort,
 		TALQO_CHAT_DAILY_MESSAGE_LIMIT: "3",
+		TALQO_ALLOW_INSECURE_SEED: "true",
 		E2E_PROVIDER_PORT: providerPort,
-		E2E_PROVIDER_URL: `http://127.0.0.1:${providerPort}/v1`,
+		TALQO_SEED_AI_BASE_URL: `http://127.0.0.1:${providerPort}/v1`,
+		TALQO_SEED_AI_API_KEY: "e2e-provider-key",
+		TALQO_SEED_TEXT_MODEL: "chat-model",
+		TALQO_SEED_EMBEDDING_MODEL: "embedding-model",
 	}
 
 	try {
 		await $`bun run db:migrate`.cwd(apiDirectory).env(env)
-		// Passed through the environment so apps/e2e never imports API source.
-		const seeded = seedResult(await $`bun run db:seed`.cwd(apiDirectory).env(env).text())
+		await $`bun run db:seed`.cwd(apiDirectory).env(env)
 		releasePorts()
 		await $`bunx playwright test --project=chromium ${playwrightArguments}`.cwd(e2eDirectory).env({
 			...env,
-			E2E_OPERATOR_USERNAME: seeded.operator.username,
-			E2E_OPERATOR_PASSWORD: seeded.operator.password,
-			E2E_EMBED_TOKEN: seeded.embedToken,
 		})
 	} finally {
 		releasePorts()

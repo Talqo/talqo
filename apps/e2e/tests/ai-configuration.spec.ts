@@ -1,24 +1,58 @@
 import { expect, test } from "@playwright/test"
 
-const TEST_PASSWORD = "correct-horse-battery-staple"
+const ADMIN = { username: "admin", password: "admin123" }
+const UNGRANTED = { username: "user", password: "user1234" }
 
-async function login(page: import("@playwright/test").Page, username: string) {
+test.afterEach(async ({ request }) => {
+	const baseURL = process.env.TALQO_SEED_AI_BASE_URL
+	const apiKey = process.env.TALQO_SEED_AI_API_KEY
+	const textModel = process.env.TALQO_SEED_TEXT_MODEL
+	const embeddingModel = process.env.TALQO_SEED_EMBEDDING_MODEL
+	if (!baseURL || !apiKey || !textModel || !embeddingModel) {
+		throw new Error("TALQO_SEED_AI_* missing; scripts/test-e2e.ts provides it")
+	}
+	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+	const current = (await (await request.get("/api/ai-provider-configuration")).json()) as { revision: number }
+	await expect(
+		await request.put("/api/ai-provider-configuration", {
+			data: {
+				expectedRevision: current.revision,
+				text: {
+					providerId: "openai-compatible",
+					modelId: textModel,
+					authMode: "static",
+					settings: { baseURL },
+					credentials: { apiKey },
+				},
+				embedding: {
+					providerId: "openai-compatible",
+					modelId: embeddingModel,
+					authMode: "static",
+					settings: { baseURL },
+					credentialSource: "text",
+				},
+			},
+		}),
+	).toBeOK()
+})
+
+async function login(page: import("@playwright/test").Page, account: { password: string; username: string }) {
 	await page.goto("/login")
-	await page.getByLabel("Username").fill(username)
-	await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD)
+	await page.getByLabel("Username").fill(account.username)
+	await page.getByLabel("Password", { exact: true }).fill(account.password)
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 }
 
 test("granted operator configures text and embedding models", async ({ page }) => {
-	await login(page, "e2e_granted")
+	await login(page, ADMIN)
 	await page.getByRole("link", { name: "AI configuration" }).click()
 
 	const cards = page.locator("[data-slot=card]")
 	const textCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Text generation" }) })
 	const embeddingCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Embeddings" }) })
 	await expect(textCard.getByLabel("Provider")).toContainText("OpenAI-compatible")
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
 	await textCard.getByRole("button", { name: "Replace", exact: true }).click()
@@ -37,7 +71,7 @@ test("granted operator configures text and embedding models", async ({ page }) =
 
 	await page.reload()
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
 	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
 	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
 	await expect(textCard.getByLabel("API key")).toHaveCount(0)
@@ -58,17 +92,17 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await expect(textCard.getByLabel("Base URL")).toHaveCount(0)
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
 
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.E2E_PROVIDER_URL ?? "")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
 })
 
 test("ungranted operator cannot discover or open AI configuration", async ({ page }) => {
-	await login(page, "e2e_ungranted")
+	await login(page, UNGRANTED)
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/ai-configuration")

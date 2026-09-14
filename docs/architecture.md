@@ -145,8 +145,8 @@ Messages and partial assistant output are durable. A disconnected browser does n
 
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
-- `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
-- Module seeds participate in the centralized reset lifecycle. In test mode, the API seed creates fixed, production-plausible records in an isolated database; those fixtures are not user-configurable environment settings.
+- `<module>.integration.test.ts` exercises the module through its service interface against an isolated test database.
+- Module seeds contribute deterministic records to the centralized, non-destructive development seed. Development and E2E share the same production-plausible baseline; optional external-provider values come from an all-or-none seed environment tuple.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
@@ -244,7 +244,7 @@ apps/e2e/
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- All E2E records come from the API-owned test seed against an isolated database before each isolation scope. Test identities are fixed fixtures rather than environment configuration.
+- E2E starts from the API-owned shared development seed in an isolated database. Specs create journey-specific permission profiles and mutable records through application boundaries and clean them up in their owning scope; the seed contains no browser-, retry-, or E2E-specific records.
 - Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.

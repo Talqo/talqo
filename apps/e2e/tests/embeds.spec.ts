@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-const operator = {
-	username: process.env.E2E_OPERATOR_USERNAME,
-	password: process.env.E2E_OPERATOR_PASSWORD,
-}
+const operator = { username: "admin", password: "admin123" }
 
 type SeededEmbed = {
 	id: string
@@ -17,9 +14,6 @@ type SeededEmbed = {
 let seeded: SeededEmbed[] = []
 
 test.beforeEach(async ({ page }) => {
-	if (!operator.username || !operator.password) {
-		throw new Error("E2E_OPERATOR_* missing — scripts/test-e2e.ts provides them from the API seed")
-	}
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(operator.username)
 	await page.getByLabel("Password", { exact: true }).fill(operator.password)
@@ -47,14 +41,14 @@ test.afterEach(async ({ page }) => {
 })
 
 test("operator customizes an embed and the widget preview follows without reloading", async ({ page }) => {
-	const card = page.locator("[data-slot=card]", { hasText: "Marketing site" })
+	const card = page.locator("[data-slot=card]", { hasText: "Website" })
 	await expect(card).toBeVisible()
 	await card.click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
 	await expect(launcher).toBeVisible()
-	await expect(launcher).toHaveCSS("background-color", "rgb(124, 58, 237)")
+	await expect(launcher).toHaveCSS("background-color", "rgb(26, 127, 75)")
 
 	// The frame must not navigate: appearance travels over postMessage, not the URL.
 	const initialSrc = await page.locator("iframe").getAttribute("src")
@@ -72,7 +66,7 @@ test("operator customizes an embed and the widget preview follows without reload
 })
 
 test("changing the light text color leaves the light background untouched", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -89,7 +83,7 @@ test("changing the light text color leaves the light background untouched", asyn
 })
 
 test("operator switches to the Dark tab and edits an independent palette", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -109,7 +103,7 @@ test("operator switches to the Dark tab and edits an independent palette", async
 })
 
 test("operator moves the embedded widget to the other corner", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const positionSelect = page.getByLabel("Position")
 	await expect(positionSelect).toContainText("Bottom right")
@@ -120,47 +114,55 @@ test("operator moves the embedded widget to the other corner", async ({ page }) 
 })
 
 test("operator reassigns the embed to a different agent", async ({ page }) => {
-	// The seed has one agent; reassignment needs a second target.
-	await page.request.post("/api/agents", {
+	const source = seeded[0]
+	if (!source) throw new Error("Shared seed embed is missing")
+	const agentResponse = await page.request.post("/api/agents", {
 		data: { name: "Sales assistant", systemPrompt: "You answer sales questions.", wordBlacklist: [] },
 	})
+	await expect(agentResponse).toBeOK()
+	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
+	const embedResponse = await page.request.post("/api/embeds", {
+		data: { name: "Reassignment test", agentId: source.agentId, appearance: source.appearance },
+	})
+	await expect(embedResponse).toBeOK()
+	const { embed } = (await embedResponse.json()) as { embed: { id: string } }
 
-	await page.locator("[data-slot=card]", { hasText: "Support portal" }).click()
+	try {
+		await page.goto(`/dashboard/embeds/${embed.id}`)
+		const agentSelect = page.getByLabel("Agent")
+		await expect(agentSelect).toContainText("Website Assistant")
+		await agentSelect.click()
+		await page.getByRole("option", { name: "Sales assistant" }).click()
+		await expect(agentSelect).toContainText("Sales assistant")
+		await page.getByRole("button", { name: "Save changes" }).click()
+		await expect(page.getByText("Saved just now.")).toBeVisible()
 
-	// Base UI shows the raw id in a closed trigger unless `items` maps it to a name.
-	const agentSelect = page.getByLabel("Agent")
-	await expect(agentSelect).toContainText("Website Assistant")
-	await agentSelect.click()
-	await page.getByRole("option", { name: "Sales assistant" }).click()
-	await expect(agentSelect).toContainText("Sales assistant")
-	await page.getByRole("button", { name: "Save changes" }).click()
-	await expect(page.getByText("Saved just now.")).toBeVisible()
-
-	await page.getByRole("button", { name: "Back to agent" }).click()
-	await expect(page.getByRole("heading", { name: "Configure Sales assistant" })).toBeVisible()
-	await page.getByRole("tab", { name: "Embeds" }).click()
-	await expect(page.locator("[data-slot=card]", { hasText: "Support portal" })).toBeVisible()
+		await page.getByRole("button", { name: "Back to agent" }).click()
+		await expect(page.getByRole("heading", { name: "Configure Sales assistant" })).toBeVisible()
+		await page.getByRole("tab", { name: "Embeds" }).click()
+		await expect(page.locator("[data-slot=card]", { hasText: "Reassignment test" })).toBeVisible()
+	} finally {
+		await page.request.delete(`/api/embeds/${embed.id}`)
+		await page.request.delete(`/api/agents/${agent.id}`)
+	}
 })
 
 test("the widget's own name reaches the embedded chat header", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
 	await expect(launcher).toBeVisible()
 	// A real pointer click is unreliable through the preview's CSS `transform: scale()`.
 	await launcher.dispatchEvent("click")
-	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Marketing site")
+	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Website")
 })
 
 test("embed snippet carries the public token and no baked-in appearance", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const snippet = page.locator("pre")
-	const embedToken = process.env.E2E_EMBED_TOKEN
-	if (!embedToken) throw new Error("E2E_EMBED_TOKEN missing — scripts/test-e2e.ts provides it from the API seed")
-
-	await expect(snippet).toContainText(`data-talqo-embed-token="${embedToken}"`)
+	await expect(snippet).toContainText('data-talqo-embed-token="talqo-development-embed-token"')
 	// Appearance must never be inlined, or a copied snippet would freeze the palette.
 	await expect(snippet).not.toContainText("data-talqo-accent")
 	await expect(snippet).not.toContainText("data-talqo-light-primary")
@@ -168,8 +170,8 @@ test("embed snippet carries the public token and no baked-in appearance", async 
 })
 
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
-	const source = seeded.find(({ name }) => name === "Marketing site")
-	if (!source) throw new Error("Seeded Marketing site embed is missing")
+	const source = seeded.find(({ name }) => name === "Website")
+	if (!source) throw new Error("Shared seed Website embed is missing")
 	const response = await page.request.post("/api/embeds", {
 		data: { name: "Rotation test", agentId: source.agentId, appearance: source.appearance },
 	})
