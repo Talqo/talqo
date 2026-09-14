@@ -169,7 +169,13 @@ describe("ConnectedEmbeddedWidget", () => {
 		await openChat()
 
 		expect(host.textContent).toContain("Part")
-		await act(async () => host.querySelector<HTMLButtonElement>("button[aria-label='Stop generating']")?.click())
+		const stop = host.querySelector<HTMLButtonElement>("button[aria-label='Stop generating']")
+		expect(stop?.closest("form")).not.toBeNull()
+		expect(stop?.type).toBe("button")
+		expect(stop?.textContent).toBe("")
+		expect(stop?.querySelector("svg")).not.toBeNull()
+		expect(host.querySelector("form button[type='submit']")).toBeNull()
+		await act(async () => stop?.click())
 		expect(store.calls.cancel).toBe(1)
 
 		await act(async () =>
