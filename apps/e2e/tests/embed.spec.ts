@@ -40,7 +40,9 @@ test.beforeAll(async () => {
 			return
 		}
 		const file =
-			requestUrl.pathname === "/widget.js" || requestUrl.pathname === "/widget.css"
+			requestUrl.pathname === "/widget.js" ||
+			requestUrl.pathname === "/widget.css" ||
+			requestUrl.pathname === "/preview.html"
 				? path.join(DIST, requestUrl.pathname.slice(1))
 				: null
 		if (!file) {
@@ -49,7 +51,8 @@ test.beforeAll(async () => {
 		}
 		readFile(file)
 			.then((content) => {
-				res.writeHead(200, { "content-type": file.endsWith(".js") ? "text/javascript" : "text/css" }).end(content)
+				const contentType = file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "text/html"
+				res.writeHead(200, { "content-type": contentType }).end(content)
 			})
 			.catch(() => res.writeHead(404).end())
 	})
@@ -110,6 +113,21 @@ test("built widget boots, mounts, and stays styled on a bare host page", async (
 	await expect(dialog).toBeVisible()
 
 	expect(errors).toEqual([])
+})
+
+test("built preview executes version-matched production assets", async ({ page }) => {
+	const assets: string[] = []
+	page.on("request", (request) => {
+		if (/\/widget\.(?:css|js)$/.test(new URL(request.url()).pathname)) assets.push(request.url())
+	})
+
+	await page.goto(`${baseURL}/preview.html?widgetAssetQuery=v%3D42&title=Production%20preview`)
+
+	await expect(page.locator(".talqo-widget")).toBeVisible()
+	await page.getByRole("button", { name: "Open chat" }).click()
+	await expect(page.getByText("Production preview")).toBeVisible()
+	expect(assets).toContain(`${baseURL}/widget.css?v=42`)
+	expect(assets).toContain(`${baseURL}/widget.js?v=42`)
 })
 
 test("widget fetches its palette by public token across origins", async ({ page }) => {
