@@ -1,7 +1,12 @@
 import type {
+	DataTag,
+	DefinedInitialDataOptions,
+	DefinedUseQueryResult,
 	MutationFunction,
+	QueryClient,
 	QueryFunction,
 	QueryKey,
+	UndefinedInitialDataOptions,
 	UseMutationOptions,
 	UseMutationResult,
 	UseQueryOptions,
@@ -31,10 +36,6 @@ import type { ProblemAuthenticationRequired } from "../models/problemAuthenticat
 import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
 import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
 import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
-
-type AwaitedInput<T> = PromiseLike<T> | T
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -117,7 +118,7 @@ export const getListAiProvidersQueryOptions = <
 		status?: number
 	},
 >(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>>
 	fetch?: RequestInit
 }) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
@@ -131,7 +132,7 @@ export const getListAiProvidersQueryOptions = <
 		Awaited<ReturnType<typeof listAiProviders>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type ListAiProvidersQueryResult = NonNullable<Awaited<ReturnType<typeof listAiProviders>>>
@@ -146,13 +147,74 @@ export function useListAiProviders<
 		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>
-	fetch?: RequestInit
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAiProviders>>,
+					TError,
+					Awaited<ReturnType<typeof listAiProviders>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAiProviders<
+	TData = Awaited<ReturnType<typeof listAiProviders>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAiProviders>>,
+					TError,
+					Awaited<ReturnType<typeof listAiProviders>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAiProviders<
+	TData = Awaited<ReturnType<typeof listAiProviders>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAiProviders<
+	TData = Awaited<ReturnType<typeof listAiProviders>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getListAiProvidersQueryOptions(options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -225,7 +287,7 @@ export const getGetAiProviderConfigurationQueryOptions = <
 		status?: number
 	},
 >(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>>
 	fetch?: RequestInit
 }) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
@@ -239,7 +301,7 @@ export const getGetAiProviderConfigurationQueryOptions = <
 		Awaited<ReturnType<typeof getAiProviderConfiguration>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetAiProviderConfigurationQueryResult = NonNullable<Awaited<ReturnType<typeof getAiProviderConfiguration>>>
@@ -254,13 +316,74 @@ export function useGetAiProviderConfiguration<
 		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>
-	fetch?: RequestInit
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getAiProviderConfiguration>>,
+					TError,
+					Awaited<ReturnType<typeof getAiProviderConfiguration>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAiProviderConfiguration<
+	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getAiProviderConfiguration>>,
+					TError,
+					Awaited<ReturnType<typeof getAiProviderConfiguration>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAiProviderConfiguration<
+	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAiProviderConfiguration<
+	TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getGetAiProviderConfigurationQueryOptions(options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -325,8 +448,16 @@ export const saveAiProviderConfiguration = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getSaveAiProviderConfigurationUrl(), {
 		credentials: "include",
@@ -424,21 +555,24 @@ export const useSaveAiProviderConfiguration = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
-		TError,
-		SaveAiProviderConfigurationMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
+			TError,
+			SaveAiProviderConfigurationMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof saveAiProviderConfiguration>>,
 	TError,
 	SaveAiProviderConfigurationMutationVariables,
 	TContext
 > => {
-	return useMutation(getSaveAiProviderConfigurationMutationOptions(options))
+	return useMutation(getSaveAiProviderConfigurationMutationOptions(options), queryClient)
 }
 export type discoverAiProviderModelsResponse200 = {
 	data: DiscoverAiProviderModels200
@@ -506,8 +640,16 @@ export const discoverAiProviderModels = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getDiscoverAiProviderModelsUrl(), {
 		credentials: "include",
@@ -606,19 +748,22 @@ export const useDiscoverAiProviderModels = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof discoverAiProviderModels>>,
-		TError,
-		DiscoverAiProviderModelsMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof discoverAiProviderModels>>,
+			TError,
+			DiscoverAiProviderModelsMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof discoverAiProviderModels>>,
 	TError,
 	DiscoverAiProviderModelsMutationVariables,
 	TContext
 > => {
-	return useMutation(getDiscoverAiProviderModelsMutationOptions(options))
+	return useMutation(getDiscoverAiProviderModelsMutationOptions(options), queryClient)
 }

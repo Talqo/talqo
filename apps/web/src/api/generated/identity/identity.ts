@@ -1,7 +1,12 @@
 import type {
+	DataTag,
+	DefinedInitialDataOptions,
+	DefinedUseQueryResult,
 	MutationFunction,
+	QueryClient,
 	QueryFunction,
 	QueryKey,
+	UndefinedInitialDataOptions,
 	UseMutationOptions,
 	UseMutationResult,
 	UseQueryOptions,
@@ -32,10 +37,6 @@ import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInva
 import type { ProblemPasswordChangeRequired } from "../models/problemPasswordChangeRequired.zod"
 import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
 import type { ProblemUsernameTaken } from "../models/problemUsernameTaken.zod"
-
-type AwaitedInput<T> = PromiseLike<T> | T
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -92,8 +93,16 @@ export const login = async (loginBody: LoginBody, options?: RequestInit): Promis
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getLoginUrl(), {
 		credentials: "include",
@@ -169,11 +178,14 @@ export const useLogin = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext> => {
-	return useMutation(getLoginMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof login>>, TError, LoginMutationVariables, TContext> => {
+	return useMutation(getLoginMutationOptions(options), queryClient)
 }
 export type logoutResponse204 = {
 	data: void
@@ -245,11 +257,14 @@ export type LogoutMutationError = globalThis.Error & { info?: ProblemInternalSer
 export const useLogout = <
 	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof logout>>, TError, void, TContext> => {
-	return useMutation(getLogoutMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof logout>>, TError, void, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof logout>>, TError, void, TContext> => {
+	return useMutation(getLogoutMutationOptions(options), queryClient)
 }
 export type getSessionResponse200 = {
 	data: GetSession200
@@ -299,7 +314,7 @@ export const getGetSessionQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSession>>,
 	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
 >(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>>
 	fetch?: RequestInit
 }) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
@@ -313,7 +328,7 @@ export const getGetSessionQueryOptions = <
 		Awaited<ReturnType<typeof getSession>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSession>>>
@@ -322,13 +337,65 @@ export type GetSessionQueryError = globalThis.Error & { info?: ProblemInternalSe
 export function useGetSession<
 	TData = Awaited<ReturnType<typeof getSession>>,
 	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>
-	fetch?: RequestInit
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getSession>>,
+					TError,
+					Awaited<ReturnType<typeof getSession>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSession<
+	TData = Awaited<ReturnType<typeof getSession>>,
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getSession>>,
+					TError,
+					Awaited<ReturnType<typeof getSession>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSession<
+	TData = Awaited<ReturnType<typeof getSession>>,
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetSession<
+	TData = Awaited<ReturnType<typeof getSession>>,
+	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getGetSessionQueryOptions(options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -393,8 +460,16 @@ export const updateAccount = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getUpdateAccountUrl(), {
 		credentials: "include",
@@ -484,16 +559,19 @@ export const useUpdateAccount = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof updateAccount>>,
-		TError,
-		UpdateAccountMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
-	return useMutation(getUpdateAccountMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof updateAccount>>,
+			TError,
+			UpdateAccountMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
+	return useMutation(getUpdateAccountMutationOptions(options), queryClient)
 }
 export type deleteAccountResponse204 = {
 	data: void
@@ -589,11 +667,14 @@ export const useDeleteAccount = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext> => {
-	return useMutation(getDeleteAccountMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext> => {
+	return useMutation(getDeleteAccountMutationOptions(options), queryClient)
 }
 export type changePasswordResponse204 = {
 	data: void
@@ -643,8 +724,16 @@ export const changePassword = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getChangePasswordUrl(), {
 		credentials: "include",
@@ -733,21 +822,19 @@ export const useChangePassword = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof changePassword>>,
-		TError,
-		ChangePasswordMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
-	Awaited<ReturnType<typeof changePassword>>,
-	TError,
-	ChangePasswordMutationVariables,
-	TContext
-> => {
-	return useMutation(getChangePasswordMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof changePassword>>,
+			TError,
+			ChangePasswordMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof changePassword>>, TError, ChangePasswordMutationVariables, TContext> => {
+	return useMutation(getChangePasswordMutationOptions(options), queryClient)
 }
 export type completeForcedPasswordChangeResponse204 = {
 	data: void
@@ -803,8 +890,16 @@ export const completeForcedPasswordChange = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCompleteForcedPasswordChangeUrl(), {
 		credentials: "include",
@@ -899,19 +994,22 @@ export const useCompleteForcedPasswordChange = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof completeForcedPasswordChange>>,
-		TError,
-		CompleteForcedPasswordChangeMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof completeForcedPasswordChange>>,
+			TError,
+			CompleteForcedPasswordChangeMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof completeForcedPasswordChange>>,
 	TError,
 	CompleteForcedPasswordChangeMutationVariables,
 	TContext
 > => {
-	return useMutation(getCompleteForcedPasswordChangeMutationOptions(options))
+	return useMutation(getCompleteForcedPasswordChangeMutationOptions(options), queryClient)
 }

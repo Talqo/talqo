@@ -1,7 +1,12 @@
 import type {
+	DataTag,
+	DefinedInitialDataOptions,
+	DefinedUseQueryResult,
 	MutationFunction,
+	QueryClient,
 	QueryFunction,
 	QueryKey,
+	UndefinedInitialDataOptions,
 	UseMutationOptions,
 	UseMutationResult,
 	UseQueryOptions,
@@ -40,10 +45,6 @@ import type { ProblemAuthenticationRequired } from "../models/problemAuthenticat
 import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
 import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
 import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
-
-type AwaitedInput<T> = PromiseLike<T> | T
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -121,7 +122,7 @@ export const getListAgentsQueryOptions = <
 		status?: number
 	},
 >(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
 	fetch?: RequestInit
 }) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
@@ -135,7 +136,7 @@ export const getListAgentsQueryOptions = <
 		Awaited<ReturnType<typeof listAgents>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type ListAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgents>>>
@@ -150,13 +151,74 @@ export function useListAgents<
 		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
 		status?: number
 	},
->(options?: {
-	query?: UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-	fetch?: RequestInit
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAgents>>,
+					TError,
+					Awaited<ReturnType<typeof listAgents>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgents<
+	TData = Awaited<ReturnType<typeof listAgents>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAgents>>,
+					TError,
+					Awaited<ReturnType<typeof listAgents>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgents<
+	TData = Awaited<ReturnType<typeof listAgents>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAgents<
+	TData = Awaited<ReturnType<typeof listAgents>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getListAgentsQueryOptions(options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -221,8 +283,16 @@ export const createAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCreateAgentUrl(), {
 		credentials: "include",
@@ -306,11 +376,19 @@ export const useCreateAgent = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext> => {
-	return useMutation(getCreateAgentMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof createAgent>>,
+			TError,
+			CreateAgentMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext> => {
+	return useMutation(getCreateAgentMutationOptions(options), queryClient)
 }
 export type getAgentResponse200 = {
 	data: GetAgent200
@@ -388,7 +466,10 @@ export const getGetAgentQueryOptions = <
 	},
 >(
 	agentId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>; fetch?: RequestInit },
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>
+		fetch?: RequestInit
+	},
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
@@ -401,7 +482,7 @@ export const getGetAgentQueryOptions = <
 		Awaited<ReturnType<typeof getAgent>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetAgentQueryResult = NonNullable<Awaited<ReturnType<typeof getAgent>>>
@@ -426,11 +507,80 @@ export function useGetAgent<
 	},
 >(
 	agentId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>; fetch?: RequestInit },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<Awaited<ReturnType<typeof getAgent>>, TError, Awaited<ReturnType<typeof getAgent>>>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgent<
+	TData = Awaited<ReturnType<typeof getAgent>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<Awaited<ReturnType<typeof getAgent>>, TError, Awaited<ReturnType<typeof getAgent>>>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgent<
+	TData = Awaited<ReturnType<typeof getAgent>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAgent<
+	TData = Awaited<ReturnType<typeof getAgent>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getGetAgentQueryOptions(agentId, options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -502,8 +652,16 @@ export const updateAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getUpdateAgentUrl(agentId), {
 		credentials: "include",
@@ -590,11 +748,19 @@ export const useUpdateAgent = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext> => {
-	return useMutation(getUpdateAgentMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof updateAgent>>,
+			TError,
+			UpdateAgentMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext> => {
+	return useMutation(getUpdateAgentMutationOptions(options), queryClient)
 }
 export type deleteAgentResponse204 = {
 	data: void
@@ -721,11 +887,19 @@ export const useDeleteAgent = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
-	return useMutation(getDeleteAgentMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof deleteAgent>>,
+			TError,
+			DeleteAgentMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext> => {
+	return useMutation(getDeleteAgentMutationOptions(options), queryClient)
 }
 export type refreshEmbedTokenResponse200 = {
 	data: RefreshEmbedToken200
@@ -858,21 +1032,24 @@ export const useRefreshEmbedToken = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof refreshEmbedToken>>,
-		TError,
-		RefreshEmbedTokenMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof refreshEmbedToken>>,
+			TError,
+			RefreshEmbedTokenMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof refreshEmbedToken>>,
 	TError,
 	RefreshEmbedTokenMutationVariables,
 	TContext
 > => {
-	return useMutation(getRefreshEmbedTokenMutationOptions(options))
+	return useMutation(getRefreshEmbedTokenMutationOptions(options), queryClient)
 }
 export type listAgentFilesResponse200 = {
 	data: ListAgentFiles200
@@ -954,7 +1131,10 @@ export const getListAgentFilesQueryOptions = <
 	},
 >(
 	agentId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>; fetch?: RequestInit },
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>>
+		fetch?: RequestInit
+	},
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
@@ -967,7 +1147,7 @@ export const getListAgentFilesQueryOptions = <
 		Awaited<ReturnType<typeof listAgentFiles>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
@@ -992,11 +1172,88 @@ export function useListAgentFiles<
 	},
 >(
 	agentId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>; fetch?: RequestInit },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAgentFiles>>,
+					TError,
+					Awaited<ReturnType<typeof listAgentFiles>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgentFiles<
+	TData = Awaited<ReturnType<typeof listAgentFiles>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listAgentFiles>>,
+					TError,
+					Awaited<ReturnType<typeof listAgentFiles>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAgentFiles<
+	TData = Awaited<ReturnType<typeof listAgentFiles>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAgentFiles<
+	TData = Awaited<ReturnType<typeof listAgentFiles>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemAgentNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	agentId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getListAgentFilesQueryOptions(agentId, options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -1163,21 +1420,24 @@ export const useUploadAgentFile = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof uploadAgentFile>>,
-		TError,
-		UploadAgentFileMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof uploadAgentFile>>,
+			TError,
+			UploadAgentFileMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof uploadAgentFile>>,
 	TError,
 	UploadAgentFileMutationVariables,
 	TContext
 > => {
-	return useMutation(getUploadAgentFileMutationOptions(options))
+	return useMutation(getUploadAgentFileMutationOptions(options), queryClient)
 }
 export type renameAgentFileResponse200 = {
 	data: RenameAgentFile200
@@ -1247,8 +1507,16 @@ export const renameAgentFile = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getRenameAgentFileUrl(agentId, fileName), {
 		credentials: "include",
@@ -1346,21 +1614,24 @@ export const useRenameAgentFile = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof renameAgentFile>>,
-		TError,
-		RenameAgentFileMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof renameAgentFile>>,
+			TError,
+			RenameAgentFileMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof renameAgentFile>>,
 	TError,
 	RenameAgentFileMutationVariables,
 	TContext
 > => {
-	return useMutation(getRenameAgentFileMutationOptions(options))
+	return useMutation(getRenameAgentFileMutationOptions(options), queryClient)
 }
 export type deleteAgentFileResponse204 = {
 	data: void
@@ -1502,19 +1773,22 @@ export const useDeleteAgentFile = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof deleteAgentFile>>,
-		TError,
-		DeleteAgentFileMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof deleteAgentFile>>,
+			TError,
+			DeleteAgentFileMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
 	Awaited<ReturnType<typeof deleteAgentFile>>,
 	TError,
 	DeleteAgentFileMutationVariables,
 	TContext
 > => {
-	return useMutation(getDeleteAgentFileMutationOptions(options))
+	return useMutation(getDeleteAgentFileMutationOptions(options), queryClient)
 }

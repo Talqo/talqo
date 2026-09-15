@@ -17,6 +17,8 @@ export default defineConfig({
 			},
 			clean: true,
 			indexFiles: false,
+			// Repo root declares no client deps; detection else falls back to react-query v4.
+			packageJson: "./apps/web/package.json",
 			override: {
 				requestOptions: {
 					credentials: "include",
