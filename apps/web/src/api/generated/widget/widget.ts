@@ -1,7 +1,12 @@
 import type {
+	DataTag,
+	DefinedInitialDataOptions,
+	DefinedUseQueryResult,
 	MutationFunction,
+	QueryClient,
 	QueryFunction,
 	QueryKey,
+	UndefinedInitialDataOptions,
 	UseMutationOptions,
 	UseMutationResult,
 	UseQueryOptions,
@@ -32,10 +37,6 @@ import type { ProblemWidgetNotFound } from "../models/widget/problemWidgetNotFou
 import type { UpdateWidget200 } from "../models/widget/updateWidget200.zod"
 import type { UpdateWidgetBody } from "../models/widget/updateWidgetBody.zod"
 import type { WidgetConfig } from "../models/widget/widgetConfig.zod"
-
-type AwaitedInput<T> = PromiseLike<T> | T
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -127,7 +128,10 @@ export const getListWidgetsQueryOptions = <
 	},
 >(
 	params?: ListWidgetsParams,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>>
+		fetch?: RequestInit
+	},
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
@@ -140,7 +144,7 @@ export const getListWidgetsQueryOptions = <
 		Awaited<ReturnType<typeof listWidgets>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type ListWidgetsQueryResult = NonNullable<Awaited<ReturnType<typeof listWidgets>>>
@@ -156,12 +160,77 @@ export function useListWidgets<
 		status?: number
 	},
 >(
+	params: undefined | ListWidgetsParams,
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listWidgets>>,
+					TError,
+					Awaited<ReturnType<typeof listWidgets>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListWidgets<
+	TData = Awaited<ReturnType<typeof listWidgets>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
 	params?: ListWidgetsParams,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>; fetch?: RequestInit },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listWidgets>>,
+					TError,
+					Awaited<ReturnType<typeof listWidgets>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListWidgets<
+	TData = Awaited<ReturnType<typeof listWidgets>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	params?: ListWidgetsParams,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListWidgets<
+	TData = Awaited<ReturnType<typeof listWidgets>>,
+	TError = globalThis.Error & {
+		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
+		status?: number
+	},
+>(
+	params?: ListWidgetsParams,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listWidgets>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getListWidgetsQueryOptions(params, options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -226,8 +295,16 @@ export const createWidget = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCreateWidgetUrl(), {
 		credentials: "include",
@@ -316,16 +393,19 @@ export const useCreateWidget = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof createWidget>>,
-		TError,
-		CreateWidgetMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof createWidget>>, TError, CreateWidgetMutationVariables, TContext> => {
-	return useMutation(getCreateWidgetMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof createWidget>>,
+			TError,
+			CreateWidgetMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof createWidget>>, TError, CreateWidgetMutationVariables, TContext> => {
+	return useMutation(getCreateWidgetMutationOptions(options), queryClient)
 }
 export type getWidgetResponse200 = {
 	data: GetWidget200
@@ -403,7 +483,10 @@ export const getGetWidgetQueryOptions = <
 	},
 >(
 	widgetId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>; fetch?: RequestInit },
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>>
+		fetch?: RequestInit
+	},
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
@@ -417,7 +500,9 @@ export const getGetWidgetQueryOptions = <
 		queryFn,
 		enabled: widgetId !== null && widgetId !== undefined,
 		...queryOptions,
-	} as UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData> & { queryKey: QueryKey }
+	} as UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 }
 
 export type GetWidgetQueryResult = NonNullable<Awaited<ReturnType<typeof getWidget>>>
@@ -442,11 +527,84 @@ export function useGetWidget<
 	},
 >(
 	widgetId: string,
-	options?: { query?: UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>; fetch?: RequestInit },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<Awaited<ReturnType<typeof getWidget>>, TError, Awaited<ReturnType<typeof getWidget>>>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWidget<
+	TData = Awaited<ReturnType<typeof getWidget>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	widgetId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getWidget>>,
+					TError,
+					Awaited<ReturnType<typeof getWidget>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWidget<
+	TData = Awaited<ReturnType<typeof getWidget>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	widgetId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetWidget<
+	TData = Awaited<ReturnType<typeof getWidget>>,
+	TError = globalThis.Error & {
+		info?:
+			| ProblemAuthenticationRequired
+			| ProblemPasswordChangeRequiredOrPermissionDenied
+			| ProblemWidgetNotFound
+			| ProblemInternalServerError
+		status?: number
+	},
+>(
+	widgetId: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidget>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getGetWidgetQueryOptions(widgetId, options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
@@ -512,8 +670,16 @@ export const updateWidget = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getUpdateWidgetUrl(widgetId), {
 		credentials: "include",
@@ -602,16 +768,19 @@ export const useUpdateWidget = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof updateWidget>>,
-		TError,
-		UpdateWidgetMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof updateWidget>>, TError, UpdateWidgetMutationVariables, TContext> => {
-	return useMutation(getUpdateWidgetMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof updateWidget>>,
+			TError,
+			UpdateWidgetMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof updateWidget>>, TError, UpdateWidgetMutationVariables, TContext> => {
+	return useMutation(getUpdateWidgetMutationOptions(options), queryClient)
 }
 export type deleteWidgetResponse204 = {
 	data: void
@@ -734,16 +903,19 @@ export const useDeleteWidget = <
 		status?: number
 	},
 	TContext = unknown,
->(options?: {
-	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof deleteWidget>>,
-		TError,
-		DeleteWidgetMutationVariables,
-		TContext
-	>
-	fetch?: RequestInit
-}): UseMutationResult<Awaited<ReturnType<typeof deleteWidget>>, TError, DeleteWidgetMutationVariables, TContext> => {
-	return useMutation(getDeleteWidgetMutationOptions(options))
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof deleteWidget>>,
+			TError,
+			DeleteWidgetMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteWidget>>, TError, DeleteWidgetMutationVariables, TContext> => {
+	return useMutation(getDeleteWidgetMutationOptions(options), queryClient)
 }
 export type getWidgetConfigResponse200 = {
 	data: WidgetConfig
@@ -813,7 +985,7 @@ export const getGetWidgetConfigQueryOptions = <
 >(
 	token: string,
 	options?: {
-		query?: UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>>
 		fetch?: RequestInit
 	},
 ) => {
@@ -828,7 +1000,7 @@ export const getGetWidgetConfigQueryOptions = <
 		Awaited<ReturnType<typeof getWidgetConfig>>,
 		TError,
 		TData
-	> & { queryKey: QueryKey }
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetWidgetConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getWidgetConfig>>>
@@ -842,14 +1014,67 @@ export function useGetWidgetConfig<
 	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
 >(
 	token: string,
-	options?: {
-		query?: UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getWidgetConfig>>,
+					TError,
+					Awaited<ReturnType<typeof getWidgetConfig>>
+				>,
+				"initialData"
+			>
 		fetch?: RequestInit
 	},
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWidgetConfig<
+	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
+	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
+>(
+	token: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof getWidgetConfig>>,
+					TError,
+					Awaited<ReturnType<typeof getWidgetConfig>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWidgetConfig<
+	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
+	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
+>(
+	token: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetWidgetConfig<
+	TData = Awaited<ReturnType<typeof getWidgetConfig>>,
+	TError = globalThis.Error & { info?: void | ProblemWidgetNotFound | ProblemInternalServerError; status?: number },
+>(
+	token: string,
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getWidgetConfig>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 	const queryOptions = getGetWidgetConfigQueryOptions(token, options)
 
-	const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey }
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
 
 	return withQueryKey(query, queryOptions.queryKey)
 }
