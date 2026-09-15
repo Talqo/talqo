@@ -1,7 +1,6 @@
 import type { WidgetAppearanceInput, WidgetSchemeInput } from "@talqo/shared/widget-appearance"
 
 import { useEffect, useState } from "react"
-import { createRoot } from "react-dom/client"
 
 import { EmbeddedWidget } from "./embedded-widget"
 import { configFromMessage, type PreviewConfig, readyMessage, trustedParentOrigin } from "./lib/preview-channel"
@@ -35,8 +34,14 @@ function forcedSchemeFromSearch(params: URLSearchParams): "light" | "dark" | und
 	return value === "light" || value === "dark" ? value : undefined
 }
 
-function PreviewWidget({ initial, parentOrigin }: { initial: PreviewConfig; parentOrigin: string | undefined }) {
-	const [config, setConfig] = useState(initial)
+export function PreviewWidget() {
+	const params = new URLSearchParams(window.location.search)
+	const parentOrigin = trustedParentOrigin(params.get("parentOrigin"))
+	const [config, setConfig] = useState<PreviewConfig>(() => ({
+		appearance: appearanceFromSearch(params),
+		title: params.get("title") ?? undefined,
+		forcedScheme: forcedSchemeFromSearch(params),
+	}))
 
 	useEffect(() => {
 		if (!parentOrigin) {
@@ -59,21 +64,3 @@ function PreviewWidget({ initial, parentOrigin }: { initial: PreviewConfig; pare
 
 	return <EmbeddedWidget title={config.title} appearance={config.appearance} forcedScheme={config.forcedScheme} />
 }
-
-const params = new URLSearchParams(window.location.search)
-const rootElement = document.querySelector("#talqo-widget")
-
-if (!(rootElement instanceof HTMLElement)) {
-	throw new Error("Root element not found")
-}
-
-createRoot(rootElement).render(
-	<PreviewWidget
-		initial={{
-			appearance: appearanceFromSearch(params),
-			title: params.get("title") ?? undefined,
-			forcedScheme: forcedSchemeFromSearch(params),
-		}}
-		parentOrigin={trustedParentOrigin(params.get("parentOrigin"))}
-	/>,
-)

@@ -23,4 +23,13 @@ describe("built embed bundle", () => {
 
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
+
+	test("ships a preview page backed by the production bundle", () => {
+		const html = readFileSync(new URL("../dist/preview.html", import.meta.url), "utf8")
+
+		expect(html).toContain('"./widget.css"')
+		expect(html).toContain('"./widget.js"')
+		expect(html).toContain("talqoPreview")
+		expect(html).not.toContain("/src/")
+	})
 })

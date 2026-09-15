@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client"
 
 import { ConnectedEmbeddedWidget, UnavailableEmbeddedWidget } from "./embedded-widget"
 import { apiOrigin, appearanceFromDataset } from "./lib/embed-config"
+import { PreviewWidget } from "./preview"
 
 let root: Root | null = null
 
@@ -20,7 +21,7 @@ const embedScript: HTMLScriptElement | null =
 
 function findEmbedScript(): HTMLScriptElement | null {
 	const scripts = document.querySelectorAll<HTMLScriptElement>(
-		"script[data-talqo-widget], script[data-talqo-embed-token]",
+		"script[data-talqo-widget], script[data-talqo-embed-token], script[data-talqo-preview]",
 	)
 	if (scripts.length > 1) {
 		console.warn("TalqoWidget: multiple embed snippets found; using the first")
@@ -64,6 +65,10 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 	root = createRoot(element)
 
 	const dataset = embedScript?.dataset
+	if (dataset?.talqoPreview !== undefined) {
+		root.render(<PreviewWidget />)
+		return
+	}
 	const embedToken = dataset?.talqoEmbedToken ?? dataset?.talqoWidget
 	const origin = apiOrigin(embedScript)
 	const overrides = appearanceFromDataset(dataset)

@@ -223,7 +223,7 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
+- `preview.html` ships beside `widget.js` and `widget.css` and runs that production bundle in preview mode. The dashboard embeds it in an iframe and sends live configuration through an origin-checked, versioned `postMessage` channel; URL parameters provide the first paint. `apps/web` never imports widget source.
 - The widget consumes `packages/sdk` and never imports API app source.
 - The widget owns presentation only: draft input, focus, scrolling, panel state, resizing, theme, accessibility, and localization. The SDK owns the transcript, configuration fetch, session lifecycle, generation state, and recovery.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
