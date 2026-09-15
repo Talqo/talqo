@@ -74,63 +74,23 @@ export const PROBLEMS = Object.freeze(
 	>,
 )
 
-function problemSchemaName(codes: readonly ProblemCode[]) {
-	const suffix = codes
-		.map((code) =>
-			code
-				.split("-")
-				.map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`)
-				.join(""),
-		)
-		.join("Or")
-	return `Problem${suffix}`
-}
-
-function createProblemVariantSchema(code: ProblemCode) {
-	return z
+const [firstProblemSchema, ...remainingProblemSchemas] = PROBLEM_CODE_VALUES.map((code) =>
+	z
 		.object({
 			code: z.literal(code),
 			type: z.literal(problemDetails(code).type),
 		})
-		.strict()
-		.openapi(problemSchemaName([code]))
+		.strict(),
+)
+if (!firstProblemSchema) throw new Error("At least one problem schema is required")
+
+export const problemDetailsSchema = z
+	.union([firstProblemSchema, ...remainingProblemSchemas])
+	.openapi("ProblemDetails", undefined, { unionPreferredType: "oneOf" })
+
+export function problemSchema(_codes: ProblemCodeSet) {
+	return problemDetailsSchema
 }
-
-const problemVariants = new Map<ProblemCode, ReturnType<typeof createProblemVariantSchema>>()
-
-function problemVariantSchema(code: ProblemCode) {
-	const existing = problemVariants.get(code)
-	if (existing) return existing
-
-	const schema = createProblemVariantSchema(code)
-	problemVariants.set(code, schema)
-	return schema
-}
-
-function createProblemUnionSchema(codes: readonly ProblemCode[], name: string) {
-	return z
-		.union(codes.map((code) => problemVariantSchema(code)))
-		.openapi(name, undefined, { unionPreferredType: "oneOf" })
-}
-
-const problemUnions = new Map<string, ReturnType<typeof createProblemUnionSchema>>()
-
-export function problemSchema(codes: ProblemCodeSet) {
-	const [firstCode, ...remainingCodes] = [...new Set(codes)].toSorted()
-	if (!firstCode) throw new Error("At least one problem code is required")
-	if (remainingCodes.length === 0) return problemVariantSchema(firstCode)
-
-	const canonicalCodes = [firstCode, ...remainingCodes]
-	const componentName = problemSchemaName(canonicalCodes)
-	const existing = problemUnions.get(componentName)
-	if (existing) return existing
-
-	const schema = createProblemUnionSchema(canonicalCodes, componentName)
-	problemUnions.set(componentName, schema)
-	return schema
-}
-
-export const problemDetailsSchema = createProblemUnionSchema(PROBLEM_CODE_VALUES, "ProblemDetails")
 
 export function problemResponse<C extends ProblemCode, S extends ContentfulStatusCode>(
 	context: Context,

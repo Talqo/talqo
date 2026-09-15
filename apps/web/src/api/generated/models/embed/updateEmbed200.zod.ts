@@ -6,7 +6,7 @@
  */
 import * as zod from "zod"
 
-import { Embed } from "./embed.zod"
+import { Embed } from "../embed.zod"
 
 export const UpdateEmbed200 = zod.object({
 	embed: Embed,

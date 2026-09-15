@@ -1,33 +1,8 @@
-import type { WidgetAppearanceInput, WidgetSchemeInput } from "@talqo/shared/widget-appearance"
-
+import { configFromMessage, type PreviewConfig, readyMessage, trustedParentOrigin } from "@talqo/shared/preview-channel"
 import { useEffect, useState } from "react"
 
 import { EmbeddedWidget } from "./embedded-widget"
-import { configFromMessage, type PreviewConfig, readyMessage, trustedParentOrigin } from "./lib/preview-channel"
-
-function schemeFromSearch(params: URLSearchParams, prefix: "light" | "dark"): WidgetSchemeInput {
-	const entries: Record<string, unknown> = {
-		primary: params.get(`${prefix}Primary`) ?? (prefix === "light" ? params.get("accent") : undefined) ?? undefined,
-		textOnPrimary: params.get(`${prefix}TextOnPrimary`) ?? undefined,
-		background: params.get(`${prefix}Background`) ?? undefined,
-		surface: params.get(`${prefix}Surface`) ?? undefined,
-		text: params.get(`${prefix}Text`) ?? undefined,
-	}
-	return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined))
-}
-
-/** Initial paint only; every later edit arrives over the preview channel. */
-function appearanceFromSearch(params: URLSearchParams): WidgetAppearanceInput {
-	const entries: Record<string, unknown> = {
-		light: schemeFromSearch(params, "light"),
-		dark: schemeFromSearch(params, "dark"),
-		position: params.get("position") ?? undefined,
-		theme: params.get("theme") ?? undefined,
-		language: params.get("language") ?? undefined,
-		themeToggle: params.has("themeToggle") ? params.get("themeToggle") === "true" : undefined,
-	}
-	return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined))
-}
+import { appearanceFromValues } from "./lib/embed-config"
 
 function forcedSchemeFromSearch(params: URLSearchParams): "light" | "dark" | undefined {
 	const value = params.get("forcedScheme")
@@ -38,7 +13,7 @@ export function PreviewWidget() {
 	const params = new URLSearchParams(window.location.search)
 	const parentOrigin = trustedParentOrigin(params.get("parentOrigin"))
 	const [config, setConfig] = useState<PreviewConfig>(() => ({
-		appearance: appearanceFromSearch(params),
+		appearance: appearanceFromValues((key) => params.get(key) ?? undefined),
 		title: params.get("title") ?? undefined,
 		forcedScheme: forcedSchemeFromSearch(params),
 	}))

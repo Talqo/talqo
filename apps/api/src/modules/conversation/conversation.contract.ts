@@ -125,30 +125,3 @@ export const cancelRoute = createRoute({
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},
 })
-
-export const attemptRoute = createRoute({
-	method: "get",
-	path: "/attempts/{generationId}",
-	operationId: "getChatGeneration",
-	tags: ["Conversation"],
-	security: chatBearerSecurity,
-	request: {
-		params: z.object({ generationId: z.string().openapi({ param: { name: "generationId", in: "path" } }) }),
-	},
-	responses: {
-		200: {
-			content: {
-				"application/json": {
-					schema: z.object({
-						id: z.string(),
-						status: z.enum(["accepted", "running", "completed", "failed", "cancelled", "blocked", "interrupted"]),
-						assistantText: z.string(),
-					}),
-				},
-			},
-			description: "Persisted generation status",
-		},
-		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
-		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
-	},
-})

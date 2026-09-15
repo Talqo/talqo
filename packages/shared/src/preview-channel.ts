@@ -1,9 +1,5 @@
-import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
+import type { WidgetAppearance, WidgetAppearanceInput } from "./widget-appearance"
 
-/**
- * Widget side of the preview channel; the dashboard declares the same shape in
- * `apps/web/src/features/widgets/preview-channel.ts`. Apps never import each other.
- */
 const PREVIEW_CHANNEL_SOURCE = "talqo-preview"
 export const PREVIEW_CHANNEL_VERSION = 1
 
@@ -13,22 +9,49 @@ export type PreviewReadyMessage = {
 	version: number
 }
 
+export type PreviewConfigMessage = {
+	appearance: WidgetAppearance
+	title?: string
+	forcedScheme?: "light" | "dark"
+	source: typeof PREVIEW_CHANNEL_SOURCE
+	type: "config"
+	version: number
+}
+
 export type PreviewConfig = {
 	appearance: WidgetAppearanceInput
 	title?: string
-	/** Pins the widget to whichever Light/Dark tab the operator is editing. */
 	forcedScheme?: "light" | "dark"
+}
+
+export function configMessage(
+	appearance: WidgetAppearance,
+	options: { title?: string; forcedScheme?: "light" | "dark" } = {},
+): PreviewConfigMessage {
+	return {
+		source: PREVIEW_CHANNEL_SOURCE,
+		version: PREVIEW_CHANNEL_VERSION,
+		type: "config",
+		appearance,
+		title: options.title,
+		forcedScheme: options.forcedScheme,
+	}
+}
+
+export function isReadyMessage(data: unknown): data is PreviewReadyMessage {
+	if (typeof data !== "object" || data === null) return false
+	const message = data as Partial<PreviewReadyMessage>
+	return (
+		message.source === PREVIEW_CHANNEL_SOURCE && message.version === PREVIEW_CHANNEL_VERSION && message.type === "ready"
+	)
 }
 
 export function readyMessage(): PreviewReadyMessage {
 	return { source: PREVIEW_CHANNEL_SOURCE, version: PREVIEW_CHANNEL_VERSION, type: "ready" }
 }
 
-/** Concrete origins only: the parent comes from the URL, and `"*"` would broadcast the handshake. */
 export function trustedParentOrigin(value: string | null): string | undefined {
-	if (!value) {
-		return undefined
-	}
+	if (!value) return undefined
 	try {
 		return new URL(value).origin === value ? value : undefined
 	} catch {
@@ -36,11 +59,8 @@ export function trustedParentOrigin(value: string | null): string | undefined {
 	}
 }
 
-/** Undefined for foreign or version-mismatched messages, degrading to the URL-param initial paint. */
 export function configFromMessage(data: unknown): PreviewConfig | undefined {
-	if (typeof data !== "object" || data === null) {
-		return undefined
-	}
+	if (typeof data !== "object" || data === null) return undefined
 	const message = data as {
 		appearance?: unknown
 		forcedScheme?: unknown

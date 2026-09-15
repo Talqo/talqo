@@ -1,6 +1,6 @@
 import type { WidgetAppearance, WidgetPosition, WidgetScheme } from "@talqo/shared/widget-appearance"
 
-import { configMessage, isReadyMessage } from "@/features/embeds/preview-channel.ts"
+import { configMessage, isReadyMessage } from "@talqo/shared/preview-channel"
 import { cn } from "@talqo/ui/lib/utils"
 import { type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"

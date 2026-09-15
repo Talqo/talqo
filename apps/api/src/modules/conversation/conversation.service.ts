@@ -229,7 +229,7 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 		}, CANCELLATION_POLL_MS)
 		try {
-			if (!(await repository.markProviderInvoked(attempt.id, attempt.leaseToken, provider, model))) return
+			if (!(await repository.setAttribution(attempt.id, attempt.leaseToken, provider, model, true))) return
 			for await (const event of prepared.invoke(controller.signal)) {
 				if (event.type === "start") {
 					provider = event.provider
@@ -414,14 +414,6 @@ export function createConversationService(dependencies: Dependencies) {
 			const session = await authenticate(credential)
 			await repository.requestCancellation(session.sessionId, generationId)
 			if (generationId) controllers.get(generationId)?.abort()
-		},
-
-		async getAttempt(credential: string, generationId: string) {
-			await recoverExpiredAttempts()
-			const session = await authenticate(credential)
-			const attempt = await repository.getAttempt(session.sessionId, generationId)
-			if (!attempt) throw new SessionUnauthorizedError("Generation does not belong to this session")
-			return attempt
 		},
 	}
 }

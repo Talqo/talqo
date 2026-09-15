@@ -23,7 +23,6 @@ type NavItem = {
 	requires?: NavRequirement
 }
 
-// Embed customization lives on each agent's page; there is no standalone embeds tab.
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },

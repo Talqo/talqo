@@ -87,9 +87,6 @@ const embedInputSchema = z.object({
 	appearance: appearanceInputSchema,
 })
 
-const createEmbedRequestSchema = embedInputSchema
-const updateEmbedRequestSchema = embedInputSchema
-
 export const embedDetailResponseSchema = z.object({ embed: embedResponseSchema })
 export const embedListResponseSchema = z.object({ embeds: z.array(embedResponseSchema) })
 
@@ -139,7 +136,7 @@ export const createEmbedRoute = createRoute({
 	tags: ["Embed"],
 	security: sessionSecurity,
 	request: {
-		body: { content: { "application/json": { schema: createEmbedRequestSchema } }, required: true },
+		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
 	},
 	responses: {
 		201: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed created" },
@@ -176,7 +173,7 @@ export const updateEmbedRoute = createRoute({
 	security: sessionSecurity,
 	request: {
 		params: embedParamsSchema,
-		body: { content: { "application/json": { schema: updateEmbedRequestSchema } }, required: true },
+		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
 	},
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed updated" },

@@ -4,15 +4,29 @@ function definedEntries(overrides: Record<string, unknown>): Record<string, unkn
 	return Object.fromEntries(Object.entries(overrides).filter(([, value]) => value !== undefined))
 }
 
-function schemeFromDataset(dataset: DOMStringMap, prefix: "talqoLight" | "talqoDark"): WidgetSchemeInput | undefined {
+function schemeFromValues(
+	get: (key: string) => string | undefined,
+	prefix: "light" | "dark",
+): WidgetSchemeInput | undefined {
 	const scheme = definedEntries({
-		primary: dataset[`${prefix}Primary`],
-		textOnPrimary: dataset[`${prefix}TextOnPrimary`],
-		background: dataset[`${prefix}Background`],
-		surface: dataset[`${prefix}Surface`],
-		text: dataset[`${prefix}Text`],
+		primary: get(`${prefix}Primary`) ?? (prefix === "light" ? get("accent") : undefined),
+		textOnPrimary: get(`${prefix}TextOnPrimary`),
+		background: get(`${prefix}Background`),
+		surface: get(`${prefix}Surface`),
+		text: get(`${prefix}Text`),
 	})
 	return Object.keys(scheme).length > 0 ? scheme : undefined
+}
+
+export function appearanceFromValues(get: (key: string) => string | undefined): WidgetAppearanceInput {
+	return definedEntries({
+		light: schemeFromValues(get, "light"),
+		dark: schemeFromValues(get, "dark"),
+		position: get("position"),
+		theme: get("theme"),
+		language: get("language"),
+		themeToggle: parseBoolean(get("themeToggle")),
+	})
 }
 
 /**
@@ -20,21 +34,7 @@ function schemeFromDataset(dataset: DOMStringMap, prefix: "talqoLight" | "talqoD
  * The dashboard no longer emits these: a baked-in color pins the embed to a stale palette.
  */
 export function appearanceFromDataset(dataset: DOMStringMap | undefined): WidgetAppearanceInput {
-	if (!dataset) {
-		return {}
-	}
-	// `data-talqo-accent` predates the five-color palette and still maps to the light primary.
-	const legacyPrimary = dataset.talqoAccent
-	const light = schemeFromDataset(dataset, "talqoLight")
-	const overrides: Record<string, unknown> = {
-		light: legacyPrimary && !light?.primary ? { ...light, primary: legacyPrimary } : light,
-		dark: schemeFromDataset(dataset, "talqoDark"),
-		position: dataset.talqoPosition,
-		theme: dataset.talqoTheme,
-		language: dataset.talqoLanguage,
-		themeToggle: parseBoolean(dataset.talqoThemeToggle),
-	}
-	return definedEntries(overrides)
+	return appearanceFromValues((key) => dataset?.[`talqo${key[0]?.toUpperCase()}${key.slice(1)}`])
 }
 
 /** Attributes last: a per-page override outranks the stored config, one color at a time. */

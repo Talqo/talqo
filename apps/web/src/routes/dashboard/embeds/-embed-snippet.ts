@@ -4,10 +4,6 @@ export type EmbedConfig = {
 	embedToken: string
 }
 
-export function widgetScriptUrl(): string | undefined {
-	return import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
-}
-
 /** The snippet is shown for copy-paste, so it has to survive as literal text. */
 function escapeAttribute(value: string): string {
 	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")

@@ -256,15 +256,7 @@ Preserve the existing visual language, desktop/mobile behavior, and accessibilit
 
 Environment variables express deployment policy that operators plausibly need to change. Do not expose every internal detail, and do not introduce competing environment overrides for database-owned product settings.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `TALQO_CHAT_DAILY_MESSAGE_LIMIT` | `100` | Accepted questions per agent/network per UTC day |
-| `TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP` | `2` | Concurrent calls per agent/normalized network |
-| `TALQO_TRUSTED_PROXY_CIDRS` | Empty | Deployment-specific trusted proxy networks |
-| `TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH` | `64` | IPv6 grouping trade-off |
-| `TALQO_CHAT_MAX_INPUT_CHARACTERS` | `400000` | Complete model-input Unicode code-point budget |
-| `TALQO_CHAT_MAX_OUTPUT_TOKENS` | `16384` | Provider output ceiling, potentially including reasoning |
-| `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS` | `120` | Bound a model call; adjustable for slow/local models |
+The [deployment guide](../../apps/docs/content/docs/deployment.mdx) owns the current variable names, defaults, and operator guidance.
 
 Parse in `apps/api/src/config/env.ts`. Reject invalid values at startup. Numeric limits are positive safe integers, additionally constrained where the runtime/provider requires narrower bounds. Parse and validate proxy CIDRs rather than accepting arbitrary strings. Changing network policy can alter allowance keys; document that deployment changes are not a stable identity migration mechanism.
 
@@ -295,20 +287,6 @@ Required coverage:
 - Widget rendering and accessible error states on desktop and mobile.
 - Header New chat button, keyboard access, active-generation reset, draft preservation, input focus, and the equivalent conversation-length action; verify old server history remains and the network allowance does not reset.
 - Browser E2E using real Talqo API/database and an external fake provider extended to stream model responses, not just list models. Seed data remains API-owned and isolated.
-
-Run during implementation:
-
-```sh
-bun run quality:fix
-bun run typecheck
-bun run test
-bun run test:integration
-bun run e2e
-bun run contracts:check
-bun run i18n:fix
-```
-
-Run workflow checks only when workflows change.
 
 ## Documentation And Implementation Order
 

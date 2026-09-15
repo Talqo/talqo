@@ -116,8 +116,8 @@ export async function getHistorySnapshot(conversationId: string): Promise<Histor
 
 async function interruptExpiredAttempts(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	condition: ReturnType<typeof or>,
 	now: Date,
+	condition?: ReturnType<typeof or>,
 ): Promise<void> {
 	const expired = await tx
 		.update(conversationAttempt)
@@ -206,6 +206,7 @@ export async function acceptAttempt(input: {
 		const now = new Date()
 		await interruptExpiredAttempts(
 			tx,
+			now,
 			or(
 				eq(conversationAttempt.sessionId, sessionId),
 				and(
@@ -213,7 +214,6 @@ export async function acceptAttempt(input: {
 					sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${conversationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
 				),
 			),
-			now,
 		)
 
 		const [duplicate] = await tx
@@ -364,31 +364,11 @@ export async function setAttribution(
 	leaseToken: string,
 	provider: string,
 	model: string,
+	markInvoked = false,
 ): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ provider, model, updatedAt: new Date() })
-		.where(
-			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.leaseToken, leaseToken),
-				eq(conversationAttempt.status, "running"),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
-			),
-		)
-		.returning({ id: conversationAttempt.id })
-	return rows.length === 1
-}
-
-export async function markProviderInvoked(
-	attemptId: string,
-	leaseToken: string,
-	provider: string,
-	model: string,
-): Promise<boolean> {
-	const rows = await db
-		.update(conversationAttempt)
-		.set({ provider, model, providerInvoked: true, updatedAt: new Date() })
+		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: new Date() })
 		.where(
 			and(
 				eq(conversationAttempt.id, attemptId),
@@ -594,28 +574,10 @@ export async function getActiveAttempt(sessionId: string): Promise<{ id: string 
 	return row
 }
 
-export async function getAttempt(
-	sessionId: string,
-	attemptId: string,
-): Promise<
-	{ assistantText: string; id: string; status: (typeof conversationAttempt.$inferSelect)["status"] } | undefined
-> {
-	const [row] = await db
-		.select({ id: conversationAttempt.id, status: conversationAttempt.status, assistantText: conversationMessage.text })
-		.from(conversationAttempt)
-		.innerJoin(
-			conversationMessage,
-			and(eq(conversationMessage.attemptId, conversationAttempt.id), eq(conversationMessage.role, "assistant")),
-		)
-		.where(and(eq(conversationAttempt.sessionId, sessionId), eq(conversationAttempt.id, attemptId)))
-		.limit(1)
-	return row
-}
-
 export async function recoverExpired(): Promise<void> {
 	return db.transaction(async (tx) => {
 		const now = new Date()
-		await interruptExpiredAttempts(tx, or(sql`true`), now)
+		await interruptExpiredAttempts(tx, now)
 		await tx
 			.delete(conversationDailyCounter)
 			.where(lt(conversationDailyCounter.day, now.toISOString().slice(0, DATE_PREFIX_LENGTH)))

@@ -178,15 +178,15 @@ describe("AI provider service", () => {
 		await service.saveConfiguration("user-1", input)
 		const controller = new AbortController()
 
-		const events = []
-		for await (const event of service.streamText({
+		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
 			maxOutputTokens: 77,
 			timeoutMs: 9000,
-			signal: controller.signal,
-		})) {
-			events.push(event)
-		}
+		})
+		const events = [
+			{ type: "start", provider: prepared.provider, model: prepared.model },
+			...(await Array.fromAsync(prepared.invoke(controller.signal))),
+		]
 
 		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal: controller.signal })
 		expect(call?.model).toMatchObject({ modelId: "gpt-5-mini" })
@@ -211,17 +211,15 @@ describe("AI provider service", () => {
 		})
 		await service.saveConfiguration("user-1", input)
 
-		await Array.fromAsync(
-			service.streamText({
-				messages: [
-					{ role: "system", content: "Answer as the configured agent." },
-					{ role: "user", content: "Hi" },
-				],
-				maxOutputTokens: 10,
-				timeoutMs: 1000,
-				signal: new AbortController().signal,
-			}),
-		)
+		const prepared = await service.prepareTextOperation({
+			messages: [
+				{ role: "system", content: "Answer as the configured agent." },
+				{ role: "user", content: "Hi" },
+			],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 
 		expect(call).toMatchObject({
 			instructions: "Answer as the configured agent.",
@@ -235,14 +233,12 @@ describe("AI provider service", () => {
 		})
 		await service.saveConfiguration("user-1", input)
 
-		await Array.fromAsync(
-			service.streamText({
-				messages: [{ role: "user", content: "Hi" }],
-				maxOutputTokens: 10,
-				timeoutMs: 1000,
-				signal: new AbortController().signal,
-			}),
-		)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 	})
 
 	it("normalizes provider context-window rejections without exposing their body", async () => {
@@ -258,16 +254,14 @@ describe("AI provider service", () => {
 		})
 		await service.saveConfiguration("user-1", input)
 
-		await expect(
-			Array.fromAsync(
-				service.streamText({
-					messages: [{ role: "user", content: "Hi" }],
-					maxOutputTokens: 10,
-					timeoutMs: 1000,
-					signal: new AbortController().signal,
-				}),
-			),
-		).rejects.toBeInstanceOf(ProviderContextLimitError)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
+			ProviderContextLimitError,
+		)
 	})
 
 	it("prepares and decrypts one exact text operation without invoking the provider", async () => {

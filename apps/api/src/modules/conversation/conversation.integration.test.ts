@@ -128,9 +128,7 @@ async function* failingGeneration() {
 	throw new Error("provider secret must not escape")
 }
 
-async function* emptyGeneration() {
-	yield* []
-}
+async function* emptyGeneration() {}
 
 async function* contextLimitGeneration() {
 	yield* []
@@ -381,7 +379,10 @@ describe("conversation lifecycle", () => {
 		await otherInstance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 
-		expect((await owner.getAttempt(CREDENTIAL_1, sent.generationId)).status).toBe("cancelled")
+		expect(
+			(await owner.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
+				?.outcome,
+		).toBe("cancelled")
 		expect((await sql`SELECT provider, model, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
 			provider: "fake",
 			model: "fake-model",
@@ -464,7 +465,10 @@ describe("conversation lifecycle", () => {
 
 		await otherInstance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
-		expect((await owner.getAttempt(CREDENTIAL_1, sent.generationId)).status).toBe("cancelled")
+		expect(
+			(await owner.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
+				?.outcome,
+		).toBe("cancelled")
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
 	})
 
@@ -546,8 +550,10 @@ describe("conversation lifecycle", () => {
 		await customService(emptyGeneration).getSession(CREDENTIAL_1)
 		gate.resolve()
 		await sent.done
-		const state = await owner.getAttempt(CREDENTIAL_1, sent.generationId)
-		expect(state).toMatchObject({ status: "interrupted", assistantText: "" })
+		const assistantMessage = (await owner.getSession(CREDENTIAL_1)).messages.find(
+			(message) => message.id === sent.assistantMessage.id,
+		)
+		expect(assistantMessage).toMatchObject({ outcome: "interrupted", text: "" })
 		expect(
 			(await sql`SELECT count(*)::int AS count FROM conversation_usage WHERE attempt_id = ${sent.generationId}`)[0]
 				?.count,
@@ -751,7 +757,10 @@ describe("conversation lifecycle", () => {
 		})
 		await sent.done
 
-		expect((await instance.getAttempt(CREDENTIAL_1, sent.generationId)).assistantText).toBe("tiny")
+		expect(
+			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
+				?.text,
+		).toBe("tiny")
 		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
 	})
 
@@ -776,7 +785,10 @@ describe("conversation lifecycle", () => {
 		await instance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 
-		expect((await instance.getAttempt(CREDENTIAL_1, sent.generationId)).assistantText).toBe("tiny")
+		expect(
+			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
+				?.text,
+		).toBe("tiny")
 		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
 	})
 

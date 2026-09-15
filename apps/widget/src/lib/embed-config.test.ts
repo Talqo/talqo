@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, mergeAppearance } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, appearanceFromValues, mergeAppearance } from "./embed-config"
 
 // Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
@@ -65,6 +65,22 @@ describe("appearanceFromDataset", () => {
 			theme: "neon",
 			language: "xx",
 		})
+	})
+})
+
+test("extracts appearance from canonical getter keys", () => {
+	const values: Record<string, string> = {
+		accent: "#123456",
+		darkText: "#ffffff",
+		position: "bottom-left",
+		themeToggle: "false",
+	}
+
+	expect(appearanceFromValues((key) => values[key])).toEqual({
+		light: { primary: "#123456" },
+		dark: { text: "#ffffff" },
+		position: "bottom-left",
+		themeToggle: false,
 	})
 })
 

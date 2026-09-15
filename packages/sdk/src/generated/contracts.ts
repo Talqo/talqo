@@ -6,449 +6,188 @@
  */
 import * as zod from "zod"
 
-export const ProblemAdminAccessRequired = zod.object({
-	code: zod.enum(["admin-access-required"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
-})
-
-export type ProblemAdminAccessRequired = zod.input<typeof ProblemAdminAccessRequired>
-export type ProblemAdminAccessRequiredOutput = zod.output<typeof ProblemAdminAccessRequired>
-
-export const ProblemAdminAlreadyExists = zod.object({
-	code: zod.enum(["admin-already-exists"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
-})
-
-export type ProblemAdminAlreadyExists = zod.input<typeof ProblemAdminAlreadyExists>
-export type ProblemAdminAlreadyExistsOutput = zod.output<typeof ProblemAdminAlreadyExists>
-
-export const ProblemAgentFileInvalid = zod.object({
-	code: zod.enum(["agent-file-invalid"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-file-invalid"]),
-})
-
-export type ProblemAgentFileInvalid = zod.input<typeof ProblemAgentFileInvalid>
-export type ProblemAgentFileInvalidOutput = zod.output<typeof ProblemAgentFileInvalid>
-
-export const ProblemAgentFileNameTaken = zod.object({
-	code: zod.enum(["agent-file-name-taken"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-file-name-taken"]),
-})
-
-export type ProblemAgentFileNameTaken = zod.input<typeof ProblemAgentFileNameTaken>
-export type ProblemAgentFileNameTakenOutput = zod.output<typeof ProblemAgentFileNameTaken>
-
-export const ProblemAgentFileNotFound = zod.object({
-	code: zod.enum(["agent-file-not-found"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-found"]),
-})
-
-export type ProblemAgentFileNotFound = zod.input<typeof ProblemAgentFileNotFound>
-export type ProblemAgentFileNotFoundOutput = zod.output<typeof ProblemAgentFileNotFound>
-
-export const ProblemAgentInvalid = zod.object({
-	code: zod.enum(["agent-invalid"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-invalid"]),
-})
-
-export type ProblemAgentInvalid = zod.input<typeof ProblemAgentInvalid>
-export type ProblemAgentInvalidOutput = zod.output<typeof ProblemAgentInvalid>
-
-export const ProblemAgentInUse = zod.object({
-	code: zod.enum(["agent-in-use"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-in-use"]),
-})
-
-export type ProblemAgentInUse = zod.input<typeof ProblemAgentInUse>
-export type ProblemAgentInUseOutput = zod.output<typeof ProblemAgentInUse>
-
-export const ProblemAgentNameTaken = zod.object({
-	code: zod.enum(["agent-name-taken"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-name-taken"]),
-})
-
-export type ProblemAgentNameTaken = zod.input<typeof ProblemAgentNameTaken>
-export type ProblemAgentNameTakenOutput = zod.output<typeof ProblemAgentNameTaken>
-
-export const ProblemAgentNotFound = zod.object({
-	code: zod.enum(["agent-not-found"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#agent-not-found"]),
-})
-
-export type ProblemAgentNotFound = zod.input<typeof ProblemAgentNotFound>
-export type ProblemAgentNotFoundOutput = zod.output<typeof ProblemAgentNotFound>
-
-export const ProblemAuthenticationRequired = zod.object({
-	code: zod.enum(["authentication-required"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#authentication-required"]),
-})
-
-export type ProblemAuthenticationRequired = zod.input<typeof ProblemAuthenticationRequired>
-export type ProblemAuthenticationRequiredOutput = zod.output<typeof ProblemAuthenticationRequired>
-
-export const ProblemChatClientAddressUnavailable = zod.object({
-	code: zod.enum(["chat-client-address-unavailable"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-client-address-unavailable"]),
-})
-
-export type ProblemChatClientAddressUnavailable = zod.input<typeof ProblemChatClientAddressUnavailable>
-export type ProblemChatClientAddressUnavailableOutput = zod.output<typeof ProblemChatClientAddressUnavailable>
-
-export const ProblemChatConcurrencyLimit = zod.object({
-	code: zod.enum(["chat-concurrency-limit"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-concurrency-limit"]),
-})
-
-export type ProblemChatConcurrencyLimit = zod.input<typeof ProblemChatConcurrencyLimit>
-export type ProblemChatConcurrencyLimitOutput = zod.output<typeof ProblemChatConcurrencyLimit>
-
-export const ProblemChatContextLimit = zod.object({
-	code: zod.enum(["chat-context-limit"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-context-limit"]),
-})
-
-export type ProblemChatContextLimit = zod.input<typeof ProblemChatContextLimit>
-export type ProblemChatContextLimitOutput = zod.output<typeof ProblemChatContextLimit>
-
-export const ProblemChatConversationTooLong = zod.object({
-	code: zod.enum(["chat-conversation-too-long"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-conversation-too-long"]),
-})
-
-export type ProblemChatConversationTooLong = zod.input<typeof ProblemChatConversationTooLong>
-export type ProblemChatConversationTooLongOutput = zod.output<typeof ProblemChatConversationTooLong>
-
-export const ProblemChatDailyAllowanceExceeded = zod.object({
-	code: zod.enum(["chat-daily-allowance-exceeded"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]),
-})
-
-export type ProblemChatDailyAllowanceExceeded = zod.input<typeof ProblemChatDailyAllowanceExceeded>
-export type ProblemChatDailyAllowanceExceededOutput = zod.output<typeof ProblemChatDailyAllowanceExceeded>
-
-export const ProblemChatInputIncompatible = zod.object({
-	code: zod.enum(["chat-input-incompatible"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-input-incompatible"]),
-})
-
-export type ProblemChatInputIncompatible = zod.input<typeof ProblemChatInputIncompatible>
-export type ProblemChatInputIncompatibleOutput = zod.output<typeof ProblemChatInputIncompatible>
-
-export const ProblemChatRequestConflict = zod.object({
-	code: zod.enum(["chat-request-conflict"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-request-conflict"]),
-})
-
-export type ProblemChatRequestConflict = zod.input<typeof ProblemChatRequestConflict>
-export type ProblemChatRequestConflictOutput = zod.output<typeof ProblemChatRequestConflict>
-
-export const ProblemChatSessionBusy = zod.object({
-	code: zod.enum(["chat-session-busy"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-session-busy"]),
-})
-
-export type ProblemChatSessionBusy = zod.input<typeof ProblemChatSessionBusy>
-export type ProblemChatSessionBusyOutput = zod.output<typeof ProblemChatSessionBusy>
-
-export const ProblemChatSessionUnauthorized = zod.object({
-	code: zod.enum(["chat-session-unauthorized"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#chat-session-unauthorized"]),
-})
-
-export type ProblemChatSessionUnauthorized = zod.input<typeof ProblemChatSessionUnauthorized>
-export type ProblemChatSessionUnauthorizedOutput = zod.output<typeof ProblemChatSessionUnauthorized>
-
-export const ProblemConfigurationConflict = zod.object({
-	code: zod.enum(["configuration-conflict"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#configuration-conflict"]),
-})
-
-export type ProblemConfigurationConflict = zod.input<typeof ProblemConfigurationConflict>
-export type ProblemConfigurationConflictOutput = zod.output<typeof ProblemConfigurationConflict>
-
-export const ProblemCurrentPasswordIncorrect = zod.object({
-	code: zod.enum(["current-password-incorrect"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
-})
-
-export type ProblemCurrentPasswordIncorrect = zod.input<typeof ProblemCurrentPasswordIncorrect>
-export type ProblemCurrentPasswordIncorrectOutput = zod.output<typeof ProblemCurrentPasswordIncorrect>
-
-export const ProblemEmbedNotFound = zod.object({
-	code: zod.enum(["embed-not-found"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#embed-not-found"]),
-})
-
-export type ProblemEmbedNotFound = zod.input<typeof ProblemEmbedNotFound>
-export type ProblemEmbedNotFoundOutput = zod.output<typeof ProblemEmbedNotFound>
-
-export const ProblemInternalServerError = zod.object({
-	code: zod.enum(["internal-server-error"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#internal-server-error"]),
-})
-
-export type ProblemInternalServerError = zod.input<typeof ProblemInternalServerError>
-export type ProblemInternalServerErrorOutput = zod.output<typeof ProblemInternalServerError>
-
-export const ProblemInvalidAiProviderConfiguration = zod.object({
-	code: zod.enum(["invalid-ai-provider-configuration"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
-})
-
-export type ProblemInvalidAiProviderConfiguration = zod.input<typeof ProblemInvalidAiProviderConfiguration>
-export type ProblemInvalidAiProviderConfigurationOutput = zod.output<typeof ProblemInvalidAiProviderConfiguration>
-
-export const ProblemInvalidCredentials = zod.object({
-	code: zod.enum(["invalid-credentials"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#invalid-credentials"]),
-})
-
-export type ProblemInvalidCredentials = zod.input<typeof ProblemInvalidCredentials>
-export type ProblemInvalidCredentialsOutput = zod.output<typeof ProblemInvalidCredentials>
-
-export const ProblemInvalidInvitation = zod.object({
-	code: zod.enum(["invalid-invitation"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#invalid-invitation"]),
-})
-
-export type ProblemInvalidInvitation = zod.input<typeof ProblemInvalidInvitation>
-export type ProblemInvalidInvitationOutput = zod.output<typeof ProblemInvalidInvitation>
-
-export const ProblemInvalidRequest = zod.object({
-	code: zod.enum(["invalid-request"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-})
-
-export type ProblemInvalidRequest = zod.input<typeof ProblemInvalidRequest>
-export type ProblemInvalidRequestOutput = zod.output<typeof ProblemInvalidRequest>
-
-export const ProblemMalformedJson = zod.object({
-	code: zod.enum(["malformed-json"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-})
-
-export type ProblemMalformedJson = zod.input<typeof ProblemMalformedJson>
-export type ProblemMalformedJsonOutput = zod.output<typeof ProblemMalformedJson>
-
-export const ProblemModelDiscoveryUnsupported = zod.object({
-	code: zod.enum(["model-discovery-unsupported"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
-})
-
-export type ProblemModelDiscoveryUnsupported = zod.input<typeof ProblemModelDiscoveryUnsupported>
-export type ProblemModelDiscoveryUnsupportedOutput = zod.output<typeof ProblemModelDiscoveryUnsupported>
-
-export const ProblemPasswordChangeNotRequired = zod.object({
-	code: zod.enum(["password-change-not-required"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#password-change-not-required"]),
-})
-
-export type ProblemPasswordChangeNotRequired = zod.input<typeof ProblemPasswordChangeNotRequired>
-export type ProblemPasswordChangeNotRequiredOutput = zod.output<typeof ProblemPasswordChangeNotRequired>
-
-export const ProblemPasswordChangeRequired = zod.object({
-	code: zod.enum(["password-change-required"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#password-change-required"]),
-})
-
-export type ProblemPasswordChangeRequired = zod.input<typeof ProblemPasswordChangeRequired>
-export type ProblemPasswordChangeRequiredOutput = zod.output<typeof ProblemPasswordChangeRequired>
-
-export const ProblemPayloadTooLarge = zod.object({
-	code: zod.enum(["payload-too-large"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#payload-too-large"]),
-})
-
-export type ProblemPayloadTooLarge = zod.input<typeof ProblemPayloadTooLarge>
-export type ProblemPayloadTooLargeOutput = zod.output<typeof ProblemPayloadTooLarge>
-
-export const ProblemPermissionDenied = zod.object({
-	code: zod.enum(["permission-denied"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
-})
-
-export type ProblemPermissionDenied = zod.input<typeof ProblemPermissionDenied>
-export type ProblemPermissionDeniedOutput = zod.output<typeof ProblemPermissionDenied>
-
-export const ProblemProviderCredentialsRejected = zod.object({
-	code: zod.enum(["provider-credentials-rejected"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
-})
-
-export type ProblemProviderCredentialsRejected = zod.input<typeof ProblemProviderCredentialsRejected>
-export type ProblemProviderCredentialsRejectedOutput = zod.output<typeof ProblemProviderCredentialsRejected>
-
-export const ProblemProviderError = zod.object({
-	code: zod.enum(["provider-error"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#provider-error"]),
-})
-
-export type ProblemProviderError = zod.input<typeof ProblemProviderError>
-export type ProblemProviderErrorOutput = zod.output<typeof ProblemProviderError>
-
-export const ProblemProviderRateLimited = zod.object({
-	code: zod.enum(["provider-rate-limited"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#provider-rate-limited"]),
-})
-
-export type ProblemProviderRateLimited = zod.input<typeof ProblemProviderRateLimited>
-export type ProblemProviderRateLimitedOutput = zod.output<typeof ProblemProviderRateLimited>
-
-export const ProblemProviderUnreachable = zod.object({
-	code: zod.enum(["provider-unreachable"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#provider-unreachable"]),
-})
-
-export type ProblemProviderUnreachable = zod.input<typeof ProblemProviderUnreachable>
-export type ProblemProviderUnreachableOutput = zod.output<typeof ProblemProviderUnreachable>
-
-export const ProblemRequestFailed = zod.object({
-	code: zod.enum(["request-failed"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
-})
-
-export type ProblemRequestFailed = zod.input<typeof ProblemRequestFailed>
-export type ProblemRequestFailedOutput = zod.output<typeof ProblemRequestFailed>
-
-export const ProblemRouteNotFound = zod.object({
-	code: zod.enum(["route-not-found"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
-})
-
-export type ProblemRouteNotFound = zod.input<typeof ProblemRouteNotFound>
-export type ProblemRouteNotFoundOutput = zod.output<typeof ProblemRouteNotFound>
-
-export const ProblemSelfPasswordResetNotAllowed = zod.object({
-	code: zod.enum(["self-password-reset-not-allowed"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
-})
-
-export type ProblemSelfPasswordResetNotAllowed = zod.input<typeof ProblemSelfPasswordResetNotAllowed>
-export type ProblemSelfPasswordResetNotAllowedOutput = zod.output<typeof ProblemSelfPasswordResetNotAllowed>
-
-export const ProblemUserNotFound = zod.object({
-	code: zod.enum(["user-not-found"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#user-not-found"]),
-})
-
-export type ProblemUserNotFound = zod.input<typeof ProblemUserNotFound>
-export type ProblemUserNotFoundOutput = zod.output<typeof ProblemUserNotFound>
-
-export const ProblemUsernameTaken = zod.object({
-	code: zod.enum(["username-taken"]),
-	type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
-})
-
-export type ProblemUsernameTaken = zod.input<typeof ProblemUsernameTaken>
-export type ProblemUsernameTakenOutput = zod.output<typeof ProblemUsernameTaken>
-
 export const ProblemDetails = zod.union([
-	ProblemAdminAccessRequired,
-	ProblemAdminAlreadyExists,
-	ProblemAgentFileInvalid,
-	ProblemAgentFileNameTaken,
-	ProblemAgentFileNotFound,
-	ProblemAgentInvalid,
-	ProblemAgentInUse,
-	ProblemAgentNameTaken,
-	ProblemAgentNotFound,
-	ProblemAuthenticationRequired,
-	ProblemChatClientAddressUnavailable,
-	ProblemChatConcurrencyLimit,
-	ProblemChatContextLimit,
-	ProblemChatConversationTooLong,
-	ProblemChatDailyAllowanceExceeded,
-	ProblemChatInputIncompatible,
-	ProblemChatRequestConflict,
-	ProblemChatSessionBusy,
-	ProblemChatSessionUnauthorized,
-	ProblemConfigurationConflict,
-	ProblemCurrentPasswordIncorrect,
-	ProblemEmbedNotFound,
-	ProblemInternalServerError,
-	ProblemInvalidAiProviderConfiguration,
-	ProblemInvalidCredentials,
-	ProblemInvalidInvitation,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-	ProblemModelDiscoveryUnsupported,
-	ProblemPasswordChangeNotRequired,
-	ProblemPasswordChangeRequired,
-	ProblemPayloadTooLarge,
-	ProblemPermissionDenied,
-	ProblemProviderCredentialsRejected,
-	ProblemProviderError,
-	ProblemProviderRateLimited,
-	ProblemProviderUnreachable,
-	ProblemRequestFailed,
-	ProblemRouteNotFound,
-	ProblemSelfPasswordResetNotAllowed,
-	ProblemUserNotFound,
-	ProblemUsernameTaken,
+	zod.strictObject({
+		code: zod.enum(["admin-access-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["admin-already-exists"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-file-invalid"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-invalid"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-file-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-name-taken"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-file-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-found"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-invalid"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-invalid"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-in-use"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-in-use"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-name-taken"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["agent-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-not-found"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["authentication-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#authentication-required"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-client-address-unavailable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-client-address-unavailable"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-concurrency-limit"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-concurrency-limit"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-context-limit"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-context-limit"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-conversation-too-long"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-conversation-too-long"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-daily-allowance-exceeded"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-input-incompatible"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-input-incompatible"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-request-conflict"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-request-conflict"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-session-busy"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-busy"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["chat-session-unauthorized"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-unauthorized"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["configuration-conflict"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#configuration-conflict"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["current-password-incorrect"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["embed-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#embed-not-found"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["internal-server-error"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#internal-server-error"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["invalid-ai-provider-configuration"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["invalid-credentials"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-credentials"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["invalid-invitation"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-invitation"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["invalid-request"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["malformed-json"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["model-discovery-unsupported"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["password-change-not-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#password-change-not-required"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["password-change-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#password-change-required"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["payload-too-large"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#payload-too-large"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["permission-denied"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["provider-credentials-rejected"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["provider-error"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-error"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["provider-rate-limited"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-rate-limited"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["provider-unreachable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-unreachable"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["request-failed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["route-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["self-password-reset-not-allowed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["user-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#user-not-found"]),
+	}),
+	zod.strictObject({
+		code: zod.enum(["username-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
+	}),
 ])
 
 export type ProblemDetails = zod.input<typeof ProblemDetails>
 export type ProblemDetailsOutput = zod.output<typeof ProblemDetails>
 
-export const HealthResponse = zod.object({
+export const HealthResponse = zod.strictObject({
 	status: zod.enum(["ok"]),
 })
 
 export type HealthResponse = zod.input<typeof HealthResponse>
 export type HealthResponseOutput = zod.output<typeof HealthResponse>
 
-export const ProblemPasswordChangeRequiredOrPermissionDenied = zod.union([
-	ProblemPasswordChangeRequired,
-	ProblemPermissionDenied,
-])
-
-export type ProblemPasswordChangeRequiredOrPermissionDenied = zod.input<
-	typeof ProblemPasswordChangeRequiredOrPermissionDenied
->
-export type ProblemPasswordChangeRequiredOrPermissionDeniedOutput = zod.output<
-	typeof ProblemPasswordChangeRequiredOrPermissionDenied
->
-
-export const ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson = zod.union([
-	ProblemInvalidAiProviderConfiguration,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-])
-
-export type ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson = zod.input<
-	typeof ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
->
-export type ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOutput = zod.output<
-	typeof ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson
->
-
-export const ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected =
-	zod.union([
-		ProblemInvalidAiProviderConfiguration,
-		ProblemInvalidRequest,
-		ProblemMalformedJson,
-		ProblemProviderCredentialsRejected,
-	])
-
-export type ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected =
-	zod.input<typeof ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected>
-export type ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejectedOutput =
-	zod.output<typeof ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected>
-
-export const ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable = zod.union([
-	ProblemModelDiscoveryUnsupported,
-	ProblemProviderError,
-	ProblemProviderUnreachable,
-])
-
-export type ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable = zod.input<
-	typeof ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
->
-export type ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachableOutput = zod.output<
-	typeof ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable
->
-
-export const User = zod.object({
+export const User = zod.strictObject({
 	id: zod.string(),
 	username: zod.string(),
 	mustChangePassword: zod.boolean(),
@@ -457,25 +196,7 @@ export const User = zod.object({
 export type User = zod.input<typeof User>
 export type UserOutput = zod.output<typeof User>
 
-export const ProblemInvalidRequestOrMalformedJson = zod.union([ProblemInvalidRequest, ProblemMalformedJson])
-
-export type ProblemInvalidRequestOrMalformedJson = zod.input<typeof ProblemInvalidRequestOrMalformedJson>
-export type ProblemInvalidRequestOrMalformedJsonOutput = zod.output<typeof ProblemInvalidRequestOrMalformedJson>
-
-export const ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson = zod.union([
-	ProblemCurrentPasswordIncorrect,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-])
-
-export type ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson = zod.input<
-	typeof ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
->
-export type ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJsonOutput = zod.output<
-	typeof ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson
->
-
-export const RoleUser = zod.object({
+export const RoleUser = zod.strictObject({
 	id: zod.string(),
 	username: zod.string(),
 	mustChangePassword: zod.boolean(),
@@ -484,42 +205,7 @@ export const RoleUser = zod.object({
 export type RoleUser = zod.input<typeof RoleUser>
 export type RoleUserOutput = zod.output<typeof RoleUser>
 
-export const ProblemAdminAlreadyExistsOrUsernameTaken = zod.union([ProblemAdminAlreadyExists, ProblemUsernameTaken])
-
-export type ProblemAdminAlreadyExistsOrUsernameTaken = zod.input<typeof ProblemAdminAlreadyExistsOrUsernameTaken>
-export type ProblemAdminAlreadyExistsOrUsernameTakenOutput = zod.output<typeof ProblemAdminAlreadyExistsOrUsernameTaken>
-
-export const ProblemInvalidInvitationOrUsernameTaken = zod.union([ProblemInvalidInvitation, ProblemUsernameTaken])
-
-export type ProblemInvalidInvitationOrUsernameTaken = zod.input<typeof ProblemInvalidInvitationOrUsernameTaken>
-export type ProblemInvalidInvitationOrUsernameTakenOutput = zod.output<typeof ProblemInvalidInvitationOrUsernameTaken>
-
-export const ProblemAdminAccessRequiredOrPasswordChangeRequired = zod.union([
-	ProblemAdminAccessRequired,
-	ProblemPasswordChangeRequired,
-])
-
-export type ProblemAdminAccessRequiredOrPasswordChangeRequired = zod.input<
-	typeof ProblemAdminAccessRequiredOrPasswordChangeRequired
->
-export type ProblemAdminAccessRequiredOrPasswordChangeRequiredOutput = zod.output<
-	typeof ProblemAdminAccessRequiredOrPasswordChangeRequired
->
-
-export const ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed = zod.union([
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-	ProblemSelfPasswordResetNotAllowed,
-])
-
-export type ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed = zod.input<
-	typeof ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
->
-export type ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowedOutput = zod.output<
-	typeof ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
->
-
-export const Agent = zod.object({
+export const Agent = zod.strictObject({
 	id: zod.string(),
 	name: zod.string(),
 	systemPrompt: zod.string(),
@@ -531,20 +217,7 @@ export const Agent = zod.object({
 export type Agent = zod.input<typeof Agent>
 export type AgentOutput = zod.output<typeof Agent>
 
-export const ProblemAgentInvalidOrInvalidRequestOrMalformedJson = zod.union([
-	ProblemAgentInvalid,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-])
-
-export type ProblemAgentInvalidOrInvalidRequestOrMalformedJson = zod.input<
-	typeof ProblemAgentInvalidOrInvalidRequestOrMalformedJson
->
-export type ProblemAgentInvalidOrInvalidRequestOrMalformedJsonOutput = zod.output<
-	typeof ProblemAgentInvalidOrInvalidRequestOrMalformedJson
->
-
-export const EmbedScheme = zod.object({
+export const EmbedScheme = zod.strictObject({
 	primary: zod.string(),
 	textOnPrimary: zod.string(),
 	background: zod.string(),
@@ -555,7 +228,7 @@ export const EmbedScheme = zod.object({
 export type EmbedScheme = zod.input<typeof EmbedScheme>
 export type EmbedSchemeOutput = zod.output<typeof EmbedScheme>
 
-export const EmbedAppearance = zod.object({
+export const EmbedAppearance = zod.strictObject({
 	light: EmbedScheme,
 	dark: EmbedScheme,
 	position: zod.enum(["bottom-right", "bottom-left"]),
@@ -569,7 +242,7 @@ export type EmbedAppearanceOutput = zod.output<typeof EmbedAppearance>
 
 export const embedAccessVersionExclusiveMin = 0
 
-export const Embed = zod.object({
+export const Embed = zod.strictObject({
 	id: zod.string(),
 	agentId: zod.string(),
 	name: zod.string(),
@@ -581,12 +254,7 @@ export const Embed = zod.object({
 export type Embed = zod.input<typeof Embed>
 export type EmbedOutput = zod.output<typeof Embed>
 
-export const ProblemAgentNotFoundOrEmbedNotFound = zod.union([ProblemAgentNotFound, ProblemEmbedNotFound])
-
-export type ProblemAgentNotFoundOrEmbedNotFound = zod.input<typeof ProblemAgentNotFoundOrEmbedNotFound>
-export type ProblemAgentNotFoundOrEmbedNotFoundOutput = zod.output<typeof ProblemAgentNotFoundOrEmbedNotFound>
-
-export const EmbedConfig = zod.object({
+export const EmbedConfig = zod.strictObject({
 	version: zod.number(),
 	name: zod.string(),
 	appearance: EmbedAppearance,
@@ -596,36 +264,36 @@ export type EmbedConfig = zod.input<typeof EmbedConfig>
 export type EmbedConfigOutput = zod.output<typeof EmbedConfig>
 
 export const ChatEventV1 = zod.union([
-	zod.object({
+	zod.strictObject({
 		version: zod.literal(1),
 		type: zod.enum(["accepted"]),
 		requestId: zod.uuid(),
 		generationId: zod.string(),
-		userMessage: zod.object({
+		userMessage: zod.strictObject({
 			id: zod.string(),
 			createdAt: zod.iso.datetime({ offset: true }),
 		}),
-		assistantMessage: zod.object({
+		assistantMessage: zod.strictObject({
 			id: zod.string(),
 			createdAt: zod.iso.datetime({ offset: true }),
 		}),
 	}),
-	zod.object({
+	zod.strictObject({
 		version: zod.literal(1),
 		type: zod.enum(["delta"]),
 		assistantMessageId: zod.string(),
 		text: zod.string(),
 	}),
-	zod.object({
+	zod.strictObject({
 		version: zod.literal(1),
 		type: zod.enum(["terminal"]),
 		outcome: zod.enum(["completed", "failed", "cancelled", "blocked", "interrupted"]),
 	}),
-	zod.object({
+	zod.strictObject({
 		version: zod.literal(1),
 		type: zod.enum(["error"]),
 		outcome: zod.enum(["failed", "cancelled", "blocked", "interrupted"]),
-		error: zod.object({
+		error: zod.strictObject({
 			code: zod.string(),
 			message: zod.string(),
 			retryAt: zod.iso.datetime({ offset: true }).optional(),
@@ -638,31 +306,9 @@ export const ChatEventV1 = zod.union([
 export type ChatEventV1 = zod.input<typeof ChatEventV1>
 export type ChatEventV1Output = zod.output<typeof ChatEventV1>
 
-export const ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson =
-	zod.union([
-		ProblemChatClientAddressUnavailable,
-		ProblemChatConcurrencyLimit,
-		ProblemChatConversationTooLong,
-		ProblemChatDailyAllowanceExceeded,
-		ProblemChatRequestConflict,
-		ProblemChatSessionBusy,
-		ProblemChatSessionUnauthorized,
-		ProblemInvalidRequest,
-		ProblemMalformedJson,
-	])
-
-export type ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson =
-	zod.input<
-		typeof ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson
-	>
-export type ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJsonOutput =
-	zod.output<
-		typeof ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson
-	>
-
 export const agentFileSizeBytesMin = 0
 
-export const AgentFile = zod.object({
+export const AgentFile = zod.strictObject({
 	name: zod.string(),
 	sizeBytes: zod.int().min(agentFileSizeBytesMin),
 	createdAt: zod.iso.datetime({ offset: true }),
@@ -670,24 +316,6 @@ export const AgentFile = zod.object({
 
 export type AgentFile = zod.input<typeof AgentFile>
 export type AgentFileOutput = zod.output<typeof AgentFile>
-
-export const ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson = zod.union([
-	ProblemAgentFileInvalid,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-])
-
-export type ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson = zod.input<
-	typeof ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
->
-export type ProblemAgentFileInvalidOrInvalidRequestOrMalformedJsonOutput = zod.output<
-	typeof ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
->
-
-export const ProblemAgentFileNotFoundOrAgentNotFound = zod.union([ProblemAgentFileNotFound, ProblemAgentNotFound])
-
-export type ProblemAgentFileNotFoundOrAgentNotFound = zod.input<typeof ProblemAgentFileNotFoundOrAgentNotFound>
-export type ProblemAgentFileNotFoundOrAgentNotFoundOutput = zod.output<typeof ProblemAgentFileNotFoundOrAgentNotFound>
 export const ListEmbedsQueryParams = zod.object({
 	agentId: zod.string().optional(),
 })
@@ -709,18 +337,18 @@ export const createEmbedBodyAppearanceDarkBackgroundRegExp = new RegExp("^#[0-9a
 export const createEmbedBodyAppearanceDarkSurfaceRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 export const createEmbedBodyAppearanceDarkTextRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 
-export const CreateEmbedBody = zod.object({
+export const CreateEmbedBody = zod.strictObject({
 	agentId: zod.string().min(1),
 	name: zod.string().min(1).max(createEmbedBodyNameMax),
-	appearance: zod.object({
-		light: zod.object({
+	appearance: zod.strictObject({
+		light: zod.strictObject({
 			primary: zod.string().regex(createEmbedBodyAppearanceLightPrimaryRegExp),
 			textOnPrimary: zod.string().regex(createEmbedBodyAppearanceLightTextOnPrimaryRegExp),
 			background: zod.string().regex(createEmbedBodyAppearanceLightBackgroundRegExp),
 			surface: zod.string().regex(createEmbedBodyAppearanceLightSurfaceRegExp),
 			text: zod.string().regex(createEmbedBodyAppearanceLightTextRegExp),
 		}),
-		dark: zod.object({
+		dark: zod.strictObject({
 			primary: zod.string().regex(createEmbedBodyAppearanceDarkPrimaryRegExp),
 			textOnPrimary: zod.string().regex(createEmbedBodyAppearanceDarkTextOnPrimaryRegExp),
 			background: zod.string().regex(createEmbedBodyAppearanceDarkBackgroundRegExp),
@@ -763,18 +391,18 @@ export const updateEmbedBodyAppearanceDarkBackgroundRegExp = new RegExp("^#[0-9a
 export const updateEmbedBodyAppearanceDarkSurfaceRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 export const updateEmbedBodyAppearanceDarkTextRegExp = new RegExp("^#[0-9a-fA-F]{6}$")
 
-export const UpdateEmbedBody = zod.object({
+export const UpdateEmbedBody = zod.strictObject({
 	agentId: zod.string().min(1),
 	name: zod.string().min(1).max(updateEmbedBodyNameMax),
-	appearance: zod.object({
-		light: zod.object({
+	appearance: zod.strictObject({
+		light: zod.strictObject({
 			primary: zod.string().regex(updateEmbedBodyAppearanceLightPrimaryRegExp),
 			textOnPrimary: zod.string().regex(updateEmbedBodyAppearanceLightTextOnPrimaryRegExp),
 			background: zod.string().regex(updateEmbedBodyAppearanceLightBackgroundRegExp),
 			surface: zod.string().regex(updateEmbedBodyAppearanceLightSurfaceRegExp),
 			text: zod.string().regex(updateEmbedBodyAppearanceLightTextRegExp),
 		}),
-		dark: zod.object({
+		dark: zod.strictObject({
 			primary: zod.string().regex(updateEmbedBodyAppearanceDarkPrimaryRegExp),
 			textOnPrimary: zod.string().regex(updateEmbedBodyAppearanceDarkTextOnPrimaryRegExp),
 			background: zod.string().regex(updateEmbedBodyAppearanceDarkBackgroundRegExp),
@@ -816,7 +444,7 @@ export const SendChatMessageParams = zod.object({
 	embedToken: zod.string(),
 })
 
-export const SendChatMessageBody = zod.object({
+export const SendChatMessageBody = zod.strictObject({
 	requestId: zod.uuid(),
 	text: zod.string().min(1),
 })
@@ -840,17 +468,7 @@ export const GetChatSessionResponse = zod.strictObject({
 		.optional(),
 })
 
-export const GetChatGenerationParams = zod.object({
-	generationId: zod.string(),
-})
-
-export const GetChatGenerationResponse = zod.strictObject({
-	id: zod.string(),
-	status: zod.enum(["accepted", "running", "completed", "failed", "cancelled", "blocked", "interrupted"]),
-	assistantText: zod.string(),
-})
-
-export const CancelChatGenerationBody = zod.object({
+export const CancelChatGenerationBody = zod.strictObject({
 	generationId: zod.string().optional(),
 })
 

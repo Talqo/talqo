@@ -1,4 +1,4 @@
-import type { Embed } from "@/api/generated/models/embed/embed.zod.ts"
+import type { Embed } from "@/api/generated/models/embed.zod.ts"
 
 import { isSupportedLanguage, SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import {

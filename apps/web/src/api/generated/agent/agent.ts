@@ -26,24 +26,13 @@ import type { CreateAgentBody } from "../models/agent/createAgentBody.zod"
 import type { GetAgent200 } from "../models/agent/getAgent200.zod"
 import type { ListAgentFiles200 } from "../models/agent/listAgentFiles200.zod"
 import type { ListAgents200 } from "../models/agent/listAgents200.zod"
-import type { ProblemAgentFileInvalid } from "../models/agent/problemAgentFileInvalid.zod"
-import type { ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson } from "../models/agent/problemAgentFileInvalidOrInvalidRequestOrMalformedJson.zod"
-import type { ProblemAgentFileNameTaken } from "../models/agent/problemAgentFileNameTaken.zod"
-import type { ProblemAgentFileNotFoundOrAgentNotFound } from "../models/agent/problemAgentFileNotFoundOrAgentNotFound.zod"
-import type { ProblemAgentInUse } from "../models/agent/problemAgentInUse.zod"
-import type { ProblemAgentInvalidOrInvalidRequestOrMalformedJson } from "../models/agent/problemAgentInvalidOrInvalidRequestOrMalformedJson.zod"
-import type { ProblemAgentNameTaken } from "../models/agent/problemAgentNameTaken.zod"
 import type { RenameAgentFile200 } from "../models/agent/renameAgentFile200.zod"
 import type { RenameAgentFileBody } from "../models/agent/renameAgentFileBody.zod"
 import type { UpdateAgent200 } from "../models/agent/updateAgent200.zod"
 import type { UpdateAgentBody } from "../models/agent/updateAgentBody.zod"
 import type { UploadAgentFile201 } from "../models/agent/uploadAgentFile201.zod"
 import type { UploadAgentFileBody } from "../models/agent/uploadAgentFileBody.zod"
-import type { ProblemAgentNotFound } from "../models/problemAgentNotFound.zod"
-import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
-import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
-import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
-import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
+import type { ProblemDetails } from "../models/problemDetails.zod"
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -66,17 +55,17 @@ export type listAgentsResponse200 = {
 }
 
 export type listAgentsResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type listAgentsResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type listAgentsResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -116,10 +105,7 @@ export const getListAgentsQueryKey = () => {
 
 export const getListAgentsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
 	fetch?: RequestInit
@@ -139,17 +125,11 @@ export const getListAgentsQueryOptions = <
 }
 
 export type ListAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAgents>>>
-export type ListAgentsQueryError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-	status?: number
-}
+export type ListAgentsQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useListAgents<
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>> &
@@ -167,10 +147,7 @@ export function useListAgents<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListAgents<
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>> &
@@ -188,10 +165,7 @@ export function useListAgents<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListAgents<
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
@@ -202,10 +176,7 @@ export function useListAgents<
 
 export function useListAgents<
 	TData = Awaited<ReturnType<typeof listAgents>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>
@@ -228,32 +199,32 @@ export type createAgentResponse201 = {
 }
 
 export type createAgentResponse400 = {
-	data: ProblemAgentInvalidOrInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type createAgentResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type createAgentResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type createAgentResponse409 = {
-	data: ProblemAgentNameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type createAgentResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type createAgentResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -282,8 +253,16 @@ export const createAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCreateAgentUrl(), {
 		credentials: "include",
@@ -308,16 +287,7 @@ export const createAgent = async (
 export const getCreateAgentMutationKey = () => ["createAgent"] as const
 
 export const getCreateAgentMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError, CreateAgentMutationVariables, TContext>
@@ -343,29 +313,11 @@ export const getCreateAgentMutationOptions = <
 
 export type CreateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof createAgent>>>
 export type CreateAgentMutationBody = CreateAgentBody
-export type CreateAgentMutationError = globalThis.Error & {
-	info?:
-		| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type CreateAgentMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type CreateAgentMutationVariables = { data: CreateAgentBody }
 
 export const useCreateAgent = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -387,22 +339,22 @@ export type getAgentResponse200 = {
 }
 
 export type getAgentResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type getAgentResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type getAgentResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type getAgentResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -447,14 +399,7 @@ export const getGetAgentQueryKey = (agentId: string) => {
 
 export const getGetAgentQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -477,25 +422,11 @@ export const getGetAgentQueryOptions = <
 }
 
 export type GetAgentQueryResult = NonNullable<Awaited<ReturnType<typeof getAgent>>>
-export type GetAgentQueryError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type GetAgentQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetAgent<
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options: {
@@ -510,14 +441,7 @@ export function useGetAgent<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAgent<
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -532,14 +456,7 @@ export function useGetAgent<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAgent<
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -551,14 +468,7 @@ export function useGetAgent<
 
 export function useGetAgent<
 	TData = Awaited<ReturnType<typeof getAgent>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -582,37 +492,37 @@ export type updateAgentResponse200 = {
 }
 
 export type updateAgentResponse400 = {
-	data: ProblemAgentInvalidOrInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type updateAgentResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type updateAgentResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type updateAgentResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type updateAgentResponse409 = {
-	data: ProblemAgentNameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type updateAgentResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type updateAgentResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -643,8 +553,16 @@ export const updateAgent = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getUpdateAgentUrl(agentId), {
 		credentials: "include",
@@ -669,17 +587,7 @@ export const updateAgent = async (
 export const getUpdateAgentMutationKey = () => ["updateAgent"] as const
 
 export const getUpdateAgentMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateAgent>>, TError, UpdateAgentMutationVariables, TContext>
@@ -705,31 +613,11 @@ export const getUpdateAgentMutationOptions = <
 
 export type UpdateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgent>>>
 export type UpdateAgentMutationBody = UpdateAgentBody
-export type UpdateAgentMutationError = globalThis.Error & {
-	info?:
-		| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemAgentNameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type UpdateAgentMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type UpdateAgentMutationVariables = { agentId: string; data: UpdateAgentBody }
 
 export const useUpdateAgent = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -751,27 +639,27 @@ export type deleteAgentResponse204 = {
 }
 
 export type deleteAgentResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type deleteAgentResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type deleteAgentResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type deleteAgentResponse409 = {
-	data: ProblemAgentInUse
+	data: ProblemDetails
 	status: 409
 }
 
 export type deleteAgentResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -814,15 +702,7 @@ export const deleteAgent = async (agentId: string, options?: RequestInit): Promi
 export const getDeleteAgentMutationKey = () => ["deleteAgent"] as const
 
 export const getDeleteAgentMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentInUse
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAgent>>, TError, DeleteAgentMutationVariables, TContext>
@@ -848,27 +728,11 @@ export const getDeleteAgentMutationOptions = <
 
 export type DeleteAgentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgent>>>
 
-export type DeleteAgentMutationError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemAgentInUse
-		| ProblemInternalServerError
-	status?: number
-}
+export type DeleteAgentMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type DeleteAgentMutationVariables = { agentId: string }
 
 export const useDeleteAgent = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentInUse
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -890,22 +754,22 @@ export type listAgentFilesResponse200 = {
 }
 
 export type listAgentFilesResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type listAgentFilesResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type listAgentFilesResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type listAgentFilesResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -954,14 +818,7 @@ export const getListAgentFilesQueryKey = (agentId: string) => {
 
 export const getListAgentFilesQueryOptions = <
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -984,25 +841,11 @@ export const getListAgentFilesQueryOptions = <
 }
 
 export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
-export type ListAgentFilesQueryError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type ListAgentFilesQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useListAgentFiles<
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options: {
@@ -1021,14 +864,7 @@ export function useListAgentFiles<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListAgentFiles<
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -1047,14 +883,7 @@ export function useListAgentFiles<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListAgentFiles<
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -1066,14 +895,7 @@ export function useListAgentFiles<
 
 export function useListAgentFiles<
 	TData = Awaited<ReturnType<typeof listAgentFiles>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	options?: {
@@ -1097,37 +919,37 @@ export type uploadAgentFileResponse201 = {
 }
 
 export type uploadAgentFileResponse400 = {
-	data: ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type uploadAgentFileResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type uploadAgentFileResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type uploadAgentFileResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type uploadAgentFileResponse409 = {
-	data: ProblemAgentFileNameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type uploadAgentFileResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type uploadAgentFileResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1181,17 +1003,7 @@ export const uploadAgentFile = async (
 export const getUploadAgentFileMutationKey = () => ["uploadAgentFile"] as const
 
 export const getUploadAgentFileMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentFileNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -1227,31 +1039,11 @@ export const getUploadAgentFileMutationOptions = <
 
 export type UploadAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadAgentFile>>>
 export type UploadAgentFileMutationBody = UploadAgentFileBody
-export type UploadAgentFileMutationError = globalThis.Error & {
-	info?:
-		| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemAgentFileNameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type UploadAgentFileMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type UploadAgentFileMutationVariables = { agentId: string; data: UploadAgentFileBody }
 
 export const useUploadAgentFile = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemAgentFileNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -1278,37 +1070,37 @@ export type renameAgentFileResponse200 = {
 }
 
 export type renameAgentFileResponse400 = {
-	data: ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type renameAgentFileResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type renameAgentFileResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type renameAgentFileResponse404 = {
-	data: ProblemAgentFileNotFoundOrAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type renameAgentFileResponse409 = {
-	data: ProblemAgentFileNameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type renameAgentFileResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type renameAgentFileResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1340,8 +1132,16 @@ export const renameAgentFile = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getRenameAgentFileUrl(agentId, fileName), {
 		credentials: "include",
@@ -1367,17 +1167,7 @@ export const renameAgentFile = async (
 export const getRenameAgentFileMutationKey = () => ["renameAgentFile"] as const
 
 export const getRenameAgentFileMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemAgentFileNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -1413,31 +1203,11 @@ export const getRenameAgentFileMutationOptions = <
 
 export type RenameAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof renameAgentFile>>>
 export type RenameAgentFileMutationBody = RenameAgentFileBody
-export type RenameAgentFileMutationError = globalThis.Error & {
-	info?:
-		| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentFileNotFoundOrAgentNotFound
-		| ProblemAgentFileNameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type RenameAgentFileMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type RenameAgentFileMutationVariables = { agentId: string; fileName: string; data: RenameAgentFileBody }
 
 export const useRenameAgentFile = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemAgentFileNameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -1464,27 +1234,27 @@ export type deleteAgentFileResponse204 = {
 }
 
 export type deleteAgentFileResponse400 = {
-	data: ProblemAgentFileInvalid
+	data: ProblemDetails
 	status: 400
 }
 
 export type deleteAgentFileResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type deleteAgentFileResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type deleteAgentFileResponse404 = {
-	data: ProblemAgentFileNotFoundOrAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type deleteAgentFileResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1532,15 +1302,7 @@ export const deleteAgentFile = async (
 export const getDeleteAgentFileMutationKey = () => ["deleteAgentFile"] as const
 
 export const getDeleteAgentFileMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -1576,27 +1338,11 @@ export const getDeleteAgentFileMutationOptions = <
 
 export type DeleteAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAgentFile>>>
 
-export type DeleteAgentFileMutationError = globalThis.Error & {
-	info?:
-		| ProblemAgentFileInvalid
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentFileNotFoundOrAgentNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type DeleteAgentFileMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type DeleteAgentFileMutationVariables = { agentId: string; fileName: string }
 
 export const useDeleteAgentFile = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {

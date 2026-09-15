@@ -114,7 +114,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
 - `embed` owns public integration identity and appearance. Canonical operator routes use `/api/embeds`, and canonical public configuration uses `/api/embed-config/:embedToken` without exposing an agent ID. `/api/widget-config/:token` remains only as a non-contract compatibility adapter for shipped widget snippets.
-- `conversation` owns public chat routes under `/api/chat`. Sends identify an embed by public token and use a private session bearer credential; history, attempts, and cancellation use the credential. The server derives the agent and never accepts a public agent override.
+- `conversation` owns public chat routes under `/api/chat`. Sends identify an embed by public token and use a private session bearer credential; history and cancellation use the credential. The server derives the agent and never accepts a public agent override.
 
 ### Persistence And Migrations
 
@@ -129,15 +129,9 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 ### Public Chat Runtime
 
-`conversation` owns the end-user send operation and orchestrates acyclic calls to `embed`, `agent`, `ai-provider`, and `usage`. One end-user session authorizes one conversation. The SDK stores a client-issued UUIDv4 credential before first send; the API stores only its SHA-256 hash. Embed `accessVersion` is checked on authenticated operations, so token rotation, reassignment, or embed deletion revokes access without deleting history.
+`conversation` owns public chat orchestration and calls `embed`, `agent`, `ai-provider`, and `usage` through their service boundaries. One end-user session authorizes one conversation; the API and database remain authoritative for access, messages, generation state, cancellation, recovery, limits, and usage.
 
-The model input is the agent's current saved system prompt, every fully completed user/assistant pair in order, and the current user message. Public clients cannot supply history or system instructions. Chat does not retrieve knowledge, create embeddings, invoke MCP tools, or summarize. Failed, cancelled, blocked, or interrupted pairs remain visible but do not enter later prompts. The API rejects input that exceeds the configured Unicode code-point bound and never silently truncates history.
-
-The first message atomically creates the session/conversation and accepts the first attempt; there is no empty-session endpoint. PostgreSQL daily counters and generation leases enforce accepted-question limits and concurrent generations per agent and normalized client network across API instances. Limits are not per person, billing quotas, token caps, or deployment-wide consumption pools. Expired leases become interrupted attempts and fenced lease tokens prevent late workers from overwriting recovery.
-
-Messages and partial assistant output are durable. A disconnected browser does not cancel provider work; authenticated cancellation records intent server-side. Public streaming is versioned JSON in SSE framing over an authenticated `POST` fetch response, not `EventSource`. Problems before streaming use RFC 9457; terminal stream failures use typed events.
-
-`usage` stores one idempotent row per actual model-call attempt with agent, conversation, provider, model, outcome, and unified `inputTokens`/`outputTokens`. Provider counts are normalized when usable; otherwise either side is approximated from all model-visible input or API-observed output. Totals may therefore be approximate and are analytics, not invoice reconciliation. Rejected requests that never invoke a model create no usage row.
+The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md), [ADR-0014](adr/0014-keep-public-chat-state-durable.md), and [ADR-0015](adr/0015-use-client-issued-uuid-chat-sessions.md).
 
 ### Tests And Data
 
@@ -223,7 +217,7 @@ apps/web/src/
 `apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
 
 - `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` ships beside `widget.js` and `widget.css` and runs that production bundle in preview mode. The dashboard embeds it in an iframe and sends live configuration through an origin-checked, versioned `postMessage` channel; URL parameters provide the first paint. `apps/web` never imports widget source.
+- `preview.html` ships beside `widget.js` and `widget.css` and runs that production bundle in preview mode. The dashboard embeds it in an iframe and sends live configuration through an origin-checked, versioned `postMessage` channel; URL parameters provide the first paint. `@talqo/shared/preview-channel` owns the browser-neutral wire protocol, while each app owns its origin checks and window integration. `apps/web` never imports widget source.
 - The widget consumes `packages/sdk` and never imports API app source.
 - The widget owns presentation only: draft input, focus, scrolling, panel state, resizing, theme, accessibility, and localization. The SDK owns the transcript, configuration fetch, session lifecycle, generation state, and recovery.
 - Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.

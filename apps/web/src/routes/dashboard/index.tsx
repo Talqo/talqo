@@ -4,7 +4,6 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { BarChart3, Bot, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-// Embed customization lives on each agent's page; there is no standalone embeds card.
 const cards = [
 	{ to: "/dashboard/agents", icon: Bot, requiresRead: true },
 	{ to: "/dashboard/analytics", icon: BarChart3, requiresRead: true },

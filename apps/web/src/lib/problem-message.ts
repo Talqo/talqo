@@ -6,7 +6,7 @@ type Translate = (key: string) => string
 
 const PROBLEM_PROPERTY_COUNT = 2
 
-const PROBLEM_TRANSLATORS = {
+const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) => string>> = {
 	"admin-access-required": (t) => t("problems.admin-access-required"),
 	"admin-already-exists": (t) => t("problems.admin-already-exists"),
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
@@ -17,15 +17,6 @@ const PROBLEM_TRANSLATORS = {
 	"agent-name-taken": (t) => t("problems.agent-name-taken"),
 	"agent-not-found": (t) => t("problems.agent-not-found"),
 	"authentication-required": (t) => t("problems.authentication-required"),
-	"chat-client-address-unavailable": (t) => t("problems.request-failed"),
-	"chat-concurrency-limit": (t) => t("problems.request-failed"),
-	"chat-context-limit": (t) => t("problems.request-failed"),
-	"chat-conversation-too-long": (t) => t("problems.request-failed"),
-	"chat-daily-allowance-exceeded": (t) => t("problems.request-failed"),
-	"chat-input-incompatible": (t) => t("problems.request-failed"),
-	"chat-request-conflict": (t) => t("problems.request-failed"),
-	"chat-session-busy": (t) => t("problems.request-failed"),
-	"chat-session-unauthorized": (t) => t("problems.request-failed"),
 	"configuration-conflict": (t) => t("problems.configuration-conflict"),
 	"current-password-incorrect": (t) => t("problems.current-password-incorrect"),
 	"embed-not-found": (t) => t("problems.embed-not-found"),
@@ -49,18 +40,17 @@ const PROBLEM_TRANSLATORS = {
 	"self-password-reset-not-allowed": (t) => t("problems.self-password-reset-not-allowed"),
 	"user-not-found": (t) => t("problems.user-not-found"),
 	"username-taken": (t) => t("problems.username-taken"),
-} satisfies Record<ProblemCode, (translate: Translate) => string>
+}
 
 function isExactProblem(value: unknown): value is ProblemDetails {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return false
 	if (Object.keys(value).length !== PROBLEM_PROPERTY_COUNT || !("code" in value) || !("type" in value)) return false
 	if (typeof value.code !== "string" || typeof value.type !== "string") return false
-	if (!Object.hasOwn(PROBLEM_TRANSLATORS, value.code)) return false
 	return problemDetailsSchema.safeParse(value).success
 }
 
 export function getProblemMessage(error: unknown, translate: Translate, fallback: string): string {
 	const info = (error as { info?: unknown } | null)?.info
 	if (!isExactProblem(info)) return fallback
-	return PROBLEM_TRANSLATORS[info.code](translate)
+	return PROBLEM_TRANSLATORS[info.code]?.(translate) ?? fallback
 }

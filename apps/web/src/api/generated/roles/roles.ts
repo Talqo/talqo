@@ -21,12 +21,7 @@ import type {
  */
 import { useMutation, useQuery } from "@tanstack/react-query"
 
-import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
-import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
-import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
-import type { ProblemPasswordChangeRequired } from "../models/problemPasswordChangeRequired.zod"
-import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
-import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
+import type { ProblemDetails } from "../models/problemDetails.zod"
 import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
 import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
@@ -36,12 +31,6 @@ import type { GetAccess200 } from "../models/roles/getAccess200.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
 import type { ListUsers200 } from "../models/roles/listUsers200.zod"
-import type { ProblemAdminAccessRequiredOrPasswordChangeRequired } from "../models/roles/problemAdminAccessRequiredOrPasswordChangeRequired.zod"
-import type { ProblemAdminAlreadyExists } from "../models/roles/problemAdminAlreadyExists.zod"
-import type { ProblemAdminAlreadyExistsOrUsernameTaken } from "../models/roles/problemAdminAlreadyExistsOrUsernameTaken.zod"
-import type { ProblemInvalidInvitationOrUsernameTaken } from "../models/roles/problemInvalidInvitationOrUsernameTaken.zod"
-import type { ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed } from "../models/roles/problemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed.zod"
-import type { ProblemUserNotFound } from "../models/roles/problemUserNotFound.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
 import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
@@ -67,17 +56,17 @@ export type getAccessResponse200 = {
 }
 
 export type getAccessResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type getAccessResponse403 = {
-	data: ProblemPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type getAccessResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -117,10 +106,7 @@ export const getGetAccessQueryKey = () => {
 
 export const getGetAccessQueryOptions = <
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>>
 	fetch?: RequestInit
@@ -140,17 +126,11 @@ export const getGetAccessQueryOptions = <
 }
 
 export type GetAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAccess>>>
-export type GetAccessQueryError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-	status?: number
-}
+export type GetAccessQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>> &
@@ -164,10 +144,7 @@ export function useGetAccess<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>> &
@@ -185,10 +162,7 @@ export function useGetAccess<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>>
@@ -199,10 +173,7 @@ export function useGetAccess<
 
 export function useGetAccess<
 	TData = Awaited<ReturnType<typeof getAccess>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getAccess>>, TError, TData>>
@@ -225,7 +196,7 @@ export type getSetupStatusResponse200 = {
 }
 
 export type getSetupStatusResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -266,7 +237,7 @@ export const getGetSetupStatusQueryKey = () => {
 
 export const getGetSetupStatusQueryOptions = <
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>>
 	fetch?: RequestInit
@@ -286,11 +257,11 @@ export const getGetSetupStatusQueryOptions = <
 }
 
 export type GetSetupStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSetupStatus>>>
-export type GetSetupStatusQueryError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
+export type GetSetupStatusQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>> &
@@ -308,7 +279,7 @@ export function useGetSetupStatus<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>> &
@@ -326,7 +297,7 @@ export function useGetSetupStatus<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>>
@@ -337,7 +308,7 @@ export function useGetSetupStatus<
 
 export function useGetSetupStatus<
 	TData = Awaited<ReturnType<typeof getSetupStatus>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>>
@@ -360,22 +331,22 @@ export type bootstrapAdminResponse201 = {
 }
 
 export type bootstrapAdminResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type bootstrapAdminResponse409 = {
-	data: ProblemAdminAlreadyExistsOrUsernameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type bootstrapAdminResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type bootstrapAdminResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -402,8 +373,16 @@ export const bootstrapAdmin = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getBootstrapAdminUrl(), {
 		credentials: "include",
@@ -429,14 +408,7 @@ export const bootstrapAdmin = async (
 export const getBootstrapAdminMutationKey = () => ["bootstrapAdmin"] as const
 
 export const getBootstrapAdminMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAdminAlreadyExistsOrUsernameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -472,25 +444,11 @@ export const getBootstrapAdminMutationOptions = <
 
 export type BootstrapAdminMutationResult = NonNullable<Awaited<ReturnType<typeof bootstrapAdmin>>>
 export type BootstrapAdminMutationBody = BootstrapAdminBody
-export type BootstrapAdminMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJson
-		| ProblemAdminAlreadyExistsOrUsernameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type BootstrapAdminMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type BootstrapAdminMutationVariables = { data: BootstrapAdminBody }
 
 export const useBootstrapAdmin = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAdminAlreadyExistsOrUsernameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -512,17 +470,17 @@ export type createInvitationResponse201 = {
 }
 
 export type createInvitationResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type createInvitationResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type createInvitationResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -564,10 +522,7 @@ export const createInvitation = async (options?: RequestInit): Promise<createInv
 export const getCreateInvitationMutationKey = () => ["createInvitation"] as const
 
 export const getCreateInvitationMutationOptions = <
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext>
@@ -589,16 +544,10 @@ export const getCreateInvitationMutationOptions = <
 
 export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
 
-export type CreateInvitationMutationError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-	status?: number
-}
+export type CreateInvitationMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export const useCreateInvitation = <
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -615,22 +564,22 @@ export type redeemInvitationResponse201 = {
 }
 
 export type redeemInvitationResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type redeemInvitationResponse409 = {
-	data: ProblemInvalidInvitationOrUsernameTaken
+	data: ProblemDetails
 	status: 409
 }
 
 export type redeemInvitationResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type redeemInvitationResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -657,8 +606,16 @@ export const redeemInvitation = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getRedeemInvitationUrl(), {
 		credentials: "include",
@@ -684,14 +641,7 @@ export const redeemInvitation = async (
 export const getRedeemInvitationMutationKey = () => ["redeemInvitation"] as const
 
 export const getRedeemInvitationMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemInvalidInvitationOrUsernameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -728,25 +678,11 @@ export const getRedeemInvitationMutationOptions = <
 
 export type RedeemInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof redeemInvitation>>>
 export type RedeemInvitationMutationBody = RedeemInvitationBody
-export type RedeemInvitationMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJson
-		| ProblemInvalidInvitationOrUsernameTaken
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type RedeemInvitationMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type RedeemInvitationMutationVariables = { data: RedeemInvitationBody }
 
 export const useRedeemInvitation = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemInvalidInvitationOrUsernameTaken
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -773,37 +709,37 @@ export type createPermissionGrantResponse201 = {
 }
 
 export type createPermissionGrantResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type createPermissionGrantResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type createPermissionGrantResponse403 = {
-	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type createPermissionGrantResponse404 = {
-	data: ProblemUserNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type createPermissionGrantResponse409 = {
-	data: ProblemAdminAlreadyExists
+	data: ProblemDetails
 	status: 409
 }
 
 export type createPermissionGrantResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type createPermissionGrantResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -833,8 +769,16 @@ export const createPermissionGrant = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCreatePermissionGrantUrl(), {
 		credentials: "include",
@@ -860,17 +804,7 @@ export const createPermissionGrant = async (
 export const getCreatePermissionGrantMutationKey = () => ["createPermissionGrant"] as const
 
 export const getCreatePermissionGrantMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemUserNotFound
-			| ProblemAdminAlreadyExists
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -907,31 +841,11 @@ export const getCreatePermissionGrantMutationOptions = <
 
 export type CreatePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof createPermissionGrant>>>
 export type CreatePermissionGrantMutationBody = CreatePermissionGrantBody
-export type CreatePermissionGrantMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemAdminAccessRequiredOrPasswordChangeRequired
-		| ProblemUserNotFound
-		| ProblemAdminAlreadyExists
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type CreatePermissionGrantMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type CreatePermissionGrantMutationVariables = { data: CreatePermissionGrantBody }
 
 export const useCreatePermissionGrant = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemUserNotFound
-			| ProblemAdminAlreadyExists
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -958,17 +872,17 @@ export type revokePermissionGrantResponse204 = {
 }
 
 export type revokePermissionGrantResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type revokePermissionGrantResponse403 = {
-	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type revokePermissionGrantResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1013,13 +927,7 @@ export const revokePermissionGrant = async (
 export const getRevokePermissionGrantMutationKey = () => ["revokePermissionGrant"] as const
 
 export const getRevokePermissionGrantMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -1056,20 +964,11 @@ export const getRevokePermissionGrantMutationOptions = <
 
 export type RevokePermissionGrantMutationResult = NonNullable<Awaited<ReturnType<typeof revokePermissionGrant>>>
 
-export type RevokePermissionGrantMutationError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemAdminAccessRequiredOrPasswordChangeRequired | ProblemInternalServerError
-	status?: number
-}
+export type RevokePermissionGrantMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type RevokePermissionGrantMutationVariables = { id: string }
 
 export const useRevokePermissionGrant = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -1096,17 +995,17 @@ export type getMyPermissionsResponse200 = {
 }
 
 export type getMyPermissionsResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type getMyPermissionsResponse403 = {
-	data: ProblemPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type getMyPermissionsResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1151,10 +1050,7 @@ export const getGetMyPermissionsQueryKey = () => {
 
 export const getGetMyPermissionsQueryOptions = <
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>>
 	fetch?: RequestInit
@@ -1174,17 +1070,11 @@ export const getGetMyPermissionsQueryOptions = <
 }
 
 export type GetMyPermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPermissions>>>
-export type GetMyPermissionsQueryError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-	status?: number
-}
+export type GetMyPermissionsQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>> &
@@ -1202,10 +1092,7 @@ export function useGetMyPermissions<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>> &
@@ -1223,10 +1110,7 @@ export function useGetMyPermissions<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>>
@@ -1237,10 +1121,7 @@ export function useGetMyPermissions<
 
 export function useGetMyPermissions<
 	TData = Awaited<ReturnType<typeof getMyPermissions>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequired | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>>
@@ -1263,17 +1144,17 @@ export type listUsersResponse200 = {
 }
 
 export type listUsersResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type listUsersResponse403 = {
-	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type listUsersResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1313,13 +1194,7 @@ export const getListUsersQueryKey = () => {
 
 export const getListUsersQueryOptions = <
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>>
 	fetch?: RequestInit
@@ -1339,20 +1214,11 @@ export const getListUsersQueryOptions = <
 }
 
 export type ListUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listUsers>>>
-export type ListUsersQueryError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemAdminAccessRequiredOrPasswordChangeRequired | ProblemInternalServerError
-	status?: number
-}
+export type ListUsersQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>> &
@@ -1366,13 +1232,7 @@ export function useListUsers<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>> &
@@ -1390,13 +1250,7 @@ export function useListUsers<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>>
@@ -1407,13 +1261,7 @@ export function useListUsers<
 
 export function useListUsers<
 	TData = Awaited<ReturnType<typeof listUsers>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>>
@@ -1436,32 +1284,32 @@ export type resetUserPasswordResponse204 = {
 }
 
 export type resetUserPasswordResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
+	data: ProblemDetails
 	status: 400
 }
 
 export type resetUserPasswordResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type resetUserPasswordResponse403 = {
-	data: ProblemAdminAccessRequiredOrPasswordChangeRequired
+	data: ProblemDetails
 	status: 403
 }
 
 export type resetUserPasswordResponse404 = {
-	data: ProblemUserNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type resetUserPasswordResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type resetUserPasswordResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1491,8 +1339,16 @@ export const resetUserPassword = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getResetUserPasswordUrl(userId), {
 		credentials: "include",
@@ -1518,16 +1374,7 @@ export const resetUserPassword = async (
 export const getResetUserPasswordMutationKey = () => ["resetUserPassword"] as const
 
 export const getResetUserPasswordMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemUserNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -1564,29 +1411,11 @@ export const getResetUserPasswordMutationOptions = <
 
 export type ResetUserPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof resetUserPassword>>>
 export type ResetUserPasswordMutationBody = ResetUserPasswordBody
-export type ResetUserPasswordMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
-		| ProblemAuthenticationRequired
-		| ProblemAdminAccessRequiredOrPasswordChangeRequired
-		| ProblemUserNotFound
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type ResetUserPasswordMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type ResetUserPasswordMutationVariables = { userId: string; data: ResetUserPasswordBody }
 
 export const useResetUserPassword = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed
-			| ProblemAuthenticationRequired
-			| ProblemAdminAccessRequiredOrPasswordChangeRequired
-			| ProblemUserNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {

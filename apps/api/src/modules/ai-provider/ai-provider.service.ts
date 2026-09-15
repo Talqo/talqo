@@ -25,13 +25,11 @@ type Repository = {
 
 export type TextMessage = { content: string; role: "assistant" | "system" | "user" }
 type RuntimeTextMessage = { content: string; role: "assistant" | "user" }
-export type TextGenerationInput = {
+export type PrepareTextOperationInput = {
 	maxOutputTokens: number
 	messages: TextMessage[]
-	signal: AbortSignal
 	timeoutMs: number
 }
-export type PrepareTextOperationInput = Omit<TextGenerationInput, "signal">
 type RawGenerationEvent =
 	| { text: string; type: "text" }
 	| {
@@ -403,12 +401,6 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				if (error instanceof UnusableConfigurationError) throw error
 				throw new UnusableConfigurationError("AI provider configuration is unusable")
 			}
-		},
-		async *streamText(input: TextGenerationInput) {
-			const { signal, ...operationInput } = input
-			const prepared = await this.prepareTextOperation(operationInput)
-			yield { type: "start" as const, provider: prepared.provider, model: prepared.model }
-			for await (const event of prepared.invoke(signal)) yield event
 		},
 	}
 }
