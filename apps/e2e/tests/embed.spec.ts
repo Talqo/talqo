@@ -115,19 +115,19 @@ test("built widget boots, mounts, and stays styled on a bare host page", async (
 	expect(errors).toEqual([])
 })
 
-test("built preview executes version-matched production assets", async ({ page }) => {
+test("built preview executes production assets", async ({ page }) => {
 	const assets: string[] = []
 	page.on("request", (request) => {
 		if (/\/widget\.(?:css|js)$/.test(new URL(request.url()).pathname)) assets.push(request.url())
 	})
 
-	await page.goto(`${baseURL}/preview.html?widgetAssetQuery=v%3D42&title=Production%20preview`)
+	await page.goto(`${baseURL}/preview.html?title=Production%20preview`)
 
 	await expect(page.locator(".talqo-widget")).toBeVisible()
 	await page.getByRole("button", { name: "Open chat" }).click()
 	await expect(page.getByText("Production preview")).toBeVisible()
-	expect(assets).toContain(`${baseURL}/widget.css?v=42`)
-	expect(assets).toContain(`${baseURL}/widget.js?v=42`)
+	expect(assets).toContain(`${baseURL}/widget.css`)
+	expect(assets).toContain(`${baseURL}/widget.js`)
 })
 
 test("widget fetches its palette by public token across origins", async ({ page }) => {

@@ -35,7 +35,7 @@ const turbo = Bun.spawn(
 			TALQO_API_PORT: apiPort,
 			TALQO_WEB_PORT: webPort,
 			TALQO_WIDGET_PORT: widgetPort,
-			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/preview.html`,
+			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/dev-preview.html`,
 			VITE_WIDGET_CDN_URL: `http://localhost:${widgetPort}/widget.js`,
 			VITE_WIDGET_DEMO_API_URL: `http://localhost:${apiPort}`,
 		},
