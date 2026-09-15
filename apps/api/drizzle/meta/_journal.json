@@ -43,6 +43,13 @@
 			"when": 1788210945027,
 			"tag": "0005_widget",
 			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1789395861227,
+			"tag": "0006_end-user-chat",
+			"breakpoints": true
 		}
 	]
 }

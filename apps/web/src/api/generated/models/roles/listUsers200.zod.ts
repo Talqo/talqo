@@ -6,7 +6,7 @@
  */
 import * as zod from "zod"
 
-import { RoleUser } from "./roleUser.zod"
+import { RoleUser } from "../roleUser.zod"
 
 export const ListUsers200 = zod.object({
 	users: zod.array(RoleUser),

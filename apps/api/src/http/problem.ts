@@ -14,8 +14,18 @@ export const PROBLEM_CODES = {
 	AGENT_NAME_TAKEN: "agent-name-taken",
 	AGENT_NOT_FOUND: "agent-not-found",
 	AUTHENTICATION_REQUIRED: "authentication-required",
+	CHAT_CLIENT_ADDRESS_UNAVAILABLE: "chat-client-address-unavailable",
+	CHAT_CONCURRENCY_LIMIT: "chat-concurrency-limit",
+	CHAT_CONTEXT_LIMIT: "chat-context-limit",
+	CHAT_CONVERSATION_TOO_LONG: "chat-conversation-too-long",
+	CHAT_DAILY_ALLOWANCE_EXCEEDED: "chat-daily-allowance-exceeded",
+	CHAT_INPUT_INCOMPATIBLE: "chat-input-incompatible",
+	CHAT_REQUEST_CONFLICT: "chat-request-conflict",
+	CHAT_SESSION_BUSY: "chat-session-busy",
+	CHAT_SESSION_UNAUTHORIZED: "chat-session-unauthorized",
 	CONFIGURATION_CONFLICT: "configuration-conflict",
 	CURRENT_PASSWORD_INCORRECT: "current-password-incorrect",
+	EMBED_NOT_FOUND: "embed-not-found",
 	INTERNAL_SERVER_ERROR: "internal-server-error",
 	INVALID_AI_PROVIDER_CONFIGURATION: "invalid-ai-provider-configuration",
 	INVALID_CREDENTIALS: "invalid-credentials",
@@ -35,7 +45,6 @@ export const PROBLEM_CODES = {
 	ROUTE_NOT_FOUND: "route-not-found",
 	SELF_PASSWORD_RESET_NOT_ALLOWED: "self-password-reset-not-allowed",
 	USER_NOT_FOUND: "user-not-found",
-	WIDGET_NOT_FOUND: "widget-not-found",
 	USERNAME_TAKEN: "username-taken",
 } as const
 
@@ -65,63 +74,23 @@ export const PROBLEMS = Object.freeze(
 	>,
 )
 
-function problemSchemaName(codes: readonly ProblemCode[]) {
-	const suffix = codes
-		.map((code) =>
-			code
-				.split("-")
-				.map((part) => `${part[0]?.toUpperCase()}${part.slice(1)}`)
-				.join(""),
-		)
-		.join("Or")
-	return `Problem${suffix}`
-}
-
-function createProblemVariantSchema(code: ProblemCode) {
-	return z
+const [firstProblemSchema, ...remainingProblemSchemas] = PROBLEM_CODE_VALUES.map((code) =>
+	z
 		.object({
 			code: z.literal(code),
 			type: z.literal(problemDetails(code).type),
 		})
-		.strict()
-		.openapi(problemSchemaName([code]))
+		.strict(),
+)
+if (!firstProblemSchema) throw new Error("At least one problem schema is required")
+
+export const problemDetailsSchema = z
+	.union([firstProblemSchema, ...remainingProblemSchemas])
+	.openapi("ProblemDetails", undefined, { unionPreferredType: "oneOf" })
+
+export function problemSchema(_codes: ProblemCodeSet) {
+	return problemDetailsSchema
 }
-
-const problemVariants = new Map<ProblemCode, ReturnType<typeof createProblemVariantSchema>>()
-
-function problemVariantSchema(code: ProblemCode) {
-	const existing = problemVariants.get(code)
-	if (existing) return existing
-
-	const schema = createProblemVariantSchema(code)
-	problemVariants.set(code, schema)
-	return schema
-}
-
-function createProblemUnionSchema(codes: readonly ProblemCode[], name: string) {
-	return z
-		.union(codes.map((code) => problemVariantSchema(code)))
-		.openapi(name, undefined, { unionPreferredType: "oneOf" })
-}
-
-const problemUnions = new Map<string, ReturnType<typeof createProblemUnionSchema>>()
-
-export function problemSchema(codes: ProblemCodeSet) {
-	const [firstCode, ...remainingCodes] = [...new Set(codes)].toSorted()
-	if (!firstCode) throw new Error("At least one problem code is required")
-	if (remainingCodes.length === 0) return problemVariantSchema(firstCode)
-
-	const canonicalCodes = [firstCode, ...remainingCodes]
-	const componentName = problemSchemaName(canonicalCodes)
-	const existing = problemUnions.get(componentName)
-	if (existing) return existing
-
-	const schema = createProblemUnionSchema(canonicalCodes, componentName)
-	problemUnions.set(componentName, schema)
-	return schema
-}
-
-export const problemDetailsSchema = createProblemUnionSchema(PROBLEM_CODE_VALUES, "ProblemDetails")
 
 export function problemResponse<C extends ProblemCode, S extends ContentfulStatusCode>(
 	context: Context,

@@ -1,18 +1,19 @@
 import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 
+import { createChatClient, type ChatClient, type ChatClientOptions } from "@talqo/sdk"
 import { createRoot, type Root } from "react-dom/client"
 
-import { EmbeddedWidget } from "./embedded-widget"
-import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./lib/embed-config"
+import { ConnectedEmbeddedWidget, EmbeddedWidget } from "./embedded-widget"
+import { apiOrigin, appearanceFromDataset } from "./lib/embed-config"
+import { PreviewWidget } from "./preview"
 
 let root: Root | null = null
 
 export type MountTarget = string | HTMLElement
+export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
+export type MountOptions = { createClient?: ChatClientFactory }
 
 const DEFAULT_TARGET = "#talqo-widget"
-
-// Past this the widget paints with what it has rather than waiting on a slow API.
-const CONFIG_TIMEOUT_MS = 1500
 
 /** Module scope: `document.currentScript` is null by the time mount() runs. */
 const embedScript: HTMLScriptElement | null =
@@ -20,7 +21,7 @@ const embedScript: HTMLScriptElement | null =
 
 function findEmbedScript(): HTMLScriptElement | null {
 	const scripts = document.querySelectorAll<HTMLScriptElement>(
-		"script[data-talqo-widget], script[data-talqo-embed-token]",
+		"script[data-talqo-widget], script[data-talqo-embed-token], script[data-talqo-preview]",
 	)
 	if (scripts.length > 1) {
 		console.warn("TalqoWidget: multiple embed snippets found; using the first")
@@ -35,38 +36,20 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	} catch {
 		element = null
 	}
-	if (element instanceof HTMLElement || target !== DEFAULT_TARGET) {
-		return element instanceof HTMLElement ? element : null
-	}
+	if (element instanceof HTMLElement) return element
+	if (target !== DEFAULT_TARGET) return null
 	const created = document.createElement("div")
 	created.id = DEFAULT_TARGET.slice(1)
 	document.body.append(created)
 	return created
 }
 
-function render(appearance: WidgetAppearanceInput, agentId: string | undefined, hidden: boolean, name?: string) {
+function renderUnavailable(appearance: WidgetAppearanceInput) {
 	const dataset = embedScript?.dataset
-	// A per-page `data-talqo-title` outranks the widget's own name.
-	const title = dataset?.talqoTitle ?? name
-	root?.render(<EmbeddedWidget title={title} agentId={agentId} appearance={appearance} hidden={hidden} />)
+	root?.render(<EmbeddedWidget title={dataset?.talqoTitle} appearance={appearance} unavailable />)
 }
 
-async function loadConfig(origin: string, publicToken: string, overrides: WidgetAppearanceInput): Promise<void> {
-	try {
-		const response = await fetch(configUrl(origin, publicToken), { signal: AbortSignal.timeout(CONFIG_TIMEOUT_MS) })
-		if (!response.ok) {
-			throw new Error(`config request failed: ${response.status}`)
-		}
-		const { agentId, appearance, name } = parseWidgetConfig(await response.json())
-		render(mergeAppearance(appearance, overrides), agentId, false, name)
-	} catch (error) {
-		// A widget that cannot reach its config must still work, in default colors.
-		console.warn("TalqoWidget: falling back to the default appearance", error)
-		render(overrides, undefined, false)
-	}
-}
-
-export function mount(target: MountTarget = DEFAULT_TARGET) {
+export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
 	const element = resolveMountElement(target)
 	if (!element) {
 		console.warn(`TalqoWidget: mount target not found (${typeof target === "string" ? target : "element"})`)
@@ -77,19 +60,21 @@ export function mount(target: MountTarget = DEFAULT_TARGET) {
 	root = createRoot(element)
 
 	const dataset = embedScript?.dataset
-	const publicToken = dataset?.talqoWidget
+	if (dataset?.talqoPreview !== undefined) {
+		root.render(<PreviewWidget />)
+		return
+	}
+	const embedToken = dataset?.talqoEmbedToken ?? dataset?.talqoWidget
 	const origin = apiOrigin(embedScript)
 	const overrides = appearanceFromDataset(dataset)
 
-	// Agent-level `data-talqo-embed-token` snippets and the dev harness fetch nothing.
-	if (!publicToken || !origin) {
-		render(overrides, undefined, false)
+	if (!embedToken || !origin) {
+		renderUnavailable(overrides)
 		return
 	}
 
-	// Hidden rather than deferred: the box is reserved, and no default-color flash.
-	render(overrides, undefined, true)
-	void loadConfig(origin, publicToken, overrides)
+	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken })
+	root.render(<ConnectedEmbeddedWidget client={client} title={dataset?.talqoTitle} appearance={overrides} />)
 }
 
 export function unmount() {

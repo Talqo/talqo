@@ -18,11 +18,13 @@ const devEnv = {
 	APP_SECRET: appSecret,
 	DATABASE_URL: databaseUrl,
 	NODE_ENV: "development",
+	TALQO_ALLOW_INSECURE_SEED: "true",
 }
 
 for (const reservation of reservations) reservation.stop(true)
 
 await $`bun run db:migrate`.cwd(`${root}/apps/api`).env(devEnv)
+await $`bun run db:seed`.cwd(`${root}/apps/api`).env(devEnv)
 
 const turbo = Bun.spawn(
 	["turbo", "run", "dev", "--filter=@talqo/api", "--filter=@talqo/web", "--filter=@talqo/widget", "--ui=tui"],
@@ -33,8 +35,9 @@ const turbo = Bun.spawn(
 			TALQO_API_PORT: apiPort,
 			TALQO_WEB_PORT: webPort,
 			TALQO_WIDGET_PORT: widgetPort,
-			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/preview.html`,
+			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/dev-preview.html`,
 			VITE_WIDGET_CDN_URL: `http://localhost:${widgetPort}/widget.js`,
+			VITE_WIDGET_DEMO_API_URL: `http://localhost:${apiPort}`,
 		},
 		stderr: "inherit",
 		stdin: "inherit",

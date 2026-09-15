@@ -14,7 +14,7 @@ const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
 	: `http://localhost:${widgetPort}`
 const webOrigin = `http://127.0.0.1:${webPort}`
 
-const widgetPreviewUrl = `${widgetOrigin}/preview.html`
+const widgetPreviewUrl = `${widgetOrigin}/dev-preview.html`
 process.env.E2E_WIDGET_CDN_URL = `${widgetOrigin}/widget.js`
 
 export default defineConfig({

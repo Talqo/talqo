@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"resolveJsonModule": true,
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@talqo/sdk": ["../../packages/sdk/src/index.ts"]
 		},
 		"types": ["vite/client", "bun"]
 	},

@@ -1,9 +1,33 @@
 import { defineConfig } from "orval"
 
 export default defineConfig({
+	sdk: {
+		input: {
+			target: "./apps/api/openapi.json",
+			filters: { tags: ["Embed", "Conversation"], schemas: ["ProblemDetails"] },
+		},
+		output: {
+			client: "zod",
+			mode: "single",
+			target: "./packages/sdk/src/generated/contracts.ts",
+			clean: true,
+			override: {
+				zod: {
+					generateReusableSchemas: true,
+					strict: { body: true, response: true },
+					variant: "classic",
+					version: 4,
+				},
+			},
+		},
+	},
 	web: {
 		input: {
 			target: "./apps/api/openapi.json",
+			filters: {
+				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed"],
+				schemas: ["ProblemDetails"],
+			},
 		},
 		output: {
 			client: "react-query",
