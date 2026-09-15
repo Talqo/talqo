@@ -1,4 +1,4 @@
-import { ProblemInvalidRequestOrMalformedJson } from "@/api/generated/models/problemInvalidRequestOrMalformedJson.zod.ts"
+import { ProblemDetails } from "@/api/generated/models/problemDetails.zod.ts"
 import cs from "@/locales/cs.json"
 import en from "@/locales/en.json"
 import zh from "@/locales/zh.json"
@@ -21,13 +21,13 @@ describe("getProblemMessage", () => {
 
 	it("keeps generated response code and type pairs aligned", () => {
 		expect(
-			ProblemInvalidRequestOrMalformedJson.safeParse({
+			ProblemDetails.safeParse({
 				code: "invalid-request",
 				type: "https://docs.talqo.chat/problems#invalid-request",
 			}).success,
 		).toBe(true)
 		expect(
-			ProblemInvalidRequestOrMalformedJson.safeParse({
+			ProblemDetails.safeParse({
 				code: "invalid-request",
 				type: "https://docs.talqo.chat/problems#malformed-json",
 			}).success,
@@ -50,6 +50,17 @@ describe("getProblemMessage", () => {
 			info: {
 				code: "future-problem",
 				type: "https://docs.talqo.chat/problems#future-problem",
+			},
+		}
+
+		expect(getProblemMessage(error, translate, "Fallback")).toBe("Fallback")
+	})
+
+	it("uses the localized fallback for valid problems outside the web API", () => {
+		const error = {
+			info: {
+				code: "chat-session-busy",
+				type: "https://docs.talqo.chat/problems#chat-session-busy",
 			},
 		}
 

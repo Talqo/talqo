@@ -9,7 +9,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
-import { attemptRoute, cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
+import { cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
 import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
@@ -22,10 +22,7 @@ import {
 	SessionUnauthorizedError,
 } from "./conversation.service.ts"
 
-type ConversationService = Pick<
-	ReturnType<typeof getConversationService>,
-	"cancel" | "getAttempt" | "getSession" | "send"
->
+type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
 type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): string | undefined } }) => {
 	forwardedFor: string | undefined
@@ -68,6 +65,18 @@ function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Res
 	if (error instanceof ProviderUnavailableError)
 		return problemResponse(c, PROBLEM_CODES.PROVIDER_ERROR, HTTP_STATUS.BAD_GATEWAY)
 	return undefined
+}
+
+async function withBearer<T>(c: Context, action: (credential: string) => Promise<T>): Promise<T> {
+	try {
+		const credential = bearer(c.req.header("authorization"))
+		if (!credential) throw new SessionUnauthorizedError()
+		return await action(credential)
+	} catch (error) {
+		const mapped = mapError(c, error)
+		if (mapped) return mapped as T
+		throw error
+	}
 }
 
 function sse(event: ChatEvent): Uint8Array {
@@ -158,39 +167,16 @@ export function createConversationRoutes(
 
 	return routes
 		.openapi(sendRoute, send)
-		.openapi(sessionRoute, async (c) => {
-			try {
-				const credential = bearer(c.req.header("authorization"))
-				if (!credential) throw new SessionUnauthorizedError()
-				return c.json(sessionStateSchema.parse(await activeService().getSession(credential)), HTTP_STATUS.OK)
-			} catch (error) {
-				const mapped = mapError(c, error)
-				if (mapped) return mapped as never
-				throw error
-			}
-		})
-		.openapi(attemptRoute, async (c) => {
-			try {
-				const credential = bearer(c.req.header("authorization"))
-				if (!credential) throw new SessionUnauthorizedError()
-				return c.json(await activeService().getAttempt(credential, c.req.valid("param").generationId), HTTP_STATUS.OK)
-			} catch (error) {
-				const mapped = mapError(c, error)
-				if (mapped) return mapped as never
-				throw error
-			}
-		})
-		.openapi(cancelRoute, async (c) => {
-			try {
-				const credential = bearer(c.req.header("authorization"))
-				if (!credential) throw new SessionUnauthorizedError()
+		.openapi(sessionRoute, (c) =>
+			withBearer(c, async (credential) =>
+				c.json(sessionStateSchema.parse(await activeService().getSession(credential)), HTTP_STATUS.OK),
+			),
+		)
+		.openapi(cancelRoute, (c) =>
+			withBearer(c, async (credential) => {
 				const body = c.req.valid("json") as { generationId?: string } | undefined
 				await activeService().cancel(credential, body?.generationId)
 				return c.body(null, HTTP_STATUS.NO_CONTENT)
-			} catch (error) {
-				const mapped = mapError(c, error)
-				if (mapped) return mapped as never
-				throw error
-			}
-		})
+			}),
+		)
 }

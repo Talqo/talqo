@@ -20,73 +20,12 @@ export class ChatTransportError extends Error {
 	}
 }
 
-const PROBLEM_TYPE_BASE = "https://docs.talqo.chat/problems#"
 const HTTP_TOO_MANY_REQUESTS = 429
 const HTTP_SERVER_ERROR = 500
 const MILLISECONDS_PER_SECOND = 1_000
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function hasExactKeys(value: unknown, required: readonly string[], optional: readonly string[] = []): boolean {
-	if (!isRecord(value)) return false
-	const keys = Object.keys(value)
-	return required.every((key) => key in value) && keys.every((key) => required.includes(key) || optional.includes(key))
-}
-
-function isExactConfiguration(value: unknown): boolean {
-	if (!isRecord(value) || !hasExactKeys(value, ["version", "name", "appearance"]) || !isRecord(value.appearance)) {
-		return false
-	}
-	const appearance = value.appearance
-	if (
-		!hasExactKeys(appearance, ["light", "dark", "position", "theme", "themeToggle", "language"]) ||
-		!isRecord(appearance.light) ||
-		!isRecord(appearance.dark)
-	)
-		return false
-	const schemeKeys = ["primary", "textOnPrimary", "background", "surface", "text"] as const
-	return hasExactKeys(appearance.light, schemeKeys) && hasExactKeys(appearance.dark, schemeKeys)
-}
-
-function isExactSession(value: unknown): boolean {
-	if (!isRecord(value) || !hasExactKeys(value, ["messages"], ["activeGeneration"]) || !Array.isArray(value.messages)) {
-		return false
-	}
-	if (
-		!value.messages.every((message: unknown) => hasExactKeys(message, ["id", "role", "text", "createdAt", "outcome"]))
-	) {
-		return false
-	}
-	return value.activeGeneration === undefined || hasExactKeys(value.activeGeneration, ["id"])
-}
-
-function isExactEvent(value: unknown): boolean {
-	if (!isRecord(value) || typeof value.type !== "string") return false
-	switch (value.type) {
-		case "accepted":
-			return (
-				hasExactKeys(value, ["version", "type", "requestId", "generationId", "userMessage", "assistantMessage"]) &&
-				hasExactKeys(value.userMessage, ["id", "createdAt"]) &&
-				hasExactKeys(value.assistantMessage, ["id", "createdAt"])
-			)
-		case "delta":
-			return hasExactKeys(value, ["version", "type", "assistantMessageId", "text"])
-		case "terminal":
-			return hasExactKeys(value, ["version", "type", "outcome"])
-		case "error":
-			return (
-				hasExactKeys(value, ["version", "type", "outcome", "error"]) &&
-				hasExactKeys(value.error, ["code", "message", "retriable", "newChatAvailable"], ["retryAt"])
-			)
-		default:
-			return false
-	}
-}
 
 function endpoint(apiUrl: string, path: string): string {
 	const url = new URL(apiUrl)
@@ -205,19 +144,14 @@ async function problemError(response: Response, signal: AbortSignal, now: () => 
 	}
 	const value = await readJson(response, signal)
 	const parsed = ProblemDetails.safeParse(value)
-	if (
-		!hasExactKeys(value, ["code", "type"]) ||
-		!parsed.success ||
-		parsed.data.type !== `${PROBLEM_TYPE_BASE}${parsed.data.code}`
-	) {
-		return invalidResponse(response.status)
-	}
+	if (!parsed.success) return invalidResponse(response.status)
+	const retry = retryAt(response, now)
 	return new ChatTransportError({
 		code: parsed.data.code,
 		type: parsed.data.type,
 		status: response.status,
 		...errorPolicy(parsed.data.code, response.status),
-		...(retryAt(response, now) === undefined ? {} : { retryAt: retryAt(response, now) }),
+		...(retry === undefined ? {} : { retryAt: retry }),
 	})
 }
 
@@ -226,7 +160,7 @@ async function requireSuccess(response: Response, signal: AbortSignal, now: () =
 }
 
 function parseChatEvent(value: unknown, eventName: string | undefined): ChatEvent | undefined {
-	if (eventName !== "chat" || !isExactEvent(value)) return undefined
+	if (eventName !== "chat") return undefined
 	const parsed = ChatEventV1.safeParse(value)
 	if (!parsed.success) return undefined
 	const { version: _version, ...event } = parsed.data
@@ -247,7 +181,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			await requireSuccess(response, input.signal, now)
 			const value = await readJson(response, input.signal)
 			const parsed = EmbedConfig.safeParse(value)
-			if (!isExactConfiguration(value) || !parsed.success) throw invalidResponse(response.status)
+			if (!parsed.success) throw invalidResponse(response.status)
 			return { title: parsed.data.name, appearance: parsed.data.appearance }
 		},
 
@@ -260,7 +194,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			await requireSuccess(response, input.signal, now)
 			const value = await readJson(response, input.signal)
 			const parsed = GetChatSessionResponse.safeParse(value)
-			if (!isExactSession(value) || !parsed.success) throw invalidResponse(response.status)
+			if (!parsed.success) throw invalidResponse(response.status)
 			return { messages: parsed.data.messages, activeGeneration: parsed.data.activeGeneration }
 		},
 

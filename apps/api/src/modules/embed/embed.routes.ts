@@ -1,4 +1,5 @@
 import type { AuthedVariables } from "@/http/require-auth.ts"
+import type { Context } from "hono"
 
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -31,6 +32,23 @@ function mapDomainError(error: unknown) {
 		return { code: PROBLEM_CODES.AGENT_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	}
 	return null
+}
+
+function serveEmbedConfig(c: Context) {
+	return service
+		.getConfigByToken(c.req.param("embedToken")!)
+		.then((config) => {
+			const etag = `W/"${config.updatedAt.getTime()}"`
+			if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
+			c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
+			c.header("ETag", etag)
+			return c.json(embedConfigResponseSchema.parse(config), HTTP_STATUS.OK)
+		})
+		.catch((error: unknown) => {
+			const mapped = mapDomainError(error)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
+			throw error
+		})
 }
 
 export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
@@ -122,39 +140,11 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 // `/api/embeds`; `embed.routes.test.ts` guards that boundary.
 export const embedConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(
 	getEmbedConfigRoute,
-	async (c) => {
-		try {
-			const config = await service.getConfigByToken(c.req.valid("param").embedToken)
-			const etag = `W/"${config.updatedAt.getTime()}"`
-			if (c.req.header("if-none-match") === etag) {
-				return c.body(null, HTTP_STATUS.NOT_MODIFIED)
-			}
-			c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
-			c.header("ETag", etag)
-			return c.json(embedConfigResponseSchema.parse(config), HTTP_STATUS.OK)
-		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status)
-			throw error
-		}
-	},
+	serveEmbedConfig,
 )
 
 // Compatibility only for already shipped data-talqo-widget snippets. Keep it out of OpenAPI.
 export const legacyWidgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().get(
 	"/:embedToken",
-	async (c) => {
-		try {
-			const config = await service.getConfigByToken(c.req.param("embedToken"))
-			const etag = `W/"${config.updatedAt.getTime()}"`
-			if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
-			c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
-			c.header("ETag", etag)
-			return c.json(embedConfigResponseSchema.parse(config), HTTP_STATUS.OK)
-		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status)
-			throw error
-		}
-	},
+	serveEmbedConfig,
 )

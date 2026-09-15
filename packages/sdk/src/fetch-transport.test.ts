@@ -240,6 +240,16 @@ describe("createFetchChatTransport", () => {
 			streamResponse([
 				'event: chat\ndata: {"version":1,"type":"delta","assistantMessageId":"a","text":"x","extra":true}\n\n',
 			]),
+			streamResponse([
+				`event: chat\ndata: ${JSON.stringify({
+					version: 1,
+					type: "accepted",
+					requestId: REQUEST_ID,
+					generationId: "generation",
+					userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z", extra: true },
+					assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
+				})}\n\n`,
+			]),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
@@ -259,15 +269,32 @@ describe("createFetchChatTransport", () => {
 		])
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
+		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
 	})
 
 	test("strictly validates JSON success and RFC problem responses without exposing raw bodies", async () => {
 		const fake = recordingFetch([
 			jsonResponse({ version: 1, name: "Support", appearance: { ...APPEARANCE, extra: true } }),
 			jsonResponse(
-				{ code: "embed-not-found", type: "https://attacker.invalid/problem", detail: "database leaked" },
+				{
+					code: "embed-not-found",
+					type: "https://docs.talqo.chat/problems#embed-not-found",
+					detail: "database leaked",
+				},
 				{ status: 404, headers: { "Content-Type": "application/problem+json" } },
 			),
+			jsonResponse({
+				messages: [
+					{
+						id: "message",
+						role: "assistant",
+						text: "Hello",
+						createdAt: "2026-09-12T12:00:00Z",
+						outcome: "completed",
+						extra: true,
+					},
+				],
+			}),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
@@ -277,6 +304,8 @@ describe("createFetchChatTransport", () => {
 		const malformedProblem = await rejectedDetail(transport.loadConfiguration(context()))
 		expect(malformedProblem).toMatchObject({ code: "invalid-response", status: 404 })
 		expect(malformedProblem.message).not.toContain("database leaked")
+		const malformedSession = await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))
+		expect(malformedSession).toMatchObject({ code: "invalid-response", status: 200 })
 	})
 
 	test("normalizes stable problem identity, status, and retry/reset headers", async () => {

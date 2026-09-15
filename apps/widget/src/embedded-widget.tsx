@@ -41,12 +41,12 @@ import "./index.css"
 
 export type EmbeddedWidgetProps = {
 	title?: string
-	agentId?: string
 	appearance?: WidgetAppearanceInput
 	/** Held invisible (but laid out) until the fetched configuration settles. */
 	hidden?: boolean
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
+	unavailable?: boolean
 }
 
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
@@ -262,7 +262,6 @@ function outcomeText(outcome: ChatMessage["outcome"], t: (key: string) => string
 
 function WidgetChat({
 	title,
-	agentId,
 	appearance,
 	hidden,
 	forcedScheme,
@@ -271,7 +270,6 @@ function WidgetChat({
 	unavailable,
 }: {
 	title?: string
-	agentId?: string
 	appearance: WidgetAppearance
 	hidden?: boolean
 	forcedScheme?: ColorScheme
@@ -394,7 +392,6 @@ function WidgetChat({
 				scheme === "dark" && "dark",
 			)}
 			style={paletteStyle}
-			data-agent={agentId}
 			data-scheme={scheme}
 		>
 			{open && (
@@ -594,7 +591,7 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedScheme }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavailable }: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -604,7 +601,13 @@ export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedSchem
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} forcedScheme={forcedScheme} />
+			<WidgetChat
+				title={title}
+				appearance={resolved}
+				hidden={hidden}
+				forcedScheme={forcedScheme}
+				unavailable={unavailable}
+			/>
 		</I18nextProvider>
 	)
 }
@@ -612,7 +615,6 @@ export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedSchem
 export function ConnectedEmbeddedWidget({
 	client,
 	title,
-	agentId,
 	appearance,
 	hidden,
 	forcedScheme,
@@ -636,7 +638,6 @@ export function ConnectedEmbeddedWidget({
 		<I18nextProvider i18n={i18n}>
 			<WidgetChat
 				title={title ?? snapshot.configuration?.title}
-				agentId={agentId}
 				appearance={resolved}
 				hidden={
 					hidden ||
@@ -649,16 +650,6 @@ export function ConnectedEmbeddedWidget({
 					initializationFailed && snapshot.initialization !== "error" && snapshot.configuration === undefined
 				}
 			/>
-		</I18nextProvider>
-	)
-}
-
-export function UnavailableEmbeddedWidget(props: EmbeddedWidgetProps) {
-	const resolved = resolveAppearance(props.appearance)
-	const [i18n] = useState(() => createWidgetI18n(resolved.language))
-	return (
-		<I18nextProvider i18n={i18n}>
-			<WidgetChat {...props} appearance={resolved} unavailable />
 		</I18nextProvider>
 	)
 }

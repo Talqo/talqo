@@ -43,7 +43,7 @@ import { type Control, Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
-import { apiOriginOverride, buildEmbedSnippet, widgetScriptUrl } from "./-embed-snippet"
+import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
 
 const COPY_FEEDBACK_MS = 2000
 const NOT_FOUND_STATUS = 404
@@ -217,7 +217,7 @@ function EmbedDetailPage() {
 	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: themeLabel(value, t) }))
 	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
-	const scriptUrl = widgetScriptUrl()
+	const scriptUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
 	const snippet =
 		scriptUrl && embed
 			? buildEmbedSnippet(scriptUrl, {

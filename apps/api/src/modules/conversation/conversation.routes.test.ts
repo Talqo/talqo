@@ -59,7 +59,6 @@ function routes(failure: "embed" | "none" | "post-accept" | "pre-accept" = "none
 			}
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
-		getAttempt: async () => ({ id: "generation", status: "running" as const, assistantText: "partial" }),
 		cancel: async () => undefined,
 	}
 	const app = new OpenAPIHono().route(
@@ -106,11 +105,6 @@ describe("public conversation routes", () => {
 				})
 			).status,
 		).toBe(200)
-		const attempt = await app.request("/chat/attempts/generation", {
-			headers: { Authorization: "Bearer credential" },
-		})
-		expect(attempt.status).toBe(200)
-		expect(await attempt.json()).toEqual({ id: "generation", status: "running", assistantText: "partial" })
 	})
 
 	it("rejects generation when no trustworthy peer address exists", async () => {
@@ -129,7 +123,6 @@ describe("public conversation routes", () => {
 						done: Promise.resolve(),
 					}),
 					getSession: async () => ({ messages: [], activeGeneration: undefined }),
-					getAttempt: async () => ({ id: "generation", status: "running" as const, assistantText: "" }),
 					cancel: async () => undefined,
 				},
 				() => ({ peerAddress: undefined, forwardedFor: undefined }),

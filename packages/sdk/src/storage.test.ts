@@ -3,7 +3,6 @@ import { describe, expect, test } from "bun:test"
 import {
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
-	createLazyLocalStorage,
 	createMemoryStorage,
 	createResilientStorage,
 	readChatStorageRecord,
@@ -11,29 +10,6 @@ import {
 } from "./storage"
 
 describe("chat storage", () => {
-	test("stores values in memory and isolates keys", async () => {
-		const storage = createMemoryStorage()
-		await storage.setItem("first", "one")
-		await storage.setItem("second", "two")
-
-		expect(await storage.getItem("first")).toBe("one")
-		await storage.removeItem("first")
-		expect(await storage.getItem("first")).toBeNull()
-		expect(await storage.getItem("second")).toBe("two")
-	})
-
-	test("does not resolve localStorage until an operation runs", async () => {
-		let resolutions = 0
-		const storage = createLazyLocalStorage(() => {
-			resolutions += 1
-			throw new Error("unavailable")
-		})
-
-		expect(resolutions).toBe(0)
-		await expect(storage.getItem("key")).rejects.toThrow("unavailable")
-		expect(resolutions).toBe(1)
-	})
-
 	test("falls back permanently to memory after a primary storage error", async () => {
 		const primary: AsyncStorage = {
 			getItem: () => Promise.reject(new Error("denied")),

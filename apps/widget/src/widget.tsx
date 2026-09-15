@@ -3,7 +3,7 @@ import type { WidgetAppearanceInput } from "@talqo/shared/widget-appearance"
 import { createChatClient, type ChatClient, type ChatClientOptions } from "@talqo/sdk"
 import { createRoot, type Root } from "react-dom/client"
 
-import { ConnectedEmbeddedWidget, UnavailableEmbeddedWidget } from "./embedded-widget"
+import { ConnectedEmbeddedWidget, EmbeddedWidget } from "./embedded-widget"
 import { apiOrigin, appearanceFromDataset } from "./lib/embed-config"
 import { PreviewWidget } from "./preview"
 
@@ -36,9 +36,8 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	} catch {
 		element = null
 	}
-	if (element instanceof HTMLElement || target !== DEFAULT_TARGET) {
-		return element instanceof HTMLElement ? element : null
-	}
+	if (element instanceof HTMLElement) return element
+	if (target !== DEFAULT_TARGET) return null
 	const created = document.createElement("div")
 	created.id = DEFAULT_TARGET.slice(1)
 	document.body.append(created)
@@ -47,11 +46,7 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 
 function renderUnavailable(appearance: WidgetAppearanceInput) {
 	const dataset = embedScript?.dataset
-	root?.render(<UnavailableEmbeddedWidget title={dataset?.talqoTitle} appearance={appearance} />)
-}
-
-function defaultChatClientFactory(options: Pick<ChatClientOptions, "apiUrl" | "embedToken">): ChatClient {
-	return createChatClient(options)
+	root?.render(<EmbeddedWidget title={dataset?.talqoTitle} appearance={appearance} unavailable />)
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
@@ -78,7 +73,7 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 		return
 	}
 
-	const client = (options.createClient ?? defaultChatClientFactory)({ apiUrl: origin, embedToken })
+	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken })
 	root.render(<ConnectedEmbeddedWidget client={client} title={dataset?.talqoTitle} appearance={overrides} />)
 }
 

@@ -23,21 +23,14 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { CreateEmbed201 } from "../models/embed/createEmbed201.zod"
 import type { CreateEmbedBody } from "../models/embed/createEmbedBody.zod"
-import type { EmbedConfig } from "../models/embed/embedConfig.zod"
 import type { GetEmbed200 } from "../models/embed/getEmbed200.zod"
 import type { ListEmbeds200 } from "../models/embed/listEmbeds200.zod"
 import type { ListEmbedsParams } from "../models/embed/listEmbedsParams.zod"
-import type { ProblemAgentNotFoundOrEmbedNotFound } from "../models/embed/problemAgentNotFoundOrEmbedNotFound.zod"
-import type { ProblemEmbedNotFound } from "../models/embed/problemEmbedNotFound.zod"
 import type { RotateEmbedToken200 } from "../models/embed/rotateEmbedToken200.zod"
 import type { UpdateEmbed200 } from "../models/embed/updateEmbed200.zod"
 import type { UpdateEmbedBody } from "../models/embed/updateEmbedBody.zod"
-import type { ProblemAgentNotFound } from "../models/problemAgentNotFound.zod"
-import type { ProblemAuthenticationRequired } from "../models/problemAuthenticationRequired.zod"
-import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
-import type { ProblemInvalidRequestOrMalformedJson } from "../models/problemInvalidRequestOrMalformedJson.zod"
-import type { ProblemPasswordChangeRequiredOrPermissionDenied } from "../models/problemPasswordChangeRequiredOrPermissionDenied.zod"
-import type { ProblemPayloadTooLarge } from "../models/problemPayloadTooLarge.zod"
+import type { EmbedConfig } from "../models/embedConfig.zod"
+import type { ProblemDetails } from "../models/problemDetails.zod"
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -60,17 +53,17 @@ export type listEmbedsResponse200 = {
 }
 
 export type listEmbedsResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type listEmbedsResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type listEmbedsResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -123,10 +116,7 @@ export const getListEmbedsQueryKey = (params?: ListEmbedsParams) => {
 
 export const getListEmbedsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listEmbeds>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	params?: ListEmbedsParams,
 	options?: {
@@ -149,17 +139,11 @@ export const getListEmbedsQueryOptions = <
 }
 
 export type ListEmbedsQueryResult = NonNullable<Awaited<ReturnType<typeof listEmbeds>>>
-export type ListEmbedsQueryError = globalThis.Error & {
-	info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-	status?: number
-}
+export type ListEmbedsQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useListEmbeds<
 	TData = Awaited<ReturnType<typeof listEmbeds>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	params: undefined | ListEmbedsParams,
 	options: {
@@ -178,10 +162,7 @@ export function useListEmbeds<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListEmbeds<
 	TData = Awaited<ReturnType<typeof listEmbeds>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	params?: ListEmbedsParams,
 	options?: {
@@ -200,10 +181,7 @@ export function useListEmbeds<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListEmbeds<
 	TData = Awaited<ReturnType<typeof listEmbeds>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	params?: ListEmbedsParams,
 	options?: {
@@ -215,10 +193,7 @@ export function useListEmbeds<
 
 export function useListEmbeds<
 	TData = Awaited<ReturnType<typeof listEmbeds>>,
-	TError = globalThis.Error & {
-		info?: ProblemAuthenticationRequired | ProblemPasswordChangeRequiredOrPermissionDenied | ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	params?: ListEmbedsParams,
 	options?: {
@@ -242,32 +217,32 @@ export type createEmbedResponse201 = {
 }
 
 export type createEmbedResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type createEmbedResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type createEmbedResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type createEmbedResponse404 = {
-	data: ProblemAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type createEmbedResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type createEmbedResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -296,8 +271,16 @@ export const createEmbed = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getCreateEmbedUrl(), {
 		credentials: "include",
@@ -322,16 +305,7 @@ export const createEmbed = async (
 export const getCreateEmbedMutationKey = () => ["createEmbed"] as const
 
 export const getCreateEmbedMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createEmbed>>, TError, CreateEmbedMutationVariables, TContext>
@@ -357,29 +331,11 @@ export const getCreateEmbedMutationOptions = <
 
 export type CreateEmbedMutationResult = NonNullable<Awaited<ReturnType<typeof createEmbed>>>
 export type CreateEmbedMutationBody = CreateEmbedBody
-export type CreateEmbedMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFound
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type CreateEmbedMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type CreateEmbedMutationVariables = { data: CreateEmbedBody }
 
 export const useCreateEmbed = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -401,22 +357,22 @@ export type getEmbedResponse200 = {
 }
 
 export type getEmbedResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type getEmbedResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type getEmbedResponse404 = {
-	data: ProblemEmbedNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type getEmbedResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -461,14 +417,7 @@ export const getGetEmbedQueryKey = (embedId: string) => {
 
 export const getGetEmbedQueryOptions = <
 	TData = Awaited<ReturnType<typeof getEmbed>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	embedId: string,
 	options?: {
@@ -491,25 +440,11 @@ export const getGetEmbedQueryOptions = <
 }
 
 export type GetEmbedQueryResult = NonNullable<Awaited<ReturnType<typeof getEmbed>>>
-export type GetEmbedQueryError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemEmbedNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type GetEmbedQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetEmbed<
 	TData = Awaited<ReturnType<typeof getEmbed>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	embedId: string,
 	options: {
@@ -524,14 +459,7 @@ export function useGetEmbed<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetEmbed<
 	TData = Awaited<ReturnType<typeof getEmbed>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	embedId: string,
 	options?: {
@@ -546,14 +474,7 @@ export function useGetEmbed<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetEmbed<
 	TData = Awaited<ReturnType<typeof getEmbed>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	embedId: string,
 	options?: {
@@ -565,14 +486,7 @@ export function useGetEmbed<
 
 export function useGetEmbed<
 	TData = Awaited<ReturnType<typeof getEmbed>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	embedId: string,
 	options?: {
@@ -596,32 +510,32 @@ export type updateEmbedResponse200 = {
 }
 
 export type updateEmbedResponse400 = {
-	data: ProblemInvalidRequestOrMalformedJson
+	data: ProblemDetails
 	status: 400
 }
 
 export type updateEmbedResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type updateEmbedResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type updateEmbedResponse404 = {
-	data: ProblemAgentNotFoundOrEmbedNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type updateEmbedResponse413 = {
-	data: ProblemPayloadTooLarge
+	data: ProblemDetails
 	status: 413
 }
 
 export type updateEmbedResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -651,8 +565,16 @@ export const updateEmbed = async (
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
-		if (Array.isArray(h)) return Object.fromEntries(h)
-		return h
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
 	}
 	const res = await fetch(getUpdateEmbedUrl(embedId), {
 		credentials: "include",
@@ -677,16 +599,7 @@ export const updateEmbed = async (
 export const getUpdateEmbedMutationKey = () => ["updateEmbed"] as const
 
 export const getUpdateEmbedMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFoundOrEmbedNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateEmbed>>, TError, UpdateEmbedMutationVariables, TContext>
@@ -712,29 +625,11 @@ export const getUpdateEmbedMutationOptions = <
 
 export type UpdateEmbedMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmbed>>>
 export type UpdateEmbedMutationBody = UpdateEmbedBody
-export type UpdateEmbedMutationError = globalThis.Error & {
-	info?:
-		| ProblemInvalidRequestOrMalformedJson
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentNotFoundOrEmbedNotFound
-		| ProblemPayloadTooLarge
-		| ProblemInternalServerError
-	status?: number
-}
+export type UpdateEmbedMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type UpdateEmbedMutationVariables = { embedId: string; data: UpdateEmbedBody }
 
 export const useUpdateEmbed = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemInvalidRequestOrMalformedJson
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentNotFoundOrEmbedNotFound
-			| ProblemPayloadTooLarge
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -756,22 +651,22 @@ export type deleteEmbedResponse204 = {
 }
 
 export type deleteEmbedResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type deleteEmbedResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type deleteEmbedResponse404 = {
-	data: ProblemEmbedNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type deleteEmbedResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -813,14 +708,7 @@ export const deleteEmbed = async (embedId: string, options?: RequestInit): Promi
 export const getDeleteEmbedMutationKey = () => ["deleteEmbed"] as const
 
 export const getDeleteEmbedMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteEmbed>>, TError, DeleteEmbedMutationVariables, TContext>
@@ -846,25 +734,11 @@ export const getDeleteEmbedMutationOptions = <
 
 export type DeleteEmbedMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmbed>>>
 
-export type DeleteEmbedMutationError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemEmbedNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type DeleteEmbedMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type DeleteEmbedMutationVariables = { embedId: string }
 
 export const useDeleteEmbed = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -886,22 +760,22 @@ export type rotateEmbedTokenResponse200 = {
 }
 
 export type rotateEmbedTokenResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type rotateEmbedTokenResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type rotateEmbedTokenResponse404 = {
-	data: ProblemEmbedNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type rotateEmbedTokenResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -947,14 +821,7 @@ export const rotateEmbedToken = async (
 export const getRotateEmbedTokenMutationKey = () => ["rotateEmbedToken"] as const
 
 export const getRotateEmbedTokenMutationOptions = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
@@ -991,25 +858,11 @@ export const getRotateEmbedTokenMutationOptions = <
 
 export type RotateEmbedTokenMutationResult = NonNullable<Awaited<ReturnType<typeof rotateEmbedToken>>>
 
-export type RotateEmbedTokenMutationError = globalThis.Error & {
-	info?:
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemEmbedNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type RotateEmbedTokenMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 export type RotateEmbedTokenMutationVariables = { embedId: string }
 
 export const useRotateEmbedToken = <
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemEmbedNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
@@ -1041,12 +894,12 @@ export type getEmbedConfigResponse304 = {
 }
 
 export type getEmbedConfigResponse404 = {
-	data: ProblemEmbedNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type getEmbedConfigResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1094,7 +947,7 @@ export const getGetEmbedConfigQueryKey = (embedToken: string) => {
 
 export const getGetEmbedConfigQueryOptions = <
 	TData = Awaited<ReturnType<typeof getEmbedConfig>>,
-	TError = globalThis.Error & { info?: void | ProblemEmbedNotFound | ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemDetails; status?: number },
 >(
 	embedToken: string,
 	options?: {
@@ -1120,14 +973,11 @@ export const getGetEmbedConfigQueryOptions = <
 }
 
 export type GetEmbedConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getEmbedConfig>>>
-export type GetEmbedConfigQueryError = globalThis.Error & {
-	info?: void | ProblemEmbedNotFound | ProblemInternalServerError
-	status?: number
-}
+export type GetEmbedConfigQueryError = globalThis.Error & { info?: void | ProblemDetails; status?: number }
 
 export function useGetEmbedConfig<
 	TData = Awaited<ReturnType<typeof getEmbedConfig>>,
-	TError = globalThis.Error & { info?: void | ProblemEmbedNotFound | ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemDetails; status?: number },
 >(
 	embedToken: string,
 	options: {
@@ -1146,7 +996,7 @@ export function useGetEmbedConfig<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetEmbedConfig<
 	TData = Awaited<ReturnType<typeof getEmbedConfig>>,
-	TError = globalThis.Error & { info?: void | ProblemEmbedNotFound | ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemDetails; status?: number },
 >(
 	embedToken: string,
 	options?: {
@@ -1165,7 +1015,7 @@ export function useGetEmbedConfig<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetEmbedConfig<
 	TData = Awaited<ReturnType<typeof getEmbedConfig>>,
-	TError = globalThis.Error & { info?: void | ProblemEmbedNotFound | ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemDetails; status?: number },
 >(
 	embedToken: string,
 	options?: {
@@ -1177,7 +1027,7 @@ export function useGetEmbedConfig<
 
 export function useGetEmbedConfig<
 	TData = Awaited<ReturnType<typeof getEmbedConfig>>,
-	TError = globalThis.Error & { info?: void | ProblemEmbedNotFound | ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: void | ProblemDetails; status?: number },
 >(
 	embedToken: string,
 	options?: {

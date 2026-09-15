@@ -14,7 +14,7 @@ export default defineConfig({
 			override: {
 				zod: {
 					generateReusableSchemas: true,
-					strict: { response: true },
+					strict: { body: true, response: true },
 					variant: "classic",
 					version: 4,
 				},
@@ -26,7 +26,7 @@ export default defineConfig({
 			target: "./apps/api/openapi.json",
 			filters: {
 				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed"],
-				schemas: [/.*/],
+				schemas: ["ProblemDetails"],
 			},
 		},
 		output: {

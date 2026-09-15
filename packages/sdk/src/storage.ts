@@ -4,15 +4,9 @@ export type AsyncStorage = {
 	removeItem(key: string): Promise<void>
 }
 
-export type BrowserStorage = {
-	getItem(key: string): string | null
-	setItem(key: string, value: string): void
-	removeItem(key: string): void
-}
-
 export const CHAT_STORAGE_VERSION = 1 as const
 
-export type PendingMessage = {
+type PendingMessage = {
 	requestId: string
 	text: string
 }
@@ -37,14 +31,6 @@ export function createMemoryStorage(): AsyncStorage {
 		removeItem: async (key) => {
 			values.delete(key)
 		},
-	}
-}
-
-export function createLazyLocalStorage(resolve: () => BrowserStorage = () => globalThis.localStorage): AsyncStorage {
-	return {
-		getItem: async (key) => resolve().getItem(key),
-		setItem: async (key, value) => resolve().setItem(key, value),
-		removeItem: async (key) => resolve().removeItem(key),
 	}
 }
 

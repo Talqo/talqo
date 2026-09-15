@@ -13,7 +13,6 @@ import { ChatTransportError, createFetchChatTransport } from "./fetch-transport"
 import {
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
-	createLazyLocalStorage,
 	createMemoryStorage,
 	createResilientStorage,
 	readChatStorageRecord,
@@ -110,7 +109,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	let snapshot = createSnapshot()
 	const storage = createResilientStorage(
-		options.storage ?? createLazyLocalStorage(),
+		options.storage ?? {
+			getItem: async (key) => globalThis.localStorage.getItem(key),
+			setItem: async (key, value) => globalThis.localStorage.setItem(key, value),
+			removeItem: async (key) => globalThis.localStorage.removeItem(key),
+		},
 		createMemoryStorage(),
 		(storageError) => {
 			persistence = "memory"

@@ -3,11 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"exports": {
-		".": "./src/index.ts",
-		"./sse": "./src/sse.ts",
-		"./storage": "./src/storage.ts"
-	},
+	"exports": "./src/index.ts",
 	"scripts": {
 		"test": "bun test",
 		"typecheck": "tsc --noEmit"

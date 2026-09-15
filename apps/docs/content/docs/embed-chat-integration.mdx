@@ -1,13 +1,11 @@
 ---
 title: Embed and chat integration
-description: Configure the widget or stateful browser SDK for public end-user chat.
+description: Configure the widget for public end-user chat.
 ---
 
 ## Terminology and availability
 
 An **embed** is a public integration configuration. It selects one agent and owns its appearance, public embed token, and access version. The **widget** is Talqo's pre-built UI for an embed. The embed token is visible in the host page and is not a visitor credential.
-
-`@talqo/sdk` is workspace-private; use it only within this repository until publication is approved.
 
 ## Widget snippet
 
@@ -25,37 +23,6 @@ Omit `data-talqo-api` when `widget.js` and the API share an origin. New integrat
 
 Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
 
-## SDK lifecycle
-
-Workspace consumers create one client for an API origin and embed token. The built-in fetch transport is used by default; `transport` remains injectable for specialized environments and tests:
-
-```ts
-import { createChatClient } from "@talqo/sdk"
-
-const chat = createChatClient({
-	apiUrl: "https://your-talqo-api",
-	embedToken: "your-embed-token",
-})
-
-const unsubscribe = chat.subscribe(() => render(chat.getSnapshot()))
-
-await chat.initialize()
-await chat.sendMessage("How can I get started?")
-
-// These preserve server-side history.
-await chat.cancelResponse()
-await chat.startNewChat()
-
-unsubscribe()
-chat.dispose()
-```
-
-Construction performs no network work. `initialize()` loads embed configuration and restores server history if storage contains a valid bearer credential. An uncertain send retries the same idempotency key before loading server state. The snapshot owns messages, streaming/generation state, structured errors, recovery, and persistence status; UI code owns rendering, drafts, focus, and localization.
-
-By default, the SDK lazily uses host-page `localStorage`, keyed by API origin and embed token. Supply `createMemoryStorage()` or another `AsyncStorage` adapter when persistence is inappropriate. If persistent storage fails, the client falls back to memory and cannot promise reload recovery. Host-page scripts can read local storage, so the widget does not protect credentials from a compromised host page.
-
-The transport maps the API-owned OpenAPI contracts under `/api/embed-config/:embedToken` and `/api/chat`. Every send includes the embed token in the path and the private credential as `Authorization: Bearer <credential>`; history, attempt recovery, and cancellation use the same bearer. Message sends consume the `POST` response body as a stream rather than buffering it as JSON.
-
 ## Chat behavior
 
 Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge, create embeddings, or call MCP tools. Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
@@ -66,7 +33,7 @@ Streaming uses versioned JSON events in SSE framing over a POST response consume
 
 The API enforces a daily accepted-question allowance and concurrent-generation cap independently for each agent and normalized client network. All embeds and sessions for that agent share the network allowance. This is not a billing quota, token allowance, deployment-wide pool, DDoS defense, or reliable count of people.
 
-IPv4 uses the full address, IPv4-mapped IPv6 shares the IPv4 identity, and native IPv6 defaults to a `/64` network. A `/64` reduces bypass through temporary IPv6 addresses but can group unrelated visitors behind one network; `/128` separates addresses more narrowly and is easier to bypass. Forwarded addresses are trusted only through configured proxy CIDRs. An incorrect trusted-proxy configuration can group clients incorrectly or make chat unavailable.
+Address normalization, trusted proxies, and IPv6 grouping trade-offs are documented in [Deployment](/docs/deployment).
 
 ## Rotation, retention, and deletion
 

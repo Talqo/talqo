@@ -45,10 +45,8 @@ export type ChatSnapshot = {
 	retryAt: string | undefined
 }
 
-export type ServerMessage = ChatMessage
-
 export type SessionState = {
-	messages: readonly ServerMessage[]
+	messages: readonly ChatMessage[]
 	activeGeneration: { id: string } | undefined
 }
 

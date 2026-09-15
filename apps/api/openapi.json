@@ -21,762 +21,636 @@
 			"ProblemDetails": {
 				"oneOf": [
 					{
-						"$ref": "#/components/schemas/ProblemAdminAccessRequired"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-access-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAdminAlreadyExists"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["admin-already-exists"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#admin-already-exists"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentFileInvalid"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentFileNameTaken"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentFileNotFound"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-file-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentInvalid"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-invalid"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-invalid"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentInUse"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-in-use"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-in-use"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentNameTaken"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAgentNotFound"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["agent-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["authentication-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#authentication-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatClientAddressUnavailable"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-client-address-unavailable"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-client-address-unavailable"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatConcurrencyLimit"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-concurrency-limit"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-concurrency-limit"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatContextLimit"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-context-limit"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-context-limit"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatConversationTooLong"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-conversation-too-long"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-conversation-too-long"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatDailyAllowanceExceeded"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-daily-allowance-exceeded"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatInputIncompatible"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-input-incompatible"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-input-incompatible"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatRequestConflict"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-request-conflict"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-request-conflict"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatSessionBusy"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-session-busy"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-session-busy"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["chat-session-unauthorized"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#chat-session-unauthorized"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemConfigurationConflict"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["configuration-conflict"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#configuration-conflict"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemCurrentPasswordIncorrect"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["current-password-incorrect"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#current-password-incorrect"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemEmbedNotFound"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["embed-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#embed-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemInternalServerError"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["internal-server-error"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#internal-server-error"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemInvalidAiProviderConfiguration"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-ai-provider-configuration"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemInvalidCredentials"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-credentials"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-credentials"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemInvalidInvitation"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-invitation"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-invitation"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-request"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-request"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["malformed-json"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemModelDiscoveryUnsupported"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["model-discovery-unsupported"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#model-discovery-unsupported"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemPasswordChangeNotRequired"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-not-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-not-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["password-change-required"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#password-change-required"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["payload-too-large"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#payload-too-large"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemPermissionDenied"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["permission-denied"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#permission-denied"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemProviderCredentialsRejected"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-credentials-rejected"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-credentials-rejected"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemProviderError"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-error"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-error"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemProviderRateLimited"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-rate-limited"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-rate-limited"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemProviderUnreachable"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["provider-unreachable"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#provider-unreachable"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemRequestFailed"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["request-failed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#request-failed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemRouteNotFound"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["route-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#route-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemSelfPasswordResetNotAllowed"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["self-password-reset-not-allowed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemUserNotFound"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["user-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#user-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					},
 					{
-						"$ref": "#/components/schemas/ProblemUsernameTaken"
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["username-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#username-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
 					}
 				]
-			},
-			"ProblemAdminAccessRequired": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["admin-access-required"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAdminAlreadyExists": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["admin-already-exists"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#admin-already-exists"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentFileInvalid": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-file-invalid"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-file-invalid"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentFileNameTaken": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-file-name-taken"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-file-name-taken"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentFileNotFound": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-file-not-found"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-file-not-found"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentInvalid": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-invalid"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-invalid"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentInUse": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-in-use"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-in-use"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentNameTaken": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-name-taken"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-name-taken"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAgentNotFound": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["agent-not-found"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#agent-not-found"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemAuthenticationRequired": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["authentication-required"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#authentication-required"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatClientAddressUnavailable": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-client-address-unavailable"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-client-address-unavailable"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatConcurrencyLimit": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-concurrency-limit"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-concurrency-limit"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatContextLimit": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-context-limit"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-context-limit"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatConversationTooLong": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-conversation-too-long"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-conversation-too-long"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatDailyAllowanceExceeded": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-daily-allowance-exceeded"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatInputIncompatible": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-input-incompatible"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-input-incompatible"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatRequestConflict": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-request-conflict"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-request-conflict"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatSessionBusy": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-session-busy"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-session-busy"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemChatSessionUnauthorized": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["chat-session-unauthorized"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#chat-session-unauthorized"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemConfigurationConflict": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["configuration-conflict"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#configuration-conflict"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemCurrentPasswordIncorrect": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["current-password-incorrect"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#current-password-incorrect"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemEmbedNotFound": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["embed-not-found"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#embed-not-found"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemInternalServerError": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["internal-server-error"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#internal-server-error"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemInvalidAiProviderConfiguration": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["invalid-ai-provider-configuration"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemInvalidCredentials": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["invalid-credentials"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#invalid-credentials"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemInvalidInvitation": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["invalid-invitation"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#invalid-invitation"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemInvalidRequest": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["invalid-request"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#invalid-request"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemMalformedJson": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["malformed-json"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#malformed-json"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemModelDiscoveryUnsupported": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["model-discovery-unsupported"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#model-discovery-unsupported"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemPasswordChangeNotRequired": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["password-change-not-required"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#password-change-not-required"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemPasswordChangeRequired": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["password-change-required"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#password-change-required"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemPayloadTooLarge": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["payload-too-large"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#payload-too-large"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemPermissionDenied": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["permission-denied"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#permission-denied"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemProviderCredentialsRejected": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["provider-credentials-rejected"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#provider-credentials-rejected"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemProviderError": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["provider-error"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#provider-error"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemProviderRateLimited": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["provider-rate-limited"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#provider-rate-limited"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemProviderUnreachable": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["provider-unreachable"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#provider-unreachable"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemRequestFailed": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["request-failed"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#request-failed"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemRouteNotFound": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["route-not-found"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#route-not-found"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemSelfPasswordResetNotAllowed": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["self-password-reset-not-allowed"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemUserNotFound": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["user-not-found"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#user-not-found"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
-			},
-			"ProblemUsernameTaken": {
-				"type": "object",
-				"properties": {
-					"code": {
-						"type": "string",
-						"enum": ["username-taken"]
-					},
-					"type": {
-						"type": "string",
-						"enum": ["https://docs.talqo.chat/problems#username-taken"]
-					}
-				},
-				"required": ["code", "type"],
-				"additionalProperties": false
 			},
 			"HealthResponse": {
 				"type": "object",
@@ -787,58 +661,6 @@
 					}
 				},
 				"required": ["status"]
-			},
-			"ProblemPasswordChangeRequiredOrPermissionDenied": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemPermissionDenied"
-					}
-				]
-			},
-			"ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemInvalidAiProviderConfiguration"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
-			},
-			"ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemInvalidAiProviderConfiguration"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemProviderCredentialsRejected"
-					}
-				]
-			},
-			"ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemModelDiscoveryUnsupported"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemProviderError"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemProviderUnreachable"
-					}
-				]
 			},
 			"User": {
 				"type": "object",
@@ -855,29 +677,6 @@
 				},
 				"required": ["id", "username", "mustChangePassword"]
 			},
-			"ProblemInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
-			},
-			"ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemCurrentPasswordIncorrect"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
-			},
 			"RoleUser": {
 				"type": "object",
 				"properties": {
@@ -892,49 +691,6 @@
 					}
 				},
 				"required": ["id", "username", "mustChangePassword"]
-			},
-			"ProblemAdminAlreadyExistsOrUsernameTaken": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAdminAlreadyExists"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemUsernameTaken"
-					}
-				]
-			},
-			"ProblemInvalidInvitationOrUsernameTaken": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemInvalidInvitation"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemUsernameTaken"
-					}
-				]
-			},
-			"ProblemAdminAccessRequiredOrPasswordChangeRequired": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAdminAccessRequired"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
-					}
-				]
-			},
-			"ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemSelfPasswordResetNotAllowed"
-					}
-				]
 			},
 			"Agent": {
 				"type": "object",
@@ -964,19 +720,6 @@
 					}
 				},
 				"required": ["id", "name", "systemPrompt", "wordBlacklist", "createdAt", "updatedAt"]
-			},
-			"ProblemAgentInvalidOrInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAgentInvalid"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
 			},
 			"Embed": {
 				"type": "object",
@@ -1049,16 +792,6 @@
 					}
 				},
 				"required": ["primary", "textOnPrimary", "background", "surface", "text"]
-			},
-			"ProblemAgentNotFoundOrEmbedNotFound": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAgentNotFound"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemEmbedNotFound"
-					}
-				]
 			},
 			"EmbedConfig": {
 				"type": "object",
@@ -1204,37 +937,6 @@
 					}
 				]
 			},
-			"ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemChatClientAddressUnavailable"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatConcurrencyLimit"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatConversationTooLong"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatDailyAllowanceExceeded"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatRequestConflict"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatSessionBusy"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
-			},
 			"AgentFile": {
 				"type": "object",
 				"properties": {
@@ -1251,29 +953,6 @@
 					}
 				},
 				"required": ["name", "sizeBytes", "createdAt"]
-			},
-			"ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAgentFileInvalid"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemInvalidRequest"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemMalformedJson"
-					}
-				]
-			},
-			"ProblemAgentFileNotFoundOrAgentNotFound": {
-				"oneOf": [
-					{
-						"$ref": "#/components/schemas/ProblemAgentFileNotFound"
-					},
-					{
-						"$ref": "#/components/schemas/ProblemAgentNotFound"
-					}
-				]
 			}
 		},
 		"parameters": {}
@@ -1299,7 +978,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1406,7 +1085,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1416,7 +1095,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1426,7 +1105,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1551,7 +1230,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1561,7 +1240,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1571,7 +1250,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1882,7 +1561,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1892,7 +1571,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1902,7 +1581,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1912,7 +1591,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemConfigurationConflict"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1922,7 +1601,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -1932,7 +1611,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2056,7 +1735,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidAiProviderConfigurationOrInvalidRequestOrMalformedJsonOrProviderCredentialsRejected"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2066,7 +1745,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2076,7 +1755,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2086,7 +1765,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2096,7 +1775,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemProviderRateLimited"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2106,7 +1785,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2116,7 +1795,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemModelDiscoveryUnsupportedOrProviderErrorOrProviderUnreachable"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2173,7 +1852,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2183,7 +1862,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidCredentials"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2193,7 +1872,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2203,7 +1882,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2224,7 +1903,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2265,7 +1944,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2323,7 +2002,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2333,7 +2012,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2343,7 +2022,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2353,7 +2032,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemUsernameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2363,7 +2042,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2373,7 +2052,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2397,7 +2076,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2407,7 +2086,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2417,7 +2096,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2466,7 +2145,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemCurrentPasswordIncorrectOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2476,7 +2155,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2486,7 +2165,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2496,7 +2175,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2540,7 +2219,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2550,7 +2229,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2560,7 +2239,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeNotRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2570,7 +2249,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2580,7 +2259,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2623,7 +2302,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2633,7 +2312,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2643,7 +2322,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2677,7 +2356,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2733,7 +2412,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2743,7 +2422,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAlreadyExistsOrUsernameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2753,7 +2432,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2763,7 +2442,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2806,7 +2485,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2816,7 +2495,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2826,7 +2505,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2889,7 +2568,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2899,7 +2578,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidInvitationOrUsernameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2909,7 +2588,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -2919,7 +2598,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3000,7 +2679,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3010,7 +2689,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3020,7 +2699,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3030,7 +2709,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemUserNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3040,7 +2719,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAlreadyExists"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3050,7 +2729,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3060,7 +2739,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3096,7 +2775,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3106,7 +2785,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3116,7 +2795,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3159,7 +2838,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3169,7 +2848,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3179,7 +2858,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3221,7 +2900,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3231,7 +2910,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3241,7 +2920,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3295,7 +2974,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJsonOrSelfPasswordResetNotAllowed"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3305,7 +2984,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3315,7 +2994,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAdminAccessRequiredOrPasswordChangeRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3325,7 +3004,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemUserNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3335,7 +3014,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3345,7 +3024,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3387,7 +3066,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3397,7 +3076,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3407,7 +3086,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3476,7 +3155,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentInvalidOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3486,7 +3165,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3496,7 +3175,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3506,7 +3185,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3516,7 +3195,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3526,7 +3205,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3575,7 +3254,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3585,7 +3264,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3595,7 +3274,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3605,7 +3284,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3684,7 +3363,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentInvalidOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3694,7 +3373,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3704,7 +3383,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3714,7 +3393,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3724,7 +3403,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3734,7 +3413,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3744,7 +3423,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3778,7 +3457,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3788,7 +3467,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3798,7 +3477,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3808,7 +3487,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentInUse"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3818,7 +3497,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3870,7 +3549,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3880,7 +3559,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -3890,7 +3569,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4022,7 +3701,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4032,7 +3711,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4042,7 +3721,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4052,7 +3731,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4062,7 +3741,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4072,7 +3751,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4121,7 +3800,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4131,7 +3810,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4141,7 +3820,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemEmbedNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4151,7 +3830,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4293,7 +3972,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4303,7 +3982,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4313,7 +3992,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4323,7 +4002,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFoundOrEmbedNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4333,7 +4012,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4343,7 +4022,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4377,7 +4056,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4387,7 +4066,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4397,7 +4076,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemEmbedNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4407,7 +4086,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4456,7 +4135,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4466,7 +4145,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4476,7 +4155,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemEmbedNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4486,7 +4165,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4527,7 +4206,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemEmbedNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4537,7 +4216,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4601,7 +4280,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4611,7 +4290,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4621,7 +4300,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4631,7 +4310,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4641,7 +4320,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatClientAddressUnavailableOrChatConcurrencyLimitOrChatConversationTooLongOrChatDailyAllowanceExceededOrChatRequestConflictOrChatSessionBusyOrChatSessionUnauthorizedOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4651,7 +4330,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4661,7 +4340,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemProviderError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4733,7 +4412,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4743,73 +4422,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/chat/attempts/{generationId}": {
-			"get": {
-				"operationId": "getChatGeneration",
-				"tags": ["Conversation"],
-				"security": [
-					{
-						"ChatBearer": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "generationId",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Persisted generation status",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string",
-											"enum": ["accepted", "running", "completed", "failed", "cancelled", "blocked", "interrupted"]
-										},
-										"assistantText": {
-											"type": "string"
-										}
-									},
-									"required": ["id", "status", "assistantText"]
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "https://docs.talqo.chat/problems",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4850,7 +4463,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemChatSessionUnauthorized"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4860,7 +4473,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4870,7 +4483,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4936,7 +4549,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4946,7 +4559,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4956,7 +4569,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -4966,7 +4579,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5030,7 +4643,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5040,7 +4653,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5050,7 +4663,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5060,7 +4673,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5070,7 +4683,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileNameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5080,7 +4693,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5090,7 +4703,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5165,7 +4778,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileInvalidOrInvalidRequestOrMalformedJson"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5175,7 +4788,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5185,7 +4798,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5195,7 +4808,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileNotFoundOrAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5205,7 +4818,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileNameTaken"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5215,7 +4828,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPayloadTooLarge"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5225,7 +4838,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5267,7 +4880,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileInvalid"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5277,7 +4890,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5287,7 +4900,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5297,7 +4910,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileNotFoundOrAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
@@ -5307,7 +4920,7 @@
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
