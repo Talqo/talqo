@@ -1,10 +1,6 @@
 import ipaddr from "ipaddr.js"
 import { createHmac } from "node:crypto"
 
-const IPV6_BIT_LENGTH = 128
-const BITS_PER_BYTE = 8
-const HIGHEST_BIT_INDEX = 7
-
 function parseAddress(value: string): ipaddr.IPv4 | ipaddr.IPv6 {
 	const address = ipaddr.parse(value.trim())
 	return address instanceof ipaddr.IPv6 && address.isIPv4MappedAddress() ? address.toIPv4Address() : address
@@ -19,12 +15,7 @@ function trusted(address: ipaddr.IPv4 | ipaddr.IPv6, cidrs: readonly string[]): 
 
 function network(address: ipaddr.IPv4 | ipaddr.IPv6, ipv6Prefix: number): string {
 	if (address.kind() === "ipv4") return `${address.toString()}/32`
-	const bytes = address.toByteArray()
-	for (let bit = ipv6Prefix; bit < IPV6_BIT_LENGTH; bit += 1) {
-		const byte = Math.floor(bit / BITS_PER_BYTE)
-		bytes[byte] = (bytes[byte] ?? 0) & ~(1 << (HIGHEST_BIT_INDEX - (bit % BITS_PER_BYTE)))
-	}
-	return `${ipaddr.fromByteArray(bytes).toString()}/${ipv6Prefix}`
+	return `${ipaddr.IPv6.networkAddressFromCIDR(`${address.toString()}/${ipv6Prefix}`).toString()}/${ipv6Prefix}`
 }
 
 export function resolveClientNetwork(
