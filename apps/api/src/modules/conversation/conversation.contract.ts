@@ -1,4 +1,4 @@
-import { CHAT_ABSOLUTE_MAX_INPUT_CHARACTERS } from "@/config/env.ts"
+import { MAX_CHAT_INPUT_CHARACTERS } from "@/config/env.ts"
 import { chatBearerSecurity, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
@@ -56,7 +56,7 @@ const sendBody = z.object({
 	text: z
 		.string()
 		.min(1)
-		.refine((text) => [...text].length <= CHAT_ABSOLUTE_MAX_INPUT_CHARACTERS),
+		.refine((text) => [...text].length <= MAX_CHAT_INPUT_CHARACTERS),
 })
 const cancelBody = z.object({ generationId: z.string().optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })
