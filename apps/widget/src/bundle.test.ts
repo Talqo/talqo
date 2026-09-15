@@ -27,9 +27,9 @@ describe("built embed bundle", () => {
 	test("ships a preview page backed by the production bundle", () => {
 		const html = readFileSync(new URL("../dist/preview.html", import.meta.url), "utf8")
 
-		expect(html).toContain('"./widget.css"')
-		expect(html).toContain('"./widget.js"')
-		expect(html).toContain("talqoPreview")
+		expect(html).toContain('href="./widget.css"')
+		expect(html).toContain('src="./widget.js"')
+		expect(html).toContain("data-talqo-preview")
 		expect(html).not.toContain("/src/")
 	})
 })

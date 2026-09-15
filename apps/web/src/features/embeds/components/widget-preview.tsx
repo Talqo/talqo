@@ -1,15 +1,13 @@
 import type { WidgetAppearance, WidgetPosition, WidgetScheme } from "@talqo/shared/widget-appearance"
 
 import { configMessage, isReadyMessage } from "@/features/embeds/preview-channel.ts"
-import { widgetPreviewUrl } from "@/features/embeds/widget-preview-url.ts"
 import { cn } from "@talqo/ui/lib/utils"
 import { type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-const PREVIEW_URL = widgetPreviewUrl(
-	import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined,
-	import.meta.env.VITE_WIDGET_CDN_URL as string | undefined,
-)
+const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined
+const widgetUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+const PREVIEW_URL = configuredPreviewUrl ?? (widgetUrl ? new URL("preview.html", widgetUrl).toString() : undefined)
 
 const FRAME_WIDTH = 336
 

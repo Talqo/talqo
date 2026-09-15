@@ -9,19 +9,6 @@ import svgr from "vite-plugin-svgr"
 const SCOPE = ".talqo-widget"
 const DEFAULT_WIDGET_PORT = 5174
 const MAX_LEAKED_SELECTORS = 5
-const SOURCE_PREVIEW_ENTRY = '<script type="module" src="/src/widget.tsx" data-talqo-preview></script>'
-const BUILT_PREVIEW_ENTRY = `<script>
-			const query = new URLSearchParams(window.location.search).get("widgetAssetQuery")
-			const suffix = query ? "?" + query : ""
-			const style = document.createElement("link")
-			style.rel = "stylesheet"
-			style.href = "./widget.css" + suffix
-			document.head.append(style)
-			const widget = document.createElement("script")
-			widget.src = "./widget.js" + suffix
-			widget.dataset.talqoPreview = ""
-			document.body.append(widget)
-		</script>`
 
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
@@ -116,23 +103,6 @@ function widgetCssPlugin(): Plugin {
 	}
 }
 
-function previewHtmlPlugin(): Plugin {
-	let root = ""
-	return {
-		name: "talqo-widget-preview-html",
-		apply: "build",
-		configResolved: (config) => {
-			root = config.root
-		},
-		generateBundle: async function () {
-			const source = await readFile(path.join(root, "preview.html"), "utf8")
-			if (!source.includes(SOURCE_PREVIEW_ENTRY)) throw new Error("widgetPreviewHtml: preview entry not found")
-			const html = source.replace(SOURCE_PREVIEW_ENTRY, BUILT_PREVIEW_ENTRY)
-			this.emitFile({ type: "asset", fileName: "preview.html", source: html })
-		},
-	}
-}
-
 export default defineConfig({
 	define: {
 		"process.env.NODE_ENV": JSON.stringify("production"),
@@ -150,7 +120,7 @@ export default defineConfig({
 			},
 		},
 	},
-	plugins: [react(), svgr(), tailwindcss(), widgetCssPlugin(), previewHtmlPlugin()],
+	plugins: [react(), svgr(), tailwindcss(), widgetCssPlugin()],
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src`,
