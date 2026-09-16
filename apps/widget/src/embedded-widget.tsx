@@ -29,6 +29,7 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
+import NewChatIcon from "./assets/icons/new-chat.svg?react"
 import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import StopIcon from "./assets/icons/stop.svg?react"
@@ -490,9 +491,9 @@ function WidgetChat({
 									disabled={!canStartNewChat}
 									aria-label={t("newChat")}
 									title={t("newChatTooltip")}
-									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:text-xl tw:leading-none tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
+									className="tw:mr-1 tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
 								>
-									<span aria-hidden="true">+</span>
+									<NewChatIcon aria-hidden="true" />
 								</button>
 							)}
 							{appearance.themeToggle && (
@@ -500,7 +501,7 @@ function WidgetChat({
 									type="button"
 									onClick={() => setVisitorScheme(scheme === "dark" ? "light" : "dark")}
 									aria-label={scheme === "dark" ? t("switchToLight") : t("switchToDark")}
-									className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
 								>
 									{scheme === "dark" ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
 								</button>
@@ -509,7 +510,7 @@ function WidgetChat({
 								type="button"
 								onClick={() => setOpen(false)}
 								aria-label={t("closeChat")}
-								className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+								className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
 							>
 								<CloseIcon aria-hidden="true" />
 							</button>

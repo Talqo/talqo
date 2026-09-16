@@ -27,7 +27,7 @@
 	"initializing": "Loading chat...",
 	"messageLabel": "Message",
 	"newChat": "New chat",
-	"newChatTooltip": "Start a new chat",
+	"newChatTooltip": "Start a new chat and clear this conversation",
 	"nextUtcDay": "at the next UTC day",
 	"openChat": "Open chat",
 	"outcomeBlocked": "Response blocked",

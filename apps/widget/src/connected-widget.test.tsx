@@ -240,7 +240,14 @@ describe("ConnectedEmbeddedWidget", () => {
 		await draft("unsent")
 
 		const button = host.querySelector<HTMLButtonElement>("button[aria-label='New chat']")
-		expect(button?.title).toBe("Start a new chat")
+		expect(button?.title).toBe("Start a new chat and clear this conversation")
+		expect(button?.querySelector("svg")).not.toBeNull()
+		expect(button?.textContent).toBe("")
+		for (const control of host.querySelectorAll("header button")) {
+			expect(control.className).toContain("tw:size-6")
+			expect(control.className).toContain("tw:items-center")
+			expect(control.className).toContain("tw:justify-center")
+		}
 		await act(async () => button?.click())
 
 		expect(store.calls.newChat).toBe(1)
