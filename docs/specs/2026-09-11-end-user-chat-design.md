@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Deliver public, anonymous, multi-turn streaming chat through the embedded widget and a stateful, framework-independent browser SDK. The model receives the saved agent system prompt, completed conversation history, and current user message. There is no retrieval or tool execution.
+Deliver public, anonymous, multi-turn streaming chat through the embedded widget and a stateful, framework-independent browser SDK. The model receives the fixed platform system prompt followed by the saved agent system prompt, completed conversation history, and current user message. There is no retrieval or tool execution.
 
 ## Scope And Approach
 
@@ -48,7 +48,7 @@ widget or custom browser UI
 | Owner | Responsibility |
 | --- | --- |
 | `embed` | Agent association, appearance, public embed token, token rotation, and integration validity |
-| `agent` | Saved system prompt, blacklist, existing configuration, and agent deletion |
+| `agent` | Fixed platform prompt, saved system prompt, prompt composition, blacklist, existing configuration, and agent deletion |
 | `conversation` | Session credentials, conversations, messages, daily allowance counters, generation reservations/lifecycle, and orchestration |
 | `ai-provider` | Operation-scoped configured text model; credentials remain private |
 | `usage` | Normalize and persist input/output counts attributed to each model-call attempt |
