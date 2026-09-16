@@ -459,6 +459,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						...(activeGenerationId === undefined ? {} : { generationId: activeGenerationId }),
 					})
 				}
+				if (preAcceptance && pendingMessage !== undefined && credential !== undefined) {
+					const requestId = pendingMessage.requestId
+					pendingMessage = undefined
+					replaceMessage(`pending:${requestId}`, (message) => ({ ...message, outcome: "interrupted" }))
+					await persist({ version: CHAT_STORAGE_VERSION, credential })
+				}
 				if (activeSend !== undefined) {
 					activeSend.cancellationRequested = true
 					activeSend.controller.abort(new Error("Chat response cancelled"))

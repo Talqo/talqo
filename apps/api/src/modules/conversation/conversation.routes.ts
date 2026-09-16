@@ -67,14 +67,15 @@ function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Res
 	return undefined
 }
 
-async function withBearer<T>(c: Context, action: (credential: string) => Promise<T>): Promise<T> {
+async function withBearer<T>(c: Context, action: (credential: string) => Promise<T>) {
 	try {
 		const credential = bearer(c.req.header("authorization"))
 		if (!credential) throw new SessionUnauthorizedError()
 		return await action(credential)
 	} catch (error) {
-		const mapped = mapError(c, error)
-		if (mapped) return mapped as T
+		if (error instanceof SessionUnauthorizedError) {
+			return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
+		}
 		throw error
 	}
 }
