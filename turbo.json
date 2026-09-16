@@ -38,17 +38,14 @@
 		},
 		"e2e": {
 			"cache": false,
-			"dependsOn": ["@talqo/widget#build"],
-			"passThroughEnv": ["APP_SECRET", "DATABASE_URL", "TALQO_API_PORT", "TALQO_WEB_PORT"]
+			"dependsOn": ["@talqo/widget#build"]
 		},
 		"test": {
-			"dependsOn": ["^build"],
-			"passThroughEnv": ["APP_SECRET", "DATABASE_URL"]
+			"dependsOn": ["^build"]
 		},
 		"test:integration": {
 			"cache": false,
-			"dependsOn": ["^build"],
-			"passThroughEnv": ["APP_SECRET", "DATABASE_URL"]
+			"dependsOn": ["^build"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck"]
