@@ -27,7 +27,7 @@
 	"initializing": "Načítání chatu...",
 	"messageLabel": "Zpráva",
 	"newChat": "Nový chat",
-	"newChatTooltip": "Zahájit nový chat",
+	"newChatTooltip": "Zahájit nový chat a vymazat tuto konverzaci",
 	"nextUtcDay": "na začátku dalšího dne UTC",
 	"openChat": "Otevřít chat",
 	"outcomeBlocked": "Odpověď zablokována",

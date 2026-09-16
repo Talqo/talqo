@@ -27,7 +27,7 @@
 	"initializing": "正在加载聊天...",
 	"messageLabel": "消息",
 	"newChat": "新聊天",
-	"newChatTooltip": "开始新聊天",
+	"newChatTooltip": "开始新聊天并清除当前对话",
 	"nextUtcDay": "下一个 UTC 日开始时",
 	"openChat": "打开聊天",
 	"outcomeBlocked": "回复已屏蔽",
