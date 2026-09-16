@@ -4176,7 +4176,7 @@
 		"/api/embed-config/{embedToken}": {
 			"get": {
 				"operationId": "getEmbedConfig",
-				"tags": ["Embed"],
+				"tags": ["Public Chat"],
 				"parameters": [
 					{
 						"schema": {
@@ -4227,7 +4227,7 @@
 		"/api/chat/{embedToken}/messages": {
 			"post": {
 				"operationId": "sendChatMessage",
-				"tags": ["Conversation"],
+				"tags": ["Public Chat"],
 				"security": [
 					{
 						"ChatBearer": []
@@ -4351,7 +4351,7 @@
 		"/api/chat/session": {
 			"get": {
 				"operationId": "getChatSession",
-				"tags": ["Conversation"],
+				"tags": ["Public Chat"],
 				"security": [
 					{
 						"ChatBearer": []
@@ -4433,7 +4433,7 @@
 		"/api/chat/cancel": {
 			"post": {
 				"operationId": "cancelChatGeneration",
-				"tags": ["Conversation"],
+				"tags": ["Public Chat"],
 				"security": [
 					{
 						"ChatBearer": []

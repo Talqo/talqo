@@ -80,7 +80,7 @@ export const sendRoute = createRoute({
 	method: "post",
 	path: "/{embedToken}/messages",
 	operationId: "sendChatMessage",
-	tags: ["Conversation"],
+	tags: ["Public Chat"],
 	security: chatBearerSecurity,
 	request: {
 		params: embedParams,
@@ -102,7 +102,7 @@ export const sessionRoute = createRoute({
 	method: "get",
 	path: "/session",
 	operationId: "getChatSession",
-	tags: ["Conversation"],
+	tags: ["Public Chat"],
 	security: chatBearerSecurity,
 	responses: {
 		200: { content: { "application/json": { schema: sessionStateSchema } }, description: "Conversation history" },
@@ -115,7 +115,7 @@ export const cancelRoute = createRoute({
 	method: "post",
 	path: "/cancel",
 	operationId: "cancelChatGeneration",
-	tags: ["Conversation"],
+	tags: ["Public Chat"],
 	security: chatBearerSecurity,
 	request: { body: { required: false, content: { "application/json": { schema: cancelBody } } } },
 	responses: {

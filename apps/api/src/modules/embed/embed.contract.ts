@@ -223,7 +223,7 @@ export const getEmbedConfigRoute = createRoute({
 	method: "get",
 	path: "/{embedToken}",
 	operationId: "getEmbedConfig",
-	tags: ["Embed"],
+	tags: ["Public Chat"],
 	request: { params: embedTokenParamsSchema },
 	responses: {
 		200: {
