@@ -162,6 +162,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	function applySession(session: SessionState): void {
 		messages = freezeMessages(session.messages)
 		activeGenerationId = session.activeGeneration?.id
+		error = undefined
+		retryAt = undefined
 		if (session.activeGeneration === undefined) {
 			generation = "idle"
 			recovery = "idle"
@@ -310,6 +312,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function sendMessage(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
+		if (reset === "resetting") throw new Error("Chat session is resetting")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {
 			throw new Error("The pending message must be recovered before sending another message")
@@ -493,6 +496,21 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return cancellation
 	}
 
+	async function retryLastMessage(): Promise<void> {
+		requireUsable()
+		if (error?.retriable !== true) throw new Error("The latest chat error is not retriable")
+		const failedAssistantIndex = messages.length - 1
+		const failedAssistant = messages[failedAssistantIndex]
+		if (failedAssistant?.role !== "assistant" || failedAssistant.outcome !== "failed") {
+			throw new Error("No failed response is available to retry")
+		}
+		const failedUserMessage = messages
+			.slice(0, failedAssistantIndex)
+			.findLast((message) => message.role === "user" && message.outcome === "completed")
+		if (failedUserMessage === undefined) throw new Error("No failed message is available to retry")
+		await sendMessage(failedUserMessage.text)
+	}
+
 	async function startNewChat(): Promise<void> {
 		requireUsable()
 		if (reset === "resetting") return
@@ -533,6 +551,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		getSnapshot: () => snapshot,
 		initialize,
 		sendMessage,
+		retryLastMessage,
 		cancelResponse,
 		startNewChat,
 		dispose() {

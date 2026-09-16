@@ -416,6 +416,14 @@ function WidgetChat({
 		}
 	}
 
+	async function handleRetry() {
+		try {
+			await client?.retryLastMessage()
+		} catch {
+			// The SDK snapshot owns retry failures and recovery.
+		}
+	}
+
 	const paletteStyle = {
 		"--talqo-primary-input": active.primary,
 		"--talqo-text-on-primary-input": active.textOnPrimary,
@@ -547,19 +555,25 @@ function WidgetChat({
 								<p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
 							)}
 							{snapshot?.recovery === "unavailable" && (
-								<p role="alert" className="tw:text-destructive tw:text-sm">
+								<p
+									role="alert"
+									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+								>
 									{t("recoveryUnavailable")}
 								</p>
 							)}
 							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage-unavailable" && (
-								<p role="status" className="tw:text-muted-foreground tw:text-sm">
+								<p
+									role="status"
+									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+								>
 									{t("errorStorageUnavailable")}
 								</p>
 							)}
 							{visibleError && (
 								<div
 									role="alert"
-									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-muted tw:p-3 tw:text-sm"
+									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
 								>
 									<p>{errorText(visibleError, t)}</p>
 									{visibleError.code === "chat-daily-allowance-exceeded" &&
@@ -570,6 +584,17 @@ function WidgetChat({
 												})}
 											</time>
 										)}
+									{visibleError.retriable === true && (
+										<button
+											type="button"
+											onClick={() => void handleRetry()}
+											disabled={resetting}
+											aria-label={t("retry")}
+											className="tw:rounded-control tw:border tw:border-destructive tw:px-3 tw:py-2 tw:text-destructive tw:disabled:opacity-50"
+										>
+											{t("retry")}
+										</button>
+									)}
 									{errorAllowsNewChat(visibleError) && (
 										<button
 											type="button"

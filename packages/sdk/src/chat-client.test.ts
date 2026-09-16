@@ -628,54 +628,128 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().messages).toEqual([expect.objectContaining({ id: "u1", outcome: "completed" })])
 	})
 
-	test("treats a stream that closes without a terminal event as recovery work", async () => {
+	test("clears transient error details as soon as an active generation is recovered", async () => {
 		const recoveryStarted = deferred<void>()
 		const recoveredSession = deferred<Awaited<ReturnType<ChatTransport["loadSession"]>>>()
+		let loads = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			transport: baseTransport({
 				loadSession: async () => {
+					loads += 1
+					if (loads > 1) return new Promise<never>(() => undefined)
 					recoveryStarted.resolve()
 					return recoveredSession.promise
 				},
-				sendMessage: async () =>
-					streamFrom([
-						{
-							type: "accepted",
+				sendMessage: async () => ({
+					async *[Symbol.asyncIterator]() {
+						yield {
+							type: "accepted" as const,
 							requestId: "request",
 							generationId: "generation",
 							userMessage: { id: "u1", createdAt: "now" },
 							assistantMessage: { id: "a1", createdAt: "now" },
-						},
-					]),
+						}
+						throw new ChatTransportError({
+							code: "transport-error",
+							retryAt: "2026-09-13T00:00:00.000Z",
+						})
+					},
+				}),
 			}),
 			randomUUID: () => "11111111-1111-4111-8111-111111111111",
 			recoveryDelays: [0],
 		})
 		await client.initialize()
 
-		await expect(client.sendMessage("hello")).rejects.toThrow("terminal event")
-		expect(client.getSnapshot()).toMatchObject({ generation: "recovery", recovery: "pending" })
+		await expect(client.sendMessage("hello")).rejects.toThrow("transport-error")
+		expect(client.getSnapshot()).toMatchObject({
+			generation: "recovery",
+			recovery: "pending",
+			error: { code: "transport-error" },
+			retryAt: "2026-09-13T00:00:00.000Z",
+		})
 		expect(client.getSnapshot().messages[0]).toMatchObject({ outcome: "completed" })
 		expect(client.getSnapshot().messages[1]).toMatchObject({ outcome: "interrupted" })
 
 		await recoveryStarted.promise
-		const recoveryFinished = deferred<void>()
+		const recoveryObserved = deferred<void>()
 		const unsubscribe = client.subscribe(() => {
-			if (client.getSnapshot().recovery === "idle") recoveryFinished.resolve()
+			if (client.getSnapshot().messages.at(-1)?.text === "recovered") recoveryObserved.resolve()
 		})
 		recoveredSession.resolve({
 			messages: [
 				{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
-				{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "completed" },
+				{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "streaming" },
 			],
-			activeGeneration: undefined,
+			activeGeneration: { id: "generation" },
 		})
-		await recoveryFinished.promise
+		await recoveryObserved.promise
 		unsubscribe()
-		expect(client.getSnapshot()).toMatchObject({ generation: "idle", recovery: "idle" })
-		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
+		expect(client.getSnapshot()).toMatchObject({
+			generation: "recovery",
+			recovery: "pending",
+			error: undefined,
+			retryAt: undefined,
+		})
+		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "streaming" })
+		client.dispose()
+	})
+
+	test("retries the latest retriable failed turn as a new attempt", async () => {
+		const sent: string[] = []
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async ({ text }) => {
+					sent.push(text)
+					const suffix = sent.length
+					return streamFrom([
+						{
+							type: "accepted",
+							requestId: `request-${suffix}`,
+							generationId: `generation-${suffix}`,
+							userMessage: { id: `user-${suffix}`, createdAt: "now" },
+							assistantMessage: { id: `assistant-${suffix}`, createdAt: "now" },
+						},
+						...(suffix === 1
+							? ([
+									{
+										type: "error",
+										outcome: "failed",
+										error: { code: "provider-error", retriable: true, newChatAvailable: false },
+									},
+								] as const)
+							: ([{ type: "terminal", outcome: "completed" }] as const)),
+					])
+				},
+			}),
+			randomUUID: (() => {
+				const values = [
+					"11111111-1111-4111-8111-111111111111",
+					"22222222-2222-4222-8222-222222222222",
+					"33333333-3333-4333-8333-333333333333",
+				]
+				return () => values.shift()!
+			})(),
+		})
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("provider-error")
+
+		await client.retryLastMessage()
+
+		expect(sent).toEqual(["hello", "hello"])
+		expect(client.getSnapshot()).toMatchObject({
+			error: undefined,
+			messages: [
+				{ id: "user-1", outcome: "completed" },
+				{ id: "assistant-1", outcome: "failed" },
+				{ id: "user-2", outcome: "completed" },
+				{ id: "assistant-2", outcome: "completed" },
+			],
+		})
 	})
 
 	test("keeps the accepted user completed when the stream fails", async () => {
@@ -940,6 +1014,55 @@ describe("createChatClient", () => {
 		expect(order).toEqual(["cancel", "cleared"])
 		expect(client.getSnapshot()).toMatchObject({ messages: [], generation: "idle", reset: "idle" })
 		expect(await storage.getItem(key)).toBeNull()
+	})
+
+	test("rejects retry while a new-chat reset owns the session state", async () => {
+		const memory = createMemoryStorage()
+		const removal = deferred<void>()
+		let blockRemoval = false
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: {
+				getItem: (key) => memory.getItem(key),
+				setItem: (key, value) => memory.setItem(key, value),
+				async removeItem(key) {
+					if (blockRemoval) await removal.promise
+					await memory.removeItem(key)
+				},
+			},
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					return streamFrom([
+						{
+							type: "accepted",
+							requestId: "request",
+							generationId: "generation",
+							userMessage: { id: "user", createdAt: "now" },
+							assistantMessage: { id: "assistant", createdAt: "now" },
+						},
+						{
+							type: "error",
+							outcome: "failed",
+							error: { code: "provider-error", retriable: true, newChatAvailable: false },
+						},
+					])
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+		})
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("provider-error")
+		blockRemoval = true
+
+		const resetting = client.startNewChat()
+		await expect(client.retryLastMessage()).rejects.toThrow("resetting")
+
+		expect(sends).toBe(1)
+		removal.resolve()
+		await resetting
 	})
 
 	test("keeps the conversation when cancellation makes reset fail", async () => {

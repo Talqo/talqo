@@ -216,6 +216,7 @@ chat.subscribe(listener);
 chat.getSnapshot();
 await chat.initialize();
 await chat.sendMessage(text);
+await chat.retryLastMessage();
 await chat.cancelResponse();
 await chat.startNewChat();
 chat.dispose();
@@ -235,7 +236,7 @@ Build a workspace package with declared exports appropriate for eventual public 
 
 ## Widget Behavior
 
-The widget owns draft text, focus, scrolling, panel state, resizing, themes, accessibility, and localization. It has no separate transcript store, direct API fetches, session lifecycle, stream parser, or generation retry logic. It renders SDK configuration and may apply supported local presentation overrides.
+The widget owns draft text, focus, scrolling, panel state, resizing, themes, accessibility, and localization. It has no separate transcript store, direct API fetches, session lifecycle, stream parser, or generation retry logic. It renders SDK configuration and may apply supported local presentation overrides. When the SDK exposes a retriable error, the widget offers an explicit retry action backed by `retryLastMessage()`; the SDK selects the failed turn and starts the new attempt.
 
 Provide a New chat button in the chat-panel header beside the existing theme/close controls. An icon button must have a localized accessible name and tooltip. It is available whenever a conversation exists, not only after reaching a length limit; disable it during initialization and while a reset is already pending. Invoke the SDK's `startNewChat()` rather than clearing widget-owned message state. If generation is active, the SDK first requests cancellation. On successful reset, show the initial greeting, preserve any unsent draft, and focus the message input. Keep the current conversation visible and report an error if reset fails. The conversation-length notice exposes the same New chat action. Reset does not delete server history or reset the network allowance, and the initial UI greeting is not added to model history.
 
