@@ -835,10 +835,12 @@ describe("createChatClient", () => {
 
 	test("uses the stored bearer to cancel before acceptance", async () => {
 		const started = deferred<void>()
+		const storage = createMemoryStorage()
 		let cancellation: Parameters<ChatTransport["cancelResponse"]>[0] | undefined
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
+			storage,
 			transport: baseTransport({
 				sendMessage: async ({ signal }) => {
 					started.resolve()
@@ -871,6 +873,13 @@ describe("createChatClient", () => {
 		await expect(sending).rejects.toThrow("cancelled")
 
 		expect(cancellation).toMatchObject({ credential: "11111111-1111-4111-8111-111111111111" })
+		expect(client.getSnapshot()).toMatchObject({
+			generation: "idle",
+			messages: [{ outcome: "interrupted" }],
+		})
+		expect(
+			readChatStorageRecord(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))),
+		).toEqual({ version: 1, credential: "11111111-1111-4111-8111-111111111111" })
 	})
 
 	test("dispose aborts initialization transport work", async () => {
