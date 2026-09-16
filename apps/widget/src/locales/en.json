@@ -37,6 +37,7 @@
 	"placeholder": "Type a message...",
 	"recovering": "Recovering response...",
 	"recoveryUnavailable": "Response recovery is unavailable. Partial content is shown.",
+	"retry": "Retry",
 	"send": "Send",
 	"stopGenerating": "Stop generating",
 	"stopping": "Stopping...",

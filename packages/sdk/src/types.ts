@@ -137,6 +137,7 @@ export type ChatClient = {
 	getSnapshot(): ChatSnapshot
 	initialize(): Promise<void>
 	sendMessage(text: string): Promise<void>
+	retryLastMessage(): Promise<void>
 	cancelResponse(): Promise<void>
 	startNewChat(): Promise<void>
 	dispose(): void

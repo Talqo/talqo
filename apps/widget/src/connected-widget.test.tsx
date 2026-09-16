@@ -33,7 +33,7 @@ const noopAction = async () => {}
 function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 	let snapshot = initial
 	const listeners = new Set<() => void>()
-	const calls = { cancel: 0, initialize: 0, newChat: 0, sends: [] as string[] }
+	const calls = { cancel: 0, initialize: 0, newChat: 0, retry: 0, sends: [] as string[] }
 	let initialize = noopAction
 	let sendMessage: (text: string) => Promise<void> = noopAction
 	let cancelResponse = noopAction
@@ -59,6 +59,9 @@ function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 		async startNewChat() {
 			calls.newChat += 1
 			await startNewChat()
+		},
+		async retryLastMessage() {
+			calls.retry += 1
 		},
 		dispose() {},
 	}
@@ -315,6 +318,57 @@ describe("ConnectedEmbeddedWidget", () => {
 		)
 		expect(host.textContent).toContain("conversation is full")
 		expect(host.querySelectorAll("button[aria-label='New chat']").length).toBe(2)
+		expect(host.querySelector("[role='alert']")?.className).toContain("tw:bg-destructive/10")
+		expect(host.querySelector("[role='alert']")?.className).toContain("tw:text-destructive")
+	})
+
+	test("offers an explicit retry only for a retriable failed turn", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
+			error: error("provider-error", { retriable: true }),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const retry = host.querySelector<HTMLButtonElement>("button[aria-label='Retry']")
+		expect(retry).not.toBeNull()
+		await act(async () => retry?.click())
+		expect(store.calls.retry).toBe(1)
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				reset: "resetting",
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
+				error: error("provider-error", { retriable: true }),
+			}),
+		)
+		expect(host.querySelector<HTMLButtonElement>("button[aria-label='Retry']")?.disabled).toBe(true)
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, error: error("provider-error") }))
+		expect(host.querySelector("button[aria-label='Retry']")).toBeNull()
+	})
+
+	test("renders recovery and storage errors with fixed translucent red styling", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			persistence: "memory",
+			recovery: "unavailable",
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const notices = Array.from(host.querySelectorAll<HTMLElement>("p")).filter(
+			(element) =>
+				element.textContent?.includes("recovery is unavailable") ||
+				element.textContent?.includes("cannot be restored after a reload"),
+		)
+		expect(notices).toHaveLength(2)
+		for (const notice of notices) {
+			expect(notice.className).toContain("tw:bg-destructive/10")
+			expect(notice.className).toContain("tw:text-destructive")
+		}
 	})
 
 	test("offers new chat when a revoked stored session has no loadable messages", async () => {

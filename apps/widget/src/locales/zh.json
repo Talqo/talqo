@@ -37,6 +37,7 @@
 	"placeholder": "输入消息...",
 	"recovering": "正在恢复回复...",
 	"recoveryUnavailable": "无法恢复回复。已显示部分内容。",
+	"retry": "重试",
 	"send": "发送",
 	"stopGenerating": "停止生成",
 	"stopping": "正在停止...",
