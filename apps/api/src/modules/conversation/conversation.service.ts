@@ -339,7 +339,11 @@ export function createConversationService(dependencies: Dependencies) {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
-				const messages = completedPrompt(agent.systemPrompt, history.messages, input.text)
+				const messages = completedPrompt(
+					agentService.composeSystemPrompt(agent.systemPrompt),
+					history.messages,
+					input.text,
+				)
 				if ([...promptText(messages)].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation
 				try {

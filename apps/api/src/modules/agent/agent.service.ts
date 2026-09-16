@@ -6,6 +6,7 @@ export const BLACKLIST_MAX_WORDS = 100
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as agentFiles from "@/modules/agent-files/agent-files.service.ts"
 
+import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
 
 export class InvalidAgentInputError extends Error {}
@@ -37,6 +38,10 @@ export type AgentInput = {
 	name: string
 	systemPrompt: string
 	wordBlacklist: string[]
+}
+
+export function composeSystemPrompt(systemPrompt: string): string {
+	return `${PLATFORM_SYSTEM_PROMPT}\n${systemPrompt}`
 }
 
 export function normalizeAgentInput(input: AgentInput): AgentInput {
@@ -76,7 +81,7 @@ export async function listAgents(): Promise<Agent[]> {
 	return (await repo.findAllWithWords()).map(toAgent)
 }
 
-// TODO(conversation): systemPrompt composition and blacklist enforcement (FR-1.1, NFR-2.2).
+// TODO(conversation): blacklist enforcement (NFR-2.2).
 // TODO(conversation): rate-limit storage and IP/message limits (NFR-3.5, NFR-3.6).
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
 

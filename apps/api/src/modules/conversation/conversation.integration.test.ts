@@ -40,7 +40,7 @@ async function fixture() {
 
 function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; concurrencyLimit?: number } = {}) {
 	let call = 0
-	const prompts: unknown[] = []
+	const prompts: TextMessage[][] = []
 	return {
 		prompts,
 		service: createConversationService({
@@ -214,8 +214,10 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await second.done
-		expect(instance.prompts[1]).toEqual([
-			{ role: "system", content: "System" },
+		const systemPrompt = instance.prompts[1]?.[0]
+		expect(systemPrompt).toMatchObject({ role: "system" })
+		expect(systemPrompt?.content).toMatch(/\S\nSystem$/)
+		expect(instance.prompts[1]?.slice(1)).toEqual([
 			{ role: "user", content: "first" },
 			{ role: "assistant", content: "one" },
 			{ role: "user", content: "second" },
@@ -974,15 +976,14 @@ describe("conversation lifecycle", () => {
 		})
 		await sent.done
 
-		expect(prompts).toEqual([
-			[
-				{ role: "system", content: "System" },
-				{ role: "user", content: "first" },
-				{ role: "assistant", content: "initial" },
-				{ role: "user", content: "racing turn" },
-				{ role: "assistant", content: "raced" },
-				{ role: "user", content: "after race" },
-			],
+		expect(prompts).toHaveLength(1)
+		expect(prompts[0]?.[0]?.content).toMatch(/\S\nSystem$/)
+		expect(prompts[0]?.slice(1)).toEqual([
+			{ role: "user", content: "first" },
+			{ role: "assistant", content: "initial" },
+			{ role: "user", content: "racing turn" },
+			{ role: "assistant", content: "raced" },
+			{ role: "user", content: "after race" },
 		])
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(3)
 	})
