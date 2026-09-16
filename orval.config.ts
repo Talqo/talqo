@@ -4,21 +4,13 @@ export default defineConfig({
 	sdk: {
 		input: {
 			target: "./apps/api/openapi.json",
-			filters: { tags: ["Embed", "Conversation"], schemas: ["ProblemDetails"] },
+			filters: { tags: ["Public Chat"] },
 		},
 		output: {
-			client: "zod",
+			client: "fetch",
 			mode: "single",
 			target: "./packages/sdk/src/generated/contracts.ts",
 			clean: true,
-			override: {
-				zod: {
-					generateReusableSchemas: true,
-					strict: { body: true, response: true },
-					variant: "classic",
-					version: 4,
-				},
-			},
 		},
 	},
 	web: {

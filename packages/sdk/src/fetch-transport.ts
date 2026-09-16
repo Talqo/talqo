@@ -1,6 +1,13 @@
+import type {
+	CancelChatGenerationBody,
+	ChatEventV1,
+	EmbedConfig,
+	GetChatSession200,
+	GetChatSession200MessagesItem,
+	SendChatMessageBody,
+} from "./generated/contracts"
 import type { ChatError, ChatEvent, ChatTransport } from "./types"
 
-import { ChatEventV1, EmbedConfig, GetChatSessionResponse, ProblemDetails } from "./generated/contracts"
 import { parseSseStream } from "./sse"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
@@ -26,6 +33,10 @@ const MILLISECONDS_PER_SECOND = 1_000
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
+const MESSAGE_ROLES = ["user", "assistant"] as const
+const MESSAGE_OUTCOMES = ["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"] as const
+const TERMINAL_OUTCOMES = ["completed", "failed", "cancelled", "blocked", "interrupted"] as const
+const ERROR_OUTCOMES = ["failed", "cancelled", "blocked", "interrupted"] as const
 
 function endpoint(apiUrl: string, path: string): string {
 	const url = new URL(apiUrl)
@@ -88,6 +99,40 @@ function invalidResponse(status: number): ChatTransportError {
 	})
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function isOneOf<const Values extends readonly string[]>(value: unknown, values: Values): value is Values[number] {
+	return typeof value === "string" && values.some((candidate) => candidate === value)
+}
+
+function isMessage(value: unknown): value is GetChatSession200MessagesItem {
+	return (
+		isRecord(value) &&
+		typeof value.id === "string" &&
+		isOneOf(value.role, MESSAGE_ROLES) &&
+		typeof value.text === "string" &&
+		typeof value.createdAt === "string" &&
+		isOneOf(value.outcome, MESSAGE_OUTCOMES)
+	)
+}
+
+function isSession(value: unknown): value is GetChatSession200 {
+	return (
+		isRecord(value) &&
+		Array.isArray(value.messages) &&
+		value.messages.every(isMessage) &&
+		(value.activeGeneration === undefined ||
+			(isRecord(value.activeGeneration) && typeof value.activeGeneration.id === "string"))
+	)
+}
+
+function embedConfiguration(value: unknown): EmbedConfig | undefined {
+	if (!isRecord(value) || typeof value.name !== "string" || !isRecord(value.appearance)) return undefined
+	return value as unknown as EmbedConfig
+}
+
 function errorPolicy(code: string, status?: number): Pick<ChatError, "message" | "retriable" | "newChatAvailable"> {
 	switch (code) {
 		case "chat-daily-allowance-exceeded":
@@ -143,14 +188,15 @@ async function problemError(response: Response, signal: AbortSignal, now: () => 
 		return invalidResponse(response.status)
 	}
 	const value = await readJson(response, signal)
-	const parsed = ProblemDetails.safeParse(value)
-	if (!parsed.success) return invalidResponse(response.status)
+	if (!isRecord(value) || typeof value.code !== "string" || typeof value.type !== "string") {
+		return invalidResponse(response.status)
+	}
 	const retry = retryAt(response, now)
 	return new ChatTransportError({
-		code: parsed.data.code,
-		type: parsed.data.type,
+		code: value.code,
+		type: value.type,
 		status: response.status,
-		...errorPolicy(parsed.data.code, response.status),
+		...errorPolicy(value.code, response.status),
 		...(retry === undefined ? {} : { retryAt: retry }),
 	})
 }
@@ -160,12 +206,54 @@ async function requireSuccess(response: Response, signal: AbortSignal, now: () =
 }
 
 function parseChatEvent(value: unknown, eventName: string | undefined): ChatEvent | undefined {
-	if (eventName !== "chat") return undefined
-	const parsed = ChatEventV1.safeParse(value)
-	if (!parsed.success) return undefined
-	const { version: _version, ...event } = parsed.data
-	if (event.type === "error") return { ...event, error: normalizeStreamError(event.error) }
-	return event
+	if (eventName !== "chat" || !isRecord(value) || value.version !== 1) return undefined
+	if (value.type === "accepted") {
+		if (
+			typeof value.requestId !== "string" ||
+			typeof value.generationId !== "string" ||
+			!isRecord(value.userMessage) ||
+			typeof value.userMessage.id !== "string" ||
+			typeof value.userMessage.createdAt !== "string" ||
+			!isRecord(value.assistantMessage) ||
+			typeof value.assistantMessage.id !== "string" ||
+			typeof value.assistantMessage.createdAt !== "string"
+		) {
+			return undefined
+		}
+		const event = {
+			version: 1,
+			type: "accepted",
+			requestId: value.requestId,
+			generationId: value.generationId,
+			userMessage: { id: value.userMessage.id, createdAt: value.userMessage.createdAt },
+			assistantMessage: { id: value.assistantMessage.id, createdAt: value.assistantMessage.createdAt },
+		} satisfies ChatEventV1
+		const { version: _version, ...result } = event
+		return result
+	}
+	if (value.type === "delta") {
+		if (typeof value.assistantMessageId !== "string" || typeof value.text !== "string") return undefined
+		return { type: "delta", assistantMessageId: value.assistantMessageId, text: value.text }
+	}
+	if (value.type === "terminal") {
+		if (!isOneOf(value.outcome, TERMINAL_OUTCOMES)) return undefined
+		return { type: "terminal", outcome: value.outcome }
+	}
+	if (value.type === "error") {
+		if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error) || typeof value.error.code !== "string") {
+			return undefined
+		}
+		if (value.error.retryAt !== undefined && typeof value.error.retryAt !== "string") return undefined
+		return {
+			type: "error",
+			outcome: value.outcome,
+			error: normalizeStreamError({
+				code: value.error.code,
+				...(value.error.retryAt === undefined ? {} : { retryAt: value.error.retryAt }),
+			}),
+		}
+	}
+	return undefined
 }
 
 export function createFetchChatTransport(options: FetchChatTransportOptions = {}): ChatTransport {
@@ -180,9 +268,12 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			)
 			await requireSuccess(response, input.signal, now)
 			const value = await readJson(response, input.signal)
-			const parsed = EmbedConfig.safeParse(value)
-			if (!parsed.success) throw invalidResponse(response.status)
-			return { title: parsed.data.name, appearance: parsed.data.appearance }
+			const configuration = embedConfiguration(value)
+			if (configuration === undefined) throw invalidResponse(response.status)
+			return {
+				title: configuration.name,
+				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+			}
 		},
 
 		async loadSession(input) {
@@ -193,19 +284,19 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			})
 			await requireSuccess(response, input.signal, now)
 			const value = await readJson(response, input.signal)
-			const parsed = GetChatSessionResponse.safeParse(value)
-			if (!parsed.success) throw invalidResponse(response.status)
-			return { messages: parsed.data.messages, activeGeneration: parsed.data.activeGeneration }
+			if (!isSession(value)) throw invalidResponse(response.status)
+			return { messages: value.messages, activeGeneration: value.activeGeneration }
 		},
 
 		async sendMessage(input) {
+			const body = { requestId: input.requestId, text: input.text } satisfies SendChatMessageBody
 			const response = await fetchImplementation(
 				endpoint(input.apiUrl, `/api/chat/${encodeURIComponent(input.embedToken)}/messages`),
 				{
 					method: "POST",
 					signal: input.signal,
 					headers: { ...SSE_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
-					body: JSON.stringify({ requestId: input.requestId, text: input.text }),
+					body: JSON.stringify(body),
 				},
 			)
 			await requireSuccess(response, input.signal, now)
@@ -216,11 +307,14 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 		},
 
 		async cancelResponse(input) {
+			const body = (
+				input.generationId === undefined ? {} : { generationId: input.generationId }
+			) satisfies CancelChatGenerationBody
 			const response = await fetchImplementation(endpoint(input.apiUrl, "/api/chat/cancel"), {
 				method: "POST",
 				signal: input.signal,
 				headers: { ...JSON_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
-				body: JSON.stringify(input.generationId === undefined ? {} : { generationId: input.generationId }),
+				body: JSON.stringify(body),
 			})
 			await requireSuccess(response, input.signal, now)
 		},

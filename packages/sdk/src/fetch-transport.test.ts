@@ -221,7 +221,7 @@ describe("createFetchChatTransport", () => {
 		)
 	})
 
-	test("normalizes streamed errors and rejects malformed fields or protocol versions", async () => {
+	test("normalizes streamed errors, ignores additive fields, and rejects malformed protocol data", async () => {
 		const streamedError = {
 			version: 1,
 			type: "error",
@@ -237,9 +237,7 @@ describe("createFetchChatTransport", () => {
 		const fake = recordingFetch([
 			streamResponse([`event: chat\ndata: ${JSON.stringify(streamedError)}\n\n`]),
 			streamResponse(['event: chat\ndata: {"version":2,"type":"terminal","outcome":"completed"}\n\n']),
-			streamResponse([
-				'event: chat\ndata: {"version":1,"type":"delta","assistantMessageId":"a","text":"x","extra":true}\n\n',
-			]),
+			streamResponse(['event: chat\ndata: {"version":1,"type":"delta","assistantMessageId":"a"}\n\n']),
 			streamResponse([
 				`event: chat\ndata: ${JSON.stringify({
 					version: 1,
@@ -269,10 +267,18 @@ describe("createFetchChatTransport", () => {
 		])
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
-		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
+		expect(await Array.fromAsync(await transport.sendMessage(input))).toEqual([
+			{
+				type: "accepted",
+				requestId: REQUEST_ID,
+				generationId: "generation",
+				userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z" },
+				assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
+			},
+		])
 	})
 
-	test("strictly validates JSON success and RFC problem responses without exposing raw bodies", async () => {
+	test("accepts additive JSON fields and rejects malformed consumed fields without exposing raw bodies", async () => {
 		const fake = recordingFetch([
 			jsonResponse({ version: 1, name: "Support", appearance: { ...APPEARANCE, extra: true } }),
 			jsonResponse(
@@ -295,17 +301,48 @@ describe("createFetchChatTransport", () => {
 					},
 				],
 			}),
+			jsonResponse({ version: 1, name: 42, appearance: APPEARANCE }),
+			jsonResponse({
+				messages: [
+					{
+						id: "message",
+						role: "assistant",
+						text: 42,
+						createdAt: "2026-09-12T12:00:00Z",
+						outcome: "completed",
+					},
+				],
+			}),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
-		const malformedSuccess = await rejectedDetail(transport.loadConfiguration(context()))
-		expect(malformedSuccess).toMatchObject({ code: "invalid-response", status: 200 })
-		expect(malformedSuccess.message).not.toContain("extra")
-		const malformedProblem = await rejectedDetail(transport.loadConfiguration(context()))
-		expect(malformedProblem).toMatchObject({ code: "invalid-response", status: 404 })
-		expect(malformedProblem.message).not.toContain("database leaked")
-		const malformedSession = await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))
-		expect(malformedSession).toMatchObject({ code: "invalid-response", status: 200 })
+		expect(await transport.loadConfiguration(context())).toEqual({
+			title: "Support",
+			appearance: { ...APPEARANCE, extra: true },
+		})
+		const problemError = await rejectedDetail(transport.loadConfiguration(context()))
+		expect(problemError).toMatchObject({ code: "embed-not-found", status: 404 })
+		expect(problemError.message).not.toContain("database leaked")
+		expect(await transport.loadSession({ ...context(), credential: CREDENTIAL })).toEqual({
+			messages: [
+				{
+					id: "message",
+					role: "assistant",
+					text: "Hello",
+					createdAt: "2026-09-12T12:00:00Z",
+					outcome: "completed",
+					extra: true,
+				},
+			],
+		})
+		expect(await rejectedDetail(transport.loadConfiguration(context()))).toMatchObject({
+			code: "invalid-response",
+			status: 200,
+		})
+		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toMatchObject({
+			code: "invalid-response",
+			status: 200,
+		})
 	})
 
 	test("normalizes stable problem identity, status, and retry/reset headers", async () => {

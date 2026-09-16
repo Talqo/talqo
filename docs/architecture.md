@@ -168,11 +168,11 @@ module contracts + route metadata
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
-- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates the committed web client under `apps/web/src/api/generated`.
+- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates consumer-specific committed output for the web app under `apps/web/src/api/generated` and the public-chat SDK under `packages/sdk/src/generated`.
 - Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
 - Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
-- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas.
+- Web Orval output owns query integration and Zod schemas; SDK output covers only `Public Chat` operations and supplies dependency-free wire types to its owned fetch and SSE transport.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 - Every API error uses strict RFC 9457 `application/problem+json` with only an API-owned `type` URI and stable `code`; consumers localize codes independently.
 - Streaming clients consume `POST` responses with fetch and parse SSE framing across arbitrary network chunks. Browser `EventSource` is outside the public chat boundary.

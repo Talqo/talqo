@@ -31,7 +31,6 @@
 			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
 		},
 		"packages/sdk": {
-			"entry": ["src/generated/contracts.ts"],
 			"project": ["src/**/*.ts"],
 			"ignoreDependencies": ["@talqo/typescript-config"],
 			"ignoreIssues": {
