@@ -6,9 +6,10 @@ import type {
 	GetChatSession200MessagesItem,
 	SendChatMessageBody,
 } from "./generated/contracts"
-import type { ChatError, ChatEvent, ChatTransport } from "./types"
+import type { ChatError, ChatErrorCode, ChatEvent, ChatTransport } from "./types"
 
 import { parseSseStream } from "./sse"
+import { isChatErrorCode } from "./types"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -21,15 +22,14 @@ export class ChatTransportError extends Error {
 	readonly detail: ChatError
 
 	constructor(detail: ChatError) {
-		super(detail.message)
+		super(detail.code)
 		this.name = "ChatTransportError"
 		this.detail = detail
 	}
 }
 
-const HTTP_TOO_MANY_REQUESTS = 429
-const HTTP_SERVER_ERROR = 500
 const MILLISECONDS_PER_SECOND = 1_000
+const HTTP_OK = 200
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
@@ -93,9 +93,6 @@ function invalidResponse(status: number): ChatTransportError {
 	return new ChatTransportError({
 		code: "invalid-response",
 		status,
-		message: "The chat service returned an invalid response",
-		retriable: status >= HTTP_SERVER_ERROR,
-		newChatAvailable: false,
 	})
 }
 
@@ -133,35 +130,6 @@ function embedConfiguration(value: unknown): EmbedConfig | undefined {
 	return value as unknown as EmbedConfig
 }
 
-function errorPolicy(code: string, status?: number): Pick<ChatError, "message" | "retriable" | "newChatAvailable"> {
-	switch (code) {
-		case "chat-daily-allowance-exceeded":
-			return { message: "The network message allowance has been reached", retriable: true, newChatAvailable: false }
-		case "chat-concurrency-limit":
-		case "chat-session-busy":
-			return { message: "Chat generation is temporarily busy", retriable: true, newChatAvailable: false }
-		case "provider-unreachable":
-		case "provider-rate-limited":
-		case "request-failed":
-		case "internal-server-error":
-		case "transport_error":
-			return { message: "Chat service is temporarily unavailable", retriable: true, newChatAvailable: false }
-		case "chat-conversation-too-long":
-		case "chat-context-limit":
-			return { message: "This conversation cannot accept another message", retriable: false, newChatAvailable: true }
-		case "chat-session-unauthorized":
-			return { message: "The chat session is unauthorized", retriable: false, newChatAvailable: true }
-		case "embed-not-found":
-			return { message: "The chat embed is unavailable", retriable: false, newChatAvailable: false }
-		default:
-			return {
-				message: "The chat request failed",
-				retriable: status === HTTP_TOO_MANY_REQUESTS || (status !== undefined && status >= HTTP_SERVER_ERROR),
-				newChatAvailable: false,
-			}
-	}
-}
-
 function retryAt(response: Response, now: () => Date): string | undefined {
 	const reset = response.headers.get("X-RateLimit-Reset")
 	if (reset !== null && !Number.isNaN(Date.parse(reset))) return reset
@@ -175,10 +143,16 @@ function retryAt(response: Response, now: () => Date): string | undefined {
 	return undefined
 }
 
-function normalizeStreamError(error: { code: string; retryAt?: string }): ChatError {
+function normalizeStreamError(error: {
+	code: ChatErrorCode
+	retryAt?: string
+	retriable: boolean
+	newChatAvailable: boolean
+}): ChatError {
 	return {
 		code: error.code,
-		...errorPolicy(error.code),
+		retriable: error.retriable,
+		newChatAvailable: error.newChatAvailable,
 		...(error.retryAt === undefined ? {} : { retryAt: error.retryAt }),
 	}
 }
@@ -188,7 +162,7 @@ async function problemError(response: Response, signal: AbortSignal, now: () => 
 		return invalidResponse(response.status)
 	}
 	const value = await readJson(response, signal)
-	if (!isRecord(value) || typeof value.code !== "string" || typeof value.type !== "string") {
+	if (!isRecord(value) || !isChatErrorCode(value.code) || typeof value.type !== "string") {
 		return invalidResponse(response.status)
 	}
 	const retry = retryAt(response, now)
@@ -196,7 +170,6 @@ async function problemError(response: Response, signal: AbortSignal, now: () => 
 		code: value.code,
 		type: value.type,
 		status: response.status,
-		...errorPolicy(value.code, response.status),
 		...(retry === undefined ? {} : { retryAt: retry }),
 	})
 }
@@ -240,7 +213,9 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 		return { type: "terminal", outcome: value.outcome }
 	}
 	if (value.type === "error") {
-		if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error) || typeof value.error.code !== "string") {
+		if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error)) return undefined
+		if (!isChatErrorCode(value.error.code)) throw invalidResponse(HTTP_OK)
+		if (typeof value.error.retriable !== "boolean" || typeof value.error.newChatAvailable !== "boolean") {
 			return undefined
 		}
 		if (value.error.retryAt !== undefined && typeof value.error.retryAt !== "string") return undefined
@@ -249,6 +224,8 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 			outcome: value.outcome,
 			error: normalizeStreamError({
 				code: value.error.code,
+				retriable: value.error.retriable,
+				newChatAvailable: value.error.newChatAvailable,
 				...(value.error.retryAt === undefined ? {} : { retryAt: value.error.retryAt }),
 			}),
 		}

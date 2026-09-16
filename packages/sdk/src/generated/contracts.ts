@@ -244,7 +244,6 @@ export type ChatEventV1 =
 			outcome: "failed" | "cancelled" | "blocked" | "interrupted"
 			error: {
 				code: string
-				message: string
 				retryAt?: string
 				retriable: boolean
 				newChatAvailable: boolean

@@ -32,7 +32,7 @@ export class ChatClientError extends Error {
 	readonly detail: ChatError
 
 	constructor(detail: ChatError) {
-		super(detail.message)
+		super(detail.code)
 		this.name = "ChatClientError"
 		this.detail = detail
 	}
@@ -69,11 +69,14 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 function transportError(error: unknown): ChatError {
 	if (error instanceof ChatTransportError) return error.detail
 	return {
-		code: "transport_error",
-		message: "The chat transport failed",
-		retriable: true,
-		newChatAvailable: false,
+		code: "transport-error",
 	}
+}
+
+function isDefiniteClientError(error: unknown): error is ChatTransportError {
+	if (!(error instanceof ChatTransportError)) return false
+	const status = error.detail.status
+	return status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
 }
 
 export function createChatClient(options: ChatClientOptions): ChatClient {
@@ -115,13 +118,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			removeItem: async (key) => globalThis.localStorage.removeItem(key),
 		},
 		createMemoryStorage(),
-		(storageError) => {
+		() => {
 			persistence = "memory"
 			error = {
-				code: "storage_unavailable",
-				message: storageError instanceof Error ? storageError.message : "Persistent storage is unavailable",
-				retriable: false,
-				newChatAvailable: false,
+				code: "storage-unavailable",
 			}
 			publish()
 		},
@@ -188,6 +188,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			// Recovery delays are ordered backoff steps, so polling is intentionally sequential.
 			const delays = options.recoveryDelays ?? DEFAULT_RECOVERY_DELAYS
 			for (let poll = 0; poll < MAX_RECOVERY_POLLS; poll += 1) {
+				let attemptedPending: ChatStorageRecord["pending"]
 				try {
 					const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
 					// oxlint-disable-next-line no-await-in-loop
@@ -195,6 +196,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					if (credential === undefined) return
 					if (pendingMessage !== undefined) {
 						const pending = pendingMessage
+						attemptedPending = pending
 						// oxlint-disable-next-line no-await-in-loop
 						const events = await transport.sendMessage({
 							...context(controller.signal),
@@ -216,8 +218,24 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					// oxlint-disable-next-line no-await-in-loop
 					await acceptSession(session)
 					if (session.activeGeneration === undefined) return
-				} catch {
+				} catch (cause) {
 					if (controller.signal.aborted) return
+					if (isDefiniteClientError(cause)) {
+						if (attemptedPending !== undefined && pendingMessage?.requestId === attemptedPending.requestId) {
+							const attemptedRequestId = attemptedPending.requestId
+							pendingMessage = undefined
+							messages = freezeMessages(messages.filter((message) => message.id !== `pending:${attemptedRequestId}`))
+							// oxlint-disable-next-line no-await-in-loop -- recovery attempts are intentionally sequential.
+							await persist({ version: CHAT_STORAGE_VERSION, credential })
+						}
+						error = cause.detail
+						retryAt = cause.detail.retryAt
+						generation = "idle"
+						recovery = "idle"
+						activeGenerationId = undefined
+						publish()
+						return
+					}
 				}
 			}
 			if (!disposed && generation === "recovery") {
@@ -380,9 +398,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			if (!terminalReceived) throw new Error("Chat stream closed without a terminal event")
 		} catch (cause) {
-			const status = cause instanceof ChatTransportError ? cause.detail.status : undefined
-			const definitelyRejected =
-				!accepted && status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
+			const definitelyRejected = !accepted && isDefiniteClientError(cause)
 			if (definitelyRejected) {
 				messages = freezeMessages(messages.filter((message) => message.id !== localUserId))
 				pendingMessage = undefined
@@ -402,10 +418,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				retryAt = error.retryAt
 			} else if (send.cancellationRequested) {
 				if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome: "cancelled" }))
-				generation = "idle"
-				recovery = "idle"
 			} else if (!(cause instanceof ChatClientError)) {
-				replaceMessage(userId, (message) => ({ ...message, outcome: "interrupted" }))
+				if (!accepted) replaceMessage(userId, (message) => ({ ...message, outcome: "interrupted" }))
 				if (assistantId !== undefined)
 					replaceMessage(assistantId, (message) => ({ ...message, outcome: "interrupted" }))
 				generation = "recovery"
@@ -455,17 +469,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				activeGenerationId = undefined
 				publish()
 			} catch (cause) {
-				if (preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED) {
-					recoveryController?.abort()
-					generation = "idle"
-					recovery = "idle"
-					activeGenerationId = undefined
-					publish()
-					return
-				}
-				generation = previousGeneration
-				error = { ...transportError(cause), code: "cancel_failed" }
+				if (preAcceptance) {
+					generation = "recovery"
+					recovery = "pending"
+					beginSessionRecoveryPolling()
+				} else generation = previousGeneration
+				error = { ...transportError(cause), code: "cancel-failed" }
 				publish()
+				if (preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED) return
 				throw cause
 			} finally {
 				if (cancellationController === controller) cancellationController = undefined
@@ -499,7 +510,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			retryAt = undefined
 			if (configuration !== undefined) initialization = "ready"
 		} catch (cause) {
-			error = { ...transportError(cause), code: "reset_failed" }
+			error = { ...transportError(cause), code: "reset-failed" }
 			throw cause
 		} finally {
 			reset = "idle"

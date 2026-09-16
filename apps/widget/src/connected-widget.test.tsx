@@ -1,4 +1,4 @@
-import type { ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ChatClient, ChatError, ChatErrorCode, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 import type { Root } from "react-dom/client"
 
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
@@ -88,8 +88,8 @@ function message(id: string, role: ChatMessage["role"], text: string, outcome: C
 	return { id, role, text, outcome, createdAt: "2026-09-12T00:00:00Z" }
 }
 
-function error(code: string, overrides: Partial<ChatError> = {}): ChatError {
-	return { code, message: "raw server text", retriable: false, newChatAvailable: false, ...overrides }
+function error(code: ChatErrorCode, overrides: Partial<ChatError> = {}): ChatError {
+	return { code, ...overrides }
 }
 
 let host: HTMLDivElement
@@ -253,7 +253,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		const history = [message("u1", "user", "Keep history", "completed")]
 		const store = fakeClient({ ...READY_SNAPSHOT, messages: history })
 		store.onNewChat(async () => {
-			store.setSnapshot({ ...READY_SNAPSHOT, messages: history, error: error("reset_failed") })
+			store.setSnapshot({ ...READY_SNAPSHOT, messages: history, error: error("reset-failed") })
 			throw new Error("failed")
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -262,20 +262,34 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () => host.querySelector<HTMLButtonElement>("button[aria-label='New chat']")?.click())
 
 		expect(host.textContent).toContain("Keep history")
-		expect(host.textContent).toContain("Could not start a new chat")
+		expect(host.textContent).toContain("new chat could not be started")
 		expect(input().value).toBe("unsent")
 	})
 
-	test("renders localized stable error codes and conversation-full action", async () => {
+	test("renders every stable error code without a generic fallback", async () => {
 		const cases = [
+			["invalid-request", "message could not be accepted"],
+			["malformed-json", "invalid request data"],
+			["chat-client-address-unavailable", "cannot verify this network"],
+			["chat-conversation-too-long", "conversation is full"],
 			["chat-daily-allowance-exceeded", "network's daily message allowance"],
 			["chat-concurrency-limit", "Too many responses are being generated"],
 			["chat-session-busy", "This conversation already has a response"],
+			["chat-request-conflict", "conflicts with an earlier message"],
 			["chat-session-unauthorized", "session is invalid or has been revoked"],
+			["chat-context-limit", "conversation exceeds the model context limit"],
+			["chat-input-incompatible", "message is incompatible with the configured model"],
+			["payload-too-large", "message is too large"],
+			["provider-error", "response could not be completed"],
+			["internal-server-error", "chat service encountered an internal error"],
 			["embed-not-found", "embed is unavailable or invalid"],
-			["storage_unavailable", "cannot be restored after a reload"],
-			["transport_error", "connection to chat failed"],
-		] as const
+			["request-failed", "chat request failed"],
+			["invalid-response", "chat service returned an invalid response"],
+			["storage-unavailable", "cannot be restored after a reload"],
+			["transport-error", "connection to chat failed"],
+			["cancel-failed", "response could not be stopped"],
+			["reset-failed", "new chat could not be started"],
+		] as const satisfies readonly (readonly [ChatErrorCode, string])[]
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
@@ -289,7 +303,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			store.setSnapshot({
 				...READY_SNAPSHOT,
 				messages: [message("u1", "user", "Full", "completed")],
-				error: error("chat-conversation-too-long", { newChatAvailable: true }),
+				error: error("chat-conversation-too-long"),
 			}),
 		)
 		expect(host.textContent).toContain("conversation is full")
@@ -301,7 +315,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			...READY_SNAPSHOT,
 			initialization: "error",
 			messages: [],
-			error: error("chat-session-unauthorized", { newChatAvailable: true }),
+			error: error("chat-session-unauthorized"),
 		})
 		store.onInitialize(async () => {
 			throw new Error("revoked")
@@ -320,7 +334,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(input().disabled).toBe(false)
 	})
 
-	test("renders initialization, reset time, recovery, outcomes, and generic errors", async () => {
+	test("renders initialization, reset time, recovery, outcomes, and protocol errors", async () => {
 		const store = fakeClient({ ...READY_SNAPSHOT, initialization: "loading" })
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
@@ -333,7 +347,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				generation: "recovery",
 				recovery: "pending",
 				retryAt: "2026-09-13T00:00:00Z",
-				error: error("unknown-code"),
+				error: error("invalid-response"),
 				messages: [
 					message("a1", "assistant", "Failed", "failed"),
 					message("a2", "assistant", "Blocked", "blocked"),
@@ -345,7 +359,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.textContent).toContain("Response failed")
 		expect(host.textContent).toContain("Response blocked")
 		expect(host.textContent).toContain("Response interrupted")
-		expect(host.textContent).toContain("Something went wrong")
+		expect(host.textContent).toContain("chat service returned an invalid response")
 
 		await act(async () =>
 			store.setSnapshot({

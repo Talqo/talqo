@@ -38,7 +38,6 @@ export const ChatEventV1 = zod.union([
 		outcome: zod.enum(["failed", "cancelled", "blocked", "interrupted"]),
 		error: zod.object({
 			code: zod.string(),
-			message: zod.string(),
 			retryAt: zod.iso.datetime({ offset: true }).optional(),
 			retriable: zod.boolean(),
 			newChatAvailable: zod.boolean(),

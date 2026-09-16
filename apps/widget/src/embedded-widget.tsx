@@ -211,37 +211,79 @@ const EMPTY_MESSAGES: readonly ChatMessage[] = []
 
 function errorText(error: ChatError, t: (key: string, options?: Record<string, unknown>) => string): string {
 	switch (error.code) {
+		case "invalid-request":
+			return t("errorInvalidRequest")
+		case "malformed-json":
+			return t("errorMalformedJson")
+		case "chat-client-address-unavailable":
+			return t("errorClientAddressUnavailable")
+		case "chat-conversation-too-long":
+			return t("errorConversationTooLong")
 		case "chat-daily-allowance-exceeded":
 			return t("errorDailyAllowance", {
 				reset: error.retryAt ? new Date(error.retryAt).toLocaleString() : t("nextUtcDay"),
 			})
 		case "chat-concurrency-limit":
-			return t("errorConcurrency")
+			return t("errorConcurrencyLimit")
 		case "chat-session-busy":
 			return t("errorSessionBusy")
-		case "chat-conversation-too-long":
-			return t("errorConversationFull")
+		case "chat-request-conflict":
+			return t("errorRequestConflict")
 		case "chat-session-unauthorized":
 			return t("errorSessionUnauthorized")
-		case "embed-not-found":
-			return t("errorEmbedUnavailable")
-		case "storage_unavailable":
-			return t("errorStorageUnavailable")
-		case "reset_failed":
-			return t("errorResetFailed")
-		case "cancel_failed":
-			return t("errorCancelFailed")
-		case "transport_error":
-			return t("errorTransport")
-		case "chat-client-address-unavailable":
-			return t("errorNetworkUnavailable")
-		case "invalid-request":
-		case "chat-request-conflict":
-			return t("errorInvalidRequest")
+		case "chat-context-limit":
+			return t("errorContextLimit")
+		case "chat-input-incompatible":
+			return t("errorInputIncompatible")
+		case "payload-too-large":
+			return t("errorPayloadTooLarge")
 		case "provider-error":
 			return t("errorProvider")
-		default:
-			return t("errorGeneric")
+		case "internal-server-error":
+			return t("errorInternalServer")
+		case "embed-not-found":
+			return t("errorEmbedNotFound")
+		case "request-failed":
+			return t("errorRequestFailed")
+		case "invalid-response":
+			return t("errorInvalidResponse")
+		case "transport-error":
+			return t("errorTransport")
+		case "storage-unavailable":
+			return t("errorStorageUnavailable")
+		case "cancel-failed":
+			return t("errorCancelFailed")
+		case "reset-failed":
+			return t("errorResetFailed")
+	}
+}
+
+function errorAllowsNewChat(error: ChatError): boolean {
+	if (error.newChatAvailable !== undefined) return error.newChatAvailable
+	switch (error.code) {
+		case "chat-conversation-too-long":
+		case "chat-context-limit":
+		case "chat-session-unauthorized":
+			return true
+		case "invalid-request":
+		case "malformed-json":
+		case "chat-client-address-unavailable":
+		case "chat-daily-allowance-exceeded":
+		case "chat-concurrency-limit":
+		case "chat-session-busy":
+		case "chat-request-conflict":
+		case "chat-input-incompatible":
+		case "payload-too-large":
+		case "provider-error":
+		case "internal-server-error":
+		case "embed-not-found":
+		case "request-failed":
+		case "invalid-response":
+		case "transport-error":
+		case "storage-unavailable":
+		case "cancel-failed":
+		case "reset-failed":
+			return false
 	}
 }
 
@@ -295,14 +337,15 @@ function WidgetChat({
 	const activeGeneration = generation !== "idle"
 	const unusable = unavailable || initialization === "error"
 	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
-	const visibleError = unavailable
-		? ({ code: "embed-not-found", message: "", retriable: false, newChatAvailable: false } satisfies ChatError)
-		: snapshot?.error
+	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
 	const canStartNewChat =
 		client !== undefined &&
 		!resetting &&
 		(initialization === "ready" ||
-			(initialization === "error" && snapshot?.configuration !== undefined && visibleError?.newChatAvailable === true))
+			(initialization === "error" &&
+				snapshot?.configuration !== undefined &&
+				visibleError !== undefined &&
+				errorAllowsNewChat(visibleError)))
 
 	useEffect(() => {
 		draftRef.current = draft
@@ -507,7 +550,7 @@ function WidgetChat({
 									{t("recoveryUnavailable")}
 								</p>
 							)}
-							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage_unavailable" && (
+							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage-unavailable" && (
 								<p role="status" className="tw:text-muted-foreground tw:text-sm">
 									{t("errorStorageUnavailable")}
 								</p>
@@ -526,7 +569,7 @@ function WidgetChat({
 												})}
 											</time>
 										)}
-									{(visibleError.code === "chat-conversation-too-long" || visibleError.newChatAvailable) && (
+									{errorAllowsNewChat(visibleError) && (
 										<button
 											type="button"
 											onClick={() => void handleNewChat()}

@@ -3,6 +3,13 @@ import { describe, expect, it } from "bun:test"
 import { createBlacklistFilter } from "./blacklist.ts"
 
 describe("streaming blacklist", () => {
+	it("passes chunks through immediately when no terms are configured", () => {
+		const filter = createBlacklistFilter([])
+
+		expect(filter.push("tiny")).toEqual({ text: "tiny", blocked: false })
+		expect(filter.finish()).toBe("")
+	})
+
 	it("blocks literal matches case-insensitively across chunks", () => {
 		const filter = createBlacklistFilter(["Forbidden"])
 		expect(filter.push("safe for")).toEqual({ text: "", blocked: false })
