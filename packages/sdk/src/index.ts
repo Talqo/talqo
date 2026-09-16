@@ -6,6 +6,7 @@ export type {
 	ChatClientOptions,
 	ChatConfiguration,
 	ChatError,
+	ChatErrorCode,
 	ChatEvent,
 	ChatMessage,
 	ChatMessageOutcome,

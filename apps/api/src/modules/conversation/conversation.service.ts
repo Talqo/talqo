@@ -72,7 +72,7 @@ export type ChatEvent =
 	| { version: 1; outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"; type: "terminal" }
 	| {
 			version: 1
-			error: { code: string; message: string; newChatAvailable: boolean; retriable: boolean }
+			error: { code: string; newChatAvailable: boolean; retriable: boolean }
 			outcome: "failed"
 			type: "error"
 	  }
@@ -211,9 +211,9 @@ export function createConversationService(dependencies: Dependencies) {
 		let provider = prepared.provider
 		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
+		let terminalObserved = false
 		let publicError = {
 			code: "provider-error",
-			message: "The configured model could not complete the response.",
 			retriable: true,
 			newChatAvailable: false,
 		}
@@ -247,29 +247,30 @@ export function createConversationService(dependencies: Dependencies) {
 						emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: result.text })
 					}
 				} else {
+					const abortPrecededTerminal = controller.signal.aborted
 					provider = event.provider
 					model = event.model
 					providerUsage = event.usage
-					outcome = event.outcome
+					outcome = abortPrecededTerminal ? "cancelled" : event.outcome
+					terminalObserved = true
+					break
 				}
 			}
-			if (controller.signal.aborted && outcome !== "blocked") {
+			if (controller.signal.aborted && outcome !== "blocked" && !terminalObserved) {
 				outcome = "cancelled"
 			}
 		} catch (error) {
-			outcome = controller.signal.aborted ? "cancelled" : "failed"
+			if (!terminalObserved) outcome = controller.signal.aborted ? "cancelled" : "failed"
 			if (error instanceof aiProvider.ProviderContextLimitError) {
 				const establishedConversation = messages.length > FRESH_PROMPT_MESSAGE_COUNT
 				publicError = establishedConversation
 					? {
 							code: "chat-context-limit",
-							message: "The complete conversation exceeds the model context limit.",
 							retriable: false,
 							newChatAvailable: true,
 						}
 					: {
 							code: "chat-input-incompatible",
-							message: "The prompt and message are incompatible with the configured model context.",
 							retriable: false,
 							newChatAvailable: false,
 						}

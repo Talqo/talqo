@@ -1,3 +1,4 @@
+import type { ProblemDetails } from "./generated/contracts"
 import type { AsyncStorage } from "./storage"
 
 export type ChatConfiguration = {
@@ -23,14 +24,49 @@ export type ChatMessage = {
 	outcome: ChatMessageOutcome
 }
 
+const API_CHAT_ERROR_CODES = [
+	"invalid-request",
+	"malformed-json",
+	"chat-client-address-unavailable",
+	"chat-conversation-too-long",
+	"chat-daily-allowance-exceeded",
+	"chat-concurrency-limit",
+	"chat-session-busy",
+	"chat-request-conflict",
+	"chat-session-unauthorized",
+	"chat-context-limit",
+	"chat-input-incompatible",
+	"payload-too-large",
+	"provider-error",
+	"internal-server-error",
+	"embed-not-found",
+	"request-failed",
+] as const satisfies readonly ProblemDetails["code"][]
+
+const SDK_ERROR_CODES = [
+	"invalid-response",
+	"transport-error",
+	"storage-unavailable",
+	"cancel-failed",
+	"reset-failed",
+] as const
+
+export type ChatErrorCode = (typeof API_CHAT_ERROR_CODES)[number] | (typeof SDK_ERROR_CODES)[number]
+
+export function isChatErrorCode(value: unknown): value is ChatErrorCode {
+	return (
+		typeof value === "string" &&
+		(API_CHAT_ERROR_CODES.some((code) => code === value) || SDK_ERROR_CODES.some((code) => code === value))
+	)
+}
+
 export type ChatError = {
-	code: string
+	code: ChatErrorCode
 	type?: string
 	status?: number
-	message: string
 	retryAt?: string
-	retriable: boolean
-	newChatAvailable: boolean
+	retriable?: boolean
+	newChatAvailable?: boolean
 }
 
 export type ChatSnapshot = {

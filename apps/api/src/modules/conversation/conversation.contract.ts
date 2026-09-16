@@ -8,7 +8,6 @@ const requestIdSchema = z.uuid({ version: "v4" })
 const terminalOutcome = z.enum(["completed", "failed", "cancelled", "blocked", "interrupted"])
 const chatErrorSchema = z.object({
 	code: z.string(),
-	message: z.string(),
 	retryAt: z.iso.datetime().optional(),
 	retriable: z.boolean(),
 	newChatAvailable: z.boolean(),

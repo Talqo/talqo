@@ -38,7 +38,6 @@ function routes(failure: "embed" | "none" | "post-accept" | "pre-accept" = "none
 					outcome: "failed",
 					error: {
 						code: "provider-error",
-						message: "The configured model could not complete the response.",
 						retriable: true,
 						newChatAvailable: false,
 					},

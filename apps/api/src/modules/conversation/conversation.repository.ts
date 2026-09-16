@@ -12,7 +12,9 @@ import {
 
 const ACTIVE_STATUSES = ["accepted", "running"] as const
 const LEASE_MS = 15_000
-const DATE_PREFIX_LENGTH = 10
+const DATABASE_NOW = sql`now()`
+const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
+const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
 
 export type SessionContext = {
 	agentId: string
@@ -116,7 +118,6 @@ export async function getHistorySnapshot(conversationId: string): Promise<Histor
 
 async function interruptExpiredAttempts(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	now: Date,
 	condition?: ReturnType<typeof or>,
 ): Promise<void> {
 	const expired = await tx
@@ -124,16 +125,20 @@ async function interruptExpiredAttempts(
 		.set({
 			status: "interrupted",
 			finalOutcome: sql`CASE WHEN ${conversationAttempt.providerInvoked} THEN 'interrupted'::conversation_final_outcome ELSE NULL END`,
-			updatedAt: now,
+			updatedAt: DATABASE_NOW,
 		})
 		.where(
-			and(inArray(conversationAttempt.status, ACTIVE_STATUSES), lt(conversationAttempt.leaseExpiresAt, now), condition),
+			and(
+				inArray(conversationAttempt.status, ACTIVE_STATUSES),
+				lt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				condition,
+			),
 		)
 		.returning({ id: conversationAttempt.id })
 	if (expired.length === 0) return
 	await tx
 		.update(conversationMessage)
-		.set({ outcome: "interrupted", updatedAt: now })
+		.set({ outcome: "interrupted", updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				inArray(
@@ -203,10 +208,8 @@ export async function acceptAttempt(input: {
 			})
 		}
 		if (!sessionId || !conversationId) throw new Error("Session context is required")
-		const now = new Date()
 		await interruptExpiredAttempts(
 			tx,
-			now,
 			or(
 				eq(conversationAttempt.sessionId, sessionId),
 				and(
@@ -252,7 +255,7 @@ export async function acceptAttempt(input: {
 				and(
 					eq(conversationAttempt.sessionId, sessionId),
 					inArray(conversationAttempt.status, ACTIVE_STATUSES),
-					gt(conversationAttempt.leaseExpiresAt, now),
+					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 		if ((sessionActive?.value ?? 0) > 0) throw new SessionBusyRepositoryError()
@@ -265,18 +268,17 @@ export async function acceptAttempt(input: {
 					eq(conversation.agentId, input.agentId),
 					eq(conversationAttempt.networkHash, input.networkHash),
 					inArray(conversationAttempt.status, ACTIVE_STATUSES),
-					gt(conversationAttempt.leaseExpiresAt, now),
+					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrencyExceededRepositoryError()
 
-		const day = now.toISOString().slice(0, DATE_PREFIX_LENGTH)
 		const [counter] = await tx
 			.insert(conversationDailyCounter)
-			.values({ agentId: input.agentId, networkHash: input.networkHash, day, count: 1 })
+			.values({ agentId: input.agentId, networkHash: input.networkHash, day: DATABASE_DAY, count: 1 })
 			.onConflictDoUpdate({
 				target: [conversationDailyCounter.agentId, conversationDailyCounter.networkHash, conversationDailyCounter.day],
-				set: { count: sql`${conversationDailyCounter.count} + 1`, updatedAt: now },
+				set: { count: sql`${conversationDailyCounter.count} + 1`, updatedAt: DATABASE_NOW },
 				setWhere: lt(conversationDailyCounter.count, input.dailyLimit),
 			})
 			.returning()
@@ -284,7 +286,6 @@ export async function acceptAttempt(input: {
 
 		const attemptId = crypto.randomUUID()
 		const leaseToken = crypto.randomUUID()
-		const leaseExpiresAt = new Date(now.getTime() + LEASE_MS)
 		const [attempt] = await tx
 			.insert(conversationAttempt)
 			.values({
@@ -295,11 +296,10 @@ export async function acceptAttempt(input: {
 				inputText: input.inputText,
 				networkHash: input.networkHash,
 				leaseToken,
-				leaseExpiresAt,
+				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
 			})
 			.returning()
 		if (!attempt) throw new Error("Attempt insert failed")
-		const createdAt = now
 		const [userMessage, assistantMessage] = await tx
 			.insert(conversationMessage)
 			.values([
@@ -310,7 +310,7 @@ export async function acceptAttempt(input: {
 					role: "user",
 					text: input.messageText,
 					outcome: "completed",
-					createdAt,
+					createdAt: DATABASE_NOW,
 				},
 				{
 					id: crypto.randomUUID(),
@@ -319,7 +319,7 @@ export async function acceptAttempt(input: {
 					role: "assistant",
 					text: "",
 					outcome: "streaming",
-					createdAt: new Date(createdAt.getTime() + 1),
+					createdAt: sql`now() + interval '1 millisecond'`,
 				},
 			])
 			.returning()
@@ -331,13 +331,13 @@ export async function acceptAttempt(input: {
 export async function markRunning(attemptId: string, leaseToken: string): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ status: "running", updatedAt: new Date() })
+		.set({ status: "running", updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationAttempt.id, attemptId),
 				eq(conversationAttempt.leaseToken, leaseToken),
 				eq(conversationAttempt.status, "accepted"),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
+				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 		.returning({ id: conversationAttempt.id })
@@ -347,7 +347,7 @@ export async function markRunning(attemptId: string, leaseToken: string): Promis
 export async function appendOutput(attemptId: string, leaseToken: string, text: string): Promise<boolean> {
 	const rows = await db
 		.update(conversationMessage)
-		.set({ text: sql`${conversationMessage.text} || ${text}`, updatedAt: new Date() })
+		.set({ text: sql`${conversationMessage.text} || ${text}`, updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationMessage.attemptId, attemptId),
@@ -368,13 +368,13 @@ export async function setAttribution(
 ): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: new Date() })
+		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationAttempt.id, attemptId),
 				eq(conversationAttempt.leaseToken, leaseToken),
 				eq(conversationAttempt.status, "running"),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
+				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 		.returning({ id: conversationAttempt.id })
@@ -384,13 +384,13 @@ export async function setAttribution(
 export async function heartbeat(attemptId: string, leaseToken: string): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ leaseExpiresAt: new Date(Date.now() + LEASE_MS), updatedAt: new Date() })
+		.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationAttempt.id, attemptId),
 				eq(conversationAttempt.leaseToken, leaseToken),
 				eq(conversationAttempt.status, "running"),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
+				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 		.returning({ id: conversationAttempt.id })
@@ -405,7 +405,7 @@ export async function isCancellationRequested(attemptId: string, leaseToken: str
 			and(
 				eq(conversationAttempt.id, attemptId),
 				eq(conversationAttempt.leaseToken, leaseToken),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
+				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 	return row?.cancelled !== null && row?.cancelled !== undefined
@@ -437,7 +437,7 @@ export async function stageFinalization(input: {
 				model: input.model,
 				usageInputTokens: input.inputTokens,
 				usageOutputTokens: input.outputTokens,
-				updatedAt: new Date(),
+				updatedAt: DATABASE_NOW,
 			})
 			.where(
 				and(
@@ -445,7 +445,7 @@ export async function stageFinalization(input: {
 					eq(conversationAttempt.leaseToken, input.leaseToken),
 					eq(conversationAttempt.status, "running"),
 					eq(conversationAttempt.providerInvoked, true),
-					gt(conversationAttempt.leaseExpiresAt, new Date()),
+					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 			.returning({ conversationId: conversationAttempt.conversationId })
@@ -453,7 +453,7 @@ export async function stageFinalization(input: {
 		if (!finalized) return false
 		const [assistant] = await tx
 			.update(conversationMessage)
-			.set({ outcome: input.outcome, updatedAt: new Date() })
+			.set({ outcome: input.outcome, updatedAt: DATABASE_NOW })
 			.where(and(eq(conversationMessage.attemptId, input.attemptId), eq(conversationMessage.role, "assistant")))
 			.returning({ id: conversationMessage.id })
 		if (!assistant) throw new Error("Assistant message missing during finalization")
@@ -507,7 +507,7 @@ export async function stageRecoveredUsageCandidate(
 ): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ usageInputTokens: inputTokens, usageOutputTokens: outputTokens, updatedAt: new Date() })
+		.set({ usageInputTokens: inputTokens, usageOutputTokens: outputTokens, updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationAttempt.id, attemptId),
@@ -530,7 +530,7 @@ export async function markUsageRecorded(input: {
 }): Promise<boolean> {
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ usageRecordedAt: new Date(), updatedAt: new Date() })
+		.set({ usageRecordedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(conversationAttempt.id, input.attemptId),
@@ -548,12 +548,12 @@ export async function requestCancellation(sessionId: string, attemptId?: string)
 	const conditions = [
 		eq(conversationAttempt.sessionId, sessionId),
 		inArray(conversationAttempt.status, ACTIVE_STATUSES),
-		gt(conversationAttempt.leaseExpiresAt, new Date()),
+		gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 	]
 	if (attemptId) conditions.push(eq(conversationAttempt.id, attemptId))
 	const rows = await db
 		.update(conversationAttempt)
-		.set({ cancellationRequestedAt: new Date(), updatedAt: new Date() })
+		.set({ cancellationRequestedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(and(...conditions))
 		.returning({ id: conversationAttempt.id })
 	return rows.length > 0
@@ -567,7 +567,7 @@ export async function getActiveAttempt(sessionId: string): Promise<{ id: string 
 			and(
 				eq(conversationAttempt.sessionId, sessionId),
 				inArray(conversationAttempt.status, ACTIVE_STATUSES),
-				gt(conversationAttempt.leaseExpiresAt, new Date()),
+				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 		.limit(1)
@@ -576,10 +576,7 @@ export async function getActiveAttempt(sessionId: string): Promise<{ id: string 
 
 export async function recoverExpired(): Promise<void> {
 	return db.transaction(async (tx) => {
-		const now = new Date()
-		await interruptExpiredAttempts(tx, now)
-		await tx
-			.delete(conversationDailyCounter)
-			.where(lt(conversationDailyCounter.day, now.toISOString().slice(0, DATE_PREFIX_LENGTH)))
+		await interruptExpiredAttempts(tx)
+		await tx.delete(conversationDailyCounter).where(lt(conversationDailyCounter.day, DATABASE_DAY))
 	})
 }

@@ -3,6 +3,12 @@ const NORMALIZATION_LOOK_BEHIND_CODE_UNITS = 8
 
 export function createBlacklistFilter(words: readonly string[]) {
 	const terms = words.filter(Boolean).map((word) => word.normalize("NFC").toLocaleLowerCase("und"))
+	if (terms.length === 0) {
+		return {
+			push: (chunk: string): FilterResult => ({ blocked: false, text: chunk }),
+			finish: (): string => "",
+		}
+	}
 	const lookBehind = Math.max(0, ...terms.map((term) => term.length)) + NORMALIZATION_LOOK_BEHIND_CODE_UNITS
 	let pending = ""
 	let blocked = false

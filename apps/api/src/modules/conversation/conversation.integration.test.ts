@@ -4,7 +4,7 @@ import { ProviderContextLimitError, type TextMessage } from "@/modules/ai-provid
 import * as embed from "@/modules/embed/embed.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
-import { beforeEach, describe, expect, it } from "bun:test"
+import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "bun:test"
 
 import * as repository from "./conversation.repository.ts"
 import {
@@ -137,6 +137,10 @@ async function* contextLimitGeneration() {
 
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE conversation_usage, conversation_message, conversation_attempt, conversation_session, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
+})
+
+afterEach(() => {
+	setSystemTime()
 })
 
 describe("conversation lifecycle", () => {
@@ -587,6 +591,88 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await next.done
+	})
+
+	it("uses PostgreSQL time for lease lifecycle decisions when the process clock is skewed", async () => {
+		const { createdEmbed } = await fixture()
+		const started = deferred()
+		const gate = deferred()
+		const instance = customService(async function* () {
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			started.resolve()
+			await gate.promise
+			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+		})
+		setSystemTime(new Date("2000-01-01T00:00:00.000Z"))
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "database clock",
+			networkHash: "network-a",
+		})
+		await started.promise
+		const [attempt] = await sql`
+			SELECT lease_token, session_id FROM conversation_attempt WHERE id = ${sent.generationId}
+		`
+		const leaseToken = String(attempt?.lease_token)
+		const sessionId = String(attempt?.session_id)
+
+		setSystemTime(new Date("2100-01-01T00:00:00.000Z"))
+		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(true)
+		expect(await repository.setAttribution(sent.generationId, leaseToken, "database", "clock")).toBe(true)
+		expect(await repository.getActiveAttempt(sessionId)).toEqual({ id: sent.generationId })
+		expect(await repository.requestCancellation(sessionId, sent.generationId)).toBe(true)
+		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(true)
+		await repository.recoverExpired()
+		expect(
+			(
+				await sql`
+					SELECT status,
+						lease_expires_at BETWEEN now() + interval '10 seconds' AND now() + interval '20 seconds' AS lease_uses_db_time,
+						updated_at BETWEEN now() - interval '5 seconds' AND now() + interval '1 second' AS update_uses_db_time
+					FROM conversation_attempt
+					WHERE id = ${sent.generationId}
+				`
+			)[0],
+		).toMatchObject({ status: "running", lease_uses_db_time: true, update_uses_db_time: true })
+
+		gate.resolve()
+		await sent.done
+	})
+
+	it("keeps a provider completion when cancellation occurs while its iterator closes", async () => {
+		const { createdEmbed } = await fixture()
+		const exiting = deferred()
+		const release = deferred()
+		const instance = customService(async function* () {
+			try {
+				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			} finally {
+				exiting.resolve()
+				await release.promise
+			}
+		})
+		const events: { outcome?: string; type: string }[] = []
+		const sent = await instance.send(
+			{
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "complete",
+				networkHash: "network-a",
+			},
+			(event) => events.push(event),
+		)
+		await exiting.promise
+		await instance.cancel(CREDENTIAL_1, sent.generationId)
+		release.resolve()
+		await sent.done
+
+		expect(events.at(-1)).toMatchObject({ type: "terminal", outcome: "completed" })
+		expect(
+			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id),
+		).toMatchObject({ outcome: "completed" })
 	})
 
 	it("keeps usage idempotent and resolves late completion safely after agent deletion", async () => {
