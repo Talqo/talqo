@@ -112,6 +112,58 @@ describe("agent knowledge files", () => {
 		expect(((await after.json()) as { files: unknown[] }).files).toEqual([])
 	})
 
+	it("downloads a file with its raw bytes and attachment headers", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Download")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+
+		const response = await app.request(`/api/agents/${agentId}/files/a.md`, { headers: { Cookie: cookie } })
+		expect(response.status).toBe(200)
+		expect(await response.text()).toBe("hello")
+		expect(response.headers.get("content-type")).toBe("text/markdown; charset=utf-8")
+		const disposition = response.headers.get("content-disposition")
+		expect(disposition).toContain("attachment")
+		expect(disposition).toContain(`filename="a.md"`)
+		expect(disposition).toContain("filename*=UTF-8''a.md")
+	})
+
+	it("percent-encodes special characters in the download file name", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Encoding")
+		const name = "přehled #1.md"
+		const form = new FormData()
+		form.append("file", new File(["x"], name, { type: "text/markdown" }))
+		const uploaded = await app.request(`/api/agents/${agentId}/files`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+			body: form,
+		})
+		expect(uploaded.status).toBe(201)
+
+		const response = await app.request(`/api/agents/${agentId}/files/${encodeURIComponent(name)}`, {
+			headers: { Cookie: cookie },
+		})
+		expect(response.status).toBe(200)
+		const disposition = response.headers.get("content-disposition")
+		expect(disposition).toContain(`filename="p_ehled #1.md"`)
+		expect(disposition).toContain(`filename*=UTF-8''${encodeURIComponent(name)}`)
+	})
+
+	it("returns 404 when downloading an unknown file", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Missing")
+		const response = await app.request(`/api/agents/${agentId}/files/missing.md`, { headers: { Cookie: cookie } })
+		expect(response.status).toBe(404)
+	})
+
+	it("rejects path traversal through the download file name", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "GetTraversal")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+		const response = await app.request(`/api/agents/${agentId}/files/..%2Fa.md`, { headers: { Cookie: cookie } })
+		expect(response.status).toBe(400)
+	})
+
 	it("rejects a duplicate file name with 409", async () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Dupes")

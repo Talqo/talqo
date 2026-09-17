@@ -1,6 +1,7 @@
 import type { AgentFile } from "@/api/generated/models/agent/agentFile.zod"
 
 import {
+	downloadAgentFile,
 	getListAgentFilesQueryKey,
 	getListAgentFilesQueryOptions,
 	useDeleteAgentFile,
@@ -24,7 +25,7 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
-import { FileText, Pencil, Trash2, Upload } from "lucide-react"
+import { Download, FileText, Pencil, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -62,6 +63,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const [renameError, setRenameError] = useState<string | null>(null)
 	const [deleteTarget, setDeleteTarget] = useState<AgentFile | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
+	const [downloadingName, setDownloadingName] = useState<string | null>(null)
 
 	const maxSizeBytes = filesQuery.data?.data.maxSizeBytes
 	const maxSizeMB = maxSizeBytes ? Math.round(maxSizeBytes / BYTES_PER_MB) : undefined
@@ -100,6 +102,24 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		event.preventDefault()
 		setDragging(false)
 		void startBatch(event.dataTransfer.files)
+	}
+
+	async function onDownload(file: AgentFile) {
+		setFileError(null)
+		setDownloadingName(file.name)
+		try {
+			const response = await downloadAgentFile(agentId, pathName(file.name))
+			const url = URL.createObjectURL(response.data)
+			const anchor = document.createElement("a")
+			anchor.href = url
+			anchor.download = file.name
+			anchor.click()
+			URL.revokeObjectURL(url)
+		} catch (error) {
+			setFileError(errorMessage(error, t("agentFiles.downloadFailed")))
+		} finally {
+			setDownloadingName(null)
+		}
 	}
 
 	function openRename(file: AgentFile) {
@@ -214,6 +234,23 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 								</div>
 								{canManage && (
 									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														disabled={downloadingName === file.name}
+														onClick={() => void onDownload(file)}
+														aria-label={t("agentFiles.download", { name: file.name })}
+													/>
+												}
+											>
+												<Download className="size-4" />
+											</TooltipTrigger>
+											<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
+										</Tooltip>
 										<Tooltip>
 											<TooltipTrigger
 												render={

@@ -11,6 +11,7 @@ import {
 	agentFileDetailResponseSchema,
 	agentFileListResponseSchema,
 	deleteAgentFileRoute,
+	downloadAgentFileRoute,
 	listAgentFilesRoute,
 	renameAgentFileRoute,
 	uploadAgentFileRoute,
@@ -23,6 +24,24 @@ function serialize(file: files.StoredFile) {
 
 async function requireAgent(agentId: string): Promise<void> {
 	await agent.getAgent(agentId)
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	".md": "text/markdown; charset=utf-8",
+	".pdf": "application/pdf",
+	".txt": "text/plain; charset=utf-8",
+}
+
+function contentTypeFor(name: string): string {
+	const ext = name.slice(name.lastIndexOf(".")).toLowerCase()
+	return CONTENT_TYPES[ext] ?? "application/octet-stream"
+}
+
+// RFC 5987: filename* carries the UTF-8 name; a quoted ASCII fallback serves older clients.
+function contentDisposition(name: string): string {
+	const fallback = name.replace(/[^\x20-\x7E]|["\\]/g, "_")
+	return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`
 }
 
 const uploadBodyLimit = bodyLimit({
@@ -87,6 +106,27 @@ export const agentFilesRoutes = routes
 			if (error instanceof files.FileExistsError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT)
 			}
+			throw error
+		}
+	})
+	.openapi(downloadAgentFileRoute, async (c) => {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, "agents:manage"))) {
+			return c.json({ error: "Missing agents:manage permission" }, HTTP_STATUS.FORBIDDEN)
+		}
+		const { agentId, fileName } = c.req.valid("param")
+		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
+		try {
+			await requireAgent(agentId)
+			files.validateName(fileName)
+			const content = await files.get(agentId, fileName)
+			return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
+				"Content-Disposition": contentDisposition(fileName),
+				"Content-Type": contentTypeFor(fileName),
+			})
+		} catch (error) {
+			const mapped = mapDomainError(error)
+			if (mapped) return c.json(mapped.body, mapped.status as never)
 			throw error
 		}
 	})
