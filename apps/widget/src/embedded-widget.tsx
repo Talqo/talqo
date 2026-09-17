@@ -564,13 +564,15 @@ function WidgetChat({
 									message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
 								return (
 									<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
-										<BubbleContent
-											variant={message.role === "user" ? "default" : "muted"}
-											className={cn(message.role === "assistant" && "tw:text-foreground")}
-										>
-											{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
-										</BubbleContent>
-										{outcomeText(message.outcome, t) && (
+										{(awaitingText || message.text.length > 0) && (
+											<BubbleContent
+												variant={message.role === "user" ? "default" : "muted"}
+												className={cn(message.role === "assistant" && "tw:text-foreground")}
+											>
+												{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+											</BubbleContent>
+										)}
+										{message.role === "assistant" && outcomeText(message.outcome, t) && (
 											<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
 												{outcomeText(message.outcome, t)}
 											</span>

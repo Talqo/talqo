@@ -190,6 +190,32 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.textContent).toContain("Response cancelled")
 	})
 
+	test("renders an empty cancelled assistant response as a status without a bubble", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "cancelled")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const status = [...host.querySelectorAll("span")].find((element) => element.textContent === "Response cancelled")
+		const bubble = status?.closest<HTMLElement>("[data-slot='bubble']")
+		expect(bubble?.dataset.align).toBe("start")
+		expect(bubble?.querySelector("[data-slot='bubble-content']")).toBeNull()
+	})
+
+	test("does not render assistant outcome labels on interrupted user messages", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "interrupted")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).toContain("Hello")
+		expect(host.textContent).not.toContain("Response interrupted")
+	})
+
 	test("shows an accessible animated response indicator only until text arrives", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
