@@ -1,4 +1,4 @@
-# 0015: Use client-issued UUID chat sessions
+# 0014: Use client-issued UUID chat sessions
 
 ## Status
 
