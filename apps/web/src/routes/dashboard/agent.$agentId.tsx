@@ -24,7 +24,6 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
@@ -317,29 +316,27 @@ function AgentConfigPage() {
 
 function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: boolean }) {
 	const { t } = useTranslation()
+	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const { data: embedsResponse, isLoading, isError } = useListEmbeds({ agentId })
 	const embeds = embedsResponse?.data.embeds
-	const createEmbed = useCreateEmbed({
-		mutation: {
-			onSuccess: () => queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey({ agentId }) }),
-		},
-	})
-	const [dialogOpen, setDialogOpen] = useState(false)
-	const [name, setName] = useState("")
+	const createEmbed = useCreateEmbed()
 
 	async function onCreate() {
-		if (!name.trim()) {
-			return
-		}
 		try {
-			await createEmbed.mutateAsync({ data: { name: name.trim(), agentId, appearance: EMBED_FORM_DEFAULTS } })
+			const result = await createEmbed.mutateAsync({
+				data: { name: t("embedSetup.defaultName"), agentId, appearance: EMBED_FORM_DEFAULTS },
+			})
+			await navigate({
+				to: "/dashboard/embeds/$embedId",
+				params: { embedId: result.data.embed.id },
+				search: { colorTab: undefined },
+			})
+			await queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey({ agentId }) })
 		} catch {
-			// Reported below from createEmbed.isError; the draft stays for a retry.
+			// Reported below from createEmbed.isError.
 			return
 		}
-		setName("")
-		setDialogOpen(false)
 	}
 
 	return (
@@ -347,39 +344,17 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">{t("embedSetup.agentPanelDescription")}</p>
 				{canManage && (
-					<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-						<DialogTrigger render={<Button />}>
-							<Plus className="size-4" />
-							{t("embedSetup.createEmbed")}
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>{t("embedSetup.createEmbed")}</DialogTitle>
-								<DialogDescription>{t("embedSetup.createDescription")}</DialogDescription>
-							</DialogHeader>
-							<div className="space-y-2">
-								<Label htmlFor="embed-name">{t("embedSetup.nameLabel")}</Label>
-								<Input
-									id="embed-name"
-									placeholder={t("embedSetup.namePlaceholder")}
-									value={name}
-									onChange={(event) => setName(event.target.value)}
-								/>
-							</div>
-							{createEmbed.isError && (
-								<p role="alert" className="text-destructive text-sm">
-									{t("embedSetup.createError")}
-								</p>
-							)}
-							<DialogFooter>
-								<Button onClick={onCreate} disabled={createEmbed.isPending || !name.trim()}>
-									{createEmbed.isPending ? t("embedSetup.creating") : t("embedSetup.createEmbed")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+					<Button onClick={onCreate} disabled={createEmbed.isPending}>
+						<Plus className="size-4" />
+						{createEmbed.isPending ? t("embedSetup.creating") : t("embedSetup.createEmbed")}
+					</Button>
 				)}
 			</div>
+			{createEmbed.isError && (
+				<p role="alert" className="text-destructive text-sm">
+					{t("embedSetup.createError")}
+				</p>
+			)}
 
 			{isLoading ? (
 				<p className="text-muted-foreground">{t("embedSetup.loading")}</p>

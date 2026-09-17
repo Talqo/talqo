@@ -40,6 +40,68 @@ test.afterEach(async ({ page }) => {
 	)
 })
 
+test("operator creates an embed and configures it immediately", async ({ page }) => {
+	const createdIds: string[] = []
+	const createEmbed = async () => {
+		const responsePromise = page.waitForResponse(
+			(response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/embeds",
+		)
+		await page.getByRole("button", { name: "New embed" }).click()
+		const response = await responsePromise
+		expect(response.ok()).toBe(true)
+		const { embed } = (await response.json()) as { embed: { id: string } }
+		createdIds.push(embed.id)
+		await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
+	}
+
+	try {
+		await createEmbed()
+		await expect(page.getByLabel("Name", { exact: true })).toHaveValue("AI Assistant")
+
+		await page.getByRole("button", { name: "Back to agent" }).click()
+		await createEmbed()
+		await expect(page.getByLabel("Name", { exact: true })).toHaveValue("AI Assistant")
+	} finally {
+		await Promise.all(createdIds.map((embedId) => page.request.delete(`/api/embeds/${embedId}`)))
+	}
+})
+
+test("operator permanently deletes an embed from its danger zone", async ({ page }) => {
+	const source = seeded[0]
+	if (!source) throw new Error("Shared seed embed is missing")
+	const name = "Disposable embed"
+	const response = await page.request.post("/api/embeds", {
+		data: { name, agentId: source.agentId, appearance: source.appearance },
+	})
+	expect(response.ok()).toBe(true)
+	const { embed } = (await response.json()) as { embed: { id: string } }
+
+	try {
+		await page.reload()
+		const embedCard = page.locator("[data-slot=card]", { hasText: name })
+		await expect(embedCard).toBeVisible()
+		await embedCard.click()
+		await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
+		const deleteButton = page.getByRole("button", { name: "Delete embed" })
+		await expect(deleteButton).toBeVisible()
+		await deleteButton.click()
+		const dialog = page.getByRole("dialog", { name: "Delete embed?" })
+		const confirmButton = dialog.getByRole("button", { name: "Delete permanently" })
+		await expect(confirmButton).toBeDisabled()
+		await dialog.getByPlaceholder(name).fill(`${name} typo`)
+		await expect(confirmButton).toBeDisabled()
+		await dialog.getByPlaceholder(name).fill(name)
+		await expect(confirmButton).toBeEnabled()
+		await confirmButton.click()
+
+		await expect(page).toHaveURL(`/dashboard/agent/${source.agentId}?tab=embeds`)
+		await expect(page.locator("[data-slot=card]", { hasText: name })).toHaveCount(0)
+		await expect.poll(async () => (await page.request.get(`/api/embeds/${embed.id}`)).status()).toBe(404)
+	} finally {
+		await page.request.delete(`/api/embeds/${embed.id}`)
+	}
+})
+
 test("operator customizes an embed and the widget preview follows without reloading", async ({ page }) => {
 	const card = page.locator("[data-slot=card]", { hasText: "Website" })
 	await expect(card).toBeVisible()

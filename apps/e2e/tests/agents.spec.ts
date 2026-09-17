@@ -113,6 +113,8 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
 		await expect(page.locator("pre")).toBeVisible()
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+		await expect(page.getByText("Danger zone")).toHaveCount(0)
+		await expect(page.getByRole("button", { name: "Delete embed" })).toHaveCount(0)
 	} finally {
 		await revokeViewerPermission(page, grantId)
 	}
