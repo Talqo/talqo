@@ -7,9 +7,18 @@ import { useTranslation } from "react-i18next"
 
 const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined
 const widgetUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
-const PREVIEW_URL = configuredPreviewUrl ?? (widgetUrl ? new URL("preview.html", widgetUrl).toString() : undefined)
 
 const FRAME_WIDTH = 336
+const FRAME_HEIGHT = 420
+
+function escapeAttribute(value: string): string {
+	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+/** A CDN-only deployment does not need to publish a separate preview document. */
+export function buildPreviewDocument(scriptUrl: string, parentOrigin: string): string {
+	return `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;background:transparent}</style></head><body><div id="talqo-widget"></div><script src="${escapeAttribute(scriptUrl)}" data-talqo-preview data-talqo-parent-origin="${escapeAttribute(parentOrigin)}"></script></body></html>`
+}
 
 const insetClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "right-0 bottom-0",
@@ -40,10 +49,10 @@ function previewSrc(
 	title: string | undefined,
 	activeScheme: "light" | "dark" | undefined,
 ) {
-	if (!PREVIEW_URL) {
+	if (!configuredPreviewUrl) {
 		return undefined
 	}
-	const url = new URL(PREVIEW_URL)
+	const url = new URL(configuredPreviewUrl)
 	schemeSearchParams(url, "light", appearance.light)
 	schemeSearchParams(url, "dark", appearance.dark)
 	url.searchParams.set("position", appearance.position)
@@ -92,23 +101,43 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	const scale = useFrameScale(frameRef)
 
 	// Once per widget: recomputing per keystroke would reload the frame.
-	const [src] = useState(() => previewSrc(appearance, title, activeScheme))
+	const [source] = useState(() => {
+		const src = previewSrc(appearance, title, activeScheme)
+		if (src) {
+			const origin = new URL(src).origin
+			return { expectedOrigin: origin, src, srcDoc: undefined, targetOrigin: origin }
+		}
+		if (widgetUrl) {
+			return {
+				expectedOrigin: "null",
+				src: undefined,
+				srcDoc: buildPreviewDocument(widgetUrl, window.location.origin),
+				targetOrigin: "*",
+			}
+		}
+		return undefined
+	})
 	const latest = useRef({ appearance, title, activeScheme })
 	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
 	useEffect(() => {
 		latest.current = { appearance, title, activeScheme }
 	}, [appearance, title, activeScheme])
 
-	const targetOrigin = src ? new URL(src).origin : undefined
+	const targetOrigin = source?.targetOrigin
 
 	useEffect(() => {
 		if (!targetOrigin) {
 			return
 		}
+		const messageTargetOrigin = targetOrigin
 		function onMessage(event: MessageEvent) {
 			// Replying on `ready` rather than on iframe load makes reload, HMR, and bfcache
 			// restore self-healing without a retry timer.
-			if (event.origin !== targetOrigin || !isReadyMessage(event.data)) {
+			if (
+				event.source !== iframeRef.current?.contentWindow ||
+				event.origin !== source?.expectedOrigin ||
+				!isReadyMessage(event.data)
+			) {
 				return
 			}
 			iframeRef.current?.contentWindow?.postMessage(
@@ -116,12 +145,12 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 					title: latest.current.title,
 					forcedScheme: latest.current.activeScheme,
 				}),
-				targetOrigin,
+				messageTargetOrigin,
 			)
 		}
 		window.addEventListener("message", onMessage)
 		return () => window.removeEventListener("message", onMessage)
-	}, [targetOrigin])
+	}, [source?.expectedOrigin, targetOrigin])
 
 	useEffect(() => {
 		if (!targetOrigin) {
@@ -134,7 +163,7 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 		)
 	}, [appearance, title, activeScheme, targetOrigin])
 
-	if (!src) {
+	if (!source) {
 		return (
 			<div
 				className={cn(
@@ -148,17 +177,20 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	}
 
 	return (
-		<div ref={frameRef} className={cn("absolute h-[460px] w-full max-w-[336px]", insetClasses[appearance.position])}>
+		<div
+			ref={frameRef}
+			className={cn("absolute z-10 h-[420px] w-full max-w-[336px]", insetClasses[appearance.position])}
+		>
 			<iframe
 				key={previewKey}
 				ref={iframeRef}
-				src={src}
+				src={source.src}
+				srcDoc={source.srcDoc}
+				sandbox={source.srcDoc ? "allow-scripts" : undefined}
 				title={t("embedSetup.livePreview")}
-				className={cn(
-					"absolute h-[460px] w-[336px] border-0",
-					appearance.position === "bottom-right" ? "right-0" : "left-0",
-				)}
+				className={cn("absolute w-[336px] border-0", appearance.position === "bottom-right" ? "right-0" : "left-0")}
 				style={{
+					height: FRAME_HEIGHT,
 					transform: `scale(${scale})`,
 					transformOrigin: appearance.position === "bottom-right" ? "bottom right" : "bottom left",
 				}}
