@@ -190,6 +190,44 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.textContent).toContain("Response cancelled")
 	})
 
+	test("shows an accessible animated response indicator only until text arrives", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			generation: "sending",
+			messages: [message("u1", "user", "Hello", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const indicator = host.querySelector<HTMLElement>("[role='status']")
+		expect(indicator?.textContent).toBe("Agent is responding")
+		const dots = indicator?.querySelectorAll("[aria-hidden='true'] > span")
+		expect(dots).toHaveLength(3)
+		for (const dot of dots ?? []) {
+			expect(dot.className).toContain("tw:animate-bounce")
+			expect(dot.className).toContain("tw:motion-reduce:animate-none")
+		}
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "streaming")],
+			}),
+		)
+		expect(host.querySelectorAll("[role='status']")).toHaveLength(1)
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
+			}),
+		)
+		expect(host.querySelector("[role='status']")).toBeNull()
+		expect(host.textContent).toContain("Answer")
+	})
+
 	test("trims sends, prevents duplicate submissions, and clears only after SDK acceptance", async () => {
 		const store = fakeClient()
 		let finish!: () => void
