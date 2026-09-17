@@ -216,7 +216,7 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 		if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error)) return undefined
 		if (!isChatErrorCode(value.error.code)) throw invalidResponse(HTTP_OK)
 		if (typeof value.error.retriable !== "boolean" || typeof value.error.newChatAvailable !== "boolean") {
-			return undefined
+			throw invalidResponse(HTTP_OK)
 		}
 		if (value.error.retryAt !== undefined && typeof value.error.retryAt !== "string") return undefined
 		return {

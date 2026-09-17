@@ -1218,7 +1218,11 @@ describe("createChatClient", () => {
 		await expect(sending).rejects.toThrow("cancelled")
 
 		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
-		expect(client.getSnapshot()).toMatchObject({ generation: "recovery", recovery: "unavailable" })
+		expect(client.getSnapshot()).toMatchObject({
+			generation: "recovery",
+			recovery: "unavailable",
+			error: { code: "chat-session-unauthorized", status: 401 },
+		})
 	})
 
 	for (const sendSettlesFirst of [true, false]) {
