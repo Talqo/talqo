@@ -483,7 +483,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					recovery = "pending"
 					beginSessionRecoveryPolling()
 				} else generation = previousGeneration
-				error = { ...transportError(cause), code: "cancel-failed" }
+				error = cause instanceof ChatTransportError ? cause.detail : { code: "cancel-failed" }
 				publish()
 				if (preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED) return
 				throw cause

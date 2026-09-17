@@ -369,6 +369,28 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
+	test("maps malformed streamed error policy to invalid-response", async () => {
+		const fake = recordingFetch([
+			streamResponse([
+				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":"provider-error","newChatAvailable":false}}\n\n',
+			]),
+			streamResponse([
+				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":"provider-error","retriable":true,"newChatAvailable":"yes"}}\n\n',
+			]),
+		])
+		const transport = createFetchChatTransport({ fetch: fake.fetch })
+		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
+
+		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
+			code: "invalid-response",
+			status: 200,
+		})
+		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
+			code: "invalid-response",
+			status: 200,
+		})
+	})
+
 	test("accepts additive JSON fields and rejects malformed consumed fields without exposing raw bodies", async () => {
 		const fake = recordingFetch([
 			jsonResponse({ version: 1, name: "Support", appearance: { ...APPEARANCE, extra: true } }),
