@@ -1,4 +1,5 @@
 {
+	"agentResponding": "Agent is responding",
 	"allowanceReset": "Allowance resets at {{reset}}.",
 	"closeChat": "Close chat",
 	"defaultTitle": "AI Chat",
