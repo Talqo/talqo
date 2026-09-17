@@ -16,33 +16,33 @@ Update this guide in the same change as any decision that changes architecture, 
 
 ## Technology Baseline
 
-| Technology or decision | Role | Decision record |
-| --- | --- | --- |
-| Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
-| Modular monolith | Application structure | [ADR-0002](adr/0002-use-a-modular-monolith.md) |
-| PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
-| Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
-| OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
-| TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
-| Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
-| Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
+| Technology or decision      | Role                                       | Decision record                                                   |
+| --------------------------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| Bun                         | Runtime and toolchain                      | [ADR-0001](adr/0001-use-bun.md)                                   |
+| Modular monolith            | Application structure                      | [ADR-0002](adr/0002-use-a-modular-monolith.md)                    |
+| PostgreSQL                  | Authoritative datastore                    | [ADR-0003](adr/0003-use-postgresql.md)                            |
+| Drizzle                     | Persistence and migrations                 | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md)    |
+| OpenAPI                     | External API contract                      | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md)             |
+| TanStack Query              | Browser server state                       | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md)       |
+| Web/API separation          | Client rendering and integration boundary  | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md)       |
+| Vercel AI SDK               | Text and embedding provider interfaces     | [ADR-0011](adr/0011-use-vercel-ai-sdk.md)                         |
 | Embed-owned public identity | Integration tokens and revocation versions | [ADR-0013](adr/0013-own-public-integration-identity-in-embeds.md) |
-| Durable public chat | Session, transport, persistence, and browser-state boundaries | [ADR-0014](adr/0014-keep-public-chat-state-durable.md) |
-| Hono | HTTP transport | None |
-| Zod | Runtime contracts | None |
-| React | Web UI | None |
-| TanStack Router | Routing and URL state | None |
-| Playwright | E2E tests | None |
+| Client-issued chat sessions | Session credentials and request identity   | [ADR-0014](adr/0014-use-client-issued-uuid-chat-sessions.md)      |
+| Hono                        | HTTP transport                             | None                                                              |
+| Zod                         | Runtime contracts                          | None                                                              |
+| React                       | Web UI                                     | None                                                              |
+| TanStack Router             | Routing and URL state                      | None                                                              |
+| Playwright                  | E2E tests                                  | None                                                              |
 
 ## Convention Provenance
 
 Conventions have three sources. Preserve upstream conventions unless a documented Talqo rule intentionally narrows them.
 
-| Source | Conventions |
-| --- | --- |
-| Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/` |
-| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e` |
-| Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
+| Source             | Conventions                                                                                                                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/`                                                                                  |
+| Common ecosystem   | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e`                                                                                                                           |
+| Talqo decisions    | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
 
 Role suffixes and boundary rules in this document are Talqo conventions, not framework requirements.
 
@@ -133,7 +133,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 `conversation` owns public chat orchestration and calls `embed`, `agent`, `ai-provider`, and `usage` through their service boundaries. One end-user session authorizes one conversation; the API and database remain authoritative for access, messages, generation state, cancellation, recovery, limits, and usage.
 
-The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md), [ADR-0014](adr/0014-keep-public-chat-state-durable.md), and [ADR-0015](adr/0015-use-client-issued-uuid-chat-sessions.md).
+The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md) and [ADR-0014](adr/0014-use-client-issued-uuid-chat-sessions.md).
 
 ### Tests And Data
 
