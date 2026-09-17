@@ -192,6 +192,28 @@
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+		scrollbar-color: color-mix(in srgb, var(--muted-foreground) 55%, transparent) transparent;
+		scrollbar-width: thin;
+	}
+	*:hover {
+		scrollbar-color: var(--muted-foreground) transparent;
+	}
+	*::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	*::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	*::-webkit-scrollbar-thumb {
+		border: 2px solid transparent;
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+		background-clip: padding-box;
+	}
+	*::-webkit-scrollbar-thumb:hover {
+		background: var(--muted-foreground);
+		background-clip: padding-box;
 	}
 	body {
 		@apply bg-background text-foreground;
