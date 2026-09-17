@@ -7,7 +7,6 @@ import {
 	conversationAttempt,
 	conversationDailyCounter,
 	conversationMessage,
-	conversationSession,
 } from "./conversation.schema.ts"
 
 const ACTIVE_STATUSES = ["accepted", "running"] as const
@@ -16,20 +15,17 @@ const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
 
-export type SessionContext = {
+export type ConversationContext = {
 	agentId: string
 	conversationId: string
 	embedAccessVersion: number
 	embedId: string
-	sessionId: string
 }
 
 export type AcceptedAttempt = {
 	assistantMessage: typeof conversationMessage.$inferSelect
 	attempt: typeof conversationAttempt.$inferSelect
-	conversationId: string
 	duplicate: boolean
-	sessionId: string
 	userMessage: typeof conversationMessage.$inferSelect
 }
 
@@ -70,22 +66,17 @@ async function acquireAcceptanceLocks(
 	}
 }
 
-export async function findSessionByCredentialHash(credentialHash: string): Promise<SessionContext | undefined> {
+export async function findConversationById(conversationId: string): Promise<ConversationContext | undefined> {
 	const [row] = await db
 		.select({
-			sessionId: conversationSession.id,
-			conversationId: conversationSession.conversationId,
-			embedId: conversationSession.embedId,
-			embedAccessVersion: conversationSession.embedAccessVersion,
+			conversationId: conversation.id,
+			embedId: conversation.embedId,
+			embedAccessVersion: conversation.embedAccessVersion,
 			agentId: conversation.agentId,
 		})
-		.from(conversationSession)
-		.innerJoin(conversation, eq(conversation.id, conversationSession.conversationId))
-		.innerJoin(
-			embed,
-			and(eq(embed.id, conversationSession.embedId), eq(embed.accessVersion, conversationSession.embedAccessVersion)),
-		)
-		.where(eq(conversationSession.credentialHash, credentialHash))
+		.from(conversation)
+		.innerJoin(embed, and(eq(embed.id, conversation.embedId), eq(embed.accessVersion, conversation.embedAccessVersion)))
+		.where(eq(conversation.id, conversationId))
 		.limit(1)
 	if (!row || !row.embedId) return undefined
 	return { ...row, embedId: row.embedId }
@@ -153,7 +144,7 @@ async function interruptExpiredAttempts(
 export async function acceptAttempt(input: {
 	agentId: string
 	dailyLimit: number
-	credentialHash: string
+	conversationId: string
 	embedAccessVersion: number
 	embedId: string
 	inputText: string
@@ -165,7 +156,11 @@ export async function acceptAttempt(input: {
 	concurrencyLimit: number
 }): Promise<AcceptedAttempt> {
 	return db.transaction(async (tx) => {
-		await acquireAcceptanceLocks(tx, `session:${input.credentialHash}`, `network:${input.agentId}:${input.networkHash}`)
+		await acquireAcceptanceLocks(
+			tx,
+			`conversation:${input.conversationId}`,
+			`network:${input.agentId}:${input.networkHash}`,
+		)
 
 		const [validEmbed] = await tx
 			.select({ id: embed.id })
@@ -181,37 +176,30 @@ export async function acceptAttempt(input: {
 			.limit(1)
 		if (!validEmbed) throw new SessionUnauthorizedRepositoryError()
 
-		const [existingSession] = await tx
+		const [existingConversation] = await tx
 			.select()
-			.from(conversationSession)
-			.where(eq(conversationSession.credentialHash, input.credentialHash))
+			.from(conversation)
+			.where(eq(conversation.id, input.conversationId))
 			.limit(1)
-		let sessionId = existingSession?.id
-		let conversationId = existingSession?.conversationId
-		if (existingSession) {
+		if (existingConversation) {
 			if (
-				existingSession.embedId !== input.embedId ||
-				existingSession.embedAccessVersion !== input.embedAccessVersion
+				existingConversation.embedId !== input.embedId ||
+				existingConversation.embedAccessVersion !== input.embedAccessVersion
 			) {
 				throw new SessionUnauthorizedRepositoryError()
 			}
 		} else {
-			conversationId = crypto.randomUUID()
-			sessionId = crypto.randomUUID()
-			await tx.insert(conversation).values({ id: conversationId, agentId: input.agentId, embedId: input.embedId })
-			await tx.insert(conversationSession).values({
-				id: sessionId,
-				conversationId,
+			await tx.insert(conversation).values({
+				id: input.conversationId,
+				agentId: input.agentId,
 				embedId: input.embedId,
 				embedAccessVersion: input.embedAccessVersion,
-				credentialHash: input.credentialHash,
 			})
 		}
-		if (!sessionId || !conversationId) throw new Error("Session context is required")
 		await interruptExpiredAttempts(
 			tx,
 			or(
-				eq(conversationAttempt.sessionId, sessionId),
+				eq(conversationAttempt.conversationId, input.conversationId),
 				and(
 					eq(conversationAttempt.networkHash, input.networkHash),
 					sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${conversationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
@@ -222,7 +210,12 @@ export async function acceptAttempt(input: {
 		const [duplicate] = await tx
 			.select()
 			.from(conversationAttempt)
-			.where(and(eq(conversationAttempt.sessionId, sessionId), eq(conversationAttempt.requestId, input.requestId)))
+			.where(
+				and(
+					eq(conversationAttempt.conversationId, input.conversationId),
+					eq(conversationAttempt.requestId, input.requestId),
+				),
+			)
 			.limit(1)
 		if (duplicate) {
 			const messages = await tx
@@ -233,12 +226,12 @@ export async function acceptAttempt(input: {
 			const assistantMessage = messages.find((message) => message.role === "assistant")
 			if (!userMessage || !assistantMessage) throw new Error("Attempt messages missing")
 			if (userMessage.text !== input.messageText) throw new RequestConflictRepositoryError()
-			return { attempt: duplicate, userMessage, assistantMessage, sessionId, conversationId, duplicate: true }
+			return { attempt: duplicate, userMessage, assistantMessage, duplicate: true }
 		}
 		const [historyState] = await tx
 			.select({ revision: conversation.revision, latestCompletedMessageId: conversation.latestCompletedMessageId })
 			.from(conversation)
-			.where(eq(conversation.id, conversationId))
+			.where(eq(conversation.id, input.conversationId))
 			.limit(1)
 		if (
 			!historyState ||
@@ -248,17 +241,17 @@ export async function acceptAttempt(input: {
 			throw new StaleHistoryRepositoryError()
 		}
 
-		const [sessionActive] = await tx
+		const [conversationActive] = await tx
 			.select({ value: count() })
 			.from(conversationAttempt)
 			.where(
 				and(
-					eq(conversationAttempt.sessionId, sessionId),
+					eq(conversationAttempt.conversationId, input.conversationId),
 					inArray(conversationAttempt.status, ACTIVE_STATUSES),
 					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
-		if ((sessionActive?.value ?? 0) > 0) throw new SessionBusyRepositoryError()
+		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyRepositoryError()
 		const [networkActive] = await tx
 			.select({ value: count() })
 			.from(conversationAttempt)
@@ -290,8 +283,7 @@ export async function acceptAttempt(input: {
 			.insert(conversationAttempt)
 			.values({
 				id: attemptId,
-				conversationId,
-				sessionId,
+				conversationId: input.conversationId,
 				requestId: input.requestId,
 				inputText: input.inputText,
 				networkHash: input.networkHash,
@@ -305,7 +297,7 @@ export async function acceptAttempt(input: {
 			.values([
 				{
 					id: crypto.randomUUID(),
-					conversationId,
+					conversationId: input.conversationId,
 					attemptId,
 					role: "user",
 					text: input.messageText,
@@ -314,7 +306,7 @@ export async function acceptAttempt(input: {
 				},
 				{
 					id: crypto.randomUUID(),
-					conversationId,
+					conversationId: input.conversationId,
 					attemptId,
 					role: "assistant",
 					text: "",
@@ -324,7 +316,7 @@ export async function acceptAttempt(input: {
 			])
 			.returning()
 		if (!userMessage || !assistantMessage) throw new Error("Message insert failed")
-		return { attempt, userMessage, assistantMessage, sessionId, conversationId, duplicate: false }
+		return { attempt, userMessage, assistantMessage, duplicate: false }
 	})
 }
 
@@ -422,12 +414,14 @@ export async function stageFinalization(input: {
 }): Promise<boolean> {
 	return db.transaction(async (tx) => {
 		const [attemptContext] = await tx
-			.select({ sessionId: conversationAttempt.sessionId })
+			.select({ conversationId: conversationAttempt.conversationId })
 			.from(conversationAttempt)
 			.where(eq(conversationAttempt.id, input.attemptId))
 			.limit(1)
 		if (!attemptContext) return false
-		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`1:session:${attemptContext.sessionId}`}, 0))`)
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${`1:conversation:${attemptContext.conversationId}`}, 0))`,
+		)
 		const rows = await tx
 			.update(conversationAttempt)
 			.set({
@@ -544,9 +538,9 @@ export async function markUsageRecorded(input: {
 	return rows.length === 1
 }
 
-export async function requestCancellation(sessionId: string, attemptId?: string): Promise<boolean> {
+export async function requestCancellation(conversationId: string, attemptId?: string): Promise<boolean> {
 	const conditions = [
-		eq(conversationAttempt.sessionId, sessionId),
+		eq(conversationAttempt.conversationId, conversationId),
 		inArray(conversationAttempt.status, ACTIVE_STATUSES),
 		gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 	]
@@ -559,13 +553,13 @@ export async function requestCancellation(sessionId: string, attemptId?: string)
 	return rows.length > 0
 }
 
-export async function getActiveAttempt(sessionId: string): Promise<{ id: string } | undefined> {
+export async function getActiveAttempt(conversationId: string): Promise<{ id: string } | undefined> {
 	const [row] = await db
 		.select({ id: conversationAttempt.id })
 		.from(conversationAttempt)
 		.where(
 			and(
-				eq(conversationAttempt.sessionId, sessionId),
+				eq(conversationAttempt.conversationId, conversationId),
 				inArray(conversationAttempt.status, ACTIVE_STATUSES),
 				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),

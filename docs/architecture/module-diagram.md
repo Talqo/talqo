@@ -65,7 +65,7 @@ graph LR
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Per-agent tool-server integrations used during response generation. |
 | `knowledge` | `FILE_EMBEDDING` | RAG ingestion, per-agent embedding storage, and retrieval for response context. |
-| `conversation` | `CONVERSATION_SESSION`, `CONVERSATION`, `CONVERSATION_ATTEMPT`, `CONVERSATION_MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Public multi-turn runtime, bearer authorization, conversation history, accepted-question counters, and fenced generation leases. |
+| `conversation` | `CONVERSATION`, `CONVERSATION_ATTEMPT`, `CONVERSATION_MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Public multi-turn runtime, bearer authorization, conversation history, accepted-question counters, and fenced generation leases. |
 | `usage` | `CONVERSATION_USAGE` | Stores normalized input/output usage once per model-call attempt; it does not enforce billing or deployment quotas. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 

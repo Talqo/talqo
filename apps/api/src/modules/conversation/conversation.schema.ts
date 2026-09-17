@@ -37,6 +37,7 @@ export const conversation = pgTable(
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
 		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
+		embedAccessVersion: integer("embed_access_version").notNull(),
 		revision: integer("revision").notNull().default(0),
 		latestCompletedMessageId: text("latest_completed_message_id"),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
@@ -47,22 +48,6 @@ export const conversation = pgTable(
 	],
 )
 
-export const conversationSession = pgTable(
-	"conversation_session",
-	{
-		id: text("id").primaryKey(),
-		conversationId: text("conversation_id")
-			.notNull()
-			.unique()
-			.references(() => conversation.id, { onDelete: "cascade" }),
-		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
-		embedAccessVersion: integer("embed_access_version").notNull(),
-		credentialHash: text("credential_hash").notNull().unique(),
-		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
-	},
-	(table) => [index("conversation_session_embed_id_idx").on(table.embedId)],
-)
-
 export const conversationAttempt = pgTable(
 	"conversation_attempt",
 	{
@@ -70,9 +55,6 @@ export const conversationAttempt = pgTable(
 		conversationId: text("conversation_id")
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
-		sessionId: text("session_id")
-			.notNull()
-			.references(() => conversationSession.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
 		inputText: text("input_text").notNull(),
 		status: conversationAttemptStatus("status").notNull().default("accepted"),
@@ -91,7 +73,7 @@ export const conversationAttempt = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
 	(table) => [
-		uniqueIndex("conversation_attempt_session_request_unique_idx").on(table.sessionId, table.requestId),
+		uniqueIndex("conversation_attempt_conversation_request_unique_idx").on(table.conversationId, table.requestId),
 		index("conversation_attempt_active_network_idx").on(table.networkHash, table.status, table.leaseExpiresAt),
 		index("conversation_attempt_conversation_id_idx").on(table.conversationId),
 		index("conversation_attempt_usage_pending_idx").on(table.providerInvoked, table.usageRecordedAt),
