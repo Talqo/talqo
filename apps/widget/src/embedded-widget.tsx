@@ -303,6 +303,27 @@ function outcomeText(outcome: ChatMessage["outcome"], t: (key: string) => string
 	}
 }
 
+const SECOND_RESPONSE_DOT_DELAY_MS = 150
+const THIRD_RESPONSE_DOT_DELAY_MS = 300
+const RESPONSE_DOT_DELAYS_MS = [0, SECOND_RESPONSE_DOT_DELAY_MS, THIRD_RESPONSE_DOT_DELAY_MS] as const
+
+function ResponseIndicator({ label }: { label: string }) {
+	return (
+		<span role="status">
+			<span className="tw:sr-only">{label}</span>
+			<span aria-hidden="true" className="tw:flex tw:h-5 tw:items-center tw:gap-1">
+				{RESPONSE_DOT_DELAYS_MS.map((delay) => (
+					<span
+						key={delay}
+						className="tw:size-1.5 tw:animate-bounce tw:rounded-full tw:bg-current tw:motion-reduce:animate-none"
+						style={{ animationDelay: `${delay}ms` }}
+					/>
+				))}
+			</span>
+		</span>
+	)
+}
+
 function WidgetChat({
 	title,
 	appearance,
@@ -339,6 +360,11 @@ function WidgetChat({
 	const unusable = unavailable || initialization === "error"
 	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
 	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
+	const hasStreamingAssistant = messages.some(
+		(message) => message.role === "assistant" && message.outcome === "streaming",
+	)
+	const showPendingResponse =
+		(submitting || generation === "sending" || generation === "streaming") && !hasStreamingAssistant
 	const canStartNewChat =
 		client !== undefined &&
 		!resetting &&
@@ -533,21 +559,32 @@ function WidgetChat({
 									</BubbleContent>
 								</Bubble>
 							)}
-							{messages.map((message) => (
-								<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
-									<BubbleContent
-										variant={message.role === "user" ? "default" : "muted"}
-										className={cn(message.role === "assistant" && "tw:text-foreground")}
-									>
-										{message.text}
+							{messages.map((message) => {
+								const awaitingText =
+									message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+								return (
+									<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
+										<BubbleContent
+											variant={message.role === "user" ? "default" : "muted"}
+											className={cn(message.role === "assistant" && "tw:text-foreground")}
+										>
+											{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+										</BubbleContent>
+										{outcomeText(message.outcome, t) && (
+											<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
+												{outcomeText(message.outcome, t)}
+											</span>
+										)}
+									</Bubble>
+								)
+							})}
+							{showPendingResponse && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										<ResponseIndicator label={t("agentResponding")} />
 									</BubbleContent>
-									{outcomeText(message.outcome, t) && (
-										<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
-											{outcomeText(message.outcome, t)}
-										</span>
-									)}
 								</Bubble>
-							))}
+							)}
 							{initialization === "loading" && (
 								<p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
 							)}
