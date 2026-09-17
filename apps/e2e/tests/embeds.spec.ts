@@ -106,6 +106,10 @@ test("operator customizes an embed and the widget preview follows without reload
 	const card = page.locator("[data-slot=card]", { hasText: "Website" })
 	await expect(card).toBeVisible()
 	await card.click()
+	const previewCard = page.locator("[data-slot=card]", { hasText: "Live preview" })
+	await expect(
+		previewCard.locator("[data-slot=card-content]").getByRole("button", { name: "Open full-screen preview" }),
+	).toBeVisible()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })

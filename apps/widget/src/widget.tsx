@@ -19,6 +19,29 @@ const DEFAULT_TARGET = "#talqo-widget"
 const embedScript: HTMLScriptElement | null =
 	document.currentScript instanceof HTMLScriptElement ? document.currentScript : findEmbedScript()
 
+/** Production embeds are one-tag integrations; the script owns its version-matched CSS dependency. */
+export function ensureWidgetStylesheet(script: HTMLScriptElement | null): void {
+	if (!script?.src || script.type === "module") {
+		return
+	}
+	const stylesheetUrl = new URL(script.src)
+	stylesheetUrl.pathname = stylesheetUrl.pathname.replace(/[^/]*$/, "widget.css")
+	stylesheetUrl.hash = ""
+	const href = stylesheetUrl.toString()
+	const alreadyLoaded = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')).some(
+		(stylesheet) => stylesheet.href === href,
+	)
+	if (alreadyLoaded) {
+		return
+	}
+	const stylesheet = document.createElement("link")
+	stylesheet.rel = "stylesheet"
+	stylesheet.href = href
+	document.head.append(stylesheet)
+}
+
+ensureWidgetStylesheet(embedScript)
+
 function findEmbedScript(): HTMLScriptElement | null {
 	const scripts = document.querySelectorAll<HTMLScriptElement>(
 		"script[data-talqo-widget], script[data-talqo-embed-token], script[data-talqo-preview]",
@@ -61,7 +84,7 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 
 	const dataset = embedScript?.dataset
 	if (dataset?.talqoPreview !== undefined) {
-		root.render(<PreviewWidget />)
+		root.render(<PreviewWidget parentOrigin={dataset.talqoParentOrigin} />)
 		return
 	}
 	const embedToken = dataset?.talqoEmbedToken ?? dataset?.talqoWidget

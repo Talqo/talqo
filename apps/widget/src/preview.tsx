@@ -9,9 +9,9 @@ function forcedSchemeFromSearch(params: URLSearchParams): "light" | "dark" | und
 	return value === "light" || value === "dark" ? value : undefined
 }
 
-export function PreviewWidget() {
+export function PreviewWidget({ parentOrigin: configuredParentOrigin }: { parentOrigin?: string }) {
 	const params = new URLSearchParams(window.location.search)
-	const parentOrigin = trustedParentOrigin(params.get("parentOrigin"))
+	const parentOrigin = trustedParentOrigin(configuredParentOrigin ?? params.get("parentOrigin"))
 	const [config, setConfig] = useState<PreviewConfig>(() => ({
 		appearance: appearanceFromValues((key) => params.get(key) ?? undefined),
 		title: params.get("title") ?? undefined,

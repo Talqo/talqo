@@ -130,6 +130,45 @@ test("built preview executes production assets", async ({ page }) => {
 	expect(assets).toContain(`${baseURL}/widget.js`)
 })
 
+test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }) => {
+	await page.goto(`${baseURL}/missing`)
+	await page.setContent('<iframe title="CDN-only preview"></iframe>')
+	const srcDoc = `<!doctype html><html><body><div id="talqo-widget"></div><script src="${baseURL}/widget.js" data-talqo-preview data-talqo-parent-origin="${baseURL}"></script></body></html>`
+
+	await page.locator("iframe").evaluate(
+		(frame, config) => {
+			const iframe = frame as HTMLIFrameElement
+			window.addEventListener("message", (event) => {
+				if (event.source !== iframe.contentWindow || event.data?.type !== "ready") return
+				iframe.contentWindow?.postMessage(config.message, "*")
+			})
+			iframe.setAttribute("sandbox", "allow-scripts")
+			iframe.srcdoc = config.srcDoc
+		},
+		{
+			srcDoc,
+			message: {
+				source: "talqo-preview",
+				version: 1,
+				type: "config",
+				appearance: {
+					light: {
+						primary: "#1a7f4b",
+						textOnPrimary: "#ffffff",
+						background: "#ffffff",
+						surface: "#f5f5f5",
+						text: "#171717",
+					},
+					position: "bottom-right",
+					theme: "light",
+				},
+			},
+		},
+	)
+
+	await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
+})
+
 test("widget fetches its palette by public token across origins", async ({ page }) => {
 	await page.goto(baseURL)
 
