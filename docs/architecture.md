@@ -27,7 +27,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | Web/API separation          | Client rendering and integration boundary  | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md)       |
 | Vercel AI SDK               | Text and embedding provider interfaces     | [ADR-0011](adr/0011-use-vercel-ai-sdk.md)                         |
 | Embed-owned public identity | Integration tokens and revocation versions | [ADR-0013](adr/0013-own-public-integration-identity-in-embeds.md) |
-| Client-issued chat sessions | Session credentials and request identity   | [ADR-0014](adr/0014-use-client-issued-uuid-chat-sessions.md)      |
+| Client-issued conversations | Conversation and request identity          | [ADR-0014](adr/0014-use-client-issued-uuid-conversation-ids.md)   |
 | Hono                        | HTTP transport                             | None                                                              |
 | Zod                         | Runtime contracts                          | None                                                              |
 | React                       | Web UI                                     | None                                                              |
@@ -107,7 +107,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema file may reference another module's table only to declare a database foreign key. This schema-only exception does not grant query or write ownership.
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
-- Database foreign keys enforce the deliberate cross-owner deletion invariant: deleting an agent cascades its conversations, sessions, attempts, messages, daily counters, and usage. Attached embeds still restrict agent deletion and must first be deleted or reassigned. Deleting an embed sets retained conversation/session embed references to null rather than deleting chat data.
+- Database foreign keys enforce the deliberate cross-owner deletion invariant: deleting an agent cascades its conversations, attempts, messages, daily counters, and usage. Attached embeds still restrict agent deletion and must first be deleted or reassigned. Deleting an embed sets retained conversation embed references to null rather than deleting chat data.
 
 ### Contracts And Routes
 
@@ -131,9 +131,9 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 ### Public Chat Runtime
 
-`conversation` owns public chat orchestration and calls `embed`, `agent`, `ai-provider`, and `usage` through their service boundaries. One end-user session authorizes one conversation; the API and database remain authoritative for access, messages, generation state, cancellation, recovery, limits, and usage.
+`conversation` owns public chat orchestration and calls `embed`, `agent`, `ai-provider`, and `usage` through their service boundaries. A client-issued conversation ID is its bearer credential; the API and database remain authoritative for access, messages, generation state, cancellation, recovery, limits, and usage.
 
-The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md) and [ADR-0014](adr/0014-use-client-issued-uuid-chat-sessions.md).
+The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md) and [ADR-0014](adr/0014-use-client-issued-uuid-conversation-ids.md).
 
 ### Tests And Data
 

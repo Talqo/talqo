@@ -88,7 +88,7 @@ Already dispatched provider work may still consume resources. Cancellation on in
 
 ## Sessions And Durable Data
 
-One session owns one conversation in this milestone. There is no separate visitor entity grouping conversations. Before first send, the SDK creates and stores a UUIDv4 bearer credential. Persist only its SHA-256 hash on the server. Send it in an authorization header, never a URL.
+One client-issued UUIDv4 identifies and authorizes one conversation in this milestone. There is no separate visitor entity grouping conversations. Before first send, the SDK creates and stores the UUID. Send it in an authorization header, never a URL.
 
 Creating a session and accepting its first message is one operation. It validates the embed and atomically acquires the question allowance/concurrency reservation while creating the conversation and initial turn. There is no public endpoint for creating empty sessions. Fetching appearance or opening the widget creates no conversation.
 

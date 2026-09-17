@@ -1,5 +1,5 @@
 {
-	"id": "02ae598f-dd8c-456c-8f4c-04fb18c386cc",
+	"id": "f79e0051-727b-4d48-a269-d5f6b18fb195",
 	"prevId": "d4b78cb4-4ece-4a0f-b1c8-bdb3e612c59b",
 	"version": "7",
 	"dialect": "postgresql",
@@ -228,6 +228,12 @@
 					"primaryKey": false,
 					"notNull": false
 				},
+				"embed_access_version": {
+					"name": "embed_access_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
 				"revision": {
 					"name": "revision",
 					"type": "integer",
@@ -319,12 +325,6 @@
 				},
 				"conversation_id": {
 					"name": "conversation_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"session_id": {
-					"name": "session_id",
 					"type": "text",
 					"primaryKey": false,
 					"notNull": true
@@ -433,11 +433,11 @@
 				}
 			},
 			"indexes": {
-				"conversation_attempt_session_request_unique_idx": {
-					"name": "conversation_attempt_session_request_unique_idx",
+				"conversation_attempt_conversation_request_unique_idx": {
+					"name": "conversation_attempt_conversation_request_unique_idx",
 					"columns": [
 						{
-							"expression": "session_id",
+							"expression": "conversation_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"
@@ -524,15 +524,6 @@
 					"tableFrom": "conversation_attempt",
 					"tableTo": "conversation",
 					"columnsFrom": ["conversation_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"conversation_attempt_session_id_conversation_session_id_fk": {
-					"name": "conversation_attempt_session_id_conversation_session_id_fk",
-					"tableFrom": "conversation_attempt",
-					"tableTo": "conversation_session",
-					"columnsFrom": ["session_id"],
 					"columnsTo": ["id"],
 					"onDelete": "cascade",
 					"onUpdate": "no action"
@@ -739,102 +730,6 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.conversation_session": {
-			"name": "conversation_session",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "text",
-					"primaryKey": true,
-					"notNull": true
-				},
-				"conversation_id": {
-					"name": "conversation_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"embed_id": {
-					"name": "embed_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"embed_access_version": {
-					"name": "embed_access_version",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"credential_hash": {
-					"name": "credential_hash",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"created_at": {
-					"name": "created_at",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				}
-			},
-			"indexes": {
-				"conversation_session_embed_id_idx": {
-					"name": "conversation_session_embed_id_idx",
-					"columns": [
-						{
-							"expression": "embed_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"conversation_session_conversation_id_conversation_id_fk": {
-					"name": "conversation_session_conversation_id_conversation_id_fk",
-					"tableFrom": "conversation_session",
-					"tableTo": "conversation",
-					"columnsFrom": ["conversation_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"conversation_session_embed_id_embed_id_fk": {
-					"name": "conversation_session_embed_id_embed_id_fk",
-					"tableFrom": "conversation_session",
-					"tableTo": "embed",
-					"columnsFrom": ["embed_id"],
-					"columnsTo": ["id"],
-					"onDelete": "set null",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"conversation_session_conversation_id_unique": {
-					"name": "conversation_session_conversation_id_unique",
-					"nullsNotDistinct": false,
-					"columns": ["conversation_id"]
-				},
-				"conversation_session_credential_hash_unique": {
-					"name": "conversation_session_credential_hash_unique",
-					"nullsNotDistinct": false,
-					"columns": ["credential_hash"]
-				}
-			},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false

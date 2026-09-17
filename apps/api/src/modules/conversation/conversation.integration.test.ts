@@ -136,7 +136,7 @@ async function* contextLimitGeneration() {
 }
 
 beforeEach(async () => {
-	await sql`TRUNCATE TABLE conversation_usage, conversation_message, conversation_attempt, conversation_session, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
+	await sql`TRUNCATE TABLE conversation_usage, conversation_message, conversation_attempt, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
 })
 
 afterEach(() => {
@@ -156,6 +156,10 @@ describe("conversation lifecycle", () => {
 		})
 		await accepted.done
 
+		expect((await sql`SELECT id, embed_access_version FROM conversation`)[0]).toMatchObject({
+			id: CREDENTIAL_1,
+			embed_access_version: createdEmbed.accessVersion,
+		})
 		expect((await first.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
 			"hello",
 			"answer",
@@ -410,18 +414,16 @@ describe("conversation lifecycle", () => {
 		await sent.done
 		await embed.deleteEmbed(createdEmbed.id)
 		expect((await sql`SELECT embed_id FROM conversation`)[0]?.embed_id).toBeNull()
-		expect((await sql`SELECT embed_id FROM conversation_session`)[0]?.embed_id).toBeNull()
 
 		await agent.deleteAgent(createdAgent.id)
 		const remaining = await sql`
 			SELECT
 				(SELECT count(*) FROM conversation)::int AS conversations,
-				(SELECT count(*) FROM conversation_session)::int AS sessions,
 				(SELECT count(*) FROM conversation_attempt)::int AS attempts,
 				(SELECT count(*) FROM conversation_message)::int AS messages,
 				(SELECT count(*) FROM conversation_usage)::int AS usage
 		`
-		expect(remaining[0]).toMatchObject({ conversations: 0, sessions: 0, attempts: 0, messages: 0, usage: 0 })
+		expect(remaining[0]).toMatchObject({ conversations: 0, attempts: 0, messages: 0, usage: 0 })
 	})
 
 	it("emits a typed error after acceptance when provider generation fails", async () => {
@@ -615,16 +617,16 @@ describe("conversation lifecycle", () => {
 		})
 		await started.promise
 		const [attempt] = await sql`
-			SELECT lease_token, session_id FROM conversation_attempt WHERE id = ${sent.generationId}
+			SELECT lease_token, conversation_id FROM conversation_attempt WHERE id = ${sent.generationId}
 		`
 		const leaseToken = String(attempt?.lease_token)
-		const sessionId = String(attempt?.session_id)
+		const conversationId = String(attempt?.conversation_id)
 
 		setSystemTime(new Date("2100-01-01T00:00:00.000Z"))
 		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(true)
 		expect(await repository.setAttribution(sent.generationId, leaseToken, "database", "clock")).toBe(true)
-		expect(await repository.getActiveAttempt(sessionId)).toEqual({ id: sent.generationId })
-		expect(await repository.requestCancellation(sessionId, sent.generationId)).toBe(true)
+		expect(await repository.getActiveAttempt(conversationId)).toEqual({ id: sent.generationId })
+		expect(await repository.requestCancellation(conversationId, sent.generationId)).toBe(true)
 		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(true)
 		await repository.recoverExpired()
 		expect(

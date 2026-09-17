@@ -4,7 +4,6 @@ import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
-import { createHash } from "node:crypto"
 import { z } from "zod"
 
 import { createBlacklistFilter } from "./blacklist.ts"
@@ -99,10 +98,10 @@ function requireUuid(value: string, name: string): string {
 	return value
 }
 
-function hashCredential(credential: string): string {
+function requireCredential(credential: string): string {
 	if (!UUID_SCHEMA.safeParse(credential).success)
 		throw new SessionUnauthorizedError("A valid session credential is required")
-	return createHash("sha256").update(credential).digest("base64url")
+	return credential
 }
 
 function publicMessage(message: Awaited<ReturnType<typeof repository.listMessages>>[number]): ChatMessage {
@@ -187,8 +186,8 @@ async function recoverExpiredAttempts(): Promise<void> {
 export function createConversationService(dependencies: Dependencies) {
 	const controllers = new Map<string, AbortController>()
 
-	async function authenticate(credential: string): Promise<repository.SessionContext> {
-		const session = await repository.findSessionByCredentialHash(hashCredential(credential))
+	async function authenticate(credential: string): Promise<repository.ConversationContext> {
+		const session = await repository.findConversationById(requireCredential(credential))
 		if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
 		return session
 	}
@@ -321,8 +320,8 @@ export function createConversationService(dependencies: Dependencies) {
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
 			requireUuid(input.requestId, "Request ID")
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
-			const credentialHash = hashCredential(input.credential)
-			const session = await repository.findSessionByCredentialHash(credentialHash)
+			const conversationId = requireCredential(input.credential)
+			const session = await repository.findConversationById(conversationId)
 			if (
 				session &&
 				(session.embedId !== currentEmbed.id || session.embedAccessVersion !== currentEmbed.accessVersion)
@@ -359,7 +358,7 @@ export function createConversationService(dependencies: Dependencies) {
 				try {
 					const accepted = await repository.acceptAttempt({
 						agentId,
-						credentialHash,
+						conversationId,
 						embedAccessVersion: currentEmbed.accessVersion,
 						embedId: currentEmbed.id,
 						requestId: input.requestId,
@@ -411,13 +410,13 @@ export function createConversationService(dependencies: Dependencies) {
 			const session = await authenticate(credential)
 			return {
 				messages: (await repository.listMessages(session.conversationId)).map(publicMessage),
-				activeGeneration: await repository.getActiveAttempt(session.sessionId),
+				activeGeneration: await repository.getActiveAttempt(session.conversationId),
 			}
 		},
 
 		async cancel(credential: string, generationId?: string): Promise<void> {
 			const session = await authenticate(credential)
-			await repository.requestCancellation(session.sessionId, generationId)
+			await repository.requestCancellation(session.conversationId, generationId)
 			if (generationId) controllers.get(generationId)?.abort()
 		},
 	}
