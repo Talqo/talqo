@@ -550,7 +550,7 @@ function WidgetChat({
 							</button>
 						</div>
 					</header>
-					<div className="tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
+					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
 						<BubbleGroup>
 							{messages.length === 0 && initialization === "ready" && !unusable && (
 								<Bubble align="start">
