@@ -1,6 +1,6 @@
 # Conceptual Entity Relationship Diagram
 
-Entities and relationships only; implementation schemas remain authoritative for columns and types.
+This diagram models the desired entities and relationships. Implementation schemas remain authoritative for columns and types.
 
 ```mermaid
 erDiagram
@@ -35,6 +35,8 @@ erDiagram
 
     AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
+    AGENT ||--o{ MCP_CONFIG : configures
+    AGENT ||--o{ AI_PROVIDER_CONFIG : configures
     AGENT ||--o{ FILE_EMBEDDING : embeds
 
     AGENT ||--o{ CONVERSATION : receives
