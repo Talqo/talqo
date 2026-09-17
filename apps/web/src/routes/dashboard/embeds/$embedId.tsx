@@ -320,20 +320,7 @@ function EmbedDetailPage() {
 				{t("embedSetup.backToAgent")}
 			</Button>
 
-			<PageHeader
-				title={embed.name}
-				description={t("embedSetup.detailSubheading")}
-				actions={
-					<Button
-						render={<Link to="/embed-preview" search={{ embed: embedId }} />}
-						nativeButton={false}
-						variant="outline"
-					>
-						<ExternalLink className="size-4" />
-						{t("embedSetup.openFullPreview")}
-					</Button>
-				}
-			/>
+			<PageHeader title={embed.name} description={t("embedSetup.detailSubheading")} />
 
 			<Card>
 				<CardHeader>
@@ -397,7 +384,7 @@ function EmbedDetailPage() {
 				</CardContent>
 			</Card>
 
-			<div className="grid gap-6 lg:grid-cols-2">
+			<div className="grid items-start gap-6 lg:grid-cols-2">
 				<Card>
 					<CardHeader>
 						<CardTitle>{t("embedSetup.appearance")}</CardTitle>
@@ -575,20 +562,42 @@ function EmbedDetailPage() {
 					</CardContent>
 				</Card>
 
-				<Card>
+				<Card className="lg:sticky lg:top-24">
 					<CardHeader>
 						<CardTitle>{t("embedSetup.livePreview")}</CardTitle>
 						<CardDescription>{t("embedSetup.livePreviewDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="rounded-surface overflow-hidden border">
-							<div className="bg-muted flex items-center gap-1.5 border-b px-3 py-2">
-								<span className="bg-destructive/70 size-2.5 rounded-full" />
-								<span className="bg-chart-4 size-2.5 rounded-full" />
-								<span className="bg-primary/70 size-2.5 rounded-full" />
+							<div className="bg-muted flex h-10 items-center gap-1.5 border-b px-3">
+								<div aria-hidden="true" className="flex items-center gap-1.5">
+									<span className="bg-destructive/70 size-2.5 rounded-full" />
+									<span className="bg-chart-4 size-2.5 rounded-full" />
+									<span className="bg-primary/70 size-2.5 rounded-full" />
+								</div>
 								<span className="text-muted-foreground ml-2 text-xs">{t("embedSetup.previewSiteLabel")}</span>
+								<Button
+									render={<Link to="/embed-preview" search={{ embed: embedId }} />}
+									nativeButton={false}
+									variant="ghost"
+									size="xs"
+									className="ml-auto"
+									aria-label={t("embedSetup.openFullPreview")}
+								>
+									<ExternalLink className="size-3.5" />
+									<span className="hidden sm:inline">{t("embedSetup.openFullPreview")}</span>
+								</Button>
 							</div>
-							<div className="bg-background relative h-[460px]">
+							<div className="bg-background relative h-[420px] overflow-hidden">
+								<div aria-hidden="true" className="absolute inset-0 p-6 opacity-70">
+									<div className="bg-muted mb-8 h-3 w-24 rounded-full" />
+									<div className="bg-muted/70 mb-3 h-2.5 w-3/4 rounded-full" />
+									<div className="bg-muted/50 h-2.5 w-1/2 rounded-full" />
+									<div className="mt-8 grid grid-cols-2 gap-3">
+										<div className="bg-muted/50 h-24 rounded-md border" />
+										<div className="bg-muted/30 h-24 rounded-md border" />
+									</div>
+								</div>
 								<WidgetPreview appearance={appearance} title={name} activeScheme={colorTab} previewKey={embedId} />
 							</div>
 						</div>
