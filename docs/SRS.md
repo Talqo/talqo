@@ -15,8 +15,7 @@ Talqo covers the embeddable widget, the operator dashboard, and the connection S
 | Term | Meaning |
 |------|---------|
 | Agent | The configured AI identity, system prompt, and output blacklist that answers end users; a deployment may run multiple agents |
-| Embed | A public integration configuration that selects one agent, owns appearance and a rotatable public token, and carries an access version |
-| Conversation session | The private bearer-authorized browser session that owns exactly one conversation |
+| Embed | A public integration configuration that selects an agent and controls widget appearance |
 | MCP | Model Context Protocol — lets the agent call external tools/structured data sources |
 | RAG | Retrieval-Augmented Generation — extracts relevant context from the knowledge base when responding to end user |
 | SDK | The headless connection SDK (FR-3) |
@@ -65,10 +64,10 @@ Talqo is related to these repos:
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
 | FR-1.1 | End user can send text messages and receive incrementally streamed AI responses | High | Done |
-| FR-1.2 | Conversation history is retained server-side and restored with a private bearer session credential | High | Done |
+| FR-1.2 | Conversation history is retained server-side and restored after page reloads | High | Done |
 | FR-1.3 | Widget can be minimized and reopened without losing conversation state | High | Done |
 | FR-1.4 | Widget shows generation and recovery state while the agent is responding | High | Done |
-| FR-1.5 | End user can start a new chat; this detaches the browser from the retained old conversation without resetting network allowance | Medium | Done |
+| FR-1.5 | End user can start a new chat without deleting the previous conversation or resetting the daily allowance | Medium | Done |
 | FR-1.6 | End user can rate individual agent responses with a thumbs up / thumbs down | Low | Not started |
 | FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Done |
 
@@ -89,14 +88,14 @@ Talqo is related to these repos:
 | FR-2.5 | Operator can update their account information (username) | Medium | Done |
 | FR-2.6 | Operator can delete their account | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
-| FR-2.8 | Operator can rotate an embed's public token, which immediately invalidates the old token and increments its access version | Medium | Done |
+| FR-2.8 | Operator can rotate an embed's public token, immediately invalidating the old token and associated chat access | Medium | Done |
 
 #### 3.2.2 API configuration (FR-2b)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
 | FR-2.9 | An authorized operator must configure the text provider, endpoint, authentication source, and model identifier before the agent can respond; embedding configuration is independent of chat | High | Done |
-| FR-2.9a | Talqo enforces a deployment-configured daily accepted-question allowance independently for each agent and normalized client network; there is no daily/monthly token cap or deployment-wide consumption quota | High | Done |
+| FR-2.9a | Talqo enforces a daily accepted-question allowance per agent and client network | High | Done |
 
 #### 3.2.3 Agent configuration (FR-2c)
 
@@ -106,7 +105,7 @@ Talqo is related to these repos:
 | FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
 | FR-2.12 | Operator can maintain a literal, case-insensitive output blacklist; matching generation is stopped and marked blocked | Medium | Done |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress |
-| FR-2.13a | Operator can delete an agent after removing or reassigning attached embeds; deletion permanently cascades retained conversations, sessions, attempts, messages, counters, and usage | Medium | Done |
+| FR-2.13a | Operator can delete an agent after removing or reassigning attached embeds; deletion permanently removes its chat and usage data | Medium | Done |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
@@ -135,7 +134,7 @@ Talqo is related to these repos:
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
 | FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | In progress (mock statistics) |
-| FR-2.25a | API persists one unified input/output usage record per actual model-call attempt, using provider counts when valid and approximation for a missing side | Medium | Done |
+| FR-2.25a | Talqo records input and output token usage for each model call; counts may be estimated when provider data is incomplete | Medium | Done |
 | FR-2.26 | Dashboard displays the total number of end-user questions over time | Medium | In progress (mock statistics; charts total messages) |
 | FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
@@ -148,11 +147,11 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-3.1 | Developer can send messages through a framework-independent observable chat client without using the pre-built widget UI | High | Done |
-| FR-3.2 | SDK parses versioned SSE from POST fetch responses and exposes incrementally updated assistant messages | High | Done |
-| FR-3.3 | SDK owns one-conversation bearer persistence, history restoration, cancellation, new-chat behavior, and bounded recovery | High | Done |
-| FR-3.4 | SDK uses the embed token to select an integration and a private UUID bearer credential for chat operations | High | Done |
-| FR-3.5 | SDK loads server-side embed appearance and exposes it in its observable snapshot | Medium | Done |
+| FR-3.1 | Developer can send messages through a framework-independent SDK without using the pre-built widget | High | Done |
+| FR-3.2 | SDK exposes incrementally streamed responses | High | Done |
+| FR-3.3 | SDK restores conversations and supports cancellation, new chat, and connection recovery | High | Done |
+| FR-3.4 | SDK uses an embed token to select an integration and a private conversation credential to access chat data | High | Done |
+| FR-3.5 | SDK loads server-side embed appearance | Medium | Done |
 
 ## 4. Non-Functional Requirements
 
@@ -164,7 +163,7 @@ Talqo is related to these repos:
 | NFR-1.2 | Operator- and developer-facing documentation covers embed/widget integration, SDK lifecycle, chat policy, and deployment configuration | Docs app uses Fumadocs | High | Done |
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
-| NFR-1.3b | The connection SDK remains a private workspace package; npm publication is outside current scope and requires a separate release decision | Public documentation must not present an npm install path | Medium | Done |
+| NFR-1.3b | Publishing the SDK to npm is outside the current scope | | Medium | Done |
 | NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection and `APP_SECRET` are supplied via environment variables at deploy time and validated at startup | High | In progress (AI provider configuration done) |
 
 ### 4.2 Safety & Content Policy (NFR-2)
@@ -172,21 +171,21 @@ Talqo is related to these repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-2.1 | The agent must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via system prompt guardrails | High | Not started |
-| NFR-2.2 | Literal operator-defined blacklist matches must be detected across stream chunks; matching output is blocked, while already emitted safe text cannot be recalled | This is not semantic moderation | High | Done |
+| NFR-2.2 | Talqo stops a streamed response when it detects a literal, case-insensitive blacklist match; text already delivered cannot be recalled | | High | Done |
 | NFR-2.3 | The agent must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via system prompt guardrails | High | Not started |
-| NFR-2.4 | Current chat must not expose authoritative history/system-instruction fields or execute retrieval and MCP tools; future retrieval/tool scope requires a separate prompt-injection threat model | Current text chat provides no general prompt-injection-immunity guarantee | High | Done |
+| NFR-2.4 | End-user chat must not accept client-supplied history or system instructions, or execute knowledge retrieval or MCP tools | | High | Done |
 
 ### 4.3 Security (NFR-3)
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
-| NFR-3.2 | Operator endpoints require login; public health and embed configuration are explicit exceptions, while chat session operations require a private bearer credential | | High | Done |
-| NFR-3.3 | Public callers identify an integration using an embed token and cannot select an agent; rotation, reassignment, or deletion revokes sessions through embed `accessVersion` without deleting history | Related to FR-3.4 | High | Done |
+| NFR-3.2 | Operator endpoints require login; public health and configuration endpoints are explicit exceptions, and conversation history requires a private credential | | High | Done |
+| NFR-3.3 | Public callers cannot select an agent; embed rotation, reassignment, or deletion revokes chat access without deleting history | Related to FR-3.4 | High | Done |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
-| NFR-3.5 | API atomically enforces daily accepted questions and concurrent generations per agent and normalized client network using PostgreSQL | This is shared-network abuse control, not unique-person identification or DDoS protection | High | Done |
-| NFR-3.6 | API rejects complete model input above the configured Unicode code-point bound and never silently truncates or summarizes retained history | Applies to system prompt, all completed pairs, and the current message | High | Done |
-| NFR-3.7 | Conversations and usage have no automatic expiry; embed lifecycle changes revoke access but retain data, while agent deletion permanently cascades all associated chat and usage data | Starting a new chat does not delete the old conversation | High | Done |
+| NFR-3.5 | API enforces daily question and concurrent-generation limits per agent and client network | This is shared-network abuse control, not unique-person identification or DDoS protection | High | Done |
+| NFR-3.6 | API rejects conversations exceeding the configured model-input limit and never silently truncates or summarizes retained history | | High | Done |
+| NFR-3.7 | Conversations and usage do not expire automatically; embed changes preserve data, while agent deletion permanently removes associated chat and usage data | | High | Done |
 
 ### 4.4 Usability (NFR-4)
 

@@ -2,12 +2,7 @@ import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
 import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
-import {
-	conversation,
-	conversationAttempt,
-	conversationDailyCounter,
-	conversationMessage,
-} from "./conversation.schema.ts"
+import { conversation, conversationDailyCounter, generationAttempt, message } from "./conversation.schema.ts"
 
 const ACTIVE_STATUSES = ["accepted", "running"] as const
 const LEASE_MS = 15_000
@@ -22,11 +17,11 @@ export type ConversationContext = {
 	embedId: string
 }
 
-export type AcceptedAttempt = {
-	assistantMessage: typeof conversationMessage.$inferSelect
-	attempt: typeof conversationAttempt.$inferSelect
+export type AcceptedGenerationAttempt = {
+	assistantMessage: typeof message.$inferSelect
+	generationAttempt: typeof generationAttempt.$inferSelect
 	duplicate: boolean
-	userMessage: typeof conversationMessage.$inferSelect
+	userMessage: typeof message.$inferSelect
 }
 
 export class AllowanceExceededRepositoryError extends Error {}
@@ -38,19 +33,19 @@ export class StaleHistoryRepositoryError extends Error {}
 
 export type HistorySnapshot = {
 	latestCompletedMessageId: string | null
-	messages: (typeof conversationMessage.$inferSelect)[]
+	messages: (typeof message.$inferSelect)[]
 	revision: number
 }
 
 export type PendingUsageFinalization = {
 	agentId: string
 	assistantText: string
-	attemptId: string
+	generationAttemptId: string
 	conversationId: string
 	inputText: string
 	inputTokens: number | null
 	model: string
-	outcome: NonNullable<typeof conversationAttempt.$inferSelect.finalOutcome>
+	outcome: NonNullable<typeof generationAttempt.$inferSelect.finalOutcome>
 	outputTokens: number | null
 	provider: string
 }
@@ -82,12 +77,12 @@ export async function findConversationById(conversationId: string): Promise<Conv
 	return { ...row, embedId: row.embedId }
 }
 
-export async function listMessages(conversationId: string): Promise<(typeof conversationMessage.$inferSelect)[]> {
+export async function listMessages(conversationId: string): Promise<(typeof message.$inferSelect)[]> {
 	return db
 		.select()
-		.from(conversationMessage)
-		.where(eq(conversationMessage.conversationId, conversationId))
-		.orderBy(asc(conversationMessage.createdAt), asc(conversationMessage.id))
+		.from(message)
+		.where(eq(message.conversationId, conversationId))
+		.orderBy(asc(message.createdAt), asc(message.id))
 }
 
 export async function getHistorySnapshot(conversationId: string): Promise<HistorySnapshot> {
@@ -100,48 +95,48 @@ export async function getHistorySnapshot(conversationId: string): Promise<Histor
 		if (!state) throw new Error("Conversation not found")
 		const messages = await tx
 			.select()
-			.from(conversationMessage)
-			.where(eq(conversationMessage.conversationId, conversationId))
-			.orderBy(asc(conversationMessage.createdAt), asc(conversationMessage.id))
+			.from(message)
+			.where(eq(message.conversationId, conversationId))
+			.orderBy(asc(message.createdAt), asc(message.id))
 		return { ...state, messages }
 	})
 }
 
-async function interruptExpiredAttempts(
+async function interruptExpiredGenerationAttempts(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
 	condition?: ReturnType<typeof or>,
 ): Promise<void> {
 	const expired = await tx
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({
 			status: "interrupted",
-			finalOutcome: sql`CASE WHEN ${conversationAttempt.providerInvoked} THEN 'interrupted'::conversation_final_outcome ELSE NULL END`,
+			finalOutcome: sql`CASE WHEN ${generationAttempt.providerInvoked} THEN 'interrupted'::generation_attempt_final_outcome ELSE NULL END`,
 			updatedAt: DATABASE_NOW,
 		})
 		.where(
 			and(
-				inArray(conversationAttempt.status, ACTIVE_STATUSES),
-				lt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				inArray(generationAttempt.status, ACTIVE_STATUSES),
+				lt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				condition,
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	if (expired.length === 0) return
 	await tx
-		.update(conversationMessage)
+		.update(message)
 		.set({ outcome: "interrupted", updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				inArray(
-					conversationMessage.attemptId,
-					expired.map((attempt) => attempt.id),
+					message.generationAttemptId,
+					expired.map((expiredGenerationAttempt) => expiredGenerationAttempt.id),
 				),
-				eq(conversationMessage.role, "assistant"),
+				eq(message.role, "assistant"),
 			),
 		)
 }
 
-export async function acceptAttempt(input: {
+export async function acceptGenerationAttempt(input: {
 	agentId: string
 	dailyLimit: number
 	conversationId: string
@@ -154,7 +149,7 @@ export async function acceptAttempt(input: {
 	historyRevision: number
 	historyTailId: string | null
 	concurrencyLimit: number
-}): Promise<AcceptedAttempt> {
+}): Promise<AcceptedGenerationAttempt> {
 	return db.transaction(async (tx) => {
 		await acquireAcceptanceLocks(
 			tx,
@@ -196,37 +191,34 @@ export async function acceptAttempt(input: {
 				embedAccessVersion: input.embedAccessVersion,
 			})
 		}
-		await interruptExpiredAttempts(
+		await interruptExpiredGenerationAttempts(
 			tx,
 			or(
-				eq(conversationAttempt.conversationId, input.conversationId),
+				eq(generationAttempt.conversationId, input.conversationId),
 				and(
-					eq(conversationAttempt.networkHash, input.networkHash),
-					sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${conversationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
+					eq(generationAttempt.networkHash, input.networkHash),
+					sql`EXISTS (SELECT 1 FROM ${conversation} c WHERE c.id = ${generationAttempt.conversationId} AND c.agent_id = ${input.agentId})`,
 				),
 			),
 		)
 
 		const [duplicate] = await tx
 			.select()
-			.from(conversationAttempt)
+			.from(generationAttempt)
 			.where(
 				and(
-					eq(conversationAttempt.conversationId, input.conversationId),
-					eq(conversationAttempt.requestId, input.requestId),
+					eq(generationAttempt.conversationId, input.conversationId),
+					eq(generationAttempt.requestId, input.requestId),
 				),
 			)
 			.limit(1)
 		if (duplicate) {
-			const messages = await tx
-				.select()
-				.from(conversationMessage)
-				.where(eq(conversationMessage.attemptId, duplicate.id))
-			const userMessage = messages.find((message) => message.role === "user")
-			const assistantMessage = messages.find((message) => message.role === "assistant")
-			if (!userMessage || !assistantMessage) throw new Error("Attempt messages missing")
+			const messages = await tx.select().from(message).where(eq(message.generationAttemptId, duplicate.id))
+			const userMessage = messages.find((storedMessage) => storedMessage.role === "user")
+			const assistantMessage = messages.find((storedMessage) => storedMessage.role === "assistant")
+			if (!userMessage || !assistantMessage) throw new Error("Generation attempt messages missing")
 			if (userMessage.text !== input.messageText) throw new RequestConflictRepositoryError()
-			return { attempt: duplicate, userMessage, assistantMessage, duplicate: true }
+			return { generationAttempt: duplicate, userMessage, assistantMessage, duplicate: true }
 		}
 		const [historyState] = await tx
 			.select({ revision: conversation.revision, latestCompletedMessageId: conversation.latestCompletedMessageId })
@@ -243,25 +235,25 @@ export async function acceptAttempt(input: {
 
 		const [conversationActive] = await tx
 			.select({ value: count() })
-			.from(conversationAttempt)
+			.from(generationAttempt)
 			.where(
 				and(
-					eq(conversationAttempt.conversationId, input.conversationId),
-					inArray(conversationAttempt.status, ACTIVE_STATUSES),
-					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+					eq(generationAttempt.conversationId, input.conversationId),
+					inArray(generationAttempt.status, ACTIVE_STATUSES),
+					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyRepositoryError()
 		const [networkActive] = await tx
 			.select({ value: count() })
-			.from(conversationAttempt)
-			.innerJoin(conversation, eq(conversation.id, conversationAttempt.conversationId))
+			.from(generationAttempt)
+			.innerJoin(conversation, eq(conversation.id, generationAttempt.conversationId))
 			.where(
 				and(
 					eq(conversation.agentId, input.agentId),
-					eq(conversationAttempt.networkHash, input.networkHash),
-					inArray(conversationAttempt.status, ACTIVE_STATUSES),
-					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+					eq(generationAttempt.networkHash, input.networkHash),
+					inArray(generationAttempt.status, ACTIVE_STATUSES),
+					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrencyExceededRepositoryError()
@@ -277,12 +269,12 @@ export async function acceptAttempt(input: {
 			.returning()
 		if (!counter) throw new AllowanceExceededRepositoryError()
 
-		const attemptId = crypto.randomUUID()
+		const generationAttemptId = crypto.randomUUID()
 		const leaseToken = crypto.randomUUID()
-		const [attempt] = await tx
-			.insert(conversationAttempt)
+		const [generationAttemptRow] = await tx
+			.insert(generationAttempt)
 			.values({
-				id: attemptId,
+				id: generationAttemptId,
 				conversationId: input.conversationId,
 				requestId: input.requestId,
 				inputText: input.inputText,
@@ -291,14 +283,14 @@ export async function acceptAttempt(input: {
 				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
 			})
 			.returning()
-		if (!attempt) throw new Error("Attempt insert failed")
+		if (!generationAttemptRow) throw new Error("Generation attempt insert failed")
 		const [userMessage, assistantMessage] = await tx
-			.insert(conversationMessage)
+			.insert(message)
 			.values([
 				{
 					id: crypto.randomUUID(),
 					conversationId: input.conversationId,
-					attemptId,
+					generationAttemptId,
 					role: "user",
 					text: input.messageText,
 					outcome: "completed",
@@ -307,7 +299,7 @@ export async function acceptAttempt(input: {
 				{
 					id: crypto.randomUUID(),
 					conversationId: input.conversationId,
-					attemptId,
+					generationAttemptId,
 					role: "assistant",
 					text: "",
 					outcome: "streaming",
@@ -316,95 +308,95 @@ export async function acceptAttempt(input: {
 			])
 			.returning()
 		if (!userMessage || !assistantMessage) throw new Error("Message insert failed")
-		return { attempt, userMessage, assistantMessage, duplicate: false }
+		return { generationAttempt: generationAttemptRow, userMessage, assistantMessage, duplicate: false }
 	})
 }
 
-export async function markRunning(attemptId: string, leaseToken: string): Promise<boolean> {
+export async function markRunning(generationAttemptId: string, leaseToken: string): Promise<boolean> {
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ status: "running", updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.leaseToken, leaseToken),
-				eq(conversationAttempt.status, "accepted"),
-				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				eq(generationAttempt.id, generationAttemptId),
+				eq(generationAttempt.leaseToken, leaseToken),
+				eq(generationAttempt.status, "accepted"),
+				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
-export async function appendOutput(attemptId: string, leaseToken: string, text: string): Promise<boolean> {
+export async function appendOutput(generationAttemptId: string, leaseToken: string, text: string): Promise<boolean> {
 	const rows = await db
-		.update(conversationMessage)
-		.set({ text: sql`${conversationMessage.text} || ${text}`, updatedAt: DATABASE_NOW })
+		.update(message)
+		.set({ text: sql`${message.text} || ${text}`, updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationMessage.attemptId, attemptId),
-				eq(conversationMessage.role, "assistant"),
-				sql`EXISTS (SELECT 1 FROM ${conversationAttempt} a WHERE a.id = ${attemptId} AND a.lease_token = ${leaseToken} AND a.status = 'running' AND a.lease_expires_at > now())`,
+				eq(message.generationAttemptId, generationAttemptId),
+				eq(message.role, "assistant"),
+				sql`EXISTS (SELECT 1 FROM ${generationAttempt} a WHERE a.id = ${generationAttemptId} AND a.lease_token = ${leaseToken} AND a.status = 'running' AND a.lease_expires_at > now())`,
 			),
 		)
-		.returning({ id: conversationMessage.id })
+		.returning({ id: message.id })
 	return rows.length === 1
 }
 
 export async function setAttribution(
-	attemptId: string,
+	generationAttemptId: string,
 	leaseToken: string,
 	provider: string,
 	model: string,
 	markInvoked = false,
 ): Promise<boolean> {
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.leaseToken, leaseToken),
-				eq(conversationAttempt.status, "running"),
-				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				eq(generationAttempt.id, generationAttemptId),
+				eq(generationAttempt.leaseToken, leaseToken),
+				eq(generationAttempt.status, "running"),
+				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
-export async function heartbeat(attemptId: string, leaseToken: string): Promise<boolean> {
+export async function heartbeat(generationAttemptId: string, leaseToken: string): Promise<boolean> {
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.leaseToken, leaseToken),
-				eq(conversationAttempt.status, "running"),
-				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				eq(generationAttempt.id, generationAttemptId),
+				eq(generationAttempt.leaseToken, leaseToken),
+				eq(generationAttempt.status, "running"),
+				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
-export async function isCancellationRequested(attemptId: string, leaseToken: string): Promise<boolean> {
+export async function isCancellationRequested(generationAttemptId: string, leaseToken: string): Promise<boolean> {
 	const [row] = await db
-		.select({ cancelled: conversationAttempt.cancellationRequestedAt })
-		.from(conversationAttempt)
+		.select({ cancelled: generationAttempt.cancellationRequestedAt })
+		.from(generationAttempt)
 		.where(
 			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.leaseToken, leaseToken),
-				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				eq(generationAttempt.id, generationAttemptId),
+				eq(generationAttempt.leaseToken, leaseToken),
+				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 	return row?.cancelled !== null && row?.cancelled !== undefined
 }
 
 export async function stageFinalization(input: {
-	attemptId: string
+	generationAttemptId: string
 	inputTokens: number
 	leaseToken: string
 	model: string
@@ -413,17 +405,17 @@ export async function stageFinalization(input: {
 	provider: string
 }): Promise<boolean> {
 	return db.transaction(async (tx) => {
-		const [attemptContext] = await tx
-			.select({ conversationId: conversationAttempt.conversationId })
-			.from(conversationAttempt)
-			.where(eq(conversationAttempt.id, input.attemptId))
+		const [generationAttemptContext] = await tx
+			.select({ conversationId: generationAttempt.conversationId })
+			.from(generationAttempt)
+			.where(eq(generationAttempt.id, input.generationAttemptId))
 			.limit(1)
-		if (!attemptContext) return false
+		if (!generationAttemptContext) return false
 		await tx.execute(
-			sql`SELECT pg_advisory_xact_lock(hashtextextended(${`1:conversation:${attemptContext.conversationId}`}, 0))`,
+			sql`SELECT pg_advisory_xact_lock(hashtextextended(${`1:conversation:${generationAttemptContext.conversationId}`}, 0))`,
 		)
 		const rows = await tx
-			.update(conversationAttempt)
+			.update(generationAttempt)
 			.set({
 				status: input.outcome,
 				finalOutcome: input.outcome,
@@ -435,21 +427,21 @@ export async function stageFinalization(input: {
 			})
 			.where(
 				and(
-					eq(conversationAttempt.id, input.attemptId),
-					eq(conversationAttempt.leaseToken, input.leaseToken),
-					eq(conversationAttempt.status, "running"),
-					eq(conversationAttempt.providerInvoked, true),
-					gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+					eq(generationAttempt.id, input.generationAttemptId),
+					eq(generationAttempt.leaseToken, input.leaseToken),
+					eq(generationAttempt.status, "running"),
+					eq(generationAttempt.providerInvoked, true),
+					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
-			.returning({ conversationId: conversationAttempt.conversationId })
+			.returning({ conversationId: generationAttempt.conversationId })
 		const finalized = rows[0]
 		if (!finalized) return false
 		const [assistant] = await tx
-			.update(conversationMessage)
+			.update(message)
 			.set({ outcome: input.outcome, updatedAt: DATABASE_NOW })
-			.where(and(eq(conversationMessage.attemptId, input.attemptId), eq(conversationMessage.role, "assistant")))
-			.returning({ id: conversationMessage.id })
+			.where(and(eq(message.generationAttemptId, input.generationAttemptId), eq(message.role, "assistant")))
+			.returning({ id: message.id })
 		if (!assistant) throw new Error("Assistant message missing during finalization")
 		if (input.outcome === "completed") {
 			await tx
@@ -467,110 +459,107 @@ export async function stageFinalization(input: {
 export async function listPendingUsageFinalizations(): Promise<PendingUsageFinalization[]> {
 	return db
 		.select({
-			attemptId: conversationAttempt.id,
-			conversationId: conversationAttempt.conversationId,
+			generationAttemptId: generationAttempt.id,
+			conversationId: generationAttempt.conversationId,
 			agentId: conversation.agentId,
-			inputText: conversationAttempt.inputText,
-			assistantText: conversationMessage.text,
-			provider: sql<string>`coalesce(${conversationAttempt.provider}, 'unknown')`,
-			model: sql<string>`coalesce(${conversationAttempt.model}, 'unknown')`,
-			outcome: conversationAttempt.finalOutcome,
-			inputTokens: conversationAttempt.usageInputTokens,
-			outputTokens: conversationAttempt.usageOutputTokens,
+			inputText: generationAttempt.inputText,
+			assistantText: message.text,
+			provider: sql<string>`coalesce(${generationAttempt.provider}, 'unknown')`,
+			model: sql<string>`coalesce(${generationAttempt.model}, 'unknown')`,
+			outcome: generationAttempt.finalOutcome,
+			inputTokens: generationAttempt.usageInputTokens,
+			outputTokens: generationAttempt.usageOutputTokens,
 		})
-		.from(conversationAttempt)
-		.innerJoin(conversation, eq(conversation.id, conversationAttempt.conversationId))
-		.innerJoin(
-			conversationMessage,
-			and(eq(conversationMessage.attemptId, conversationAttempt.id), eq(conversationMessage.role, "assistant")),
-		)
+		.from(generationAttempt)
+		.innerJoin(conversation, eq(conversation.id, generationAttempt.conversationId))
+		.innerJoin(message, and(eq(message.generationAttemptId, generationAttempt.id), eq(message.role, "assistant")))
 		.where(
 			and(
-				eq(conversationAttempt.providerInvoked, true),
-				isNotNull(conversationAttempt.finalOutcome),
-				isNull(conversationAttempt.usageRecordedAt),
+				eq(generationAttempt.providerInvoked, true),
+				isNotNull(generationAttempt.finalOutcome),
+				isNull(generationAttempt.usageRecordedAt),
 			),
 		) as Promise<PendingUsageFinalization[]>
 }
 
 export async function stageRecoveredUsageCandidate(
-	attemptId: string,
+	generationAttemptId: string,
 	outcome: PendingUsageFinalization["outcome"],
 	inputTokens: number,
 	outputTokens: number,
 ): Promise<boolean> {
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ usageInputTokens: inputTokens, usageOutputTokens: outputTokens, updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationAttempt.id, attemptId),
-				eq(conversationAttempt.finalOutcome, outcome),
-				eq(conversationAttempt.providerInvoked, true),
-				isNull(conversationAttempt.usageInputTokens),
-				isNull(conversationAttempt.usageOutputTokens),
-				isNull(conversationAttempt.usageRecordedAt),
+				eq(generationAttempt.id, generationAttemptId),
+				eq(generationAttempt.finalOutcome, outcome),
+				eq(generationAttempt.providerInvoked, true),
+				isNull(generationAttempt.usageInputTokens),
+				isNull(generationAttempt.usageOutputTokens),
+				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
 export async function markUsageRecorded(input: {
-	attemptId: string
+	generationAttemptId: string
 	inputTokens: number
 	outcome: PendingUsageFinalization["outcome"]
 	outputTokens: number
 }): Promise<boolean> {
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ usageRecordedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(
 			and(
-				eq(conversationAttempt.id, input.attemptId),
-				eq(conversationAttempt.finalOutcome, input.outcome),
-				eq(conversationAttempt.usageInputTokens, input.inputTokens),
-				eq(conversationAttempt.usageOutputTokens, input.outputTokens),
-				isNull(conversationAttempt.usageRecordedAt),
+				eq(generationAttempt.id, input.generationAttemptId),
+				eq(generationAttempt.finalOutcome, input.outcome),
+				eq(generationAttempt.usageInputTokens, input.inputTokens),
+				eq(generationAttempt.usageOutputTokens, input.outputTokens),
+				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
-export async function requestCancellation(conversationId: string, attemptId?: string): Promise<boolean> {
+export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<boolean> {
 	const conditions = [
-		eq(conversationAttempt.conversationId, conversationId),
-		inArray(conversationAttempt.status, ACTIVE_STATUSES),
-		gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+		eq(generationAttempt.conversationId, conversationId),
+		inArray(generationAttempt.status, ACTIVE_STATUSES),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 	]
-	if (attemptId) conditions.push(eq(conversationAttempt.id, attemptId))
+	if (generationAttemptId) conditions.push(eq(generationAttempt.id, generationAttemptId))
 	const rows = await db
-		.update(conversationAttempt)
+		.update(generationAttempt)
 		.set({ cancellationRequestedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(and(...conditions))
-		.returning({ id: conversationAttempt.id })
+		.returning({ id: generationAttempt.id })
 	return rows.length > 0
 }
 
-export async function getActiveAttempt(conversationId: string): Promise<{ id: string } | undefined> {
+export async function getActiveGenerationAttempt(conversationId: string): Promise<{ id: string } | undefined> {
 	const [row] = await db
-		.select({ id: conversationAttempt.id })
-		.from(conversationAttempt)
+		.select({ id: generationAttempt.id })
+		.from(generationAttempt)
 		.where(
 			and(
-				eq(conversationAttempt.conversationId, conversationId),
-				inArray(conversationAttempt.status, ACTIVE_STATUSES),
-				gt(conversationAttempt.leaseExpiresAt, DATABASE_NOW),
+				eq(generationAttempt.conversationId, conversationId),
+				inArray(generationAttempt.status, ACTIVE_STATUSES),
+				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)
 		.limit(1)
 	return row
 }
 
-export async function recoverExpired(): Promise<void> {
+export async function recoverExpiredGenerationAttempts(): Promise<void> {
 	return db.transaction(async (tx) => {
-		await interruptExpiredAttempts(tx)
+		await interruptExpiredGenerationAttempts(tx)
 		await tx.delete(conversationDailyCounter).where(lt(conversationDailyCounter.day, DATABASE_DAY))
 	})
 }

@@ -59,16 +59,19 @@ const sendBody = z.object({
 })
 const cancelBody = z.object({ generationId: z.string().optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })
-const commonProblems = problemResponse([
+const badRequestProblems = problemResponse([
 	PROBLEM_CODES.INVALID_REQUEST,
 	PROBLEM_CODES.MALFORMED_JSON,
 	PROBLEM_CODES.CHAT_CLIENT_ADDRESS_UNAVAILABLE,
 	PROBLEM_CODES.CHAT_CONVERSATION_TOO_LONG,
+])
+const unauthorizedProblem = problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED])
+const notFoundProblem = problemResponse([PROBLEM_CODES.EMBED_NOT_FOUND])
+const conflictProblem = problemResponse([PROBLEM_CODES.CHAT_REQUEST_CONFLICT])
+const rateLimitProblems = problemResponse([
 	PROBLEM_CODES.CHAT_DAILY_ALLOWANCE_EXCEEDED,
 	PROBLEM_CODES.CHAT_CONCURRENCY_LIMIT,
 	PROBLEM_CODES.CHAT_SESSION_BUSY,
-	PROBLEM_CODES.CHAT_REQUEST_CONFLICT,
-	PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED,
 ])
 const sseResponse = {
 	content: { "text/event-stream": { schema: chatEventSchema } },
@@ -87,11 +90,12 @@ export const sendRoute = createRoute({
 	},
 	responses: {
 		200: sseResponse,
-		400: commonProblems,
-		401: commonProblems,
-		409: commonProblems,
+		400: badRequestProblems,
+		401: unauthorizedProblem,
+		404: notFoundProblem,
+		409: conflictProblem,
 		413: payloadTooLargeResponse,
-		429: commonProblems,
+		429: rateLimitProblems,
 		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
 	},

@@ -361,6 +361,11 @@ export type sendChatMessageResponse401 = {
 	status: 401
 }
 
+export type sendChatMessageResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
 export type sendChatMessageResponse409 = {
 	data: ProblemDetails
 	status: 409
@@ -392,6 +397,7 @@ export type sendChatMessageResponseSuccess = sendChatMessageResponse200 & {
 export type sendChatMessageResponseError = (
 	| sendChatMessageResponse400
 	| sendChatMessageResponse401
+	| sendChatMessageResponse404
 	| sendChatMessageResponse409
 	| sendChatMessageResponse413
 	| sendChatMessageResponse429

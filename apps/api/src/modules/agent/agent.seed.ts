@@ -1,6 +1,6 @@
 import * as repo from "./agent.repository.ts"
 
-const SEED_AGENT_ID = "talqo-seed-agent"
+const SEED_AGENT_ID = "11111111-1111-4111-8111-111111111111"
 const SEED_AGENT_NAME = "Website Assistant"
 
 const SEED_AGENT_PROMPT =

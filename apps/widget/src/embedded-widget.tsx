@@ -16,8 +16,6 @@ import {
 	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
-	type PointerEvent as ReactPointerEvent,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useRef,
@@ -34,9 +32,11 @@ import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
+import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
+import { useResizablePanel } from "./lib/use-resizable-panel"
 
 import "./index.css"
 
@@ -76,24 +76,6 @@ function usePrefersDark(): boolean {
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
-}
-
-const MIN_WIDTH = 280
-const MIN_HEIGHT = 320
-// Horizontal margin keeps the panel off the screen sides.
-const RESIZE_MARGIN = 32
-// Vertical budget excludes the launcher row below the panel (16px offset + 12px gap
-// + 48px launcher) plus a 16px top clearance, so the panel can never grow past the
-// top of the screen.
-const RESIZE_HEIGHT_MARGIN = 92
-
-function clampPanelSize(width: number, height: number): { width: number; height: number } {
-	return {
-		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
-		height: Math.round(
-			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_HEIGHT_MARGIN)),
-		),
-	}
 }
 
 function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
@@ -141,67 +123,6 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
-function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLDivElement | null>) {
-	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-	// Free resize is desktop-only; mobile keeps the default panel size.
-	const [resizable, setResizable] = useState(
-		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,
-	)
-
-	useEffect(() => {
-		const query = window.matchMedia("(min-width: 640px) and (pointer: fine)")
-		const onChange = (event: MediaQueryListEvent) => {
-			setResizable(event.matches)
-			if (!event.matches) {
-				setSize(null)
-			}
-		}
-		query.addEventListener("change", onChange)
-		return () => query.removeEventListener("change", onChange)
-	}, [])
-
-	// Grip highlight stays on while a drag is in flight.
-	const [resizing, setResizing] = useState(false)
-
-	function startResize(event: ReactPointerEvent<HTMLDivElement>) {
-		if (event.pointerType === "touch" || !panelRef.current) {
-			return
-		}
-		event.preventDefault()
-		setResizing(true)
-		const anchor = panelRef.current.getBoundingClientRect()
-		// The panel's bottom screen edge stays pinned: for bottom-right (default)
-		// it is the right edge, for bottom-left the left edge.
-		const side = position === "bottom-left" ? "left" : "right"
-		const anchorX = side === "right" ? anchor.right : anchor.left
-		const anchorBottom = anchor.bottom
-		const pointerId = event.pointerId
-
-		function handleMove(moveEvent: PointerEvent) {
-			if (moveEvent.pointerId !== pointerId) {
-				return
-			}
-			const rawWidth = side === "right" ? anchorX - moveEvent.clientX : moveEvent.clientX - anchorX
-			const rawHeight = anchorBottom - moveEvent.clientY
-			setSize(clampPanelSize(rawWidth, rawHeight))
-		}
-		function handleEnd(endEvent: PointerEvent) {
-			if (endEvent.pointerId !== pointerId) {
-				return
-			}
-			setResizing(false)
-			window.removeEventListener("pointermove", handleMove)
-			window.removeEventListener("pointerup", handleEnd)
-			window.removeEventListener("pointercancel", handleEnd)
-		}
-		window.addEventListener("pointermove", handleMove)
-		window.addEventListener("pointerup", handleEnd)
-		window.addEventListener("pointercancel", handleEnd)
-	}
-
-	return { size, resizable, startResize, resizing }
-}
-
 type ChatPresentation = {
 	snapshot?: ChatSnapshot
 	client?: ChatClient
@@ -209,120 +130,6 @@ type ChatPresentation = {
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
-
-function errorText(error: ChatError, t: (key: string, options?: Record<string, unknown>) => string): string {
-	switch (error.code) {
-		case "invalid-request":
-			return t("errorInvalidRequest")
-		case "malformed-json":
-			return t("errorMalformedJson")
-		case "chat-client-address-unavailable":
-			return t("errorClientAddressUnavailable")
-		case "chat-conversation-too-long":
-			return t("errorConversationTooLong")
-		case "chat-daily-allowance-exceeded":
-			return t("errorDailyAllowance", {
-				reset: error.retryAt ? new Date(error.retryAt).toLocaleString() : t("nextUtcDay"),
-			})
-		case "chat-concurrency-limit":
-			return t("errorConcurrencyLimit")
-		case "chat-session-busy":
-			return t("errorSessionBusy")
-		case "chat-request-conflict":
-			return t("errorRequestConflict")
-		case "chat-session-unauthorized":
-			return t("errorSessionUnauthorized")
-		case "chat-context-limit":
-			return t("errorContextLimit")
-		case "chat-input-incompatible":
-			return t("errorInputIncompatible")
-		case "payload-too-large":
-			return t("errorPayloadTooLarge")
-		case "provider-error":
-			return t("errorProvider")
-		case "internal-server-error":
-			return t("errorInternalServer")
-		case "embed-not-found":
-			return t("errorEmbedNotFound")
-		case "request-failed":
-			return t("errorRequestFailed")
-		case "invalid-response":
-			return t("errorInvalidResponse")
-		case "transport-error":
-			return t("errorTransport")
-		case "storage-unavailable":
-			return t("errorStorageUnavailable")
-		case "cancel-failed":
-			return t("errorCancelFailed")
-		case "reset-failed":
-			return t("errorResetFailed")
-	}
-}
-
-function errorAllowsNewChat(error: ChatError): boolean {
-	if (error.newChatAvailable !== undefined) return error.newChatAvailable
-	switch (error.code) {
-		case "chat-conversation-too-long":
-		case "chat-context-limit":
-		case "chat-session-unauthorized":
-			return true
-		case "invalid-request":
-		case "malformed-json":
-		case "chat-client-address-unavailable":
-		case "chat-daily-allowance-exceeded":
-		case "chat-concurrency-limit":
-		case "chat-session-busy":
-		case "chat-request-conflict":
-		case "chat-input-incompatible":
-		case "payload-too-large":
-		case "provider-error":
-		case "internal-server-error":
-		case "embed-not-found":
-		case "request-failed":
-		case "invalid-response":
-		case "transport-error":
-		case "storage-unavailable":
-		case "cancel-failed":
-		case "reset-failed":
-			return false
-	}
-}
-
-function outcomeText(outcome: ChatMessage["outcome"], t: (key: string) => string): string | undefined {
-	switch (outcome) {
-		case "failed":
-			return t("outcomeFailed")
-		case "cancelled":
-			return t("outcomeCancelled")
-		case "blocked":
-			return t("outcomeBlocked")
-		case "interrupted":
-			return t("outcomeInterrupted")
-		default:
-			return undefined
-	}
-}
-
-const SECOND_RESPONSE_DOT_DELAY_MS = 150
-const THIRD_RESPONSE_DOT_DELAY_MS = 300
-const RESPONSE_DOT_DELAYS_MS = [0, SECOND_RESPONSE_DOT_DELAY_MS, THIRD_RESPONSE_DOT_DELAY_MS] as const
-
-function ResponseIndicator({ label }: { label: string }) {
-	return (
-		<span role="status">
-			<span className="tw:sr-only">{label}</span>
-			<span aria-hidden="true" className="tw:flex tw:h-5 tw:items-center tw:gap-1">
-				{RESPONSE_DOT_DELAYS_MS.map((delay) => (
-					<span
-						key={delay}
-						className="tw:size-1.5 tw:animate-bounce tw:rounded-full tw:bg-current tw:motion-reduce:animate-none"
-						style={{ animationDelay: `${delay}ms` }}
-					/>
-				))}
-			</span>
-		</span>
-	)
-}
 
 function WidgetChat({
 	title,

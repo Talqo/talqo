@@ -144,6 +144,9 @@
     "packages/sdk": {
       "name": "@talqo/sdk",
       "version": "0.0.0",
+      "dependencies": {
+        "eventsource-parser": "3.1.1",
+      },
       "devDependencies": {
         "@talqo/typescript-config": "workspace:*",
         "@types/bun": "1.4.1",

@@ -46,9 +46,16 @@ describe("parseSseStream", () => {
 		expect(events).toEqual([{ type: "delta", text: "你好 🌍" }])
 	})
 
-	test("dispatches the final event without a trailing blank line", async () => {
+	test("discards a final event without a trailing blank line", async () => {
 		const source = chunks(new TextEncoder().encode('event: chat\ndata: {"type":"delta","text":"done"}'), [7])
-		expect(await Array.fromAsync(parseSseStream(source, eventParser))).toEqual([{ type: "delta", text: "done" }])
+		expect(await Array.fromAsync(parseSseStream(source, eventParser))).toEqual([])
+	})
+
+	test("rejects an event that exceeds the bounded parser buffer", async () => {
+		const oversized = `event: chat\ndata: ${"x".repeat(1_048_576)}`
+		const source = chunks(new TextEncoder().encode(oversized), [])
+
+		await expect(Array.fromAsync(parseSseStream(source, eventParser))).rejects.toThrow("buffer")
 	})
 
 	test("rejects invalid JSON and events rejected by the injected parser", async () => {

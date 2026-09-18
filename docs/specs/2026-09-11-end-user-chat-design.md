@@ -51,7 +51,7 @@ widget or custom browser UI
 | `agent` | Fixed platform prompt, saved system prompt, prompt composition, blacklist, existing configuration, and agent deletion |
 | `conversation` | Session credentials, conversations, messages, daily allowance counters, generation reservations/lifecycle, and orchestration |
 | `ai-provider` | Operation-scoped configured text model; credentials remain private |
-| `usage` | Normalize and persist input/output counts attributed to each model-call attempt |
+| `usage` | Normalize and persist input/output counts attributed to each generation attempt |
 | API HTTP infrastructure | Trusted client-IP resolution, address normalization, and rate-limit HTTP response mapping |
 | `packages/sdk` | Public configuration fetching, observable chat state, sessions, storage, transport, streaming, and recovery |
 | `apps/widget` | Embedding and UI presentation, using the SDK for all API communication |
@@ -140,13 +140,13 @@ The SDK stores each request ID and text until acceptance. After an uncertain res
 
 After an uncertain network result, reload the accepted turn's state rather than generate again. If still running, use bounded refreshes until terminal. Refreshes do not consume question allowances; general HTTP flood protection remains a deployment concern. There is no second configurable refresh quota in this release.
 
-An explicit retry of a confirmed failed turn is a new attempt and can consume another daily question. Disable automatic SDK and provider generation retries to avoid hidden duplicate consumption.
+An explicit retry of a confirmed failed turn is a new generation attempt and can consume another daily question. Disable automatic SDK and provider generation retries to avoid hidden duplicate consumption.
 
 ### Cancellation And Process Failure
 
 Cancellation is an authenticated server operation, not merely aborting the browser fetch. Persist cancellation intent so the process owning a generation can observe it even when a different API instance handles the request. Abort provider work best-effort and retain available output/usage.
 
-Use a bounded generation lease/heartbeat and recovery path so a process crash cannot leave sessions or network concurrency permanently occupied. Internal heartbeat/cleanup intervals are code constants, not deployment knobs. Fence terminal writes so late work from an abandoned attempt cannot overwrite recovery outcomes.
+Use a bounded generation lease/heartbeat and recovery path so a process crash cannot leave sessions or network concurrency permanently occupied. Internal heartbeat/cleanup intervals are code constants, not deployment knobs. Fence terminal writes so late work from an abandoned generation attempt cannot overwrite recovery outcomes.
 
 Persist sufficient in-progress output to retain partial replies and produce a fallback usage count on recovery. Batching those writes is an implementation detail; never rely solely on a browser receiving the final event. Idempotent usage recording must finish before exposing successful finalization; interrupted finalization must be recoverable without double counting. Do not pass database transactions across service boundaries to achieve this.
 
@@ -164,7 +164,7 @@ Use one daily accepted-question allowance per agent and normalized client networ
 - Apply one active generation per session and a configurable active-generation cap per agent/network.
 - No separate per-minute question tier or session-creation quota.
 - Session creation consumes the first accepted question atomically; empty sessions cannot be spammed through a dedicated endpoint.
-- Invalid requests and duplicate sends do not consume allowance. An accepted new attempt consumes its slot even if generation later fails, is blocked, or is cancelled.
+- Invalid requests and duplicate sends do not consume allowance. An accepted generation attempt consumes its slot even if generation later fails, is blocked, or is cancelled.
 - PostgreSQL counters/reservations are atomic and shared across API instances. Redis is not introduced.
 - Clean up expired counters and abandoned reservations, not conversation content.
 
@@ -188,7 +188,7 @@ Store a keyed hash of the normalized address/prefix rather than raw IPs in allow
 
 ## Usage Accounting
 
-Persist numeric `inputTokens` and `outputTokens` per actual model-call attempt, with agent/conversation/attempt association, provider/model identity, timestamp, and outcome available for later analysis. Do not store `totalTokens`; derive totals by adding the two counts.
+Persist numeric `inputTokens` and `outputTokens` per actual generation attempt, with agent/conversation/generation-attempt association, provider/model identity, timestamp, and outcome available for later analysis. Do not store `totalTokens`; derive totals by adding the two counts.
 
 Normalize at the model-call boundary:
 
@@ -202,7 +202,7 @@ There are no provenance fields, approximation versions, cache breakdown fields, 
 
 Cancelled/interrupted calls without final provider usage use submitted input and output observed by the API. This can undercount unseen output or hidden reasoning; the product explicitly accepts that limitation. An absent output with no observed text yields a zero output approximation, not a claim that the provider did no work. Rejected requests that never invoke the model do not create model usage.
 
-Account idempotently by attempt ID. Receiving a duplicate final event, SDK retry, or recovery action cannot add another usage record for the same call. Persist usage independently of browser connection completion. Agent deletion removes these records deliberately.
+Account idempotently by generation-attempt ID. Receiving a duplicate final event, SDK retry, or recovery action cannot add another usage record for the same call. Persist usage independently of browser connection completion. Agent deletion removes these records deliberately.
 
 ## Stateful Browser SDK
 
@@ -236,7 +236,7 @@ Build a workspace package with declared exports appropriate for eventual public 
 
 ## Widget Behavior
 
-The widget owns draft text, focus, scrolling, panel state, resizing, themes, accessibility, and localization. It has no separate transcript store, direct API fetches, session lifecycle, stream parser, or generation retry logic. It renders SDK configuration and may apply supported local presentation overrides. When the SDK exposes a retriable error, the widget offers an explicit retry action backed by `retryLastMessage()`; the SDK selects the failed turn and starts the new attempt.
+The widget owns draft text, focus, scrolling, panel state, resizing, themes, accessibility, and localization. It has no separate transcript store, direct API fetches, session lifecycle, stream parser, or generation retry logic. It renders SDK configuration and may apply supported local presentation overrides. When the SDK exposes a retriable error, the widget offers an explicit retry action backed by `retryLastMessage()`; the SDK selects the failed turn and starts a new generation attempt.
 
 Provide a New chat button in the chat-panel header beside the existing theme/close controls. An icon button must have a localized accessible name and tooltip. It is available whenever a conversation exists, not only after reaching a length limit; disable it during initialization and while a reset is already pending. Invoke the SDK's `startNewChat()` rather than clearing widget-owned message state. If generation is active, the SDK first requests cancellation. On successful reset, show the initial greeting, preserve any unsent draft, and focus the message input. Keep the current conversation visible and report an error if reset fails. The conversation-length notice exposes the same New chat action. Reset does not delete server history or reset the network allowance, and the initial UI greeting is not added to model history.
 

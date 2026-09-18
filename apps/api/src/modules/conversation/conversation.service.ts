@@ -149,7 +149,7 @@ async function drainPendingUsageFinalizations(): Promise<void> {
 					: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
 			if (pending.inputTokens === null || pending.outputTokens === null) {
 				await repository.stageRecoveredUsageCandidate(
-					pending.attemptId,
+					pending.generationAttemptId,
 					pending.outcome,
 					normalized.inputTokens,
 					normalized.outputTokens,
@@ -157,7 +157,7 @@ async function drainPendingUsageFinalizations(): Promise<void> {
 			}
 			try {
 				await usageService.recordUsage({
-					attemptId: pending.attemptId,
+					generationAttemptId: pending.generationAttemptId,
 					agentId: pending.agentId,
 					conversationId: pending.conversationId,
 					provider: pending.provider,
@@ -170,7 +170,7 @@ async function drainPendingUsageFinalizations(): Promise<void> {
 				throw error
 			}
 			await repository.markUsageRecorded({
-				attemptId: pending.attemptId,
+				generationAttemptId: pending.generationAttemptId,
 				outcome: pending.outcome,
 				...normalized,
 			})
@@ -178,8 +178,8 @@ async function drainPendingUsageFinalizations(): Promise<void> {
 	)
 }
 
-async function recoverExpiredAttempts(): Promise<void> {
-	await repository.recoverExpired()
+async function recoverExpiredGenerationAttempts(): Promise<void> {
+	await repository.recoverExpiredGenerationAttempts()
 	await drainPendingUsageFinalizations()
 }
 
@@ -193,16 +193,16 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 
 	async function run(
-		accepted: repository.AcceptedAttempt,
+		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
 		messages: aiProvider.TextMessage[],
 		prepared: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 	): Promise<void> {
-		const { attempt, assistantMessage } = accepted
-		if (!(await repository.markRunning(attempt.id, attempt.leaseToken))) return
+		const { generationAttempt, assistantMessage } = accepted
+		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) return
 		const controller = new AbortController()
-		controllers.set(attempt.id, controller)
+		controllers.set(generationAttempt.id, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
 		let observedOutput = ""
 		let lastHeartbeat = Date.now()
@@ -218,9 +218,13 @@ export function createConversationService(dependencies: Dependencies) {
 		}
 		const poll = setInterval(async () => {
 			try {
-				if (await repository.isCancellationRequested(attempt.id, attempt.leaseToken)) controller.abort()
+				if (await repository.isCancellationRequested(generationAttempt.id, generationAttempt.leaseToken)) {
+					controller.abort()
+				}
 				if (Date.now() - lastHeartbeat >= HEARTBEAT_MS) {
-					if (!(await repository.heartbeat(attempt.id, attempt.leaseToken))) controller.abort()
+					if (!(await repository.heartbeat(generationAttempt.id, generationAttempt.leaseToken))) {
+						controller.abort()
+					}
 					lastHeartbeat = Date.now()
 				}
 			} catch {
@@ -228,12 +232,16 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 		}, CANCELLATION_POLL_MS)
 		try {
-			if (!(await repository.setAttribution(attempt.id, attempt.leaseToken, provider, model, true))) return
+			if (
+				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
+			) {
+				return
+			}
 			for await (const event of prepared.invoke(controller.signal)) {
 				if (event.type === "start") {
 					provider = event.provider
 					model = event.model
-					await repository.setAttribution(attempt.id, attempt.leaseToken, provider, model)
+					await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model)
 				} else if (event.type === "text") {
 					observedOutput += event.text
 					const result = filter.push(event.text)
@@ -242,7 +250,10 @@ export function createConversationService(dependencies: Dependencies) {
 						controller.abort()
 						break
 					}
-					if (result.text && (await repository.appendOutput(attempt.id, attempt.leaseToken, result.text))) {
+					if (
+						result.text &&
+						(await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, result.text))
+					) {
 						emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: result.text })
 					}
 				} else {
@@ -276,11 +287,11 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 		} finally {
 			clearInterval(poll)
-			controllers.delete(attempt.id)
+			controllers.delete(generationAttempt.id)
 		}
 		if (outcome !== "blocked") {
 			const tail = filter.finish()
-			if (tail && (await repository.appendOutput(attempt.id, attempt.leaseToken, tail))) {
+			if (tail && (await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, tail))) {
 				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: tail })
 			}
 		}
@@ -292,8 +303,8 @@ export function createConversationService(dependencies: Dependencies) {
 		})
 		if (
 			await repository.stageFinalization({
-				attemptId: attempt.id,
-				leaseToken: attempt.leaseToken,
+				generationAttemptId: generationAttempt.id,
+				leaseToken: generationAttempt.leaseToken,
 				provider,
 				model,
 				outcome,
@@ -331,7 +342,7 @@ export function createConversationService(dependencies: Dependencies) {
 			const agentId = currentEmbed.agentId
 			const agent = await agentService.getAgent(agentId)
 			async function prepareAndAccept(attempt: number): Promise<{
-				accepted: repository.AcceptedAttempt
+				accepted: repository.AcceptedGenerationAttempt
 				messages: aiProvider.TextMessage[]
 				prepared: PreparedOperation
 			}> {
@@ -356,7 +367,7 @@ export function createConversationService(dependencies: Dependencies) {
 				}
 				await dependencies.beforeAccept?.(attempt)
 				try {
-					const accepted = await repository.acceptAttempt({
+					const accepted = await repository.acceptGenerationAttempt({
 						agentId,
 						conversationId,
 						embedAccessVersion: currentEmbed.accessVersion,
@@ -390,7 +401,7 @@ export function createConversationService(dependencies: Dependencies) {
 				version: 1,
 				type: "accepted",
 				requestId: input.requestId,
-				generationId: accepted.attempt.id,
+				generationId: accepted.generationAttempt.id,
 				userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
 				assistantMessage: {
 					id: accepted.assistantMessage.id,
@@ -398,19 +409,23 @@ export function createConversationService(dependencies: Dependencies) {
 				},
 			}
 			emit(acceptedEvent)
-			if (accepted.duplicate && accepted.attempt.status !== "accepted" && accepted.attempt.status !== "running") {
-				emit({ version: 1, type: "terminal", outcome: accepted.attempt.status })
+			if (
+				accepted.duplicate &&
+				accepted.generationAttempt.status !== "accepted" &&
+				accepted.generationAttempt.status !== "running"
+			) {
+				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 
 		async getSession(credential: string) {
-			await recoverExpiredAttempts()
+			await recoverExpiredGenerationAttempts()
 			const session = await authenticate(credential)
 			return {
 				messages: (await repository.listMessages(session.conversationId)).map(publicMessage),
-				activeGeneration: await repository.getActiveAttempt(session.conversationId),
+				activeGeneration: await repository.getActiveGenerationAttempt(session.conversationId),
 			}
 		},
 

@@ -3,7 +3,7 @@ import { embed } from "@/modules/embed/embed.schema.ts"
 import { sql } from "drizzle-orm"
 import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
-export const conversationAttemptStatus = pgEnum("conversation_attempt_status", [
+export const generationAttemptStatus = pgEnum("generation_attempt_status", [
 	"accepted",
 	"running",
 	"completed",
@@ -12,8 +12,8 @@ export const conversationAttemptStatus = pgEnum("conversation_attempt_status", [
 	"blocked",
 	"interrupted",
 ])
-export const conversationMessageRole = pgEnum("conversation_message_role", ["user", "assistant"])
-export const conversationMessageOutcome = pgEnum("conversation_message_outcome", [
+export const messageRole = pgEnum("message_role", ["user", "assistant"])
+export const messageOutcome = pgEnum("message_outcome", [
 	"streaming",
 	"completed",
 	"failed",
@@ -21,7 +21,7 @@ export const conversationMessageOutcome = pgEnum("conversation_message_outcome",
 	"blocked",
 	"interrupted",
 ])
-export const conversationFinalOutcome = pgEnum("conversation_final_outcome", [
+export const generationAttemptFinalOutcome = pgEnum("generation_attempt_final_outcome", [
 	"completed",
 	"failed",
 	"cancelled",
@@ -48,8 +48,8 @@ export const conversation = pgTable(
 	],
 )
 
-export const conversationAttempt = pgTable(
-	"conversation_attempt",
+export const generationAttempt = pgTable(
+	"generation_attempt",
 	{
 		id: text("id").primaryKey(),
 		conversationId: text("conversation_id")
@@ -57,7 +57,7 @@ export const conversationAttempt = pgTable(
 			.references(() => conversation.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
 		inputText: text("input_text").notNull(),
-		status: conversationAttemptStatus("status").notNull().default("accepted"),
+		status: generationAttemptStatus("status").notNull().default("accepted"),
 		networkHash: text("network_hash").notNull(),
 		leaseToken: text("lease_token").notNull(),
 		leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true, mode: "date" }).notNull(),
@@ -65,7 +65,7 @@ export const conversationAttempt = pgTable(
 		provider: text("provider"),
 		model: text("model"),
 		providerInvoked: boolean("provider_invoked").notNull().default(false),
-		finalOutcome: conversationFinalOutcome("final_outcome"),
+		finalOutcome: generationAttemptFinalOutcome("final_outcome"),
 		usageInputTokens: integer("usage_input_tokens"),
 		usageOutputTokens: integer("usage_output_tokens"),
 		usageRecordedAt: timestamp("usage_recorded_at", { withTimezone: true, mode: "date" }),
@@ -73,34 +73,34 @@ export const conversationAttempt = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
 	(table) => [
-		uniqueIndex("conversation_attempt_conversation_request_unique_idx").on(table.conversationId, table.requestId),
-		index("conversation_attempt_active_network_idx").on(table.networkHash, table.status, table.leaseExpiresAt),
-		index("conversation_attempt_conversation_id_idx").on(table.conversationId),
-		index("conversation_attempt_usage_pending_idx").on(table.providerInvoked, table.usageRecordedAt),
+		uniqueIndex("generation_attempt_conversation_request_unique_idx").on(table.conversationId, table.requestId),
+		index("generation_attempt_active_network_idx").on(table.networkHash, table.status, table.leaseExpiresAt),
+		index("generation_attempt_conversation_id_idx").on(table.conversationId),
+		index("generation_attempt_usage_pending_idx").on(table.providerInvoked, table.usageRecordedAt),
 		check(
-			"conversation_attempt_usage_candidate_pair_check",
+			"generation_attempt_usage_candidate_pair_check",
 			sql`(${table.usageInputTokens} IS NULL) = (${table.usageOutputTokens} IS NULL)`,
 		),
 	],
 )
 
-export const conversationMessage = pgTable(
-	"conversation_message",
+export const message = pgTable(
+	"message",
 	{
 		id: text("id").primaryKey(),
 		conversationId: text("conversation_id")
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
-		attemptId: text("attempt_id")
+		generationAttemptId: text("generation_attempt_id")
 			.notNull()
-			.references(() => conversationAttempt.id, { onDelete: "cascade" }),
-		role: conversationMessageRole("role").notNull(),
+			.references(() => generationAttempt.id, { onDelete: "cascade" }),
+		role: messageRole("role").notNull(),
 		text: text("text").notNull(),
-		outcome: conversationMessageOutcome("outcome").notNull(),
+		outcome: messageOutcome("outcome").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
-	(table) => [index("conversation_message_order_idx").on(table.conversationId, table.createdAt, table.id)],
+	(table) => [index("message_order_idx").on(table.conversationId, table.createdAt, table.id)],
 )
 
 export const conversationDailyCounter = pgTable(

@@ -228,7 +228,7 @@ test("embed snippet carries the public token and no baked-in appearance", async 
 	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const snippet = page.locator("pre")
-	await expect(snippet).toContainText('data-talqo-embed-token="talqo-development-embed-token"')
+	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
 	// Appearance must never be inlined, or a copied snippet would freeze the palette.
 	await expect(snippet).not.toContainText("data-talqo-accent")
 	await expect(snippet).not.toContainText("data-talqo-light-primary")

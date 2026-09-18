@@ -4,10 +4,12 @@ import type {
 	EmbedConfig,
 	GetChatSession200,
 	GetChatSession200MessagesItem,
+	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
 } from "./generated/contracts"
 import type { ChatError, ChatErrorCode, ChatEvent, ChatTransport } from "./types"
 
+import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts"
 import { parseSseStream } from "./sse"
 import { isChatErrorCode } from "./types"
 
@@ -33,10 +35,14 @@ const HTTP_OK = 200
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
-const MESSAGE_ROLES = ["user", "assistant"] as const
-const MESSAGE_OUTCOMES = ["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"] as const
-const TERMINAL_OUTCOMES = ["completed", "failed", "cancelled", "blocked", "interrupted"] as const
-const ERROR_OUTCOMES = ["failed", "cancelled", "blocked", "interrupted"] as const
+const MESSAGE_ROLES = Object.values(GetChatSession200MessagesItemRole)
+const MESSAGE_OUTCOMES = Object.values(GetChatSession200MessagesItemOutcome)
+const TERMINAL_OUTCOMES = MESSAGE_OUTCOMES.filter(
+	(outcome): outcome is Exclude<MessageOutcome, "streaming"> => outcome !== "streaming",
+)
+const ERROR_OUTCOMES = TERMINAL_OUTCOMES.filter(
+	(outcome): outcome is Exclude<MessageOutcome, "streaming" | "completed"> => outcome !== "completed",
+)
 
 function endpoint(apiUrl: string, path: string): string {
 	const url = new URL(apiUrl)
@@ -69,22 +75,10 @@ async function* responseChunks(body: ReadableStream<Uint8Array>, signal: AbortSi
 }
 
 async function readJson(response: Response, signal: AbortSignal): Promise<unknown> {
-	if (!response.body) throw invalidResponse(response.status)
-	const chunks: Uint8Array[] = []
-	let length = 0
-	for await (const chunk of responseChunks(response.body, signal)) {
-		chunks.push(chunk)
-		length += chunk.length
-	}
-	const bytes = new Uint8Array(length)
-	let offset = 0
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset)
-		offset += chunk.length
-	}
 	try {
-		return JSON.parse(new TextDecoder().decode(bytes)) as unknown
+		return (await response.json()) as unknown
 	} catch {
+		if (signal.aborted) throw signal.reason
 		throw invalidResponse(response.status)
 	}
 }

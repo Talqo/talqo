@@ -81,8 +81,6 @@ export async function listAgents(): Promise<Agent[]> {
 	return (await repo.findAllWithWords()).map(toAgent)
 }
 
-// TODO(conversation): blacklist enforcement (NFR-2.2).
-// TODO(conversation): rate-limit storage and IP/message limits (NFR-3.5, NFR-3.6).
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
 
 export async function getAgent(id: string): Promise<Agent> {

@@ -19,12 +19,12 @@ erDiagram
     AI_PROVIDER_CONFIG
 
     CONVERSATION
-    CONVERSATION_ATTEMPT
-    CONVERSATION_MESSAGE
+    GENERATION_ATTEMPT
+    MESSAGE
     CONVERSATION_DAILY_COUNTER
 
     FILE_EMBEDDING
-    CONVERSATION_USAGE
+    USAGE_RECORD
 
     USER ||--o{ SESSION : authenticates
     USER ||--o{ USER_ROLE : has
@@ -41,10 +41,8 @@ erDiagram
     AGENT ||--o{ CONVERSATION : receives
     AGENT ||--o{ CONVERSATION_DAILY_COUNTER : limits
     EMBED o|--o{ CONVERSATION : originated
-    CONVERSATION ||--o{ CONVERSATION_ATTEMPT : accepts
-    CONVERSATION ||--o{ CONVERSATION_MESSAGE : includes
-    CONVERSATION_ATTEMPT ||--|{ CONVERSATION_MESSAGE : produces
-    CONVERSATION_ATTEMPT ||--o| CONVERSATION_USAGE : records
+    CONVERSATION ||--o{ GENERATION_ATTEMPT : accepts
+    CONVERSATION ||--o{ MESSAGE : includes
+    GENERATION_ATTEMPT ||--|{ MESSAGE : produces
+    GENERATION_ATTEMPT ||--o| USAGE_RECORD : records
 ```
-
-A client-issued UUID identifies and authorizes a conversation. An embed's public token and `accessVersion` establish initial access. Embed rotation, reassignment, or deletion revokes access; a nullable embed reference preserves history after embed deletion. Agent deletion cascades conversations, attempts, messages, daily counters, and usage.

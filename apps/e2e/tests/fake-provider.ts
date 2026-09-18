@@ -64,7 +64,7 @@ function waitForRelease(signal: AbortSignal): Promise<"aborted" | "released"> {
 
 function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolean } {
 	const latest = text(messages.at(-1))
-	if (latest === "Give me the first answer") return { chunks: ["First streamed answer", "."], delayed: true }
+	if (latest === "Give me the first answer") return { chunks: ["First streame", "d answer", "."], delayed: true }
 	if (latest === "Stream until I cancel") {
 		return { chunks: ["Cancellation partial output remains visible"], delayed: true }
 	}

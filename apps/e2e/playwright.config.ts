@@ -11,7 +11,7 @@ const providerPort = process.env.E2E_PROVIDER_PORT ?? String(await getFreePort()
 
 const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
 	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
-	: `http://localhost:${widgetPort}`
+	: `http://127.0.0.1:${widgetPort}`
 const webOrigin = `http://127.0.0.1:${webPort}`
 
 const widgetPreviewUrl = `${widgetOrigin}/dev-preview.html`
