@@ -9,8 +9,7 @@ function schemeFromValues(
 	prefix: "light" | "dark",
 ): WidgetSchemeInput | undefined {
 	const scheme = definedEntries({
-		// `accent` predates the five-color palette and aliases the light primary color.
-		primary: get(`${prefix}Primary`) ?? (prefix === "light" ? get("accent") : undefined),
+		primary: get(`${prefix}Primary`),
 		textOnPrimary: get(`${prefix}TextOnPrimary`),
 		background: get(`${prefix}Background`),
 		surface: get(`${prefix}Surface`),

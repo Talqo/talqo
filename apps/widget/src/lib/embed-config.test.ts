@@ -43,16 +43,6 @@ describe("appearanceFromDataset", () => {
 		).toEqual({ dark: { primary: "#34d399", background: "#0a0a0a" } })
 	})
 
-	test("accepts the legacy accent attribute as the light primary", () => {
-		expect(appearanceFromDataset({ talqoAccent: "#123456" })).toEqual({ light: { primary: "#123456" } })
-	})
-
-	test("prefers the canonical light primary attribute over the legacy alias", () => {
-		expect(appearanceFromDataset({ talqoLightPrimary: "#111111", talqoAccent: "#222222" })).toEqual({
-			light: { primary: "#111111" },
-		})
-	})
-
 	test("parses the theme toggle as a boolean and ignores other values", () => {
 		expect(appearanceFromDataset({ talqoThemeToggle: "true" })).toEqual({ themeToggle: true })
 		expect(appearanceFromDataset({ talqoThemeToggle: "false" })).toEqual({ themeToggle: false })
@@ -70,7 +60,7 @@ describe("appearanceFromDataset", () => {
 
 test("extracts appearance from canonical getter keys", () => {
 	const values: Record<string, string> = {
-		accent: "#123456",
+		lightPrimary: "#123456",
 		darkText: "#ffffff",
 		position: "bottom-left",
 		themeToggle: "false",
