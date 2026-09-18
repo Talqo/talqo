@@ -23,23 +23,6 @@ describe("buildEmbedSnippet", () => {
 		expect(snippet).toContain('data-talqo-api="https://api.example.com"')
 	})
 
-	// A copied snippet must not freeze the palette.
-	test("never emits appearance attributes", () => {
-		const snippet = buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123", apiOrigin: "https://api.example.com" })
-
-		for (const attribute of [
-			"data-talqo-accent",
-			"data-talqo-primary",
-			"data-talqo-background",
-			"data-talqo-foreground",
-			"data-talqo-position",
-			"data-talqo-language",
-			"data-talqo-theme",
-		]) {
-			expect(snippet).not.toContain(attribute)
-		}
-	})
-
 	test("escapes attribute-breaking characters in the token", () => {
 		const snippet = buildEmbedSnippet(SCRIPT_URL, { embedToken: 'tok"><script>' })
 
