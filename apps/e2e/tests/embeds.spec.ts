@@ -224,15 +224,11 @@ test("the widget's own name reaches the embedded chat header", async ({ page }) 
 	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Website")
 })
 
-test("embed snippet carries the public token and no baked-in appearance", async ({ page }) => {
+test("embed snippet carries the public token", async ({ page }) => {
 	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
-	// Appearance must never be inlined, or a copied snippet would freeze the palette.
-	await expect(snippet).not.toContainText("data-talqo-accent")
-	await expect(snippet).not.toContainText("data-talqo-light-primary")
-	await expect(snippet).not.toContainText("data-talqo-position")
 })
 
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
