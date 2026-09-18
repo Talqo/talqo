@@ -1,22 +1,22 @@
 import { db } from "@/db/client.ts"
 import { eq } from "drizzle-orm"
 
-import { conversationUsage } from "./usage.schema.ts"
+import { usageRecord } from "./usage.schema.ts"
 
-export type UsageRecord = typeof conversationUsage.$inferInsert
+export type UsageRecord = typeof usageRecord.$inferInsert
 class UsageConflictError extends Error {}
 
 export async function recordUsage(value: UsageRecord): Promise<void> {
 	const inserted = await db
-		.insert(conversationUsage)
+		.insert(usageRecord)
 		.values(value)
-		.onConflictDoNothing({ target: conversationUsage.attemptId })
-		.returning({ attemptId: conversationUsage.attemptId })
+		.onConflictDoNothing({ target: usageRecord.generationAttemptId })
+		.returning({ generationAttemptId: usageRecord.generationAttemptId })
 	if (inserted.length === 1) return
 	const [existing] = await db
 		.select()
-		.from(conversationUsage)
-		.where(eq(conversationUsage.attemptId, value.attemptId))
+		.from(usageRecord)
+		.where(eq(usageRecord.generationAttemptId, value.generationAttemptId))
 		.limit(1)
 	if (
 		!existing ||
@@ -28,6 +28,6 @@ export async function recordUsage(value: UsageRecord): Promise<void> {
 		existing.inputTokens !== value.inputTokens ||
 		existing.outputTokens !== value.outputTokens
 	) {
-		throw new UsageConflictError("Attempt usage conflicts with its persisted finalization")
+		throw new UsageConflictError("Generation attempt usage conflicts with its persisted finalization")
 	}
 }

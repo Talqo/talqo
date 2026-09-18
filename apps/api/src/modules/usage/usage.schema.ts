@@ -1,13 +1,13 @@
 import { agent } from "@/modules/agent/agent.schema.ts"
-import { conversation, conversationAttempt } from "@/modules/conversation/conversation.schema.ts"
+import { conversation, generationAttempt } from "@/modules/conversation/conversation.schema.ts"
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 
-export const conversationUsage = pgTable(
-	"conversation_usage",
+export const usageRecord = pgTable(
+	"usage_record",
 	{
-		attemptId: text("attempt_id")
+		generationAttemptId: text("generation_attempt_id")
 			.primaryKey()
-			.references(() => conversationAttempt.id, { onDelete: "cascade" }),
+			.references(() => generationAttempt.id, { onDelete: "cascade" }),
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
@@ -22,7 +22,7 @@ export const conversationUsage = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
 	(table) => [
-		index("conversation_usage_agent_id_idx").on(table.agentId),
-		index("conversation_usage_conversation_id_idx").on(table.conversationId),
+		index("usage_record_agent_id_idx").on(table.agentId),
+		index("usage_record_conversation_id_idx").on(table.conversationId),
 	],
 )

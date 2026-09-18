@@ -14,7 +14,7 @@ let apiOrigin: string
 let chatFixture: { agentId: string; embedId?: string } | undefined
 
 test.beforeAll(async () => {
-	const token = "talqo-development-embed-token"
+	const token = "F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"
 	const apiPort = process.env.TALQO_API_PORT
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 
@@ -265,7 +265,7 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 
 	await send("Stream until I cancel")
 	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
-	await expect(dialog.getByText("Cancellation partial output", { exact: true })).toBeVisible()
+	await expect(dialog.getByText("Cancellation partial output remains", { exact: true })).toBeVisible()
 	await dialog.getByRole("button", { name: "Stop generating" }).click()
 	await expect(dialog.getByText("Response cancelled", { exact: true })).toBeVisible()
 	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)

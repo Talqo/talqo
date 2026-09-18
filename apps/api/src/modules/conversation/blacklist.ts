@@ -1,15 +1,19 @@
 type FilterResult = { blocked: boolean; text: string }
-const NORMALIZATION_LOOK_BEHIND_CODE_UNITS = 8
+
+function normalizeForMatch(value: string): string {
+	return value.normalize("NFD").toLocaleLowerCase("und").normalize("NFD")
+}
 
 export function createBlacklistFilter(words: readonly string[]) {
-	const terms = words.filter(Boolean).map((word) => word.normalize("NFC").toLocaleLowerCase("und"))
+	const terms = words.filter(Boolean).map(normalizeForMatch)
 	if (terms.length === 0) {
 		return {
 			push: (chunk: string): FilterResult => ({ blocked: false, text: chunk }),
 			finish: (): string => "",
 		}
 	}
-	const lookBehind = Math.max(0, ...terms.map((term) => term.length)) + NORMALIZATION_LOOK_BEHIND_CODE_UNITS
+	// Retain enough raw text that a literal match split across provider chunks cannot be emitted early.
+	const lookBehind = Math.max(0, ...terms.map((term) => term.length))
 	let pending = ""
 	let blocked = false
 
@@ -17,7 +21,7 @@ export function createBlacklistFilter(words: readonly string[]) {
 		push(chunk: string): FilterResult {
 			if (blocked) return { blocked: true, text: "" }
 			pending += chunk
-			const normalized = pending.normalize("NFC").toLocaleLowerCase("und")
+			const normalized = normalizeForMatch(pending)
 			if (terms.some((term) => normalized.includes(term))) {
 				blocked = true
 				pending = ""

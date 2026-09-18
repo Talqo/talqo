@@ -88,7 +88,7 @@ export const problemDetailsSchema = z
 	.union([firstProblemSchema, ...remainingProblemSchemas])
 	.openapi("ProblemDetails", undefined, { unionPreferredType: "oneOf" })
 
-export function problemSchema(_codes: ProblemCodeSet) {
+export function problemSchema() {
 	return problemDetailsSchema
 }
 

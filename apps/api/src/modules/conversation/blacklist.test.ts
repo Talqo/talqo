@@ -22,6 +22,14 @@ describe("streaming blacklist", () => {
 		expect(filter.push("e\u0301 response").blocked).toBe(true)
 	})
 
+	it("retains a complete possible match when normalized text expands", () => {
+		const filter = createBlacklistFilter(["é".repeat(20)])
+		const decomposed = "e\u0301".repeat(20)
+
+		expect(filter.push(decomposed.slice(0, 30))).toEqual({ text: "", blocked: false })
+		expect(filter.push(decomposed.slice(30))).toEqual({ text: "", blocked: true })
+	})
+
 	it("emits all safe buffered output when finished", () => {
 		const filter = createBlacklistFilter(["blocked"])
 		const emitted = filter.push("safe text")

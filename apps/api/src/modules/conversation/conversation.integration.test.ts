@@ -136,7 +136,7 @@ async function* contextLimitGeneration() {
 }
 
 beforeEach(async () => {
-	await sql`TRUNCATE TABLE conversation_usage, conversation_message, conversation_attempt, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
+	await sql`TRUNCATE TABLE usage_record, message, generation_attempt, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
 })
 
 afterEach(() => {
@@ -243,17 +243,17 @@ describe("conversation lifecycle", () => {
 
 		await expect(instance.service.getSession(CREDENTIAL_1)).rejects.toBeInstanceOf(SessionUnauthorizedError)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
-		expect((await sql`SELECT input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
+		expect((await sql`SELECT input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
 			input_tokens: 8,
 			output_tokens: 2,
 		})
 		const [storedUsage] = await sql`
-			SELECT attempt_id, agent_id, conversation_id, provider, model, outcome, input_tokens, output_tokens
-			FROM conversation_usage
+			SELECT generation_attempt_id, agent_id, conversation_id, provider, model, outcome, input_tokens, output_tokens
+			FROM usage_record
 		`
 		if (!storedUsage) throw new Error("Expected persisted usage")
 		const usageRecord = {
-			attemptId: String(storedUsage.attempt_id),
+			generationAttemptId: String(storedUsage.generation_attempt_id),
 			agentId: String(storedUsage.agent_id),
 			conversationId: String(storedUsage.conversation_id),
 			provider: String(storedUsage.provider),
@@ -264,7 +264,7 @@ describe("conversation lifecycle", () => {
 		}
 		await expect(usage.recordUsage(usageRecord)).resolves.toBeUndefined()
 		await expect(usage.recordUsage({ ...usageRecord, inputTokens: 999, outputTokens: 999 })).rejects.toBeDefined()
-		expect((await sql`SELECT input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
+		expect((await sql`SELECT input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
 			input_tokens: 8,
 			output_tokens: 2,
 		})
@@ -291,7 +291,7 @@ describe("conversation lifecycle", () => {
 				networkHash: "network-a",
 			}),
 		).rejects.toBeInstanceOf(DailyAllowanceExceededError)
-		expect((await sql`SELECT count(*)::int AS count FROM conversation_usage`)[0]?.count).toBe(1)
+		expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(1)
 	})
 
 	it("shares concurrency reservations across service instances", async () => {
@@ -348,7 +348,7 @@ describe("conversation lifecycle", () => {
 
 		expect(results.filter((result) => result.duplicate)).toHaveLength(1)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
-		expect((await sql`SELECT count(*)::int AS count FROM conversation_attempt`)[0]?.count).toBe(1)
+		expect((await sql`SELECT count(*)::int AS count FROM generation_attempt`)[0]?.count).toBe(1)
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(1)
 	})
 
@@ -393,7 +393,7 @@ describe("conversation lifecycle", () => {
 			(await owner.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
 				?.outcome,
 		).toBe("cancelled")
-		expect((await sql`SELECT provider, model, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
+		expect((await sql`SELECT provider, model, input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
 			provider: "fake",
 			model: "fake-model",
 			input_tokens: expect.any(Number),
@@ -419,11 +419,11 @@ describe("conversation lifecycle", () => {
 		const remaining = await sql`
 			SELECT
 				(SELECT count(*) FROM conversation)::int AS conversations,
-				(SELECT count(*) FROM conversation_attempt)::int AS attempts,
-				(SELECT count(*) FROM conversation_message)::int AS messages,
-				(SELECT count(*) FROM conversation_usage)::int AS usage
+				(SELECT count(*) FROM generation_attempt)::int AS generation_attempts,
+				(SELECT count(*) FROM message)::int AS messages,
+				(SELECT count(*) FROM usage_record)::int AS usage_records
 		`
-		expect(remaining[0]).toMatchObject({ conversations: 0, attempts: 0, messages: 0, usage: 0 })
+		expect(remaining[0]).toMatchObject({ conversations: 0, generation_attempts: 0, messages: 0, usage_records: 0 })
 	})
 
 	it("emits a typed error after acceptance when provider generation fails", async () => {
@@ -553,7 +553,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
-		await sql`UPDATE conversation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${sent.generationId}`
+		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${sent.generationId}`
 
 		await customService(emptyGeneration).getSession(CREDENTIAL_1)
 		gate.resolve()
@@ -563,18 +563,18 @@ describe("conversation lifecycle", () => {
 		)
 		expect(assistantMessage).toMatchObject({ outcome: "interrupted", text: "" })
 		expect(
-			(await sql`SELECT count(*)::int AS count FROM conversation_usage WHERE attempt_id = ${sent.generationId}`)[0]
+			(await sql`SELECT count(*)::int AS count FROM usage_record WHERE generation_attempt_id = ${sent.generationId}`)[0]
 				?.count,
 		).toBe(1)
 		expect(
 			(
 				await sql`
-					SELECT a.final_outcome, a.usage_input_tokens, a.usage_output_tokens,
-						a.usage_recorded_at IS NOT NULL AS recorded, u.outcome,
-						u.input_tokens, u.output_tokens
-					FROM conversation_attempt a
-					JOIN conversation_usage u ON u.attempt_id = a.id
-					WHERE a.id = ${sent.generationId}
+					SELECT ga.final_outcome, ga.usage_input_tokens, ga.usage_output_tokens,
+						ga.usage_recorded_at IS NOT NULL AS recorded, ur.outcome,
+						ur.input_tokens, ur.output_tokens
+					FROM generation_attempt ga
+					JOIN usage_record ur ON ur.generation_attempt_id = ga.id
+					WHERE ga.id = ${sent.generationId}
 				`
 			)[0],
 		).toMatchObject({
@@ -616,26 +616,26 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
-		const [attempt] = await sql`
-			SELECT lease_token, conversation_id FROM conversation_attempt WHERE id = ${sent.generationId}
+		const [generationAttempt] = await sql`
+			SELECT lease_token, conversation_id FROM generation_attempt WHERE id = ${sent.generationId}
 		`
-		const leaseToken = String(attempt?.lease_token)
-		const conversationId = String(attempt?.conversation_id)
+		const leaseToken = String(generationAttempt?.lease_token)
+		const conversationId = String(generationAttempt?.conversation_id)
 
 		setSystemTime(new Date("2100-01-01T00:00:00.000Z"))
 		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(true)
 		expect(await repository.setAttribution(sent.generationId, leaseToken, "database", "clock")).toBe(true)
-		expect(await repository.getActiveAttempt(conversationId)).toEqual({ id: sent.generationId })
+		expect(await repository.getActiveGenerationAttempt(conversationId)).toEqual({ id: sent.generationId })
 		expect(await repository.requestCancellation(conversationId, sent.generationId)).toBe(true)
 		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(true)
-		await repository.recoverExpired()
+		await repository.recoverExpiredGenerationAttempts()
 		expect(
 			(
 				await sql`
 					SELECT status,
 						lease_expires_at BETWEEN now() + interval '10 seconds' AND now() + interval '20 seconds' AS lease_uses_db_time,
 						updated_at BETWEEN now() - interval '5 seconds' AND now() + interval '1 second' AS update_uses_db_time
-					FROM conversation_attempt
+					FROM generation_attempt
 					WHERE id = ${sent.generationId}
 				`
 			)[0],
@@ -770,10 +770,10 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
-		const [attempt] = await sql`SELECT lease_token FROM conversation_attempt WHERE id = ${sent.generationId}`
-		const leaseToken = String(attempt?.lease_token)
+		const [generationAttempt] = await sql`SELECT lease_token FROM generation_attempt WHERE id = ${sent.generationId}`
+		const leaseToken = String(generationAttempt?.lease_token)
 		await sql`
-			UPDATE conversation_attempt
+			UPDATE generation_attempt
 			SET cancellation_requested_at = now(), lease_expires_at = now() - interval '1 second'
 			WHERE id = ${sent.generationId}
 		`
@@ -784,7 +784,7 @@ describe("conversation lifecycle", () => {
 		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(false)
 		expect(
 			await repository.stageFinalization({
-				attemptId: sent.generationId,
+				generationAttemptId: sent.generationId,
 				leaseToken,
 				outcome: "completed",
 				provider: "late",
@@ -797,7 +797,7 @@ describe("conversation lifecycle", () => {
 		await sent.done
 	})
 
-	it("atomically interrupts an expired session attempt before admitting its replacement", async () => {
+	it("atomically interrupts an expired generation attempt before admitting its replacement", async () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
 		const gate = deferred()
@@ -815,7 +815,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
-		await sql`UPDATE conversation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${expired.generationId}`
+		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${expired.generationId}`
 
 		const replacement = await service().service.send({
 			embedToken: createdEmbed.embedToken,
@@ -824,7 +824,7 @@ describe("conversation lifecycle", () => {
 			text: "replacement",
 			networkHash: "network-a",
 		})
-		expect((await sql`SELECT status FROM conversation_attempt WHERE id = ${expired.generationId}`)[0]?.status).toBe(
+		expect((await sql`SELECT status FROM generation_attempt WHERE id = ${expired.generationId}`)[0]?.status).toBe(
 			"interrupted",
 		)
 		gate.resolve()
@@ -851,7 +851,7 @@ describe("conversation lifecycle", () => {
 			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
 				?.text,
 		).toBe("tiny")
-		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
+		expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
 	})
 
 	it("persists a short safe tail when generation is cancelled", async () => {
@@ -879,7 +879,7 @@ describe("conversation lifecycle", () => {
 			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
 				?.text,
 		).toBe("tiny")
-		expect((await sql`SELECT output_tokens FROM conversation_usage`)[0]?.output_tokens).toBe(1)
+		expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
 	})
 
 	it("rejects unusable provider configuration before acceptance without charging or creating data", async () => {
@@ -898,11 +898,11 @@ describe("conversation lifecycle", () => {
 		const [counts] = await sql`
 			SELECT
 				(SELECT count(*) FROM conversation)::int AS conversations,
-				(SELECT count(*) FROM conversation_attempt)::int AS attempts,
+				(SELECT count(*) FROM generation_attempt)::int AS generation_attempts,
 				(SELECT count(*) FROM conversation_daily_counter)::int AS allowance,
-				(SELECT count(*) FROM conversation_usage)::int AS usage
+				(SELECT count(*) FROM usage_record)::int AS usage_records
 		`
-		expect(counts).toMatchObject({ conversations: 0, attempts: 0, allowance: 0, usage: 0 })
+		expect(counts).toMatchObject({ conversations: 0, generation_attempts: 0, allowance: 0, usage_records: 0 })
 	})
 
 	it("recreates usage from durable finalization state after a crash before insertion", async () => {
@@ -916,23 +916,23 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await sent.done
-		await sql`DELETE FROM conversation_usage WHERE attempt_id = ${sent.generationId}`
-		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
+		await sql`DELETE FROM usage_record WHERE generation_attempt_id = ${sent.generationId}`
+		await sql`UPDATE generation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
 
 		await instance.service.getSession(CREDENTIAL_1)
 
-		expect((await sql`SELECT outcome, input_tokens, output_tokens FROM conversation_usage`)[0]).toMatchObject({
+		expect((await sql`SELECT outcome, input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
 			outcome: "completed",
 			input_tokens: 8,
 			output_tokens: 2,
 		})
-		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM conversation_attempt`)[0]?.recorded).toBe(
+		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM generation_attempt`)[0]?.recorded).toBe(
 			true,
 		)
-		await sql`UPDATE conversation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
+		await sql`UPDATE generation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
 		await instance.service.getSession(CREDENTIAL_1)
-		expect((await sql`SELECT count(*)::int AS count FROM conversation_usage`)[0]?.count).toBe(1)
-		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM conversation_attempt`)[0]?.recorded).toBe(
+		expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(1)
+		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM generation_attempt`)[0]?.recorded).toBe(
 			true,
 		)
 	})

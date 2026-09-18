@@ -971,7 +971,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1078,7 +1078,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1088,7 +1088,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1098,7 +1098,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1223,7 +1223,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1233,7 +1233,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1243,7 +1243,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1554,7 +1554,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-ai-provider-configuration, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1564,7 +1564,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1574,7 +1574,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1584,7 +1584,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: configuration-conflict.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1594,7 +1594,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1604,7 +1604,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1728,7 +1728,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-ai-provider-configuration, invalid-request, malformed-json, provider-credentials-rejected.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1738,7 +1738,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1748,7 +1748,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1758,7 +1758,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1768,7 +1768,7 @@
 						}
 					},
 					"429": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: provider-rate-limited.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1778,7 +1778,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1788,7 +1788,7 @@
 						}
 					},
 					"502": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: model-discovery-unsupported, provider-error, provider-unreachable.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1845,7 +1845,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1855,7 +1855,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-credentials.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1865,7 +1865,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1875,7 +1875,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1896,7 +1896,7 @@
 						"description": "No content"
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1937,7 +1937,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -1995,7 +1995,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2005,7 +2005,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2015,7 +2015,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2025,7 +2025,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: username-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2035,7 +2035,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2045,7 +2045,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2069,7 +2069,7 @@
 						"description": "No content"
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2079,7 +2079,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2089,7 +2089,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2138,7 +2138,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: current-password-incorrect, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2148,7 +2148,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2158,7 +2158,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2168,7 +2168,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2212,7 +2212,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2222,7 +2222,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2232,7 +2232,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-not-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2242,7 +2242,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2252,7 +2252,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2295,7 +2295,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2305,7 +2305,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2315,7 +2315,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2349,7 +2349,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2405,7 +2405,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2415,7 +2415,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-already-exists, username-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2425,7 +2425,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2435,7 +2435,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2478,7 +2478,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2488,7 +2488,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2498,7 +2498,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2561,7 +2561,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2571,7 +2571,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-invitation, username-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2581,7 +2581,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2591,7 +2591,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2672,7 +2672,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2682,7 +2682,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2692,7 +2692,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-access-required, password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2702,7 +2702,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: user-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2712,7 +2712,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-already-exists.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2722,7 +2722,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2732,7 +2732,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2768,7 +2768,7 @@
 						"description": "No content"
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2778,7 +2778,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-access-required, password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2788,7 +2788,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2831,7 +2831,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2841,7 +2841,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2851,7 +2851,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2893,7 +2893,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2903,7 +2903,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-access-required, password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2913,7 +2913,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2967,7 +2967,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json, self-password-reset-not-allowed.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2977,7 +2977,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2987,7 +2987,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: admin-access-required, password-change-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -2997,7 +2997,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: user-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3007,7 +3007,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3017,7 +3017,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3059,7 +3059,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3069,7 +3069,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3079,7 +3079,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3148,7 +3148,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-invalid, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3158,7 +3158,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3168,7 +3168,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3178,7 +3178,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-name-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3188,7 +3188,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3198,7 +3198,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3247,7 +3247,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3257,7 +3257,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3267,7 +3267,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3277,7 +3277,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3356,7 +3356,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-invalid, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3366,7 +3366,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3376,7 +3376,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3386,7 +3386,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3396,7 +3396,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-name-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3406,7 +3406,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3416,7 +3416,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3450,7 +3450,7 @@
 						"description": "No content"
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3460,7 +3460,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3470,7 +3470,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3480,7 +3480,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-in-use.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3490,7 +3490,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3542,7 +3542,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3552,7 +3552,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3562,7 +3562,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3694,7 +3694,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3704,7 +3704,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3714,7 +3714,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3724,7 +3724,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3734,7 +3734,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3744,7 +3744,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3793,7 +3793,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3803,7 +3803,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3813,7 +3813,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3823,7 +3823,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3965,7 +3965,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3975,7 +3975,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3985,7 +3985,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3995,7 +3995,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found, embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4005,7 +4005,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4015,7 +4015,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4049,7 +4049,7 @@
 						"description": "No content"
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4059,7 +4059,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4069,7 +4069,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4079,7 +4079,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4128,7 +4128,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4138,7 +4138,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4148,7 +4148,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4158,7 +4158,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4199,7 +4199,7 @@
 						"description": "Configuration unchanged since the supplied ETag"
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4209,7 +4209,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4273,7 +4273,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: invalid-request, malformed-json, chat-client-address-unavailable, chat-conversation-too-long.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4283,7 +4283,17 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: chat-session-unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: embed-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4293,7 +4303,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: chat-request-conflict.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4303,7 +4313,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4313,7 +4323,7 @@
 						}
 					},
 					"429": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: chat-daily-allowance-exceeded, chat-concurrency-limit, chat-session-busy.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4323,7 +4333,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4333,7 +4343,7 @@
 						}
 					},
 					"502": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: provider-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4405,7 +4415,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: chat-session-unauthorized.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4415,7 +4425,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4456,7 +4466,7 @@
 						"description": "Cancellation requested"
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: chat-session-unauthorized.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4466,7 +4476,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4476,7 +4486,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4542,7 +4552,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4552,7 +4562,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4562,7 +4572,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4572,7 +4582,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4636,7 +4646,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-invalid, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4646,7 +4656,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4656,7 +4666,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4666,7 +4676,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4676,7 +4686,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-name-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4686,7 +4696,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4696,7 +4706,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4771,7 +4781,7 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-invalid, invalid-request, malformed-json.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4781,7 +4791,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4791,7 +4801,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4801,7 +4811,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-not-found, agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4811,7 +4821,7 @@
 						}
 					},
 					"409": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-name-taken.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4821,7 +4831,7 @@
 						}
 					},
 					"413": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4831,7 +4841,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4873,7 +4883,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-invalid.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4883,7 +4893,7 @@
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4893,7 +4903,7 @@
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4903,7 +4913,7 @@
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-not-found, agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -4913,7 +4923,7 @@
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

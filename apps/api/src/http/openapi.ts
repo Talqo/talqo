@@ -6,10 +6,10 @@ export function problemResponse(codes: ProblemCodeSet) {
 	return {
 		content: {
 			"application/problem+json": {
-				schema: problemSchema(codes),
+				schema: problemSchema(),
 			},
 		},
-		description: "https://docs.talqo.chat/problems",
+		description: `Problem response. Codes: ${codes.join(", ")}.`,
 	} as const
 }
 

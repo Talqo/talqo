@@ -307,6 +307,20 @@ describe("api", () => {
 		for (const path of ["/api/chat/{embedToken}/messages", "/api/chat/session", "/api/chat/cancel"] as const) {
 			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
 		}
+		const sendResponses = paths["/api/chat/{embedToken}/messages"]?.post?.responses ?? {}
+		const expectedSendProblems = {
+			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],
+			401: ["chat-session-unauthorized"],
+			404: ["embed-not-found"],
+			409: ["chat-request-conflict"],
+			413: ["payload-too-large"],
+			429: ["chat-daily-allowance-exceeded", "chat-concurrency-limit", "chat-session-busy"],
+			500: ["internal-server-error"],
+			502: ["provider-error"],
+		} as const
+		for (const [status, codes] of Object.entries(expectedSendProblems)) {
+			expect(sendResponses[status]?.description).toBe(`Problem response. Codes: ${codes.join(", ")}.`)
+		}
 
 		const schemas = document.components?.schemas ?? {}
 		const problemSchema = schemas.ProblemDetails as {

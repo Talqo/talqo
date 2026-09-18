@@ -34,11 +34,11 @@ Update this guide in the same change as any decision that changes architecture, 
 
 Conventions have three sources. Preserve upstream conventions unless a documented Talqo rule intentionally narrows them.
 
-| Source             | Conventions                                                                                                                                                                                               |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/`                                                                                  |
-| Common ecosystem   | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e`                                                                                                                           |
-| Talqo decisions    | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
+| Source | Conventions |
+| --- | --- |
+| Framework defaults | Root `drizzle/`; Bun `*.test.ts`; TanStack Router route tokens and generated route tree; Playwright config plus `tests/` |
+| Common ecosystem | `src/modules`; `config/env.ts`; `db/client.ts`; `src/api/generated`; `apps/e2e` |
+| Talqo decisions | Services as module APIs; `.contract.ts` HTTP schemas; distributed persistence-only `*.schema.ts`; constrained `config/constants.ts`; reusable journeys under `features`; `apps/e2e` owns browser journeys |
 
 Role suffixes and boundary rules in this document are Talqo conventions, not framework requirements.
 
@@ -103,7 +103,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema file may reference another module's table only to declare a database foreign key. This schema-only exception does not grant query or write ownership.
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
-- Database foreign keys enforce the deliberate cross-owner deletion invariant: deleting an agent cascades its conversations, attempts, messages, daily counters, and usage. Attached embeds still restrict agent deletion and must first be deleted or reassigned. Deleting an embed sets retained conversation embed references to null rather than deleting chat data.
+- Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
 
 ### Contracts And Routes
 
@@ -111,8 +111,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
-- `embed` owns public integration identity and appearance. Canonical operator routes use `/api/embeds`, and canonical public configuration uses `/api/embed-config/:embedToken` without exposing an agent ID. `/api/widget-config/:token` remains only as a non-contract compatibility adapter for shipped widget snippets.
-- `conversation` owns public chat routes under `/api/chat`. Sends identify an embed by public token and use a private session bearer credential; history and cancellation use the credential. The server derives the agent and never accepts a public agent override.
+- `embed` owns public integration identity and configuration; `conversation` owns public chat orchestration. Public callers select an embed, the API derives its agent, and private conversation credentials protect chat history and operations.
 
 ### Persistence And Migrations
 
@@ -125,11 +124,9 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Coordinate foreign keys and other changes spanning schema owners. The table owner approves destructive or compatibility-sensitive changes.
 - Generated files are reproducible artifacts and are never hand-edited.
 
-### Public Chat Runtime
+### Public Chat
 
-`conversation` owns public chat orchestration and calls `embed`, `agent`, `ai-provider`, and `usage` through their service boundaries. A client-issued conversation ID is its bearer credential; the API and database remain authoritative for access, messages, generation state, cancellation, recovery, limits, and usage.
-
-The SDK owns the client-issued credential, local persistence, transport, and session recovery. The widget owns presentation. Public streaming uses versioned JSON in SSE framing over authenticated `POST` fetch responses. The complete behavior is defined in the [end-user chat design](specs/2026-09-11-end-user-chat-design.md) and [ADR-0014](adr/0014-use-client-issued-uuid-conversation-ids.md).
+`conversation` orchestrates public chat through the `embed`, `agent`, `ai-provider`, and `usage` service boundaries. The SDK owns client chat state, transport, and recovery; the widget owns presentation. See the [end-user chat design](specs/2026-09-11-end-user-chat-design.md), [ADR-0013](adr/0013-own-public-integration-identity-in-embeds.md), and [ADR-0014](adr/0014-use-client-issued-uuid-conversation-ids.md) for detailed behavior and rationale.
 
 ### Tests And Data
 
@@ -173,7 +170,6 @@ module contracts + route metadata
 - Web Orval output owns query integration and Zod schemas; SDK output covers only `Public Chat` operations and supplies dependency-free wire types to its owned fetch and SSE transport.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 - Every API error uses strict RFC 9457 `application/problem+json` with only an API-owned `type` URI and stable `code`; consumers localize codes independently.
-- Streaming clients consume `POST` responses with fetch and parse SSE framing across arbitrary network chunks. Browser `EventSource` is outside the public chat boundary.
 
 ## Web
 
