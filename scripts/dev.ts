@@ -38,6 +38,7 @@ const turbo = Bun.spawn(
 			VITE_WIDGET_PREVIEW_URL: `http://localhost:${widgetPort}/dev-preview.html`,
 			VITE_WIDGET_CDN_URL: `http://localhost:${widgetPort}/widget.js`,
 			VITE_WIDGET_DEMO_API_URL: `http://localhost:${apiPort}`,
+			VITE_WIDGET_DEMO_EMBED_TOKEN: "F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX",
 		},
 		stderr: "inherit",
 		stdin: "inherit",
