@@ -18,8 +18,8 @@ import type {
  */
 import { useQuery } from "@tanstack/react-query"
 
-import type { HealthResponse } from "../models/health/healthResponse.zod"
-import type { ProblemInternalServerError } from "../models/problemInternalServerError.zod"
+import type { HealthResponse } from "../models/healthResponse.zod"
+import type { ProblemDetails } from "../models/problemDetails.zod"
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -42,7 +42,7 @@ export type getHealthResponse200 = {
 }
 
 export type getHealthResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -82,7 +82,7 @@ export const getGetHealthQueryKey = () => {
 
 export const getGetHealthQueryOptions = <
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(options?: {
 	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>
 	fetch?: RequestInit
@@ -102,11 +102,11 @@ export const getGetHealthQueryOptions = <
 }
 
 export type GetHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getHealth>>>
-export type GetHealthQueryError = globalThis.Error & { info?: ProblemInternalServerError; status?: number }
+export type GetHealthQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> &
@@ -120,7 +120,7 @@ export function useGetHealth<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>> &
@@ -138,7 +138,7 @@ export function useGetHealth<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>
@@ -149,7 +149,7 @@ export function useGetHealth<
 
 export function useGetHealth<
 	TData = Awaited<ReturnType<typeof getHealth>>,
-	TError = globalThis.Error & { info?: ProblemInternalServerError; status?: number },
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>

@@ -16,15 +16,13 @@ Update this guide in the same change as any decision that changes architecture, 
 
 ## Technology Baseline
 
-| Technology or decision | Role | Decision record |
+| Technology | Role | Decision record |
 | --- | --- | --- |
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
-| Modular monolith | Application structure | [ADR-0002](adr/0002-use-a-modular-monolith.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
-| Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
@@ -56,7 +54,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the public browser SDK. It generates or owns transport appropriate to its public API; the widget consumes the SDK.
+- `packages/sdk` is the framework-independent browser chat SDK. It owns observable chat state, session/bootstrap credentials, storage fallback, stream parsing, cancellation, and recovery; the widget consumes that state instead of duplicating it. The package is workspace-private until an explicit publishing decision is made.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -105,6 +103,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema file may reference another module's table only to declare a database foreign key. This schema-only exception does not grant query or write ownership.
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
+- Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
 
 ### Contracts And Routes
 
@@ -112,6 +111,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
+- `embed` owns public integration identity and configuration; `conversation` owns public chat orchestration. Public callers select an embed, the API derives its agent, and private conversation credentials protect chat history and operations.
 
 ### Persistence And Migrations
 
@@ -124,12 +124,16 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Coordinate foreign keys and other changes spanning schema owners. The table owner approves destructive or compatibility-sensitive changes.
 - Generated files are reproducible artifacts and are never hand-edited.
 
+### Public Chat
+
+`conversation` orchestrates public chat through the `embed`, `agent`, `ai-provider`, and `usage` service boundaries. The SDK owns client chat state, transport, and recovery; the widget owns presentation. See the [end-user chat design](specs/2026-09-11-end-user-chat-design.md), [ADR-0013](adr/0013-own-public-integration-identity-in-embeds.md), and [ADR-0014](adr/0014-use-client-issued-uuid-conversation-ids.md) for detailed behavior and rationale.
+
 ### Tests And Data
 
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
 - `*.routes.test.ts` verifies HTTP validation, status/headers, serialization, and service integration through the composed app.
-- `<module>.integration.test.ts` exercises the module through its service interface against the seeded test environment.
-- Module seeds participate in the centralized reset lifecycle. In test mode, the API seed creates fixed, production-plausible records in an isolated database; those fixtures are not user-configurable environment settings.
+- `<module>.integration.test.ts` exercises the module through its service interface against an isolated test database.
+- Module seeds contribute deterministic records to the centralized, non-destructive development seed. Development and E2E share the same production-plausible baseline; optional external-provider values come from an all-or-none seed environment tuple.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
 
@@ -154,16 +158,16 @@ The flow is one-way and deterministic:
 ```text
 module contracts + route metadata
   -> API-owned OpenAPI document
-  -> consumer-specific generated clients
-  -> dashboard + widget + SDK + integrations
+  -> consumer-specific generated clients or transports
+  -> dashboard + SDK + widget + integrations
 ```
 
 - Runtime validation and route metadata originate in module contracts. API composition emits one deterministic API-owned OpenAPI document.
-- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates the committed web client under `apps/web/src/api/generated`.
+- `@hono/zod-openapi` emits committed OpenAPI 3.1.1 at `apps/api/openapi.json`; Orval generates consumer-specific committed output for the web app under `apps/web/src/api/generated` and the public-chat SDK under `packages/sdk/src/generated`.
 - Preserve each selected generator's output structure rather than wrapping or reorganizing generated files.
 - Consumers never import `apps/api` source and never duplicate transport contracts.
 - Generated files are never hand-edited. Consumer-owned generator configuration may encode transport and framework integration appropriate to that consumer.
-- Web Orval output owns generated fetch functions, TanStack Query hooks and keys, request credentials, wire types, and Zod wire schemas.
+- Web Orval output owns query integration and Zod schemas; SDK output covers only `Public Chat` operations and supplies dependency-free wire types to its owned fetch and SSE transport.
 - Global query defaults, operation-specific overrides, invalidation decisions, optimistic behavior, and UI error presentation remain handwritten application policy.
 - Every API error uses strict RFC 9457 `application/problem+json` with only an API-owned `type` URI and stable `code`; consumers localize codes independently.
 
@@ -204,13 +208,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships the self-contained `dist/widget.js` embedded on customer websites.
-
-- `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and URL parameters (`accent`, `language`, `theme`, `title`, `position`) are the only contract — `apps/web` never imports widget source.
-- The widget consumes `packages/sdk` and never imports API app source.
-- Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
-- Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
+`apps/widget` builds and ships `dist/widget.js`, which bootstraps its version-matched sibling `widget.css` on customer websites. It consumes `packages/sdk` for chat state and transport and owns presentation only; `apps/web` never imports widget source.
 
 ## E2E Tests
 
@@ -225,7 +223,7 @@ apps/e2e/
 ```
 
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- All E2E records come from the API-owned test seed against an isolated database before each isolation scope. Test identities are fixed fixtures rather than environment configuration.
+- E2E starts from the API-owned shared development seed in an isolated database. Specs create journey-specific permission profiles and mutable records through application boundaries and clean them up in their owning scope; the seed contains no browser-, retry-, or E2E-specific records.
 - Add auth setup or page objects only when repeated interaction justifies them.
 - Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
 - Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.

@@ -1,0 +1,44 @@
+---
+title: Embed and chat integration
+description: Configure the widget for public end-user chat.
+---
+
+## Terminology and availability
+
+An **embed** is a public integration configuration. It selects one agent and owns its appearance, public embed token, and access version. The **widget** is Talqo's pre-built UI for an embed. The embed token is visible in the host page and is not a visitor credential.
+
+## Widget snippet
+
+Create an embed in the dashboard and use the generated snippet. Its canonical shape is:
+
+```html
+<script
+	src="https://your-widget-host/widget.js"
+	data-talqo-embed-token="your-embed-token"
+	data-talqo-api="https://your-talqo-api"
+></script>
+```
+
+Omit `data-talqo-api` when `widget.js` and the API share an origin. New integrations use `data-talqo-embed-token`. Existing `data-talqo-widget` snippets and `/api/widget-config/:token` configuration requests remain compatibility paths, but agent-level embed tokens are not supported.
+
+Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
+
+## Chat behavior
+
+Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge, create embeddings, or call MCP tools. Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
+
+Streaming uses versioned JSON events in SSE framing over a POST response consumed with fetch. It is not browser `EventSource`. Session history and subsequent sends require the private bearer credential; the public embed token alone cannot read a conversation.
+
+## Limits and network identity
+
+The API enforces a daily accepted-question allowance and concurrent-generation cap independently for each agent and normalized client network. All embeds and sessions for that agent share the network allowance. This is not a billing quota, token allowance, deployment-wide pool, DDoS defense, or reliable count of people.
+
+Address normalization, trusted proxies, and IPv6 grouping trade-offs are documented in [Deployment](/docs/deployment).
+
+## Rotation, retention, and deletion
+
+Rotating an embed token has no overlap period. Update installed snippets immediately. Rotation increments `accessVersion`, so the old token cannot fetch configuration or start chat and sessions created under the old version lose access. Reassigning or deleting an embed also revokes its sessions. These operations retain conversations and usage and cannot undo provider work already dispatched.
+
+Talqo otherwise retains chat history and usage without automatic expiry. Deleting an agent permanently deletes its conversations, sessions, attempts, messages, network counters, and usage. Attached embeds must be deleted or reassigned before the agent can be deleted.
+
+Usage stores unified numeric input and output token counts for each actual model-call attempt. Talqo uses valid provider counts when available and approximates a missing side from the complete input or observed output. Counts include the system prompt and resent completed history on every call, can undercount unobserved cancelled output or hidden reasoning, and are not invoice reconciliation.

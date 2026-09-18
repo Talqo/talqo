@@ -6,7 +6,7 @@
  */
 import * as zod from "zod"
 
-import { User } from "./user.zod"
+import { User } from "../user.zod"
 
 export const UpdateAccount200 = zod.object({
 	user: User,

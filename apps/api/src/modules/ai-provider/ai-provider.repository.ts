@@ -37,7 +37,3 @@ export async function save(
 		.returning()
 	return row ? toStored(row) : undefined
 }
-
-export async function reset(): Promise<void> {
-	await db.delete(aiProviderConfig)
-}

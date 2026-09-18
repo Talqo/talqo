@@ -1,3 +1,5 @@
+import type { ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+
 import {
 	DEFAULT_WIDGET_APPEARANCE,
 	isHexColor,
@@ -14,8 +16,6 @@ import {
 	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
-	type PointerEvent as ReactPointerEvent,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useRef,
@@ -27,22 +27,31 @@ import { I18nextProvider, useTranslation } from "react-i18next"
 import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
+import NewChatIcon from "./assets/icons/new-chat.svg?react"
 import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
+import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
+import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
+import { useResizablePanel } from "./lib/use-resizable-panel"
 
 import "./index.css"
 
 export type EmbeddedWidgetProps = {
 	title?: string
-	agentId?: string
 	appearance?: WidgetAppearanceInput
 	/** Held invisible (but laid out) until the fetched configuration settles. */
 	hidden?: boolean
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
+	unavailable?: boolean
+}
+
+export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
+	client: ChatClient
 }
 
 type ColorScheme = "light" | "dark"
@@ -67,38 +76,6 @@ function usePrefersDark(): boolean {
 const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-right": "tw:fixed tw:right-4 tw:bottom-4 tw:items-end",
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
-}
-
-const MIN_WIDTH = 280
-const MIN_HEIGHT = 320
-// Horizontal margin keeps the panel off the screen sides.
-const RESIZE_MARGIN = 32
-// Vertical budget excludes the launcher row below the panel (16px offset + 12px gap
-// + 48px launcher) plus a 16px top clearance, so the panel can never grow past the
-// top of the screen.
-const RESIZE_HEIGHT_MARGIN = 92
-
-function clampPanelSize(width: number, height: number): { width: number; height: number } {
-	return {
-		width: Math.round(Math.min(Math.max(width, MIN_WIDTH), Math.max(MIN_WIDTH, window.innerWidth - RESIZE_MARGIN))),
-		height: Math.round(
-			Math.min(Math.max(height, MIN_HEIGHT), Math.max(MIN_HEIGHT, window.innerHeight - RESIZE_HEIGHT_MARGIN)),
-		),
-	}
-}
-
-type Message = {
-	id: number
-	from: "assistant" | "user"
-	text?: string
-	i18nKey?: "greeting"
-}
-
-function messageText(message: Message, t: (key: string) => string): string | undefined {
-	if (message.i18nKey === "greeting") {
-		return t("greeting")
-	}
-	return message.text
 }
 
 function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
@@ -146,91 +123,82 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
-function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLDivElement | null>) {
-	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-	// Free resize is desktop-only; mobile keeps the default panel size.
-	const [resizable, setResizable] = useState(
-		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,
-	)
-
-	useEffect(() => {
-		const query = window.matchMedia("(min-width: 640px) and (pointer: fine)")
-		const onChange = (event: MediaQueryListEvent) => {
-			setResizable(event.matches)
-			if (!event.matches) {
-				setSize(null)
-			}
-		}
-		query.addEventListener("change", onChange)
-		return () => query.removeEventListener("change", onChange)
-	}, [])
-
-	// Grip highlight stays on while a drag is in flight.
-	const [resizing, setResizing] = useState(false)
-
-	function startResize(event: ReactPointerEvent<HTMLDivElement>) {
-		if (event.pointerType === "touch" || !panelRef.current) {
-			return
-		}
-		event.preventDefault()
-		setResizing(true)
-		const anchor = panelRef.current.getBoundingClientRect()
-		// The panel's bottom screen edge stays pinned: for bottom-right (default)
-		// it is the right edge, for bottom-left the left edge.
-		const side = position === "bottom-left" ? "left" : "right"
-		const anchorX = side === "right" ? anchor.right : anchor.left
-		const anchorBottom = anchor.bottom
-		const pointerId = event.pointerId
-
-		function handleMove(moveEvent: PointerEvent) {
-			if (moveEvent.pointerId !== pointerId) {
-				return
-			}
-			const rawWidth = side === "right" ? anchorX - moveEvent.clientX : moveEvent.clientX - anchorX
-			const rawHeight = anchorBottom - moveEvent.clientY
-			setSize(clampPanelSize(rawWidth, rawHeight))
-		}
-		function handleEnd(endEvent: PointerEvent) {
-			if (endEvent.pointerId !== pointerId) {
-				return
-			}
-			setResizing(false)
-			window.removeEventListener("pointermove", handleMove)
-			window.removeEventListener("pointerup", handleEnd)
-			window.removeEventListener("pointercancel", handleEnd)
-		}
-		window.addEventListener("pointermove", handleMove)
-		window.addEventListener("pointerup", handleEnd)
-		window.addEventListener("pointercancel", handleEnd)
-	}
-
-	return { size, resizable, startResize, resizing }
+type ChatPresentation = {
+	snapshot?: ChatSnapshot
+	client?: ChatClient
+	unavailable?: boolean
 }
+
+const EMPTY_MESSAGES: readonly ChatMessage[] = []
 
 function WidgetChat({
 	title,
-	agentId,
 	appearance,
 	hidden,
 	forcedScheme,
+	snapshot,
+	client,
+	unavailable,
 }: {
 	title?: string
-	agentId?: string
 	appearance: WidgetAppearance
 	hidden?: boolean
 	forcedScheme?: ColorScheme
-}) {
+} & ChatPresentation) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
-	const [messages, setMessages] = useState<Message[]>([{ id: 1, from: "assistant", i18nKey: "greeting" }])
 	const [draft, setDraft] = useState("")
+	const [submitting, setSubmitting] = useState(false)
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
+	const inputRef = useRef<HTMLInputElement>(null)
+	const draftRef = useRef("")
+	const pendingSend = useRef<{ originalDraft: string; text: string; messageIds: Set<string> } | undefined>(undefined)
 	const wasOpen = useRef(false)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
+	const messages = snapshot?.messages ?? EMPTY_MESSAGES
+	const initialization = snapshot?.initialization ?? (unavailable ? "error" : "ready")
+	const generation = snapshot?.generation ?? "idle"
+	const resetting = snapshot?.reset === "resetting"
+	const activeGeneration = generation !== "idle"
+	const unusable = unavailable || initialization === "error"
+	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
+	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
+	const hasStreamingAssistant = messages.some(
+		(message) => message.role === "assistant" && message.outcome === "streaming",
+	)
+	const showPendingResponse =
+		(submitting || generation === "sending" || generation === "streaming") && !hasStreamingAssistant
+	const canStartNewChat =
+		client !== undefined &&
+		!resetting &&
+		(initialization === "ready" ||
+			(initialization === "error" &&
+				snapshot?.configuration !== undefined &&
+				visibleError !== undefined &&
+				errorAllowsNewChat(visibleError)))
+
+	useEffect(() => {
+		draftRef.current = draft
+	}, [draft])
+
+	useEffect(() => {
+		const pending = pendingSend.current
+		if (!pending) return
+		const accepted = messages.some(
+			(message) =>
+				!pending.messageIds.has(message.id) &&
+				message.role === "user" &&
+				message.text === pending.text &&
+				message.outcome === "completed",
+		)
+		if (!accepted) return
+		pendingSend.current = undefined
+		if (draftRef.current === pending.originalDraft) setDraft("")
+	}, [messages])
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -246,14 +214,47 @@ function WidgetChat({
 	const scheme = forcedScheme ?? visitorScheme ?? operatorScheme
 	const active = scheme === "dark" ? appearance.dark : appearance.light
 
-	function handleSend(event: FormEvent<HTMLFormElement>) {
+	async function handleSend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		const text = draft.trim()
-		if (!text) {
+		if (!text || disabled || !client) {
 			return
 		}
-		setMessages((prev) => [...prev, { id: (prev.at(-1)?.id ?? 0) + 1, from: "user", text }])
-		setDraft("")
+		pendingSend.current = { originalDraft: draft, text, messageIds: new Set(messages.map(({ id }) => id)) }
+		setSubmitting(true)
+		try {
+			await client.sendMessage(text)
+		} catch {
+			pendingSend.current = undefined
+		} finally {
+			setSubmitting(false)
+		}
+	}
+
+	async function handleNewChat() {
+		if (!canStartNewChat) return
+		try {
+			await client.startNewChat()
+			inputRef.current?.focus()
+		} catch {
+			// The SDK snapshot owns the reset failure and retained transcript.
+		}
+	}
+
+	async function handleCancel() {
+		try {
+			await client?.cancelResponse()
+		} catch {
+			// The SDK snapshot owns cancellation recovery and errors.
+		}
+	}
+
+	async function handleRetry() {
+		try {
+			await client?.retryLastMessage()
+		} catch {
+			// The SDK snapshot owns retry failures and recovery.
+		}
 	}
 
 	const paletteStyle = {
@@ -276,7 +277,6 @@ function WidgetChat({
 				scheme === "dark" && "dark",
 			)}
 			style={paletteStyle}
-			data-agent={agentId}
 			data-scheme={scheme}
 		>
 			{open && (
@@ -325,12 +325,24 @@ function WidgetChat({
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3.5">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
 						<div className="tw:flex tw:items-center tw:gap-1">
+							{messages.length > 0 && (
+								<button
+									type="button"
+									onClick={() => void handleNewChat()}
+									disabled={!canStartNewChat}
+									aria-label={t("newChat")}
+									title={t("newChatTooltip")}
+									className="tw:mr-1 tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
+								>
+									<NewChatIcon aria-hidden="true" />
+								</button>
+							)}
 							{appearance.themeToggle && (
 								<button
 									type="button"
 									onClick={() => setVisitorScheme(scheme === "dark" ? "light" : "dark")}
 									aria-label={scheme === "dark" ? t("switchToLight") : t("switchToDark")}
-									className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
 								>
 									{scheme === "dark" ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
 								</button>
@@ -339,43 +351,143 @@ function WidgetChat({
 								type="button"
 								onClick={() => setOpen(false)}
 								aria-label={t("closeChat")}
-								className="tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+								className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
 							>
 								<CloseIcon aria-hidden="true" />
 							</button>
 						</div>
 					</header>
-					<div className="tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
+					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
 						<BubbleGroup>
-							{messages.map((message) => (
-								<Bubble key={message.id} align={message.from === "user" ? "end" : "start"}>
-									<BubbleContent
-										variant={message.from === "user" ? "default" : "muted"}
-										className={cn(message.from === "assistant" && "tw:text-foreground")}
-									>
-										{messageText(message, t)}
+							{messages.length === 0 && initialization === "ready" && !unusable && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										{t("greeting")}
 									</BubbleContent>
 								</Bubble>
-							))}
+							)}
+							{messages.map((message) => {
+								const awaitingText =
+									message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+								return (
+									<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
+										{(awaitingText || message.text.length > 0) && (
+											<BubbleContent
+												variant={message.role === "user" ? "default" : "muted"}
+												className={cn(message.role === "assistant" && "tw:text-foreground")}
+											>
+												{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+											</BubbleContent>
+										)}
+										{message.role === "assistant" && outcomeText(message.outcome, t) && (
+											<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
+												{outcomeText(message.outcome, t)}
+											</span>
+										)}
+									</Bubble>
+								)
+							})}
+							{showPendingResponse && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										<ResponseIndicator label={t("agentResponding")} />
+									</BubbleContent>
+								</Bubble>
+							)}
+							{initialization === "loading" && (
+								<p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
+							)}
+							{snapshot?.recovery === "pending" && (
+								<p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
+							)}
+							{snapshot?.recovery === "unavailable" && (
+								<p
+									role="alert"
+									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+								>
+									{t("recoveryUnavailable")}
+								</p>
+							)}
+							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage-unavailable" && (
+								<p
+									role="status"
+									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+								>
+									{t("errorStorageUnavailable")}
+								</p>
+							)}
+							{visibleError && (
+								<div
+									role="alert"
+									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+								>
+									<p>{errorText(visibleError, t)}</p>
+									{visibleError.code === "chat-daily-allowance-exceeded" &&
+										(visibleError.retryAt ?? snapshot?.retryAt) && (
+											<time dateTime={visibleError.retryAt ?? snapshot?.retryAt}>
+												{t("allowanceReset", {
+													reset: new Date((visibleError.retryAt ?? snapshot?.retryAt)!).toLocaleString(),
+												})}
+											</time>
+										)}
+									{visibleError.retriable === true && (
+										<button
+											type="button"
+											onClick={() => void handleRetry()}
+											disabled={resetting}
+											aria-label={t("retry")}
+											className="tw:rounded-control tw:border tw:border-destructive tw:px-3 tw:py-2 tw:text-destructive tw:disabled:opacity-50"
+										>
+											{t("retry")}
+										</button>
+									)}
+									{errorAllowsNewChat(visibleError) && (
+										<button
+											type="button"
+											onClick={() => void handleNewChat()}
+											disabled={!canStartNewChat}
+											aria-label={t("newChat")}
+											className="tw:rounded-control tw:bg-primary tw:px-3 tw:py-2 tw:text-primary-foreground tw:disabled:opacity-50"
+										>
+											{t("newChat")}
+										</button>
+									)}
+								</div>
+							)}
 						</BubbleGroup>
 					</div>
 					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">
 						<input
+							ref={inputRef}
 							type="text"
 							value={draft}
 							onChange={(event) => setDraft(event.target.value)}
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
 							autoFocus
+							disabled={disabled}
 							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
 						/>
-						<button
-							type="submit"
-							aria-label={t("send")}
-							className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90"
-						>
-							<SendIcon aria-hidden="true" />
-						</button>
+						{activeGeneration ? (
+							<button
+								type="button"
+								onClick={() => void handleCancel()}
+								aria-label={generation === "cancelling" ? t("stopping") : t("stopGenerating")}
+								disabled={generation === "cancelling"}
+								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
+							>
+								<StopIcon aria-hidden="true" />
+							</button>
+						) : (
+							<button
+								type="submit"
+								aria-label={t("send")}
+								disabled={disabled || draft.trim().length === 0}
+								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
+							>
+								<SendIcon aria-hidden="true" />
+							</button>
+						)}
 					</form>
 				</div>
 			)}
@@ -394,7 +506,7 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedScheme }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavailable }: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -404,7 +516,55 @@ export function EmbeddedWidget({ title, agentId, appearance, hidden, forcedSchem
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} agentId={agentId} appearance={resolved} hidden={hidden} forcedScheme={forcedScheme} />
+			<WidgetChat
+				title={title}
+				appearance={resolved}
+				hidden={hidden}
+				forcedScheme={forcedScheme}
+				unavailable={unavailable}
+			/>
+		</I18nextProvider>
+	)
+}
+
+export function ConnectedEmbeddedWidget({
+	client,
+	title,
+	appearance,
+	hidden,
+	forcedScheme,
+}: ConnectedEmbeddedWidgetProps) {
+	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
+	const [initializationFailed, setInitializationFailed] = useState(false)
+	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
+	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
+	const [i18n] = useState(() => createWidgetI18n(resolved.language))
+
+	useEffect(() => {
+		void client.initialize().catch(() => setInitializationFailed(true))
+		return () => client.dispose()
+	}, [client])
+
+	useEffect(() => {
+		i18n.changeLanguage(resolved.language)
+	}, [i18n, resolved.language])
+
+	return (
+		<I18nextProvider i18n={i18n}>
+			<WidgetChat
+				title={title ?? snapshot.configuration?.title}
+				appearance={resolved}
+				hidden={
+					hidden ||
+					(snapshot.configuration === undefined && !initializationFailed && snapshot.initialization !== "error")
+				}
+				forcedScheme={forcedScheme}
+				snapshot={snapshot}
+				client={client}
+				unavailable={
+					initializationFailed && snapshot.initialization !== "error" && snapshot.configuration === undefined
+				}
+			/>
 		</I18nextProvider>
 	)
 }
