@@ -6,17 +6,16 @@ import * as usage from "@/modules/usage/usage.service.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "bun:test"
 
-import * as repository from "./conversation.repository.ts"
 import {
 	ConcurrentGenerationLimitError,
-	createConversationService,
 	DailyAllowanceExceededError,
-	getConversationService,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
-} from "./conversation.service.ts"
+} from "./conversation.errors.ts"
+import * as repository from "./conversation.repository.ts"
+import { createConversationService, getConversationService } from "./conversation.service.ts"
 
 const REQUEST_1 = "11111111-1111-4111-8111-111111111111"
 const REQUEST_2 = "22222222-2222-4222-8222-222222222222"

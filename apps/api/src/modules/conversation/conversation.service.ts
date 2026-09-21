@@ -7,6 +7,13 @@ import * as usageService from "@/modules/usage/usage.service.ts"
 import { z } from "zod"
 
 import { createBlacklistFilter } from "./blacklist.ts"
+import {
+	ConversationTooLongError,
+	InvalidChatInputError,
+	ProviderUnavailableError,
+	SessionBusyError,
+	SessionUnauthorizedError,
+} from "./conversation.errors.ts"
 import * as repository from "./conversation.repository.ts"
 
 const CANCELLATION_POLL_MS = 500
@@ -83,15 +90,6 @@ type SendInput = {
 	requestId: string
 	text: string
 }
-
-export class SessionUnauthorizedError extends Error {}
-export class RequestConflictError extends Error {}
-export class ConversationTooLongError extends Error {}
-export class DailyAllowanceExceededError extends Error {}
-export class ConcurrentGenerationLimitError extends Error {}
-export class SessionBusyError extends Error {}
-export class InvalidChatInputError extends Error {}
-export class ProviderUnavailableError extends Error {}
 
 function requireUuid(value: string, name: string): string {
 	if (!UUID_SCHEMA.safeParse(value).success) throw new InvalidChatInputError(`${name} is invalid`)
@@ -387,11 +385,6 @@ export function createConversationService(dependencies: Dependencies) {
 						if (attempt + 1 < MAX_HISTORY_ACCEPT_ATTEMPTS) return prepareAndAccept(attempt + 1)
 						throw new SessionBusyError("Conversation history changed repeatedly")
 					}
-					if (error instanceof repository.AllowanceExceededRepositoryError) throw new DailyAllowanceExceededError()
-					if (error instanceof repository.ConcurrencyExceededRepositoryError) throw new ConcurrentGenerationLimitError()
-					if (error instanceof repository.SessionBusyRepositoryError) throw new SessionBusyError()
-					if (error instanceof repository.SessionUnauthorizedRepositoryError) throw new SessionUnauthorizedError()
-					if (error instanceof repository.RequestConflictRepositoryError) throw new RequestConflictError()
 					throw error
 				}
 			}

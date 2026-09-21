@@ -2,6 +2,13 @@ import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
 import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
+import {
+	ConcurrentGenerationLimitError,
+	DailyAllowanceExceededError,
+	RequestConflictError,
+	SessionBusyError,
+	SessionUnauthorizedError,
+} from "./conversation.errors.ts"
 import { conversation, conversationDailyCounter, generationAttempt, message } from "./conversation.schema.ts"
 
 const ACTIVE_STATUSES = ["accepted", "running"] as const
@@ -24,11 +31,7 @@ export type AcceptedGenerationAttempt = {
 	userMessage: typeof message.$inferSelect
 }
 
-export class AllowanceExceededRepositoryError extends Error {}
-export class ConcurrencyExceededRepositoryError extends Error {}
-export class SessionBusyRepositoryError extends Error {}
-export class SessionUnauthorizedRepositoryError extends Error {}
-export class RequestConflictRepositoryError extends Error {}
+// Control-flow signal for the acceptance retry loop, not mapped to an HTTP response.
 export class StaleHistoryRepositoryError extends Error {}
 
 export type HistorySnapshot = {
@@ -169,7 +172,7 @@ export async function acceptGenerationAttempt(input: {
 			)
 			.for("update")
 			.limit(1)
-		if (!validEmbed) throw new SessionUnauthorizedRepositoryError()
+		if (!validEmbed) throw new SessionUnauthorizedError()
 
 		const [existingConversation] = await tx
 			.select()
@@ -181,7 +184,7 @@ export async function acceptGenerationAttempt(input: {
 				existingConversation.embedId !== input.embedId ||
 				existingConversation.embedAccessVersion !== input.embedAccessVersion
 			) {
-				throw new SessionUnauthorizedRepositoryError()
+				throw new SessionUnauthorizedError()
 			}
 		} else {
 			await tx.insert(conversation).values({
@@ -216,8 +219,8 @@ export async function acceptGenerationAttempt(input: {
 			const messages = await tx.select().from(message).where(eq(message.generationAttemptId, duplicate.id))
 			const userMessage = messages.find((storedMessage) => storedMessage.role === "user")
 			const assistantMessage = messages.find((storedMessage) => storedMessage.role === "assistant")
-			if (!userMessage || !assistantMessage) throw new Error("Generation attempt messages missing")
-			if (userMessage.text !== input.messageText) throw new RequestConflictRepositoryError()
+			if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: accepted pair incomplete")
+			if (userMessage.text !== input.messageText) throw new RequestConflictError()
 			return { generationAttempt: duplicate, userMessage, assistantMessage, duplicate: true }
 		}
 		const [historyState] = await tx
@@ -243,7 +246,7 @@ export async function acceptGenerationAttempt(input: {
 					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
-		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyRepositoryError()
+		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyError()
 		const [networkActive] = await tx
 			.select({ value: count() })
 			.from(generationAttempt)
@@ -256,7 +259,7 @@ export async function acceptGenerationAttempt(input: {
 					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
-		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrencyExceededRepositoryError()
+		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
 
 		const [counter] = await tx
 			.insert(conversationDailyCounter)
@@ -267,7 +270,7 @@ export async function acceptGenerationAttempt(input: {
 				setWhere: lt(conversationDailyCounter.count, input.dailyLimit),
 			})
 			.returning()
-		if (!counter) throw new AllowanceExceededRepositoryError()
+		if (!counter) throw new DailyAllowanceExceededError()
 
 		const generationAttemptId = crypto.randomUUID()
 		const leaseToken = crypto.randomUUID()
@@ -283,7 +286,7 @@ export async function acceptGenerationAttempt(input: {
 				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
 			})
 			.returning()
-		if (!generationAttemptRow) throw new Error("Generation attempt insert failed")
+		if (!generationAttemptRow) throw new Error("acceptGenerationAttempt: insert returned no row")
 		const [userMessage, assistantMessage] = await tx
 			.insert(message)
 			.values([
@@ -307,7 +310,7 @@ export async function acceptGenerationAttempt(input: {
 				},
 			])
 			.returning()
-		if (!userMessage || !assistantMessage) throw new Error("Message insert failed")
+		if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: insert returned no row")
 		return { generationAttempt: generationAttemptRow, userMessage, assistantMessage, duplicate: false }
 	})
 }

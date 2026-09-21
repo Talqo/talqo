@@ -3,8 +3,8 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
 
 import { chatEventSchema } from "./conversation.contract.ts"
+import { ProviderUnavailableError } from "./conversation.errors.ts"
 import { createConversationRoutes } from "./conversation.routes.ts"
-import { ProviderUnavailableError } from "./conversation.service.ts"
 
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
 const CREDENTIAL = "22222222-2222-4222-8222-222222222222"

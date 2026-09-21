@@ -14,13 +14,13 @@ import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
-	getConversationService,
 	InvalidChatInputError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
-} from "./conversation.service.ts"
+} from "./conversation.errors.ts"
+import { getConversationService } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
