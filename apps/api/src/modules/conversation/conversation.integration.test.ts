@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "bun:
 
 import {
 	ConcurrentGenerationLimitError,
+	ConversationTooLongError,
 	DailyAllowanceExceededError,
 	ProviderUnavailableError,
 	RequestConflictError,
@@ -987,5 +988,81 @@ describe("conversation lifecycle", () => {
 			{ role: "user", content: "after race" },
 		])
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(3)
+	})
+
+	it("rejects an over-long conversation without consuming allowance and keeps it readable", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service(["short"], { dailyLimit: 2 })
+		const input = { embedToken: createdEmbed.embedToken, credential: CREDENTIAL_1, networkHash: "network-a" }
+		const first = await instance.service.send({ ...input, requestId: REQUEST_1, text: "hi" })
+		await first.done
+
+		await expect(
+			instance.service.send({ ...input, requestId: REQUEST_2, text: "x".repeat(400_000) }),
+		).rejects.toBeInstanceOf(ConversationTooLongError)
+
+		// A daily limit of 2 makes a spuriously consumed allowance visible: the next valid send must pass.
+		const followUp = await instance.service.send({ ...input, requestId: REQUEST_2, text: "still fine" })
+		await followUp.done
+		const session = await instance.service.getSession(CREDENTIAL_1)
+		expect(session.messages.map((message) => [message.role, message.outcome])).toEqual([
+			["user", "completed"],
+			["assistant", "completed"],
+			["user", "completed"],
+			["assistant", "completed"],
+		])
+	})
+
+	it("excludes incomplete turns from subsequent model input without duplicating a retried message", async () => {
+		const createdAgent = await agent.createAgent({
+			name: `Agent ${crypto.randomUUID()}`,
+			systemPrompt: "System",
+			wordBlacklist: ["poison"],
+		})
+		const createdEmbed = await embed.createEmbed({
+			agentId: createdAgent.id,
+			name: "Chat",
+			appearance: DEFAULT_WIDGET_APPEARANCE,
+		})
+		const outputs = ["fine", "lost", "poison", "afterwards", "again"]
+		const calls: TextMessage[][] = []
+		let call = 0
+		const svc = customService(async function* (input) {
+			calls.push(input.messages)
+			const mine = call
+			call += 1
+			if (mine === 1) throw new Error("provider exploded")
+			yield { type: "text", text: outputs[mine] ?? "again" }
+			yield {
+				type: "finish",
+				outcome: "completed",
+				provider: "fake",
+				model: "fake-model",
+				usage: {},
+			} as const
+		})
+		const input = { embedToken: createdEmbed.embedToken, credential: CREDENTIAL_1, networkHash: "network-a" }
+		for (const text of ["first", "repeat me", "trigger", "follow up", "repeat me"]) {
+			// oxlint-disable-next-line no-await-in-loop -- turns must complete in order.
+			const sent = await svc.send({ ...input, requestId: crypto.randomUUID(), text })
+			// oxlint-disable-next-line no-await-in-loop
+			await sent.done
+		}
+
+		// The failed pair and the blacklist-blocked pair are both excluded; completed pairs resend in full.
+		expect(calls[3]?.slice(1)).toEqual([
+			{ role: "user", content: "first" },
+			{ role: "assistant", content: "fine" },
+			{ role: "user", content: "follow up" },
+		])
+		// Retrying the failed question starts a new turn; the failed user message appears exactly once.
+		expect(calls[4]?.slice(1).filter((message) => message.content === "repeat me")).toHaveLength(1)
+		expect(calls[4]?.slice(1)).toEqual([
+			{ role: "user", content: "first" },
+			{ role: "assistant", content: "fine" },
+			{ role: "user", content: "follow up" },
+			{ role: "assistant", content: "afterwards" },
+			{ role: "user", content: "repeat me" },
+		])
 	})
 })
