@@ -1226,7 +1226,7 @@ describe("createChatClient", () => {
 	})
 
 	for (const sendSettlesFirst of [true, false]) {
-		test(`recovers a persisted pre-accept request when cancellation fails ${sendSettlesFirst ? "after" : "before"} send abort`, async () => {
+		test(`recovers a failed pre-accept cancellation by observation without resubmitting ${sendSettlesFirst ? "after" : "before"} send abort`, async () => {
 			const storage = createMemoryStorage()
 			const sendStarted = deferred<void>()
 			const cancellationStarted = deferred<void>()
@@ -1278,7 +1278,7 @@ describe("createChatClient", () => {
 			if (!sendSettlesFirst) expect(await sendingRejection).toBeInstanceOf(Error)
 			await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
 
-			expect(sends).toBe(2)
+			expect(sends).toBe(1)
 			expect(client.getSnapshot()).toMatchObject({
 				generation: "idle",
 				recovery: "idle",
@@ -1289,6 +1289,51 @@ describe("createChatClient", () => {
 			).toEqual({ version: 1, credential: "11111111-1111-4111-8111-111111111111" })
 		})
 	}
+
+	test("a failed post-acceptance cancellation keeps a concurrently completed state", async () => {
+		const terminal = deferred<void>()
+		const cancellation = deferred<void>()
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => {
+					sends += 1
+					return {
+						async *[Symbol.asyncIterator]() {
+							yield {
+								type: "accepted",
+								requestId: "request",
+								generationId: "generation",
+								userMessage: { id: "user", createdAt: "now" },
+								assistantMessage: { id: "assistant", createdAt: "now" },
+							} as const
+							if (signal.aborted) throw signal.reason
+							await terminal.promise
+							if (signal.aborted) throw signal.reason
+							yield { type: "terminal", outcome: "completed" } as const
+						},
+					}
+				},
+				cancelResponse: async () => {
+					await cancellation.promise
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello")
+		await waitForSnapshot(client, () => client.getSnapshot().generation === "streaming")
+		const cancelling = client.cancelResponse()
+		terminal.resolve()
+		await sending
+		cancellation.reject(new Error("cancel failed"))
+		await expect(cancelling).rejects.toThrow("cancel failed")
+
+		expect(client.getSnapshot()).toMatchObject({ generation: "idle", error: undefined })
+		await expect(client.sendMessage("again")).resolves.toBeUndefined()
+		expect(sends).toBe(2)
+	})
 
 	test("confirms cancellation only after the server request succeeds", async () => {
 		const accepted = deferred<void>()

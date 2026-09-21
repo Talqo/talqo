@@ -479,11 +479,26 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				publish()
 			} catch (cause) {
 				if (preAcceptance) {
+					// The user already cancelled: recover by observation only, never resubmit the send.
+					const cancelledPending = pendingMessage
+					pendingMessage = undefined
+					if (cancelledPending !== undefined) {
+						replaceMessage(`pending:${cancelledPending.requestId}`, (message) => ({
+							...message,
+							outcome: "interrupted",
+						}))
+						if (credential !== undefined) await persist({ version: CHAT_STORAGE_VERSION, credential })
+					}
 					generation = "recovery"
 					recovery = "pending"
+					error = cause instanceof ChatTransportError ? cause.detail : { code: "cancel-failed" }
 					beginSessionRecoveryPolling()
-				} else generation = previousGeneration
-				error = cause instanceof ChatTransportError ? cause.detail : { code: "cancel-failed" }
+				} else if (generation === "cancelling") {
+					// No concurrent transition settled: restore the pre-cancel state.
+					generation = previousGeneration
+					error = cause instanceof ChatTransportError ? cause.detail : { code: "cancel-failed" }
+				}
+				// A concurrent transition keeps its own state and error.
 				publish()
 				if (preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED) return
 				throw cause
