@@ -113,7 +113,7 @@ function LogoutButton() {
 	}
 
 	return (
-		<Button variant="ghost" size="sm" onClick={handleLogout} disabled={logout.isPending}>
+		<Button variant="ghost" onClick={handleLogout} disabled={logout.isPending}>
 			<LogOut className="size-4" />
 			{t("header.logout")}
 		</Button>
