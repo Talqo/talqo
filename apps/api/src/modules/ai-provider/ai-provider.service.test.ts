@@ -264,6 +264,63 @@ describe("AI provider service", () => {
 		)
 	})
 
+	it.each([
+		{
+			name: "Anthropic",
+			message: "prompt is too long: 213462 tokens > 200000 maximum",
+			responseBody:
+				'{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 213462 tokens > 200000 maximum"}}',
+		},
+		{
+			name: "Google",
+			message: "The input token count (1197653) exceeds the maximum number of tokens allowed (1048576).",
+			responseBody:
+				'{"error":{"code":400,"message":"The input token count (1197653) exceeds the maximum number of tokens allowed (1048576).","status":"INVALID_ARGUMENT"}}',
+		},
+	])("normalizes $name context-limit rejections", async ({ message, responseBody }) => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message,
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody,
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
+			ProviderContextLimitError,
+		)
+	})
+
+	it("does not classify unrelated client errors as context-limit rejections", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message: "The model `gpt-0` does not exist",
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody: '{"error":{"message":"The model `gpt-0` does not exist","code":"model_not_found"}}',
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(APICallError)
+	})
+
 	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
 		let call: Record<string, unknown> | undefined
 		const { service } = createMemoryService(true, async function* (generationInput) {

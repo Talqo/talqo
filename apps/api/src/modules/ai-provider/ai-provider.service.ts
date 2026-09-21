@@ -85,7 +85,10 @@ function isContextLimitError(error: unknown): boolean {
 		return false
 	}
 	const details = [error.message, error.responseBody, JSON.stringify(error.data ?? null)].join(" ")
-	return /context[_ -]?(?:length|window|limit)|maximum context|input.+too (?:large|long)|too many tokens/i.test(details)
+	// Providers disagree on status and body codes for context overflow; text is the only signal.
+	return /context[_ -]?(?:length|window|limit)|maximum context|input.+too (?:large|long)|prompt is too long|exceeds the maximum.+token|too many tokens/i.test(
+		details,
+	)
 }
 
 async function* invokePreparedOperation(
