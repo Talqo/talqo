@@ -1049,13 +1049,11 @@ describe("conversation lifecycle", () => {
 			await sent.done
 		}
 
-		// The failed pair and the blacklist-blocked pair are both excluded; completed pairs resend in full.
 		expect(calls[3]?.slice(1)).toEqual([
 			{ role: "user", content: "first" },
 			{ role: "assistant", content: "fine" },
 			{ role: "user", content: "follow up" },
 		])
-		// Retrying the failed question starts a new turn; the failed user message appears exactly once.
 		expect(calls[4]?.slice(1).filter((message) => message.content === "repeat me")).toHaveLength(1)
 		expect(calls[4]?.slice(1)).toEqual([
 			{ role: "user", content: "first" },
