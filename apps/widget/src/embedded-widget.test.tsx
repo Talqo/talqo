@@ -34,7 +34,7 @@ describe("appearance resolution", () => {
 			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
 		})
 
-		expect(container.querySelector("[aria-live=polite]")?.className).toContain("talqo-scrollbar")
+		expect(container.querySelector(".talqo-scrollbar")?.className).toContain("overflow-y-auto")
 	})
 
 	test("writes the light scheme's five colors as custom properties by default", () => {

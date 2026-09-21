@@ -16,6 +16,7 @@ import {
 	type CSSProperties,
 	type FormEvent,
 	type KeyboardEvent,
+	memo,
 	useCallback,
 	useEffect,
 	useRef,
@@ -57,6 +58,27 @@ export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
 type ColorScheme = "light" | "dark"
 
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+
+// Unchanged messages keep object identity through the SDK, so memo skips most rows per delta.
+const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: ChatMessage }) {
+	const { t } = useTranslation()
+	const awaitingText = message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+	return (
+		<Bubble align={message.role === "user" ? "end" : "start"}>
+			{(awaitingText || message.text.length > 0) && (
+				<BubbleContent
+					variant={message.role === "user" ? "default" : "muted"}
+					className={cn(message.role === "assistant" && "tw:text-foreground")}
+				>
+					{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+				</BubbleContent>
+			)}
+			{message.role === "assistant" && outcomeText(message.outcome, t) && (
+				<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">{outcomeText(message.outcome, t)}</span>
+			)}
+		</Bubble>
+	)
+})
 
 /** Missing `matchMedia` reads as light: the widget may mount into a document without it. */
 function usePrefersDark(): boolean {
@@ -357,7 +379,7 @@ function WidgetChat({
 							</button>
 						</div>
 					</header>
-					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4" aria-live="polite">
+					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4">
 						<BubbleGroup>
 							{messages.length === 0 && initialization === "ready" && !unusable && (
 								<Bubble align="start">
@@ -366,27 +388,9 @@ function WidgetChat({
 									</BubbleContent>
 								</Bubble>
 							)}
-							{messages.map((message) => {
-								const awaitingText =
-									message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
-								return (
-									<Bubble key={message.id} align={message.role === "user" ? "end" : "start"}>
-										{(awaitingText || message.text.length > 0) && (
-											<BubbleContent
-												variant={message.role === "user" ? "default" : "muted"}
-												className={cn(message.role === "assistant" && "tw:text-foreground")}
-											>
-												{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
-											</BubbleContent>
-										)}
-										{message.role === "assistant" && outcomeText(message.outcome, t) && (
-											<span className="tw:px-1 tw:text-muted-foreground tw:text-xs">
-												{outcomeText(message.outcome, t)}
-											</span>
-										)}
-									</Bubble>
-								)
-							})}
+							{messages.map((message) => (
+								<TranscriptBubble key={message.id} message={message} />
+							))}
 							{showPendingResponse && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
