@@ -12,8 +12,8 @@ export function createBlacklistFilter(words: readonly string[]) {
 			finish: (): string => "",
 		}
 	}
-	// Retain enough raw text that a literal match split across provider chunks cannot be emitted early.
-	const lookBehind = Math.max(0, ...terms.map((term) => term.length))
+	// Guard chunk-split matches: hold back one longest-word tail since emitted text cannot be recalled.
+	const lookBack = Math.max(0, ...terms.map((term) => term.length))
 	let pending = ""
 	let blocked = false
 
@@ -27,8 +27,8 @@ export function createBlacklistFilter(words: readonly string[]) {
 				pending = ""
 				return { blocked: true, text: "" }
 			}
-			if (pending.length <= lookBehind) return { blocked: false, text: "" }
-			const split = pending.length - lookBehind
+			if (pending.length <= lookBack) return { blocked: false, text: "" }
+			const split = pending.length - lookBack
 			const text = pending.slice(0, split)
 			pending = pending.slice(split)
 			return { blocked: false, text }
