@@ -1,14 +1,5 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
-import {
-	type DeleteEmbedMutationError,
-	getGetEmbedQueryKey,
-	getListEmbedsQueryKey,
-	type RotateEmbedTokenMutationError,
-	useDeleteEmbed,
-	useGetEmbed,
-	useRotateEmbedToken,
-	useUpdateEmbed,
-} from "@/api/generated/embed/embed.ts"
+import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
@@ -24,14 +15,6 @@ import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages
 import { isWidgetPosition, isWidgetTheme, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -39,16 +22,17 @@ import { Switch } from "@talqo/ui/components/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft, Check, Copy, ExternalLink, RefreshCw, Trash2 } from "lucide-react"
+import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { type Control, Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
+import { DeleteEmbedDialog } from "./-delete-embed-dialog"
 import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
+import { RotateEmbedTokenDialog } from "./-rotate-embed-token-dialog"
 
 const COPY_FEEDBACK_MS = 2000
-const NOT_FOUND_STATUS = 404
 
 const COLOR_SCHEMES = ["light", "dark"] as const
 type ColorSchemeTab = (typeof COLOR_SCHEMES)[number]
@@ -182,22 +166,7 @@ function EmbedDetailPage() {
 			},
 		},
 	})
-	const rotateToken = useRotateEmbedToken({
-		mutation: {
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({ queryKey: getGetEmbedQueryKey(embedId) })
-				await queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey() })
-			},
-		},
-	})
-	const deleteEmbed = useDeleteEmbed()
 	const [copied, setCopied] = useState(false)
-	const [rotateOpen, setRotateOpen] = useState(false)
-	const [rotateError, setRotateError] = useState<string | null>(null)
-	const [deleteOpen, setDeleteOpen] = useState(false)
-	const [deleteConfirmation, setDeleteConfirmation] = useState("")
-	const [deleteError, setDeleteError] = useState<string | null>(null)
-	const [isDeleting, setIsDeleting] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 
 	const { register, handleSubmit, reset, control, formState } = useForm<EmbedFormValues>({
@@ -262,45 +231,6 @@ function EmbedDetailPage() {
 		)
 	}
 
-	async function onConfirmRotate() {
-		setRotateError(null)
-		try {
-			await rotateToken.mutateAsync({ embedId })
-			setRotateOpen(false)
-		} catch (caught) {
-			setRotateError(
-				(caught as RotateEmbedTokenMutationError).status === NOT_FOUND_STATUS
-					? t("embedSetup.notFound")
-					: t("embedSetup.rotateTokenFailed"),
-			)
-		}
-	}
-
-	async function onConfirmDelete() {
-		if (!embed) return
-
-		setDeleteError(null)
-		setIsDeleting(true)
-		try {
-			await deleteEmbed.mutateAsync({ embedId })
-			queryClient.removeQueries({ queryKey: getListEmbedsQueryKey() })
-			await navigate({
-				to: "/dashboard/agent/$agentId",
-				params: { agentId: embed.agentId },
-				search: { tab: "embeds" },
-				replace: true,
-			})
-			queryClient.removeQueries({ queryKey: getGetEmbedQueryKey(embedId) })
-		} catch (caught) {
-			setDeleteError(
-				(caught as DeleteEmbedMutationError).status === NOT_FOUND_STATUS
-					? t("embedSetup.notFound")
-					: t("embedSetup.deleteFailed"),
-			)
-			setIsDeleting(false)
-		}
-	}
-
 	if (isLoading) {
 		return <p className="text-muted-foreground">{t("embedSetup.loading")}</p>
 	}
@@ -354,33 +284,7 @@ function EmbedDetailPage() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<Input value={embed.embedToken} readOnly className="font-mono" aria-label={t("embedSetup.embedToken")} />
-					{canManage && (
-						<Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
-							<Button variant="outline" onClick={() => setRotateOpen(true)}>
-								<RefreshCw className="size-4" />
-								{t("embedSetup.rotateToken")}
-							</Button>
-							<DialogContent>
-								<DialogHeader>
-									<DialogTitle>{t("embedSetup.rotateTokenTitle")}</DialogTitle>
-									<DialogDescription>{t("embedSetup.rotateTokenWarning")}</DialogDescription>
-								</DialogHeader>
-								{rotateError && (
-									<p role="alert" className="text-destructive text-sm">
-										{rotateError}
-									</p>
-								)}
-								<DialogFooter>
-									<Button variant="outline" onClick={() => setRotateOpen(false)}>
-										{t("embedSetup.cancel")}
-									</Button>
-									<Button variant="destructive" disabled={rotateToken.isPending} onClick={onConfirmRotate}>
-										{rotateToken.isPending ? t("embedSetup.rotating") : t("embedSetup.rotateToken")}
-									</Button>
-								</DialogFooter>
-							</DialogContent>
-						</Dialog>
-					)}
+					{canManage && <RotateEmbedTokenDialog embedId={embedId} />}
 				</CardContent>
 			</Card>
 
@@ -612,58 +516,7 @@ function EmbedDetailPage() {
 						<CardDescription>{t("embedSetup.dangerDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Dialog
-							open={deleteOpen}
-							onOpenChange={(open) => {
-								if (isDeleting) return
-								setDeleteOpen(open)
-								if (!open) {
-									setDeleteConfirmation("")
-									setDeleteError(null)
-								}
-							}}
-						>
-							<Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-								<Trash2 className="size-4" />
-								{t("embedSetup.deleteEmbed")}
-							</Button>
-							<DialogContent>
-								<DialogHeader>
-									<DialogTitle>{t("embedSetup.deleteTitle")}</DialogTitle>
-									<DialogDescription>{t("embedSetup.deletePrompt", { name: embed.name })}</DialogDescription>
-								</DialogHeader>
-								{deleteError && (
-									<p role="alert" className="text-destructive text-sm">
-										{deleteError}
-									</p>
-								)}
-								<div className="space-y-2">
-									<Label htmlFor="delete-embed-confirmation" className="flex items-center gap-2">
-										<span className="sr-only">{t("embedSetup.confirmLabel", { name: embed.name })}</span>
-									</Label>
-									<Input
-										id="delete-embed-confirmation"
-										value={deleteConfirmation}
-										onChange={(event) => setDeleteConfirmation(event.target.value)}
-										placeholder={embed.name}
-										autoComplete="off"
-									/>
-									<p className="text-muted-foreground text-xs">{t("embedSetup.confirmHelp", { name: embed.name })}</p>
-								</div>
-								<DialogFooter>
-									<Button variant="outline" disabled={isDeleting} onClick={() => setDeleteOpen(false)}>
-										{t("embedSetup.cancel")}
-									</Button>
-									<Button
-										variant="destructive"
-										disabled={deleteConfirmation !== embed.name || isDeleting}
-										onClick={onConfirmDelete}
-									>
-										{isDeleting ? t("embedSetup.deleting") : t("embedSetup.deleteConfirm")}
-									</Button>
-								</DialogFooter>
-							</DialogContent>
-						</Dialog>
+						<DeleteEmbedDialog embed={embed} />
 					</CardContent>
 				</Card>
 			)}
