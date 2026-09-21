@@ -9,7 +9,7 @@
 	"errorContextLimit": "Tato konverzace překračuje kontextový limit modelu. Pokračujte v novém chatu.",
 	"errorConversationTooLong": "Tato konverzace je plná. Chcete-li pokračovat, zahajte nový chat.",
 	"errorDailyAllowance": "Denní limit zpráv pro tuto síť byl vyčerpán. Obnoví se {{reset}}.",
-	"errorEmbedNotFound": "Toto vložení chatu není dostupné nebo je neplatné.",
+	"errorEmbedNotFound": "Tato integrace chatu není dostupná nebo je neplatná.",
 	"errorInputIncompatible": "Tato zpráva není kompatibilní s nastaveným modelem.",
 	"errorInternalServer": "Ve službě chatu došlo k interní chybě.",
 	"errorInvalidRequest": "Tuto zprávu nebylo možné přijmout. Zkontrolujte ji a zkuste to znovu.",
