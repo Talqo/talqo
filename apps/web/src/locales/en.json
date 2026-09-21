@@ -272,7 +272,6 @@
 	"header": {
 		"language": "Language",
 		"logout": "Log out",
-		"placeholderName": "Account name",
 		"toDarkTheme": "Switch to dark theme",
 		"toggleNavigation": "Toggle navigation",
 		"toLightTheme": "Switch to light theme"

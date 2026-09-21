@@ -1,4 +1,4 @@
-import { useLogout } from "@/api/generated/identity/identity.ts"
+import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
@@ -122,15 +122,14 @@ function LogoutButton() {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const { t } = useTranslation()
+	const username = useGetSession().data?.data.user?.username
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const closeMobile = () => setMobileOpen(false)
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">
-					{t("header.placeholderName")}
-				</div>
+				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{username}</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
@@ -146,7 +145,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<span className="truncate text-sm font-semibold md:hidden">{t("header.placeholderName")}</span>
+						<span className="truncate text-sm font-semibold md:hidden">{username}</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
