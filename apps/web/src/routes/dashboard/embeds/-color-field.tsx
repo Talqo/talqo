@@ -37,11 +37,10 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 					aria-label={t("embedSetup.hexValue", { label })}
 					aria-invalid={isHexColor(value) ? undefined : true}
 				/>
-				{ratio !== undefined &&
-					!passes && (
-						// A warning, not a gate: the brand color is the operator's to choose.
-						<Badge variant="destructive">{t("embedSetup.contrastWarning")}</Badge>
-					)}
+				{ratio !== undefined && !passes && (
+					// A warning, not a gate: the brand color is the operator's to choose.
+					<Badge variant="destructive">{t("embedSetup.contrastWarning")}</Badge>
+				)}
 			</div>
 			{!isHexColor(value) && <p className="text-destructive text-xs">{t("embedSetup.colorInvalid")}</p>}
 		</div>
