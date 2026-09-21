@@ -200,6 +200,43 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
+	test("cancels the response body when an events stream is abandoned", async () => {
+		let cancelled = false
+		const encoder = new TextEncoder()
+		const accepted = `event: chat\ndata: ${JSON.stringify({
+			version: 1,
+			type: "accepted",
+			requestId: REQUEST_ID,
+			generationId: "generation",
+			userMessage: { id: "user", createdAt: "now" },
+			assistantMessage: { id: "assistant", createdAt: "now" },
+		})}\n\n`
+		const body = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(accepted))
+				// Never closed: the server keeps streaming until the server-side generation ends.
+			},
+			cancel() {
+				cancelled = true
+			},
+		})
+		const transport = createFetchChatTransport({
+			fetch: async () => new Response(body, { headers: { "Content-Type": "text/event-stream" } }),
+		})
+
+		const events = await transport.sendMessage({
+			...context(),
+			requestId: REQUEST_ID,
+			credential: CREDENTIAL,
+			text: "hi",
+		})
+		const iterator = events[Symbol.asyncIterator]()
+		expect((await iterator.next()).done).toBe(false)
+		await iterator.return?.()
+
+		expect(cancelled).toBe(true)
+	})
+
 	test("decodes split SSE and validates all terminal variants before returning events", async () => {
 		const accepted = `event: chat\ndata: ${JSON.stringify({
 			version: 1,

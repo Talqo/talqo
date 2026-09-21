@@ -60,16 +60,22 @@ async function* responseChunks(body: ReadableStream<Uint8Array>, signal: AbortSi
 		throw signal.reason
 	}
 	signal.addEventListener("abort", abort, { once: true })
+	let consumed = false
 	try {
 		while (true) {
 			// oxlint-disable-next-line no-await-in-loop -- stream chunks must be read sequentially.
 			const result = await reader.read()
 			if (signal.aborted) throw signal.reason
-			if (result.done) return
+			if (result.done) {
+				consumed = true
+				return
+			}
 			yield result.value
 		}
 	} finally {
 		signal.removeEventListener("abort", abort)
+		// An abandoned stream must cancel its body, not just release the lock onto an open connection.
+		if (!consumed) await reader.cancel().catch(() => undefined)
 		reader.releaseLock()
 	}
 }
