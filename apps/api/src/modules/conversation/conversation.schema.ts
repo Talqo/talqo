@@ -76,6 +76,9 @@ export const generationAttempt = pgTable(
 		uniqueIndex("generation_attempt_conversation_request_unique_idx").on(table.conversationId, table.requestId),
 		index("generation_attempt_active_network_idx").on(table.networkHash, table.status, table.leaseExpiresAt),
 		index("generation_attempt_conversation_id_idx").on(table.conversationId),
+		index("generation_attempt_recovery_idx")
+			.on(table.leaseExpiresAt)
+			.where(sql`${table.status} in ('accepted', 'running')`),
 		index("generation_attempt_usage_pending_idx").on(table.providerInvoked, table.usageRecordedAt),
 		check(
 			"generation_attempt_usage_candidate_pair_check",
@@ -100,7 +103,10 @@ export const message = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
-	(table) => [index("message_order_idx").on(table.conversationId, table.createdAt, table.id)],
+	(table) => [
+		index("message_order_idx").on(table.conversationId, table.createdAt, table.id),
+		index("message_generation_attempt_idx").on(table.generationAttemptId),
+	],
 )
 
 export const conversationDailyCounter = pgTable(
