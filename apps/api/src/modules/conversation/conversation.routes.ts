@@ -143,13 +143,16 @@ export function createConversationRoutes(
 				start(value) {
 					controller = value
 					for (const bytes of pending.splice(0)) value.enqueue(bytes)
-					void result.done.finally(() => {
-						try {
-							value.close()
-						} catch {
-							// Client disconnects do not cancel persisted generation work.
-						}
-					})
+					void result.done
+						.finally(() => {
+							try {
+								value.close()
+							} catch {
+								// Client disconnects do not cancel persisted generation work.
+							}
+						})
+						// Swallow stream-tail failures; they stay recoverable from persisted state.
+						.catch(() => undefined)
 				},
 				cancel() {
 					controller = undefined

@@ -4454,7 +4454,8 @@
 								"type": "object",
 								"properties": {
 									"generationId": {
-										"type": "string"
+										"type": "string",
+										"format": "uuid"
 									}
 								}
 							}

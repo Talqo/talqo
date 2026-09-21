@@ -57,7 +57,7 @@ const sendBody = z.object({
 		.min(1)
 		.refine((text) => [...text].length <= MAX_CHAT_INPUT_CHARACTERS),
 })
-const cancelBody = z.object({ generationId: z.string().optional() })
+const cancelBody = z.object({ generationId: z.uuid({ version: "v4" }).optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })
 const badRequestProblems = problemResponse([
 	PROBLEM_CODES.INVALID_REQUEST,

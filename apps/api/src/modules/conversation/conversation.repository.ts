@@ -459,7 +459,7 @@ export async function stageFinalization(input: {
 	})
 }
 
-export async function listPendingUsageFinalizations(): Promise<PendingUsageFinalization[]> {
+export async function listPendingUsageFinalizations(limit: number): Promise<PendingUsageFinalization[]> {
 	return db
 		.select({
 			generationAttemptId: generationAttempt.id,
@@ -482,7 +482,8 @@ export async function listPendingUsageFinalizations(): Promise<PendingUsageFinal
 				isNotNull(generationAttempt.finalOutcome),
 				isNull(generationAttempt.usageRecordedAt),
 			),
-		) as Promise<PendingUsageFinalization[]>
+		)
+		.limit(limit) as Promise<PendingUsageFinalization[]>
 }
 
 export async function stageRecoveredUsageCandidate(

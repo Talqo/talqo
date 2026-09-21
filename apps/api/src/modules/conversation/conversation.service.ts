@@ -22,6 +22,7 @@ const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
 const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
+const USAGE_FINALIZATION_BATCH = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
 
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
@@ -140,7 +141,7 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 
 async function drainPendingUsageFinalizations(): Promise<void> {
 	await Promise.all(
-		(await repository.listPendingUsageFinalizations()).map(async (pending) => {
+		(await repository.listPendingUsageFinalizations(USAGE_FINALIZATION_BATCH)).map(async (pending) => {
 			const normalized =
 				pending.inputTokens === null || pending.outputTokens === null
 					? usageService.normalizeUsage({ inputText: pending.inputText, outputText: pending.assistantText })
@@ -389,7 +390,6 @@ export function createConversationService(dependencies: Dependencies) {
 				}
 			}
 			const { accepted, messages, prepared } = await prepareAndAccept(0)
-			await drainPendingUsageFinalizations()
 			const acceptedEvent: ChatEvent = {
 				version: 1,
 				type: "accepted",
@@ -409,6 +409,10 @@ export function createConversationService(dependencies: Dependencies) {
 			) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
+			try {
+				// Best-effort: failures stay pending for the next drain instead of failing an accepted send.
+				await drainPendingUsageFinalizations()
+			} catch {}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
@@ -424,8 +428,9 @@ export function createConversationService(dependencies: Dependencies) {
 
 		async cancel(credential: string, generationId?: string): Promise<void> {
 			const session = await authenticate(credential)
-			await repository.requestCancellation(session.conversationId, generationId)
-			if (generationId) controllers.get(generationId)?.abort()
+			const matched = await repository.requestCancellation(session.conversationId, generationId)
+			// Abort in-process only when the conversation-scoped cancellation matched.
+			if (matched && generationId) controllers.get(generationId)?.abort()
 		},
 	}
 }
