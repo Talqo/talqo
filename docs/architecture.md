@@ -104,6 +104,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
 - Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
+- Recorded exception: `conversation`'s acceptance transaction reads and row-locks `EMBED` inside the advisory-locked write, because embed validity and access version must hold atomically at acceptance and transactions cannot flow through service APIs. `conversation` (the send-operation owner) is the orchestration owner; the access is limited to that single read/lock.
 
 ### Contracts And Routes
 

@@ -35,7 +35,6 @@ erDiagram
     AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ MCP_CONFIG : configures
-    AGENT ||--o{ AI_PROVIDER_CONFIG : configures
     AGENT ||--o{ FILE_EMBEDDING : embeds
 
     AGENT ||--o{ CONVERSATION : receives

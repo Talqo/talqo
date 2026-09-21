@@ -2,7 +2,7 @@
 
 Talqo is a modular monolith: one API process (`apps/api`), one PostgreSQL database. Business capabilities live in modules under `apps/api/src/modules/<module>`, each owning its own tables and exposing behavior only through a service. Modules call each other's services directly (in-process), never each other's repositories or tables.
 
-We want a **small, explicit, acyclic** dependency graph: every arrow below is a runtime service call in the desired architecture and there are no cycles. Schema-only foreign-key imports used for deletion integrity are not service arrows.
+We want a **small, explicit, acyclic** dependency graph: every arrow below is a runtime service call in the implemented architecture and there are no cycles. Schema-only foreign-key imports used for deletion integrity are not service arrows.
 
 ## Module Dependency Graph
 
@@ -15,10 +15,9 @@ graph LR
 
     subgraph "Configuration"
         agent[agent]
+        agent_files["agent-files"]
         embed[embed]
         ai_provider["ai-provider"]
-        mcp[mcp]
-        knowledge[knowledge]
     end
 
     subgraph "Runtime"
@@ -27,32 +26,18 @@ graph LR
 
     subgraph "Observability"
         usage[usage]
-        audit[audit]
     end
 
     roles --> identity
-
-    agent --> roles
-    agent --> ai_provider
-    agent --> mcp
-    agent --> knowledge
-    embed --> agent
-    embed --> roles
-    ai_provider --> roles
-    mcp --> roles
-    knowledge --> roles
+    agent --> agent_files
 
     conversation --> embed
     conversation --> agent
+    conversation --> ai_provider
     conversation --> usage
-
-    roles --> audit
-    agent --> audit
-    mcp --> audit
-    ai_provider --> audit
 ```
 
-`identity`, `usage`, and `audit` are leaves. `audit` only receives calls as an activity-log sink. `conversation` owns the public send operation and conversation persistence. It delegates response generation through `agent`, which encapsulates AI-provider access, knowledge retrieval, and MCP execution.
+`identity`, `agent-files`, and `usage` are leaves. `conversation` owns the public send operation and conversation persistence; it orchestrates embed validation, agent prompt composition, the ai-provider text operation, and usage recording through service interfaces.
 
 ## Modules
 
@@ -60,13 +45,11 @@ graph LR
 |---|---|---|
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
 | `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and deployment-global permission grants — owns "who can do what." |
-| `agent` | `AGENT`, `BLACKLIST_WORD` | Deployment-owned response configuration: identity, system prompt, output blacklist, AI provider, knowledge, and MCP tools. |
+| `agent` | `AGENT`, `BLACKLIST_WORD` | Deployment-owned response configuration: identity, saved system prompt, output blacklist, and platform prompt composition. |
+| `agent-files` | — (local filesystem) | Uploaded context documents per agent: validation, storage, and retrieval. |
 | `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, access version, and the agent each one serves. One agent serves many embeds. |
-| `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
-| `mcp` | `MCP_CONFIG` | Per-agent tool-server integrations used during response generation. |
-| `knowledge` | `FILE_EMBEDDING` | RAG ingestion, per-agent embedding storage, and retrieval for response context. |
+| `ai-provider` | `AI_PROVIDER_CONFIG` | Deployment-wide (singleton) provider configuration: credentials and per-operation model selection. |
 | `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Public multi-turn runtime, bearer authorization, conversation history, accepted-question counters, and fenced generation leases. |
 | `usage` | `USAGE_RECORD` | Stores normalized input/output usage once per generation attempt; it does not enforce billing or deployment quotas. |
-| `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 
-Every entity in [`docs/ERD.md`](../ERD.md) is owned by exactly one module, matching the "a module writes only its own tables" rule.
+Every entity in [`docs/ERD.md`](../ERD.md) is owned by exactly one module, matching the "a module writes only its own tables" rule. Planned modules such as knowledge retrieval, MCP tools, and audit logging are tracked in [`docs/SRS.md`](../SRS.md) and join this graph when implemented.
