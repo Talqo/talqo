@@ -1,3 +1,4 @@
+// ipaddr.js owns parsing and CIDR math; the remainder is deployment-specific policy.
 import ipaddr from "ipaddr.js"
 import { createHmac } from "node:crypto"
 
