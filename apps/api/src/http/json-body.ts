@@ -7,7 +7,8 @@ import { createMiddleware } from "hono/factory"
 
 // Hard ceiling for inbound bodies; generous for the largest payload (system prompts up to 20k chars).
 const REQUEST_BODY_MAX_BYTES = 262_144
-const MAX_UTF8_BYTES_PER_CODE_POINT = 4
+// JSON may escape one astral code point as a surrogate pair of \uXXXX sequences (6 bytes each).
+const MAX_JSON_BYTES_PER_CODE_POINT = 12
 const CHAT_JSON_OVERHEAD_BYTES = 4096
 
 const rejectOversizedJsonBody = bodyLimit({
@@ -17,7 +18,7 @@ const rejectOversizedJsonBody = bodyLimit({
 
 function chatBodyLimit() {
 	return bodyLimit({
-		maxSize: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_UTF8_BYTES_PER_CODE_POINT + CHAT_JSON_OVERHEAD_BYTES,
+		maxSize: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + CHAT_JSON_OVERHEAD_BYTES,
 		onError: (context) => problemResponse(context, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE),
 	})
 }
