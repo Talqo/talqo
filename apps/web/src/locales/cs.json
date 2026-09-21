@@ -34,7 +34,7 @@
 		"dangerZone": "Nebezpečná zóna",
 		"deleteAgent": "Smazat agenta",
 		"deleteConfirm": "Trvale smazat",
-		"deletePrompt": "Toto trvale smaže agenta {{name}} a jeho blacklist. Akci nelze vrátit zpět.",
+		"deletePrompt": "Tímto trvale smažete agenta {{name}} včetně veškeré historie konverzací a využití. Akci nelze vrátit zpět.",
 		"deleteTitle": "Smazat agenta?",
 		"deleting": "Mazání…",
 		"heading": "Nastavit {{name}}",

@@ -71,6 +71,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await page.getByRole("link", { name: /Docs helper/ }).click()
 	await page.getByRole("button", { name: "Delete agent" }).click()
 	const deleteDialog = page.getByRole("dialog")
+	await expect(deleteDialog).toContainText("conversation and usage history")
 	await expect(deleteDialog.getByRole("button", { name: "Delete permanently" })).toBeDisabled()
 	await deleteDialog.getByPlaceholder("Docs helper").fill("Docs helper")
 	const confirmButton = deleteDialog.getByRole("button", { name: "Delete permanently" })

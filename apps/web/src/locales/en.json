@@ -34,7 +34,7 @@
 		"dangerZone": "Danger zone",
 		"deleteAgent": "Delete agent",
 		"deleteConfirm": "Delete permanently",
-		"deletePrompt": "This permanently deletes {{name}} and its blacklist. There is no undo.",
+		"deletePrompt": "This permanently deletes {{name}} and all of its conversation and usage history. There is no undo.",
 		"deleteTitle": "Delete agent?",
 		"deleting": "Deleting…",
 		"heading": "Configure {{name}}",
