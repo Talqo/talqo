@@ -98,3 +98,7 @@ ALTER TABLE "embed" ADD CONSTRAINT "embed_agent_id_agent_id_fk" FOREIGN KEY ("ag
 CREATE INDEX "embed_agent_id_idx" ON "embed" USING btree ("agent_id");--> statement-breakpoint
 ALTER TABLE "agent" DROP COLUMN "embed_token";--> statement-breakpoint
 ALTER TABLE "embed" ADD CONSTRAINT "embed_embed_token_unique" UNIQUE("embed_token");
+--> statement-breakpoint
+CREATE INDEX "generation_attempt_recovery_idx" ON "generation_attempt" USING btree ("lease_expires_at") WHERE "generation_attempt"."status" in ('accepted', 'running');
+--> statement-breakpoint
+CREATE INDEX "message_generation_attempt_idx" ON "message" USING btree ("generation_attempt_id");

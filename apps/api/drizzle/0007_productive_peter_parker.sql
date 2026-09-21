@@ -1,2 +1,0 @@
-CREATE INDEX "generation_attempt_recovery_idx" ON "generation_attempt" USING btree ("lease_expires_at") WHERE "generation_attempt"."status" in ('accepted', 'running');--> statement-breakpoint
-CREATE INDEX "message_generation_attempt_idx" ON "message" USING btree ("generation_attempt_id");

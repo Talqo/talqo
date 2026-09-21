@@ -1,5 +1,5 @@
 {
-	"id": "54afb528-b055-4934-b50e-2671a49f5d5c",
+	"id": "c8a04ed4-6261-43fb-a7a0-926e9690c5fa",
 	"prevId": "d4b78cb4-4ece-4a0f-b1c8-bdb3e612c59b",
 	"version": "7",
 	"dialect": "postgresql",
@@ -578,6 +578,22 @@
 					"method": "btree",
 					"with": {}
 				},
+				"generation_attempt_recovery_idx": {
+					"name": "generation_attempt_recovery_idx",
+					"columns": [
+						{
+							"expression": "lease_expires_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"where": "\"generation_attempt\".\"status\" in ('accepted', 'running')",
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
 				"generation_attempt_usage_pending_idx": {
 					"name": "generation_attempt_usage_pending_idx",
 					"columns": [
@@ -697,6 +713,21 @@
 						},
 						{
 							"expression": "id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"message_generation_attempt_idx": {
+					"name": "message_generation_attempt_idx",
+					"columns": [
+						{
+							"expression": "generation_attempt_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"

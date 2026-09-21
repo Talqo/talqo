@@ -50,13 +50,6 @@
 			"when": 1789682700008,
 			"tag": "0006_end-user-chat",
 			"breakpoints": true
-		},
-		{
-			"idx": 7,
-			"version": "7",
-			"when": 1789985002062,
-			"tag": "0007_productive_peter_parker",
-			"breakpoints": true
 		}
 	]
 }
