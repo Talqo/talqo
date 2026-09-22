@@ -16,15 +16,13 @@ Update this guide in the same change as any decision that changes architecture, 
 
 ## Technology Baseline
 
-| Technology or decision | Role | Decision record |
+| Technology | Role | Decision record |
 | --- | --- | --- |
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
-| Modular monolith | Application structure | [ADR-0002](adr/0002-use-a-modular-monolith.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
-| Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
@@ -56,7 +54,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the workspace-private browser chat SDK. It generates or owns transport appropriate to its public API; the widget consumes the SDK.
+- `packages/sdk` is the workspace-private, framework-independent browser chat SDK; the widget consumes it.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -206,13 +204,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships `dist/widget.js`, which loads its sibling `widget.css`, embedded on customer websites.
-
-- `src/widget.tsx` is the production entry; `index.html` and `src/main.tsx` are the local development harness.
-- `public/preview.html` + `src/preview.tsx` are the dashboard-facing preview page. The dashboard embeds it in an iframe, and the versioned `talqo-preview` postMessage channel from `packages/shared` is the only contract — `apps/web` never imports widget source.
-- The widget consumes `packages/sdk` and never imports API app source.
-- Widget CSS stays off the host page through name isolation plus a build-time AST pass (`vite.config.ts`): utilities carry the `tw:` Tailwind prefix, and the pass strips preflight and global `@property` registrations, scopes every other unprefixed rule under `.talqo-widget`, and fails the build on anything left over (`@font-face` fails closed; `@keyframes` pass through — keyframe names are global by CSS nature). Prefixed utility rules technically live in the host cascade; a collision requires the host to use the same `tw:` prefix. Dev-mode CSS is unscoped because the dev harness hosts the widget alone.
-- Widget embedding and presentation stay in the app; domain-neutral reused presentation belongs in `packages/ui`.
+`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source.
 
 ## E2E Tests
 
