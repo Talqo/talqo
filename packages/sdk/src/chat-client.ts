@@ -44,14 +44,6 @@ function defaultRandomUUID(): string {
 	return crypto.randomUUID()
 }
 
-function freezeConfiguration(configuration: ChatConfiguration): ChatConfiguration {
-	return Object.freeze({ ...configuration, appearance: Object.freeze({ ...configuration.appearance }) })
-}
-
-function freezeMessages(messages: readonly ChatMessage[]): readonly ChatMessage[] {
-	return Object.freeze(messages.map((message) => Object.freeze({ ...message })))
-}
-
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const timeout = setTimeout(resolve, milliseconds)
@@ -128,7 +120,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	)
 
 	function createSnapshot(): ChatSnapshot {
-		return Object.freeze({
+		return {
 			configuration,
 			messages,
 			initialization,
@@ -138,7 +130,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			recovery,
 			error,
 			retryAt,
-		})
+		}
 	}
 
 	function publish(): void {
@@ -160,7 +152,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function applySession(session: SessionState): void {
-		messages = freezeMessages(session.messages)
+		messages = session.messages
 		activeGenerationId = session.activeGeneration?.id
 		error = undefined
 		retryAt = undefined
@@ -226,7 +218,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						if (attemptedPending !== undefined && pendingMessage?.requestId === attemptedPending.requestId) {
 							const attemptedRequestId = attemptedPending.requestId
 							pendingMessage = undefined
-							messages = freezeMessages(messages.filter((message) => message.id !== `pending:${attemptedRequestId}`))
+							messages = messages.filter((message) => message.id !== `pending:${attemptedRequestId}`)
 							// oxlint-disable-next-line no-await-in-loop -- recovery attempts are intentionally sequential.
 							await persist({ version: CHAT_STORAGE_VERSION, credential })
 						}
@@ -242,10 +234,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			if (!disposed && generation === "recovery") {
 				recovery = "unavailable"
-				messages = freezeMessages(
-					messages.map((message) =>
-						message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
-					),
+				messages = messages.map((message) =>
+					message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
 				)
 				publish()
 			}
@@ -266,14 +256,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					transport.loadConfiguration(context(controller.signal)),
 					storage.getItem(storageKey),
 				])
-				configuration = freezeConfiguration(loadedConfiguration)
+				configuration = loadedConfiguration
 				const record = readChatStorageRecord(serialized)
 				credential = record?.credential
 				pendingMessage = record?.pending
 				if (credential !== undefined && pendingMessage === undefined) {
 					await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
 				} else if (pendingMessage !== undefined) {
-					messages = freezeMessages([
+					messages = [
 						{
 							id: `pending:${pendingMessage.requestId}`,
 							role: "user",
@@ -281,7 +271,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							createdAt: now().toISOString(),
 							outcome: "interrupted",
 						},
-					])
+					]
 					generation = "recovery"
 					recovery = "pending"
 				}
@@ -306,7 +296,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function replaceMessage(id: string, update: (message: ChatMessage) => ChatMessage): void {
-		messages = freezeMessages(messages.map((message) => (message.id === id ? update(message) : message)))
+		messages = messages.map((message) => (message.id === id ? update(message) : message))
 	}
 
 	async function sendMessage(text: string): Promise<void> {
@@ -329,10 +319,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		pendingMessage = { requestId, text }
 		await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential, pending: pendingMessage })
 		const localUserId = `pending:${requestId}`
-		messages = freezeMessages([
+		messages = [
 			...messages,
 			{ id: localUserId, role: "user", text, createdAt: now().toISOString(), outcome: "pending" },
-		])
+		]
 		generation = "sending"
 		recovery = "idle"
 		error = undefined
@@ -359,15 +349,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					accepted = true
 					userId = event.userMessage.id
 					activeGenerationId = event.generationId
-					messages = freezeMessages(
-						messages.map((message) =>
-							message.id === localUserId
-								? { ...message, id: userId, createdAt: event.userMessage.createdAt, outcome: "completed" }
-								: message,
-						),
+					messages = messages.map((message) =>
+						message.id === localUserId
+							? { ...message, id: userId, createdAt: event.userMessage.createdAt, outcome: "completed" }
+							: message,
 					)
 					assistantId = event.assistantMessage.id
-					messages = freezeMessages([
+					messages = [
 						...messages,
 						{
 							id: assistantId,
@@ -376,7 +364,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							createdAt: event.assistantMessage.createdAt,
 							outcome: "streaming",
 						},
-					])
+					]
 					generation = "streaming"
 					pendingMessage = undefined
 					await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
@@ -403,7 +391,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		} catch (cause) {
 			const definitelyRejected = !accepted && isDefiniteClientError(cause)
 			if (definitelyRejected) {
-				messages = freezeMessages(messages.filter((message) => message.id !== localUserId))
+				messages = messages.filter((message) => message.id !== localUserId)
 				pendingMessage = undefined
 				if (newSession) {
 					credential = undefined
@@ -542,7 +530,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			credential = undefined
 			pendingMessage = undefined
 			activeGenerationId = undefined
-			messages = freezeMessages([])
+			messages = []
 			generation = "idle"
 			recovery = "idle"
 			error = undefined

@@ -184,8 +184,6 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot()).toMatchObject({ initialization: "ready", configuration, persistence: "persistent" })
 		expect(client.getSnapshot().messages.map(({ id }) => id)).toEqual(["u1", "a1"])
 		expect(snapshots.length).toBeGreaterThan(2)
-		expect(Object.isFrozen(client.getSnapshot())).toBe(true)
-		expect(Object.isFrozen(client.getSnapshot().messages)).toBe(true)
 	})
 
 	test("publishes optimistic and streamed messages and reconciles IDs", async () => {

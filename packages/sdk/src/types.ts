@@ -2,8 +2,8 @@ import type { ProblemDetails } from "./generated/contracts"
 import type { AsyncStorage } from "./storage"
 
 export type ChatConfiguration = {
-	title: string
-	appearance: Readonly<Record<string, unknown>>
+	readonly title: string
+	readonly appearance: Readonly<Record<string, unknown>>
 }
 
 export type ChatMessageRole = "user" | "assistant"
@@ -17,11 +17,11 @@ export type ChatMessageOutcome =
 	| "interrupted"
 
 export type ChatMessage = {
-	id: string
-	role: ChatMessageRole
-	text: string
-	createdAt: string
-	outcome: ChatMessageOutcome
+	readonly id: string
+	readonly role: ChatMessageRole
+	readonly text: string
+	readonly createdAt: string
+	readonly outcome: ChatMessageOutcome
 }
 
 const API_CHAT_ERROR_CODES = [
@@ -70,20 +70,20 @@ export type ChatError = {
 }
 
 export type ChatSnapshot = {
-	configuration: ChatConfiguration | undefined
-	messages: readonly ChatMessage[]
-	initialization: "idle" | "loading" | "ready" | "error"
-	generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling"
-	reset: "idle" | "resetting"
-	persistence: "persistent" | "memory"
-	recovery: "idle" | "pending" | "unavailable"
-	error: ChatError | undefined
-	retryAt: string | undefined
+	readonly configuration: ChatConfiguration | undefined
+	readonly messages: readonly ChatMessage[]
+	readonly initialization: "idle" | "loading" | "ready" | "error"
+	readonly generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling"
+	readonly reset: "idle" | "resetting"
+	readonly persistence: "persistent" | "memory"
+	readonly recovery: "idle" | "pending" | "unavailable"
+	readonly error: ChatError | undefined
+	readonly retryAt: string | undefined
 }
 
 export type SessionState = {
-	messages: readonly ChatMessage[]
-	activeGeneration: { id: string } | undefined
+	readonly messages: readonly ChatMessage[]
+	readonly activeGeneration: { readonly id: string } | undefined
 }
 
 export type ChatEvent =
