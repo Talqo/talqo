@@ -26,9 +26,9 @@ Every API error body contains exactly two required properties:
 
 ## Architecture
 
-`apps/api/src/http` owns one immutable semantic problem catalog, a closed `PROBLEM_CODES` enum-like constant, its derived `ProblemCode` union, and one strict Zod/OpenAPI `ProblemDetails` schema. Each branch binds one kebab-case code to its matching type URI. The URI is derived as `https://docs.talqo.chat/problems#<code>` rather than repeated manually.
+`apps/api/src/http` owns one immutable semantic problem catalog, a closed `PROBLEM_CODES` enum-like constant, its derived `ProblemCode` union, and the strict Zod/OpenAPI schema. Each catalog entry binds one kebab-case code to a type URI. The URI is derived as `https://docs.talqo.chat/problems#<code>` rather than repeated manually.
 
-A single response helper serializes catalog entries. Every problem response references the shared schema; the HTTP status line remains authoritative rather than generating operation-specific schema unions. Routes retain responsibility for selecting HTTP statuses and mapping known domain errors; shared HTTP infrastructure owns only the representation and cross-cutting problems.
+A single response helper serializes catalog entries. A matching OpenAPI helper documents the allowed semantic problems for each status. Routes retain responsibility for selecting HTTP statuses and mapping known domain errors; shared HTTP infrastructure owns only the representation and cross-cutting problems.
 
 The generated OpenAPI contract carries the closed code enum to `apps/web`. The web owns one exhaustive `ProblemCode`-to-literal-i18next-key map. API, web locale, and docs identifiers use the same code values without sharing source across app boundaries or introducing a package.
 
