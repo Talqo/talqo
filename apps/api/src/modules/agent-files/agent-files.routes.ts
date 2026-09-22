@@ -26,18 +26,6 @@ async function requireAgent(agentId: string): Promise<void> {
 	await agent.getAgent(agentId)
 }
 
-const CONTENT_TYPES: Record<string, string> = {
-	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	".md": "text/markdown; charset=utf-8",
-	".pdf": "application/pdf",
-	".txt": "text/plain; charset=utf-8",
-}
-
-function contentTypeFor(name: string): string {
-	const ext = name.slice(name.lastIndexOf(".")).toLowerCase()
-	return CONTENT_TYPES[ext] ?? "application/octet-stream"
-}
-
 // RFC 5987: filename* carries the UTF-8 name; a quoted ASCII fallback serves older clients.
 function contentDisposition(name: string): string {
 	const fallback = name.replace(/[^\x20-\x7E]|["\\]/g, "_")
@@ -120,9 +108,10 @@ export const agentFilesRoutes = routes
 			await requireAgent(agentId)
 			files.validateName(fileName)
 			const content = await files.get(agentId, fileName)
+			// attachment forces a download, so the generic type suffices; no per-format map to maintain.
 			return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
 				"Content-Disposition": contentDisposition(fileName),
-				"Content-Type": contentTypeFor(fileName),
+				"Content-Type": "application/octet-stream",
 			})
 		} catch (error) {
 			if (error instanceof files.InvalidFileError) {

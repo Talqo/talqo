@@ -120,7 +120,7 @@ describe("agent knowledge files", () => {
 		const response = await app.request(`/api/agents/${agentId}/files/a.md`, { headers: { Cookie: cookie } })
 		expect(response.status).toBe(200)
 		expect(await response.text()).toBe("hello")
-		expect(response.headers.get("content-type")).toBe("text/markdown; charset=utf-8")
+		expect(response.headers.get("content-type")).toBe("application/octet-stream")
 		const disposition = response.headers.get("content-disposition")
 		expect(disposition).toContain("attachment")
 		expect(disposition).toContain(`filename="a.md"`)
