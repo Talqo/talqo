@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"e2e": "bun ../../scripts/test-e2e.ts",
+		"e2e": "bun --env-file ../api/.env.example ../../scripts/test-e2e.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {

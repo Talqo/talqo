@@ -14,7 +14,6 @@ const agentResponseSchema = z
 		id: z.string(),
 		name: z.string(),
 		systemPrompt: z.string(),
-		embedToken: z.uuid(),
 		wordBlacklist: z.array(z.string()),
 		createdAt: z.iso.datetime(),
 		updatedAt: z.iso.datetime(),
@@ -115,25 +114,6 @@ export const updateAgentRoute = createRoute({
 		404: agentNotFound,
 		409: problemResponse([PROBLEM_CODES.AGENT_NAME_TAKEN]),
 		413: payloadTooLargeResponse,
-		500: serverError,
-	},
-})
-
-export const refreshEmbedTokenRoute = createRoute({
-	method: "post",
-	path: "/{agentId}/embed-token/refresh",
-	operationId: "refreshEmbedToken",
-	tags: ["Agent"],
-	security: sessionSecurity,
-	request: { params: agentParamsSchema },
-	responses: {
-		200: {
-			content: { "application/json": { schema: agentDetailResponseSchema } },
-			description: "Embed token rotated; the old value is orphaned",
-		},
-		401: authRequired,
-		403: forbidden,
-		404: agentNotFound,
 		500: serverError,
 	},
 })

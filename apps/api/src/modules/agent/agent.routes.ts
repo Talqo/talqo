@@ -12,7 +12,6 @@ import {
 	deleteAgentRoute,
 	getAgentRoute,
 	listAgentsRoute,
-	refreshEmbedTokenRoute,
 	updateAgentRoute,
 } from "./agent.contract.ts"
 import * as service from "./agent.service.ts"
@@ -86,22 +85,6 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 			}
 			if (error instanceof service.DuplicateAgentNameError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
-	})
-	.openapi(refreshEmbedTokenRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
-		try {
-			const agent = await service.refreshEmbedToken(c.req.valid("param").agentId)
-			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
-		} catch (error) {
-			if (error instanceof service.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 			}
 			throw error
 		}

@@ -1,20 +1,18 @@
 import {
 	type DeleteAgentMutationError,
-	type RefreshEmbedTokenMutationError,
 	type UpdateAgentMutationError,
 	useDeleteAgent,
 	useGetAgent,
-	useRefreshEmbedToken,
 	useUpdateAgent,
 } from "@/api/generated/agent/agent.ts"
+import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
-import { getListWidgetsQueryKey, useCreateWidget, useListWidgets } from "@/api/generated/widget/widget.ts"
 import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
+import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
-import { WIDGET_FORM_DEFAULTS } from "@/features/widgets/widget-appearance-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
@@ -26,7 +24,6 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
@@ -34,12 +31,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/t
 import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { ArrowLeft, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-const AGENT_TABS = ["configuration", "context", "widgets"] as const
+const AGENT_TABS = ["configuration", "context", "embeds"] as const
 const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
 
@@ -71,7 +68,6 @@ function AgentConfigPage() {
 	const { error, isLoading } = agentQuery
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
-	const refreshEmbedToken = useRefreshEmbedToken()
 
 	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: string[] } | null>(null)
 	const [saved, setSaved] = useState(false)
@@ -79,8 +75,6 @@ function AgentConfigPage() {
 	const [deleteError, setDeleteError] = useState<string | null>(null)
 	const [confirmation, setConfirmation] = useState("")
 	const [confirmOpen, setConfirmOpen] = useState(false)
-	const [refreshOpen, setRefreshOpen] = useState(false)
-	const [refreshError, setRefreshError] = useState<string | null>(null)
 
 	const canRead = permissions?.includes("agents:read") ?? false
 	const canManage = permissions?.includes("agents:manage") ?? false
@@ -123,21 +117,6 @@ function AgentConfigPage() {
 			} else {
 				setFormError(t("agents.saveFailed"))
 			}
-		}
-	}
-
-	async function onConfirmRefresh() {
-		setRefreshError(null)
-		try {
-			await refreshEmbedToken.mutateAsync({ agentId })
-			await agentQuery.refetch()
-			setRefreshOpen(false)
-		} catch (caught) {
-			setRefreshError(
-				(caught as RefreshEmbedTokenMutationError).status === NOT_FOUND_STATUS
-					? t("agentConfig.wasDeleted")
-					: t("agentConfig.refreshTokenFailed"),
-			)
 		}
 	}
 
@@ -200,7 +179,7 @@ function AgentConfigPage() {
 				<TabsList>
 					<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
 					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
-					<TabsTrigger value="widgets">{t("agentConfig.tabWidgets")}</TabsTrigger>
+					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
 				</TabsList>
 				<TabsContent value="configuration" className="space-y-6">
 					<Card>
@@ -268,46 +247,6 @@ function AgentConfigPage() {
 						</CardContent>
 					</Card>
 
-					<Card>
-						<CardHeader>
-							<CardTitle>{t("agentConfig.embedToken")}</CardTitle>
-							<CardDescription>{t("agentConfig.embedTokenDescription")}</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="embed-token">{t("agentConfig.embedToken")}</Label>
-								<Input id="embed-token" value={agent.embedToken} readOnly className="font-mono" />
-							</div>
-							{canManage && (
-								<Dialog open={refreshOpen} onOpenChange={setRefreshOpen}>
-									<Button variant="outline" onClick={() => setRefreshOpen(true)}>
-										<RefreshCw className="size-4" />
-										{t("agentConfig.refreshToken")}
-									</Button>
-									<DialogContent>
-										<DialogHeader>
-											<DialogTitle>{t("agentConfig.refreshTokenTitle")}</DialogTitle>
-											<DialogDescription>{t("agentConfig.refreshTokenWarning")}</DialogDescription>
-										</DialogHeader>
-										{refreshError && (
-											<p role="alert" className="text-destructive text-sm">
-												{refreshError}
-											</p>
-										)}
-										<DialogFooter>
-											<Button variant="outline" onClick={() => setRefreshOpen(false)}>
-												{t("agentConfig.cancel")}
-											</Button>
-											<Button variant="destructive" disabled={refreshEmbedToken.isPending} onClick={onConfirmRefresh}>
-												{refreshEmbedToken.isPending ? t("agentConfig.refreshing") : t("agentConfig.refreshToken")}
-											</Button>
-										</DialogFooter>
-									</DialogContent>
-								</Dialog>
-							)}
-						</CardContent>
-					</Card>
-
 					{canManage && (
 						// Card outlines come from ring-1, so the red goes on the ring, not a border.
 						<Card className="ring-destructive">
@@ -367,101 +306,77 @@ function AgentConfigPage() {
 				<TabsContent value="context">
 					<AgentFilesCard agentId={agentId} canManage={canManage} />
 				</TabsContent>
-				<TabsContent value="widgets">
-					<AgentWidgetsPanel agentId={agentId} canManage={canManage} />
+				<TabsContent value="embeds">
+					<AgentEmbedsPanel agentId={agentId} canManage={canManage} />
 				</TabsContent>
 			</Tabs>
 		</div>
 	)
 }
 
-function AgentWidgetsPanel({ agentId, canManage }: { agentId: string; canManage: boolean }) {
+function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: boolean }) {
 	const { t } = useTranslation()
+	const navigate = useNavigate()
 	const queryClient = useQueryClient()
-	const { data: widgetsResponse, isLoading, isError } = useListWidgets({ agentId })
-	const widgets = widgetsResponse?.data.widgets
-	const createWidget = useCreateWidget({
-		mutation: {
-			onSuccess: () => queryClient.invalidateQueries({ queryKey: getListWidgetsQueryKey({ agentId }) }),
-		},
-	})
-	const [dialogOpen, setDialogOpen] = useState(false)
-	const [name, setName] = useState("")
+	const { data: embedsResponse, isLoading, isError } = useListEmbeds({ agentId })
+	const embeds = embedsResponse?.data.embeds
+	const createEmbed = useCreateEmbed()
 
 	async function onCreate() {
-		if (!name.trim()) {
-			return
-		}
 		try {
-			await createWidget.mutateAsync({ data: { name: name.trim(), agentId, appearance: WIDGET_FORM_DEFAULTS } })
+			const result = await createEmbed.mutateAsync({
+				data: { name: t("embedSetup.defaultName"), agentId, appearance: EMBED_FORM_DEFAULTS },
+			})
+			await navigate({
+				to: "/dashboard/embeds/$embedId",
+				params: { embedId: result.data.embed.id },
+				search: { colorTab: undefined },
+			})
+			await queryClient.invalidateQueries({ queryKey: getListEmbedsQueryKey({ agentId }) })
 		} catch {
-			// Reported below from createWidget.isError; the draft stays for a retry.
+			// Reported below from createEmbed.isError.
 			return
 		}
-		setName("")
-		setDialogOpen(false)
 	}
 
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
-				<p className="text-muted-foreground text-sm">{t("widgetSetup.agentPanelDescription")}</p>
+				<p className="text-muted-foreground text-sm">{t("embedSetup.agentPanelDescription")}</p>
 				{canManage && (
-					<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-						<DialogTrigger render={<Button />}>
-							<Plus className="size-4" />
-							{t("widgetSetup.createWidget")}
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>{t("widgetSetup.createWidget")}</DialogTitle>
-								<DialogDescription>{t("widgetSetup.createDescription")}</DialogDescription>
-							</DialogHeader>
-							<div className="space-y-2">
-								<Label htmlFor="widget-name">{t("widgetSetup.nameLabel")}</Label>
-								<Input
-									id="widget-name"
-									placeholder={t("widgetSetup.namePlaceholder")}
-									value={name}
-									onChange={(event) => setName(event.target.value)}
-								/>
-							</div>
-							{createWidget.isError && (
-								<p role="alert" className="text-destructive text-sm">
-									{t("widgetSetup.createError")}
-								</p>
-							)}
-							<DialogFooter>
-								<Button onClick={onCreate} disabled={createWidget.isPending || !name.trim()}>
-									{createWidget.isPending ? t("widgetSetup.creating") : t("widgetSetup.createWidget")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+					<Button onClick={onCreate} disabled={createEmbed.isPending}>
+						<Plus className="size-4" />
+						{createEmbed.isPending ? t("embedSetup.creating") : t("embedSetup.createEmbed")}
+					</Button>
 				)}
 			</div>
+			{createEmbed.isError && (
+				<p role="alert" className="text-destructive text-sm">
+					{t("embedSetup.createError")}
+				</p>
+			)}
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("widgetSetup.loading")}</p>
+				<p className="text-muted-foreground">{t("embedSetup.loading")}</p>
 			) : isError ? (
 				<p role="alert" className="text-destructive">
-					{t("widgetSetup.loadError")}
+					{t("embedSetup.loadError")}
 				</p>
-			) : !widgets?.length ? (
-				<p className="text-muted-foreground">{t("widgetSetup.noWidgets")}</p>
+			) : !embeds?.length ? (
+				<p className="text-muted-foreground">{t("embedSetup.noEmbeds")}</p>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
-					{widgets.map((widget) => (
+					{embeds.map((embed) => (
 						<Link
-							key={widget.id}
-							to="/dashboard/widgets/$widgetId"
-							params={{ widgetId: widget.id }}
+							key={embed.id}
+							to="/dashboard/embeds/$embedId"
+							params={{ embedId: embed.id }}
 							search={{ colorTab: undefined }}
 							className="group"
 						>
 							<Card className="group-hover:border-primary/40 h-full transition-colors">
 								<CardHeader>
-									<CardTitle>{widget.name}</CardTitle>
+									<CardTitle>{embed.name}</CardTitle>
 								</CardHeader>
 								<CardContent className="flex items-center justify-between gap-2">
 									<div className="flex items-center gap-1.5" aria-hidden="true">
@@ -469,14 +384,14 @@ function AgentWidgetsPanel({ agentId, canManage }: { agentId: string; canManage:
 											<span
 												key={key}
 												className="size-4 rounded-full border"
-												style={{ backgroundColor: widget.appearance.light[key] }}
+												style={{ backgroundColor: embed.appearance.light[key] }}
 											/>
 										))}
 									</div>
 									<span className="text-muted-foreground text-sm">
-										{isSupportedLanguage(widget.appearance.language)
-											? supportedLanguages[widget.appearance.language]
-											: widget.appearance.language}
+										{isSupportedLanguage(embed.appearance.language)
+											? supportedLanguages[embed.appearance.language]
+											: embed.appearance.language}
 									</span>
 								</CardContent>
 							</Card>

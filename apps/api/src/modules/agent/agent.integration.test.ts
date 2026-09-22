@@ -10,7 +10,6 @@ import * as service from "./agent.service.ts"
 type AgentPayload = {
 	agent: {
 		createdAt: string
-		embedToken: string
 		id: string
 		name: string
 		systemPrompt: string
@@ -59,7 +58,7 @@ function createJsonRequest(cookie: string, method: string, path: string, body?: 
 }
 
 beforeEach(async () => {
-	// CASCADE because `widget` references `agent`.
+	// CASCADE because `embed` references `agent`.
 	await sql`TRUNCATE TABLE blacklist_word, agent, permission_grant, invitation, session, "user" CASCADE`
 })
 
@@ -76,6 +75,7 @@ describe("agent CRUD", () => {
 		const { agent } = (await created.json()) as AgentPayload
 		expect(agent.name).toBe("Support")
 		expect(agent.wordBlacklist).toEqual(["Spam", "abuse"])
+		expect(agent).not.toHaveProperty("embedToken")
 
 		const fetched = await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: cookie } })
 		expect(fetched.status).toBe(200)
@@ -221,41 +221,15 @@ describe("agent CRUD", () => {
 		expect(tooManyWords.status).toBe(400)
 	})
 
-	it("rotates the embed token, leaving the old one orphaned", async () => {
-		const { cookie, userId } = await createAdminSession()
-		const created = await createJsonRequest(cookie, "POST", "/api/agents", {
-			name: "Token Carrier",
-			systemPrompt: "Prompt",
-			wordBlacklist: [],
-		})
-		expect(created.status).toBe(201)
-		const { agent } = (await created.json()) as AgentPayload
-		expect(agent.embedToken).toMatch(/^[0-9a-f-]{36}$/)
+	it("does not retain the obsolete agent embed-token route", async () => {
+		const { cookie } = await createAdminSession()
 
-		const reader = await createMemberSession(userId, ["agents:read"])
-		const forbidden = await app.request(`/api/agents/${agent.id}/embed-token/refresh`, {
-			method: "POST",
-			headers: { Cookie: reader },
-		})
-		expect(forbidden.status).toBe(403)
-
-		const rotated = await app.request(`/api/agents/${agent.id}/embed-token/refresh`, {
+		const response = await app.request(`/api/agents/${crypto.randomUUID()}/embed-token/refresh`, {
 			method: "POST",
 			headers: { Cookie: cookie },
 		})
-		expect(rotated.status).toBe(200)
-		const rotatedAgent = ((await rotated.json()) as AgentPayload).agent
-		expect(rotatedAgent.embedToken).toMatch(/^[0-9a-f-]{36}$/)
-		expect(rotatedAgent.embedToken).not.toBe(agent.embedToken)
 
-		const fetched = await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: cookie } })
-		expect(((await fetched.json()) as AgentPayload).agent.embedToken).toBe(rotatedAgent.embedToken)
-
-		const missing = await app.request(`/api/agents/${crypto.randomUUID()}/embed-token/refresh`, {
-			method: "POST",
-			headers: { Cookie: cookie },
-		})
-		expect(missing.status).toBe(404)
+		expect(response.status).toBe(404)
 	})
 })
 
@@ -278,21 +252,6 @@ describe("agent service interface", () => {
 
 		await service.deleteAgent(created.id)
 		await expect(service.getAgent(created.id)).rejects.toBeInstanceOf(service.AgentNotFoundError)
-	})
-
-	it("refreshes the embed token and reports a missing aggregate", async () => {
-		const created = await service.createAgent({
-			name: "Token Service",
-			systemPrompt: "Serve via service.",
-			wordBlacklist: [],
-		})
-
-		const refreshed = await service.refreshEmbedToken(created.id)
-		expect(refreshed.embedToken).not.toBe(created.embedToken)
-		expect((await service.getAgent(created.id)).embedToken).toBe(refreshed.embedToken)
-		expect(refreshed.updatedAt).toEqual(created.updatedAt)
-
-		await expect(service.refreshEmbedToken(crypto.randomUUID())).rejects.toBeInstanceOf(service.AgentNotFoundError)
 	})
 })
 
