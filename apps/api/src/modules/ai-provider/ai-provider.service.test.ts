@@ -1,3 +1,4 @@
+import { APICallError } from "@ai-sdk/provider"
 import { describe, expect, it } from "bun:test"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
@@ -7,7 +8,9 @@ import {
 	createAiProviderService,
 	InvalidConfigurationError,
 	PermissionDeniedError,
+	ProviderContextLimitError,
 	RevisionConflictError,
+	UnusableConfigurationError,
 } from "./ai-provider.service.ts"
 import { createCredentialVault } from "./credential-vault.ts"
 
@@ -49,11 +52,12 @@ const input: SaveConfigurationInput = {
 	},
 }
 
-function createMemoryService(authorized = true) {
+function createMemoryService(authorized = true, generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
 		authorize: async () => authorized,
 		vault: createCredentialVault(APP_SECRET),
+		generate,
 		discover: async () => ["model-a"],
 		repository: {
 			find: async () => stored,
@@ -158,5 +162,204 @@ describe("AI provider service", () => {
 
 		expect(models.text.modelId).toBe("gpt-5-mini")
 		expect(models.embedding.modelId).toBe("text-embedding-3-small")
+	})
+
+	it("streams only the configured text model with retries disabled and normalized usage", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "text", text: "Hello" } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				usage: { inputTokens: 5, outputTokens: 2 },
+			} as const
+		})
+		await service.saveConfiguration("user-1", input)
+		const controller = new AbortController()
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 77,
+			timeoutMs: 9000,
+		})
+		const events = [
+			{ type: "start", provider: prepared.provider, model: prepared.model },
+			...(await Array.fromAsync(prepared.invoke(controller.signal))),
+		]
+
+		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal: controller.signal })
+		expect(call?.model).toMatchObject({ modelId: "gpt-5-mini" })
+		expect(events).toEqual([
+			{ type: "start", provider: "openai", model: "gpt-5-mini" },
+			{ type: "text", text: "Hello" },
+			{
+				type: "finish",
+				outcome: "completed",
+				usage: { inputTokens: 5, outputTokens: 2 },
+				provider: "openai",
+				model: "gpt-5-mini",
+			},
+		])
+	})
+
+	it("passes the system prompt as AI SDK instructions instead of a model message", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [
+				{ role: "system", content: "Answer as the configured agent." },
+				{ role: "user", content: "Hi" },
+			],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await Array.fromAsync(prepared.invoke(new AbortController().signal))
+
+		expect(call).toMatchObject({
+			instructions: "Answer as the configured agent.",
+			messages: [{ role: "user", content: "Hi" }],
+		})
+	})
+
+	it("does not instantiate the configured embedding model for text generation", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await Array.fromAsync(prepared.invoke(new AbortController().signal))
+	})
+
+	it("normalizes provider context-window rejections without exposing their body", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message: "maximum context length exceeded: sensitive provider body",
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody: '{"code":"context_length_exceeded"}',
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
+			ProviderContextLimitError,
+		)
+	})
+
+	it.each([
+		{
+			name: "Anthropic",
+			message: "prompt is too long: 213462 tokens > 200000 maximum",
+			responseBody:
+				'{"type":"error","error":{"type":"invalid_request_error","message":"prompt is too long: 213462 tokens > 200000 maximum"}}',
+		},
+		{
+			name: "Google",
+			message: "The input token count (1197653) exceeds the maximum number of tokens allowed (1048576).",
+			responseBody:
+				'{"error":{"code":400,"message":"The input token count (1197653) exceeds the maximum number of tokens allowed (1048576).","status":"INVALID_ARGUMENT"}}',
+		},
+	])("normalizes $name context-limit rejections", async ({ message, responseBody }) => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message,
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody,
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
+			ProviderContextLimitError,
+		)
+	})
+
+	it("does not classify unrelated client errors as context-limit rejections", async () => {
+		const { service } = createMemoryService(true, async function* () {
+			yield* []
+			throw new APICallError({
+				message: "The model `gpt-0` does not exist",
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 400,
+				responseBody: '{"error":{"message":"The model `gpt-0` does not exist","code":"model_not_found"}}',
+			})
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(APICallError)
+	})
+
+	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(true, async function* (generationInput) {
+			call = generationInput
+			yield { type: "finish", outcome: "completed", usage: {} } as const
+		})
+		await service.saveConfiguration("user-1", input)
+
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 77,
+			timeoutMs: 9000,
+		})
+
+		expect(call).toBeUndefined()
+		expect(prepared).toMatchObject({ provider: "openai", model: "gpt-5-mini" })
+		const signal = new AbortController().signal
+		await Array.fromAsync(prepared.invoke(signal))
+		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal })
+	})
+
+	it("rejects corrupted stored credentials during preparation before provider invocation", async () => {
+		let invoked = false
+		const { service, getStored } = createMemoryService(true, async function* () {
+			invoked = true
+			yield* []
+		})
+		await service.saveConfiguration("user-1", input)
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
+		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }
+
+		await expect(
+			service.prepareTextOperation({
+				messages: [{ role: "user", content: "Hi" }],
+				maxOutputTokens: 77,
+				timeoutMs: 9000,
+			}),
+		).rejects.toBeInstanceOf(UnusableConfigurationError)
+		expect(invoked).toBe(false)
 	})
 })

@@ -8,7 +8,7 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 - Never hand-edit generated artifacts.
 - Record significant architectural decisions in `docs/adr`.
 - Update `docs/architecture.md` in the same change when architecture, boundaries, ownership, or canonical structure changes.
-- Keep E2E data in the API-owned seed for an isolated test database.
+- Use the API-owned shared development seed for the E2E baseline in an isolated test database. E2E specs create and clean up journey-specific records through application boundaries.
 
 Run after changes:
 

@@ -123,20 +123,6 @@ jobs:
     name: Integration Test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:18.4
-        env:
-          POSTGRES_DB: talqo
-          POSTGRES_PASSWORD: talqo
-          POSTGRES_USER: talqo
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U talqo -d talqo"
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 15
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -146,10 +132,6 @@ jobs:
         uses: ./.github/actions/setup-bun
       - name: Run integration tests
         run: bun run test:integration
-        env:
-          APP_SECRET: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-          DATABASE_URL: postgres://talqo:talqo@localhost:5432/talqo
-          NODE_ENV: test
 
   build:
     name: Build

@@ -1,6 +1,6 @@
 # Conceptual Entity Relationship Diagram
 
-Entities and relationships only — no columns or types. Column-level design is deferred until each module's implementation settles on what it actually needs.
+This diagram models the desired entities and relationships. Implementation schemas remain authoritative for columns and types.
 
 ```mermaid
 erDiagram
@@ -12,16 +12,16 @@ erDiagram
     AUDIT_LOG
 
     AGENT
-    WIDGET
+    EMBED
     BLACKLIST_WORD
-    AGENT_IP_RATE_LIMIT
 
     MCP_CONFIG
     AI_PROVIDER_CONFIG
 
-    END_USER_SESSION
     CONVERSATION
+    GENERATION_ATTEMPT
     MESSAGE
+    CONVERSATION_DAILY_COUNTER
 
     FILE_EMBEDDING
     USAGE_RECORD
@@ -32,13 +32,17 @@ erDiagram
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
-    AGENT ||--o{ WIDGET : serves
+    AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
-    AGENT ||--o{ AGENT_IP_RATE_LIMIT : defines
+    AGENT ||--o{ MCP_CONFIG : configures
+    AGENT ||--o{ AI_PROVIDER_CONFIG : configures
     AGENT ||--o{ FILE_EMBEDDING : embeds
 
-    AGENT ||--o{ END_USER_SESSION : receives
-    END_USER_SESSION ||--o{ CONVERSATION : contains
+    AGENT ||--o{ CONVERSATION : receives
+    AGENT ||--o{ CONVERSATION_DAILY_COUNTER : limits
+    EMBED o|--o{ CONVERSATION : originated
+    CONVERSATION ||--o{ GENERATION_ATTEMPT : accepts
     CONVERSATION ||--o{ MESSAGE : includes
-    MESSAGE ||--o{ USAGE_RECORD : tracks
+    GENERATION_ATTEMPT ||--|{ MESSAGE : produces
+    GENERATION_ATTEMPT ||--o| USAGE_RECORD : records
 ```

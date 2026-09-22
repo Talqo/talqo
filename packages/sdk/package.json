@@ -1,0 +1,19 @@
+{
+	"name": "@talqo/sdk",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": "./src/index.ts",
+	"scripts": {
+		"test": "bun test",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"eventsource-parser": "3.1.1"
+	},
+	"devDependencies": {
+		"@talqo/typescript-config": "workspace:*",
+		"@types/bun": "1.4.1",
+		"typescript": "7.0.2"
+	}
+}
