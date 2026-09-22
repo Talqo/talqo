@@ -62,7 +62,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | Done |
+| FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | In progress (markdown rendering pending) |
 | FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Done |
 | FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Done |
 | FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Done |
@@ -94,7 +94,7 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (dashboard, encrypted persistence, provider adapters, runtime factories, and conversation responses done; embedding-provider precondition pending) |
+| FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (embedding-provider precondition pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
 
 #### 3.2.3 Agent configuration (FR-2c)
@@ -158,8 +158,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | Done |
-| NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app uses Fumadocs | High | In progress (integration guide and configuration reference done; SDK reference pending) |
+| NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | In progress (built widget.js self-mounts from a script tag) |
+| NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app uses Fumadocs | High | In progress (AI provider configuration reference added) |
 | NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
 | NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
@@ -180,9 +180,9 @@ Talqo is related to these repos:
 |----|-------------|-------|----------|------------|
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
 | NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Done |
-| NFR-3.3 | SDK and widget endpoints authenticate using the agent's public embed token | Related to FR-3.4 | High | Done (token now owned by the embed; conversation history additionally requires a private credential) |
+| NFR-3.3 | SDK and widget endpoints authenticate using the agent's public embed token | Related to FR-3.4 | High | Done |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
-| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Done (API enforces daily question and concurrent-generation limits per client network) |
+| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Done |
 | NFR-3.6 | Widget enforces a per-conversation message limit | | High | Not started |
 
 ### 4.4 Usability (NFR-4)
