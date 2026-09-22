@@ -3,9 +3,10 @@ import type { PublicUser } from "@/modules/identity/identity.service.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import * as conversation from "@/modules/conversation/conversation.service.ts"
+import * as embed from "@/modules/embed/embed.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import * as widget from "@/modules/widget/widget.service.ts"
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 
@@ -24,7 +25,7 @@ const EXEMPT_PATHS = new Set([
 const FORCED_PASSWORD_CHANGE_ALLOWED_PATHS = new Set([`${API_PREFIX}/me/password`, `${API_PREFIX}/me/password/forced`])
 
 // For paths carrying a token segment. Each module anchors its own pattern at both ends.
-const EXEMPT_PATTERNS: readonly RegExp[] = [...widget.PUBLIC_PATH_PATTERNS]
+const EXEMPT_PATTERNS: readonly RegExp[] = [...embed.PUBLIC_PATH_PATTERNS, ...conversation.PUBLIC_PATH_PATTERNS]
 
 export const requireAuth = createMiddleware<{ Variables: AuthedVariables }>(async (c, next) => {
 	if (!hasMatchedRoute(c)) return next()

@@ -1,10 +1,28 @@
 import { expect, test, type Page } from "@playwright/test"
 
-const TEST_PASSWORD = "correct-horse-battery-staple"
-const OPERATOR = { username: "e2e_granted", password: TEST_PASSWORD }
-const VIEWER = { username: "e2e_viewer", password: TEST_PASSWORD }
-const MEMBER = { username: "e2e_ungranted", password: TEST_PASSWORD }
+const OPERATOR = { username: "admin", password: "admin123" }
+const VIEWER = { username: "user", password: "user1234" }
+const MEMBER = VIEWER
 const SEEDED_AGENT = "Website Assistant"
+
+async function grantViewerPermission(page: Page): Promise<string> {
+	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
+	const usersResponse = await page.request.get("/api/users")
+	await expect(usersResponse).toBeOK()
+	const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
+	const user = users.find(({ username }) => username === VIEWER.username)
+	if (!user) throw new Error("Seed user is missing")
+	const response = await page.request.post("/api/permission-grants", {
+		data: { userId: user.id, permission: "agents:read" },
+	})
+	await expect(response).toBeOK()
+	return ((await response.json()) as { grant: { id: string } }).grant.id
+}
+
+async function revokeViewerPermission(page: Page, grantId: string): Promise<void> {
+	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
+	await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+}
 
 async function logIn(page: Page, account: { password: string; username: string }) {
 	await page.goto("/login")
@@ -14,7 +32,7 @@ async function logIn(page: Page, account: { password: string; username: string }
 	await expect(page).toHaveURL("/dashboard")
 }
 
-test("manager creates, configures, embeds, and deletes an agent through the real API", async ({ page }) => {
+test("manager creates, configures, and deletes an agent through the real API", async ({ page }) => {
 	await logIn(page, OPERATOR)
 
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
@@ -42,14 +60,7 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
 
-	const tokenInput = page.getByLabel("Embed token", { exact: true })
-	const firstToken = await tokenInput.inputValue()
-	expect(firstToken).toMatch(/^[0-9a-f-]{36}$/)
-	await page.getByRole("button", { name: "Refresh token" }).click()
-	const refreshDialog = page.getByRole("dialog")
-	await expect(refreshDialog.getByText(/stops working/)).toBeVisible()
-	await refreshDialog.getByRole("button", { name: "Refresh token" }).click()
-	await expect(tokenInput).not.toHaveValue(firstToken)
+	await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 
 	await page.getByRole("link", { name: "Analytics", exact: true }).click()
 	await page.getByRole("combobox", { name: "Select an agent" }).click()
@@ -60,6 +71,7 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 	await page.getByRole("link", { name: /Docs helper/ }).click()
 	await page.getByRole("button", { name: "Delete agent" }).click()
 	const deleteDialog = page.getByRole("dialog")
+	await expect(deleteDialog).toContainText("conversation and usage history")
 	await expect(deleteDialog.getByRole("button", { name: "Delete permanently" })).toBeDisabled()
 	await deleteDialog.getByPlaceholder("Docs helper").fill("Docs helper")
 	const confirmButton = deleteDialog.getByRole("button", { name: "Delete permanently" })
@@ -73,34 +85,40 @@ test("manager creates, configures, embeds, and deletes an agent through the real
 })
 
 test("a read-only operator can inspect agents but finds no management controls", async ({ page }) => {
-	await logIn(page, VIEWER)
+	const grantId = await grantViewerPermission(page)
+	try {
+		await logIn(page, VIEWER)
 
-	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
-	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
+		await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
+		await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
 
-	await page.getByRole("link", { name: "Agents", exact: true }).click()
-	await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
-	await page.getByRole("link", { name: new RegExp(SEEDED_AGENT) }).click()
+		await page.getByRole("link", { name: "Agents", exact: true }).click()
+		await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
+		await page.getByRole("link", { name: new RegExp(SEEDED_AGENT) }).click()
 
-	await expect(page.getByRole("heading", { name: `Configure ${SEEDED_AGENT}` })).toBeVisible()
-	await expect(page.getByLabel("Name")).toBeDisabled()
-	await expect(page.getByLabel("System prompt")).toBeDisabled()
-	await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
-	await expect(page.getByLabel("Embed token", { exact: true })).toBeVisible()
-	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
-	await expect(page.getByRole("button", { name: "Refresh token" })).toHaveCount(0)
-	await expect(page.getByText("Danger zone")).toHaveCount(0)
+		await expect(page.getByRole("heading", { name: `Configure ${SEEDED_AGENT}` })).toBeVisible()
+		await expect(page.getByLabel("Name")).toBeDisabled()
+		await expect(page.getByLabel("System prompt")).toBeDisabled()
+		await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
+		await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
+		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+		await expect(page.getByText("Danger zone")).toHaveCount(0)
 
-	// Widgets ride on the same permission, so their controls must disappear too.
-	await page.getByRole("tab", { name: "Widgets" }).click()
-	await expect(page.getByRole("button", { name: "New widget" })).toHaveCount(0)
-	await page.locator("[data-slot=card]", { hasText: "Marketing site" }).click()
+		// Embeds ride on the same permission, so their controls must disappear too.
+		await page.getByRole("tab", { name: "Embeds" }).click()
+		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
+		await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
-	await expect(page.getByLabel("Name")).toBeDisabled()
-	await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
-	await expect(page.locator("pre")).toBeVisible()
-	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+		await expect(page.getByLabel("Name")).toBeDisabled()
+		await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
+		await expect(page.locator("pre")).toBeVisible()
+		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+		await expect(page.getByText("Danger zone")).toHaveCount(0)
+		await expect(page.getByRole("button", { name: "Delete embed" })).toHaveCount(0)
+	} finally {
+		await revokeViewerPermission(page, grantId)
+	}
 })
 
 test("an ungranted operator sees neither agent navigation nor agent content", async ({ page }) => {

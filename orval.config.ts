@@ -1,9 +1,25 @@
 import { defineConfig } from "orval"
 
 export default defineConfig({
+	sdk: {
+		input: {
+			target: "./apps/api/openapi.json",
+			filters: { tags: ["Public Chat"] },
+		},
+		output: {
+			client: "fetch",
+			mode: "single",
+			target: "./packages/sdk/src/generated/contracts.ts",
+			clean: true,
+		},
+	},
 	web: {
 		input: {
 			target: "./apps/api/openapi.json",
+			filters: {
+				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed"],
+				schemas: ["ProblemDetails"],
+			},
 		},
 		output: {
 			client: "react-query",

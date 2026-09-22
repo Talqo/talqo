@@ -62,13 +62,13 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | Not started |
-| FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Not started |
-| FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | In progress (minimize/reopen keeps session state; reload persistence pending) |
-| FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Not started |
-| FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Not started |
+| FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | In progress (markdown rendering pending) |
+| FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Done |
+| FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Done |
+| FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Done |
+| FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Done |
 | FR-1.6 | End user can rate individual agent responses with a thumbs up / thumbs down | Low | Not started |
-| FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Not started |
+| FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Done |
 
 ### 3.2 Dashboard (FR-2)
 
@@ -88,13 +88,13 @@ Talqo is related to these repos:
 | FR-2.6 | Operator can delete their account | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
 | FR-2.8 | Operator can rotate an agent's public embed token, which orphans the old token for existing embed code | Medium | Done |
-| FR-2.8a | Operator can rotate a widget's public token to invalidate the embed code already pasted on customer sites | Medium | Not started |
+| FR-2.8a | Operator can rotate a widget's public token to invalidate the embed code already pasted on customer sites | Medium | Done |
 
 #### 3.2.2 API configuration (FR-2b)
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (dashboard, encrypted persistence, provider adapters, and runtime factories done; conversation responses pending) |
+| FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (embedding-provider precondition pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
 
 #### 3.2.3 Agent configuration (FR-2c)
@@ -103,7 +103,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.10 | Operator can create a new agent with custom name | Medium | Done |
 | FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
-| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | In progress (runtime enforcement pending) |
+| FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Done |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress |
 | FR-2.13a | Operator can delete an agent | Medium | Done |
 
@@ -146,11 +146,11 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-3.1 | Developer can send a message to the agent and receive a response via the SDK, without using the pre-built widget UI | High | Not started |
-| FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Not started |
-| FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Not started |
-| FR-3.4 | SDK authenticates using the same public embed token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Not started |
-| FR-3.5 | SDK fetches the server-side visual configuration (described in FR-2e) | Medium | Not started |
+| FR-3.1 | Developer can send a message to the agent and receive a response via the SDK, without using the pre-built widget UI | High | Done |
+| FR-3.2 | SDK supports streaming responses (incremental tokens) so a custom UI can render output as it's generated | High | Done |
+| FR-3.3 | SDK manages conversation/session state (create new, resume via session ID), equivalent to what the widget does internally | High | Done |
+| FR-3.4 | SDK authenticates using the same public embed token as the pre-built widget — no separate credential type (server-side enforcement: NFR-3.3) | High | Done |
+| FR-3.5 | SDK fetches the server-side visual configuration (described in FR-2e) | Medium | Done |
 
 ## 4. Non-Functional Requirements
 
@@ -170,7 +170,7 @@ Talqo is related to these repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-2.1 | The agent must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via system prompt guardrails | High | Not started |
-| NFR-2.2 | Operator-defined word blacklist violations must be filtered **before** the response is sent to the end user | | High | Not started |
+| NFR-2.2 | Operator-defined word blacklist violations must be filtered **before** the response is sent to the end user | | High | Done |
 | NFR-2.3 | The agent must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via system prompt guardrails | High | Not started |
 | NFR-2.4 | The agent must resist prompt injection attempts that try to override its system prompt, leak blacklisted terms, or trigger unintended MCP tool calls — whether embedded directly in an end-user message or indirectly in ingested knowledge base content | Covers both direct input (FR-1.1) and indirect injection via uploaded files or crawled pages (FR-2.14, FR-2.16) reaching the agent as context | High | Not started |
 
@@ -179,10 +179,10 @@ Talqo is related to these repos:
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
 | NFR-3.1 | The operator's AI provider credentials must be stored encrypted at rest and never exposed to the frontend | | High | Done |
-| NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Not started |
-| NFR-3.3 | SDK and widget endpoints authenticate using the agent's public embed token | Related to FR-3.4 | High | Not started |
+| NFR-3.2 | API endpoints require authentication, except health/infrastructure endpoints (e.g. `/health`) needed for uptime checks | | High | Done |
+| NFR-3.3 | SDK and widget endpoints authenticate using the agent's public embed token | Related to FR-3.4 | High | Done |
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
-| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Not started |
+| NFR-3.5 | Widget enforces IP-based rate limiting to prevent abuse | | High | Done |
 | NFR-3.6 | Widget enforces a per-conversation message limit | | High | Not started |
 
 ### 4.4 Usability (NFR-4)

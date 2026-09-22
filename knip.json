@@ -27,8 +27,15 @@
 			"project": ["src/**/*.{ts,tsx,css}", "*.ts", "!src/api/generated/**"]
 		},
 		"apps/widget": {
-			"entry": ["src/preview.tsx", "src/svg-stub-component.ts", "i18next.config.ts"],
+			"entry": ["src/svg-stub-component.ts", "i18next.config.ts"],
 			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
+		},
+		"packages/sdk": {
+			"project": ["src/**/*.ts"],
+			"ignoreDependencies": ["@talqo/typescript-config"],
+			"ignoreIssues": {
+				"src/generated/**": ["exports", "types", "duplicates"]
+			}
 		},
 		"packages/typescript-config": {
 			"ignoreDependencies": ["vite"]

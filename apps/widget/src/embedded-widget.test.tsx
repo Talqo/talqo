@@ -28,6 +28,15 @@ function widgetRoot(container: HTMLElement): HTMLElement {
 }
 
 describe("appearance resolution", () => {
+	test("uses the widget scrollbar treatment for the message area", () => {
+		const container = render(<EmbeddedWidget />)
+		act(() => {
+			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
+		})
+
+		expect(container.querySelector(".talqo-scrollbar")?.className).toContain("overflow-y-auto")
+	})
+
 	test("writes the light scheme's five colors as custom properties by default", () => {
 		const root = widgetRoot(render(<EmbeddedWidget appearance={{ theme: "light" }} />))
 		expect(root.style.getPropertyValue("--talqo-primary-input")).toBe("#1a7f4b")

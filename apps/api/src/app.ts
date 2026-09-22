@@ -10,9 +10,10 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { agentFilesRoutes } from "@/modules/agent-files/agent-files.routes.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
+import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
+import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
-import { widgetConfigRoutes, widgetRoutes } from "@/modules/widget/widget.routes.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
 
@@ -21,7 +22,7 @@ const CORS_MAX_AGE_SECONDS = 86_400
 const MIN_ERROR_STATUS = 400
 const MAX_ERROR_STATUS = 599
 
-export const app = new OpenAPIHono<{ Variables: AuthedVariables }>({
+export const app = new OpenAPIHono<{ Bindings: ChatBindings; Variables: AuthedVariables }>({
 	defaultHook: (result, context) => {
 		if (!result.success) {
 			return problemResponse(context, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
@@ -34,6 +35,11 @@ app.openAPIRegistry.registerComponent("securitySchemes", "SessionCookie", {
 	name: "session",
 	type: "apiKey",
 })
+app.openAPIRegistry.registerComponent("securitySchemes", "ChatBearer", {
+	type: "http",
+	scheme: "bearer",
+	bearerFormat: "UUID",
+})
 app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
@@ -42,17 +48,32 @@ app.use("*", rejectMalformedJson)
 // Ahead of requireAuth, so a preflight is not answered with a 401. Scoped to the public
 // config path: `origin: "*"` forbids credentials, but wider would be a CSRF hole (ADR-0013).
 app.use(
+	`${API_PREFIX}/embed-config/*`,
+	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
+)
+app.use(
 	`${API_PREFIX}/widget-config/*`,
 	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
 )
+app.use(
+	`${API_PREFIX}/chat/*`,
+	cors({
+		origin: "*",
+		allowMethods: ["GET", "POST", "OPTIONS"],
+		allowHeaders: ["Authorization", "Content-Type"],
+		maxAge: CORS_MAX_AGE_SECONDS,
+	}),
+)
 app.use("*", requireAuth)
-const api = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const api = new OpenAPIHono<{ Bindings: ChatBindings; Variables: AuthedVariables }>()
 api.route("/", aiProviderRoutes)
 api.route("/", identityRoutes)
 api.route("/", rolesRoutes)
 api.route("/agents", agentRoutes)
-api.route("/widgets", widgetRoutes)
-api.route("/widget-config", widgetConfigRoutes)
+api.route("/embeds", embedRoutes)
+api.route("/embed-config", embedConfigRoutes)
+api.route("/widget-config", legacyWidgetConfigRoutes)
+api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
