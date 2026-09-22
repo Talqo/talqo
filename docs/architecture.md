@@ -16,15 +16,13 @@ Update this guide in the same change as any decision that changes architecture, 
 
 ## Technology Baseline
 
-| Technology or decision | Role | Decision record |
+| Technology | Role | Decision record |
 | --- | --- | --- |
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
-| Modular monolith | Application structure | [ADR-0002](adr/0002-use-a-modular-monolith.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
-| Web/API separation | Client rendering and integration boundary | [ADR-0007](adr/0007-separate-web-rendering-from-the-api.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
 | Zod | Runtime contracts | None |
