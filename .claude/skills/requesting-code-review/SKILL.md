@@ -1,95 +1,24 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: Use for requested reviews, substantial or high-risk changes, or a project-required pre-merge review. Routine edits do not need an independent reviewer by default.
 ---
 
 # Requesting Code Review
 
-Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history.
+Use independent review when it can catch meaningful defects. Do not create a review cycle for every small task or subagent output.
 
-**Core principle:** Review early, review often.
+## Request
 
-## When to Request Review
+- Give an available review-capable subagent the requirements, change scope, relevant constraints, and verification results.
+- Use [code-reviewer.md](code-reviewer.md) as the prompt template. Review is read-only.
+- Identify the actual comparison base; do not assume `HEAD~1` covers the work. Include staged, unstaged, and untracked changes when reviewing unfinished work.
+- Keep context focused on the contract and evidence, not the implementer's reasoning history.
 
-**Mandatory:**
-- After each task in subagent-driven development
-- After completing major feature
-- Before merge to main
+## Act On Findings
 
-**Optional but valuable:**
-- When stuck (fresh perspective)
-- Before refactoring (baseline check)
-- After fixing complex bug
+- Validate each finding against the code and requirements before changing anything.
+- Fix confirmed correctness, security, and regression issues within scope. Escalate consequential requirement changes instead of silently implementing them.
+- Treat stylistic preferences, speculative scalability, and unrelated improvements as nonblocking.
+- Recheck affected behavior after fixes. Repeat review only when material changes or unresolved findings justify it.
 
-## How to Request
-
-**1. Get git SHAs:**
-```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
-HEAD_SHA=$(git rev-parse HEAD)
-```
-
-**2. Dispatch code reviewer subagent:**
-
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
-
-**Placeholders:**
-- `[DESCRIPTION]` - Brief summary of what you built
-- `[PLAN_OR_REQUIREMENTS]` - What it should do
-- `[BASE_SHA]` - Starting commit
-- `[HEAD_SHA]` - Ending commit
-
-**3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
-- Note Minor issues for later
-- Push back if reviewer is wrong (with reasoning)
-
-## Example
-
-```
-[Just completed Task 2: Add verification function]
-
-You: Let me request code review before proceeding.
-
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
-HEAD_SHA=$(git rev-parse HEAD)
-
-[Dispatch code reviewer subagent]
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
-  BASE_SHA: a7981ec
-  HEAD_SHA: 3df7661
-
-[Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Issues:
-    Important: Missing progress indicators
-    Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
-
-You: [Fix progress indicators]
-[Continue to Task 3]
-```
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "I'll just review the diff myself instead of dispatching a reviewer" | You're the coordinator — reviewing the diff inline burns the context window you need to keep driving the work. Dispatch a reviewer subagent: the diff and the evaluation live in its context, and only the findings come back to you. |
-| "The reviewer needs my whole session history to understand the change" | Hand it precisely crafted context, never your session's history. That keeps the reviewer on the work product, not your thought process. |
-
-## Red Flags
-
-**Never:**
-- Skip review because "it's simple"
-- Ignore Critical issues
-- Proceed with unfixed Important issues
-- Argue with valid technical feedback
-
-**If reviewer wrong:**
-- Push back with technical reasoning
-- Show code/tests that prove it works
-- Request clarification
-
-See template at: [code-reviewer.md](code-reviewer.md)
+For substantial changes with unnecessary complexity, consider the `simplicity` subagent. Do not dispatch it in addition to a reviewer already checking the same concerns unless an independent pass has a clear benefit.

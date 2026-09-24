@@ -1,6 +1,6 @@
 ---
 name: ui-ux
-description: Use when designing or implementing user-facing interfaces. Applies usability, accessibility, interaction, and cognitive-load principles to UI decisions.
+description: ALWAYS use this skill when designing or changing user-facing workflows, interaction behavior, accessibility, or information architecture.
 ---
 
 # The Psychology of a UI/UX Engineer

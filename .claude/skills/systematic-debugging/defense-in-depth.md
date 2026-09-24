@@ -2,121 +2,60 @@
 
 ## Overview
 
-When you fix a bug caused by invalid data, adding validation at one place feels sufficient. But that single check can be bypassed by different code paths, refactoring, or mocks.
+Fix invalid data at its source, then decide whether a boundary or invariant needs protection against recurrence. Defense in depth addresses independent failure modes; repeating the same check at every call layer adds maintenance cost without necessarily improving safety.
 
-**Core principle:** Validate at EVERY layer data passes through. Make the bug structurally impossible.
+**Core principle:** Each retained check needs an owning boundary or invariant and a concrete failure mode it prevents.
 
-## Why Multiple Layers
+## Choosing Checks
 
-Single validation: "We fixed the bug"
-Multiple layers: "We made the bug impossible"
+| Location | Concrete reason to validate | When not to add another check |
+|----------|-----------------------------|-------------------------------|
+| Trust boundary | External input can violate the accepted shape or domain contract | An internal wrapper only forwards already-validated, unchanged data |
+| Domain operation | Valid input can still violate an operation-specific rule, such as an invalid state transition | The operation merely repeats the entry point's schema checks |
+| Side-effect boundary | Independent callers can bypass validation, or mutable state can change before use | All callers share the same enforced contract and no new failure mode exists |
+| Test fixture or harness | Uninitialized setup or accidental access to real resources can pollute tests | A production `NODE_ENV` branch exists only to compensate for broken test setup |
 
-Different layers catch different cases:
-- Entry validation catches most bugs
-- Business logic catches edge cases
-- Environment guards prevent context-specific dangers
-- Debug logging helps when other layers fail
+Revalidation can be appropriate after a transformation, across a process boundary, or after state changes. Name the actual bypass or invalidated assumption; hypothetical future refactors and mocks alone do not justify checks everywhere. Share validation rules across independent entry points instead of copying them.
 
-## The Four Layers
+## Example: Empty Project Directory
 
-### Layer 1: Entry Point Validation
-**Purpose:** Reject obviously invalid input at API boundary
+**Observed flow:**
+1. Test setup exposes `tempDir: ''` before `beforeEach` runs.
+2. `Project.create()` passes that value through workspace/session helpers.
+3. The process wrapper receives an empty `cwd` and runs `git init` in the source directory.
+
+**Root-cause fix:** Create the project after fixture initialization. If the fixture API exposes an uninitialized directory, have its getter fail on premature access rather than returning a usable-looking empty string.
+
+**Choose a validation owner:** If `createProject` accepts external directory input, reject a missing directory there before it reaches side effects. For example, this boundary rejects blank input instead of allowing a default working directory:
 
 ```typescript
-function createProject(name: string, workingDirectory: string) {
-  if (!workingDirectory || workingDirectory.trim() === '') {
-    throw new Error('workingDirectory cannot be empty');
+function requireProjectDirectory(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error('project directory required');
   }
-  if (!existsSync(workingDirectory)) {
-    throw new Error(`workingDirectory does not exist: ${workingDirectory}`);
-  }
-  if (!statSync(workingDirectory).isDirectory()) {
-    throw new Error(`workingDirectory is not a directory: ${workingDirectory}`);
-  }
-  // ... proceed
+  return value;
 }
 ```
 
-### Layer 2: Business Logic Validation
-**Purpose:** Ensure data makes sense for this operation
+This checks only the nonblank-input contract; it is not proof of existence, writability, or authorization. Validate those properties only where the operation requires them. Filesystem prechecks can race with use, so handle operation errors even when prechecks improve diagnostics.
 
-```typescript
-function initializeWorkspace(projectDir: string, sessionId: string) {
-  if (!projectDir) {
-    throw new Error('projectDir required for workspace initialization');
-  }
-  // ... proceed
-}
-```
+**Additional protection is conditional:**
+- If the process wrapper is independently callable with untrusted directory input, enforce the explicit-directory contract at that boundary too, reusing the rule. Show the independent call path in a test.
+- Do not repeat the empty-string check in every workspace/session helper that only forwards the validated value.
+- Keep test resource isolation in fixtures or the harness. Avoid test-environment branches in production unless a concrete safety requirement cannot be met there; document the requirement and test the affected behavior.
+- If the product restricts filesystem operations to an approved root, enforce that policy for all relevant callers, not only tests. A string-prefix check does not prove containment: account for path components, symlinks, and filesystem races according to the threat model.
 
-### Layer 3: Environment Guards
-**Purpose:** Prevent dangerous operations in specific contexts
+## Diagnostics Are Not Validation
 
-```typescript
-async function gitInit(directory: string) {
-  // In tests, refuse git init outside temp directories
-  if (process.env.NODE_ENV === 'test') {
-    const normalized = normalize(resolve(directory));
-    const tmpDir = normalize(resolve(tmpdir()));
+Logging can reveal a failing call path but cannot prevent it. Start with existing traces; if needed, add a temporary probe for the unresolved question at the suspected operation. Prefer presence flags, safe IDs, and error codes over raw paths, payloads, or environment values.
 
-    if (!normalized.startsWith(tmpDir)) {
-      throw new Error(
-        `Refusing git init outside temp dir during tests: ${directory}`
-      );
-    }
-  }
-  // ... proceed
-}
-```
-
-### Layer 4: Debug Instrumentation
-**Purpose:** Capture context for forensics
-
-```typescript
-async function gitInit(directory: string) {
-  const stack = new Error().stack;
-  logger.debug('About to git init', {
-    directory,
-    cwd: process.cwd(),
-    stack,
-  });
-  // ... proceed
-}
-```
+For stack tracing, use a local debugger or a narrowly scoped diagnostic hook in a safe reproduction. Inspect and redact paths or other sensitive context before retaining or sharing output. Bound collection time and volume, then remove the probe. Permanent telemetry requires a separate operational justification, safe fields, and access/retention controls.
 
 ## Applying the Pattern
 
-When you find a bug:
-
-1. **Trace the data flow** - Where does bad value originate? Where used?
-2. **Map all checkpoints** - List every point data passes through
-3. **Add validation at each layer** - Entry, business, environment, debug
-4. **Test each layer** - Try to bypass layer 1, verify layer 2 catches it
-
-## Example from Session
-
-Bug: Empty `projectDir` caused `git init` in source code
-
-**Data flow:**
-1. Test setup → empty string
-2. `Project.create(name, '')`
-3. `WorkspaceManager.createWorkspace('')`
-4. `git init` runs in `process.cwd()`
-
-**Four layers added:**
-- Layer 1: `Project.create()` validates not empty/exists/writable
-- Layer 2: `WorkspaceManager` validates projectDir not empty
-- Layer 3: `WorktreeManager` refuses git init outside tmpdir in tests
-- Layer 4: Stack trace logging before git init
-
-**Result:** All 1847 tests passed, bug impossible to reproduce
-
-## Key Insight
-
-All four layers were necessary. During testing, each layer caught bugs the others missed:
-- Different code paths bypassed entry validation
-- Mocks bypassed business logic checks
-- Edge cases on different platforms needed environment guards
-- Debug logging identified structural misuse
-
-**Don't stop at one validation point.** Add checks at every layer.
+1. Reproduce the failure and trace the invalid value to its source.
+2. Fix the source and add a regression test where feasible. Observe its failure before the fix and success afterward; if that cannot be established, report the limitation and verification actually performed.
+3. Identify any remaining trust boundary or invariant. For each proposed check, state the concrete failure mode, owner, and why an existing check cannot cover it.
+4. Implement only the justified checks; preserve errors from operations whose state can change after validation.
+5. Test each distinct failure mode and the valid path. For a rejected directory, verify no process is launched; for the fixture bug, verify no source-tree pollution occurs in an isolated reproduction.
+6. Remove temporary diagnostics and run relevant regression tests. Report observed coverage and limitations rather than claiming the bug is impossible.

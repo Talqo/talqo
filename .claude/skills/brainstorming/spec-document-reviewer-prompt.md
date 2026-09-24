@@ -4,13 +4,13 @@ Use this template when dispatching a spec document reviewer subagent.
 
 **Purpose:** Verify the spec is complete, consistent, and ready for implementation.
 
-**Dispatch after:** Spec document is written to docs/specs/
+**Dispatch when:** An independent review of a consequential design is warranted. Use the supplied spec path; no fixed directory is required.
 
 ```
 Subagent (general-purpose):
   description: "Review spec document"
   prompt: |
-    You are a spec document reviewer. Verify this spec is complete and ready for implementation.
+    Review this spec for implementation-blocking gaps. Do not edit files or change git state.
 
     **Spec to review:** [SPEC_FILE_PATH]
 
@@ -27,7 +27,7 @@ Subagent (general-purpose):
     ## Calibration
 
     **Only flag issues that would cause real problems during implementation.**
-    A missing section, a contradiction, or a requirement so ambiguous it could be
+    A missing necessary decision, a contradiction, or a requirement so ambiguous it could be
     interpreted two different ways — those are issues. Minor wording improvements,
     stylistic preferences, and "sections less detailed than others" are not.
 
@@ -42,8 +42,7 @@ Subagent (general-purpose):
     **Issues (if any):**
     - [Section X]: [specific issue] - [why it matters for implementation]
 
-    **Recommendations (advisory, do not block approval):**
-    - [suggestions for improvement]
+    Omit empty sections and optional wording suggestions.
 ```
 
-**Reviewer returns:** Status, Issues (if any), Recommendations
+**Reviewer returns:** Status and concrete issues, if any.

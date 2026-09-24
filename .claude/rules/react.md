@@ -9,16 +9,15 @@ paths:
 
 ## Architecture
 
-- Use a layered UI structure: primitives, shared composed components, route screens/layouts, and shared non-React utilities.
-- Keep reusable UI outside route files in component directories.
-- Use `src/lib/` for shared non-React utilities.
-- Use composition, context providers, or URL state for cross-component coordination.
+- Follow the existing UI structure and directory conventions; do not add layers for a local change.
+- Extract shared components and non-React utilities when they have demonstrated reuse or clarify a meaningful boundary.
+- Prefer props and composition for coordination; use context or URL state when the required lifetime and consumers justify them.
 
 ## Data And State
 
-- Use a dedicated server-state layer for fetching, caching, deduplication, invalidation, retries, and loading/error state.
-- Put shareable UI state in URL search params: filters, search terms, pagination, sorting, selected tabs, and view modes.
-- Keep local component state for ephemeral UI only: open menus, uncontrolled draft text, transient animation state.
+- Reuse the project's server-state solution. Add caching, retries, or a new state library only for demonstrated requirements.
+- Put state in URL search params when bookmarking, sharing, or navigation history is part of the behavior.
+- Keep state local unless other consumers or persistence requirements require a wider owner.
 - Use effects for synchronization with external systems.
 - Include complete effect dependencies or restructure the code.
 - Clean up subscriptions, timers, network requests, and observers.
@@ -34,16 +33,17 @@ paths:
 ## Errors And Feedback
 
 - Surface user-visible failures through the project's shared error notification pattern.
-- Use a global toast, alert, or notification system for unexpected action and request failures.
+- Reuse existing notifications or show failures near the affected action; do not introduce a global notification system for a local change.
 - Use inline field errors for validation failures.
-- Use empty states, loading states, retry actions, and partial-failure states for data views.
+- Handle reachable empty, loading, and error states. Offer retries or partial results when the operation supports them.
 
 ## Styling
 
 - Use the project's design-system primitives and theme tokens.
-- Define colors, radii, spacing, and semantic variants in the theme layer.
+- Define shared colors, radii, spacing, and semantic variants in the existing theme layer.
 - Use semantic tokens for UI intent: background, foreground, muted, primary, destructive, and border.
-- Keep component code free of one-off colors and ad hoc visual constants.
+- Reuse established visual tokens; do not build a design system solely to eliminate a local value.
+
 ## Accessibility And UX
 
 - Add ARIA for behavior native HTML cannot express.
@@ -55,7 +55,7 @@ paths:
 
 - Use stable keys from data identity.
 - Add memoization when there is a measured render cost or a stable API contract requires it.
-- Split heavy routes, dialogs, editors, charts, and rarely used widgets.
+- Split heavy routes or widgets when bundle size or loading behavior warrants it.
 
 ## Verification
 
