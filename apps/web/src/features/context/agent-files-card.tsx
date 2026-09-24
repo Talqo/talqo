@@ -1,4 +1,4 @@
-import type { AgentFile } from "@/api/generated/models/agent/agentFile.zod"
+import type { AgentFile } from "@/api/generated/models/agentFile.zod"
 
 import {
 	downloadAgentFile,

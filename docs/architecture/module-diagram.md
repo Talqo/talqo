@@ -15,7 +15,7 @@ graph LR
 
     subgraph "Configuration"
         agent[agent]
-        widget[widget]
+        embed[embed]
         ai_provider["ai-provider"]
         mcp[mcp]
         knowledge[knowledge]
@@ -33,13 +33,14 @@ graph LR
     roles --> identity
 
     agent --> roles
-    widget --> agent
-    widget --> roles
+    embed --> agent
+    embed --> roles
     ai_provider --> roles
     mcp --> roles
     knowledge --> roles
     usage --> roles
 
+    conversation --> embed
     conversation --> agent
     conversation --> ai_provider
     conversation --> mcp
@@ -63,13 +64,13 @@ graph LR
 |---|---|---|
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
 | `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and deployment-global permission grants — owns "who can do what." |
-| `agent` | `AGENT`, `BLACKLIST_WORD`, `AGENT_IP_RATE_LIMIT` | Deployment-owned agent branding, persona, content policy, and public embed tokens. |
-| `widget` | `WIDGET` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many widgets. |
-| `ai-provider` | `AI_PROVIDER_CONFIG` | App-level LLM provider credentials and model selection. |
+| `agent` | `AGENT`, `BLACKLIST_WORD` | Deployment-owned agent branding, persona, and content policy. |
+| `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many embeds. |
+| `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
 | `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. |
-| `conversation` | `END_USER_SESSION`, `CONVERSATION`, `MESSAGE` | Chat runtime; orchestrates a reply using agent config, the AI provider, MCP tools, and knowledge. |
-| `usage` | `USAGE_RECORD` | Meters tokens/cost per message; enforces usage limits. |
+| `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, the AI provider, MCP tools, and knowledge. |
+| `usage` | `USAGE_RECORD` | Meters tokens/cost per generation attempt; limit enforcement lives in `conversation`. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 
 Every entity in [`docs/ERD.md`](../ERD.md) is owned by exactly one module, matching the "a module writes only its own tables" rule.

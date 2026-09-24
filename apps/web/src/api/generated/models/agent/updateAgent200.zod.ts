@@ -6,7 +6,7 @@
  */
 import * as zod from "zod"
 
-import { Agent } from "./agent.zod"
+import { Agent } from "../agent.zod"
 
 export const UpdateAgent200 = zod.object({
 	agent: Agent,

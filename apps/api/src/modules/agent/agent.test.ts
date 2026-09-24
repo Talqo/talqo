@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test"
 
-import { InvalidAgentInputError, normalizeAgentInput } from "./agent.service.ts"
+import { composeSystemPrompt, InvalidAgentInputError, normalizeAgentInput } from "./agent.service.ts"
+
+describe("composeSystemPrompt", () => {
+	it("prepends a non-empty platform prompt to the saved agent prompt", () => {
+		expect(composeSystemPrompt("Configured agent instructions.")).toMatch(/\S\nConfigured agent instructions\.$/)
+	})
+})
 
 describe("normalizeAgentInput", () => {
 	it("trims the name and system prompt", () => {

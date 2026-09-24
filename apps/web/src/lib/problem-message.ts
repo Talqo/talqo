@@ -6,7 +6,8 @@ type Translate = (key: string) => string
 
 const PROBLEM_PROPERTY_COUNT = 2
 
-const PROBLEM_TRANSLATORS = {
+// Deliberately not exhaustive: public-chat codes never surface in the dashboard and fall back.
+const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) => string>> = {
 	"admin-access-required": (t) => t("problems.admin-access-required"),
 	"admin-already-exists": (t) => t("problems.admin-already-exists"),
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
@@ -19,6 +20,7 @@ const PROBLEM_TRANSLATORS = {
 	"authentication-required": (t) => t("problems.authentication-required"),
 	"configuration-conflict": (t) => t("problems.configuration-conflict"),
 	"current-password-incorrect": (t) => t("problems.current-password-incorrect"),
+	"embed-not-found": (t) => t("problems.embed-not-found"),
 	"internal-server-error": (t) => t("problems.internal-server-error"),
 	"invalid-ai-provider-configuration": (t) => t("problems.invalid-ai-provider-configuration"),
 	"invalid-credentials": (t) => t("problems.invalid-credentials"),
@@ -38,20 +40,18 @@ const PROBLEM_TRANSLATORS = {
 	"route-not-found": (t) => t("problems.route-not-found"),
 	"self-password-reset-not-allowed": (t) => t("problems.self-password-reset-not-allowed"),
 	"user-not-found": (t) => t("problems.user-not-found"),
-	"widget-not-found": (t) => t("problems.widget-not-found"),
 	"username-taken": (t) => t("problems.username-taken"),
-} satisfies Record<ProblemCode, (translate: Translate) => string>
+}
 
 function isExactProblem(value: unknown): value is ProblemDetails {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return false
 	if (Object.keys(value).length !== PROBLEM_PROPERTY_COUNT || !("code" in value) || !("type" in value)) return false
 	if (typeof value.code !== "string" || typeof value.type !== "string") return false
-	if (!Object.hasOwn(PROBLEM_TRANSLATORS, value.code)) return false
 	return problemDetailsSchema.safeParse(value).success
 }
 
 export function getProblemMessage(error: unknown, translate: Translate, fallback: string): string {
 	const info = (error as { info?: unknown } | null)?.info
 	if (!isExactProblem(info)) return fallback
-	return PROBLEM_TRANSLATORS[info.code](translate)
+	return PROBLEM_TRANSLATORS[info.code]?.(translate) ?? fallback
 }

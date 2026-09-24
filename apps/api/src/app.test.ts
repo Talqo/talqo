@@ -232,7 +232,12 @@ describe("api", () => {
 			.map((route) => route.path)
 
 		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
-		expect(wildcardApiRoutes).toEqual(["/api/widget-config/*", "/api/agents/:agentId/files"])
+		expect(wildcardApiRoutes).toEqual([
+			"/api/embed-config/*",
+			"/api/widget-config/*",
+			"/api/chat/*",
+			"/api/agents/:agentId/files",
+		])
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
@@ -250,7 +255,6 @@ describe("api", () => {
 				"/api/ai-providers",
 				"/api/agents",
 				"/api/agents/{agentId}",
-				"/api/agents/{agentId}/embed-token/refresh",
 				"/api/agents/{agentId}/files",
 				"/api/agents/{agentId}/files/{fileName}",
 				"/api/auth/login",
@@ -266,9 +270,13 @@ describe("api", () => {
 				"/api/permission-grants/{id}",
 				"/api/setup",
 				"/api/users",
-				"/api/widget-config/{token}",
-				"/api/widgets",
-				"/api/widgets/{widgetId}",
+				"/api/embed-config/{embedToken}",
+				"/api/chat/{embedToken}/messages",
+				"/api/chat/session",
+				"/api/chat/cancel",
+				"/api/embeds",
+				"/api/embeds/{embedId}",
+				"/api/embeds/{embedId}/embed-token/rotate",
 				"/api/users/{userId}/password",
 				"/health",
 			].toSorted(),
@@ -285,30 +293,50 @@ describe("api", () => {
 				}
 			}
 			const payloadTooLargeRef = payloadTooLarge?.content?.["application/problem+json"]?.schema?.$ref
-			expect(payloadTooLargeRef).toBe(
-				"requestBody" in operation ? "#/components/schemas/ProblemPayloadTooLarge" : undefined,
-			)
+			expect(payloadTooLargeRef).toBe("requestBody" in operation ? "#/components/schemas/ProblemDetails" : undefined)
 		}
 
 		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])
 		expect(new Set(operationIds).size).toBe(operationIds.length)
 		expect(operationIds.every((operationId) => operationId.length > 0)).toBe(true)
+		expect(document.components?.securitySchemes?.ChatBearer).toEqual({
+			type: "http",
+			scheme: "bearer",
+			bearerFormat: "UUID",
+		})
+		for (const path of ["/api/chat/{embedToken}/messages", "/api/chat/session", "/api/chat/cancel"] as const) {
+			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
+		}
+		const sendResponses = paths["/api/chat/{embedToken}/messages"]?.post?.responses ?? {}
+		const expectedSendProblems = {
+			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],
+			401: ["chat-session-unauthorized"],
+			404: ["embed-not-found"],
+			409: ["chat-request-conflict"],
+			413: ["payload-too-large"],
+			429: ["chat-daily-allowance-exceeded", "chat-concurrency-limit", "chat-session-busy"],
+			500: ["internal-server-error"],
+			502: ["provider-error"],
+		} as const
+		for (const [status, codes] of Object.entries(expectedSendProblems)) {
+			expect(sendResponses[status]?.description).toBe(`Problem response. Codes: ${codes.join(", ")}.`)
+		}
 
 		const schemas = document.components?.schemas ?? {}
-		const problemSchema = schemas.ProblemDetails as { oneOf?: Array<{ $ref?: string }> }
-		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
-		for (const reference of problemSchema.oneOf ?? []) {
-			const name = reference.$ref?.replace("#/components/schemas/", "") ?? ""
-			const schema = schemas[name] as {
+		const problemSchema = schemas.ProblemDetails as {
+			oneOf?: Array<{
 				additionalProperties?: boolean
 				properties?: { code?: { enum?: string[] }; type?: { enum?: string[] } }
-			}
-			expect(reference.$ref).toStartWith("#/components/schemas/Problem")
+			}>
+		}
+		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
+		for (const schema of problemSchema.oneOf ?? []) {
 			expect(schema.additionalProperties).toBe(false)
 			const code = schema.properties?.code?.enum?.[0]
 			const type = schema.properties?.type?.enum?.[0]
 			expect(type).toBe(`https://docs.talqo.chat/problems#${code}`)
 		}
+		expect(Object.keys(schemas).filter((name) => name.startsWith("Problem"))).toEqual(["ProblemDetails"])
 
 		const loginBadRequest = paths["/api/auth/login"]?.post?.responses?.["400"] as {
 			content?: {
@@ -318,11 +346,6 @@ describe("api", () => {
 			}
 		}
 		const loginProblemRef = loginBadRequest.content?.["application/problem+json"]?.schema?.$ref
-		expect(loginProblemRef).toBe("#/components/schemas/ProblemInvalidRequestOrMalformedJson")
-		const loginProblems = schemas.ProblemInvalidRequestOrMalformedJson as { oneOf?: Array<{ $ref?: string }> }
-		expect(loginProblems.oneOf?.map((schema) => schema.$ref)).toEqual([
-			"#/components/schemas/ProblemInvalidRequest",
-			"#/components/schemas/ProblemMalformedJson",
-		])
+		expect(loginProblemRef).toBe("#/components/schemas/ProblemDetails")
 	})
 })

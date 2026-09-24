@@ -1,0 +1,9 @@
+{
+	"extends": "../typescript-config/base.json",
+	"compilerOptions": {
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"types": []
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["src/**/*.test.ts"]
+}

@@ -48,3 +48,32 @@
 .talqo-widget h2 {
 	margin: 0;
 }
+
+.talqo-widget .talqo-scrollbar {
+	scrollbar-color: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent) transparent;
+	scrollbar-width: thin;
+}
+
+.talqo-widget .talqo-scrollbar:hover {
+	scrollbar-color: var(--talqo-muted-foreground) transparent;
+}
+
+.talqo-widget .talqo-scrollbar::-webkit-scrollbar {
+	width: 8px;
+}
+
+.talqo-widget .talqo-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.talqo-widget .talqo-scrollbar::-webkit-scrollbar-thumb {
+	border: 2px solid transparent;
+	border-radius: 9999px;
+	background: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent);
+	background-clip: padding-box;
+}
+
+.talqo-widget .talqo-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: var(--talqo-muted-foreground);
+	background-clip: padding-box;
+}
