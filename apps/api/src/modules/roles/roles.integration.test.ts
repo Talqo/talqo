@@ -16,13 +16,24 @@ async function loginResponse(username: string, password: string): Promise<Respon
 	})
 }
 
-async function login(username: string, password: string): Promise<string> {
-	const response = await loginResponse(username, password)
+function sessionCookieFrom(response: Response): string {
 	const setCookie = response.headers.get("set-cookie")
 	if (!setCookie) throw new Error("Expected a Set-Cookie header")
 	const [cookiePair] = setCookie.split(";")
 	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
 	return cookiePair
+}
+
+async function login(username: string, password: string): Promise<string> {
+	return sessionCookieFrom(await loginResponse(username, password))
+}
+
+async function expectUsableSession(response: Response, username: string): Promise<void> {
+	const cookie = sessionCookieFrom(response)
+	expect(cookie.startsWith(`${identity.SESSION_COOKIE}=`)).toBe(true)
+	const sessionResponse = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
+	const body = (await sessionResponse.json()) as { user: { username: string } | null }
+	expect(body.user?.username).toBe(username)
 }
 
 async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
@@ -62,6 +73,9 @@ describe("roles", () => {
 		const { user } = (await response.json()) as { user: { id: string; username: string } }
 		expect(user.username).toBe(username)
 		expect(await service.authorize(user.id, "admin")).toBe(true)
+
+		// Bootstrap issues a session directly: the setup page never falls back to a second login.
+		await expectUsableSession(response, username)
 
 		const statusResponse = await app.request("/api/setup")
 		expect(await statusResponse.json()).toEqual({ needsSetup: false })
@@ -140,6 +154,9 @@ describe("invitations", () => {
 		expect(response.status).toBe(201)
 		const { user } = (await response.json()) as { user: { username: string } }
 		expect(user.username).toBe(username)
+
+		// Redeem issues a session directly: the accept-invite page never falls back to a second login.
+		await expectUsableSession(response, username)
 	})
 
 	it("rejects a second attempt to redeem the same invitation", async () => {
