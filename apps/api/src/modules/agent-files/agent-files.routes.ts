@@ -11,6 +11,7 @@ import {
 	agentFileDetailResponseSchema,
 	agentFileListResponseSchema,
 	deleteAgentFileRoute,
+	downloadAgentFileRoute,
 	listAgentFilesRoute,
 	renameAgentFileRoute,
 	uploadAgentFileRoute,
@@ -23,6 +24,12 @@ function serialize(file: files.StoredFile) {
 
 async function requireAgent(agentId: string): Promise<void> {
 	await agent.getAgent(agentId)
+}
+
+// RFC 5987: filename* carries the UTF-8 name; a quoted ASCII fallback serves older clients.
+function contentDisposition(name: string): string {
+	const fallback = name.replace(/[^\x20-\x7E]|["\\]/g, "_")
+	return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`
 }
 
 const uploadBodyLimit = bodyLimit({
@@ -86,6 +93,35 @@ export const agentFilesRoutes = routes
 			}
 			if (error instanceof files.FileExistsError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT)
+			}
+			throw error
+		}
+	})
+	.openapi(downloadAgentFileRoute, async (c) => {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+		}
+		const { agentId, fileName } = c.req.valid("param")
+		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
+		try {
+			await requireAgent(agentId)
+			files.validateName(fileName)
+			const content = await files.get(agentId, fileName)
+			// attachment forces a download, so the generic type suffices; no per-format map to maintain.
+			return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
+				"Content-Disposition": contentDisposition(fileName),
+				"Content-Type": "application/octet-stream",
+			})
+		} catch (error) {
+			if (error instanceof files.InvalidFileError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
+			}
+			if (error instanceof agent.AgentNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
+			if (error instanceof files.FileNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 			}
 			throw error
 		}

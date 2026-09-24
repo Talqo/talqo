@@ -33,6 +33,14 @@ const fileParamsSchema = z.object({
 // Overridden to OpenAPI's binary string so clients generate an upload field.
 const fileFieldSchema = z.custom<File>((value) => value instanceof File).openapi({ type: "string", format: "binary" })
 
+// Binary response so generated clients read a Blob instead of parsing JSON.
+const fileContentResponseSchema = z
+	.custom<Blob>((value) => value instanceof Blob)
+	.openapi({
+		type: "string",
+		format: "binary",
+	})
+
 const renameAgentFileRequestSchema = z.object({
 	name: z.string().min(1).max(MAX_FILE_NAME_LENGTH),
 })
@@ -89,6 +97,26 @@ export const uploadAgentFileRoute = createRoute({
 		404: agentNotFound,
 		409: fileNameTaken,
 		413: payloadTooLargeResponse,
+		500: serverError,
+	},
+})
+
+export const downloadAgentFileRoute = createRoute({
+	method: "get",
+	path: "/{agentId}/files/{fileName}",
+	operationId: "downloadAgentFile",
+	tags: ["Agent"],
+	security: sessionSecurity,
+	request: { params: fileParamsSchema },
+	responses: {
+		200: {
+			content: { "application/octet-stream": { schema: fileContentResponseSchema } },
+			description: "The raw content of the file",
+		},
+		400: problemResponse([PROBLEM_CODES.AGENT_FILE_INVALID]),
+		401: authRequired,
+		403: forbidden,
+		404: fileOrAgentNotFound,
 		500: serverError,
 	},
 })
