@@ -368,34 +368,29 @@ export async function setAttribution(
 	return rows.length === 1
 }
 
-export async function heartbeat(generationAttemptId: string, leaseToken: string): Promise<boolean> {
-	const rows = await db
-		.update(generationAttempt)
-		.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "running"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
-}
-
-export async function isCancellationRequested(generationAttemptId: string, leaseToken: string): Promise<boolean> {
-	const [row] = await db
-		.select({ cancelled: generationAttempt.cancellationRequestedAt })
-		.from(generationAttempt)
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
-	return row?.cancelled !== null && row?.cancelled !== undefined
+export async function pollRunningAttempts(
+	owned: { id: string; leaseToken: string }[],
+	renewLease: boolean,
+): Promise<{ id: string; cancelled: boolean }[]> {
+	if (owned.length === 0) return []
+	const matches = sql`(${generationAttempt.id}, ${generationAttempt.leaseToken}) IN (${sql.join(
+		owned.map(({ id, leaseToken }) => sql`(${id}, ${leaseToken})`),
+		sql`, `,
+	)})`
+	const condition = and(
+		matches,
+		eq(generationAttempt.status, "running"),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+	const fields = { id: generationAttempt.id, cancelledAt: generationAttempt.cancellationRequestedAt }
+	const rows = renewLease
+		? await db
+				.update(generationAttempt)
+				.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
+				.where(condition)
+				.returning(fields)
+		: await db.select(fields).from(generationAttempt).where(condition)
+	return rows.map((row) => ({ id: row.id, cancelled: row.cancelledAt !== null }))
 }
 
 export async function stageFinalization(input: {
@@ -459,7 +454,7 @@ export async function stageFinalization(input: {
 	})
 }
 
-export async function listPendingUsageFinalizations(limit: number): Promise<PendingUsageFinalization[]> {
+export async function listPendingUsageFinalizations(limit: number, id?: string): Promise<PendingUsageFinalization[]> {
 	return db
 		.select({
 			generationAttemptId: generationAttempt.id,
@@ -481,8 +476,10 @@ export async function listPendingUsageFinalizations(limit: number): Promise<Pend
 				eq(generationAttempt.providerInvoked, true),
 				isNotNull(generationAttempt.finalOutcome),
 				isNull(generationAttempt.usageRecordedAt),
+				id ? eq(generationAttempt.id, id) : undefined,
 			),
 		)
+		.orderBy(asc(generationAttempt.id))
 		.limit(limit) as Promise<PendingUsageFinalization[]>
 }
 
@@ -531,7 +528,7 @@ export async function markUsageRecorded(input: {
 	return rows.length === 1
 }
 
-export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<boolean> {
+export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
 	const conditions = [
 		eq(generationAttempt.conversationId, conversationId),
 		inArray(generationAttempt.status, ACTIVE_STATUSES),
@@ -543,7 +540,7 @@ export async function requestCancellation(conversationId: string, generationAtte
 		.set({ cancellationRequestedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(and(...conditions))
 		.returning({ id: generationAttempt.id })
-	return rows.length > 0
+	return rows.map((row) => row.id)
 }
 
 export async function getActiveGenerationAttempt(conversationId: string): Promise<{ id: string } | undefined> {
