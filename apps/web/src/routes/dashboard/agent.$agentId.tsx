@@ -172,7 +172,7 @@ function AgentConfigPage() {
 				value={tab}
 				onValueChange={(value) => {
 					if (isAgentTab(value)) {
-						void setTab({ search: (prev) => ({ ...prev, tab: value }), replace: true })
+						void setTab({ search: (prev) => ({ ...prev, tab: value }), replace: true, resetScroll: false })
 					}
 				}}
 			>

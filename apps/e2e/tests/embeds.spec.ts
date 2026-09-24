@@ -168,6 +168,33 @@ test("operator switches to the Dark tab and edits an independent palette", async
 	await expect(launcher).toHaveCSS("background-color", lightPrimary)
 })
 
+test("switching color tabs keeps the scroll position", async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 480 })
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+
+	const darkTab = page.getByRole("tab", { name: "Dark" })
+	await darkTab.scrollIntoViewIfNeeded()
+	const scrollY = await page.evaluate(() => window.scrollY)
+	expect(scrollY).toBeGreaterThan(0)
+
+	// The router's scroll reset runs after render, so let two frames pass before reading.
+	const settledScrollY = () =>
+		page.evaluate(
+			() =>
+				new Promise<number>((resolve) =>
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve(window.scrollY))),
+				),
+		)
+
+	await darkTab.click()
+	await expect(page).toHaveURL(/colorTab=dark/)
+	expect(await settledScrollY()).toBe(scrollY)
+
+	await page.getByRole("tab", { name: "Light" }).click()
+	await expect(page).toHaveURL(/colorTab=light/)
+	expect(await settledScrollY()).toBe(scrollY)
+})
+
 test("operator moves the embedded widget to the other corner", async ({ page }) => {
 	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
 
