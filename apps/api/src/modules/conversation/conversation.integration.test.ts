@@ -593,7 +593,9 @@ describe("conversation lifecycle", () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
 		const gate = deferred()
-		const owner = customService(async function* () {
+		let expectedInputTokens = 0
+		const owner = customService(async function* ({ messages }) {
+			expectedInputTokens = Math.ceil([...messages.map((message) => message.content).join("\n")].length / 4)
 			started.resolve()
 			yield { type: "start", provider: "fake", model: "fake-model" } as const
 			await gate.promise
@@ -614,6 +616,19 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
+		expect(
+			(await sql`SELECT estimated_input_tokens FROM generation_attempt WHERE id = ${sent.generationId}`)[0],
+		).toMatchObject({
+			estimated_input_tokens: expectedInputTokens,
+		})
+		expect(
+			(
+				await sql`
+				SELECT count(*)::int AS count FROM information_schema.columns
+				WHERE table_name = 'generation_attempt' AND column_name = 'input_text'
+			`
+			)[0]?.count,
+		).toBe(0)
 		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${sent.generationId}`
 
 		await customService(emptyGeneration).getSession(CREDENTIAL_1)
@@ -642,9 +657,9 @@ describe("conversation lifecycle", () => {
 			final_outcome: "interrupted",
 			outcome: "interrupted",
 			recorded: true,
-			usage_input_tokens: expect.any(Number),
+			usage_input_tokens: expectedInputTokens,
 			usage_output_tokens: expect.any(Number),
-			input_tokens: expect.any(Number),
+			input_tokens: expectedInputTokens,
 			output_tokens: expect.any(Number),
 		})
 		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)

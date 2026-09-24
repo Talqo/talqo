@@ -45,7 +45,7 @@ export type PendingUsageFinalization = {
 	assistantText: string
 	generationAttemptId: string
 	conversationId: string
-	inputText: string
+	estimatedInputTokens: number
 	inputTokens: number | null
 	model: string
 	outcome: NonNullable<typeof generationAttempt.$inferSelect.finalOutcome>
@@ -145,7 +145,7 @@ export async function acceptGenerationAttempt(input: {
 	conversationId: string
 	embedAccessVersion: number
 	embedId: string
-	inputText: string
+	estimatedInputTokens: number
 	messageText: string
 	networkHash: string
 	requestId: string
@@ -280,7 +280,7 @@ export async function acceptGenerationAttempt(input: {
 				id: generationAttemptId,
 				conversationId: input.conversationId,
 				requestId: input.requestId,
-				inputText: input.inputText,
+				estimatedInputTokens: input.estimatedInputTokens,
 				networkHash: input.networkHash,
 				leaseToken,
 				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
@@ -460,7 +460,7 @@ export async function listPendingUsageFinalizations(limit: number, id?: string):
 			generationAttemptId: generationAttempt.id,
 			conversationId: generationAttempt.conversationId,
 			agentId: conversation.agentId,
-			inputText: generationAttempt.inputText,
+			estimatedInputTokens: generationAttempt.estimatedInputTokens,
 			assistantText: message.text,
 			provider: sql<string>`coalesce(${generationAttempt.provider}, 'unknown')`,
 			model: sql<string>`coalesce(${generationAttempt.model}, 'unknown')`,

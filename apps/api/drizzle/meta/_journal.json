@@ -50,6 +50,27 @@
 			"when": 1789682700008,
 			"tag": "0006_end-user-chat",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1790284483706,
+			"tag": "0007_add-input-token-estimate",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1790284499014,
+			"tag": "0008_backfill-input-token-estimate",
+			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "7",
+			"when": 1790284527122,
+			"tag": "0009_drop-redundant-prompt",
+			"breakpoints": true
 		}
 	]
 }

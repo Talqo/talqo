@@ -1,0 +1,1453 @@
+{
+	"id": "6380bdf8-ec74-4398-9a28-3e83372a591c",
+	"prevId": "cbb0c678-077c-4e22-b9b1-3391765b6b7d",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.agent": {
+			"name": "agent",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"system_prompt": {
+					"name": "system_prompt",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"agent_name_unique_idx": {
+					"name": "agent_name_unique_idx",
+					"columns": [
+						{
+							"expression": "lower(\"name\")",
+							"isExpression": true,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.blacklist_word": {
+			"name": "blacklist_word",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"word": {
+					"name": "word",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"blacklist_word_agent_id_idx": {
+					"name": "blacklist_word_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"blacklist_word_agent_word_unique_idx": {
+					"name": "blacklist_word_agent_word_unique_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "lower(\"word\")",
+							"isExpression": true,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"blacklist_word_agent_id_agent_id_fk": {
+					"name": "blacklist_word_agent_id_agent_id_fk",
+					"tableFrom": "blacklist_word",
+					"columnsFrom": ["agent_id"],
+					"tableTo": "agent",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.ai_provider_config": {
+			"name": "ai_provider_config",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"text_config": {
+					"name": "text_config",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"embedding_config": {
+					"name": "embedding_config",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {
+				"ai_provider_config_singleton_check": {
+					"name": "ai_provider_config_singleton_check",
+					"value": "\"ai_provider_config\".\"id\" = 'singleton'"
+				}
+			},
+			"isRLSEnabled": false
+		},
+		"public.conversation": {
+			"name": "conversation",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"embed_id": {
+					"name": "embed_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"embed_access_version": {
+					"name": "embed_access_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"revision": {
+					"name": "revision",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"latest_completed_message_id": {
+					"name": "latest_completed_message_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"conversation_agent_id_idx": {
+					"name": "conversation_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"conversation_embed_id_idx": {
+					"name": "conversation_embed_id_idx",
+					"columns": [
+						{
+							"expression": "embed_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"conversation_agent_id_agent_id_fk": {
+					"name": "conversation_agent_id_agent_id_fk",
+					"tableFrom": "conversation",
+					"columnsFrom": ["agent_id"],
+					"tableTo": "agent",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				},
+				"conversation_embed_id_embed_id_fk": {
+					"name": "conversation_embed_id_embed_id_fk",
+					"tableFrom": "conversation",
+					"columnsFrom": ["embed_id"],
+					"tableTo": "embed",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "set null"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.conversation_daily_counter": {
+			"name": "conversation_daily_counter",
+			"schema": "",
+			"columns": {
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"network_hash": {
+					"name": "network_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"day": {
+					"name": "day",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"count": {
+					"name": "count",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"conversation_daily_counter_unique_idx": {
+					"name": "conversation_daily_counter_unique_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "network_hash",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "day",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"conversation_daily_counter_agent_id_agent_id_fk": {
+					"name": "conversation_daily_counter_agent_id_agent_id_fk",
+					"tableFrom": "conversation_daily_counter",
+					"columnsFrom": ["agent_id"],
+					"tableTo": "agent",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.generation_attempt": {
+			"name": "generation_attempt",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"conversation_id": {
+					"name": "conversation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"request_id": {
+					"name": "request_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"input_text": {
+					"name": "input_text",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"estimated_input_tokens": {
+					"name": "estimated_input_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"status": {
+					"name": "status",
+					"type": "generation_attempt_status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'accepted'"
+				},
+				"network_hash": {
+					"name": "network_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"lease_token": {
+					"name": "lease_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"lease_expires_at": {
+					"name": "lease_expires_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"cancellation_requested_at": {
+					"name": "cancellation_requested_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"provider": {
+					"name": "provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"model": {
+					"name": "model",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"provider_invoked": {
+					"name": "provider_invoked",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
+				},
+				"final_outcome": {
+					"name": "final_outcome",
+					"type": "generation_attempt_final_outcome",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"usage_input_tokens": {
+					"name": "usage_input_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"usage_output_tokens": {
+					"name": "usage_output_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"usage_recorded_at": {
+					"name": "usage_recorded_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"generation_attempt_conversation_request_unique_idx": {
+					"name": "generation_attempt_conversation_request_unique_idx",
+					"columns": [
+						{
+							"expression": "conversation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "request_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"generation_attempt_active_network_idx": {
+					"name": "generation_attempt_active_network_idx",
+					"columns": [
+						{
+							"expression": "network_hash",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "status",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "lease_expires_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"generation_attempt_conversation_id_idx": {
+					"name": "generation_attempt_conversation_id_idx",
+					"columns": [
+						{
+							"expression": "conversation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"generation_attempt_recovery_idx": {
+					"name": "generation_attempt_recovery_idx",
+					"columns": [
+						{
+							"expression": "lease_expires_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"where": "\"generation_attempt\".\"status\" in ('accepted', 'running')",
+					"concurrently": false
+				},
+				"generation_attempt_usage_pending_idx": {
+					"name": "generation_attempt_usage_pending_idx",
+					"columns": [
+						{
+							"expression": "provider_invoked",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "usage_recorded_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"generation_attempt_conversation_id_conversation_id_fk": {
+					"name": "generation_attempt_conversation_id_conversation_id_fk",
+					"tableFrom": "generation_attempt",
+					"columnsFrom": ["conversation_id"],
+					"tableTo": "conversation",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {
+				"generation_attempt_usage_candidate_pair_check": {
+					"name": "generation_attempt_usage_candidate_pair_check",
+					"value": "(\"generation_attempt\".\"usage_input_tokens\" IS NULL) = (\"generation_attempt\".\"usage_output_tokens\" IS NULL)"
+				}
+			},
+			"isRLSEnabled": false
+		},
+		"public.message": {
+			"name": "message",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"conversation_id": {
+					"name": "conversation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"generation_attempt_id": {
+					"name": "generation_attempt_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"role": {
+					"name": "role",
+					"type": "message_role",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"text": {
+					"name": "text",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"outcome": {
+					"name": "outcome",
+					"type": "message_outcome",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"message_order_idx": {
+					"name": "message_order_idx",
+					"columns": [
+						{
+							"expression": "conversation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "created_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"message_generation_attempt_idx": {
+					"name": "message_generation_attempt_idx",
+					"columns": [
+						{
+							"expression": "generation_attempt_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"message_conversation_id_conversation_id_fk": {
+					"name": "message_conversation_id_conversation_id_fk",
+					"tableFrom": "message",
+					"columnsFrom": ["conversation_id"],
+					"tableTo": "conversation",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				},
+				"message_generation_attempt_id_generation_attempt_id_fk": {
+					"name": "message_generation_attempt_id_generation_attempt_id_fk",
+					"tableFrom": "message",
+					"columnsFrom": ["generation_attempt_id"],
+					"tableTo": "generation_attempt",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.embed": {
+			"name": "embed",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"embed_token": {
+					"name": "embed_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"access_version": {
+					"name": "access_version",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 1
+				},
+				"light_primary_color": {
+					"name": "light_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_text_on_primary_color": {
+					"name": "light_text_on_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_background_color": {
+					"name": "light_background_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_surface_color": {
+					"name": "light_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"light_text_color": {
+					"name": "light_text_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_primary_color": {
+					"name": "dark_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_on_primary_color": {
+					"name": "dark_text_on_primary_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_background_color": {
+					"name": "dark_background_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_surface_color": {
+					"name": "dark_surface_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"dark_text_color": {
+					"name": "dark_text_color",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"position": {
+					"name": "position",
+					"type": "embed_position",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'bottom-right'"
+				},
+				"theme": {
+					"name": "theme",
+					"type": "embed_theme",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'system'"
+				},
+				"theme_toggle_enabled": {
+					"name": "theme_toggle_enabled",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": true
+				},
+				"language": {
+					"name": "language",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'en'"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"embed_agent_id_idx": {
+					"name": "embed_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"embed_agent_id_agent_id_fk": {
+					"name": "embed_agent_id_agent_id_fk",
+					"tableFrom": "embed",
+					"columnsFrom": ["agent_id"],
+					"tableTo": "agent",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "restrict"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"embed_embed_token_unique": {
+					"name": "embed_embed_token_unique",
+					"columns": ["embed_token"],
+					"nullsNotDistinct": false
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.session": {
+			"name": "session",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"token_hash": {
+					"name": "token_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"ip_address": {
+					"name": "ip_address",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"user_agent": {
+					"name": "user_agent",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"session_user_id_idx": {
+					"name": "session_user_id_idx",
+					"columns": [
+						{
+							"expression": "user_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"session_user_id_user_id_fk": {
+					"name": "session_user_id_user_id_fk",
+					"tableFrom": "session",
+					"columnsFrom": ["user_id"],
+					"tableTo": "user",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"session_token_hash_unique": {
+					"name": "session_token_hash_unique",
+					"columns": ["token_hash"],
+					"nullsNotDistinct": false
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.user": {
+			"name": "user",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"username": {
+					"name": "username",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"password_hash": {
+					"name": "password_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"must_change_password": {
+					"name": "must_change_password",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"user_username_unique": {
+					"name": "user_username_unique",
+					"columns": ["username"],
+					"nullsNotDistinct": false
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.invitation": {
+			"name": "invitation",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"token_hash": {
+					"name": "token_hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"invited_by": {
+					"name": "invited_by",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"redeemed_at": {
+					"name": "redeemed_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"invitation_invited_by_idx": {
+					"name": "invitation_invited_by_idx",
+					"columns": [
+						{
+							"expression": "invited_by",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"invitation_invited_by_user_id_fk": {
+					"name": "invitation_invited_by_user_id_fk",
+					"tableFrom": "invitation",
+					"columnsFrom": ["invited_by"],
+					"tableTo": "user",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"invitation_token_hash_unique": {
+					"name": "invitation_token_hash_unique",
+					"columns": ["token_hash"],
+					"nullsNotDistinct": false
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.permission_grant": {
+			"name": "permission_grant",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"user_id": {
+					"name": "user_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"permission": {
+					"name": "permission",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"granted_by": {
+					"name": "granted_by",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"granted_at": {
+					"name": "granted_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"permission_grant_user_id_idx": {
+					"name": "permission_grant_user_id_idx",
+					"columns": [
+						{
+							"expression": "user_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"permission_grant_admin_unique_idx": {
+					"name": "permission_grant_admin_unique_idx",
+					"columns": [
+						{
+							"expression": "permission",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"with": {},
+					"method": "btree",
+					"where": "\"permission_grant\".\"permission\" = 'admin' AND \"permission_grant\".\"agent_id\" IS NULL",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"permission_grant_user_id_user_id_fk": {
+					"name": "permission_grant_user_id_user_id_fk",
+					"tableFrom": "permission_grant",
+					"columnsFrom": ["user_id"],
+					"tableTo": "user",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				},
+				"permission_grant_granted_by_user_id_fk": {
+					"name": "permission_grant_granted_by_user_id_fk",
+					"tableFrom": "permission_grant",
+					"columnsFrom": ["granted_by"],
+					"tableTo": "user",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "set null"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.usage_record": {
+			"name": "usage_record",
+			"schema": "",
+			"columns": {
+				"generation_attempt_id": {
+					"name": "generation_attempt_id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"conversation_id": {
+					"name": "conversation_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"provider": {
+					"name": "provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"model": {
+					"name": "model",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"outcome": {
+					"name": "outcome",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"input_tokens": {
+					"name": "input_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"output_tokens": {
+					"name": "output_tokens",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"usage_record_agent_id_idx": {
+					"name": "usage_record_agent_id_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				},
+				"usage_record_conversation_id_idx": {
+					"name": "usage_record_conversation_id_idx",
+					"columns": [
+						{
+							"expression": "conversation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"with": {},
+					"method": "btree",
+					"concurrently": false
+				}
+			},
+			"foreignKeys": {
+				"usage_record_generation_attempt_id_generation_attempt_id_fk": {
+					"name": "usage_record_generation_attempt_id_generation_attempt_id_fk",
+					"tableFrom": "usage_record",
+					"columnsFrom": ["generation_attempt_id"],
+					"tableTo": "generation_attempt",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				},
+				"usage_record_agent_id_agent_id_fk": {
+					"name": "usage_record_agent_id_agent_id_fk",
+					"tableFrom": "usage_record",
+					"columnsFrom": ["agent_id"],
+					"tableTo": "agent",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				},
+				"usage_record_conversation_id_conversation_id_fk": {
+					"name": "usage_record_conversation_id_conversation_id_fk",
+					"tableFrom": "usage_record",
+					"columnsFrom": ["conversation_id"],
+					"tableTo": "conversation",
+					"columnsTo": ["id"],
+					"onUpdate": "no action",
+					"onDelete": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		}
+	},
+	"enums": {
+		"public.generation_attempt_final_outcome": {
+			"name": "generation_attempt_final_outcome",
+			"schema": "public",
+			"values": ["completed", "failed", "cancelled", "blocked", "interrupted"]
+		},
+		"public.generation_attempt_status": {
+			"name": "generation_attempt_status",
+			"schema": "public",
+			"values": ["accepted", "running", "completed", "failed", "cancelled", "blocked", "interrupted"]
+		},
+		"public.message_outcome": {
+			"name": "message_outcome",
+			"schema": "public",
+			"values": ["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"]
+		},
+		"public.message_role": {
+			"name": "message_role",
+			"schema": "public",
+			"values": ["user", "assistant"]
+		},
+		"public.embed_position": {
+			"name": "embed_position",
+			"schema": "public",
+			"values": ["bottom-right", "bottom-left"]
+		},
+		"public.embed_theme": {
+			"name": "embed_theme",
+			"schema": "public",
+			"values": ["system", "light", "dark"]
+		}
+	},
+	"schemas": {},
+	"views": {},
+	"sequences": {},
+	"roles": {},
+	"policies": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
+}

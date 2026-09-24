@@ -147,7 +147,10 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 async function recordPendingUsage(pending: repository.PendingUsageFinalization): Promise<void> {
 	const normalized =
 		pending.inputTokens === null || pending.outputTokens === null
-			? usageService.normalizeUsage({ inputText: pending.inputText, outputText: pending.assistantText })
+			? {
+					inputTokens: pending.estimatedInputTokens,
+					outputTokens: usageService.estimateTokens(pending.assistantText),
+				}
 			: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
 	if (pending.inputTokens === null || pending.outputTokens === null) {
 		await repository.stageRecoveredUsageCandidate(
@@ -460,7 +463,7 @@ export function createConversationService(dependencies: Dependencies) {
 						requestId: input.requestId,
 						historyRevision: history.revision,
 						historyTailId: history.latestCompletedMessageId,
-						inputText: promptText(messages),
+						estimatedInputTokens: usageService.estimateTokens(promptText(messages)),
 						messageText: input.text,
 						networkHash: input.networkHash,
 						dailyLimit: dependencies.dailyLimit,
