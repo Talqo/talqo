@@ -1070,27 +1070,27 @@ export type downloadAgentFileResponse200 = {
 }
 
 export type downloadAgentFileResponse400 = {
-	data: ProblemAgentFileInvalid
+	data: ProblemDetails
 	status: 400
 }
 
 export type downloadAgentFileResponse401 = {
-	data: ProblemAuthenticationRequired
+	data: ProblemDetails
 	status: 401
 }
 
 export type downloadAgentFileResponse403 = {
-	data: ProblemPasswordChangeRequiredOrPermissionDenied
+	data: ProblemDetails
 	status: 403
 }
 
 export type downloadAgentFileResponse404 = {
-	data: ProblemAgentFileNotFoundOrAgentNotFound
+	data: ProblemDetails
 	status: 404
 }
 
 export type downloadAgentFileResponse500 = {
-	data: ProblemInternalServerError
+	data: ProblemDetails
 	status: 500
 }
 
@@ -1143,15 +1143,7 @@ export const getDownloadAgentFileQueryKey = (agentId: string, fileName: string) 
 
 export const getDownloadAgentFileQueryOptions = <
 	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	fileName: string,
@@ -1178,27 +1170,11 @@ export const getDownloadAgentFileQueryOptions = <
 }
 
 export type DownloadAgentFileQueryResult = NonNullable<Awaited<ReturnType<typeof downloadAgentFile>>>
-export type DownloadAgentFileQueryError = globalThis.Error & {
-	info?:
-		| ProblemAgentFileInvalid
-		| ProblemAuthenticationRequired
-		| ProblemPasswordChangeRequiredOrPermissionDenied
-		| ProblemAgentFileNotFoundOrAgentNotFound
-		| ProblemInternalServerError
-	status?: number
-}
+export type DownloadAgentFileQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
 export function useDownloadAgentFile<
 	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	fileName: string,
@@ -1218,15 +1194,7 @@ export function useDownloadAgentFile<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDownloadAgentFile<
 	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	fileName: string,
@@ -1246,15 +1214,7 @@ export function useDownloadAgentFile<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useDownloadAgentFile<
 	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	fileName: string,
@@ -1267,15 +1227,7 @@ export function useDownloadAgentFile<
 
 export function useDownloadAgentFile<
 	TData = Awaited<ReturnType<typeof downloadAgentFile>>,
-	TError = globalThis.Error & {
-		info?:
-			| ProblemAgentFileInvalid
-			| ProblemAuthenticationRequired
-			| ProblemPasswordChangeRequiredOrPermissionDenied
-			| ProblemAgentFileNotFoundOrAgentNotFound
-			| ProblemInternalServerError
-		status?: number
-	},
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
 	agentId: string,
 	fileName: string,

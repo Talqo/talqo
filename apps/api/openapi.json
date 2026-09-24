@@ -4759,51 +4759,51 @@
 						}
 					},
 					"400": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-invalid.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileInvalid"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
 					},
 					"401": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: authentication-required.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAuthenticationRequired"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
 					},
 					"403": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemPasswordChangeRequiredOrPermissionDenied"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
 					},
 					"404": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: agent-file-not-found, agent-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemAgentFileNotFoundOrAgentNotFound"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
 					},
 					"500": {
-						"description": "https://docs.talqo.chat/problems",
+						"description": "Problem response. Codes: internal-server-error.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProblemInternalServerError"
+									"$ref": "#/components/schemas/ProblemDetails"
 								}
 							}
 						}
