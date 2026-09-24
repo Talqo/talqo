@@ -431,6 +431,37 @@ describe("conversation lifecycle", () => {
 		}
 	})
 
+	it("keeps a generation alive across one failed poll and observes a later cancellation", async () => {
+		const { createdEmbed } = await fixture()
+		const owner = customService(cancellationGeneration)
+		const other = customService(cancellationGeneration)
+		const realPoll = repository.pollRunningAttempts
+		let attempts = 0
+		const poll = spyOn(repository, "pollRunningAttempts").mockImplementation((owned, renew) => {
+			attempts += 1
+			if (attempts === 1) throw new Error("temporary poll failure")
+			return realPoll(owned, renew)
+		})
+		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+		try {
+			const sent = await owner.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "keep generating",
+				networkHash: "network-a",
+			})
+			await other.cancel(CREDENTIAL_1, sent.generationId)
+			await sent.done
+			expect(attempts).toBeGreaterThanOrEqual(2)
+			expect(logged).toHaveBeenCalledTimes(1)
+			expect((await owner.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("cancelled")
+		} finally {
+			poll.mockRestore()
+			logged.mockRestore()
+		}
+	})
+
 	it("sets embed references null and cascades all history and usage with agent deletion", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		const instance = service()

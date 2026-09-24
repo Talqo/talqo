@@ -182,6 +182,7 @@ export function createConversationService(dependencies: Dependencies) {
 	const controllers = new Map<string, { controller: AbortController; leaseToken: string }>()
 	let pollTimer: ReturnType<typeof setTimeout> | undefined
 	let polling = false
+	let pollErrorReported = false
 	let lastHeartbeat = performance.now()
 	async function poll(): Promise<void> {
 		pollTimer = undefined
@@ -200,8 +201,10 @@ export function createConversationService(dependencies: Dependencies) {
 				}
 			}
 			if (renew) lastHeartbeat = performance.now()
-		} catch {
-			for (const { controller } of controllers.values()) controller.abort()
+			pollErrorReported = false
+		} catch (error) {
+			if (!pollErrorReported) console.error("conversation.poll.failed", { error })
+			pollErrorReported = true
 		} finally {
 			polling = false
 			if (controllers.size > 0) pollTimer = setTimeout(() => void poll(), CANCELLATION_POLL_MS)

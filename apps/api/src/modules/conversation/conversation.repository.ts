@@ -488,8 +488,8 @@ export async function stageRecoveredUsageCandidate(
 	outcome: PendingUsageFinalization["outcome"],
 	inputTokens: number,
 	outputTokens: number,
-): Promise<boolean> {
-	const rows = await db
+): Promise<void> {
+	await db
 		.update(generationAttempt)
 		.set({ usageInputTokens: inputTokens, usageOutputTokens: outputTokens, updatedAt: DATABASE_NOW })
 		.where(
@@ -502,8 +502,6 @@ export async function stageRecoveredUsageCandidate(
 				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
 }
 
 export async function markUsageRecorded(input: {
@@ -511,8 +509,8 @@ export async function markUsageRecorded(input: {
 	inputTokens: number
 	outcome: PendingUsageFinalization["outcome"]
 	outputTokens: number
-}): Promise<boolean> {
-	const rows = await db
+}): Promise<void> {
+	await db
 		.update(generationAttempt)
 		.set({ usageRecordedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(
@@ -524,8 +522,6 @@ export async function markUsageRecorded(input: {
 				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
 }
 
 export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
