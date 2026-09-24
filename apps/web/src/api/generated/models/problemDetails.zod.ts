@@ -6,74 +6,175 @@
  */
 import * as zod from "zod"
 
-import { ProblemAgentFileInvalid } from "./agent/problemAgentFileInvalid.zod"
-import { ProblemAgentFileNameTaken } from "./agent/problemAgentFileNameTaken.zod"
-import { ProblemAgentFileNotFound } from "./agent/problemAgentFileNotFound.zod"
-import { ProblemAgentInUse } from "./agent/problemAgentInUse.zod"
-import { ProblemAgentInvalid } from "./agent/problemAgentInvalid.zod"
-import { ProblemAgentNameTaken } from "./agent/problemAgentNameTaken.zod"
-import { ProblemConfigurationConflict } from "./ai-providers/problemConfigurationConflict.zod"
-import { ProblemInvalidAiProviderConfiguration } from "./ai-providers/problemInvalidAiProviderConfiguration.zod"
-import { ProblemModelDiscoveryUnsupported } from "./ai-providers/problemModelDiscoveryUnsupported.zod"
-import { ProblemProviderCredentialsRejected } from "./ai-providers/problemProviderCredentialsRejected.zod"
-import { ProblemProviderError } from "./ai-providers/problemProviderError.zod"
-import { ProblemProviderRateLimited } from "./ai-providers/problemProviderRateLimited.zod"
-import { ProblemProviderUnreachable } from "./ai-providers/problemProviderUnreachable.zod"
-import { ProblemCurrentPasswordIncorrect } from "./identity/problemCurrentPasswordIncorrect.zod"
-import { ProblemInvalidCredentials } from "./identity/problemInvalidCredentials.zod"
-import { ProblemPasswordChangeNotRequired } from "./identity/problemPasswordChangeNotRequired.zod"
-import { ProblemAgentNotFound } from "./problemAgentNotFound.zod"
-import { ProblemAuthenticationRequired } from "./problemAuthenticationRequired.zod"
-import { ProblemInternalServerError } from "./problemInternalServerError.zod"
-import { ProblemInvalidRequest } from "./problemInvalidRequest.zod"
-import { ProblemMalformedJson } from "./problemMalformedJson.zod"
-import { ProblemPasswordChangeRequired } from "./problemPasswordChangeRequired.zod"
-import { ProblemPayloadTooLarge } from "./problemPayloadTooLarge.zod"
-import { ProblemPermissionDenied } from "./problemPermissionDenied.zod"
-import { ProblemRequestFailed } from "./problemRequestFailed.zod"
-import { ProblemRouteNotFound } from "./problemRouteNotFound.zod"
-import { ProblemUsernameTaken } from "./problemUsernameTaken.zod"
-import { ProblemAdminAccessRequired } from "./roles/problemAdminAccessRequired.zod"
-import { ProblemAdminAlreadyExists } from "./roles/problemAdminAlreadyExists.zod"
-import { ProblemInvalidInvitation } from "./roles/problemInvalidInvitation.zod"
-import { ProblemSelfPasswordResetNotAllowed } from "./roles/problemSelfPasswordResetNotAllowed.zod"
-import { ProblemUserNotFound } from "./roles/problemUserNotFound.zod"
-import { ProblemWidgetNotFound } from "./widget/problemWidgetNotFound.zod"
-
 export const ProblemDetails = zod.union([
-	ProblemAdminAccessRequired,
-	ProblemAdminAlreadyExists,
-	ProblemAgentFileInvalid,
-	ProblemAgentFileNameTaken,
-	ProblemAgentFileNotFound,
-	ProblemAgentInvalid,
-	ProblemAgentInUse,
-	ProblemAgentNameTaken,
-	ProblemAgentNotFound,
-	ProblemAuthenticationRequired,
-	ProblemConfigurationConflict,
-	ProblemCurrentPasswordIncorrect,
-	ProblemInternalServerError,
-	ProblemInvalidAiProviderConfiguration,
-	ProblemInvalidCredentials,
-	ProblemInvalidInvitation,
-	ProblemInvalidRequest,
-	ProblemMalformedJson,
-	ProblemModelDiscoveryUnsupported,
-	ProblemPasswordChangeNotRequired,
-	ProblemPasswordChangeRequired,
-	ProblemPayloadTooLarge,
-	ProblemPermissionDenied,
-	ProblemProviderCredentialsRejected,
-	ProblemProviderError,
-	ProblemProviderRateLimited,
-	ProblemProviderUnreachable,
-	ProblemRequestFailed,
-	ProblemRouteNotFound,
-	ProblemSelfPasswordResetNotAllowed,
-	ProblemUserNotFound,
-	ProblemWidgetNotFound,
-	ProblemUsernameTaken,
+	zod.object({
+		code: zod.enum(["admin-access-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
+	}),
+	zod.object({
+		code: zod.enum(["admin-already-exists"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-file-invalid"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-invalid"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-file-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-name-taken"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-file-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-invalid"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-invalid"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-in-use"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-in-use"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-name-taken"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["authentication-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#authentication-required"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-client-address-unavailable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-client-address-unavailable"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-concurrency-limit"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-concurrency-limit"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-context-limit"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-context-limit"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-conversation-too-long"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-conversation-too-long"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-daily-allowance-exceeded"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-input-incompatible"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-input-incompatible"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-request-conflict"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-request-conflict"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-session-busy"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-busy"]),
+	}),
+	zod.object({
+		code: zod.enum(["chat-session-unauthorized"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-unauthorized"]),
+	}),
+	zod.object({
+		code: zod.enum(["configuration-conflict"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#configuration-conflict"]),
+	}),
+	zod.object({
+		code: zod.enum(["current-password-incorrect"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
+	}),
+	zod.object({
+		code: zod.enum(["embed-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#embed-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["internal-server-error"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#internal-server-error"]),
+	}),
+	zod.object({
+		code: zod.enum(["invalid-ai-provider-configuration"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
+	}),
+	zod.object({
+		code: zod.enum(["invalid-credentials"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-credentials"]),
+	}),
+	zod.object({
+		code: zod.enum(["invalid-invitation"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-invitation"]),
+	}),
+	zod.object({
+		code: zod.enum(["invalid-request"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
+	}),
+	zod.object({
+		code: zod.enum(["malformed-json"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
+	}),
+	zod.object({
+		code: zod.enum(["model-discovery-unsupported"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
+	}),
+	zod.object({
+		code: zod.enum(["password-change-not-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#password-change-not-required"]),
+	}),
+	zod.object({
+		code: zod.enum(["password-change-required"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#password-change-required"]),
+	}),
+	zod.object({
+		code: zod.enum(["payload-too-large"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#payload-too-large"]),
+	}),
+	zod.object({
+		code: zod.enum(["permission-denied"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
+	}),
+	zod.object({
+		code: zod.enum(["provider-credentials-rejected"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
+	}),
+	zod.object({
+		code: zod.enum(["provider-error"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-error"]),
+	}),
+	zod.object({
+		code: zod.enum(["provider-rate-limited"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-rate-limited"]),
+	}),
+	zod.object({
+		code: zod.enum(["provider-unreachable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#provider-unreachable"]),
+	}),
+	zod.object({
+		code: zod.enum(["request-failed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
+	}),
+	zod.object({
+		code: zod.enum(["route-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["self-password-reset-not-allowed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
+	}),
+	zod.object({
+		code: zod.enum(["user-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#user-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["username-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
+	}),
 ])
 
 export type ProblemDetails = zod.input<typeof ProblemDetails>

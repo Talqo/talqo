@@ -6,7 +6,7 @@
  */
 import * as zod from "zod"
 
-import { AgentFile } from "./agentFile.zod"
+import { AgentFile } from "../agentFile.zod"
 
 export const UploadAgentFile201 = zod.object({
 	file: AgentFile,

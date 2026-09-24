@@ -16,6 +16,11 @@ describe("agent-files routes", () => {
 		expect(response.status).toBe(401)
 	})
 
+	it("rejects unauthenticated file download", async () => {
+		const response = await app.request(`/api/agents/${AGENT_ID}/files/a.md`)
+		expect(response.status).toBe(401)
+	})
+
 	it("rejects unauthenticated file rename", async () => {
 		const response = await app.request(`/api/agents/${AGENT_ID}/files/a.md`, {
 			method: "PATCH",

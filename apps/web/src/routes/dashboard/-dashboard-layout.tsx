@@ -23,7 +23,6 @@ type NavItem = {
 	requires?: NavRequirement
 }
 
-// Widget customization lives on each agent's page now; there is no standalone widgets tab.
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
@@ -113,7 +112,7 @@ function LogoutButton() {
 	}
 
 	return (
-		<Button variant="ghost" size="sm" onClick={handleLogout} disabled={logout.isPending}>
+		<Button variant="ghost" onClick={handleLogout} disabled={logout.isPending}>
 			<LogOut className="size-4" />
 			{t("header.logout")}
 		</Button>

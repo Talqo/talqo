@@ -11,7 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
@@ -98,12 +98,10 @@ function ProfileCard({ name }: { name: string }) {
 						</p>
 					)}
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
-				</CardContent>
-				<CardFooter className="border-t-0 bg-transparent">
 					<Button type="submit" disabled={updateAccount.isPending || !isDirty}>
 						{t("account.saveProfile")}
 					</Button>
-				</CardFooter>
+				</CardContent>
 			</form>
 		</Card>
 	)

@@ -1,6 +1,7 @@
-import type { AgentFile } from "@/api/generated/models/agent/agentFile.zod"
+import type { AgentFile } from "@/api/generated/models/agentFile.zod"
 
 import {
+	downloadAgentFile,
 	getListAgentFilesQueryKey,
 	getListAgentFilesQueryOptions,
 	useDeleteAgentFile,
@@ -9,6 +10,7 @@ import {
 	useUploadAgentFile,
 } from "@/api/generated/agent/agent.ts"
 import { formatBytes, formatFileDate, splitExtension } from "@/features/context/format"
+import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -24,17 +26,12 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
-import { FileText, Pencil, Trash2, Upload } from "lucide-react"
+import { Download, FileText, Pencil, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
-
-function errorMessage(error: unknown, fallback: string): string {
-	const info = (error as { info?: { error?: string } }).info
-	return info?.error ?? fallback
-}
 
 // The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
 function pathName(name: string): string {
@@ -62,6 +59,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const [renameError, setRenameError] = useState<string | null>(null)
 	const [deleteTarget, setDeleteTarget] = useState<AgentFile | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
+	const [downloadingName, setDownloadingName] = useState<string | null>(null)
 
 	const maxSizeBytes = filesQuery.data?.data.maxSizeBytes
 	const maxSizeMB = maxSizeBytes ? Math.round(maxSizeBytes / BYTES_PER_MB) : undefined
@@ -88,7 +86,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 				await uploadFile.mutateAsync({ agentId, data: { file } })
 			}
 		} catch (error) {
-			setFileError(errorMessage(error, t("agentFiles.uploadFailed")))
+			setFileError(getProblemMessage(error, t, t("agentFiles.uploadFailed")))
 		} finally {
 			// Refresh even on failure: earlier files of a batch may have landed before the error.
 			await refresh()
@@ -100,6 +98,24 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		event.preventDefault()
 		setDragging(false)
 		void startBatch(event.dataTransfer.files)
+	}
+
+	async function onDownload(file: AgentFile) {
+		setFileError(null)
+		setDownloadingName(file.name)
+		try {
+			const response = await downloadAgentFile(agentId, pathName(file.name))
+			const url = URL.createObjectURL(response.data)
+			const anchor = document.createElement("a")
+			anchor.href = url
+			anchor.download = file.name
+			anchor.click()
+			URL.revokeObjectURL(url)
+		} catch (error) {
+			setFileError(getProblemMessage(error, t, t("agentFiles.downloadFailed")))
+		} finally {
+			setDownloadingName(null)
+		}
 	}
 
 	function openRename(file: AgentFile) {
@@ -119,7 +135,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			setRenameTarget(null)
 			await refresh()
 		} catch (error) {
-			setRenameError(errorMessage(error, t("agentFiles.renameFailed")))
+			setRenameError(getProblemMessage(error, t, t("agentFiles.renameFailed")))
 		}
 	}
 
@@ -136,7 +152,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			setDeleteTarget(null)
 			await refresh()
 		} catch (error) {
-			setDeleteError(errorMessage(error, t("agentFiles.deleteFailed")))
+			setDeleteError(getProblemMessage(error, t, t("agentFiles.deleteFailed")))
 		}
 	}
 
@@ -214,6 +230,23 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 								</div>
 								{canManage && (
 									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														disabled={downloadingName === file.name}
+														onClick={() => void onDownload(file)}
+														aria-label={t("agentFiles.download", { name: file.name })}
+													/>
+												}
+											>
+												<Download className="size-4" />
+											</TooltipTrigger>
+											<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
+										</Tooltip>
 										<Tooltip>
 											<TooltipTrigger
 												render={

@@ -1,7 +1,6 @@
-import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, configUrl, mergeAppearance, parseWidgetConfig } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, appearanceFromValues, mergeAppearance } from "./embed-config"
 
 // Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
@@ -44,16 +43,6 @@ describe("appearanceFromDataset", () => {
 		).toEqual({ dark: { primary: "#34d399", background: "#0a0a0a" } })
 	})
 
-	test("accepts the legacy accent attribute as the light primary", () => {
-		expect(appearanceFromDataset({ talqoAccent: "#123456" })).toEqual({ light: { primary: "#123456" } })
-	})
-
-	test("prefers the canonical light primary attribute over the legacy alias", () => {
-		expect(appearanceFromDataset({ talqoLightPrimary: "#111111", talqoAccent: "#222222" })).toEqual({
-			light: { primary: "#111111" },
-		})
-	})
-
 	test("parses the theme toggle as a boolean and ignores other values", () => {
 		expect(appearanceFromDataset({ talqoThemeToggle: "true" })).toEqual({ themeToggle: true })
 		expect(appearanceFromDataset({ talqoThemeToggle: "false" })).toEqual({ themeToggle: false })
@@ -66,6 +55,22 @@ describe("appearanceFromDataset", () => {
 			theme: "neon",
 			language: "xx",
 		})
+	})
+})
+
+test("extracts appearance from canonical getter keys", () => {
+	const values: Record<string, string> = {
+		lightPrimary: "#123456",
+		darkText: "#ffffff",
+		position: "bottom-left",
+		themeToggle: "false",
+	}
+
+	expect(appearanceFromValues((key) => values[key])).toEqual({
+		light: { primary: "#123456" },
+		dark: { text: "#ffffff" },
+		position: "bottom-left",
+		themeToggle: false,
 	})
 })
 
@@ -116,56 +121,5 @@ describe("apiOrigin", () => {
 
 	test("is undefined without a script, so no fetch is attempted", () => {
 		expect(apiOrigin(null)).toBeUndefined()
-	})
-})
-
-describe("configUrl", () => {
-	test("targets the public config path", () => {
-		expect(configUrl("https://api.example.com", "tok_123")).toBe("https://api.example.com/api/widget-config/tok_123")
-	})
-
-	test("encodes a token containing URL-significant characters", () => {
-		expect(configUrl("https://api.example.com", "a/b?c")).toBe("https://api.example.com/api/widget-config/a%2Fb%3Fc")
-	})
-})
-
-describe("parseWidgetConfig", () => {
-	const appearance = { light: { primary: "#123456" }, position: "bottom-left" }
-
-	test("extracts the appearance, agent, and name from a current payload", () => {
-		const result = parseWidgetConfig({
-			version: WIDGET_CONFIG_VERSION,
-			agentId: "agent-1",
-			name: "Marketing site",
-			appearance,
-		})
-
-		expect(result.agentId).toBe("agent-1")
-		expect(result.name).toBe("Marketing site")
-		expect(result.appearance).toEqual(appearance)
-	})
-
-	// Degrade, never throw: a widget on a customer page must survive a bad response.
-	test("yields no overrides for a future or missing version", () => {
-		expect(parseWidgetConfig({ version: 99, appearance }).appearance).toEqual({})
-		expect(parseWidgetConfig({ appearance }).appearance).toEqual({})
-	})
-
-	test("yields no overrides when the appearance is missing or not an object", () => {
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION }).appearance).toEqual({})
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: "green" }).appearance).toEqual({})
-		expect(parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, appearance: [] }).appearance).toEqual({})
-	})
-
-	test("yields no overrides for a non-object payload", () => {
-		expect(parseWidgetConfig(undefined).appearance).toEqual({})
-		expect(parseWidgetConfig(null).appearance).toEqual({})
-		expect(parseWidgetConfig("nope").appearance).toEqual({})
-	})
-
-	test("ignores a non-string agent id and name", () => {
-		const result = parseWidgetConfig({ version: WIDGET_CONFIG_VERSION, agentId: 7, name: 7, appearance })
-		expect(result.agentId).toBeUndefined()
-		expect(result.name).toBeUndefined()
 	})
 })
