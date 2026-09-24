@@ -121,14 +121,14 @@ function LogoutButton() {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const { t } = useTranslation()
-	const username = useGetSession().data?.data.user?.username
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const closeMobile = () => setMobileOpen(false)
+	const accountName = useGetSession().data?.data.user?.username ?? "…"
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{username}</div>
+				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
@@ -144,7 +144,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<span className="truncate text-sm font-semibold md:hidden">{username}</span>
+						<span className="truncate text-sm font-semibold md:hidden">{accountName}</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
