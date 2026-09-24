@@ -1,6 +1,6 @@
 ---
-name: e2e-testing-patterns
-description: Master end-to-end testing with Playwright to build reliable test suites that catch bugs, improve confidence, and enable fast deployment. Use when implementing E2E tests, debugging flaky tests, or establishing testing standards.
+name: e2e-testing
+description: ALWAYS use this skill when implementing or debugging browser-driven E2E tests, Playwright specs, critical user-flow automation, or E2E test standards.
 ---
 
 # E2E Testing Patterns
@@ -70,9 +70,9 @@ Detailed pattern documentation lives in `references/details.md`. Read that file 
 3. **Test User Behavior**: Click, type, see - not implementation details
 4. **Keep Tests Independent**: Each test should run in isolation
 5. **Clean Up Test Data**: Create and destroy test data in each test
-6. **Use Page Objects**: Encapsulate page logic
+6. **Reuse Page Logic**: Use page objects or fixtures when they reduce repeated interactions; do not add a layer for a single test
 7. **Meaningful Assertions**: Check actual user-visible behavior
-8. **Optimize for Speed**: Mock when possible, parallel execution
+8. **Optimize for Speed**: Run isolated tests in parallel; mock external boundaries only when their real behavior is outside the scenario being verified
 
 ```typescript
 // ❌ Bad selectors
@@ -88,7 +88,7 @@ await page.getByTestId("email-input").fill("user@example.com");
 ## Common Pitfalls
 
 - **Flaky Tests**: Use proper waits, not fixed timeouts
-- **Slow Tests**: Mock external APIs, use parallel execution
+- **Slow Tests**: Keep scenarios focused and parallelize isolated tests; do not mock the integration being verified
 - **Over-Testing**: Don't test every edge case with E2E
 - **Coupled Tests**: Tests should not depend on each other
 - **Poor Selectors**: Avoid CSS classes and nth-child
