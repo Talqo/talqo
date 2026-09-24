@@ -14,9 +14,9 @@ export async function seed(): Promise<void> {
 		throw new Error("Seed AI provider configuration is incomplete; set all TALQO_SEED_AI_* variables")
 	}
 
-	const existing = await repo.find()
+	if (await repo.find()) return
 	validateConfigurationInput({
-		expectedRevision: existing?.revision ?? 0,
+		expectedRevision: 0,
 		text: {
 			providerId: "openai-compatible",
 			modelId: textModel,
@@ -54,7 +54,7 @@ export async function seed(): Promise<void> {
 				credentials: null,
 			},
 		},
-		existing?.revision ?? 0,
+		0,
 	)
 	if (!saved) throw new Error("Could not seed the AI provider configuration")
 }

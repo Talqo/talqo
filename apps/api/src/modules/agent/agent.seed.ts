@@ -8,19 +8,13 @@ const SEED_AGENT_PROMPT =
 const SEED_AGENT_BLACKLIST = ["Intercom", "Zendesk"] as const
 
 export async function seed(): Promise<void> {
-	const existing = await repo.findByIdWithWords(SEED_AGENT_ID)
-	if (existing) {
-		await repo.updateWithWords(SEED_AGENT_ID, { name: SEED_AGENT_NAME, systemPrompt: SEED_AGENT_PROMPT }, [
-			...SEED_AGENT_BLACKLIST,
-		])
-	} else {
-		await repo.insertWithWords(
-			{
-				id: SEED_AGENT_ID,
-				name: SEED_AGENT_NAME,
-				systemPrompt: SEED_AGENT_PROMPT,
-			},
-			[...SEED_AGENT_BLACKLIST],
-		)
-	}
+	if (await repo.findByIdWithWords(SEED_AGENT_ID)) return
+	await repo.insertWithWords(
+		{
+			id: SEED_AGENT_ID,
+			name: SEED_AGENT_NAME,
+			systemPrompt: SEED_AGENT_PROMPT,
+		},
+		[...SEED_AGENT_BLACKLIST],
+	)
 }
