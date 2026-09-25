@@ -1,1 +1,0 @@
-ALTER TABLE "generation_attempt" ADD COLUMN "estimated_input_tokens" integer;
