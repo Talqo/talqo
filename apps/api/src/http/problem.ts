@@ -43,6 +43,7 @@ export const PROBLEM_CODES = {
 	PROVIDER_UNREACHABLE: "provider-unreachable",
 	REQUEST_FAILED: "request-failed",
 	ROUTE_NOT_FOUND: "route-not-found",
+	SELF_DELETE_NOT_ALLOWED: "self-delete-not-allowed",
 	SELF_PASSWORD_RESET_NOT_ALLOWED: "self-password-reset-not-allowed",
 	USER_NOT_FOUND: "user-not-found",
 	USERNAME_TAKEN: "username-taken",

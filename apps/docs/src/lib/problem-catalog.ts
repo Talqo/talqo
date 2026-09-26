@@ -274,6 +274,13 @@ export const PROBLEMS = [
 		guidance: "Correct the method or URL using the OpenAPI contract.",
 	},
 	{
+		code: "self-delete-not-allowed",
+		title: "Self delete not allowed",
+		status: "400",
+		meaning: "An administrator attempted to use the user-delete flow on their own account.",
+		guidance: "Delete the current account through DELETE /api/me instead.",
+	},
+	{
 		code: "self-password-reset-not-allowed",
 		title: "Self password reset not allowed",
 		status: "400",

@@ -1,5 +1,11 @@
 import { useGetSession } from "@/api/generated/identity/identity.ts"
-import { getListUsersQueryKey, useListUsers, useResetUserPassword } from "@/api/generated/roles/roles.ts"
+import {
+	type DeleteUserMutationError,
+	getListUsersQueryKey,
+	useDeleteUser,
+	useListUsers,
+	useResetUserPassword,
+} from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
@@ -32,6 +38,7 @@ export const Route = createFileRoute("/dashboard/users")({
 })
 
 const FORBIDDEN_STATUS = 403
+const NOT_FOUND_STATUS = 404
 const UNAUTHORIZED_STATUS = 401
 
 type ListedUser = { id: string; mustChangePassword: boolean; username: string }
@@ -166,6 +173,93 @@ function ResetPasswordDialog({
 	)
 }
 
+function DeleteUserDialog({
+	disabled,
+	onDeleted,
+	targetUser,
+}: {
+	disabled: boolean
+	onDeleted: () => void
+	targetUser: ListedUser
+}) {
+	const { t } = useTranslation()
+	const deleteUser = useDeleteUser()
+	const [open, setOpen] = useState(false)
+	const [confirmation, setConfirmation] = useState("")
+	const [error, setError] = useState<string | null>(null)
+	const isDeleting = deleteUser.isPending
+
+	function handleOpenChange(next: boolean) {
+		if (isDeleting) return
+		setOpen(next)
+		if (!next) {
+			setConfirmation("")
+			setError(null)
+		}
+	}
+
+	async function onConfirm() {
+		setError(null)
+		try {
+			await deleteUser.mutateAsync({ userId: targetUser.id })
+		} catch (caught) {
+			// Already deleted elsewhere counts as done; the refreshed list drops the row.
+			if ((caught as DeleteUserMutationError).status !== NOT_FOUND_STATUS) {
+				setError(getProblemMessage(caught, t, t("auth.errorFallback")))
+				return
+			}
+		}
+		setOpen(false)
+		onDeleted()
+	}
+
+	const confirmationId = `delete-user-confirmation-${targetUser.id}`
+
+	return (
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />} nativeButton={false}>
+				{t("users.delete")}
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
+					<DialogDescription>{t("users.deletePrompt", { username: targetUser.username })}</DialogDescription>
+				</DialogHeader>
+				{error && (
+					<p role="alert" className="text-destructive text-sm">
+						{error}
+					</p>
+				)}
+				<div className="space-y-2">
+					<Label htmlFor={confirmationId}>
+						<span className="sr-only">{t("users.confirmLabel", { username: targetUser.username })}</span>
+					</Label>
+					<Input
+						id={confirmationId}
+						value={confirmation}
+						onChange={(event) => setConfirmation(event.target.value)}
+						placeholder={targetUser.username}
+						autoComplete="off"
+					/>
+					<p className="text-muted-foreground text-xs">{t("users.confirmHelp", { username: targetUser.username })}</p>
+				</div>
+				<DialogFooter>
+					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
+						{t("users.cancel")}
+					</Button>
+					<Button
+						variant="destructive"
+						disabled={confirmation !== targetUser.username || isDeleting}
+						onClick={onConfirm}
+					>
+						{isDeleting ? t("users.deleting") : t("users.deleteConfirm")}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	)
+}
+
 function UsersPage() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
@@ -182,6 +276,10 @@ function UsersPage() {
 
 	function handleReset(userId: string) {
 		setConfirmedUserId(userId)
+		void queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() })
+	}
+
+	function handleDeleted() {
 		void queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() })
 	}
 
@@ -229,6 +327,7 @@ function UsersPage() {
 									</span>
 								)}
 								<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
+								<DeleteUserDialog targetUser={user} disabled={user.id === currentUserId} onDeleted={handleDeleted} />
 							</div>
 						</CardContent>
 					</Card>
