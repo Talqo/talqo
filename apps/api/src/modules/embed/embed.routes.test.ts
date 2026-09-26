@@ -42,6 +42,11 @@ describe("embed CRUD authentication boundary", () => {
 		expect((await app.request("/api/embeds/any-id")).status).toBe(401)
 	})
 
+	it("still requires a session to disable or enable one embed", async () => {
+		expect((await app.request("/api/embeds/any-id/disable", { method: "POST" })).status).toBe(401)
+		expect((await app.request("/api/embeds/any-id/enable", { method: "POST" })).status).toBe(401)
+	})
+
 	it("does not treat a config-shaped path nested under the CRUD namespace as an endpoint", async () => {
 		expect((await app.request("/api/embeds/any-id/config")).status).toBe(404)
 	})

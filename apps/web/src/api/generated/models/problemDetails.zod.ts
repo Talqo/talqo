@@ -96,6 +96,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
 	}),
 	zod.object({
+		code: zod.enum(["embed-disabled"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#embed-disabled"]),
+	}),
+	zod.object({
 		code: zod.enum(["embed-not-found"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#embed-not-found"]),
 	}),

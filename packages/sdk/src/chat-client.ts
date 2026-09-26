@@ -257,23 +257,26 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					storage.getItem(storageKey),
 				])
 				configuration = loadedConfiguration
-				const record = readChatStorageRecord(serialized)
-				credential = record?.credential
-				pendingMessage = record?.pending
-				if (credential !== undefined && pendingMessage === undefined) {
-					await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
-				} else if (pendingMessage !== undefined) {
-					messages = [
-						{
-							id: `pending:${pendingMessage.requestId}`,
-							role: "user",
-							text: pendingMessage.text,
-							createdAt: now().toISOString(),
-							outcome: "interrupted",
-						},
-					]
-					generation = "recovery"
-					recovery = "pending"
+				// A disabled embed never opens a session: no restore, no pending-send recovery.
+				if (!loadedConfiguration.isDisabled) {
+					const record = readChatStorageRecord(serialized)
+					credential = record?.credential
+					pendingMessage = record?.pending
+					if (credential !== undefined && pendingMessage === undefined) {
+						await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
+					} else if (pendingMessage !== undefined) {
+						messages = [
+							{
+								id: `pending:${pendingMessage.requestId}`,
+								role: "user",
+								text: pendingMessage.text,
+								createdAt: now().toISOString(),
+								outcome: "interrupted",
+							},
+						]
+						generation = "recovery"
+						recovery = "pending"
+					}
 				}
 				initialization = "ready"
 				publish()
@@ -301,6 +304,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function sendMessage(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
+		if (configuration?.isDisabled) throw new ChatClientError({ code: "embed-disabled" })
 		if (reset === "resetting") throw new Error("Chat session is resetting")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {

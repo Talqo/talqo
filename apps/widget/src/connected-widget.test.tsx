@@ -17,6 +17,7 @@ const READY_SNAPSHOT: ChatSnapshot = {
 			theme: "light",
 			light: { primary: "#123456", background: "#fefefe" },
 		},
+		isDisabled: false,
 	},
 	messages: [],
 	initialization: "ready",
@@ -357,6 +358,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			["provider-error", "response could not be completed"],
 			["internal-server-error", "chat service encountered an internal error"],
 			["embed-not-found", "embed is unavailable or invalid"],
+			["embed-disabled", "chat is currently disabled"],
 			["request-failed", "chat request failed"],
 			["invalid-response", "chat service returned an invalid response"],
 			["storage-unavailable", "cannot be restored after a reload"],
@@ -384,6 +386,19 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.querySelectorAll("button[aria-label='New chat']").length).toBe(2)
 		expect(host.querySelector("[role='alert']")?.className).toContain("tw:bg-destructive/10")
 		expect(host.querySelector("[role='alert']")?.className).toContain("tw:text-destructive")
+	})
+
+	test("a disabled embed shows the chat-disabled state and never sends", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			configuration: { title: "SDK support", appearance: {}, isDisabled: true },
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).toContain("This chat is currently disabled.")
+		expect(input().disabled).toBe(true)
+		expect(store.calls.sends).toEqual([])
 	})
 
 	test("offers an explicit retry only for a retriable failed turn", async () => {

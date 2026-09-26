@@ -1,6 +1,6 @@
 {
-	"id": "9da8af0a-815f-4622-864d-2e795235ae8f",
-	"prevId": "c8a04ed4-6261-43fb-a7a0-926e9690c5fa",
+	"id": "f1803df3-8433-4667-bcf0-8527b17eca91",
+	"prevId": "9da8af0a-815f-4622-864d-2e795235ae8f",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -799,6 +799,13 @@
 					"primaryKey": false,
 					"notNull": true,
 					"default": 1
+				},
+				"is_disabled": {
+					"name": "is_disabled",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
 				},
 				"light_primary_color": {
 					"name": "light_primary_color",

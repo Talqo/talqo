@@ -4,6 +4,8 @@ import type { AsyncStorage } from "./storage"
 export type ChatConfiguration = {
 	readonly title: string
 	readonly appearance: Readonly<Record<string, unknown>>
+	/** Operator off-switch from the public embed config; a disabled embed never opens sessions. */
+	readonly isDisabled: boolean
 }
 
 export type ChatMessageRole = "user" | "assistant"
@@ -39,6 +41,7 @@ const API_CHAT_ERROR_CODES = [
 	"payload-too-large",
 	"provider-error",
 	"internal-server-error",
+	"embed-disabled",
 	"embed-not-found",
 	"request-failed",
 ] as const satisfies readonly ProblemDetails["code"][]

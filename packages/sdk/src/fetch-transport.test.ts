@@ -99,6 +99,7 @@ describe("createFetchChatTransport", () => {
 			"payload-too-large",
 			"provider-error",
 			"internal-server-error",
+			"embed-disabled",
 			"embed-not-found",
 			"request-failed",
 			"invalid-response",
@@ -108,14 +109,20 @@ describe("createFetchChatTransport", () => {
 			"reset-failed",
 		] as const satisfies readonly ChatErrorCode[]
 
-		expect(codes).toHaveLength(21)
+		expect(codes).toHaveLength(22)
 	})
 
 	test("loads canonical embed configuration and maps name to title", async () => {
-		const fake = recordingFetch([jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE })])
+		const fake = recordingFetch([
+			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true }),
+		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
-		expect(await transport.loadConfiguration(context())).toEqual({ title: "Support", appearance: APPEARANCE })
+		expect(await transport.loadConfiguration(context())).toEqual({
+			title: "Support",
+			appearance: APPEARANCE,
+			isDisabled: true,
+		})
 		expect(fake.calls).toEqual([
 			{
 				url: "https://api.example.test/api/embed-config/embed%2Ftoken%20%3F",
@@ -469,6 +476,7 @@ describe("createFetchChatTransport", () => {
 		expect(await transport.loadConfiguration(context())).toEqual({
 			title: "Support",
 			appearance: { ...APPEARANCE, extra: true },
+			isDisabled: false,
 		})
 		const problemError = await rejectedDetail(transport.loadConfiguration(context()))
 		expect(problemError).toEqual({

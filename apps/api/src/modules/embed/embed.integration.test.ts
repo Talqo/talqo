@@ -1,6 +1,9 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
+import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it } from "bun:test"
 
@@ -136,6 +139,36 @@ describe("embed lifecycle", () => {
 		await expect(service.getEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
 		await expect(service.deleteEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
 	})
+
+	it("persists disable and enable without bumping the access version", async () => {
+		const created = await createEmbed(await createAgent())
+
+		const disabled = await service.disableEmbed(created.id)
+
+		expect(disabled.isDisabled).toBe(true)
+		expect(disabled.accessVersion).toBe(created.accessVersion)
+		expect((await service.getEmbed(created.id)).isDisabled).toBe(true)
+
+		const enabled = await service.enableEmbed(created.id)
+
+		expect(enabled.isDisabled).toBe(false)
+		expect(enabled.accessVersion).toBe(created.accessVersion)
+		expect((await service.getEmbed(created.id)).isDisabled).toBe(false)
+	})
+
+	it("keeps the disabled flag through a whole-object update", async () => {
+		const created = await createEmbed(await createAgent())
+		await service.disableEmbed(created.id)
+
+		const updated = await replaceEmbed(created, { name: "Renamed" })
+
+		expect(updated.isDisabled).toBe(true)
+	})
+
+	it("raises a typed error when disabling or enabling an unknown embed", async () => {
+		await expect(service.disableEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
+		await expect(service.enableEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
+	})
 })
 
 describe("agent deletion", () => {
@@ -189,6 +222,26 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).appearance.light.primary).toBe("#ff0000")
 	})
 
+	it("reports the disabled flag to already-embedded widgets and flips their ETag", async () => {
+		const agentId = await createAgent()
+		const created = await createEmbed(agentId)
+
+		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(false)
+		const before = await app.request(`/api/embed-config/${created.embedToken}`)
+		expect(await before.json()).toMatchObject({ isDisabled: false })
+		const etag = before.headers.get("etag") ?? ""
+
+		await service.disableEmbed(created.id)
+
+		// A fresh ETag lets every cached widget learn the state within the max-age window.
+		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": etag },
+		})
+		expect(disabled.status).toBe(200)
+		expect(await disabled.json()).toMatchObject({ isDisabled: true })
+		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(true)
+	})
+
 	it("serves the config over HTTP without a session, with cache headers", async () => {
 		const agentId = await createAgent()
 		const created = await createEmbed(agentId, { name: "Marketing site" })
@@ -202,6 +255,7 @@ describe("public config lookup", () => {
 			version: WIDGET_CONFIG_VERSION,
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
+			isDisabled: false,
 		})
 	})
 
@@ -243,5 +297,97 @@ describe("public config lookup", () => {
 
 		expect(response.status).toBe(200)
 		expect(await response.json()).toMatchObject({ name: created.name })
+	})
+})
+
+async function login(username: string, password: string): Promise<string> {
+	const response = await app.request("/api/auth/login", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ username, password }),
+	})
+	const setCookie = response.headers.get("set-cookie")
+	if (!setCookie) throw new Error("Expected a Set-Cookie header")
+	const [cookiePair] = setCookie.split(";")
+	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
+	return cookiePair
+}
+
+async function createManagerSession(): Promise<string> {
+	const username = uniqueUsername()
+	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	await roles.grantPermission({
+		userId: account.id,
+		permission: roles.Permission.AgentsManage,
+		grantedBy: account.id,
+	})
+	return login(username, DEFAULT_PASSWORD)
+}
+
+async function createReaderSession(): Promise<string> {
+	const username = uniqueUsername()
+	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	await roles.grantPermission({
+		userId: account.id,
+		permission: roles.Permission.AgentsRead,
+		grantedBy: account.id,
+	})
+	return login(username, DEFAULT_PASSWORD)
+}
+
+describe("embed disable and enable routes", () => {
+	it("disables and enables an embed with agents:manage", async () => {
+		const cookie = await createManagerSession()
+		const created = await createEmbed(await createAgent())
+
+		const disabled = await app.request(`/api/embeds/${created.id}/disable`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
+
+		expect(disabled.status).toBe(200)
+		expect(await disabled.json()).toMatchObject({ embed: { id: created.id, isDisabled: true } })
+		expect((await service.getEmbed(created.id)).isDisabled).toBe(true)
+
+		const enabled = await app.request(`/api/embeds/${created.id}/enable`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
+
+		expect(enabled.status).toBe(200)
+		expect(await enabled.json()).toMatchObject({ embed: { id: created.id, isDisabled: false } })
+		expect((await service.getEmbed(created.id)).isDisabled).toBe(false)
+	})
+
+	it("denies disabling and enabling for an agent reader without agents:manage", async () => {
+		const cookie = await createReaderSession()
+		const created = await createEmbed(await createAgent())
+
+		const disabled = await app.request(`/api/embeds/${created.id}/disable`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
+		const enabled = await app.request(`/api/embeds/${created.id}/enable`, {
+			method: "POST",
+			headers: { Cookie: cookie },
+		})
+
+		expect(disabled.status).toBe(403)
+		expect(await disabled.json()).toMatchObject({ code: "permission-denied" })
+		expect(enabled.status).toBe(403)
+		expect(await enabled.json()).toMatchObject({ code: "permission-denied" })
+		expect((await service.getEmbed(created.id)).isDisabled).toBe(false)
+	})
+
+	it("answers 404 when disabling or enabling an unknown embed", async () => {
+		const cookie = await createManagerSession()
+		const unknown = crypto.randomUUID()
+
+		expect(
+			(await app.request(`/api/embeds/${unknown}/disable`, { method: "POST", headers: { Cookie: cookie } })).status,
+		).toBe(404)
+		expect(
+			(await app.request(`/api/embeds/${unknown}/enable`, { method: "POST", headers: { Cookie: cookie } })).status,
+		).toBe(404)
 	})
 })

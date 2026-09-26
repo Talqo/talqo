@@ -67,16 +67,19 @@ const embedResponseSchema = z
 		name: z.string(),
 		embedToken: z.string(),
 		accessVersion: z.number().int().positive(),
+		isDisabled: z.boolean(),
 		appearance: appearanceResponseSchema,
 	})
 	.openapi("Embed")
 
 // `name` is public here on purpose (FR-2.5 UX review): the embedded chat header shows it.
+// `isDisabled` is public for the same reason: an already-installed widget must learn it.
 export const embedConfigResponseSchema = z
 	.object({
 		version: z.number(),
 		name: z.string(),
 		appearance: appearanceResponseSchema,
+		isDisabled: z.boolean(),
 	})
 	.openapi("EmbedConfig")
 
@@ -195,6 +198,38 @@ export const rotateEmbedTokenRoute = createRoute({
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed token rotated" },
+		401: authRequired,
+		403: forbidden,
+		404: embedNotFound,
+		500: serverError,
+	},
+})
+
+export const disableEmbedRoute = createRoute({
+	method: "post",
+	path: "/{embedId}/disable",
+	operationId: "disableEmbed",
+	tags: ["Embed"],
+	security: sessionSecurity,
+	request: { params: embedParamsSchema },
+	responses: {
+		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed disabled" },
+		401: authRequired,
+		403: forbidden,
+		404: embedNotFound,
+		500: serverError,
+	},
+})
+
+export const enableEmbedRoute = createRoute({
+	method: "post",
+	path: "/{embedId}/enable",
+	operationId: "enableEmbed",
+	tags: ["Embed"],
+	security: sessionSecurity,
+	request: { params: embedParamsSchema },
+	responses: {
+		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed enabled" },
 		401: authRequired,
 		403: forbidden,
 		404: embedNotFound,

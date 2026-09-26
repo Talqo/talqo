@@ -14,6 +14,7 @@ import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
+	EmbedDisabledError,
 	InvalidChatInputError,
 	ProviderUnavailableError,
 	RequestConflictError,
@@ -39,6 +40,8 @@ function bearer(header: string | undefined): string | undefined {
 function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Response | undefined {
 	if (error instanceof EmbedNotFoundError)
 		return problemResponse(c, PROBLEM_CODES.EMBED_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+	if (error instanceof EmbedDisabledError)
+		return problemResponse(c, PROBLEM_CODES.EMBED_DISABLED, HTTP_STATUS.FORBIDDEN)
 	if (error instanceof SessionUnauthorizedError)
 		return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
 	if (error instanceof RequestConflictError)

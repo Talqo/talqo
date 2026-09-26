@@ -20,11 +20,13 @@ export type Embed = {
 	appearance: WidgetAppearance
 	embedToken: string
 	id: string
+	isDisabled: boolean
 	name: string
 }
 
 export type EmbedConfig = {
 	appearance: WidgetAppearance
+	isDisabled: boolean
 	name: string
 	updatedAt: Date
 	version: number
@@ -48,6 +50,7 @@ function toEmbed(row: EmbedRow): Embed {
 		name: row.name,
 		embedToken: row.embedToken,
 		accessVersion: row.accessVersion,
+		isDisabled: row.isDisabled,
 		appearance: {
 			light: {
 				primary: row.lightPrimaryColor,
@@ -138,6 +141,20 @@ export async function rotateEmbedToken(id: string): Promise<Embed> {
 	return toEmbed(row)
 }
 
+export async function disableEmbed(id: string): Promise<Embed> {
+	return setDisabled(id, true)
+}
+
+export async function enableEmbed(id: string): Promise<Embed> {
+	return setDisabled(id, false)
+}
+
+async function setDisabled(id: string, isDisabled: boolean): Promise<Embed> {
+	const row = await repo.setEmbedDisabled(id, isDisabled)
+	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
+	return toEmbed(row)
+}
+
 export async function deleteEmbed(id: string): Promise<void> {
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
@@ -147,8 +164,8 @@ export async function deleteEmbed(id: string): Promise<void> {
 export async function getConfigByToken(embedToken: string): Promise<EmbedConfig> {
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
-	const { name, appearance } = toEmbed(row)
-	return { version: WIDGET_CONFIG_VERSION, name, appearance, updatedAt: row.updatedAt }
+	const { name, appearance, isDisabled } = toEmbed(row)
+	return { version: WIDGET_CONFIG_VERSION, name, appearance, isDisabled, updatedAt: row.updatedAt }
 }
 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {

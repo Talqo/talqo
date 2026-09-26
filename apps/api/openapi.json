@@ -355,6 +355,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["embed-disabled"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#embed-disabled"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["embed-not-found"]
 							},
 							"type": {
@@ -770,11 +785,14 @@
 						"type": "integer",
 						"exclusiveMinimum": 0
 					},
+					"isDisabled": {
+						"type": "boolean"
+					},
 					"appearance": {
 						"$ref": "#/components/schemas/EmbedAppearance"
 					}
 				},
-				"required": ["id", "agentId", "name", "embedToken", "accessVersion", "appearance"]
+				"required": ["id", "agentId", "name", "embedToken", "accessVersion", "isDisabled", "appearance"]
 			},
 			"EmbedAppearance": {
 				"type": "object",
@@ -834,9 +852,12 @@
 					},
 					"appearance": {
 						"$ref": "#/components/schemas/EmbedAppearance"
+					},
+					"isDisabled": {
+						"type": "boolean"
 					}
 				},
-				"required": ["version", "name", "appearance"]
+				"required": ["version", "name", "appearance", "isDisabled"]
 			},
 			"ChatEventV1": {
 				"oneOf": [
@@ -4284,6 +4305,164 @@
 				}
 			}
 		},
+		"/api/embeds/{embedId}/disable": {
+			"post": {
+				"operationId": "disableEmbed",
+				"tags": ["Embed"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "embedId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Embed disabled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"embed": {
+											"$ref": "#/components/schemas/Embed"
+										}
+									},
+									"required": ["embed"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: embed-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/embeds/{embedId}/enable": {
+			"post": {
+				"operationId": "enableEmbed",
+				"tags": ["Embed"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "embedId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Embed enabled",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"embed": {
+											"$ref": "#/components/schemas/Embed"
+										}
+									},
+									"required": ["embed"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: embed-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/embed-config/{embedToken}": {
 			"get": {
 				"operationId": "getEmbedConfig",
@@ -4398,6 +4577,16 @@
 					},
 					"401": {
 						"description": "Problem response. Codes: chat-session-unauthorized.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: embed-disabled.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

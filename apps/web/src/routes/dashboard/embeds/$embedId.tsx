@@ -29,6 +29,7 @@ import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
 import { DeleteEmbedDialog } from "./-delete-embed-dialog"
+import { DisableEmbedDialog } from "./-disable-embed-dialog"
 import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
 import { RotateEmbedTokenDialog } from "./-rotate-embed-token-dialog"
 
@@ -279,7 +280,14 @@ function EmbedDetailPage() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<Input value={embed.embedToken} readOnly className="font-mono" aria-label={t("embedSetup.embedToken")} />
-					{canManage && <RotateEmbedTokenDialog embedId={embedId} />}
+					{canManage && (
+						<div className="flex flex-wrap items-center gap-3">
+							<RotateEmbedTokenDialog embedId={embedId} />
+							{/* Reads as the state too: a disabled embed offers "Enable widget" here. */}
+							<DisableEmbedDialog embed={embed} />
+						</div>
+					)}
+					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.widgetDisabledNote")}</p>}
 				</CardContent>
 			</Card>
 

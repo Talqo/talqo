@@ -236,6 +236,8 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			return {
 				title: configuration.name,
 				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+				// Older servers predate the flag; absent means enabled.
+				isDisabled: configuration.isDisabled === true,
 			}
 		},
 

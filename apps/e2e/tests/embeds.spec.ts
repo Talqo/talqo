@@ -258,6 +258,78 @@ test("embed snippet carries the public token", async ({ page }) => {
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
 })
 
+test("operator disables the widget from the detail page and the public config reflects it", async ({ page }) => {
+	const source = seeded.find(({ name }) => name === "Website")
+	if (!source) throw new Error("Shared seed Website embed is missing")
+
+	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await expect(page).toHaveURL(`/dashboard/embeds/${source.id}`)
+
+	try {
+		await page.getByRole("button", { name: "Disable widget" }).click()
+		const dialog = page.getByRole("dialog", { name: "Disable the widget?" })
+		await dialog.getByRole("button", { name: "Disable widget" }).click()
+		await expect(dialog).not.toBeVisible()
+		await expect(page.getByRole("button", { name: "Enable widget" })).toBeVisible()
+		await expect(page.getByText(/This widget is disabled/)).toBeVisible()
+
+		// The ETag-cached public config is how already-installed widgets learn the state.
+		await expect
+			.poll(async () => {
+				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
+				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+			})
+			.toBe(true)
+
+		await page.getByRole("button", { name: "Enable widget" }).click()
+		await expect(page.getByRole("button", { name: "Disable widget" })).toBeVisible()
+		await expect
+			.poll(async () => {
+				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
+				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+			})
+			.toBe(false)
+	} finally {
+		// The shared seed keeps serving other journeys, so restore it on any failure path.
+		await page.request.post(`/api/embeds/${source.id}/enable`)
+	}
+})
+
+test("a read-only user does not see the Disable button on the embed detail page", async ({ page }) => {
+	const viewer = { username: "user", password: "user1234" }
+	const source = seeded.find(({ name }) => name === "Website")
+	if (!source) throw new Error("Shared seed Website embed is missing")
+
+	// Grant through the API boundary, then switch accounts and inspect the same page.
+	const { users } = (await (await page.request.get("/api/users")).json()) as {
+		users: { id: string; username: string }[]
+	}
+	const user = users.find(({ username }) => username === viewer.username)
+	if (!user) throw new Error("Seed user is missing")
+	const grantResponse = await page.request.post("/api/permission-grants", {
+		data: { userId: user.id, permission: "agents:read" },
+	})
+	await expect(grantResponse).toBeOK()
+	const grantId = ((await grantResponse.json()) as { grant: { id: string } }).grant.id
+
+	try {
+		await page.getByRole("button", { name: "Log out" }).click()
+		await expect(page).toHaveURL("/login")
+		await page.getByLabel("Username").fill(viewer.username)
+		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
+		await page.getByRole("button", { name: "Log in" }).click()
+		await expect(page).toHaveURL("/dashboard")
+
+		await page.goto(`/dashboard/embeds/${source.id}`)
+		await expect(page.getByLabel("Embed token", { exact: true })).toBeVisible()
+		await expect(page.getByRole("button", { name: "Disable widget" })).toHaveCount(0)
+		await expect(page.getByRole("button", { name: "Enable widget" })).toHaveCount(0)
+	} finally {
+		await page.request.post("/api/auth/login", { data: operator })
+		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+	}
+})
+
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
 	const source = seeded.find(({ name }) => name === "Website")
 	if (!source) throw new Error("Shared seed Website embed is missing")
