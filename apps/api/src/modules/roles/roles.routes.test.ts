@@ -59,4 +59,10 @@ describe("roles routes", () => {
 
 		expect(response.status).toBe(401)
 	})
+
+	it("rejects an unauthenticated request to delete a user", async () => {
+		const response = await app.request(`/api/users/${crypto.randomUUID()}`, { method: "DELETE" })
+
+		expect(response.status).toBe(401)
+	})
 })

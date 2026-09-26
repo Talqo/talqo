@@ -86,6 +86,7 @@ Talqo is related to these repos:
 | FR-2.4a | Admin can reset another operator account's password (no self-service password recovery exists, since there is no self-registration or email flow) | Medium | Done |
 | FR-2.5 | Operator can update their account information (username) | Medium | Done |
 | FR-2.6 | Operator can delete their account | Medium | Done |
+| FR-2.6a | Admin can delete another operator account; deletion ends its sessions and removes its permissions | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
 | FR-2.8 | Operator can rotate an agent's public embed token, which orphans the old token for existing embed code | Medium | Done |
 | FR-2.8a | Operator can rotate a widget's public token to invalidate the embed code already pasted on customer sites | Medium | Done |

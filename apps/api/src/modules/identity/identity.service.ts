@@ -191,5 +191,5 @@ export async function updateAccount(userId: string, input: { username: string })
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
-	await repo.deleteUser(userId)
+	if (!(await repo.deleteUser(userId))) throw new UserNotFoundError(`deleteAccount: user ${userId} not found`)
 }

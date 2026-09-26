@@ -200,6 +200,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#route-not-found"
 	  }
 	| {
+			code: "self-delete-not-allowed"
+			type: "https://docs.talqo.chat/problems#self-delete-not-allowed"
+	  }
+	| {
 			code: "self-password-reset-not-allowed"
 			type: "https://docs.talqo.chat/problems#self-password-reset-not-allowed"
 	  }
