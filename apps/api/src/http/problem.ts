@@ -8,6 +8,7 @@ export const PROBLEM_CODES = {
 	ADMIN_ALREADY_EXISTS: "admin-already-exists",
 	AGENT_FILE_INVALID: "agent-file-invalid",
 	AGENT_FILE_NAME_TAKEN: "agent-file-name-taken",
+	AGENT_FILE_NOT_FAILED: "agent-file-not-failed",
 	AGENT_FILE_NOT_FOUND: "agent-file-not-found",
 	AGENT_INVALID: "agent-invalid",
 	AGENT_IN_USE: "agent-in-use",

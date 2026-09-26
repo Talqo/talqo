@@ -132,6 +132,19 @@ describe("parseEnv", () => {
 		).toThrow(/TALQO_UPLOAD_DIR/)
 	})
 
+	it("requires the deployment-wired Docling endpoint in production", () => {
+		const base = {
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			NODE_ENV: "production",
+			TALQO_UPLOAD_DIR: "/data/talqo-uploads",
+		}
+		expect(() => parseEnv(base)).toThrow(/TALQO_DOCLING_URL/)
+		expect(parseEnv({ ...base, TALQO_DOCLING_URL: "http://docling:5001" }).TALQO_DOCLING_URL).toBe(
+			"http://docling:5001",
+		)
+	})
+
 	it("rejects a missing NODE_ENV", () => {
 		expect(() => parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo" })).toThrow(/NODE_ENV/)
 	})

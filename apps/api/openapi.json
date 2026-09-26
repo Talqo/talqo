@@ -85,6 +85,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["agent-file-not-failed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#agent-file-not-failed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["agent-file-not-found"]
 							},
 							"type": {
@@ -962,9 +977,17 @@
 					"createdAt": {
 						"type": "string",
 						"format": "date-time"
+					},
+					"embeddingStatus": {
+						"type": "string",
+						"enum": ["pending", "processing", "ready", "failed"]
+					},
+					"embeddingError": {
+						"type": ["string", "null"],
+						"enum": ["conversion-failed", "empty-document", "provider-error", "unknown", null]
 					}
 				},
-				"required": ["name", "sizeBytes", "createdAt"]
+				"required": ["name", "sizeBytes", "createdAt", "embeddingStatus", "embeddingError"]
 			}
 		},
 		"parameters": {}
@@ -5096,6 +5119,100 @@
 					},
 					"404": {
 						"description": "Problem response. Codes: agent-file-not-found, agent-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/files/{fileName}/retry": {
+			"post": {
+				"operationId": "retryAgentFile",
+				"tags": ["Agent"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "fileName",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Problem response. Codes: agent-file-invalid, invalid-request, malformed-json.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-file-not-found, agent-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: agent-file-not-failed.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

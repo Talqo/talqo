@@ -1,8 +1,14 @@
 import { env } from "@/config/env.ts"
+import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
 import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
 import { extname, join } from "node:path"
 import { z } from "zod"
+
+import { chunkFile } from "./docling-client.ts"
+import * as repository from "./knowledge-base.repository.ts"
+import { IngestionError, processPendingFiles } from "./knowledge-base.worker.ts"
 
 /* eslint-disable no-magic-numbers */
 export const MAX_FILE_SIZE_MB = 10
@@ -33,6 +39,10 @@ export type StoredFile = {
 	name: string
 	sizeBytes: number
 	createdAt: Date
+}
+export type IndexedFile = StoredFile & {
+	embeddingStatus: repository.FileStatus
+	embeddingError: repository.FailureReason | null
 }
 
 export class FileExistsError extends Error {}
@@ -89,6 +99,16 @@ export async function list(agentId: string): Promise<StoredFile[]> {
 	return files.toSorted((a, b) => a.name.localeCompare(b.name))
 }
 
+export async function listAgentDirectories(): Promise<string[]> {
+	try {
+		const entries = await readdir(env.TALQO_UPLOAD_DIR, { withFileTypes: true })
+		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
+		throw error
+	}
+}
+
 export async function put(agentId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
 	const dir = agentDir(agentId)
 	await mkdir(dir, { recursive: true })
@@ -106,6 +126,15 @@ export async function put(agentId: string, name: string, data: ArrayBuffer): Pro
 export async function get(agentId: string, name: string): Promise<Uint8Array> {
 	try {
 		return await readFile(join(agentDir(agentId), name))
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new FileNotFoundError(`File ${name} not found`)
+		throw error
+	}
+}
+
+export async function requireFile(agentId: string, name: string): Promise<void> {
+	try {
+		await stat(join(agentDir(agentId), name))
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new FileNotFoundError(`File ${name} not found`)
 		throw error
@@ -149,4 +178,138 @@ export async function remove(agentId: string, name: string): Promise<void> {
 
 export async function removeAgentDir(agentId: string): Promise<void> {
 	await rm(agentDir(agentId), { force: true, recursive: true })
+}
+
+const WORKER_INTERVAL_MS = 3_000
+const WORKER_LOCK_KEY = 823_741_921
+
+export class FileNotFailedError extends Error {}
+
+export async function upload(agentId: string, name: string, data: ArrayBuffer): Promise<IndexedFile> {
+	const stored = await put(agentId, name, data)
+	try {
+		await repository.enqueue(agentId, name)
+	} catch (error) {
+		await remove(agentId, name)
+		throw error
+	}
+	return { ...stored, embeddingStatus: "pending", embeddingError: null }
+}
+
+export async function listWithStatus(agentId: string): Promise<IndexedFile[]> {
+	const listed = await list(agentId)
+	let statuses = await repository.statuses(agentId)
+	const missing = listed.filter((file) => !statuses.has(file.name))
+	if (missing.length) {
+		await Promise.all(missing.map((file) => repository.enqueue(agentId, file.name)))
+		statuses = await repository.statuses(agentId)
+	}
+	return listed.map((file) => {
+		const status = statuses.get(file.name)
+		return Object.assign(file, {
+			embeddingStatus: status?.status ?? "pending",
+			embeddingError: status?.error ?? null,
+		})
+	})
+}
+
+export async function rename(agentId: string, oldName: string, newName: string): Promise<IndexedFile> {
+	const file = await renameFile(agentId, oldName, newName)
+	await repository.rename(agentId, oldName, newName)
+	const status = (await repository.statuses(agentId)).get(newName)
+	return { ...file, embeddingStatus: status?.status ?? "pending", embeddingError: status?.error ?? null }
+}
+
+export async function deleteFile(agentId: string, name: string): Promise<void> {
+	await remove(agentId, name)
+	await repository.remove(agentId, name)
+}
+
+export async function retryEmbedding(agentId: string, name: string): Promise<void> {
+	await requireFile(agentId, name)
+	if (!(await repository.retry(agentId, name))) throw new FileNotFailedError("File is not in a failed state")
+}
+
+async function recoverUploads(): Promise<void> {
+	/* eslint-disable no-await-in-loop -- scan local directories without flooding the database */
+	for (const agentId of await listAgentDirectories()) {
+		try {
+			await Promise.all((await list(agentId)).map((file) => repository.enqueue(agentId, file.name)))
+		} catch (error) {
+			if (!isForeignKeyViolation(error)) throw error
+		}
+	}
+	/* eslint-enable no-await-in-loop */
+}
+
+async function convert(job: repository.Job): Promise<string[]> {
+	const url = env.TALQO_DOCLING_URL
+	if (!url) throw new IngestionError("conversion-failed")
+	try {
+		return await chunkFile(job.name, await get(job.agentId, job.name), url)
+	} catch (error) {
+		throw new IngestionError("conversion-failed", { cause: error })
+	}
+}
+
+export async function runIngestion(): Promise<void> {
+	const connection = await (await import("@/db/client.ts")).sql.reserve()
+	let locked = false
+	try {
+		const result = await connection<
+			{ acquired: boolean }[]
+		>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY}) AS acquired`
+		locked = result[0]?.acquired ?? false
+		if (!locked) return
+		await repository.recover()
+		await recoverUploads()
+		/* eslint-disable no-await-in-loop -- each batch finishes before the next poll */
+		for (;;) {
+			await connection`SELECT 1`
+			try {
+				const model = await aiProvider.prepareEmbeddingOperation()
+				await repository.reindexChanged(model.key)
+				await processPendingFiles({
+					claim: async () => {
+						await connection`SELECT 1`
+						return repository.claim(model.key)
+					},
+					convert,
+					embed: async (text) => {
+						await connection`SELECT 1`
+						try {
+							return await model.embed(text)
+						} catch (error) {
+							throw new IngestionError("provider-error", {
+								cause: error,
+							})
+						}
+					},
+					complete: async (job, chunks) => {
+						await connection`SELECT 1`
+						if ((await aiProvider.prepareEmbeddingOperation()).key !== model.key) {
+							await repository.requeue(job)
+							return
+						}
+						await repository.complete(job, model.key, chunks)
+					},
+					fail: async (job, error) => {
+						console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, error })
+						await repository.fail(job, error instanceof IngestionError ? error.reason : "unknown")
+					},
+				})
+			} catch (error) {
+				if (!(error instanceof aiProvider.UnusableConfigurationError))
+					console.error("agent-file.worker.failed", { error })
+			}
+			await Bun.sleep(WORKER_INTERVAL_MS)
+		}
+		/* eslint-enable no-await-in-loop */
+	} finally {
+		try {
+			if (locked) await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY})`
+		} finally {
+			connection.release()
+		}
+	}
 }

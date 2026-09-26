@@ -73,6 +73,12 @@
 		"downloadFailed": "The file could not be downloaded. Try again.",
 		"dropzone": "Drag files here, or click to browse",
 		"dropzoneHint": "No knowledge files yet. Upload the sources the agent should answer from.",
+		"error": {
+			"conversionFailed": "Document could not be processed. Retry, or check the file if it keeps failing.",
+			"emptyDocument": "No text could be extracted. Check the file and retry.",
+			"providerError": "The embedding provider rejected this document. Check its configuration and retry.",
+			"unknown": "Embedding failed. Check service logs and retry."
+		},
 		"loadFailed": "Could not load the knowledge files.",
 		"loading": "Loading files…",
 		"rename": "Rename {{name}}",
@@ -83,6 +89,15 @@
 		"renameLabel": "File name",
 		"renameSave": "Rename",
 		"renameTitle": "Rename file",
+		"retry": "Retry embedding {{name}}",
+		"retryAction": "Retry embedding",
+		"retryFailed": "Could not retry embedding. Try again.",
+		"status": {
+			"failed": "Embedding failed",
+			"pending": "Waiting to embed",
+			"processing": "Embedding…",
+			"ready": "Embedded"
+		},
 		"tooLarge": "Each file must be {{maxSizeMB}} MB or smaller.",
 		"uploadFailed": "Upload failed. Try again.",
 		"uploading": "Uploading…"
@@ -150,6 +165,10 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "OpenAI-compatible"
 		},
+		"reembedCancel": "Cancel",
+		"reembedConfirm": "Save and re-embed",
+		"reembedTitle": "Re-embed knowledge files?",
+		"reembedWarning": "Changing the embedding provider, model, or connection settings automatically re-embeds existing files, one at a time. This can take time and incur provider charges. Files that fail can be retried.",
 		"replaceCredentials": "Replace",
 		"sameProviderNote": "Shares the connection from Text generation.",
 		"sameProviderUnavailable": "The text provider has no embedding API. Choose a different provider for embeddings.",

@@ -154,14 +154,26 @@ describe("AI provider service", () => {
 		expect(getStored()).toBeUndefined()
 	})
 
-	it("constructs operation-scoped models from stored configuration", async () => {
-		const { service } = createMemoryService()
-		await service.saveConfiguration("user-1", input)
+	it("prepares the embedding role without decrypting unrelated text credentials", async () => {
+		const { service, getStored } = createMemoryService()
+		await service.saveConfiguration("user-1", {
+			...input,
+			embedding: {
+				providerId: "openai",
+				modelId: "text-embedding-3-small",
+				authMode: "static",
+				settings: {},
+				credentialSource: "separate",
+				credentials: { apiKey: "sk-embedding" },
+			},
+		})
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected stored text credentials")
+		stored.text.credentials = { ...stored.text.credentials, tag: "invalid-tag" }
 
-		const models = await service.createRuntimeModels()
+		const prepared = await service.prepareEmbeddingOperation()
 
-		expect(models.text.modelId).toBe("gpt-5-mini")
-		expect(models.embedding.modelId).toBe("text-embedding-3-small")
+		expect(prepared.key).toBe('["openai","text-embedding-3-small",[]]')
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {

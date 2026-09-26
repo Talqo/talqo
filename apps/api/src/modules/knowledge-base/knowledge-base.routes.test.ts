@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test"
 
 const AGENT_ID = crypto.randomUUID()
 
-describe("agent-files routes", () => {
+describe("knowledge-base file routes", () => {
 	it("rejects unauthenticated file listing", async () => {
 		const response = await app.request(`/api/agents/${AGENT_ID}/files`)
 		expect(response.status).toBe(401)

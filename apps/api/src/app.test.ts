@@ -257,6 +257,7 @@ describe("api", () => {
 				"/api/agents/{agentId}",
 				"/api/agents/{agentId}/files",
 				"/api/agents/{agentId}/files/{fileName}",
+				"/api/agents/{agentId}/files/{fileName}/retry",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",

@@ -1545,3 +1545,139 @@ export const useDeleteAgentFile = <
 > => {
 	return useMutation(getDeleteAgentFileMutationOptions(options), queryClient)
 }
+export type retryAgentFileResponse204 = {
+	data: void
+	status: 204
+}
+
+export type retryAgentFileResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
+export type retryAgentFileResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type retryAgentFileResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type retryAgentFileResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type retryAgentFileResponse409 = {
+	data: ProblemDetails
+	status: 409
+}
+
+export type retryAgentFileResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type retryAgentFileResponseSuccess = retryAgentFileResponse204 & {
+	headers: Headers
+}
+export type retryAgentFileResponseError = (
+	| retryAgentFileResponse400
+	| retryAgentFileResponse401
+	| retryAgentFileResponse403
+	| retryAgentFileResponse404
+	| retryAgentFileResponse409
+	| retryAgentFileResponse500
+) & {
+	headers: Headers
+}
+
+export const getRetryAgentFileUrl = (agentId: string, fileName: string) => {
+	return `/api/agents/${agentId}/files/${fileName}/retry`
+}
+
+export const retryAgentFile = async (
+	agentId: string,
+	fileName: string,
+	options?: RequestInit,
+): Promise<retryAgentFileResponseSuccess> => {
+	const res = await fetch(getRetryAgentFileUrl(agentId, fileName), {
+		credentials: "include",
+		...options,
+		method: "POST",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: retryAgentFileResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: retryAgentFileResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: retryAgentFileResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as retryAgentFileResponseSuccess
+}
+
+export const getRetryAgentFileMutationKey = () => ["retryAgentFile"] as const
+
+export const getRetryAgentFileMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof retryAgentFile>>,
+		TError,
+		RetryAgentFileMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof retryAgentFile>>,
+	TError,
+	RetryAgentFileMutationVariables,
+	TContext
+> => {
+	const mutationKey = getRetryAgentFileMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryAgentFile>>, RetryAgentFileMutationVariables> = (
+		props,
+	) => {
+		const { agentId, fileName } = props ?? {}
+
+		return retryAgentFile(agentId, fileName, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type RetryAgentFileMutationResult = NonNullable<Awaited<ReturnType<typeof retryAgentFile>>>
+
+export type RetryAgentFileMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type RetryAgentFileMutationVariables = { agentId: string; fileName: string }
+
+export const useRetryAgentFile = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof retryAgentFile>>,
+			TError,
+			RetryAgentFileMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof retryAgentFile>>, TError, RetryAgentFileMutationVariables, TContext> => {
+	return useMutation(getRetryAgentFileMutationOptions(options), queryClient)
+}

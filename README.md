@@ -23,11 +23,13 @@ export APP_SECRET=$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')
 
 Development, integration, and E2E commands fail without `APP_SECRET`.
 
+`bun run dev` starts PostgreSQL with pgvector and Docling Serve automatically. No Docling setup or dashboard setting is required. Other deployments provide a private `TALQO_DOCLING_URL` alongside their Docling Serve service and keep the API upload directory persistent. Files that cannot be converted or embedded show a failed state and can be retried from the dashboard.
+
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `bun run dev` | Run API, web, widget, and PostgreSQL development tasks |
+| `bun run dev` | Run API, web, widget, PostgreSQL, and Docling development tasks |
 | `bun run dev:docs` | Run the documentation application |
 | `bun run e2e` | Run browser E2E tests in Chromium |
 | `bun run build` | Build current workspaces |

@@ -14,11 +14,12 @@ import {
 	downloadAgentFileRoute,
 	listAgentFilesRoute,
 	renameAgentFileRoute,
+	retryAgentFileRoute,
 	uploadAgentFileRoute,
-} from "./agent-files.contract.ts"
-import * as files from "./agent-files.service.ts"
+} from "./knowledge-base.contract.ts"
+import * as files from "./knowledge-base.service.ts"
 
-function serialize(file: files.StoredFile) {
+function serialize(file: files.IndexedFile) {
 	return { ...file, createdAt: file.createdAt.toISOString() }
 }
 
@@ -49,9 +50,10 @@ export const agentFilesRoutes = routes
 		const agentId = c.req.valid("param").agentId
 		try {
 			await requireAgent(agentId)
+			const listed = await files.listWithStatus(agentId)
 			return c.json(
 				agentFileListResponseSchema.parse({
-					files: (await files.list(agentId)).map(serialize),
+					files: listed.map(serialize),
 					maxSizeBytes: files.MAX_FILE_SIZE_BYTES,
 					maxNameLength: files.MAX_FILE_NAME_LENGTH,
 					allowedExtensions: [...files.ALLOWED_EXTENSIONS],
@@ -79,7 +81,7 @@ export const agentFilesRoutes = routes
 		try {
 			await requireAgent(agentId)
 			files.validateUpload(file)
-			const stored = await files.put(agentId, file.name, await file.arrayBuffer())
+			const stored = await files.upload(agentId, file.name, await file.arrayBuffer())
 			return c.json(agentFileDetailResponseSchema.parse({ file: serialize(stored) }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			if (error instanceof files.FileTooLargeError) {
@@ -137,7 +139,7 @@ export const agentFilesRoutes = routes
 			await requireAgent(agentId)
 			files.validateName(fileName)
 			const target = files.resolveRenameTarget(fileName, c.req.valid("json").name)
-			const renamed = await files.renameFile(agentId, fileName, target)
+			const renamed = await files.rename(agentId, fileName, target)
 			return c.json(agentFileDetailResponseSchema.parse({ file: serialize(renamed) }), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof files.InvalidFileError) {
@@ -164,7 +166,7 @@ export const agentFilesRoutes = routes
 		try {
 			await requireAgent(agentId)
 			files.validateName(fileName)
-			await files.remove(agentId, fileName)
+			await files.deleteFile(agentId, fileName)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			if (error instanceof files.InvalidFileError) {
@@ -176,6 +178,28 @@ export const agentFilesRoutes = routes
 			if (error instanceof files.FileNotFoundError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 			}
+			throw error
+		}
+	})
+	.openapi(retryAgentFileRoute, async (c) => {
+		if (!(await roles.authorize(c.get("user").id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+		}
+		const { agentId, fileName } = c.req.valid("param")
+		try {
+			await requireAgent(agentId)
+			files.validateName(fileName)
+			await files.retryEmbedding(agentId, fileName)
+			return c.body(null, HTTP_STATUS.NO_CONTENT)
+		} catch (error) {
+			if (error instanceof agent.AgentNotFoundError)
+				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			if (error instanceof files.FileNotFoundError)
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			if (error instanceof files.InvalidFileError)
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
+			if (error instanceof files.FileNotFailedError)
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FAILED, HTTP_STATUS.CONFLICT)
 			throw error
 		}
 	})

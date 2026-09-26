@@ -1,6 +1,12 @@
 services:
+  docling:
+    image: quay.io/docling-project/docling-serve-cpu:v1.35.0
+    ports:
+      - target: 5001
+        host_ip: 127.0.0.1
+
   postgres:
-    image: postgres:18.4
+    image: pgvector/pgvector:0.8.6-pg18-trixie
     environment:
       POSTGRES_DB: talqo
       POSTGRES_PASSWORD: talqo
@@ -19,7 +25,7 @@ services:
       - postgres-data:/var/lib/postgresql
 
   postgres-test:
-    image: postgres:18.4
+    image: pgvector/pgvector:0.8.6-pg18-trixie
     profiles: [test]
     environment:
       POSTGRES_DB: talqo

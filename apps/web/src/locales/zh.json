@@ -73,6 +73,12 @@
 		"downloadFailed": "无法下载文件。请重试。",
 		"dropzone": "将文件拖到此处,或点击浏览",
 		"dropzoneHint": "还没有知识文件。上传智能体应参考的文档。",
+		"error": {
+			"conversionFailed": "无法处理文档。请重试；如果仍然失败，请检查文件。",
+			"emptyDocument": "无法提取文本。请检查文件后重试。",
+			"providerError": "嵌入提供商拒绝了此文档。请检查配置后重试。",
+			"unknown": "嵌入失败。请查看服务日志后重试。"
+		},
 		"loadFailed": "无法加载知识文件。",
 		"loading": "正在加载文件…",
 		"rename": "重命名 {{name}}",
@@ -83,6 +89,15 @@
 		"renameLabel": "文件名",
 		"renameSave": "重命名",
 		"renameTitle": "重命名文件",
+		"retry": "重新嵌入 {{name}}",
+		"retryAction": "重试嵌入",
+		"retryFailed": "无法重新尝试嵌入。请重试。",
+		"status": {
+			"failed": "嵌入失败",
+			"pending": "等待嵌入",
+			"processing": "正在嵌入…",
+			"ready": "嵌入完成"
+		},
 		"tooLarge": "每个文件不得超过 {{maxSizeMB}} MB。",
 		"uploadFailed": "上传失败。请重试。",
 		"uploading": "正在上传…"
@@ -150,6 +165,10 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "OpenAI 兼容"
 		},
+		"reembedCancel": "取消",
+		"reembedConfirm": "保存并重新嵌入",
+		"reembedTitle": "重新嵌入知识文件？",
+		"reembedWarning": "更改嵌入提供商、模型或连接设置后，现有文件将逐个自动重新嵌入。这可能需要一些时间并产生提供商费用。失败的文件可以重试。",
 		"replaceCredentials": "替换",
 		"sameProviderNote": "共享“文本生成”中的连接。",
 		"sameProviderUnavailable": "文本提供商没有嵌入 API。请为嵌入选择其他提供商。",

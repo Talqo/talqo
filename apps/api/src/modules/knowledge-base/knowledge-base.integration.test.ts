@@ -7,7 +7,7 @@ import { afterAll, beforeEach, describe, expect, it } from "bun:test"
 import { readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
 
-import { MAX_FILE_SIZE_BYTES } from "./agent-files.service.ts"
+import { MAX_FILE_SIZE_BYTES } from "./knowledge-base.service.ts"
 
 const LARGE_UPLOAD_BYTES = 300_000
 
@@ -74,6 +74,33 @@ afterAll(async () => {
 })
 
 describe("agent knowledge files", () => {
+	it("exposes pending ingestion and lets an operator retry only failed files", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Retry files")
+		const uploaded = await upload(cookie, agentId)
+		expect(uploaded.status).toBe(201)
+		expect(((await uploaded.json()) as { file: { embeddingStatus: string } }).file.embeddingStatus).toBe("pending")
+		const retryUrl = `/api/agents/${agentId}/files/a.md/retry`
+		await expectProblem(
+			await app.request(retryUrl, { method: "POST", headers: { Cookie: cookie } }),
+			409,
+			"agent-file-not-failed",
+		)
+		await sql`UPDATE agent_file SET status = 'failed', error = 'provider-error' WHERE agent_id = ${agentId}`
+		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
+		expect(
+			((await listed.json()) as { files: { embeddingStatus: string; embeddingError: string | null }[] }).files[0],
+		).toMatchObject({
+			embeddingStatus: "failed",
+			embeddingError: "provider-error",
+		})
+		expect((await app.request(retryUrl, { method: "POST", headers: { Cookie: cookie } })).status).toBe(204)
+		const queued = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
+		expect(((await queued.json()) as { files: { embeddingStatus: string }[] }).files[0]?.embeddingStatus).toBe(
+			"pending",
+		)
+	})
+
 	it("uploads, lists, renames, and deletes a file end to end", async () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Files")
@@ -102,6 +129,9 @@ describe("agent knowledge files", () => {
 		})
 		expect(renamed.status).toBe(200)
 		expect(((await renamed.json()) as { file: { name: string } }).file.name).toBe("renamed.md")
+		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`).map(({ name }) => name)).toEqual([
+			"renamed.md",
+		])
 
 		const removed = await app.request(`/api/agents/${agentId}/files/renamed.md`, {
 			method: "DELETE",
@@ -110,6 +140,7 @@ describe("agent knowledge files", () => {
 		expect(removed.status).toBe(204)
 		const after = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
 		expect(((await after.json()) as { files: unknown[] }).files).toEqual([])
+		expect((await sql`SELECT id FROM agent_file WHERE agent_id = ${agentId}`).length).toBe(0)
 	})
 
 	it("downloads a file with its raw bytes and attachment headers", async () => {

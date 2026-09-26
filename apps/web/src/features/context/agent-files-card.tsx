@@ -7,6 +7,7 @@ import {
 	useDeleteAgentFile,
 	useListAgentFiles,
 	useRenameAgentFile,
+	useRetryAgentFile,
 	useUploadAgentFile,
 } from "@/api/generated/agent/agent.ts"
 import { formatBytes, formatFileDate, splitExtension } from "@/features/context/format"
@@ -26,16 +27,43 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
-import { Download, FileText, Pencil, Trash2, Upload } from "lucide-react"
+import { Download, FileText, Pencil, RotateCcw, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
+const EMBEDDING_REFRESH_MS = 3_000
 
 // The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
 function pathName(name: string): string {
 	return encodeURIComponent(name)
+}
+
+function embeddingStatusText(status: AgentFile["embeddingStatus"], t: (key: string) => string): string {
+	switch (status) {
+		case "pending":
+			return t("agentFiles.status.pending")
+		case "processing":
+			return t("agentFiles.status.processing")
+		case "ready":
+			return t("agentFiles.status.ready")
+		case "failed":
+			return t("agentFiles.status.failed")
+	}
+}
+
+function embeddingErrorText(error: NonNullable<AgentFile["embeddingError"]>, t: (key: string) => string): string {
+	switch (error) {
+		case "conversion-failed":
+			return t("agentFiles.error.conversionFailed")
+		case "empty-document":
+			return t("agentFiles.error.emptyDocument")
+		case "provider-error":
+			return t("agentFiles.error.providerError")
+		case "unknown":
+			return t("agentFiles.error.unknown")
+	}
 }
 
 export function AgentFilesCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
@@ -45,11 +73,21 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 
 	// List requires agents:manage; read-only members skip the query instead of landing on a 403.
 	const filesQuery = useListAgentFiles(agentId, {
-		query: { ...getListAgentFilesQueryOptions(agentId), enabled: canManage },
+		query: {
+			...getListAgentFilesQueryOptions(agentId),
+			enabled: canManage,
+			refetchInterval: (query) =>
+				query.state.data?.data.files.some(
+					(file) => file.embeddingStatus === "pending" || file.embeddingStatus === "processing",
+				)
+					? EMBEDDING_REFRESH_MS
+					: false,
+		},
 	})
 	const uploadFile = useUploadAgentFile()
 	const renameFile = useRenameAgentFile()
 	const deleteFile = useDeleteAgentFile()
+	const retryFile = useRetryAgentFile()
 
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 	const [dragging, setDragging] = useState(false)
@@ -60,6 +98,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const [deleteTarget, setDeleteTarget] = useState<AgentFile | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
 	const [downloadingName, setDownloadingName] = useState<string | null>(null)
+	const [retryingName, setRetryingName] = useState<string | null>(null)
 
 	const maxSizeBytes = filesQuery.data?.data.maxSizeBytes
 	const maxSizeMB = maxSizeBytes ? Math.round(maxSizeBytes / BYTES_PER_MB) : undefined
@@ -156,6 +195,19 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		}
 	}
 
+	async function onRetry(file: AgentFile) {
+		setFileError(null)
+		setRetryingName(file.name)
+		try {
+			await retryFile.mutateAsync({ agentId, fileName: pathName(file.name) })
+			await refresh()
+		} catch (error) {
+			setFileError(getProblemMessage(error, t, t("agentFiles.retryFailed")))
+		} finally {
+			setRetryingName(null)
+		}
+	}
+
 	const files = filesQuery.data?.data.files ?? []
 
 	return (
@@ -227,9 +279,32 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 									<p className="text-muted-foreground text-xs">
 										{formatBytes(file.sizeBytes)} · {formatFileDate(file.createdAt, language)}
 									</p>
+									<p
+										className={
+											file.embeddingStatus === "failed" ? "text-destructive text-xs" : "text-muted-foreground text-xs"
+										}
+										role="status"
+									>
+										{embeddingStatusText(file.embeddingStatus, t)}
+										{file.embeddingStatus === "failed" && file.embeddingError
+											? ` · ${embeddingErrorText(file.embeddingError, t)}`
+											: ""}
+									</p>
 								</div>
 								{canManage && (
 									<TooltipProvider>
+										{file.embeddingStatus === "failed" && (
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												disabled={retryingName === file.name}
+												onClick={() => void onRetry(file)}
+												aria-label={t("agentFiles.retry", { name: file.name })}
+											>
+												<RotateCcw className="size-4" /> {t("agentFiles.retryAction")}
+											</Button>
+										)}
 										<Tooltip>
 											<TooltipTrigger
 												render={

@@ -4,7 +4,7 @@ export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
 
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
-import * as agentFiles from "@/modules/agent-files/agent-files.service.ts"
+import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
@@ -137,5 +137,5 @@ export async function deleteAgent(id: string): Promise<void> {
 		throw error
 	}
 	// Best-effort: the DB delete already committed, so never fail the delete.
-	await agentFiles.removeAgentDir(id).catch((error: unknown) => console.error(error))
+	await knowledgeBase.removeAgentDir(id).catch((error: unknown) => console.error(error))
 }

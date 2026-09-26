@@ -50,6 +50,13 @@
 			"when": 1789682700008,
 			"tag": "0006_end-user-chat",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1790450431318,
+			"tag": "0007_puzzling_bruce_banner",
+			"breakpoints": true
 		}
 	]
 }

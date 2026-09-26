@@ -8,6 +8,7 @@ const migrationsFolder = `${import.meta.dir}/../../drizzle`
 export async function runMigrations(): Promise<void> {
 	if (!existsSync(`${migrationsFolder}/meta/_journal.json`)) return
 
+	await sql`CREATE EXTENSION IF NOT EXISTS vector`
 	await migrate(db, { migrationsFolder })
 }
 

@@ -23,7 +23,8 @@ erDiagram
     MESSAGE
     CONVERSATION_DAILY_COUNTER
 
-    FILE_EMBEDDING
+    AGENT_FILE
+    AGENT_FILE_CHUNK
     USAGE_RECORD
 
     USER ||--o{ SESSION : authenticates
@@ -36,7 +37,8 @@ erDiagram
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ MCP_CONFIG : configures
     AGENT ||--o{ AI_PROVIDER_CONFIG : configures
-    AGENT ||--o{ FILE_EMBEDDING : embeds
+    AGENT ||--o{ AGENT_FILE : owns
+    AGENT_FILE ||--o{ AGENT_FILE_CHUNK : contains
 
     AGENT ||--o{ CONVERSATION : receives
     AGENT ||--o{ CONVERSATION_DAILY_COUNTER : limits

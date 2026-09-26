@@ -8,7 +8,7 @@ import {
 	resolveRenameTarget,
 	validateName,
 	validateUpload,
-} from "./agent-files.service.ts"
+} from "./knowledge-base.service.ts"
 
 describe("validateUpload", () => {
 	it("accepts an allowed type within the size limit", () => {
