@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "Změnit heslo",
-		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
@@ -12,6 +10,8 @@
 		"email": "E-mail",
 		"emailInvalid": "Zadejte platnou e-mailovou adresu.",
 		"heading": "Účet",
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"name": "Jméno",
 		"nameRequired": "Jméno je povinné.",
 		"newPassword": "Nové heslo",
@@ -388,13 +388,22 @@
 		"provider-unreachable": "Poskytovatele se nepodařilo kontaktovat.",
 		"request-failed": "Požadavek se nepodařilo dokončit.",
 		"route-not-found": "Požadovaná trasa API nebyla nalezena.",
+		"self-delete-not-allowed": "Vlastní účet nelze smazat ze seznamu uživatelů.",
 		"self-password-reset-not-allowed": "Vlastní heslo změňte v nastavení účtu.",
 		"user-not-found": "Uživatel nebyl nalezen.",
 		"username-taken": "Toto uživatelské jméno se již používá."
 	},
 	"users": {
+		"cancel": "Zrušit",
+		"confirmHelp": "Pro potvrzení zadejte přesné uživatelské jméno: {{username}}",
+		"confirmLabel": "Zadejte „{{username}}“ pro povolení smazání",
 		"copy": "Kopírovat vygenerované heslo",
 		"copyFailed": "Heslo se nepodařilo zkopírovat. Vyberte ho a zkopírujte ručně.",
+		"delete": "Smazat",
+		"deleteConfirm": "Trvale smazat",
+		"deletePrompt": "Tímto trvale smažete účet {{username}}, uživatel bude odhlášen ze všech relací a přijde o svá oprávnění. Akci nelze vrátit.",
+		"deleteTitle": "Smazat uživatele?",
+		"deleting": "Mazání…",
 		"forbidden": "Pro zobrazení uživatelů potřebujete přístup správce.",
 		"generate": "Vygenerovat",
 		"heading": "Uživatelé",
@@ -405,6 +414,6 @@
 		"resetPassword": "Resetovat heslo",
 		"resetSuccess": "Heslo bylo resetováno.",
 		"resetWarning": "Tímto se uživatel okamžitě odhlásí ze všech relací a při dalším přihlášení bude muset nastavit nové heslo.",
-		"subheading": "Zobrazte účty a resetujte hesla."
+		"subheading": "Zobrazte účty, resetujte hesla a mažte účty."
 	}
 }
