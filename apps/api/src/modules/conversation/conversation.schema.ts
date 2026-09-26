@@ -56,7 +56,7 @@ export const generationAttempt = pgTable(
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
-		inputText: text("input_text").notNull(),
+		estimatedInputTokens: integer("estimated_input_tokens").notNull(),
 		status: generationAttemptStatus("status").notNull().default("accepted"),
 		networkHash: text("network_hash").notNull(),
 		leaseToken: text("lease_token").notNull(),

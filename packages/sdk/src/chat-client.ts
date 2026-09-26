@@ -4,7 +4,6 @@ import type {
 	ChatConfiguration,
 	ChatError,
 	ChatMessage,
-	ChatMessageOutcome,
 	ChatSnapshot,
 	SessionState,
 } from "./types"
@@ -46,15 +45,16 @@ function defaultRandomUUID(): string {
 
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(resolve, milliseconds)
-		signal.addEventListener(
-			"abort",
-			() => {
-				clearTimeout(timeout)
-				reject(signal.reason)
-			},
-			{ once: true },
-		)
+		if (signal.aborted) return reject(signal.reason)
+		const timeout = setTimeout(() => {
+			signal.removeEventListener("abort", onAbort)
+			resolve()
+		}, milliseconds)
+		function onAbort() {
+			clearTimeout(timeout)
+			reject(signal.reason)
+		}
+		signal.addEventListener("abort", onAbort, { once: true })
 	})
 }
 
@@ -277,8 +277,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				}
 				initialization = "ready"
 				publish()
-				if (activeGenerationId !== undefined) beginSessionRecoveryPolling()
-				else if (pendingMessage !== undefined) beginSessionRecoveryPolling()
+				if (activeGenerationId !== undefined || pendingMessage !== undefined) beginSessionRecoveryPolling()
 			} catch (cause) {
 				initialization = "error"
 				error = transportError(cause)
@@ -328,7 +327,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		error = undefined
 		retryAt = undefined
 		publish()
-		let userId = localUserId
 		let assistantId: string | undefined
 		let terminalReceived = false
 		let accepted = false
@@ -347,11 +345,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				if (accepted && event.type === "accepted") throw new Error("Chat stream emitted acceptance more than once")
 				if (event.type === "accepted") {
 					accepted = true
-					userId = event.userMessage.id
 					activeGenerationId = event.generationId
 					messages = messages.map((message) =>
 						message.id === localUserId
-							? { ...message, id: userId, createdAt: event.userMessage.createdAt, outcome: "completed" }
+							? { ...message, id: event.userMessage.id, createdAt: event.userMessage.createdAt, outcome: "completed" }
 							: message,
 					)
 					assistantId = event.assistantMessage.id
@@ -375,10 +372,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					publish()
 				} else {
 					terminalReceived = true
-					const outcome: ChatMessageOutcome = event.outcome
-					if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome }))
+					if (assistantId !== undefined)
+						replaceMessage(assistantId, (message) => ({ ...message, outcome: event.outcome }))
 					if (event.type === "error") error = event.error
-					if (event.type === "terminal" && event.error !== undefined) error = event.error
 					retryAt = error?.retryAt
 					generation = "idle"
 					recovery = "idle"
@@ -410,7 +406,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			} else if (send.cancellationRequested) {
 				if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome: "cancelled" }))
 			} else if (!(cause instanceof ChatClientError)) {
-				if (!accepted) replaceMessage(userId, (message) => ({ ...message, outcome: "interrupted" }))
+				if (!accepted) replaceMessage(localUserId, (message) => ({ ...message, outcome: "interrupted" }))
 				if (assistantId !== undefined)
 					replaceMessage(assistantId, (message) => ({ ...message, outcome: "interrupted" }))
 				generation = "recovery"

@@ -26,7 +26,6 @@ CREATE TABLE "generation_attempt" (
 	"id" text PRIMARY KEY NOT NULL,
 	"conversation_id" text NOT NULL,
 	"request_id" text NOT NULL,
-	"input_text" text NOT NULL,
 	"status" "generation_attempt_status" DEFAULT 'accepted' NOT NULL,
 	"network_hash" text NOT NULL,
 	"lease_token" text NOT NULL,
@@ -41,6 +40,7 @@ CREATE TABLE "generation_attempt" (
 	"usage_recorded_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"estimated_input_tokens" integer NOT NULL,
 	CONSTRAINT "generation_attempt_usage_candidate_pair_check" CHECK (("generation_attempt"."usage_input_tokens" IS NULL) = ("generation_attempt"."usage_output_tokens" IS NULL))
 );
 --> statement-breakpoint
