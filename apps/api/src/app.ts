@@ -9,7 +9,7 @@ import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
-import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
+import { createConversationRoutes, statsRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
@@ -76,6 +76,7 @@ api.route("/embeds", embedRoutes)
 api.route("/embed-config", embedConfigRoutes)
 api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
+api.route("/stats", statsRoutes)
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
 app.route(API_PREFIX, api)

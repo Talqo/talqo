@@ -17,7 +17,7 @@ export default defineConfig({
 		input: {
 			target: "./apps/api/openapi.json",
 			filters: {
-				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed", "MCP"],
+				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed", "MCP", "Stats"],
 				schemas: ["ProblemDetails"],
 			},
 		},

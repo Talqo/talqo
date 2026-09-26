@@ -265,23 +265,19 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "更新您的个人资料和偏好设置。",
-				"title": "账户"
-			},
-			"agents": {
-				"description": "管理您的智能体及其行为。",
-				"title": "智能体"
-			},
-			"analytics": {
-				"description": "查看对话和使用统计。",
-				"title": "分析"
-			}
-		},
+		"agentColumn": "智能体",
+		"conversations": "对话数",
+		"dailyTotals": "最近 30 天的每日总量。",
+		"empty": "还没有对话。智能体开始对话后，这里会显示统计信息。",
 		"heading": "欢迎使用 Talqo",
-		"openCard": "打开{{title}} →",
-		"subheading": "在一个地方管理您的智能体和分析。"
+		"last30Days": "{{metric}}（30 天）",
+		"loading": "正在加载统计…",
+		"messages": "消息数",
+		"perAgentDescription": "最近 30 天每个智能体的总量。",
+		"perAgentTitle": "按智能体细分",
+		"subheading": "您所有智能体的对话和使用统计。",
+		"tokens": "令牌数",
+		"usageOverTime": "使用量趋势"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "服务此智能体的嵌入项。",

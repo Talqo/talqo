@@ -1,3 +1,4 @@
+import type { AuthedVariables } from "@/http/require-auth.ts"
 import type { Context } from "hono"
 
 import { env } from "@/config/env.ts"
@@ -5,11 +6,19 @@ import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.t
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
-import { cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
+import {
+	cancelRoute,
+	sendRoute,
+	sessionRoute,
+	sessionStateSchema,
+	statsOverviewResponseSchema,
+	statsOverviewRoute,
+} from "./conversation.contract.ts"
 import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
@@ -21,7 +30,7 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
-import { getConversationService } from "./conversation.service.ts"
+import { getConversationService, getStatsOverview } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
@@ -32,6 +41,7 @@ type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): s
 }
 const UTC_RESET_HOUR = 24
 const MILLISECONDS_PER_SECOND = 1000
+const DEFAULT_STATS_DAYS = 30
 
 function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Response | undefined {
 	if (error instanceof EmbedNotFoundError)
@@ -179,3 +189,13 @@ export function createConversationRoutes(
 			}
 		})
 }
+
+export const statsRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(statsOverviewRoute, async (c) => {
+	const user = c.get("user")
+	if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
+		return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+	}
+	const { days, agentId } = c.req.valid("query")
+	const overview = await getStatsOverview({ days: days ?? DEFAULT_STATS_DAYS, agentId })
+	return c.json(statsOverviewResponseSchema.parse({ overview }), HTTP_STATUS.OK)
+})

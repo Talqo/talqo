@@ -265,23 +265,19 @@
 		"showPassword": "Show password"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "Update your profile and preferences.",
-				"title": "Account"
-			},
-			"agents": {
-				"description": "Manage your agents and their behavior.",
-				"title": "Agents"
-			},
-			"analytics": {
-				"description": "View conversation and usage statistics.",
-				"title": "Analytics"
-			}
-		},
+		"agentColumn": "Agent",
+		"conversations": "Conversations",
+		"dailyTotals": "Daily totals for the last 30 days.",
+		"empty": "No conversations yet. Statistics appear once your agents start chatting.",
 		"heading": "Welcome to Talqo",
-		"openCard": "Open {{title}} →",
-		"subheading": "Manage your agents and analytics from one place."
+		"last30Days": "{{metric}} (30 days)",
+		"loading": "Loading statistics…",
+		"messages": "Messages",
+		"perAgentDescription": "Totals per agent over the last 30 days.",
+		"perAgentTitle": "Per-agent breakdown",
+		"subheading": "Conversation and usage statistics across your agents.",
+		"tokens": "Tokens",
+		"usageOverTime": "Usage over time"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "Embeds serving this agent.",

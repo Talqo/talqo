@@ -1,16 +1,15 @@
+import { useGetStatsOverview } from "@/api/generated/stats/stats.ts"
 import { PageHeader } from "@/components/page-header"
 import { useActiveAgent } from "@/features/agents/use-active-agent"
 import { requirePermission } from "@/features/permissions/require-permission"
-import { useLanguage } from "@/lib/use-language"
+import { DailyStatsChart, StatsMetricCards, type StatsMetric } from "@/features/statistics/components/stats-charts"
+import { toPageStats } from "@/features/statistics/page-stats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { createFileRoute } from "@tanstack/react-router"
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
-import { createMockStats, type AgentStats } from "./-agent-stats"
+const STATS_DAYS = 30
 
 export const Route = createFileRoute("/dashboard/analytics")({
 	beforeLoad: requirePermission("agents:read"),
@@ -20,85 +19,23 @@ export const Route = createFileRoute("/dashboard/analytics")({
 	component: AnalyticsPage,
 })
 
-const metricKeys = ["conversations", "messages", "tokens"] as const
-
-const metricColors: Record<(typeof metricKeys)[number], string> = {
-	conversations: "var(--chart-1)",
-	messages: "var(--chart-2)",
-	tokens: "var(--chart-3)",
-}
-
-function formatHistoryDate(language: string, date: string) {
-	return new Date(`${date}T00:00:00Z`).toLocaleDateString(language, {
-		month: "short",
-		day: "numeric",
-		timeZone: "UTC",
-	})
-}
-
-function MetricChart({
-	history,
-	metric,
-	label,
-	language,
-	compactNumber,
-}: {
-	history: AgentStats["history"]
-	metric: (typeof metricKeys)[number]
-	label: string
-	language: string
-	compactNumber: Intl.NumberFormat
-}) {
-	return (
-		<ResponsiveContainer width="100%" height={280}>
-			<AreaChart data={history} margin={{ top: 8, right: 8, left: 8 }}>
-				<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-				<XAxis
-					dataKey="date"
-					tickFormatter={(date: string) => formatHistoryDate(language, date)}
-					tick={{ fontSize: 12 }}
-					stroke="var(--muted-foreground)"
-					tickLine={false}
-					axisLine={false}
-				/>
-				<YAxis
-					tickFormatter={(value: number) => compactNumber.format(value)}
-					tick={{ fontSize: 12 }}
-					stroke="var(--muted-foreground)"
-					tickLine={false}
-					axisLine={false}
-					width={48}
-				/>
-				<Tooltip
-					labelFormatter={(axisLabel) => formatHistoryDate(language, String(axisLabel))}
-					contentStyle={{
-						background: "var(--popover)",
-						border: "1px solid var(--border)",
-						borderRadius: "var(--radius)",
-						color: "var(--popover-foreground)",
-						fontSize: 12,
-					}}
-				/>
-				<Area
-					type="monotone"
-					dataKey={metric}
-					name={label}
-					stroke={metricColors[metric]}
-					fill={metricColors[metric]}
-					fillOpacity={0.15}
-					strokeWidth={2}
-				/>
-			</AreaChart>
-		</ResponsiveContainer>
-	)
+function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
+	return {
+		conversations: t("analytics.conversations"),
+		messages: t("analytics.messages"),
+		tokens: t("analytics.tokens"),
+	}
 }
 
 function AnalyticsPage() {
 	const { t } = useTranslation()
 	const { agents, isLoading, activeId, setSelectedId } = useActiveAgent()
-	const stats = activeId ? createMockStats(activeId) : undefined
-	const { language } = useLanguage()
-	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
+	const { data: statsData, isLoading: statsLoading } = useGetStatsOverview(
+		{ days: STATS_DAYS, agentId: activeId || undefined },
+		{ query: { enabled: Boolean(activeId) } },
+	)
+	const stats = statsData ? toPageStats(statsData.data.overview) : undefined
+	const labels = metricLabels(t)
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
@@ -129,20 +66,15 @@ function AnalyticsPage() {
 				<p className="text-muted-foreground">{t("analytics.loading")}</p>
 			) : !agents?.length ? (
 				<p className="text-muted-foreground">{t("analytics.empty")}</p>
-			) : !stats ? (
+			) : !stats || statsLoading ? (
 				<p className="text-muted-foreground">{t("analytics.loadingStats")}</p>
 			) : (
 				<>
-					<div className="grid gap-4 sm:grid-cols-3">
-						{metricKeys.map((metric) => (
-							<Card key={metric}>
-								<CardHeader>
-									<CardDescription>{t("analytics.last30Days", { metric: t(`analytics.${metric}`) })}</CardDescription>
-									<CardTitle className="text-2xl">{compactNumber.format(stats[metric])}</CardTitle>
-								</CardHeader>
-							</Card>
-						))}
-					</div>
+					<StatsMetricCards
+						stats={stats}
+						labels={labels}
+						cardDescription={(metric) => t("analytics.last30Days", { metric })}
+					/>
 
 					<Card>
 						<CardHeader>
@@ -150,26 +82,7 @@ function AnalyticsPage() {
 							<CardDescription>{t("analytics.dailyTotals")}</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<Tabs defaultValue="conversations">
-								<TabsList>
-									{metricKeys.map((metric) => (
-										<TabsTrigger key={metric} value={metric}>
-											{t(`analytics.${metric}`)}
-										</TabsTrigger>
-									))}
-								</TabsList>
-								{metricKeys.map((metric) => (
-									<TabsContent key={metric} value={metric}>
-										<MetricChart
-											history={stats.history}
-											metric={metric}
-											label={t(`analytics.${metric}`)}
-											language={language}
-											compactNumber={compactNumber}
-										/>
-									</TabsContent>
-								))}
-							</Tabs>
+							<DailyStatsChart daily={stats.daily} labels={labels} />
 						</CardContent>
 					</Card>
 				</>

@@ -1,3 +1,4 @@
+import { app as rootApp } from "@/app.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
@@ -197,5 +198,12 @@ describe("public conversation routes", () => {
 		expect(response.status).toBe(403)
 		expect(response.headers.get("content-type")).toContain("application/problem+json")
 		expect(await response.json()).toMatchObject({ code: "embed-disabled" })
+	})
+})
+
+describe("stats routes", () => {
+	it("rejects an unauthenticated GET /api/stats/overview request", async () => {
+		const response = await rootApp.request("/api/stats/overview")
+		expect(response.status).toBe(401)
 	})
 })

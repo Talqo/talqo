@@ -332,6 +332,7 @@ describe("api", () => {
 				"/api/permission-grants",
 				"/api/permission-grants/{id}",
 				"/api/setup",
+				"/api/stats/overview",
 				"/api/users",
 				"/api/embed-config/{embedToken}",
 				"/api/chat/{embedToken}/messages",

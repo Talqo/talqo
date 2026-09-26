@@ -531,6 +531,114 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 }
 
+export type StatsOverviewQuery = {
+	agentId?: string
+	days: number
+}
+
+export type StatsDailyPoint = {
+	conversations: number
+	date: string
+	inputTokens: number
+	messages: number
+	outputTokens: number
+}
+
+export type StatsAgentTotals = {
+	agentId: string
+	agentName: string
+	conversations: number
+	inputTokens: number
+	messages: number
+	outputTokens: number
+}
+
+export type StatsOverview = {
+	agents: StatsAgentTotals[]
+	daily: StatsDailyPoint[]
+	days: number
+	totals: {
+		conversations: number
+		inputTokens: number
+		messages: number
+		outputTokens: number
+	}
+}
+
+const MILLISECONDS_PER_DAY = 86_400_000
+
+function utcDateKey(date: Date): string {
+	return date.toISOString().slice(0, "YYYY-MM-DD".length)
+}
+
+// Orchestration owner for the statistics read model: daily conversation/message counts come
+// from this module, token sums come from the usage module (usage never depends on conversation).
+export async function getStatsOverview(query: StatsOverviewQuery): Promise<StatsOverview> {
+	const since = new Date(Date.now() - (query.days - 1) * MILLISECONDS_PER_DAY)
+	since.setUTCHours(0, 0, 0, 0)
+	const [conversationCounts, messageCounts, dailyUsage, conversationByAgent, usageByAgent, agents] = await Promise.all([
+		repository.getDailyConversationCounts(since, query.agentId),
+		repository.getDailyMessageCounts(since, query.agentId),
+		usageService.getDailyUsageTotals(since, query.agentId),
+		repository.getConversationTotalsByAgent(since),
+		usageService.getUsageTotalsByAgent(since),
+		agentService.listAgents(),
+	])
+	const conversationsByDay = new Map(conversationCounts.map((row) => [row.date, row.count]))
+	const messagesByDay = new Map(messageCounts.map((row) => [row.date, row.count]))
+	const usageByDay = new Map(dailyUsage.map((row) => [row.date, row]))
+	const daily: StatsDailyPoint[] = []
+	for (let offset = 0; offset < query.days; offset += 1) {
+		const date = utcDateKey(new Date(since.getTime() + offset * MILLISECONDS_PER_DAY))
+		const usage = usageByDay.get(date)
+		daily.push({
+			date,
+			conversations: conversationsByDay.get(date) ?? 0,
+			messages: messagesByDay.get(date) ?? 0,
+			inputTokens: usage?.inputTokens ?? 0,
+			outputTokens: usage?.outputTokens ?? 0,
+		})
+	}
+	const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
+	const conversationTotalsByAgent = new Map(conversationByAgent.map((row) => [row.agentId, row]))
+	const usageTotalsByAgent = new Map(usageByAgent.map((row) => [row.agentId, row]))
+	const totals = {
+		conversations: 0,
+		messages: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+	}
+	const agentIds = new Set([...conversationTotalsByAgent.keys(), ...usageTotalsByAgent.keys()])
+	const agentTotals: StatsAgentTotals[] = [...agentIds].map((agentId) => {
+		const conversations = conversationTotalsByAgent.get(agentId)
+		const usage = usageTotalsByAgent.get(agentId)
+		return {
+			agentId,
+			agentName: agentNames.get(agentId) ?? agentId,
+			conversations: conversations?.conversations ?? 0,
+			messages: conversations?.messages ?? 0,
+			inputTokens: usage?.inputTokens ?? 0,
+			outputTokens: usage?.outputTokens ?? 0,
+		}
+	})
+	agentTotals.sort((left, right) => left.agentName.localeCompare(right.agentName))
+	if (query.agentId) {
+		const filtered = agentTotals.find((row) => row.agentId === query.agentId)
+		totals.conversations = filtered?.conversations ?? 0
+		totals.messages = filtered?.messages ?? 0
+		totals.inputTokens = filtered?.inputTokens ?? 0
+		totals.outputTokens = filtered?.outputTokens ?? 0
+	} else {
+		for (const day of daily) {
+			totals.conversations += day.conversations
+			totals.messages += day.messages
+			totals.inputTokens += day.inputTokens
+			totals.outputTokens += day.outputTokens
+		}
+	}
+	return { agents: agentTotals, daily, days: query.days, totals }
+}
+
 let defaultService: ReturnType<typeof createConversationService> | undefined
 
 export function getConversationService() {

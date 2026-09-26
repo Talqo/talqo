@@ -265,23 +265,19 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "Upravte svůj profil a předvolby.",
-				"title": "Účet"
-			},
-			"agents": {
-				"description": "Spravujte agenty a jejich chování.",
-				"title": "Agenti"
-			},
-			"analytics": {
-				"description": "Zobrazte statistiky konverzací a využití.",
-				"title": "Analytika"
-			}
-		},
+		"agentColumn": "Agent",
+		"conversations": "Konverzace",
+		"dailyTotals": "Denní součty za posledních 30 dní.",
+		"empty": "Zatím žádné konverzace. Statistiky se zobrazí, jakmile vaši agenti začnou komunikovat.",
 		"heading": "Vítejte v Talqo",
-		"openCard": "Otevřít {{title}} →",
-		"subheading": "Spravujte své agenty a analytiku na jednom místě."
+		"last30Days": "{{metric}} (30 dní)",
+		"loading": "Načítání statistik…",
+		"messages": "Zprávy",
+		"perAgentDescription": "Součty za jednotlivé agenty za posledních 30 dní.",
+		"perAgentTitle": "Přehled podle agentů",
+		"subheading": "Statistiky konverzací a využití napříč vašimi agenty.",
+		"tokens": "Tokeny",
+		"usageOverTime": "Využití v čase"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "Integrace obsluhující tohoto agenta.",
