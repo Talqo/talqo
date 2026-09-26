@@ -1,5 +1,7 @@
 {
 	"account": {
+		"changePassword": "修改密码",
+		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
@@ -8,8 +10,6 @@
 		"dangerZone": "危险区域",
 		"deleteAccount": "删除账户",
 		"heading": "账户",
-		"changePassword": "修改密码",
-		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"name": "姓名",
 		"nameInvalid": "姓名必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。",
 		"newPassword": "新密码",
