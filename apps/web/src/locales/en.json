@@ -1,5 +1,7 @@
 {
 	"account": {
+		"changePassword": "Change password",
+		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
 		"comingSoon": "Coming soon",
 		"confirmNewPassword": "Confirm new password",
 		"currentPassword": "Current password",
@@ -10,8 +12,6 @@
 		"email": "Email",
 		"emailInvalid": "Enter a valid email address.",
 		"heading": "Account",
-		"changePassword": "Change password",
-		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
 		"name": "Name",
 		"nameRequired": "Name is required.",
 		"newPassword": "New password",

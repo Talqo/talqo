@@ -1,5 +1,7 @@
 {
 	"account": {
+		"changePassword": "修改密码",
+		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
@@ -10,8 +12,6 @@
 		"email": "邮箱",
 		"emailInvalid": "请输入有效的邮箱地址。",
 		"heading": "账户",
-		"changePassword": "修改密码",
-		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"name": "姓名",
 		"nameRequired": "姓名为必填项。",
 		"newPassword": "新密码",
