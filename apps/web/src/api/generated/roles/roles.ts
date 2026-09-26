@@ -1436,3 +1436,111 @@ export const useResetUserPassword = <
 > => {
 	return useMutation(getResetUserPasswordMutationOptions(options), queryClient)
 }
+export type deleteUserResponse204 = {
+	data: void
+	status: 204
+}
+
+export type deleteUserResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
+export type deleteUserResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type deleteUserResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type deleteUserResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type deleteUserResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type deleteUserResponseSuccess = deleteUserResponse204 & {
+	headers: Headers
+}
+export type deleteUserResponseError = (
+	| deleteUserResponse400
+	| deleteUserResponse401
+	| deleteUserResponse403
+	| deleteUserResponse404
+	| deleteUserResponse500
+) & {
+	headers: Headers
+}
+
+export const getDeleteUserUrl = (userId: string) => {
+	return `/api/users/${userId}`
+}
+
+export const deleteUser = async (userId: string, options?: RequestInit): Promise<deleteUserResponseSuccess> => {
+	const res = await fetch(getDeleteUserUrl(userId), {
+		credentials: "include",
+		...options,
+		method: "DELETE",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: deleteUserResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: deleteUserResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: deleteUserResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as deleteUserResponseSuccess
+}
+
+export const getDeleteUserMutationKey = () => ["deleteUser"] as const
+
+export const getDeleteUserMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError, DeleteUserMutationVariables, TContext>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError, DeleteUserMutationVariables, TContext> => {
+	const mutationKey = getDeleteUserMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUser>>, DeleteUserMutationVariables> = (props) => {
+		const { userId } = props ?? {}
+
+		return deleteUser(userId, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type DeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUser>>>
+
+export type DeleteUserMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type DeleteUserMutationVariables = { userId: string }
+
+export const useDeleteUser = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError, DeleteUserMutationVariables, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteUser>>, TError, DeleteUserMutationVariables, TContext> => {
+	return useMutation(getDeleteUserMutationOptions(options), queryClient)
+}

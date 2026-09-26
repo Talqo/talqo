@@ -200,6 +200,10 @@ describe("identity", () => {
 		expect((await login(username, password)).status).toBe(401)
 	})
 
+	it("deleteAccount rejects an unknown user", async () => {
+		await expect(service.deleteAccount(crypto.randomUUID())).rejects.toBeInstanceOf(service.UserNotFoundError)
+	})
+
 	it("setPassword rotates the password, forces a change, and invalidates existing sessions", async () => {
 		const { cookie, username, user } = await createAndLogin()
 

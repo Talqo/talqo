@@ -15,6 +15,7 @@ import {
 	createInvitationRoute,
 	createInvitationResponseSchema,
 	createPermissionGrantRoute,
+	deleteUserRoute,
 	getAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
@@ -144,6 +145,28 @@ rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 
 	try {
 		await identity.setPassword(targetUserId, c.req.valid("json").newPassword)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	} catch (error) {
+		if (error instanceof identity.UserNotFoundError) {
+			return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+		}
+		throw error
+	}
+})
+
+rolesRoutes.openapi(deleteUserRoute, async (c) => {
+	const user = c.get("user")
+	if (!(await service.authorize(user.id, service.Permission.Admin))) {
+		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
+	}
+
+	const targetUserId = c.req.valid("param").userId
+	if (targetUserId === user.id) {
+		return problemResponse(c, PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
+	}
+
+	try {
+		await identity.deleteAccount(targetUserId)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	} catch (error) {
 		if (error instanceof identity.UserNotFoundError) {

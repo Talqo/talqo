@@ -258,6 +258,23 @@ export const getUsersRoute = createRoute({
 	},
 })
 
+export const deleteUserRoute = createRoute({
+	method: "delete",
+	path: "/users/{userId}",
+	operationId: "deleteUser",
+	tags: ["Roles"],
+	security: sessionSecurity,
+	request: { params: userParamsSchema },
+	responses: {
+		204: noContentResponse,
+		400: problemResponse([PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED]),
+		401: authRequired,
+		403: adminRequired,
+		404: userNotFound,
+		500: serverError,
+	},
+})
+
 export const resetUserPasswordRoute = createRoute({
 	method: "patch",
 	path: "/users/{userId}/password",

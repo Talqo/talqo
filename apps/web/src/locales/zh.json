@@ -387,13 +387,22 @@
 		"provider-unreachable": "无法连接到提供商。",
 		"request-failed": "无法完成请求。",
 		"route-not-found": "未找到请求的 API 路由。",
+		"self-delete-not-allowed": "无法在用户列表中删除自己的账户。",
 		"self-password-reset-not-allowed": "请在账户设置中修改自己的密码。",
 		"user-not-found": "未找到该用户。",
 		"username-taken": "该用户名已被使用。"
 	},
 	"users": {
+		"cancel": "取消",
+		"confirmHelp": "输入准确的用户名以确认：{{username}}",
+		"confirmLabel": "输入“{{username}}”以启用删除",
 		"copy": "复制生成的密码",
 		"copyFailed": "无法复制密码，请手动选择并复制。",
+		"delete": "删除",
+		"deleteConfirm": "永久删除",
+		"deletePrompt": "这将永久删除 {{username}}，使其在所有设备上退出登录并移除其权限。此操作无法撤销。",
+		"deleteTitle": "删除用户？",
+		"deleting": "正在删除…",
 		"forbidden": "您需要管理员权限才能查看用户。",
 		"generate": "生成",
 		"heading": "用户",
@@ -404,6 +413,6 @@
 		"resetPassword": "重置密码",
 		"resetSuccess": "密码已重置。",
 		"resetWarning": "这将立即使该用户在所有设备上退出登录，并要求其在下次登录时设置新密码。",
-		"subheading": "查看账户并重置密码。"
+		"subheading": "查看账户、重置密码并删除账户。"
 	}
 }

@@ -41,8 +41,9 @@ export async function updatePasswordHash(id: string, passwordHash: string, mustC
 	await db.update(user).set({ passwordHash, mustChangePassword, updatedAt: new Date() }).where(eq(user.id, id))
 }
 
-export async function deleteUser(id: string): Promise<void> {
-	await db.delete(user).where(eq(user.id, id))
+export async function deleteUser(id: string): Promise<boolean> {
+	const rows = await db.delete(user).where(eq(user.id, id)).returning({ id: user.id })
+	return rows.length > 0
 }
 
 export async function insertSession(values: NewSession): Promise<Session> {

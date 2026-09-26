@@ -164,6 +164,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
 	}),
 	zod.object({
+		code: zod.enum(["self-delete-not-allowed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#self-delete-not-allowed"]),
+	}),
+	zod.object({
 		code: zod.enum(["self-password-reset-not-allowed"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
 	}),

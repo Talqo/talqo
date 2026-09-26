@@ -387,13 +387,22 @@
 		"provider-unreachable": "The provider could not be reached.",
 		"request-failed": "The request could not be completed.",
 		"route-not-found": "The requested API route was not found.",
+		"self-delete-not-allowed": "You cannot delete your own account from the user list.",
 		"self-password-reset-not-allowed": "Use account settings to change your own password.",
 		"user-not-found": "The user was not found.",
 		"username-taken": "This username is already in use."
 	},
 	"users": {
+		"cancel": "Cancel",
+		"confirmHelp": "Type the exact username to confirm: {{username}}",
+		"confirmLabel": "Type \"{{username}}\" to enable deletion",
 		"copy": "Copy generated password",
 		"copyFailed": "The password could not be copied. Select it and copy it manually.",
+		"delete": "Delete",
+		"deleteConfirm": "Delete permanently",
+		"deletePrompt": "This permanently deletes {{username}}, signs them out everywhere, and removes their permissions. There is no undo.",
+		"deleteTitle": "Delete user?",
+		"deleting": "Deleting…",
 		"forbidden": "You need admin access to view users.",
 		"generate": "Generate",
 		"heading": "Users",
@@ -404,6 +413,6 @@
 		"resetPassword": "Reset password",
 		"resetSuccess": "Password reset.",
 		"resetWarning": "This immediately signs them out everywhere and forces a password change on next login.",
-		"subheading": "View accounts and reset passwords."
+		"subheading": "View accounts, reset passwords, and delete accounts."
 	}
 }

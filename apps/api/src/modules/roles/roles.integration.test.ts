@@ -472,6 +472,65 @@ describe("admin password reset", () => {
 	})
 })
 
+describe("admin user deletion", () => {
+	it("lets an admin delete a member, ending their sessions and login", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
+
+		const response = await app.request(`/api/users/${member.id}`, {
+			method: "DELETE",
+			headers: { Cookie: adminCookie },
+		})
+
+		expect(response.status).toBe(204)
+		const replayedSession = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
+		expect(await replayedSession.json()).toEqual({ user: null })
+		expect((await loginResponse(memberUsername, DEFAULT_PASSWORD)).status).toBe(401)
+		const listed = await app.request("/api/users", { headers: { Cookie: adminCookie } })
+		const { users } = (await listed.json()) as { users: { id: string }[] }
+		expect(users.map((user) => user.id)).not.toContain(member.id)
+	})
+
+	it("denies a non-admin deleting another account", async () => {
+		const memberCookie = await createMemberSession()
+		const target = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+
+		const response = await app.request(`/api/users/${target.id}`, {
+			method: "DELETE",
+			headers: { Cookie: memberCookie },
+		})
+
+		expect(response.status).toBe(403)
+	})
+
+	it("returns 404 when deleting a nonexistent user", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+
+		const response = await app.request(`/api/users/${crypto.randomUUID()}`, {
+			method: "DELETE",
+			headers: { Cookie: adminCookie },
+		})
+
+		expect(response.status).toBe(404)
+		expect(((await response.json()) as { code: string }).code).toBe("user-not-found")
+	})
+
+	it("rejects an admin deleting their own account through this endpoint", async () => {
+		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
+
+		const response = await app.request(`/api/users/${adminId}`, {
+			method: "DELETE",
+			headers: { Cookie: adminCookie },
+		})
+
+		expect(response.status).toBe(400)
+		expect(((await response.json()) as { code: string }).code).toBe("self-delete-not-allowed")
+		expect(await service.hasAdmin()).toBe(true)
+	})
+})
+
 describe("list users", () => {
 	it("lets an admin list all users", async () => {
 		const { cookie: adminCookie, userId: adminId } = await createAdminSession()

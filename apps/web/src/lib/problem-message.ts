@@ -38,6 +38,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"provider-unreachable": (t) => t("problems.provider-unreachable"),
 	"request-failed": (t) => t("problems.request-failed"),
 	"route-not-found": (t) => t("problems.route-not-found"),
+	"self-delete-not-allowed": (t) => t("problems.self-delete-not-allowed"),
 	"self-password-reset-not-allowed": (t) => t("problems.self-password-reset-not-allowed"),
 	"user-not-found": (t) => t("problems.user-not-found"),
 	"username-taken": (t) => t("problems.username-taken"),

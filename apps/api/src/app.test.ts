@@ -277,6 +277,7 @@ describe("api", () => {
 				"/api/embeds",
 				"/api/embeds/{embedId}",
 				"/api/embeds/{embedId}/embed-token/rotate",
+				"/api/users/{userId}",
 				"/api/users/{userId}/password",
 				"/health",
 			].toSorted(),
