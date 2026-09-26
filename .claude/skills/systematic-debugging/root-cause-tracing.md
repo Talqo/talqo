@@ -12,14 +12,15 @@ Bugs often manifest deep in the call stack (git init in wrong directory, file cr
 digraph when_to_use {
     "Bug appears deep in stack?" [shape=diamond];
     "Can trace backwards?" [shape=diamond];
-    "Fix at symptom point" [shape=box];
+    "Gather targeted evidence" [shape=box];
     "Trace to original trigger" [shape=box];
-    "BETTER: Also add defense-in-depth" [shape=box];
+    "Assess distinct boundaries and invariants" [shape=box];
 
     "Bug appears deep in stack?" -> "Can trace backwards?" [label="yes"];
     "Can trace backwards?" -> "Trace to original trigger" [label="yes"];
-    "Can trace backwards?" -> "Fix at symptom point" [label="no - dead end"];
-    "Trace to original trigger" -> "BETTER: Also add defense-in-depth";
+    "Can trace backwards?" -> "Gather targeted evidence" [label="no"];
+    "Gather targeted evidence" -> "Can trace backwards?";
+    "Trace to original trigger" -> "Assess distinct boundaries and invariants";
 }
 ```
 
@@ -53,7 +54,7 @@ WorktreeManager.createSessionWorktree(projectDir, sessionId)
 ### 4. Keep Tracing Up
 **What value was passed?**
 - `projectDir = ''` (empty string!)
-- Empty string as `cwd` resolves to `process.cwd()`
+- In this failure, the process wrapper treats an empty `cwd` as `process.cwd()`; verify the actual wrapper/runtime behavior rather than assuming it
 - That's the source code directory!
 
 ### 5. Find Original Trigger
@@ -65,29 +66,24 @@ Project.create('name', context.tempDir); // Accessed before beforeEach!
 
 ## Adding Stack Traces
 
-When you can't trace manually, add instrumentation:
+Start with existing error stacks and caller searches. If the caller remains unclear, set a breakpoint before the problematic operation in an isolated reproduction and inspect the call stack. Avoid running a destructive operation merely to collect a trace.
+
+If a debugger is unavailable, add a temporary, narrowly scoped probe. For an empty-directory hypothesis, begin with a presence flag rather than dumping paths or environment values:
 
 ```typescript
-// Before the problematic operation
+// Temporary probe in an isolated reproduction; remove after diagnosis.
 async function gitInit(directory: string) {
-  const stack = new Error().stack;
-  console.error('DEBUG git init:', {
-    directory,
-    cwd: process.cwd(),
-    nodeEnv: process.env.NODE_ENV,
-    stack,
+  console.error('git_init_directory_check', {
+    directoryMissing: directory.trim() === '',
   });
 
   await execFileAsync('git', ['init'], { cwd: directory });
 }
 ```
 
-**Critical:** Use `console.error()` in tests (not logger - may not show)
+Use the existing diagnostic channel if it is visible to the test runner; temporary stderr output is an option when that channel is suppressed. Run the smallest reproducer with a disposable working directory and no access to real resources. Preserve the test exit status and relevant failure output instead of filtering away evidence.
 
-**Run and capture:**
-```bash
-npm test 2>&1 | grep 'DEBUG git init'
-```
+Capture `new Error().stack` only if caller identity is still needed, for the suspect call rather than every operation. Stack traces can reveal sensitive paths; inspect locally, redact before retention or sharing, and avoid raw arguments, payloads, or environment dumps. Bound diagnostic volume and duration. Remove the probe after diagnosis; retain telemetry only for a concrete operational requirement with safe fields and access/retention controls.
 
 **Analyze stack traces:**
 - Look for test file names
@@ -98,13 +94,13 @@ npm test 2>&1 | grep 'DEBUG git init'
 
 If something appears during tests but you don't know which test:
 
-Use the bisection script `find-polluter.sh` in this directory:
+Use the test-isolation helper `find-polluter.sh` in this directory in a disposable checkout, with the target artifact absent initially:
 
 ```bash
 ./find-polluter.sh '.git' 'src/**/*.test.ts'
 ```
 
-Runs tests one-by-one, stops at first polluter. See script for usage.
+It runs test files one-by-one, not by bisection, and stops at the first observed polluter. It suppresses test output and ignores test exit codes, so rerun the identified test directly for diagnostic evidence. No detected artifact does not prove tests passed or rule out order-dependent pollution; preserve the failing test order when investigating shared-state failures. See script for usage.
 
 ## Real Example: Empty projectDir
 
@@ -119,13 +115,15 @@ Runs tests one-by-one, stops at first polluter. See script for usage.
 
 **Root cause:** Top-level variable initialization accessing empty value
 
-**Fix:** Made tempDir a getter that throws if accessed before beforeEach
+**Fix:** Move project creation into the initialized test lifecycle. Make the fixture's tempDir getter throw if accessed before beforeEach instead of returning an empty placeholder.
 
-**Also added defense-in-depth:**
-- Layer 1: Project.create() validates directory
-- Layer 2: WorkspaceManager validates not empty
-- Layer 3: NODE_ENV guard refuses git init outside tmpdir
-- Layer 4: Stack trace logging before git init
+**Assess remaining failure modes:**
+- If `Project.create()` accepts untrusted directory input, enforce the explicit-directory contract there.
+- Internal workspace/session helpers can rely on that contract when they only forward unchanged data. Add a check elsewhere only for an independent entry point or a distinct invariant; see `defense-in-depth.md`.
+- Keep test resource isolation in the fixture/harness rather than adding a production `NODE_ENV` branch. A production filesystem restriction needs its own concrete safety requirement, not this fixture bug alone.
+- Remove temporary stack logging once it identifies the caller.
+
+**Regression verification:** Reproduce premature fixture access before the fix, then verify it fails clearly without launching a process. Verify initialized fixture use succeeds and leaves the source tree untouched in an isolated run. Test invalid external input separately if that boundary check is retained, then run the relevant suite.
 
 ## Key Principle
 
@@ -136,34 +134,20 @@ digraph principle {
     "Trace backwards" [shape=box];
     "Is this the source?" [shape=diamond];
     "Fix at source" [shape=box];
-    "Add validation at each layer" [shape=box];
-    "Bug impossible" [shape=doublecircle];
-    "NEVER fix just the symptom" [shape=octagon, style=filled, fillcolor=red, fontcolor=white];
+    "Assess distinct boundaries and invariants" [shape=box];
+    "Verify reproduction and regressions" [shape=doublecircle];
+    "Gather targeted evidence" [shape=box];
 
     "Found immediate cause" -> "Can trace one level up?";
     "Can trace one level up?" -> "Trace backwards" [label="yes"];
-    "Can trace one level up?" -> "NEVER fix just the symptom" [label="no"];
+    "Can trace one level up?" -> "Gather targeted evidence" [label="no"];
+    "Gather targeted evidence" -> "Can trace one level up?";
     "Trace backwards" -> "Is this the source?";
     "Is this the source?" -> "Trace backwards" [label="no - keeps going"];
     "Is this the source?" -> "Fix at source" [label="yes"];
-    "Fix at source" -> "Add validation at each layer";
-    "Add validation at each layer" -> "Bug impossible";
+    "Fix at source" -> "Assess distinct boundaries and invariants";
+    "Assess distinct boundaries and invariants" -> "Verify reproduction and regressions";
 }
 ```
 
-**NEVER fix just where the error appears.** Trace back to find the original trigger.
-
-## Stack Trace Tips
-
-**In tests:** Use `console.error()` not logger - logger may be suppressed
-**Before operation:** Log before the dangerous operation, not after it fails
-**Include context:** Directory, cwd, environment variables, timestamps
-**Capture stack:** `new Error().stack` shows complete call chain
-
-## Real-World Impact
-
-From debugging session (2025-10-03):
-- Found root cause through 5-level trace
-- Fixed at source (getter validation)
-- Added 4 layers of defense
-- 1847 tests passed, zero pollution
+Trace back to the original trigger rather than only suppressing the visible error. If evidence remains insufficient, record the uncertainty and the next targeted observation; do not claim a confirmed root cause or guaranteed prevention.

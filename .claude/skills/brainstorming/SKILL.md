@@ -1,125 +1,91 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: Use for uncertain features, consequential design decisions, or substantial work needing a design boundary. Classify spikes, bounded changes, and architectural work before selecting its process.
 ---
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+Resolve the intent and design the smallest useful implementation. Match the artifact to the path; do not use process as a substitute for resolving ambiguity.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Scale process to project size and risk. For a small discussion, work through the stages without creating tracking artifacts.
 
-<HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
-</HARD-GATE>
+## Choosing A Path
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+Classify the work before detailed design and state the classification so the user can correct it:
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+| Path | Use when | Deliverable |
+|---|---|---|
+| **Spike** | The question is feasibility or discovery, and the output is a recommendation rather than kept code. | Approved probe and reported findings. |
+| **Bounded** | The request changes a well-understood existing flow and has low implementation risk. | Short design in chat, explicit approval, direct implementation. |
+| **Architectural** | The request creates a new project or subsystem, changes cross-component interfaces, or affects behavior consumers depend on. | Reviewed design, written spec when requested or required, and an implementation plan for substantial work. |
 
-## Checklist
+If implementation exposes hidden complexity, stop and reclassify upward. Do not silently continue under a lighter path.
 
-You MUST create a task for each of these items and complete them in order:
+## Design Gate
 
-1. **Explore project context** — check files, docs, recent commits
-2. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-3. **Propose 2-3 approaches** — with trade-offs and your recommendation
-4. **Present design** — in sections scaled to their complexity, get user approval after each section
-5. **Write design doc** — save to `docs/specs/YYYY-MM-DD-<topic>-design.md` and commit
-6. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-7. **User reviews written spec** — ask user to review the spec file before proceeding
+Read-only exploration is allowed before approval. Do not implement until the selected path's approval is complete:
 
-## Process Flow
+- **Spike:** approve the question and investigation plan.
+- **Bounded:** approve the short in-chat design.
+- **Architectural:** approve the discussed design and the written spec or plan where one is used.
 
-```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
-    "User reviews spec?" [shape=diamond];
-    "Design approved" [shape=doublecircle];
+Approval applies to the artifact presented, not to later artifacts that do not yet exist. An explicit request to implement the same approach described in that artifact is approval; do not restart the workflow.
 
-    "Explore project context" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "User reviews spec?";
-    "User reviews spec?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec?" -> "Design approved" [label="approved"];
-}
-```
+## Understanding The Idea
 
-**The terminal state is an approved design.** Do not invoke an implementation skill automatically.
+- Inspect relevant code, docs, tests, and recent changes before asking questions the project can answer.
+- Assess scope independently of apparent simplicity. If requirements are unclear or independent subsystems are bundled together, clarify or decompose before implementing.
+- Ask one focused question at a time when the answer materially affects behavior, scope, interfaces, compatibility, permissions, or acceptance criteria.
+- Prefer multiple-choice questions with a recommendation; allow a differently framed answer.
+- Establish the user, purpose, success criteria, and relevant operational, data, and platform constraints.
+- Distinguish explicit requirements from assumptions. Mark material unknowns rather than converting guesses into decisions.
 
-## The Process
+## Exploring Approaches
 
-**Understanding the idea:**
+- Offer two or three approaches for genuine choices; do not manufacture alternatives for a settled or straightforward task.
+- Lead with the recommended approach and explain why it fits requirements and existing code.
+- Compare behavior, failure modes, maintenance cost, and reversibility, not merely implementation effort.
+- Apply YAGNI without removing required behavior. Treat capability removal and public-interface changes as product decisions requiring approval.
 
-- Check out the current project state first (files, docs, recent commits)
-- Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec.
-- For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
-- Only one question per message - if a topic needs more exploration, break it into multiple questions
-- Focus on understanding: purpose, constraints, success criteria
+## Presenting The Design
 
-**Exploring approaches:**
+- Scale detail to complexity. A bounded design may be one paragraph; an architectural design may need architecture, data flow, error handling, and tests.
+- Explain boundaries, failure behavior, verification, and compatibility risks that matter to the decision. Omit empty sections.
+- Check agreement at decision boundaries rather than after every sentence.
+- Revise the design when feedback exposes an incorrect assumption; do not preserve a discarded approach for ceremony.
 
-- Propose 2-3 different approaches with trade-offs
-- Present options conversationally with your recommendation and reasoning
-- Lead with your recommended option and explain why
-- YAGNI ruthlessly - remove unnecessary features from every approach and design
+## Architectural Design For Isolation And Clarity
 
-**Presenting the design:**
+- Give units a clear purpose, explicit interface, and understandable dependencies.
+- Verify that contracts can be understood without reading internals and can change without surprising consumers.
+- Choose boundaries that carry meaningful responsibility. More files or smaller functions are not inherently better.
+- Keep domain rules and duplicated knowledge in one source of truth without coupling unrelated concepts because their code looks similar.
 
-- Once you believe you understand what you're building, present the design
-- Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
-- Cover: architecture, components, data flow, error handling, testing
-- Be ready to go back and clarify if something doesn't make sense
+## Working In Existing Codebases
 
-**Design for isolation and clarity:**
+- Follow established patterns and reuse existing capabilities before introducing new ones.
+- Include structural changes when current structure obstructs the requested work or makes it unsafe; connect the improvement to the goal.
+- Keep cleanup within the requested scope. Report unrelated opportunities separately.
 
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces, and can be understood and tested independently
-- For each unit, you should be able to answer: what does it do, how do you use it, and what does it depend on?
-- Can someone understand what a unit does without reading its internals? Can you change the internals without breaking consumers? If not, the boundaries need work.
-- Smaller, well-bounded units are also easier for you to work with - you reason better about code you can hold in context at once, and your edits are more reliable when files are focused. When a file grows large, that's often a signal that it's doing too much.
+## After The Design
 
-**Working in existing codebases:**
+### Documentation
 
-- Explore the current structure before proposing changes. Follow existing patterns.
-- Where existing code has problems that affect the work (e.g., a file that's grown too large, unclear boundaries, tangled responsibilities), include targeted improvements as part of the design - the way a good developer improves code they're working in.
-- Don't propose unrelated refactoring. Stay focused on what serves the current goal.
+For a bounded design, the approved conversation is sufficient. For an architectural design, create a spec when requested or required by the project workflow; otherwise prefer keeping the approved design in the conversation. Use the project's convention or, absent one, `docs/specs/YYYY-MM-DD-<topic>-design.md`. Do not commit without explicit authorization.
 
-## After the Design
+Record behavior, interfaces, constraints, important tradeoffs, and verification. Omit conversation transcripts and discarded approaches unless their rationale constrains the final design.
 
-**Documentation:**
+### Spec Self-Review
 
-- Write the validated design (spec) to `docs/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
-- Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
+Check the design before implementation or handoff:
 
-**Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+1. **Completeness:** unresolved decisions are small, reversible, or explicitly assigned.
+2. **Consistency:** requirements, boundaries, and data flow agree.
+3. **Scope:** no unrequested features or bundled independent efforts.
+4. **Clarity:** behavior, failures, and acceptance are specific enough to verify.
 
-1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
-3. **Scope check:** Is this focused enough for a single implementation effort, or does it need decomposition?
-4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
+Fix issues inline. Use [spec-document-reviewer-prompt.md](spec-document-reviewer-prompt.md) only when the design's complexity warrants independent review.
 
-Fix any issues inline. No need to re-review — just fix and move on.
+### User Review
 
-**User Review Gate:**
-After the spec review loop passes, ask the user to review the written spec before proceeding:
-
-> "Spec written and committed to `<path>`. Please review it and let me know if you want to make any changes."
-
-Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
+When a spec or written plan is created, give its path and ask the user to review it before implementation. Incorporate feedback and recheck affected sections; do not restart approval for unchanged decisions already accepted in the same artifact.
