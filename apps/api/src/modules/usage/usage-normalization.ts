@@ -18,7 +18,7 @@ function count(value: unknown): number | undefined {
 	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : undefined
 }
 
-function approximate(text: string): number {
+export function estimateTokens(text: string): number {
 	return Math.ceil([...text].length / APPROXIMATION_CHARACTERS_PER_TOKEN)
 }
 
@@ -53,7 +53,7 @@ export function normalizeUsage(input: { inputText: string; outputText: string; u
 		outputTokens = total - inputTokens
 	}
 	return {
-		inputTokens: inputTokens ?? approximate(input.inputText),
-		outputTokens: outputTokens ?? approximate(input.outputText),
+		inputTokens: inputTokens ?? estimateTokens(input.inputText),
+		outputTokens: outputTokens ?? estimateTokens(input.outputText),
 	}
 }

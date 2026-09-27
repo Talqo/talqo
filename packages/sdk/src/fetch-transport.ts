@@ -7,7 +7,7 @@ import type {
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
 } from "./generated/contracts"
-import type { ChatError, ChatErrorCode, ChatEvent, ChatTransport } from "./types"
+import type { ChatError, ChatEvent, ChatTransport } from "./types"
 
 import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts"
 import { parseSseStream } from "./sse"
@@ -143,20 +143,6 @@ function retryAt(response: Response, now: () => Date): string | undefined {
 	return undefined
 }
 
-function normalizeStreamError(error: {
-	code: ChatErrorCode
-	retryAt?: string
-	retriable: boolean
-	newChatAvailable: boolean
-}): ChatError {
-	return {
-		code: error.code,
-		retriable: error.retriable,
-		newChatAvailable: error.newChatAvailable,
-		...(error.retryAt === undefined ? {} : { retryAt: error.retryAt }),
-	}
-}
-
 async function problemError(response: Response, signal: AbortSignal, now: () => Date): Promise<ChatTransportError> {
 	if (!response.headers.get("Content-Type")?.toLowerCase().startsWith("application/problem+json")) {
 		return invalidResponse(response.status)
@@ -222,12 +208,12 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 		return {
 			type: "error",
 			outcome: value.outcome,
-			error: normalizeStreamError({
+			error: {
 				code: value.error.code,
 				retriable: value.error.retriable,
 				newChatAvailable: value.error.newChatAvailable,
 				...(value.error.retryAt === undefined ? {} : { retryAt: value.error.retryAt }),
-			}),
+			},
 		}
 	}
 	return undefined

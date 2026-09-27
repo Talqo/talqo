@@ -4,7 +4,7 @@ import { ProviderContextLimitError, type TextMessage } from "@/modules/ai-provid
 import * as embed from "@/modules/embed/embed.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
-import { afterEach, beforeEach, describe, expect, it, setSystemTime } from "bun:test"
+import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -401,6 +401,67 @@ describe("conversation lifecycle", () => {
 		})
 	})
 
+	it("checks locally owned generations together and observes cross-instance cancellation", async () => {
+		const { createdEmbed } = await fixture()
+		const owner = customService(cancellationGeneration)
+		const other = customService(cancellationGeneration)
+		const poll = spyOn(repository, "pollRunningAttempts")
+		try {
+			const first = await owner.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "first",
+				networkHash: "network-a",
+			})
+			const second = await owner.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_2,
+				requestId: REQUEST_2,
+				text: "second",
+				networkHash: "network-b",
+			})
+			await other.cancel(CREDENTIAL_2, second.generationId)
+			await second.done
+			expect(poll.mock.calls.some(([owned]) => owned.length === 2)).toBe(true)
+			await owner.cancel(CREDENTIAL_1, first.generationId)
+			await first.done
+		} finally {
+			poll.mockRestore()
+		}
+	})
+
+	it("keeps a generation alive across one failed poll and observes a later cancellation", async () => {
+		const { createdEmbed } = await fixture()
+		const owner = customService(cancellationGeneration)
+		const other = customService(cancellationGeneration)
+		const realPoll = repository.pollRunningAttempts
+		let attempts = 0
+		const poll = spyOn(repository, "pollRunningAttempts").mockImplementation((owned, renew) => {
+			attempts += 1
+			if (attempts === 1) throw new Error("temporary poll failure")
+			return realPoll(owned, renew)
+		})
+		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+		try {
+			const sent = await owner.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "keep generating",
+				networkHash: "network-a",
+			})
+			await other.cancel(CREDENTIAL_1, sent.generationId)
+			await sent.done
+			expect(attempts).toBeGreaterThanOrEqual(2)
+			expect(logged).toHaveBeenCalledTimes(1)
+			expect((await owner.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("cancelled")
+		} finally {
+			poll.mockRestore()
+			logged.mockRestore()
+		}
+	})
+
 	it("sets embed references null and cascades all history and usage with agent deletion", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		const instance = service()
@@ -532,7 +593,9 @@ describe("conversation lifecycle", () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
 		const gate = deferred()
-		const owner = customService(async function* () {
+		let expectedInputTokens = 0
+		const owner = customService(async function* ({ messages }) {
+			expectedInputTokens = Math.ceil([...messages.map((message) => message.content).join("\n")].length / 4)
 			started.resolve()
 			yield { type: "start", provider: "fake", model: "fake-model" } as const
 			await gate.promise
@@ -553,6 +616,19 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
+		expect(
+			(await sql`SELECT estimated_input_tokens FROM generation_attempt WHERE id = ${sent.generationId}`)[0],
+		).toMatchObject({
+			estimated_input_tokens: expectedInputTokens,
+		})
+		expect(
+			(
+				await sql`
+				SELECT count(*)::int AS count FROM information_schema.columns
+				WHERE table_name = 'generation_attempt' AND column_name = 'input_text'
+			`
+			)[0]?.count,
+		).toBe(0)
 		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${sent.generationId}`
 
 		await customService(emptyGeneration).getSession(CREDENTIAL_1)
@@ -581,9 +657,9 @@ describe("conversation lifecycle", () => {
 			final_outcome: "interrupted",
 			outcome: "interrupted",
 			recorded: true,
-			usage_input_tokens: expect.any(Number),
+			usage_input_tokens: expectedInputTokens,
 			usage_output_tokens: expect.any(Number),
-			input_tokens: expect.any(Number),
+			input_tokens: expectedInputTokens,
 			output_tokens: expect.any(Number),
 		})
 		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)
@@ -623,11 +699,15 @@ describe("conversation lifecycle", () => {
 		const conversationId = String(generationAttempt?.conversation_id)
 
 		setSystemTime(new Date("2100-01-01T00:00:00.000Z"))
-		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(true)
+		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], true)).toEqual([
+			{ id: sent.generationId, cancelled: false },
+		])
 		expect(await repository.setAttribution(sent.generationId, leaseToken, "database", "clock")).toBe(true)
 		expect(await repository.getActiveGenerationAttempt(conversationId)).toEqual({ id: sent.generationId })
-		expect(await repository.requestCancellation(conversationId, sent.generationId)).toBe(true)
-		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(true)
+		expect(await repository.requestCancellation(conversationId, sent.generationId)).toEqual([sent.generationId])
+		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], false)).toEqual([
+			{ id: sent.generationId, cancelled: true },
+		])
 		await repository.recoverExpiredGenerationAttempts()
 		expect(
 			(
@@ -778,10 +858,10 @@ describe("conversation lifecycle", () => {
 			WHERE id = ${sent.generationId}
 		`
 
-		expect(await repository.heartbeat(sent.generationId, leaseToken)).toBe(false)
+		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], true)).toEqual([])
 		expect(await repository.setAttribution(sent.generationId, leaseToken, "late", "late")).toBe(false)
 		expect(await repository.appendOutput(sent.generationId, leaseToken, "late")).toBe(false)
-		expect(await repository.isCancellationRequested(sent.generationId, leaseToken)).toBe(false)
+		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], false)).toEqual([])
 		expect(
 			await repository.stageFinalization({
 				generationAttemptId: sent.generationId,
@@ -854,6 +934,68 @@ describe("conversation lifecycle", () => {
 		expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
 	})
 
+	it("persists many small safe deltas in fewer writes before emitting them", async () => {
+		const { createdEmbed } = await fixture()
+		const append = spyOn(repository, "appendOutput")
+		try {
+			const instance = customService(async function* () {
+				for (let index = 0; index < 40; index += 1) yield { type: "text", text: "x" } as const
+				yield { type: "text", text: "y".repeat(2_048) } as const
+				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			})
+			const events: { type: string; text?: string }[] = []
+			const sent = await instance.send(
+				{
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "batch",
+					networkHash: "network-a",
+				},
+				(event) => events.push(event),
+			)
+			await sent.done
+			expect(append.mock.calls.length).toBeLessThan(40)
+			expect(append.mock.calls.every(([, , text]) => text.length <= 1_024)).toBe(true)
+			expect(
+				events
+					.filter((event) => event.type === "delta")
+					.map((event) => event.text)
+					.join(""),
+			).toBe("x".repeat(40) + "y".repeat(2_048))
+			expect(events.at(-1)?.type).toBe("terminal")
+			expect((await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.text).toBe("x".repeat(40) + "y".repeat(2_048))
+		} finally {
+			append.mockRestore()
+		}
+	})
+
+	it("flushes a short safe delta while the provider is still generating", async () => {
+		const { createdEmbed } = await fixture()
+		const observed = deferred()
+		const instance = customService(async function* ({ signal }) {
+			yield { type: "text", text: "hello" } as const
+			await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }))
+			yield { type: "finish", outcome: "cancelled", provider: "fake", model: "fake-model", usage: {} } as const
+		})
+		const sent = await instance.send(
+			{
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "stream",
+				networkHash: "network-a",
+			},
+			(event) => {
+				if (event.type === "delta") observed.resolve()
+			},
+		)
+		await observed.promise
+		expect((await sql`SELECT text FROM message WHERE id = ${sent.assistantMessage.id}`)[0]?.text).toBe("hello")
+		await instance.cancel(CREDENTIAL_1, sent.generationId)
+		await sent.done
+	})
+
 	it("persists a short safe tail when generation is cancelled", async () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
@@ -919,7 +1061,7 @@ describe("conversation lifecycle", () => {
 		await sql`DELETE FROM usage_record WHERE generation_attempt_id = ${sent.generationId}`
 		await sql`UPDATE generation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
 
-		await instance.service.getSession(CREDENTIAL_1)
+		await service().service.getSession(CREDENTIAL_1)
 
 		expect((await sql`SELECT outcome, input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
 			outcome: "completed",
@@ -930,7 +1072,7 @@ describe("conversation lifecycle", () => {
 			true,
 		)
 		await sql`UPDATE generation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
-		await instance.service.getSession(CREDENTIAL_1)
+		await service().service.getSession(CREDENTIAL_1)
 		expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(1)
 		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM generation_attempt`)[0]?.recorded).toBe(
 			true,

@@ -14,15 +14,23 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
+import { createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
+import {
+	GENERATION_ATTEMPT_ACTIVE_STATUSES,
+	type GenerationAttemptOutcome,
+	type GenerationAttemptStatus,
+} from "./conversation.schema.ts"
 
-const CANCELLATION_POLL_MS = 500
-const HEARTBEAT_MS = 5_000
 const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
 const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
-const USAGE_FINALIZATION_BATCH = 100
+const USAGE_FINALIZATION_BATCH = 20
+const USAGE_FINALIZATION_CONCURRENCY = 5
+const RECOVERY_INTERVAL_MS = 5_000
+const OUTPUT_BATCH_SIZE = 1_024
+const OUTPUT_FLUSH_MS = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
 
 export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
@@ -92,15 +100,15 @@ type SendInput = {
 	text: string
 }
 
-function requireUuid(value: string, name: string): string {
-	if (!UUID_SCHEMA.safeParse(value).success) throw new InvalidChatInputError(`${name} is invalid`)
+function requireUuid(value: string, error: Error): string {
+	if (!UUID_SCHEMA.safeParse(value).success) throw error
 	return value
 }
 
-function requireCredential(credential: string): string {
-	if (!UUID_SCHEMA.safeParse(credential).success)
-		throw new SessionUnauthorizedError("A valid session credential is required")
-	return credential
+function isActiveStatus(
+	status: GenerationAttemptStatus,
+): status is (typeof GENERATION_ATTEMPT_ACTIVE_STATUSES)[number] {
+	return GENERATION_ATTEMPT_ACTIVE_STATUSES.some((active) => active === status)
 }
 
 function publicMessage(message: Awaited<ReturnType<typeof repository.listMessages>>[number]): ChatMessage {
@@ -139,54 +147,69 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 	return messages.map((message) => message.content).join("\n")
 }
 
-async function drainPendingUsageFinalizations(): Promise<void> {
-	await Promise.all(
-		(await repository.listPendingUsageFinalizations(USAGE_FINALIZATION_BATCH)).map(async (pending) => {
-			const normalized =
-				pending.inputTokens === null || pending.outputTokens === null
-					? usageService.normalizeUsage({ inputText: pending.inputText, outputText: pending.assistantText })
-					: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
-			if (pending.inputTokens === null || pending.outputTokens === null) {
-				await repository.stageRecoveredUsageCandidate(
-					pending.generationAttemptId,
-					pending.outcome,
-					normalized.inputTokens,
-					normalized.outputTokens,
-				)
-			}
-			try {
-				await usageService.recordUsage({
-					generationAttemptId: pending.generationAttemptId,
-					agentId: pending.agentId,
-					conversationId: pending.conversationId,
-					provider: pending.provider,
-					model: pending.model,
-					outcome: pending.outcome,
-					...normalized,
-				})
-			} catch (error) {
-				if (isForeignKeyViolation(error)) return
-				throw error
-			}
-			await repository.markUsageRecorded({
-				generationAttemptId: pending.generationAttemptId,
-				outcome: pending.outcome,
-				...normalized,
-			})
-		}),
-	)
-}
-
-async function recoverExpiredGenerationAttempts(): Promise<void> {
-	await repository.recoverExpiredGenerationAttempts()
-	await drainPendingUsageFinalizations()
+async function recordPendingUsage(pending: repository.PendingUsageFinalization): Promise<void> {
+	const normalized =
+		pending.inputTokens === null || pending.outputTokens === null
+			? {
+					inputTokens: pending.estimatedInputTokens,
+					outputTokens: usageService.estimateTokens(pending.assistantText),
+				}
+			: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
+	if (pending.inputTokens === null || pending.outputTokens === null) {
+		await repository.stageRecoveredUsageCandidate(
+			pending.generationAttemptId,
+			pending.outcome,
+			normalized.inputTokens,
+			normalized.outputTokens,
+		)
+	}
+	try {
+		await usageService.recordUsage({
+			generationAttemptId: pending.generationAttemptId,
+			agentId: pending.agentId,
+			conversationId: pending.conversationId,
+			provider: pending.provider,
+			model: pending.model,
+			outcome: pending.outcome,
+			...normalized,
+		})
+	} catch (error) {
+		if (isForeignKeyViolation(error)) return
+		throw error
+	}
+	await repository.markUsageRecorded({
+		generationAttemptId: pending.generationAttemptId,
+		outcome: pending.outcome,
+		...normalized,
+	})
 }
 
 export function createConversationService(dependencies: Dependencies) {
-	const controllers = new Map<string, AbortController>()
+	const poller = createGenerationPoller()
+	let lastRecovery = -Infinity
+	let recovering: Promise<void> | undefined
+	async function recoverUsage(): Promise<void> {
+		if (recovering) return recovering
+		if (performance.now() - lastRecovery < RECOVERY_INTERVAL_MS) return
+		recovering = (async () => {
+			const pending = await repository.listPendingUsageFinalizations(USAGE_FINALIZATION_BATCH)
+			for (let offset = 0; offset < pending.length; offset += USAGE_FINALIZATION_CONCURRENCY) {
+				// oxlint-disable-next-line no-await-in-loop -- bounded recovery must finish each group before starting another.
+				await Promise.all(pending.slice(offset, offset + USAGE_FINALIZATION_CONCURRENCY).map(recordPendingUsage))
+			}
+			lastRecovery = performance.now()
+		})()
+		try {
+			await recovering
+		} finally {
+			recovering = undefined
+		}
+	}
 
 	async function authenticate(credential: string): Promise<repository.ConversationContext> {
-		const session = await repository.findConversationById(requireCredential(credential))
+		const session = await repository.findConversationById(
+			requireUuid(credential, new SessionUnauthorizedError("A valid session credential is required")),
+		)
 		if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
 		return session
 	}
@@ -201,11 +224,57 @@ export function createConversationService(dependencies: Dependencies) {
 		const { generationAttempt, assistantMessage } = accepted
 		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) return
 		const controller = new AbortController()
-		controllers.set(generationAttempt.id, controller)
+		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
 		let observedOutput = ""
-		let lastHeartbeat = Date.now()
-		let outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" = "failed"
+		let bufferedOutput = ""
+		let flushTimer: ReturnType<typeof setTimeout> | undefined
+		let flushing: Promise<void> | undefined
+		let outputFailed = false
+		async function flushOutput(): Promise<void> {
+			if (flushing) {
+				await flushing
+				if (!bufferedOutput) return
+			}
+			clearTimeout(flushTimer)
+			flushTimer = undefined
+			if (!bufferedOutput || outputFailed) return
+			const text = bufferedOutput
+			bufferedOutput = ""
+			flushing = (async () => {
+				if (!(await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, text))) {
+					outputFailed = true
+					controller.abort()
+					return
+				}
+				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text })
+			})()
+			try {
+				await flushing
+			} finally {
+				flushing = undefined
+			}
+		}
+		async function queueOutput(text: string): Promise<void> {
+			if (!text || outputFailed) return
+			for (let offset = 0; offset < text.length;) {
+				const length = Math.min(OUTPUT_BATCH_SIZE - bufferedOutput.length, text.length - offset)
+				bufferedOutput += text.slice(offset, offset + length)
+				offset += length
+				// oxlint-disable-next-line no-await-in-loop -- writes must preserve provider text order.
+				if (bufferedOutput.length >= OUTPUT_BATCH_SIZE) await flushOutput()
+				if (outputFailed) return
+			}
+			if (bufferedOutput && !flushTimer) {
+				flushTimer = setTimeout(() => {
+					void flushOutput().catch(() => {
+						outputFailed = true
+						controller.abort()
+					})
+				}, OUTPUT_FLUSH_MS)
+			}
+		}
+		let outcome: GenerationAttemptOutcome = "failed"
 		let provider = prepared.provider
 		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
@@ -215,21 +284,6 @@ export function createConversationService(dependencies: Dependencies) {
 			retriable: true,
 			newChatAvailable: false,
 		}
-		const poll = setInterval(async () => {
-			try {
-				if (await repository.isCancellationRequested(generationAttempt.id, generationAttempt.leaseToken)) {
-					controller.abort()
-				}
-				if (Date.now() - lastHeartbeat >= HEARTBEAT_MS) {
-					if (!(await repository.heartbeat(generationAttempt.id, generationAttempt.leaseToken))) {
-						controller.abort()
-					}
-					lastHeartbeat = Date.now()
-				}
-			} catch {
-				controller.abort()
-			}
-		}, CANCELLATION_POLL_MS)
 		try {
 			if (
 				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
@@ -249,12 +303,7 @@ export function createConversationService(dependencies: Dependencies) {
 						controller.abort()
 						break
 					}
-					if (
-						result.text &&
-						(await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, result.text))
-					) {
-						emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: result.text })
-					}
+					await queueOutput(result.text)
 				} else {
 					const abortPrecededTerminal = controller.signal.aborted
 					provider = event.provider
@@ -285,15 +334,15 @@ export function createConversationService(dependencies: Dependencies) {
 						}
 			}
 		} finally {
-			clearInterval(poll)
-			controllers.delete(generationAttempt.id)
-		}
-		if (outcome !== "blocked") {
-			const tail = filter.finish()
-			if (tail && (await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, tail))) {
-				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text: tail })
+			clearTimeout(flushTimer)
+			try {
+				if (outcome !== "blocked") await queueOutput(filter.finish())
+				await flushOutput()
+			} finally {
+				poller.unregister(generationAttempt.id)
 			}
 		}
+		if (outputFailed && outcome !== "blocked") outcome = "failed"
 
 		const normalized = usageService.normalizeUsage({
 			inputText: promptText(messages),
@@ -310,7 +359,8 @@ export function createConversationService(dependencies: Dependencies) {
 				...normalized,
 			})
 		) {
-			await drainPendingUsageFinalizations()
+			const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
+			if (pending) await recordPendingUsage(pending)
 			if (outcome === "failed") {
 				emit({
 					version: 1,
@@ -326,11 +376,14 @@ export function createConversationService(dependencies: Dependencies) {
 
 	return {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}) {
-			await drainPendingUsageFinalizations()
+			await recoverUsage()
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
-			requireUuid(input.requestId, "Request ID")
+			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
-			const conversationId = requireCredential(input.credential)
+			const conversationId = requireUuid(
+				input.credential,
+				new SessionUnauthorizedError("A valid session credential is required"),
+			)
 			const session = await repository.findConversationById(conversationId)
 			if (
 				session &&
@@ -353,7 +406,8 @@ export function createConversationService(dependencies: Dependencies) {
 					history.messages,
 					input.text,
 				)
-				if ([...promptText(messages)].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+				const promptContent = promptText(messages)
+				if ([...promptContent].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation
 				try {
 					prepared = await dependencies.prepare({
@@ -374,7 +428,7 @@ export function createConversationService(dependencies: Dependencies) {
 						requestId: input.requestId,
 						historyRevision: history.revision,
 						historyTailId: history.latestCompletedMessageId,
-						inputText: promptText(messages),
+						estimatedInputTokens: usageService.estimateTokens(promptContent),
 						messageText: input.text,
 						networkHash: input.networkHash,
 						dailyLimit: dependencies.dailyLimit,
@@ -402,23 +456,16 @@ export function createConversationService(dependencies: Dependencies) {
 				},
 			}
 			emit(acceptedEvent)
-			if (
-				accepted.duplicate &&
-				accepted.generationAttempt.status !== "accepted" &&
-				accepted.generationAttempt.status !== "running"
-			) {
+			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
-			try {
-				// Best-effort: failures stay pending for the next drain instead of failing an accepted send.
-				await drainPendingUsageFinalizations()
-			} catch {}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 
 		async getSession(credential: string) {
-			await recoverExpiredGenerationAttempts()
+			await repository.recoverExpiredGenerationAttempts()
+			await recoverUsage()
 			const session = await authenticate(credential)
 			return {
 				messages: (await repository.listMessages(session.conversationId)).map(publicMessage),
@@ -429,8 +476,7 @@ export function createConversationService(dependencies: Dependencies) {
 		async cancel(credential: string, generationId?: string): Promise<void> {
 			const session = await authenticate(credential)
 			const matched = await repository.requestCancellation(session.conversationId, generationId)
-			// Abort in-process only when the conversation-scoped cancellation matched.
-			if (matched && generationId) controllers.get(generationId)?.abort()
+			for (const id of matched) poller.abort(id)
 		},
 	}
 }

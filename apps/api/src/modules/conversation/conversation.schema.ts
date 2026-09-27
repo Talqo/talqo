@@ -3,31 +3,21 @@ import { embed } from "@/modules/embed/embed.schema.ts"
 import { sql } from "drizzle-orm"
 import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
-export const generationAttemptStatus = pgEnum("generation_attempt_status", [
-	"accepted",
-	"running",
-	"completed",
-	"failed",
-	"cancelled",
-	"blocked",
-	"interrupted",
-])
+export const GENERATION_ATTEMPT_ACTIVE_STATUSES = ["accepted", "running"] as const
+export const GENERATION_ATTEMPT_FINAL_OUTCOMES = ["completed", "failed", "cancelled", "blocked", "interrupted"] as const
+export const GENERATION_ATTEMPT_STATUSES = [
+	...GENERATION_ATTEMPT_ACTIVE_STATUSES,
+	...GENERATION_ATTEMPT_FINAL_OUTCOMES,
+] as const
+export type GenerationAttemptStatus = (typeof GENERATION_ATTEMPT_STATUSES)[number]
+export type GenerationAttemptOutcome = (typeof GENERATION_ATTEMPT_FINAL_OUTCOMES)[number]
+export const generationAttemptStatus = pgEnum("generation_attempt_status", GENERATION_ATTEMPT_STATUSES)
 export const messageRole = pgEnum("message_role", ["user", "assistant"])
-export const messageOutcome = pgEnum("message_outcome", [
-	"streaming",
-	"completed",
-	"failed",
-	"cancelled",
-	"blocked",
-	"interrupted",
-])
-export const generationAttemptFinalOutcome = pgEnum("generation_attempt_final_outcome", [
-	"completed",
-	"failed",
-	"cancelled",
-	"blocked",
-	"interrupted",
-])
+export const messageOutcome = pgEnum("message_outcome", ["streaming", ...GENERATION_ATTEMPT_FINAL_OUTCOMES])
+export const generationAttemptFinalOutcome = pgEnum(
+	"generation_attempt_final_outcome",
+	GENERATION_ATTEMPT_FINAL_OUTCOMES,
+)
 
 export const conversation = pgTable(
 	"conversation",
@@ -56,7 +46,7 @@ export const generationAttempt = pgTable(
 			.notNull()
 			.references(() => conversation.id, { onDelete: "cascade" }),
 		requestId: text("request_id").notNull(),
-		inputText: text("input_text").notNull(),
+		estimatedInputTokens: integer("estimated_input_tokens").notNull(),
 		status: generationAttemptStatus("status").notNull().default("accepted"),
 		networkHash: text("network_hash").notNull(),
 		leaseToken: text("lease_token").notNull(),

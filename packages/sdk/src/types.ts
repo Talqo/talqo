@@ -95,7 +95,7 @@ export type ChatEvent =
 			assistantMessage: { id: string; createdAt: string }
 	  }
 	| { type: "delta"; assistantMessageId: string; text: string }
-	| { type: "terminal"; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming">; error?: ChatError }
+	| { type: "terminal"; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming"> }
 	| { type: "error"; error: ChatError; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming" | "completed"> }
 
 export type TransportContext = {

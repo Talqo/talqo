@@ -9,13 +9,34 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
-import { conversation, conversationDailyCounter, generationAttempt, message } from "./conversation.schema.ts"
+import {
+	conversation,
+	conversationDailyCounter,
+	GENERATION_ATTEMPT_ACTIVE_STATUSES,
+	generationAttempt,
+	type GenerationAttemptOutcome,
+	message,
+} from "./conversation.schema.ts"
 
-const ACTIVE_STATUSES = ["accepted", "running"] as const
 const LEASE_MS = 15_000
 const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
+
+function activeUnexpired() {
+	return and(
+		inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+}
+
+function leaseOwned(generationAttemptId: string, leaseToken: string) {
+	return and(
+		eq(generationAttempt.id, generationAttemptId),
+		eq(generationAttempt.leaseToken, leaseToken),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+}
 
 export type ConversationContext = {
 	agentId: string
@@ -45,7 +66,7 @@ export type PendingUsageFinalization = {
 	assistantText: string
 	generationAttemptId: string
 	conversationId: string
-	inputText: string
+	estimatedInputTokens: number
 	inputTokens: number | null
 	model: string
 	outcome: NonNullable<typeof generationAttempt.$inferSelect.finalOutcome>
@@ -118,7 +139,7 @@ async function interruptExpiredGenerationAttempts(
 		})
 		.where(
 			and(
-				inArray(generationAttempt.status, ACTIVE_STATUSES),
+				inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 				lt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				condition,
 			),
@@ -145,7 +166,7 @@ export async function acceptGenerationAttempt(input: {
 	conversationId: string
 	embedAccessVersion: number
 	embedId: string
-	inputText: string
+	estimatedInputTokens: number
 	messageText: string
 	networkHash: string
 	requestId: string
@@ -239,13 +260,7 @@ export async function acceptGenerationAttempt(input: {
 		const [conversationActive] = await tx
 			.select({ value: count() })
 			.from(generationAttempt)
-			.where(
-				and(
-					eq(generationAttempt.conversationId, input.conversationId),
-					inArray(generationAttempt.status, ACTIVE_STATUSES),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-				),
-			)
+			.where(and(eq(generationAttempt.conversationId, input.conversationId), activeUnexpired()))
 		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyError()
 		const [networkActive] = await tx
 			.select({ value: count() })
@@ -255,8 +270,7 @@ export async function acceptGenerationAttempt(input: {
 				and(
 					eq(conversation.agentId, input.agentId),
 					eq(generationAttempt.networkHash, input.networkHash),
-					inArray(generationAttempt.status, ACTIVE_STATUSES),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+					activeUnexpired(),
 				),
 			)
 		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
@@ -280,7 +294,7 @@ export async function acceptGenerationAttempt(input: {
 				id: generationAttemptId,
 				conversationId: input.conversationId,
 				requestId: input.requestId,
-				inputText: input.inputText,
+				estimatedInputTokens: input.estimatedInputTokens,
 				networkHash: input.networkHash,
 				leaseToken,
 				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
@@ -319,14 +333,7 @@ export async function markRunning(generationAttemptId: string, leaseToken: strin
 	const rows = await db
 		.update(generationAttempt)
 		.set({ status: "running", updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "accepted"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(leaseOwned(generationAttemptId, leaseToken), eq(generationAttempt.status, "accepted")))
 		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
@@ -356,46 +363,34 @@ export async function setAttribution(
 	const rows = await db
 		.update(generationAttempt)
 		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "running"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(leaseOwned(generationAttemptId, leaseToken), eq(generationAttempt.status, "running")))
 		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
 
-export async function heartbeat(generationAttemptId: string, leaseToken: string): Promise<boolean> {
-	const rows = await db
-		.update(generationAttempt)
-		.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "running"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
-}
-
-export async function isCancellationRequested(generationAttemptId: string, leaseToken: string): Promise<boolean> {
-	const [row] = await db
-		.select({ cancelled: generationAttempt.cancellationRequestedAt })
-		.from(generationAttempt)
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
-	return row?.cancelled !== null && row?.cancelled !== undefined
+export async function pollRunningAttempts(
+	owned: { id: string; leaseToken: string }[],
+	renewLease: boolean,
+): Promise<{ id: string; cancelled: boolean }[]> {
+	if (owned.length === 0) return []
+	const matches = sql`(${generationAttempt.id}, ${generationAttempt.leaseToken}) IN (${sql.join(
+		owned.map(({ id, leaseToken }) => sql`(${id}, ${leaseToken})`),
+		sql`, `,
+	)})`
+	const condition = and(
+		matches,
+		eq(generationAttempt.status, "running"),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+	const fields = { id: generationAttempt.id, cancelledAt: generationAttempt.cancellationRequestedAt }
+	const rows = renewLease
+		? await db
+				.update(generationAttempt)
+				.set({ leaseExpiresAt: DATABASE_LEASE_EXPIRY, updatedAt: DATABASE_NOW })
+				.where(condition)
+				.returning(fields)
+		: await db.select(fields).from(generationAttempt).where(condition)
+	return rows.map((row) => ({ id: row.id, cancelled: row.cancelledAt !== null }))
 }
 
 export async function stageFinalization(input: {
@@ -403,7 +398,7 @@ export async function stageFinalization(input: {
 	inputTokens: number
 	leaseToken: string
 	model: string
-	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"
+	outcome: GenerationAttemptOutcome
 	outputTokens: number
 	provider: string
 }): Promise<boolean> {
@@ -430,11 +425,9 @@ export async function stageFinalization(input: {
 			})
 			.where(
 				and(
-					eq(generationAttempt.id, input.generationAttemptId),
-					eq(generationAttempt.leaseToken, input.leaseToken),
+					leaseOwned(input.generationAttemptId, input.leaseToken),
 					eq(generationAttempt.status, "running"),
 					eq(generationAttempt.providerInvoked, true),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 			.returning({ conversationId: generationAttempt.conversationId })
@@ -459,13 +452,13 @@ export async function stageFinalization(input: {
 	})
 }
 
-export async function listPendingUsageFinalizations(limit: number): Promise<PendingUsageFinalization[]> {
+export async function listPendingUsageFinalizations(limit: number, id?: string): Promise<PendingUsageFinalization[]> {
 	return db
 		.select({
 			generationAttemptId: generationAttempt.id,
 			conversationId: generationAttempt.conversationId,
 			agentId: conversation.agentId,
-			inputText: generationAttempt.inputText,
+			estimatedInputTokens: generationAttempt.estimatedInputTokens,
 			assistantText: message.text,
 			provider: sql<string>`coalesce(${generationAttempt.provider}, 'unknown')`,
 			model: sql<string>`coalesce(${generationAttempt.model}, 'unknown')`,
@@ -481,8 +474,10 @@ export async function listPendingUsageFinalizations(limit: number): Promise<Pend
 				eq(generationAttempt.providerInvoked, true),
 				isNotNull(generationAttempt.finalOutcome),
 				isNull(generationAttempt.usageRecordedAt),
+				id ? eq(generationAttempt.id, id) : undefined,
 			),
 		)
+		.orderBy(asc(generationAttempt.id))
 		.limit(limit) as Promise<PendingUsageFinalization[]>
 }
 
@@ -491,8 +486,8 @@ export async function stageRecoveredUsageCandidate(
 	outcome: PendingUsageFinalization["outcome"],
 	inputTokens: number,
 	outputTokens: number,
-): Promise<boolean> {
-	const rows = await db
+): Promise<void> {
+	await db
 		.update(generationAttempt)
 		.set({ usageInputTokens: inputTokens, usageOutputTokens: outputTokens, updatedAt: DATABASE_NOW })
 		.where(
@@ -505,8 +500,6 @@ export async function stageRecoveredUsageCandidate(
 				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
 }
 
 export async function markUsageRecorded(input: {
@@ -514,8 +507,8 @@ export async function markUsageRecorded(input: {
 	inputTokens: number
 	outcome: PendingUsageFinalization["outcome"]
 	outputTokens: number
-}): Promise<boolean> {
-	const rows = await db
+}): Promise<void> {
+	await db
 		.update(generationAttempt)
 		.set({ usageRecordedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(
@@ -527,36 +520,24 @@ export async function markUsageRecorded(input: {
 				isNull(generationAttempt.usageRecordedAt),
 			),
 		)
-		.returning({ id: generationAttempt.id })
-	return rows.length === 1
 }
 
-export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<boolean> {
-	const conditions = [
-		eq(generationAttempt.conversationId, conversationId),
-		inArray(generationAttempt.status, ACTIVE_STATUSES),
-		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-	]
+export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
+	const conditions = [eq(generationAttempt.conversationId, conversationId), activeUnexpired()]
 	if (generationAttemptId) conditions.push(eq(generationAttempt.id, generationAttemptId))
 	const rows = await db
 		.update(generationAttempt)
 		.set({ cancellationRequestedAt: DATABASE_NOW, updatedAt: DATABASE_NOW })
 		.where(and(...conditions))
 		.returning({ id: generationAttempt.id })
-	return rows.length > 0
+	return rows.map((row) => row.id)
 }
 
 export async function getActiveGenerationAttempt(conversationId: string): Promise<{ id: string } | undefined> {
 	const [row] = await db
 		.select({ id: generationAttempt.id })
 		.from(generationAttempt)
-		.where(
-			and(
-				eq(generationAttempt.conversationId, conversationId),
-				inArray(generationAttempt.status, ACTIVE_STATUSES),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(eq(generationAttempt.conversationId, conversationId), activeUnexpired()))
 		.limit(1)
 	return row
 }
