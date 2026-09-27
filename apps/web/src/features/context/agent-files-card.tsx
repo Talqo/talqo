@@ -27,7 +27,18 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
-import { Download, FileText, Pencil, RotateCcw, Trash2, Upload } from "lucide-react"
+import {
+	CircleAlertIcon,
+	CircleCheckIcon,
+	ClockIcon,
+	Download,
+	FileText,
+	LoaderCircleIcon,
+	Pencil,
+	RotateCcw,
+	Trash2,
+	Upload,
+} from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -64,6 +75,35 @@ function embeddingErrorText(error: NonNullable<AgentFile["embeddingError"]>, t: 
 		case "unknown":
 			return t("agentFiles.error.unknown")
 	}
+}
+
+type EmbeddingStatusStyle = {
+	Icon: typeof ClockIcon
+	className: string
+	spin?: boolean
+}
+
+const embeddingStatusStyles: Record<AgentFile["embeddingStatus"], EmbeddingStatusStyle> = {
+	pending: { Icon: ClockIcon, className: "text-muted-foreground" },
+	processing: { Icon: LoaderCircleIcon, className: "text-amber-600 dark:text-amber-500", spin: true },
+	ready: { Icon: CircleCheckIcon, className: "text-green-600 dark:text-green-500" },
+	failed: { Icon: CircleAlertIcon, className: "text-destructive" },
+}
+
+function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) => string }) {
+	const style = embeddingStatusStyles[file.embeddingStatus]
+	const { Icon } = style
+	return (
+		<p role="status" className={`flex items-center gap-1.5 text-xs ${style.className}`}>
+			<Icon aria-hidden className={style.spin ? "size-3.5 animate-spin" : "size-3.5"} />
+			<span>
+				{embeddingStatusText(file.embeddingStatus, t)}
+				{file.embeddingStatus === "failed" && file.embeddingError
+					? ` · ${embeddingErrorText(file.embeddingError, t)}`
+					: ""}
+			</span>
+		</p>
+	)
 }
 
 export function AgentFilesCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
@@ -251,7 +291,11 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							disabled={uploadFile.isPending}
 							onChange={(event) => void startBatch(event.target.files)}
 						/>
-						<Upload className="text-muted-foreground size-6" />
+						{uploadFile.isPending ? (
+							<LoaderCircleIcon aria-hidden className="text-primary size-6 animate-spin" />
+						) : (
+							<Upload className="text-muted-foreground size-6" />
+						)}
 						<p className="text-sm font-medium">
 							{uploadFile.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
 						</p>
@@ -279,17 +323,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 									<p className="text-muted-foreground text-xs">
 										{formatBytes(file.sizeBytes)} · {formatFileDate(file.createdAt, language)}
 									</p>
-									<p
-										className={
-											file.embeddingStatus === "failed" ? "text-destructive text-xs" : "text-muted-foreground text-xs"
-										}
-										role="status"
-									>
-										{embeddingStatusText(file.embeddingStatus, t)}
-										{file.embeddingStatus === "failed" && file.embeddingError
-											? ` · ${embeddingErrorText(file.embeddingError, t)}`
-											: ""}
-									</p>
+									<EmbeddingStatusLine file={file} t={t} />
 								</div>
 								{canManage && (
 									<TooltipProvider>
@@ -302,7 +336,12 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 												onClick={() => void onRetry(file)}
 												aria-label={t("agentFiles.retry", { name: file.name })}
 											>
-												<RotateCcw className="size-4" /> {t("agentFiles.retryAction")}
+												{retryingName === file.name ? (
+													<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+												) : (
+													<RotateCcw className="size-4" />
+												)}
+												{t("agentFiles.retryAction")}
 											</Button>
 										)}
 										<Tooltip>
