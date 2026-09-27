@@ -35,7 +35,7 @@ const fileNameSchema = z
 		`File name exceeds the ${MAX_FILE_NAME_LENGTH} byte limit`,
 	)
 
-export type StoredFile = {
+type StoredFile = {
 	name: string
 	sizeBytes: number
 	createdAt: Date
@@ -86,7 +86,7 @@ export function resolveRenameTarget(name: string, requested: string): string {
 	return target
 }
 
-export async function list(agentId: string): Promise<StoredFile[]> {
+async function list(agentId: string): Promise<StoredFile[]> {
 	const dir = agentDir(agentId)
 	let entries: string[]
 	try {
@@ -99,7 +99,7 @@ export async function list(agentId: string): Promise<StoredFile[]> {
 	return files.toSorted((a, b) => a.name.localeCompare(b.name))
 }
 
-export async function listAgentDirectories(): Promise<string[]> {
+async function listAgentDirectories(): Promise<string[]> {
 	try {
 		const entries = await readdir(env.TALQO_UPLOAD_DIR, { withFileTypes: true })
 		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
@@ -109,7 +109,7 @@ export async function listAgentDirectories(): Promise<string[]> {
 	}
 }
 
-export async function put(agentId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
+async function put(agentId: string, name: string, data: ArrayBuffer): Promise<StoredFile> {
 	const dir = agentDir(agentId)
 	await mkdir(dir, { recursive: true })
 	const path = join(dir, name)
@@ -132,7 +132,7 @@ export async function get(agentId: string, name: string): Promise<Uint8Array> {
 	}
 }
 
-export async function requireFile(agentId: string, name: string): Promise<void> {
+async function requireFile(agentId: string, name: string): Promise<void> {
 	try {
 		await stat(join(agentDir(agentId), name))
 	} catch (error) {
@@ -142,7 +142,7 @@ export async function requireFile(agentId: string, name: string): Promise<void> 
 }
 
 // COPYFILE_EXCL must succeed before removing the source: otherwise renaming to an existing name would clobber it.
-export async function renameFile(agentId: string, oldName: string, newName: string): Promise<StoredFile> {
+async function renameFile(agentId: string, oldName: string, newName: string): Promise<StoredFile> {
 	const dir = agentDir(agentId)
 	const source = join(dir, oldName)
 	if (newName === oldName) {
@@ -167,7 +167,7 @@ export async function renameFile(agentId: string, oldName: string, newName: stri
 	return buildFile(newName, await stat(target))
 }
 
-export async function remove(agentId: string, name: string): Promise<void> {
+async function remove(agentId: string, name: string): Promise<void> {
 	try {
 		await unlink(join(agentDir(agentId), name))
 	} catch (error) {
@@ -181,7 +181,8 @@ export async function removeAgentDir(agentId: string): Promise<void> {
 }
 
 const WORKER_INTERVAL_MS = 3_000
-const WORKER_LOCK_KEY = 823_741_921
+// Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
+const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
 
 export class FileNotFailedError extends Error {}
 
@@ -198,12 +199,7 @@ export async function upload(agentId: string, name: string, data: ArrayBuffer): 
 
 export async function listWithStatus(agentId: string): Promise<IndexedFile[]> {
 	const listed = await list(agentId)
-	let statuses = await repository.statuses(agentId)
-	const missing = listed.filter((file) => !statuses.has(file.name))
-	if (missing.length) {
-		await Promise.all(missing.map((file) => repository.enqueue(agentId, file.name)))
-		statuses = await repository.statuses(agentId)
-	}
+	const statuses = await repository.statuses(agentId)
 	return listed.map((file) => {
 		const status = statuses.get(file.name)
 		return Object.assign(file, {
@@ -215,7 +211,14 @@ export async function listWithStatus(agentId: string): Promise<IndexedFile[]> {
 
 export async function rename(agentId: string, oldName: string, newName: string): Promise<IndexedFile> {
 	const file = await renameFile(agentId, oldName, newName)
-	await repository.rename(agentId, oldName, newName)
+	try {
+		await repository.rename(agentId, oldName, newName)
+	} catch (error) {
+		await renameFile(agentId, newName, oldName).catch((compensationError: unknown) =>
+			console.error("agent-file.rename.compensation_failed", { agentId, newName, compensationError }),
+		)
+		throw error
+	}
 	const status = (await repository.statuses(agentId)).get(newName)
 	return { ...file, embeddingStatus: status?.status ?? "pending", embeddingError: status?.error ?? null }
 }
@@ -243,10 +246,8 @@ async function recoverUploads(): Promise<void> {
 }
 
 async function convert(job: repository.Job): Promise<string[]> {
-	const url = env.TALQO_DOCLING_URL
-	if (!url) throw new IngestionError("conversion-failed")
 	try {
-		return await chunkFile(job.name, await get(job.agentId, job.name), url)
+		return await chunkFile(job.name, await get(job.agentId, job.name), env.TALQO_DOCLING_URL)
 	} catch (error) {
 		throw new IngestionError("conversion-failed", { cause: error })
 	}
@@ -258,7 +259,7 @@ export async function runIngestion(): Promise<void> {
 	try {
 		const result = await connection<
 			{ acquired: boolean }[]
-		>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY}) AS acquired`
+		>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY.toString()}::bigint) AS acquired`
 		locked = result[0]?.acquired ?? false
 		if (!locked) return
 		await repository.recover()
@@ -287,7 +288,17 @@ export async function runIngestion(): Promise<void> {
 					},
 					complete: async (job, chunks) => {
 						await connection`SELECT 1`
-						if ((await aiProvider.prepareEmbeddingOperation()).key !== model.key) {
+						let currentKey: string
+						try {
+							currentKey = (await aiProvider.prepareEmbeddingOperation()).key
+						} catch (error) {
+							if (error instanceof aiProvider.UnusableConfigurationError) {
+								await repository.requeue(job)
+								return
+							}
+							throw error
+						}
+						if (currentKey !== model.key) {
 							await repository.requeue(job)
 							return
 						}
@@ -307,7 +318,7 @@ export async function runIngestion(): Promise<void> {
 		/* eslint-enable no-await-in-loop */
 	} finally {
 		try {
-			if (locked) await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY})`
+			if (locked) await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY.toString()}::bigint)`
 		} finally {
 			connection.release()
 		}

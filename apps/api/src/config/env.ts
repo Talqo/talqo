@@ -67,7 +67,7 @@ const envSchema = z
 			.default(DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS),
 		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
 		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
-		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }).optional(),
+		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
 	.superRefine((env, context) => {
@@ -84,13 +84,6 @@ const envSchema = z
 				code: "custom",
 				path: ["TALQO_UPLOAD_DIR"],
 				message: "TALQO_UPLOAD_DIR is required in production",
-			})
-		}
-		if (!env.TALQO_DOCLING_URL) {
-			context.addIssue({
-				code: "custom",
-				path: ["TALQO_DOCLING_URL"],
-				message: "TALQO_DOCLING_URL is required in production",
 			})
 		}
 	})

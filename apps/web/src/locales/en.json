@@ -380,6 +380,7 @@
 		"admin-already-exists": "An admin account already exists.",
 		"agent-file-invalid": "The agent file is invalid.",
 		"agent-file-name-taken": "An agent file with this name already exists.",
+		"agent-file-not-failed": "The agent file has not failed. Try again after its status changes.",
 		"agent-file-not-found": "The agent file was not found.",
 		"agent-in-use": "The agent cannot be deleted while one or more embeds use it.",
 		"agent-invalid": "The agent configuration is invalid.",

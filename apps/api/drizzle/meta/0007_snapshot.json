@@ -1,188 +1,9 @@
 {
-	"id": "0277bd4d-02db-410b-bd85-f01974c56849",
+	"id": "9da8af0a-815f-4622-864d-2e795235ae8f",
 	"prevId": "c8a04ed4-6261-43fb-a7a0-926e9690c5fa",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
-		"public.agent_file": {
-			"name": "agent_file",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "text",
-					"primaryKey": true,
-					"notNull": true
-				},
-				"agent_id": {
-					"name": "agent_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"name": {
-					"name": "name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"status": {
-					"name": "status",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"error": {
-					"name": "error",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"model_key": {
-					"name": "model_key",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"generation": {
-					"name": "generation",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 0
-				},
-				"created_at": {
-					"name": "created_at",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				}
-			},
-			"indexes": {
-				"agent_file_agent_name_idx": {
-					"name": "agent_file_agent_name_idx",
-					"columns": [
-						{
-							"expression": "agent_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						},
-						{
-							"expression": "name",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": true,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"agent_file_status_idx": {
-					"name": "agent_file_status_idx",
-					"columns": [
-						{
-							"expression": "status",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"agent_file_agent_id_agent_id_fk": {
-					"name": "agent_file_agent_id_agent_id_fk",
-					"tableFrom": "agent_file",
-					"tableTo": "agent",
-					"columnsFrom": ["agent_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.agent_file_chunk": {
-			"name": "agent_file_chunk",
-			"schema": "",
-			"columns": {
-				"file_id": {
-					"name": "file_id",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"position": {
-					"name": "position",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"text": {
-					"name": "text",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"embedding": {
-					"name": "embedding",
-					"type": "vector",
-					"primaryKey": false,
-					"notNull": true
-				}
-			},
-			"indexes": {
-				"agent_file_chunk_position_idx": {
-					"name": "agent_file_chunk_position_idx",
-					"columns": [
-						{
-							"expression": "file_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						},
-						{
-							"expression": "position",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": true,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"agent_file_chunk_file_id_agent_file_id_fk": {
-					"name": "agent_file_chunk_file_id_agent_file_id_fk",
-					"tableFrom": "agent_file_chunk",
-					"tableTo": "agent_file",
-					"columnsFrom": ["file_id"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
 		"public.agent": {
 			"name": "agent",
 			"schema": "",
@@ -1266,6 +1087,168 @@
 					"columns": ["username"]
 				}
 			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.agent_file": {
+			"name": "agent_file",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"agent_id": {
+					"name": "agent_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"error": {
+					"name": "error",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"model_key": {
+					"name": "model_key",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"generation": {
+					"name": "generation",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {
+				"agent_file_agent_name_idx": {
+					"name": "agent_file_agent_name_idx",
+					"columns": [
+						{
+							"expression": "agent_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "name",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"agent_file_status_idx": {
+					"name": "agent_file_status_idx",
+					"columns": [
+						{
+							"expression": "status",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"agent_file_agent_id_agent_id_fk": {
+					"name": "agent_file_agent_id_agent_id_fk",
+					"tableFrom": "agent_file",
+					"tableTo": "agent",
+					"columnsFrom": ["agent_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.agent_file_chunk": {
+			"name": "agent_file_chunk",
+			"schema": "",
+			"columns": {
+				"file_id": {
+					"name": "file_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"position": {
+					"name": "position",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"text": {
+					"name": "text",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"embedding": {
+					"name": "embedding",
+					"type": "vector",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"agent_file_chunk_file_id_agent_file_id_fk": {
+					"name": "agent_file_chunk_file_id_agent_file_id_fk",
+					"tableFrom": "agent_file_chunk",
+					"tableTo": "agent_file",
+					"columnsFrom": ["file_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {
+				"agent_file_chunk_file_id_position_pk": {
+					"name": "agent_file_chunk_file_id_position_pk",
+					"columns": ["file_id", "position"]
+				}
+			},
+			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false

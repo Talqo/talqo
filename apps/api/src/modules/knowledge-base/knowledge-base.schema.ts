@@ -1,5 +1,5 @@
 import { agent } from "@/modules/agent/agent.schema.ts"
-import { index, integer, pgTable, text, timestamp, uniqueIndex, customType } from "drizzle-orm/pg-core"
+import { customType, index, integer, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 const embeddingVector = customType<{ data: string }>({ dataType: () => "vector" })
 
@@ -33,5 +33,5 @@ export const agentFileChunk = pgTable(
 		text: text("text").notNull(),
 		embedding: embeddingVector("embedding").notNull(),
 	},
-	(table) => [uniqueIndex("agent_file_chunk_position_idx").on(table.fileId, table.position)],
+	(table) => [primaryKey({ columns: [table.fileId, table.position] })],
 )

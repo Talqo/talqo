@@ -62,10 +62,14 @@ export async function complete(
 			AND status = 'processing' FOR UPDATE`
 		if (!rows.length) return
 		await tx`DELETE FROM agent_file_chunk WHERE file_id = ${job.id}`
-		for (const [position, chunk] of chunks.entries()) {
-			// eslint-disable-next-line no-await-in-loop -- one transaction writes chunks in order without a burst of queries
+		if (chunks.length) {
 			await tx`INSERT INTO agent_file_chunk (file_id, position, text, embedding)
-				VALUES (${job.id}, ${position}, ${chunk.text}, ${JSON.stringify(chunk.embedding)}::vector)`
+				SELECT t.file_id, t.position, t.text, t.embedding::vector FROM unnest(
+					${sql.array(chunks.map(() => job.id))}::text[],
+					${sql.array(chunks.map((_, position) => position))}::int[],
+					${sql.array(chunks.map((chunk) => chunk.text))}::text[],
+					${sql.array(chunks.map((chunk) => JSON.stringify(chunk.embedding)))}::text[]
+				) AS t(file_id, position, text, embedding)`
 		}
 		await tx`UPDATE agent_file SET status = 'ready', error = NULL, model_key = ${modelKey} WHERE id = ${job.id}`
 	})

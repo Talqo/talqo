@@ -182,7 +182,8 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(retryAgentFileRoute, async (c) => {
-		if (!(await roles.authorize(c.get("user").id, roles.Permission.AgentsManage))) {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
 			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 		const { agentId, fileName } = c.req.valid("param")
@@ -192,14 +193,18 @@ export const agentFilesRoutes = routes
 			await files.retryEmbedding(agentId, fileName)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
-			if (error instanceof agent.AgentNotFoundError)
+			if (error instanceof agent.AgentNotFoundError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			if (error instanceof files.FileNotFoundError)
+			}
+			if (error instanceof files.FileNotFoundError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			if (error instanceof files.InvalidFileError)
+			}
+			if (error instanceof files.InvalidFileError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			if (error instanceof files.FileNotFailedError)
+			}
+			if (error instanceof files.FileNotFailedError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FAILED, HTTP_STATUS.CONFLICT)
+			}
 			throw error
 		}
 	})

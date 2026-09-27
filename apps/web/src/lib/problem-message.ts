@@ -12,6 +12,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"admin-already-exists": (t) => t("problems.admin-already-exists"),
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
 	"agent-file-name-taken": (t) => t("problems.agent-file-name-taken"),
+	"agent-file-not-failed": (t) => t("problems.agent-file-not-failed"),
 	"agent-file-not-found": (t) => t("problems.agent-file-not-found"),
 	"agent-invalid": (t) => t("problems.agent-invalid"),
 	"agent-in-use": (t) => t("problems.agent-in-use"),
