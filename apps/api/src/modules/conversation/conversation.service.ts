@@ -14,10 +14,14 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
+import { createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
+import {
+	GENERATION_ATTEMPT_ACTIVE_STATUSES,
+	type GenerationAttemptOutcome,
+	type GenerationAttemptStatus,
+} from "./conversation.schema.ts"
 
-const CANCELLATION_POLL_MS = 500
-const HEARTBEAT_MS = 5_000
 const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
@@ -25,7 +29,6 @@ const MAX_HISTORY_ACCEPT_ATTEMPTS = 3
 const USAGE_FINALIZATION_BATCH = 20
 const USAGE_FINALIZATION_CONCURRENCY = 5
 const RECOVERY_INTERVAL_MS = 5_000
-const POLL_BATCH_SIZE = 100
 const OUTPUT_BATCH_SIZE = 1_024
 const OUTPUT_FLUSH_MS = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
@@ -100,6 +103,12 @@ type SendInput = {
 function requireUuid(value: string, name: string): string {
 	if (!UUID_SCHEMA.safeParse(value).success) throw new InvalidChatInputError(`${name} is invalid`)
 	return value
+}
+
+function isActiveStatus(
+	status: GenerationAttemptStatus,
+): status is (typeof GENERATION_ATTEMPT_ACTIVE_STATUSES)[number] {
+	return (GENERATION_ATTEMPT_ACTIVE_STATUSES as readonly GenerationAttemptStatus[]).includes(status)
 }
 
 function requireCredential(credential: string): string {
@@ -182,51 +191,7 @@ async function recordPendingUsage(pending: repository.PendingUsageFinalization):
 }
 
 export function createConversationService(dependencies: Dependencies) {
-	const controllers = new Map<string, { controller: AbortController; leaseToken: string }>()
-	let pollTimer: ReturnType<typeof setTimeout> | undefined
-	let polling = false
-	let pollErrorReported = false
-	let lastHeartbeat = performance.now()
-	async function poll(): Promise<void> {
-		pollTimer = undefined
-		if (controllers.size === 0) return
-		polling = true
-		const renew = performance.now() - lastHeartbeat >= HEARTBEAT_MS
-		const owned = [...controllers].map(([id, { leaseToken }]) => ({ id, leaseToken }))
-		try {
-			for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
-				// oxlint-disable-next-line no-await-in-loop -- sequential batches bound database work per query.
-				const active = await repository.pollRunningAttempts(owned.slice(offset, offset + POLL_BATCH_SIZE), renew)
-				const status = new Map(active.map((entry) => [entry.id, entry.cancelled]))
-				for (const { id, leaseToken } of owned.slice(offset, offset + POLL_BATCH_SIZE)) {
-					const local = controllers.get(id)
-					if (local?.leaseToken === leaseToken && status.get(id) !== false) local.controller.abort()
-				}
-			}
-			if (renew) lastHeartbeat = performance.now()
-			pollErrorReported = false
-		} catch (error) {
-			if (!pollErrorReported) console.error("conversation.poll.failed", { error })
-			pollErrorReported = true
-		} finally {
-			polling = false
-			if (controllers.size > 0) pollTimer = setTimeout(() => void poll(), CANCELLATION_POLL_MS)
-		}
-	}
-	function register(id: string, leaseToken: string, controller: AbortController): void {
-		controllers.set(id, { leaseToken, controller })
-		if (!pollTimer && !polling) {
-			lastHeartbeat = performance.now()
-			pollTimer = setTimeout(() => void poll(), CANCELLATION_POLL_MS)
-		}
-	}
-	function unregister(id: string): void {
-		controllers.delete(id)
-		if (controllers.size === 0) {
-			clearTimeout(pollTimer)
-			pollTimer = undefined
-		}
-	}
+	const poller = createGenerationPoller()
 	let lastRecovery = -Infinity
 	let recovering: Promise<void> | undefined
 	async function recoverUsage(): Promise<void> {
@@ -263,7 +228,7 @@ export function createConversationService(dependencies: Dependencies) {
 		const { generationAttempt, assistantMessage } = accepted
 		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) return
 		const controller = new AbortController()
-		register(generationAttempt.id, generationAttempt.leaseToken, controller)
+		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
 		let observedOutput = ""
 		let bufferedOutput = ""
@@ -313,7 +278,7 @@ export function createConversationService(dependencies: Dependencies) {
 				}, OUTPUT_FLUSH_MS)
 			}
 		}
-		let outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" = "failed"
+		let outcome: GenerationAttemptOutcome = "failed"
 		let provider = prepared.provider
 		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
@@ -378,7 +343,7 @@ export function createConversationService(dependencies: Dependencies) {
 				if (outcome !== "blocked") await queueOutput(filter.finish())
 				await flushOutput()
 			} finally {
-				unregister(generationAttempt.id)
+				poller.unregister(generationAttempt.id)
 			}
 		}
 		if (outputFailed && outcome !== "blocked") outcome = "failed"
@@ -491,11 +456,7 @@ export function createConversationService(dependencies: Dependencies) {
 				},
 			}
 			emit(acceptedEvent)
-			if (
-				accepted.duplicate &&
-				accepted.generationAttempt.status !== "accepted" &&
-				accepted.generationAttempt.status !== "running"
-			) {
+			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
@@ -515,7 +476,7 @@ export function createConversationService(dependencies: Dependencies) {
 		async cancel(credential: string, generationId?: string): Promise<void> {
 			const session = await authenticate(credential)
 			const matched = await repository.requestCancellation(session.conversationId, generationId)
-			for (const id of matched) controllers.get(id)?.controller.abort()
+			for (const id of matched) poller.abort(id)
 		},
 	}
 }

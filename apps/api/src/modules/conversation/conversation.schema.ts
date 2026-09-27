@@ -3,7 +3,7 @@ import { embed } from "@/modules/embed/embed.schema.ts"
 import { sql } from "drizzle-orm"
 import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
-export const generationAttemptStatus = pgEnum("generation_attempt_status", [
+export const GENERATION_ATTEMPT_STATUSES = [
 	"accepted",
 	"running",
 	"completed",
@@ -11,7 +11,17 @@ export const generationAttemptStatus = pgEnum("generation_attempt_status", [
 	"cancelled",
 	"blocked",
 	"interrupted",
-])
+] as const
+export type GenerationAttemptStatus = (typeof GENERATION_ATTEMPT_STATUSES)[number]
+export const GENERATION_ATTEMPT_ACTIVE_STATUSES = [
+	"accepted",
+	"running",
+] as const satisfies readonly GenerationAttemptStatus[]
+export type GenerationAttemptOutcome = Exclude<
+	GenerationAttemptStatus,
+	(typeof GENERATION_ATTEMPT_ACTIVE_STATUSES)[number]
+>
+export const generationAttemptStatus = pgEnum("generation_attempt_status", GENERATION_ATTEMPT_STATUSES)
 export const messageRole = pgEnum("message_role", ["user", "assistant"])
 export const messageOutcome = pgEnum("message_outcome", [
 	"streaming",

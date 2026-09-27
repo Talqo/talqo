@@ -9,9 +9,16 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
-import { conversation, conversationDailyCounter, generationAttempt, message } from "./conversation.schema.ts"
+import {
+	conversation,
+	conversationDailyCounter,
+	GENERATION_ATTEMPT_ACTIVE_STATUSES,
+	generationAttempt,
+	type GenerationAttemptOutcome,
+	message,
+} from "./conversation.schema.ts"
 
-const ACTIVE_STATUSES = ["accepted", "running"] as const
+const ACTIVE_STATUSES = GENERATION_ATTEMPT_ACTIVE_STATUSES
 const LEASE_MS = 15_000
 const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
@@ -398,7 +405,7 @@ export async function stageFinalization(input: {
 	inputTokens: number
 	leaseToken: string
 	model: string
-	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"
+	outcome: GenerationAttemptOutcome
 	outputTokens: number
 	provider: string
 }): Promise<boolean> {
