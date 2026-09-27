@@ -51,31 +51,19 @@ function pathName(name: string): string {
 	return encodeURIComponent(name)
 }
 
-function embeddingStatusText(status: AgentFile["embeddingStatus"], t: (key: string) => string): string {
-	switch (status) {
-		case "pending":
-			return t("agentFiles.status.pending")
-		case "processing":
-			return t("agentFiles.status.processing")
-		case "ready":
-			return t("agentFiles.status.ready")
-		case "failed":
-			return t("agentFiles.status.failed")
-	}
-}
+const embeddingStatusMessages = {
+	pending: "agentFiles.status.pending",
+	processing: "agentFiles.status.processing",
+	ready: "agentFiles.status.ready",
+	failed: "agentFiles.status.failed",
+} as const satisfies Record<AgentFile["embeddingStatus"], string>
 
-function embeddingErrorText(error: NonNullable<AgentFile["embeddingError"]>, t: (key: string) => string): string {
-	switch (error) {
-		case "conversion-failed":
-			return t("agentFiles.error.conversionFailed")
-		case "empty-document":
-			return t("agentFiles.error.emptyDocument")
-		case "provider-error":
-			return t("agentFiles.error.providerError")
-		case "unknown":
-			return t("agentFiles.error.unknown")
-	}
-}
+const embeddingErrorMessages = {
+	"conversion-failed": "agentFiles.error.conversionFailed",
+	"empty-document": "agentFiles.error.emptyDocument",
+	"provider-error": "agentFiles.error.providerError",
+	unknown: "agentFiles.error.unknown",
+} as const satisfies Record<NonNullable<AgentFile["embeddingError"]>, string>
 
 type EmbeddingStatusStyle = {
 	Icon: typeof ClockIcon
@@ -97,9 +85,9 @@ function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) =>
 		<p role="status" className={`flex items-center gap-1.5 text-xs ${style.className}`}>
 			<Icon aria-hidden className={style.spin ? "size-3.5 animate-spin" : "size-3.5"} />
 			<span>
-				{embeddingStatusText(file.embeddingStatus, t)}
+				{t(embeddingStatusMessages[file.embeddingStatus])}
 				{file.embeddingStatus === "failed" && file.embeddingError
-					? ` · ${embeddingErrorText(file.embeddingError, t)}`
+					? ` · ${t(embeddingErrorMessages[file.embeddingError])}`
 					: ""}
 			</span>
 		</p>

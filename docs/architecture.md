@@ -20,7 +20,8 @@ Update this guide in the same change as any decision that changes architecture, 
 | --- | --- | --- |
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
-| pgvector | Knowledge chunk vectors in PostgreSQL | [ADR-0015](adr/0015-store-knowledge-vectors-in-postgresql.md) |
+| pgvector | Knowledge chunk vectors in PostgreSQL | None |
+| Docling Serve | Upload conversion and chunking | [ADR-0016](adr/0016-convert-uploaded-files-with-docling-serve.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
