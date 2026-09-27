@@ -100,21 +100,15 @@ type SendInput = {
 	text: string
 }
 
-function requireUuid(value: string, name: string): string {
-	if (!UUID_SCHEMA.safeParse(value).success) throw new InvalidChatInputError(`${name} is invalid`)
+function requireUuid(value: string, error: Error): string {
+	if (!UUID_SCHEMA.safeParse(value).success) throw error
 	return value
 }
 
 function isActiveStatus(
 	status: GenerationAttemptStatus,
 ): status is (typeof GENERATION_ATTEMPT_ACTIVE_STATUSES)[number] {
-	return (GENERATION_ATTEMPT_ACTIVE_STATUSES as readonly GenerationAttemptStatus[]).includes(status)
-}
-
-function requireCredential(credential: string): string {
-	if (!UUID_SCHEMA.safeParse(credential).success)
-		throw new SessionUnauthorizedError("A valid session credential is required")
-	return credential
+	return GENERATION_ATTEMPT_ACTIVE_STATUSES.some((active) => active === status)
 }
 
 function publicMessage(message: Awaited<ReturnType<typeof repository.listMessages>>[number]): ChatMessage {
@@ -213,7 +207,9 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 
 	async function authenticate(credential: string): Promise<repository.ConversationContext> {
-		const session = await repository.findConversationById(requireCredential(credential))
+		const session = await repository.findConversationById(
+			requireUuid(credential, new SessionUnauthorizedError("A valid session credential is required")),
+		)
 		if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
 		return session
 	}
@@ -382,9 +378,12 @@ export function createConversationService(dependencies: Dependencies) {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}) {
 			await recoverUsage()
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
-			requireUuid(input.requestId, "Request ID")
+			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
-			const conversationId = requireCredential(input.credential)
+			const conversationId = requireUuid(
+				input.credential,
+				new SessionUnauthorizedError("A valid session credential is required"),
+			)
 			const session = await repository.findConversationById(conversationId)
 			if (
 				session &&
@@ -407,7 +406,8 @@ export function createConversationService(dependencies: Dependencies) {
 					history.messages,
 					input.text,
 				)
-				if ([...promptText(messages)].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+				const promptContent = promptText(messages)
+				if ([...promptContent].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation
 				try {
 					prepared = await dependencies.prepare({
@@ -428,7 +428,7 @@ export function createConversationService(dependencies: Dependencies) {
 						requestId: input.requestId,
 						historyRevision: history.revision,
 						historyTailId: history.latestCompletedMessageId,
-						estimatedInputTokens: usageService.estimateTokens(promptText(messages)),
+						estimatedInputTokens: usageService.estimateTokens(promptContent),
 						messageText: input.text,
 						networkHash: input.networkHash,
 						dailyLimit: dependencies.dailyLimit,

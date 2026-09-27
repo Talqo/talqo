@@ -23,6 +23,21 @@ const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
 
+function activeUnexpired() {
+	return and(
+		inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+}
+
+function leaseOwned(generationAttemptId: string, leaseToken: string) {
+	return and(
+		eq(generationAttempt.id, generationAttemptId),
+		eq(generationAttempt.leaseToken, leaseToken),
+		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+	)
+}
+
 export type ConversationContext = {
 	agentId: string
 	conversationId: string
@@ -245,13 +260,7 @@ export async function acceptGenerationAttempt(input: {
 		const [conversationActive] = await tx
 			.select({ value: count() })
 			.from(generationAttempt)
-			.where(
-				and(
-					eq(generationAttempt.conversationId, input.conversationId),
-					inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-				),
-			)
+			.where(and(eq(generationAttempt.conversationId, input.conversationId), activeUnexpired()))
 		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyError()
 		const [networkActive] = await tx
 			.select({ value: count() })
@@ -261,8 +270,7 @@ export async function acceptGenerationAttempt(input: {
 				and(
 					eq(conversation.agentId, input.agentId),
 					eq(generationAttempt.networkHash, input.networkHash),
-					inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
+					activeUnexpired(),
 				),
 			)
 		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
@@ -325,14 +333,7 @@ export async function markRunning(generationAttemptId: string, leaseToken: strin
 	const rows = await db
 		.update(generationAttempt)
 		.set({ status: "running", updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "accepted"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(leaseOwned(generationAttemptId, leaseToken), eq(generationAttempt.status, "accepted")))
 		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
@@ -362,14 +363,7 @@ export async function setAttribution(
 	const rows = await db
 		.update(generationAttempt)
 		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: DATABASE_NOW })
-		.where(
-			and(
-				eq(generationAttempt.id, generationAttemptId),
-				eq(generationAttempt.leaseToken, leaseToken),
-				eq(generationAttempt.status, "running"),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(leaseOwned(generationAttemptId, leaseToken), eq(generationAttempt.status, "running")))
 		.returning({ id: generationAttempt.id })
 	return rows.length === 1
 }
@@ -431,11 +425,9 @@ export async function stageFinalization(input: {
 			})
 			.where(
 				and(
-					eq(generationAttempt.id, input.generationAttemptId),
-					eq(generationAttempt.leaseToken, input.leaseToken),
+					leaseOwned(input.generationAttemptId, input.leaseToken),
 					eq(generationAttempt.status, "running"),
 					eq(generationAttempt.providerInvoked, true),
-					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
 			.returning({ conversationId: generationAttempt.conversationId })
@@ -531,11 +523,7 @@ export async function markUsageRecorded(input: {
 }
 
 export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
-	const conditions = [
-		eq(generationAttempt.conversationId, conversationId),
-		inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
-		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-	]
+	const conditions = [eq(generationAttempt.conversationId, conversationId), activeUnexpired()]
 	if (generationAttemptId) conditions.push(eq(generationAttempt.id, generationAttemptId))
 	const rows = await db
 		.update(generationAttempt)
@@ -549,13 +537,7 @@ export async function getActiveGenerationAttempt(conversationId: string): Promis
 	const [row] = await db
 		.select({ id: generationAttempt.id })
 		.from(generationAttempt)
-		.where(
-			and(
-				eq(generationAttempt.conversationId, conversationId),
-				inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
-				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
-			),
-		)
+		.where(and(eq(generationAttempt.conversationId, conversationId), activeUnexpired()))
 		.limit(1)
 	return row
 }
