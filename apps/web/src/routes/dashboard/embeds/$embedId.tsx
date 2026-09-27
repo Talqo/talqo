@@ -340,7 +340,11 @@ function EmbedDetailPage() {
 									value={colorTab}
 									onValueChange={(value) => {
 										if (isColorSchemeTab(value)) {
-											void navigate({ search: (prev) => ({ ...prev, colorTab: value }), replace: true })
+											void navigate({
+												search: (prev) => ({ ...prev, colorTab: value }),
+												replace: true,
+												resetScroll: false,
+											})
 										}
 									}}
 								>

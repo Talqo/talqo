@@ -610,6 +610,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["self-delete-not-allowed"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#self-delete-not-allowed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["self-password-reset-not-allowed"]
 							},
 							"type": {
@@ -3008,6 +3023,82 @@
 					},
 					"413": {
 						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/users/{userId}": {
+			"delete": {
+				"operationId": "deleteUser",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "userId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Problem response. Codes: self-delete-not-allowed.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: admin-access-required, password-change-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: user-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
