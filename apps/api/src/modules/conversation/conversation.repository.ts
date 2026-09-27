@@ -18,7 +18,6 @@ import {
 	message,
 } from "./conversation.schema.ts"
 
-const ACTIVE_STATUSES = GENERATION_ATTEMPT_ACTIVE_STATUSES
 const LEASE_MS = 15_000
 const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
@@ -125,7 +124,7 @@ async function interruptExpiredGenerationAttempts(
 		})
 		.where(
 			and(
-				inArray(generationAttempt.status, ACTIVE_STATUSES),
+				inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 				lt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				condition,
 			),
@@ -249,7 +248,7 @@ export async function acceptGenerationAttempt(input: {
 			.where(
 				and(
 					eq(generationAttempt.conversationId, input.conversationId),
-					inArray(generationAttempt.status, ACTIVE_STATUSES),
+					inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
@@ -262,7 +261,7 @@ export async function acceptGenerationAttempt(input: {
 				and(
 					eq(conversation.agentId, input.agentId),
 					eq(generationAttempt.networkHash, input.networkHash),
-					inArray(generationAttempt.status, ACTIVE_STATUSES),
+					inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 					gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 				),
 			)
@@ -534,7 +533,7 @@ export async function markUsageRecorded(input: {
 export async function requestCancellation(conversationId: string, generationAttemptId?: string): Promise<string[]> {
 	const conditions = [
 		eq(generationAttempt.conversationId, conversationId),
-		inArray(generationAttempt.status, ACTIVE_STATUSES),
+		inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 		gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 	]
 	if (generationAttemptId) conditions.push(eq(generationAttempt.id, generationAttemptId))
@@ -553,7 +552,7 @@ export async function getActiveGenerationAttempt(conversationId: string): Promis
 		.where(
 			and(
 				eq(generationAttempt.conversationId, conversationId),
-				inArray(generationAttempt.status, ACTIVE_STATUSES),
+				inArray(generationAttempt.status, GENERATION_ATTEMPT_ACTIVE_STATUSES),
 				gt(generationAttempt.leaseExpiresAt, DATABASE_NOW),
 			),
 		)

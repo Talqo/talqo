@@ -20,10 +20,11 @@ export function createGenerationPoller() {
 		const owned = [...controllers].map(([id, { leaseToken }]) => ({ id, leaseToken }))
 		try {
 			for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
+				const batch = owned.slice(offset, offset + POLL_BATCH_SIZE)
 				// oxlint-disable-next-line no-await-in-loop -- sequential batches bound database work per query.
-				const active = await repository.pollRunningAttempts(owned.slice(offset, offset + POLL_BATCH_SIZE), renew)
+				const active = await repository.pollRunningAttempts(batch, renew)
 				const status = new Map(active.map((entry) => [entry.id, entry.cancelled]))
-				for (const { id, leaseToken } of owned.slice(offset, offset + POLL_BATCH_SIZE)) {
+				for (const { id, leaseToken } of batch) {
 					const local = controllers.get(id)
 					if (local?.leaseToken === leaseToken && status.get(id) !== false) local.controller.abort()
 				}
