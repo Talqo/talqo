@@ -184,6 +184,14 @@ async function recordPendingUsage(pending: repository.PendingUsageFinalization):
 	})
 }
 
+async function authenticate(credential: string): Promise<repository.ConversationContext> {
+	const session = await repository.findConversationById(
+		requireUuid(credential, new SessionUnauthorizedError("A valid session credential is required")),
+	)
+	if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
+	return session
+}
+
 export function createConversationService(dependencies: Dependencies) {
 	const poller = createGenerationPoller()
 	let lastRecovery = -Infinity
@@ -204,14 +212,6 @@ export function createConversationService(dependencies: Dependencies) {
 		} finally {
 			recovering = undefined
 		}
-	}
-
-	async function authenticate(credential: string): Promise<repository.ConversationContext> {
-		const session = await repository.findConversationById(
-			requireUuid(credential, new SessionUnauthorizedError("A valid session credential is required")),
-		)
-		if (!session) throw new SessionUnauthorizedError("Session is invalid or revoked")
-		return session
 	}
 
 	async function run(

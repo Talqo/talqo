@@ -35,12 +35,12 @@
 		"@commitlint/config-conventional": "^21.2.3",
 		"@playwright/cli": "^0.1.21",
 		"husky": "^9.1.7",
-		"knip": "6.37.0",
-		"orval": "8.34.0",
-		"oxfmt": "0.68.0",
-		"oxlint": "1.83.0",
-		"oxlint-tsgolint": "^7.0.2002",
-		"turbo": "2.11.2"
+		"knip": "6.38.0",
+		"orval": "8.38.0",
+		"oxfmt": "0.70.0",
+		"oxlint": "1.85.0",
+		"oxlint-tsgolint": "^7.0.2003",
+		"turbo": "2.11.4"
 	},
 	"packageManager": "bun@1.4.2"
 }
