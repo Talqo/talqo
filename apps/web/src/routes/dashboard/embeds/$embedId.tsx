@@ -52,16 +52,11 @@ function positionLabel(position: (typeof WIDGET_POSITIONS)[number], t: (key: str
 	return position === "bottom-right" ? t("embedSetup.positionBottomRight") : t("embedSetup.positionBottomLeft")
 }
 
-function themeLabel(theme: (typeof WIDGET_THEMES)[number], t: (key: string) => string): string {
-	switch (theme) {
-		case "light":
-			return t("embedSetup.themeLight")
-		case "dark":
-			return t("embedSetup.themeDark")
-		default:
-			return t("embedSetup.themeSystem")
-	}
-}
+const themeLabels = {
+	light: "embedSetup.themeLight",
+	dark: "embedSetup.themeDark",
+	system: "embedSetup.themeSystem",
+} as const satisfies Record<(typeof WIDGET_THEMES)[number], string>
 
 function SchemeColorFields({
 	scheme,
@@ -190,7 +185,7 @@ function EmbedDetailPage() {
 
 	// Base UI shows the raw value in a closed trigger unless `items` maps it to a label.
 	const positionOptions = WIDGET_POSITIONS.map((value) => ({ value, label: positionLabel(value, t) }))
-	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: themeLabel(value, t) }))
+	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: t(themeLabels[value]) }))
 	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
 	const scriptUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined

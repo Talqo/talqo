@@ -44,19 +44,16 @@ export function errorAllowsNewChat(error: ChatError): boolean {
 	return error.newChatAvailable ?? NEW_CHAT_ERROR_CODES.has(error.code)
 }
 
+const outcomeKeys = {
+	failed: "outcomeFailed",
+	cancelled: "outcomeCancelled",
+	blocked: "outcomeBlocked",
+	interrupted: "outcomeInterrupted",
+} as const satisfies Partial<Record<ChatMessage["outcome"], string>>
+
 export function outcomeText(outcome: ChatMessage["outcome"], t: Translate): string | undefined {
-	switch (outcome) {
-		case "failed":
-			return t("outcomeFailed")
-		case "cancelled":
-			return t("outcomeCancelled")
-		case "blocked":
-			return t("outcomeBlocked")
-		case "interrupted":
-			return t("outcomeInterrupted")
-		default:
-			return undefined
-	}
+	if (!(outcome in outcomeKeys)) return undefined
+	return t(outcomeKeys[outcome as keyof typeof outcomeKeys])
 }
 
 const SECOND_RESPONSE_DOT_DELAY_MS = 150

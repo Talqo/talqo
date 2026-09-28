@@ -53,24 +53,15 @@ export const Route = createFileRoute("/dashboard/ai-configuration")({
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
 
-function providerLabel(providerId: AiProviderId, t: (key: string) => string): string {
-	switch (providerId) {
-		case "openai":
-			return t("aiConfiguration.providers.openai")
-		case "anthropic":
-			return t("aiConfiguration.providers.anthropic")
-		case "google":
-			return t("aiConfiguration.providers.google")
-		case "mistral":
-			return t("aiConfiguration.providers.mistral")
-		case "azure":
-			return t("aiConfiguration.providers.azure")
-		case "amazon-bedrock":
-			return t("aiConfiguration.providers.amazonBedrock")
-		case "openai-compatible":
-			return t("aiConfiguration.providers.openaiCompatible")
-	}
-}
+const providerLabels = {
+	openai: "aiConfiguration.providers.openai",
+	anthropic: "aiConfiguration.providers.anthropic",
+	google: "aiConfiguration.providers.google",
+	mistral: "aiConfiguration.providers.mistral",
+	azure: "aiConfiguration.providers.azure",
+	"amazon-bedrock": "aiConfiguration.providers.amazonBedrock",
+	"openai-compatible": "aiConfiguration.providers.openaiCompatible",
+} as const satisfies Record<AiProviderId, string>
 
 function fieldLabel(field: string, t: (key: string) => string): string {
 	switch (field) {
@@ -123,7 +114,7 @@ function ProviderSelect({
 						return (
 							<span className="flex items-center gap-2">
 								<ProviderBrand providerId={provider.id} />
-								{providerLabel(provider.id, t)}
+								{t(providerLabels[provider.id])}
 							</span>
 						)
 					}}
@@ -134,7 +125,7 @@ function ProviderSelect({
 					<SelectItem key={item.id} value={item.id}>
 						<span className="flex items-center gap-2">
 							<ProviderBrand providerId={item.id} />
-							{providerLabel(item.id, t)}
+							{t(providerLabels[item.id])}
 						</span>
 					</SelectItem>
 				))}
