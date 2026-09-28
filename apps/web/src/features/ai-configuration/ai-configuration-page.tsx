@@ -110,8 +110,8 @@ function ProviderSelect({
 						if (!provider) return null
 						return (
 							<span className="flex items-center gap-2">
-							<ProviderBrand providerId={provider.id} />
-							{t(providerLabels[provider.id])}
+								<ProviderBrand providerId={provider.id} />
+								{t(providerLabels[provider.id])}
 							</span>
 						)
 					}}
