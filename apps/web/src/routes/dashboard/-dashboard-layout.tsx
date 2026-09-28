@@ -33,24 +33,15 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard/account", icon: User },
 ]
 
-function navLabel(to: (typeof navItems)[number]["to"], t: (key: string) => string) {
-	switch (to) {
-		case "/dashboard":
-			return t("nav.dashboard")
-		case "/dashboard/agents":
-			return t("nav.agents")
-		case "/dashboard/invitations":
-			return t("nav.invitations")
-		case "/dashboard/users":
-			return t("nav.users")
-		case "/dashboard/analytics":
-			return t("nav.analytics")
-		case "/dashboard/ai-configuration":
-			return t("nav.aiConfiguration")
-		case "/dashboard/account":
-			return t("nav.account")
-	}
-}
+const navLabels = {
+	"/dashboard": "nav.dashboard",
+	"/dashboard/agents": "nav.agents",
+	"/dashboard/invitations": "nav.invitations",
+	"/dashboard/users": "nav.users",
+	"/dashboard/analytics": "nav.analytics",
+	"/dashboard/ai-configuration": "nav.aiConfiguration",
+	"/dashboard/account": "nav.account",
+} as const satisfies Record<NavItem["to"], string>
 
 function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
@@ -66,12 +57,13 @@ function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] 
 	})
 }
 
-function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { onNavigate: () => void }) {
+function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavigate: () => void }) {
 	const { t } = useTranslation()
+	const Icon = item.icon
 	return (
 		<Link
-			to={to}
-			activeOptions={{ exact: to === "/dashboard" }}
+			to={item.to}
+			activeOptions={{ exact: item.to === "/dashboard" }}
 			activeProps={{
 				className: "bg-sidebar-primary text-sidebar-primary-foreground",
 			}}
@@ -82,7 +74,7 @@ function NavLink({ to, icon: Icon, onNavigate }: (typeof navItems)[number] & { o
 			onClick={onNavigate}
 		>
 			<Icon className="size-5" />
-			{navLabel(to, t)}
+			{t(navLabels[item.to])}
 		</Link>
 	)
 }
@@ -93,7 +85,7 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	return (
 		<nav className={className}>
 			{items.map((item) => (
-				<NavLink key={item.to} {...item} onNavigate={onNavigate} />
+				<NavLink key={item.to} item={item} onNavigate={onNavigate} />
 			))}
 		</nav>
 	)

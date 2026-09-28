@@ -10,16 +10,11 @@ const cards = [
 	{ to: "/dashboard/account", icon: User, requiresRead: false },
 ] as const
 
-function cardCopy(to: (typeof cards)[number]["to"], t: (key: string) => string) {
-	switch (to) {
-		case "/dashboard/agents":
-			return { title: t("dashboard.cards.agents.title"), description: t("dashboard.cards.agents.description") }
-		case "/dashboard/analytics":
-			return { title: t("dashboard.cards.analytics.title"), description: t("dashboard.cards.analytics.description") }
-		case "/dashboard/account":
-			return { title: t("dashboard.cards.account.title"), description: t("dashboard.cards.account.description") }
-	}
-}
+const cardKeys = {
+	"/dashboard/agents": "agents",
+	"/dashboard/analytics": "analytics",
+	"/dashboard/account": "account",
+} as const satisfies Record<(typeof cards)[number]["to"], string>
 
 export const Route = createFileRoute("/dashboard/")({
 	component: DashboardIndexPage,
@@ -39,15 +34,16 @@ function DashboardIndexPage() {
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-				{visibleCards.map(({ to, icon: Icon }) => {
-					const { title, description } = cardCopy(to, t)
+				{visibleCards.map((card) => {
+					const title = t(`dashboard.cards.${cardKeys[card.to]}.title`)
+					const Icon = card.icon
 					return (
-						<Link key={to} to={to} className="group">
+						<Link key={card.to} to={card.to} className="group">
 							<Card className="h-full transition-shadow hover:shadow-md">
 								<CardHeader>
 									<Icon className="text-primary mb-2 size-8" />
 									<CardTitle>{title}</CardTitle>
-									<CardDescription>{description}</CardDescription>
+									<CardDescription>{t(`dashboard.cards.${cardKeys[card.to]}.description`)}</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<span className="text-primary text-sm font-medium group-hover:underline">
