@@ -258,20 +258,17 @@ test("embed snippet carries the public token", async ({ page }) => {
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
 })
 
-test("operator disables the widget from the detail page and the public config reflects it", async ({ page }) => {
+test("operator disables the widget from the embeds overview and the public config reflects it", async ({ page }) => {
 	const source = seeded.find(({ name }) => name === "Website")
 	if (!source) throw new Error("Shared seed Website embed is missing")
 
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
-	await expect(page).toHaveURL(`/dashboard/embeds/${source.id}`)
+	const card = page.locator("[data-slot=card]", { hasText: "Website" })
+	const toggle = card.getByRole("switch", { name: "Widget enabled" })
 
 	try {
-		await page.getByRole("button", { name: "Disable widget" }).click()
-		const dialog = page.getByRole("dialog", { name: "Disable the widget?" })
-		await dialog.getByRole("button", { name: "Disable widget" }).click()
-		await expect(dialog).not.toBeVisible()
-		await expect(page.getByRole("button", { name: "Enable widget" })).toBeVisible()
-		await expect(page.getByText(/This widget is disabled/)).toBeVisible()
+		await expect(toggle).toBeChecked()
+		await toggle.click()
+		await expect(toggle).not.toBeChecked()
 
 		// The ETag-cached public config is how already-installed widgets learn the state.
 		await expect
@@ -281,8 +278,8 @@ test("operator disables the widget from the detail page and the public config re
 			})
 			.toBe(true)
 
-		await page.getByRole("button", { name: "Enable widget" }).click()
-		await expect(page.getByRole("button", { name: "Disable widget" })).toBeVisible()
+		await toggle.click()
+		await expect(toggle).toBeChecked()
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
@@ -295,10 +292,8 @@ test("operator disables the widget from the detail page and the public config re
 	}
 })
 
-test("a read-only user does not see the Disable button on the embed detail page", async ({ page }) => {
+test("a read-only user does not see the widget toggle on the embeds overview", async ({ page }) => {
 	const viewer = { username: "user", password: "user1234" }
-	const source = seeded.find(({ name }) => name === "Website")
-	if (!source) throw new Error("Shared seed Website embed is missing")
 
 	// Grant through the API boundary, then switch accounts and inspect the same page.
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
@@ -320,10 +315,11 @@ test("a read-only user does not see the Disable button on the embed detail page"
 		await page.getByRole("button", { name: "Log in" }).click()
 		await expect(page).toHaveURL("/dashboard")
 
-		await page.goto(`/dashboard/embeds/${source.id}`)
-		await expect(page.getByLabel("Embed token", { exact: true })).toBeVisible()
-		await expect(page.getByRole("button", { name: "Disable widget" })).toHaveCount(0)
-		await expect(page.getByRole("button", { name: "Enable widget" })).toHaveCount(0)
+		await page.getByRole("link", { name: "Agents", exact: true }).click()
+		await page.getByRole("link", { name: /Website Assistant/ }).click()
+		await page.getByRole("tab", { name: "Embeds" }).click()
+		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
+		await expect(page.getByRole("switch", { name: "Widget enabled" })).toHaveCount(0)
 	} finally {
 		await page.request.post("/api/auth/login", { data: operator })
 		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()

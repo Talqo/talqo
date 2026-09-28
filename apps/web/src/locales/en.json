@@ -316,18 +316,12 @@
 		"deleteTitle": "Delete embed?",
 		"deleting": "Deleting…",
 		"detailSubheading": "Tune the palette and copy the embed snippet.",
-		"disableWidget": "Disable widget",
 		"disableWidgetFailed": "Could not disable the widget. Try again.",
-		"disableWidgetTitle": "Disable the widget?",
-		"disableWidgetWarning": "Visitors immediately see the chat as disabled and cannot send messages. Existing chats are kept and resume when you enable the widget again.",
-		"disablingWidget": "Disabling…",
 		"embedCode": "Embed code",
 		"embedDescription": "Paste this snippet before the closing body tag of your site. Appearance changes apply without re-copying it.",
 		"embedToken": "Embed token",
 		"embedTokenDescription": "Public identifier carried by this embed's snippet. It appears in your site's markup and is not a secret.",
-		"enableWidget": "Enable widget",
 		"enableWidgetFailed": "Could not enable the widget. Try again.",
-		"enablingWidget": "Enabling…",
 		"hexValue": "{{label}} hex value",
 		"language": "Language",
 		"livePreview": "Live preview",
@@ -361,7 +355,8 @@
 		"themeLight": "Light",
 		"themeSystem": "Match the visitor's system",
 		"themeToggle": "Let visitors switch light and dark",
-		"widgetDisabledNote": "This widget is disabled: the installed chat shows as disabled and new messages are rejected."
+		"widgetDisabledNote": "This widget is disabled: the installed chat shows as disabled and new messages are rejected.",
+		"widgetEnabled": "Widget enabled"
 	},
 	"header": {
 		"language": "Language",

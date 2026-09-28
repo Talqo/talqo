@@ -36,6 +36,8 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
+import { EmbedEnabledSwitch } from "./-embed-enabled-switch"
+
 const AGENT_TABS = ["configuration", "context", "embeds"] as const
 const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
@@ -378,21 +380,24 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 								<CardHeader>
 									<CardTitle>{embed.name}</CardTitle>
 								</CardHeader>
-								<CardContent className="flex items-center justify-between gap-2">
-									<div className="flex items-center gap-1.5" aria-hidden="true">
-										{LIGHT_PALETTE_KEYS.map((key) => (
-											<span
-												key={key}
-												className="size-4 rounded-full border"
-												style={{ backgroundColor: embed.appearance.light[key] }}
-											/>
-										))}
+								<CardContent className="space-y-3">
+									<div className="flex items-center justify-between gap-2">
+										<div className="flex items-center gap-1.5" aria-hidden="true">
+											{LIGHT_PALETTE_KEYS.map((key) => (
+												<span
+													key={key}
+													className="size-4 rounded-full border"
+													style={{ backgroundColor: embed.appearance.light[key] }}
+												/>
+											))}
+										</div>
+										<span className="text-muted-foreground text-sm">
+											{isSupportedLanguage(embed.appearance.language)
+												? supportedLanguages[embed.appearance.language]
+												: embed.appearance.language}
+										</span>
 									</div>
-									<span className="text-muted-foreground text-sm">
-										{isSupportedLanguage(embed.appearance.language)
-											? supportedLanguages[embed.appearance.language]
-											: embed.appearance.language}
-									</span>
+									{canManage && <EmbedEnabledSwitch embed={embed} />}
 								</CardContent>
 							</Card>
 						</Link>

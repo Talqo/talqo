@@ -29,7 +29,6 @@ import { useTranslation } from "react-i18next"
 
 import { ColorField } from "./-color-field"
 import { DeleteEmbedDialog } from "./-delete-embed-dialog"
-import { DisableEmbedDialog } from "./-disable-embed-dialog"
 import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
 import { RotateEmbedTokenDialog } from "./-rotate-embed-token-dialog"
 
@@ -283,8 +282,6 @@ function EmbedDetailPage() {
 					{canManage && (
 						<div className="flex flex-wrap items-center gap-3">
 							<RotateEmbedTokenDialog embedId={embedId} />
-							{/* Reads as the state too: a disabled embed offers "Enable widget" here. */}
-							<DisableEmbedDialog embed={embed} />
 						</div>
 					)}
 					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.widgetDisabledNote")}</p>}
