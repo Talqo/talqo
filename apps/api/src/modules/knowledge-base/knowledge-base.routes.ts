@@ -202,8 +202,8 @@ export const agentFilesRoutes = routes
 			if (error instanceof files.InvalidFileError) {
 				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
 			}
-			if (error instanceof files.FileNotFailedError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FAILED, HTTP_STATUS.CONFLICT)
+			if (error instanceof files.FileNotRetryableError) {
+				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE, HTTP_STATUS.CONFLICT)
 			}
 			throw error
 		}

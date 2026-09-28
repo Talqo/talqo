@@ -60,12 +60,12 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#agent-file-name-taken"
 	  }
 	| {
-			code: "agent-file-not-failed"
-			type: "https://docs.talqo.chat/problems#agent-file-not-failed"
-	  }
-	| {
 			code: "agent-file-not-found"
 			type: "https://docs.talqo.chat/problems#agent-file-not-found"
+	  }
+	| {
+			code: "agent-file-not-retryable"
+			type: "https://docs.talqo.chat/problems#agent-file-not-retryable"
 	  }
 	| {
 			code: "agent-invalid"

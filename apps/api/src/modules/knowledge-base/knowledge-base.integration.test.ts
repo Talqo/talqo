@@ -84,7 +84,7 @@ describe("agent knowledge files", () => {
 		await expectProblem(
 			await app.request(retryUrl, { method: "POST", headers: { Cookie: cookie } }),
 			409,
-			"agent-file-not-failed",
+			"agent-file-not-retryable",
 		)
 		await sql`UPDATE agent_file SET status = 'failed', error = 'provider-error' WHERE agent_id = ${agentId}`
 		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })

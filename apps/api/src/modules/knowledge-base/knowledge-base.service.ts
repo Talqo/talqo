@@ -184,7 +184,7 @@ const WORKER_INTERVAL_MS = 3_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
 const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
 
-export class FileNotFailedError extends Error {}
+export class FileNotRetryableError extends Error {}
 
 export async function upload(agentId: string, name: string, data: ArrayBuffer): Promise<IndexedFile> {
 	const stored = await put(agentId, name, data)
@@ -230,7 +230,7 @@ export async function deleteFile(agentId: string, name: string): Promise<void> {
 
 export async function retryEmbedding(agentId: string, name: string): Promise<void> {
 	await requireFile(agentId, name)
-	if (!(await repository.retry(agentId, name))) throw new FileNotFailedError("File is not in a failed state")
+	if (!(await repository.retry(agentId, name))) throw new FileNotRetryableError("File is not in a failed state")
 }
 
 async function recoverUploads(): Promise<void> {

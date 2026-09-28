@@ -57,7 +57,7 @@ const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBL
 const agentNotFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND])
 const fileOrAgentNotFound = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_FOUND, PROBLEM_CODES.AGENT_NOT_FOUND])
 const fileNameTaken = problemResponse([PROBLEM_CODES.AGENT_FILE_NAME_TAKEN])
-const fileNotFailed = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_FAILED])
+const fileNotRetryable = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 
 export const listAgentFilesRoute = createRoute({
@@ -176,7 +176,7 @@ export const retryAgentFileRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		404: fileOrAgentNotFound,
-		409: fileNotFailed,
+		409: fileNotRetryable,
 		500: serverError,
 	},
 })

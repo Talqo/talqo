@@ -24,12 +24,12 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-name-taken"]),
 	}),
 	zod.object({
-		code: zod.enum(["agent-file-not-failed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-failed"]),
-	}),
-	zod.object({
 		code: zod.enum(["agent-file-not-found"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["agent-file-not-retryable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-retryable"]),
 	}),
 	zod.object({
 		code: zod.enum(["agent-invalid"]),
