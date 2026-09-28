@@ -3,6 +3,7 @@ import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
+import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
 import { z } from "zod"
 
@@ -401,11 +402,19 @@ export function createConversationService(dependencies: Dependencies) {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
-				const messages = completedPrompt(
-					agentService.composeSystemPrompt(agent.systemPrompt),
-					history.messages,
-					input.text,
-				)
+				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
+				let question = input.text
+				try {
+					const chunks = await knowledgeBase.searchKnowledge(agentId, input.text)
+					if (chunks.length) {
+						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
+					}
+				} catch (error) {
+					if (await knowledgeBase.hasReadyChunks(agentId))
+						throw new ProviderUnavailableError("The configured knowledge base is unavailable")
+					console.error("knowledge-base.retrieval.degraded", { agentId, error })
+				}
+				const messages = completedPrompt(systemPrompt, history.messages, question)
 				const promptContent = promptText(messages)
 				if ([...promptContent].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation

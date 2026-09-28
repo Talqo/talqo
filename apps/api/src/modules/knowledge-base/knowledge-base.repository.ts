@@ -84,3 +84,19 @@ export async function requeue(job: Job): Promise<void> {
 	await sql`UPDATE agent_file SET status = 'pending' WHERE id = ${job.id}
 		AND generation = ${job.generation} AND status = 'processing'`
 }
+
+export async function search(agentId: string, embedding: number[], modelKey: string, limit: number): Promise<string[]> {
+	const rows = await sql<{ text: string }[]>`
+		SELECT c.text FROM agent_file_chunk c
+		JOIN agent_file f ON f.id = c.file_id
+		WHERE f.agent_id = ${agentId} AND f.status = 'ready' AND f.model_key = ${modelKey}
+		ORDER BY c.embedding <=> ${JSON.stringify(embedding)}::vector LIMIT ${limit}`
+	return rows.map((row) => row.text)
+}
+
+export async function hasReadyChunks(agentId: string): Promise<boolean> {
+	const rows = await sql`SELECT 1 FROM agent_file_chunk c
+		JOIN agent_file f ON f.id = c.file_id
+		WHERE f.agent_id = ${agentId} AND f.status = 'ready' LIMIT 1`
+	return rows.length > 0
+}

@@ -51,3 +51,48 @@ it("stores vectors atomically, retains failed state, and requeues when the model
 		await agent.deleteAgent(owner.id)
 	}
 })
+
+it("searches ready chunks by similarity within the agent and model key", async () => {
+	const owner = await agent.createAgent({
+		name: `Search ${crypto.randomUUID()}`,
+		systemPrompt: "Answer",
+		wordBlacklist: [],
+	})
+	const other = await agent.createAgent({
+		name: `Search ${crypto.randomUUID()}`,
+		systemPrompt: "Answer",
+		wordBlacklist: [],
+	})
+	try {
+		await repository.enqueue(owner.id, "guide.md")
+		const job = await repository.claim("key-a")
+		if (!job) throw new Error("Expected an ingestion job")
+		await repository.complete(job, "key-a", [
+			{ text: "apples", embedding: [1, 0, 0] },
+			{ text: "bananas", embedding: [0, 1, 0] },
+		])
+		await repository.enqueue(other.id, "other.md")
+		const otherJob = await repository.claim("key-a")
+		if (!otherJob) throw new Error("Expected another ingestion job")
+		await repository.complete(otherJob, "key-a", [{ text: "other agent", embedding: [1, 0, 0] }])
+
+		expect(await repository.search(owner.id, [1, 0, 0], "key-a", 5)).toEqual(["apples", "bananas"])
+		expect(await repository.search(owner.id, [1, 0, 0], "key-a", 1)).toEqual(["apples"])
+		expect(await repository.search(owner.id, [1, 0, 0], "key-b", 5)).toEqual([])
+		expect(await repository.hasReadyChunks(owner.id)).toBe(true)
+		expect(await repository.hasReadyChunks(other.id)).toBe(true)
+		const fresh = await agent.createAgent({
+			name: `Search ${crypto.randomUUID()}`,
+			systemPrompt: "Answer",
+			wordBlacklist: [],
+		})
+		try {
+			expect(await repository.hasReadyChunks(fresh.id)).toBe(false)
+		} finally {
+			await agent.deleteAgent(fresh.id)
+		}
+	} finally {
+		await agent.deleteAgent(owner.id)
+		await agent.deleteAgent(other.id)
+	}
+})
