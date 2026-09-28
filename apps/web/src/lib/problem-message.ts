@@ -13,6 +13,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
 	"agent-file-name-taken": (t) => t("problems.agent-file-name-taken"),
 	"agent-file-not-found": (t) => t("problems.agent-file-not-found"),
+	"agent-file-not-retryable": (t) => t("problems.agent-file-not-retryable"),
 	"agent-invalid": (t) => t("problems.agent-invalid"),
 	"agent-in-use": (t) => t("problems.agent-in-use"),
 	"agent-name-taken": (t) => t("problems.agent-name-taken"),

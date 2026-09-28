@@ -1,5 +1,5 @@
-import { APICallError, type LanguageModelV4 } from "@ai-sdk/provider"
-import { streamText as aiStreamText } from "ai"
+import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
+import { embed as aiEmbed, streamText as aiStreamText } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
@@ -336,34 +336,33 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				credentials,
 			})
 		},
-		async createRuntimeModels() {
+		async prepareEmbeddingOperation() {
 			const stored = await dependencies.repository.find()
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
-				const textCredentials = stored.text.credentials
-					? dependencies.vault.decrypt(stored.text.credentials, {
+				const useTextCredentials = stored.embedding.credentialSource === "text"
+				const envelope = useTextCredentials ? stored.text.credentials : stored.embedding.credentials
+				const credentials = envelope
+					? dependencies.vault.decrypt(envelope, {
 							configId: CONFIG_ID,
-							providerId: stored.text.providerId,
-							role: "text",
+							providerId: stored.embedding.providerId,
+							role: useTextCredentials ? "text" : "embedding",
 						})
 					: undefined
-				const embeddingCredentials =
-					stored.embedding.credentialSource === "text"
-						? textCredentials
-						: stored.embedding.credentials
-							? dependencies.vault.decrypt(stored.embedding.credentials, {
-									configId: CONFIG_ID,
-									providerId: stored.embedding.providerId,
-									role: "embedding",
-								})
-							: undefined
+				const model = createProviderModel({
+					...stored.embedding,
+					role: "embedding",
+					credentials,
+				}) as EmbeddingModelV4
 				return {
-					text: createProviderModel({ ...stored.text, role: "text", credentials: textCredentials }),
-					embedding: createProviderModel({
-						...stored.embedding,
-						role: "embedding",
-						credentials: embeddingCredentials,
-					}),
+					key: JSON.stringify([
+						stored.embedding.providerId,
+						stored.embedding.modelId,
+						Object.entries(stored.embedding.settings).toSorted(([a], [b]) => a.localeCompare(b)),
+					]),
+					async embed(text: string) {
+						return (await aiEmbed({ model, value: text, maxRetries: 0 })).embedding
+					},
 				}
 			} catch {
 				throw new UnusableConfigurationError("AI provider configuration is unusable")
@@ -445,4 +444,8 @@ export async function discoverModels(userId: string, input: DiscoverModelsInput)
 
 export async function prepareTextOperation(input: PrepareTextOperationInput) {
 	return (await getDefaultService()).prepareTextOperation(input)
+}
+
+export async function prepareEmbeddingOperation(): Promise<{ key: string; embed(text: string): Promise<number[]> }> {
+	return (await getDefaultService()).prepareEmbeddingOperation()
 }

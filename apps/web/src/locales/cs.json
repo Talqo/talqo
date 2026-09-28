@@ -73,6 +73,12 @@
 		"downloadFailed": "Soubor se nepodařilo stáhnout. Zkuste to znovu.",
 		"dropzone": "Přetáhněte soubory sem, nebo klikněte pro výběr",
 		"dropzoneHint": "Zatím žádné znalostní soubory. Nahrajte zdroje, ze kterých má agent odpovídat.",
+		"error": {
+			"conversionFailed": "Dokument se nepodařilo zpracovat. Zkuste to znovu; pokud problém přetrvá, zkontrolujte soubor.",
+			"emptyDocument": "Nepodařilo se získat text. Zkontrolujte soubor a zkuste to znovu.",
+			"providerError": "Poskytovatel embeddingů dokument odmítl. Zkontrolujte konfiguraci a zkuste to znovu.",
+			"unknown": "Embedding se nezdařil. Zkontrolujte protokoly služby a zkuste to znovu."
+		},
 		"loadFailed": "Znalostní soubory se nepodařilo načíst.",
 		"loading": "Načítání souborů…",
 		"rename": "Přejmenovat {{name}}",
@@ -83,6 +89,15 @@
 		"renameLabel": "Název souboru",
 		"renameSave": "Přejmenovat",
 		"renameTitle": "Přejmenovat soubor",
+		"retry": "Znovu vytvořit embedding pro {{name}}",
+		"retryAction": "Zkusit embedding znovu",
+		"retryFailed": "Embedding se nepodařilo znovu spustit. Zkuste to znovu.",
+		"status": {
+			"failed": "Embedding se nezdařil",
+			"pending": "Čeká na embedding",
+			"processing": "Vytváření embeddingu…",
+			"ready": "Embedding dokončen"
+		},
 		"tooLarge": "Každý soubor může mít maximálně {{maxSizeMB}} MB.",
 		"uploadFailed": "Nahrávání se nezdařilo. Zkuste to znovu.",
 		"uploading": "Nahrávání…"
@@ -150,6 +165,10 @@
 			"openai": "OpenAI",
 			"openaiCompatible": "Kompatibilní s OpenAI"
 		},
+		"reembedCancel": "Zrušit",
+		"reembedConfirm": "Uložit a znovu vytvořit embeddingy",
+		"reembedTitle": "Znovu vytvořit embeddingy souborů?",
+		"reembedWarning": "Změna poskytovatele, modelu nebo nastavení připojení automaticky znovu vytvoří embeddingy existujících souborů, jeden po druhém. Může to chvíli trvat a účtují se poplatky poskytovatele. Neúspěšné soubory lze zkusit znovu.",
 		"replaceCredentials": "Nahradit",
 		"sameProviderNote": "Sdílí připojení z části Generování textu.",
 		"sameProviderUnavailable": "Textový poskytovatel nemá embeddingové API. Pro embeddingy zvolte jiného poskytovatele.",
@@ -362,6 +381,7 @@
 		"agent-file-invalid": "Soubor agenta je neplatný.",
 		"agent-file-name-taken": "Soubor agenta s tímto názvem již existuje.",
 		"agent-file-not-found": "Soubor agenta nebyl nalezen.",
+		"agent-file-not-retryable": "Soubor zatím neselhal. Zkuste to znovu, až se jeho stav změní.",
 		"agent-in-use": "Agenta nelze odstranit, protože ho používá jedna nebo více integrací.",
 		"agent-invalid": "Konfigurace agenta je neplatná.",
 		"agent-name-taken": "Agent s tímto názvem již existuje.",

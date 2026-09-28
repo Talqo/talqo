@@ -64,6 +64,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#agent-file-not-found"
 	  }
 	| {
+			code: "agent-file-not-retryable"
+			type: "https://docs.talqo.chat/problems#agent-file-not-retryable"
+	  }
+	| {
 			code: "agent-invalid"
 			type: "https://docs.talqo.chat/problems#agent-invalid"
 	  }

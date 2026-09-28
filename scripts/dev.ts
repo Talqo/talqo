@@ -1,6 +1,9 @@
 import { $ } from "bun"
 
 const DEV_APP_SECRET_BYTES = 32
+const DOCLING_STARTUP_TIMEOUT_MS = 120_000
+const DOCLING_PROBE_TIMEOUT_MS = 2_000
+const DOCLING_PROBE_INTERVAL_MS = 500
 const DEV_APP_SECRET = Buffer.alloc(DEV_APP_SECRET_BYTES, 1).toString("base64url")
 const root = (await $`git rev-parse --show-toplevel`.quiet().text()).trim()
 const appSecret = Bun.env.APP_SECRET ?? DEV_APP_SECRET
@@ -9,14 +12,31 @@ const reservations = Array.from({ length: 3 }, () =>
 )
 const [apiPort, webPort, widgetPort] = reservations.map(({ port }) => String(port))
 
-await $`docker compose up --detach --wait --wait-timeout 30 postgres`.cwd(root)
+await $`docker compose up --detach --wait --wait-timeout 30 postgres docling`.cwd(root)
 const address = await $`docker compose port postgres 5432`.cwd(root).quiet().text()
 const databasePort = address.trim().split(":").at(-1)
+const doclingAddress = await $`docker compose port docling 5001`.cwd(root).quiet().text()
+const doclingPort = doclingAddress.trim().split(":").at(-1)
+if (!doclingPort) throw new Error("Docling Serve did not expose its HTTP port")
+const doclingUrl = `http://127.0.0.1:${doclingPort}`
+const doclingReadyDeadline = Date.now() + DOCLING_STARTUP_TIMEOUT_MS
+/* eslint-disable no-await-in-loop -- readiness must be checked before starting dependent apps */
+while (Date.now() < doclingReadyDeadline) {
+	try {
+		if ((await fetch(`${doclingUrl}/livez`, { signal: AbortSignal.timeout(DOCLING_PROBE_TIMEOUT_MS) })).ok) break
+	} catch {
+		// Wait for the container to start accepting HTTP connections.
+	}
+	await Bun.sleep(DOCLING_PROBE_INTERVAL_MS)
+}
+/* eslint-enable no-await-in-loop */
+if (Date.now() >= doclingReadyDeadline) throw new Error("Docling Serve did not become ready")
 const databaseUrl = `postgres://talqo:talqo@127.0.0.1:${databasePort}/talqo`
 const devEnv = {
 	...Bun.env,
 	APP_SECRET: appSecret,
 	DATABASE_URL: databaseUrl,
+	TALQO_DOCLING_URL: doclingUrl,
 	NODE_ENV: "development",
 	TALQO_ALLOW_INSECURE_SEED: "true",
 }

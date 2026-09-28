@@ -15,10 +15,10 @@ graph LR
 
     subgraph "Configuration"
         agent[agent]
+        knowledge_base[knowledge-base]
         embed[embed]
         ai_provider["ai-provider"]
         mcp[mcp]
-        knowledge[knowledge]
     end
 
     subgraph "Runtime"
@@ -33,18 +33,18 @@ graph LR
     roles --> identity
 
     agent --> roles
+    agent --> knowledge_base
     embed --> agent
     embed --> roles
     ai_provider --> roles
     mcp --> roles
-    knowledge --> roles
+    knowledge_base --> ai_provider
     usage --> roles
 
     conversation --> embed
     conversation --> agent
     conversation --> ai_provider
     conversation --> mcp
-    conversation --> knowledge
     conversation --> usage
     conversation --> roles
 
@@ -56,7 +56,7 @@ graph LR
     conversation --> audit
 ```
 
-`identity` and `audit` are leaves: they never call another module. `audit` only ever receives calls (a write sink for activity log entries). `conversation` is the only orchestrator — it owns the single user-visible "send a message" operation and fans out to every module needed to answer it, per the rule that the module owning a user-visible operation orchestrates the others.
+`identity` and `audit` are leaves: they never call another module. `audit` only ever receives calls (a write sink for activity log entries). `conversation` orchestrates sending messages. Separately, `knowledge-base` owns source-file lifecycle and serial ingestion, calling the configured embedding provider.
 
 ## Modules
 
@@ -68,8 +68,8 @@ graph LR
 | `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many embeds. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
 | `mcp` | `MCP_CONFIG` | Tool-server integrations configured once for the app, shared across all agents. |
-| `knowledge` | `FILE_EMBEDDING` | RAG ingestion and per-agent embedding store, decoupled from live chat. |
-| `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, the AI provider, MCP tools, and knowledge. |
+| `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent source-file lifecycle, durable serial ingestion, Docling conversion/chunking, and per-agent pgvector storage; no chat retrieval yet. |
+| `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config and the AI provider. Knowledge retrieval is future work. |
 | `usage` | `USAGE_RECORD` | Meters tokens/cost per generation attempt; limit enforcement lives in `conversation`. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 

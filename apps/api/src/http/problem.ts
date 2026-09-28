@@ -9,6 +9,7 @@ export const PROBLEM_CODES = {
 	AGENT_FILE_INVALID: "agent-file-invalid",
 	AGENT_FILE_NAME_TAKEN: "agent-file-name-taken",
 	AGENT_FILE_NOT_FOUND: "agent-file-not-found",
+	AGENT_FILE_NOT_RETRYABLE: "agent-file-not-retryable",
 	AGENT_INVALID: "agent-invalid",
 	AGENT_IN_USE: "agent-in-use",
 	AGENT_NAME_TAKEN: "agent-name-taken",

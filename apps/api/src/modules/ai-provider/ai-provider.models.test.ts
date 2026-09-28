@@ -37,7 +37,7 @@ describe("createProviderModel", () => {
 		expect(model.modelId).toBe("text-embedding-3-small")
 	})
 
-	it("reuses the Azure identity credential across role model construction", () => {
+	it("constructs an Azure identity credential for each model", () => {
 		let constructions = 0
 		const credential = {
 			getToken: async () => ({ token: "token", expiresOnTimestamp: 1 }),
@@ -54,7 +54,6 @@ describe("createProviderModel", () => {
 			authMode: "deployment-identity" as const,
 			settings: { baseURL: "https://example.openai.azure.com/openai", apiVersion: "2024-10-21" },
 		}
-		// Per-call credential; createRuntimeModels shares one across both roles.
 		createProviderModel({ ...base, role: "text" }, dependencies)
 		createProviderModel({ ...base, role: "embedding" }, dependencies)
 		expect(constructions).toBe(2)

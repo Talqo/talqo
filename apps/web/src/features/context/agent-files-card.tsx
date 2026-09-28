@@ -7,6 +7,7 @@ import {
 	useDeleteAgentFile,
 	useListAgentFiles,
 	useRenameAgentFile,
+	useRetryAgentFile,
 	useUploadAgentFile,
 } from "@/api/generated/agent/agent.ts"
 import { formatBytes, formatFileDate, splitExtension } from "@/features/context/format"
@@ -26,16 +27,71 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
-import { Download, FileText, Pencil, Trash2, Upload } from "lucide-react"
+import {
+	CircleAlertIcon,
+	CircleCheckIcon,
+	ClockIcon,
+	Download,
+	FileText,
+	LoaderCircleIcon,
+	Pencil,
+	RotateCcw,
+	Trash2,
+	Upload,
+} from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 // eslint-disable-next-line no-magic-numbers
 const BYTES_PER_MB = 1024 * 1024
+const EMBEDDING_REFRESH_MS = 3_000
 
 // The generated client interpolates path params unencoded; names may legally contain "#", "?", or "%".
 function pathName(name: string): string {
 	return encodeURIComponent(name)
+}
+
+const embeddingStatusMessages = {
+	pending: "agentFiles.status.pending",
+	processing: "agentFiles.status.processing",
+	ready: "agentFiles.status.ready",
+	failed: "agentFiles.status.failed",
+} as const satisfies Record<AgentFile["embeddingStatus"], string>
+
+const embeddingErrorMessages = {
+	"conversion-failed": "agentFiles.error.conversionFailed",
+	"empty-document": "agentFiles.error.emptyDocument",
+	"provider-error": "agentFiles.error.providerError",
+	unknown: "agentFiles.error.unknown",
+} as const satisfies Record<NonNullable<AgentFile["embeddingError"]>, string>
+
+type EmbeddingStatusStyle = {
+	Icon: typeof ClockIcon
+	className: string
+	spin?: boolean
+}
+
+const embeddingStatusStyles: Record<AgentFile["embeddingStatus"], EmbeddingStatusStyle> = {
+	pending: { Icon: ClockIcon, className: "text-muted-foreground" },
+	processing: { Icon: LoaderCircleIcon, className: "text-amber-600 dark:text-amber-500", spin: true },
+	ready: { Icon: CircleCheckIcon, className: "text-green-600 dark:text-green-500" },
+	failed: { Icon: CircleAlertIcon, className: "text-destructive" },
+}
+
+function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) => string }) {
+	const style = embeddingStatusStyles[file.embeddingStatus]
+	const { Icon } = style
+	return (
+		<p role="status" className={`flex items-center gap-1.5 text-xs ${style.className}`}>
+			<Icon aria-hidden className={style.spin ? "size-3.5 animate-spin" : "size-3.5"} />
+			<span>
+				{t(embeddingStatusMessages[file.embeddingStatus])}
+				{file.embeddingStatus === "failed" && file.embeddingError
+					? ` · ${t(embeddingErrorMessages[file.embeddingError])}`
+					: ""}
+			</span>
+		</p>
+	)
 }
 
 export function AgentFilesCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
@@ -45,11 +101,21 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 
 	// List requires agents:manage; read-only members skip the query instead of landing on a 403.
 	const filesQuery = useListAgentFiles(agentId, {
-		query: { ...getListAgentFilesQueryOptions(agentId), enabled: canManage },
+		query: {
+			...getListAgentFilesQueryOptions(agentId),
+			enabled: canManage,
+			refetchInterval: (query) =>
+				query.state.data?.data.files.some(
+					(file) => file.embeddingStatus === "pending" || file.embeddingStatus === "processing",
+				)
+					? EMBEDDING_REFRESH_MS
+					: false,
+		},
 	})
 	const uploadFile = useUploadAgentFile()
 	const renameFile = useRenameAgentFile()
 	const deleteFile = useDeleteAgentFile()
+	const retryFile = useRetryAgentFile()
 
 	const fileInputRef = useRef<HTMLInputElement | null>(null)
 	const [dragging, setDragging] = useState(false)
@@ -60,6 +126,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const [deleteTarget, setDeleteTarget] = useState<AgentFile | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
 	const [downloadingName, setDownloadingName] = useState<string | null>(null)
+	const [retryingName, setRetryingName] = useState<string | null>(null)
 
 	const maxSizeBytes = filesQuery.data?.data.maxSizeBytes
 	const maxSizeMB = maxSizeBytes ? Math.round(maxSizeBytes / BYTES_PER_MB) : undefined
@@ -156,6 +223,19 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		}
 	}
 
+	async function onRetry(file: AgentFile) {
+		setFileError(null)
+		setRetryingName(file.name)
+		try {
+			await retryFile.mutateAsync({ agentId, fileName: pathName(file.name) })
+			await refresh()
+		} catch (error) {
+			setFileError(getProblemMessage(error, t, t("agentFiles.retryFailed")))
+		} finally {
+			setRetryingName(null)
+		}
+	}
+
 	const files = filesQuery.data?.data.files ?? []
 
 	return (
@@ -199,7 +279,11 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							disabled={uploadFile.isPending}
 							onChange={(event) => void startBatch(event.target.files)}
 						/>
-						<Upload className="text-muted-foreground size-6" />
+						{uploadFile.isPending ? (
+							<LoaderCircleIcon aria-hidden className="text-primary size-6 animate-spin" />
+						) : (
+							<Upload className="text-muted-foreground size-6" />
+						)}
 						<p className="text-sm font-medium">
 							{uploadFile.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
 						</p>
@@ -227,9 +311,27 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 									<p className="text-muted-foreground text-xs">
 										{formatBytes(file.sizeBytes)} · {formatFileDate(file.createdAt, language)}
 									</p>
+									<EmbeddingStatusLine file={file} t={t} />
 								</div>
 								{canManage && (
 									<TooltipProvider>
+										{file.embeddingStatus === "failed" && (
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												disabled={retryingName === file.name}
+												onClick={() => void onRetry(file)}
+												aria-label={t("agentFiles.retry", { name: file.name })}
+											>
+												{retryingName === file.name ? (
+													<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+												) : (
+													<RotateCcw className="size-4" />
+												)}
+												{t("agentFiles.retryAction")}
+											</Button>
+										)}
 										<Tooltip>
 											<TooltipTrigger
 												render={

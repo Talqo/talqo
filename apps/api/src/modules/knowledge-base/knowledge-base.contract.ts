@@ -2,13 +2,15 @@ import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSec
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
-import { MAX_FILE_NAME_LENGTH } from "./agent-files.service.ts"
+import { MAX_FILE_NAME_LENGTH } from "./knowledge-base.service.ts"
 
 const agentFileSchema = z
 	.object({
 		name: z.string(),
 		sizeBytes: z.number().int().nonnegative(),
 		createdAt: z.iso.datetime(),
+		embeddingStatus: z.enum(["pending", "processing", "ready", "failed"]),
+		embeddingError: z.enum(["conversion-failed", "empty-document", "provider-error", "unknown"]).nullable(),
 	})
 	.openapi("AgentFile")
 
@@ -55,6 +57,7 @@ const forbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBL
 const agentNotFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND])
 const fileOrAgentNotFound = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_FOUND, PROBLEM_CODES.AGENT_NOT_FOUND])
 const fileNameTaken = problemResponse([PROBLEM_CODES.AGENT_FILE_NAME_TAKEN])
+const fileNotRetryable = problemResponse([PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 
 export const listAgentFilesRoute = createRoute({
@@ -156,6 +159,24 @@ export const deleteAgentFileRoute = createRoute({
 		401: authRequired,
 		403: forbidden,
 		404: fileOrAgentNotFound,
+		500: serverError,
+	},
+})
+
+export const retryAgentFileRoute = createRoute({
+	method: "post",
+	path: "/{agentId}/files/{fileName}/retry",
+	operationId: "retryAgentFile",
+	tags: ["Agent"],
+	security: sessionSecurity,
+	request: { params: fileParamsSchema },
+	responses: {
+		204: noContentResponse,
+		400: invalidFile,
+		401: authRequired,
+		403: forbidden,
+		404: fileOrAgentNotFound,
+		409: fileNotRetryable,
 		500: serverError,
 	},
 })

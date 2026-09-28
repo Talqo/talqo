@@ -20,6 +20,8 @@ Update this guide in the same change as any decision that changes architecture, 
 | --- | --- | --- |
 | Bun | Runtime and toolchain | [ADR-0001](adr/0001-use-bun.md) |
 | PostgreSQL | Authoritative datastore | [ADR-0003](adr/0003-use-postgresql.md) |
+| pgvector | Knowledge chunk vectors in PostgreSQL | None |
+| Docling Serve | Upload conversion and chunking | [ADR-0015](adr/0015-convert-uploaded-files-with-docling-serve.md) |
 | Drizzle | Persistence and migrations | [ADR-0004](adr/0004-use-drizzle-for-relational-persistence.md) |
 | OpenAPI | External API contract | [ADR-0005](adr/0005-use-openapi-for-api-contracts.md) |
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
@@ -118,6 +120,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
 - `<module>.repository.ts` contains persistence operations for owned data. Services own authorization, invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
+- The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.
 - Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.
@@ -182,7 +185,7 @@ apps/web/src/
 |-- locales/                          # dashboard translations (<lang>.json)
 |-- routes/                           # TanStack Router routes
 `-- features/
-    `-- <feature>/                    # reusable user journey
+    `-- <feature>/                    # cohesive user journey or substantial page workflow
         |-- components/
         |-- <operation>-query.ts
         |-- <operation>-mutation.ts
@@ -191,9 +194,9 @@ apps/web/src/
 
 - Follow official TanStack Router tokens: `__root`, leading `_` pathless layouts, `route.tsx` directory routes, `index`, `$param`, dot-delimited nesting, and leading `-` route exclusion.
 - Use dot notation for shallow routes that need no colocated support. Use a directory when a route owns a layout, child routes, or operation-specific support files. Do not represent the same route with both styles.
-- A route owns its loader, component, validated search schema, and operation-specific query, mutation, and form files while those files have one route consumer.
+- Routes own URL state, guards, loading, and composition. Small route-local UI may stay beside its route; substantial page workflows live in their feature even with a single route consumer.
 - Every query, mutation, form, and UI workflow has exactly one source owner. If several routes reuse the same semantics, move the files into `features/<feature>` and delete the route-owned copies in the same change.
-- Feature extraction is reuse-triggered. Frontend features model reusable user journeys and do not mirror API modules mechanically. A reusable login journey belongs in `features/authentication`; its routes only own URL and route-lifecycle concerns.
+- Feature extraction is triggered by reuse or substantial workflow complexity, not a mechanical mirror of API modules. Routes consuming a feature own URL and route-lifecycle concerns.
 - Use operation-specific names, not `queries.ts`, `mutations.ts`, or `forms.ts` buckets.
 
 ### Query And Forms

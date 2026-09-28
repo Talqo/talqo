@@ -132,7 +132,7 @@ Bun.serve({
 		const { pathname } = new URL(request.url)
 		if (pathname === "/health") return Response.json({ status: "ok" })
 		if (pathname === "/v1/models") {
-			return Response.json({ data: [{ id: "chat-model" }, { id: "embedding-model" }] })
+			return Response.json({ data: [{ id: "chat-model" }, { id: "embedding-model" }, { id: "embedding-model-next" }] })
 		}
 		if (pathname === "/control/requests" && request.method === "GET") return Response.json({ requests })
 		if (pathname === "/control/reset" && request.method === "POST") {

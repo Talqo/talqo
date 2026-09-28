@@ -63,7 +63,7 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
-	await page.getByRole("option", { name: "embedding-model" }).click()
+	await page.getByRole("option", { name: "embedding-model", exact: true }).click()
 	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
 
 	await page.getByRole("button", { name: "Save configuration" }).click()
@@ -82,7 +82,7 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await page.keyboard.press("Escape")
 
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
-	await expect(page.getByRole("option", { name: "embedding-model" })).toBeVisible()
+	await expect(page.getByRole("option", { name: "embedding-model", exact: true })).toBeVisible()
 	await page.keyboard.press("Escape")
 
 	await expect(page.getByText("The model list could not be loaded")).toHaveCount(0)
@@ -99,6 +99,25 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await textCard.getByLabel("Provider").click()
 	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
 	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
+})
+
+test("warns before changing the embedding model and allows cancelling", async ({ page }) => {
+	await login(page, ADMIN)
+	await page.getByRole("link", { name: "AI configuration" }).click()
+	const embeddingCard = page.locator("[data-slot=card]").filter({ has: page.getByText("Embeddings", { exact: true }) })
+	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await page.getByRole("option", { name: "embedding-model-next" }).click()
+	await page.getByRole("button", { name: "Save configuration" }).click()
+	const confirmation = page.getByRole("dialog", { name: "Re-embed knowledge files?" })
+	await expect(confirmation).toContainText("one at a time")
+	await expect(confirmation).toContainText("provider charges")
+	await confirmation.getByRole("button", { name: "Cancel" }).click()
+	await expect(page.getByLabel("Embedding model")).toHaveValue("embedding-model-next")
+	await page.getByRole("button", { name: "Save configuration" }).click()
+	await confirmation.getByRole("button", { name: "Save and re-embed" }).click()
+	await expect(page.getByText("Configuration saved")).toBeVisible()
+	await page.reload()
+	await expect(page.getByLabel("Embedding model")).toHaveValue("embedding-model-next")
 })
 
 test("ungranted operator cannot discover or open AI configuration", async ({ page }) => {

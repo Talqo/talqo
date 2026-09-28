@@ -67,6 +67,7 @@ const envSchema = z
 			.default(DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS),
 		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
 		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
+		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
 	.superRefine((env, context) => {
@@ -136,6 +137,9 @@ export const env: Env = {
 	},
 	get TALQO_UPLOAD_DIR() {
 		return load().TALQO_UPLOAD_DIR
+	},
+	get TALQO_DOCLING_URL() {
+		return load().TALQO_DOCLING_URL
 	},
 	get NODE_ENV() {
 		return load().NODE_ENV
