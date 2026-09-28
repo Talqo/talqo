@@ -9,7 +9,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"eventsource-parser": "3.1.1"
+		"eventsource-parser": "4.1.1"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
