@@ -13,7 +13,7 @@ Also include related tickets/issues here.
 
 - [ ] PR title and summary are descriptive. <!-- following <type>(<scope>): <summary> where <scope> is optional -->
 - [ ] Max one DB migration per PR.
-- [ ] Docs updated (if needed).
-- [ ] Tests included (if needed).
-- [ ] Architecture-affecting changes follow the [architecture guide](../docs/architecture.md), or this check is not applicable.
+- [ ] Docs updated.
+- [ ] Tests included. <!-- bug reproduction, feature verification, critical E2E user path captured (if relevant) -->
+- [ ] Architecture-affecting changes follow the [architecture guide](../docs/architecture.md).
 - [ ] **I have seen this code, I have run this code, and I take responsibility for this code.**
