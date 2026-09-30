@@ -46,6 +46,8 @@ Database migrations are not reversible. Each pull that brings a newer image can 
 
 ## End-user chat policy
 
+Each variable below is available in `.env` and passed to the API by the Compose file, so you can change any of them there. Uncomment the ones you want in `.env.example` and restart.
+
 | Variable                                       | Default  | Purpose                                                                |
 | ---------------------------------------------- | -------- | ---------------------------------------------------------------------- |
 | `TALQO_CHAT_DAILY_MESSAGE_LIMIT`               | `100`    | Accepted questions per agent and normalized client network per UTC day |
