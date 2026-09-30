@@ -13,7 +13,7 @@ Included:
 - Query embedding through the existing `ai-provider` embedding operation.
 - Similarity search over `ready` chunks scoped to the agent, ordered by vector distance, fixed top-K.
 - Context injection into the assembled model input with an ignore-if-irrelevant guard.
-- Honest failure when context was needed but unavailable, reusing the existing chat provider-error path.
+- Silent degradation on retrieval failure: chat uses whatever chunks were retrieved and never inspects readiness.
 - Retrieval text included in existing input-token accounting.
 
 Excluded:
@@ -32,7 +32,7 @@ Excluded:
 ## Data And Workflow
 
 - `TOP_K = 5`, a code constant owned by `knowledge-base`. No operator setting in v1.
-- Repository adds `search(agentId, embedding, modelKey, limit)` and `hasReadyChunks(agentId)`:
+- Repository adds `search(agentId, embedding, modelKey, limit)`:
   ```sql
   SELECT c.text FROM agent_file_chunk c
   JOIN agent_file f ON f.id = c.file_id
@@ -54,23 +54,19 @@ Excluded:
 
 - No `ready` chunks for the agent, or search returns zero rows: proceed without context. Retrieval was irrelevant.
 - `searchKnowledge` is dumb: embed, search, return up to `TOP_K` (possibly zero), or throw. It makes no readiness decisions.
-- When it throws, the `conversation` orchestration (not the search) decides via `hasReadyChunks(agentId)`:
-  - Ready chunks exist: throw the existing `ProviderUnavailableError`. The widget already renders retriable `provider-error`; the route already maps it to 502; the dashboard already shows provider `health: unusable` and per-file `embeddingStatus`. No log-watching required.
-  - No ready chunks: log a structured `knowledge-base.retrieval.degraded` event and proceed without context.
-- A misleading answer without context is worse than a visible error, so retrieval failures are never silently swallowed when ready knowledge exists.
+- When it throws, `conversation` logs a structured `knowledge-base.retrieval.degraded` event and proceeds without context. Readiness is the operator's responsibility — the file list already shows embedding status — so chat never inspects it and never fails on retrieval.
 - Raw provider errors, embeddings, and configuration stay out of public responses.
 
 ## Verification And Acceptance
 
-- Unit (`knowledge-base.test.ts`): system-block formatting, guard wording, empty-chunks no-op.
+- Unit (`knowledge-base.test.ts`): user-turn formatting, guard wording, empty-chunks no-op.
 - Integration through service interfaces:
   - Relevant chunks are injected in rank order and counted in estimated input tokens.
   - Zero rows / no ready files: send succeeds without context.
-  - Thrown retrieval + existing ready chunks: `ProviderUnavailableError`.
-  - Thrown retrieval + no ready chunks: send succeeds; degraded event logged.
+  - Thrown retrieval: send succeeds without context; degraded event logged.
   - Stale `model_key` rows are excluded from results.
 - Regression: `bun run test`, `test:integration` for `knowledge-base` and `conversation` modules. No E2E or contract changes.
 
 ## Decision
 
-Fixed top-5 retrieval without a score threshold, owned by `knowledge-base` and orchestrated by `conversation`, failing visibly only when ready knowledge existed but could not be retrieved.
+Fixed top-5 retrieval without a score threshold, owned by `knowledge-base` and orchestrated by `conversation`, degrading silently whenever retrieval throws.

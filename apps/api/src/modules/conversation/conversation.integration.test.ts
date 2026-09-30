@@ -1247,28 +1247,9 @@ describe("chat retrieval", () => {
 		}
 	})
 
-	it("fails visibly when retrieval throws while ready knowledge exists", async () => {
+	it("proceeds without context when retrieval throws", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await seedReadyChunk(createdAgent.id)
-		const instance = service()
-		const search = spyOn(knowledge, "searchKnowledge").mockRejectedValue(new Error("embedding down"))
-		try {
-			await expect(
-				instance.service.send({
-					embedToken: createdEmbed.embedToken,
-					credential: CREDENTIAL_1,
-					requestId: REQUEST_1,
-					text: "hello",
-					networkHash: "network-a",
-				}),
-			).rejects.toBeInstanceOf(ProviderUnavailableError)
-		} finally {
-			search.mockRestore()
-		}
-	})
-
-	it("proceeds without context when retrieval throws with no ready knowledge", async () => {
-		const { createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockRejectedValue(new Error("embedding down"))
 		const logged = spyOn(console, "error").mockImplementation(() => undefined)
@@ -1281,6 +1262,7 @@ describe("chat retrieval", () => {
 				networkHash: "network-a",
 			})
 			await sent.done
+			expect(logged).toHaveBeenCalledWith("knowledge-base.retrieval.degraded", expect.anything())
 			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
 				"hello",
 				"answer",

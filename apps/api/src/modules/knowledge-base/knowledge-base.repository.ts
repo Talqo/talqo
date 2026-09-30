@@ -93,10 +93,3 @@ export async function search(agentId: string, embedding: number[], modelKey: str
 		ORDER BY c.embedding <=> ${JSON.stringify(embedding)}::vector LIMIT ${limit}`
 	return rows.map((row) => row.text)
 }
-
-export async function hasReadyChunks(agentId: string): Promise<boolean> {
-	const rows = await sql`SELECT 1 FROM agent_file_chunk c
-		JOIN agent_file f ON f.id = c.file_id
-		WHERE f.agent_id = ${agentId} AND f.status = 'ready' LIMIT 1`
-	return rows.length > 0
-}

@@ -410,8 +410,6 @@ export function createConversationService(dependencies: Dependencies) {
 						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
 					}
 				} catch (error) {
-					if (await knowledgeBase.hasReadyChunks(agentId))
-						throw new ProviderUnavailableError("The configured knowledge base is unavailable")
 					console.error("knowledge-base.retrieval.degraded", { agentId, error })
 				}
 				const messages = completedPrompt(systemPrompt, history.messages, question)

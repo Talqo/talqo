@@ -240,10 +240,6 @@ export async function searchKnowledge(agentId: string, text: string): Promise<st
 	return repository.search(agentId, await operation.embed(text), operation.key, RETRIEVAL_TOP_K)
 }
 
-export async function hasReadyChunks(agentId: string): Promise<boolean> {
-	return repository.hasReadyChunks(agentId)
-}
-
 async function recoverUploads(): Promise<void> {
 	/* eslint-disable no-await-in-loop -- scan local directories without flooding the database */
 	for (const agentId of await listAgentDirectories()) {
