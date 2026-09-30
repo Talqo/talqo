@@ -15,41 +15,68 @@ const [apiPort, webPort, widgetPort] = reservations.map(({ port }) => String(por
 
 let composeUp: Promise<unknown> = Promise.resolve()
 let teardown: Promise<unknown> | undefined
-// Detached so a second Ctrl-C cannot kill the teardown client halfway.
+// Detached so a second Ctrl-C cannot kill the teardown client halfway. It never rejects, so a
+// failure here cannot skip the exit path or mask an earlier error.
 const stopContainers = () =>
-	(teardown ??= Bun.spawn(["docker", "compose", "down"], {
-		cwd: root,
-		detached: true,
-		stderr: "inherit",
-		stdin: "ignore",
-		stdout: "inherit",
-	}).exited)
+	(teardown ??= (async () => {
+		try {
+			await Bun.spawn(["docker", "compose", "down"], {
+				cwd: root,
+				detached: true,
+				stderr: "inherit",
+				stdin: "ignore",
+				stdout: "inherit",
+			}).exited
+		} catch (error) {
+			console.error("docker compose down failed", error)
+		}
+	})())
 
+const doclingWatch = new AbortController()
+let watching: Promise<void> = Promise.resolve()
 // Docling needs about half a minute to load its models and nothing needs it until a file is
 // uploaded. Ingestion reports those as failed conversions, which the dashboard can retry.
+// Best effort, so it reports failures instead of rejecting at the caller.
 const watchDocling = async (url: string): Promise<void> => {
+	const { signal } = doclingWatch
 	const deadline = Date.now() + DOCLING_STARTUP_TIMEOUT_MS
-	/* eslint-disable no-await-in-loop -- readiness must be polled before dependent work */
-	while (Date.now() < deadline) {
-		try {
-			if ((await fetch(`${url}/livez`, { signal: AbortSignal.timeout(DOCLING_PROBE_TIMEOUT_MS) })).ok) {
-				console.log("Docling Serve is ready")
-				return
+	try {
+		/* eslint-disable no-await-in-loop -- readiness must be polled before dependent work */
+		while (!signal.aborted && Date.now() < deadline) {
+			try {
+				const probe = await fetch(`${url}/livez`, {
+					signal: AbortSignal.any([AbortSignal.timeout(DOCLING_PROBE_TIMEOUT_MS), signal]),
+				})
+				if (probe.ok) {
+					console.log("Docling Serve is ready")
+					return
+				}
+			} catch {
+				// Wait for the container to start accepting HTTP connections.
 			}
-		} catch {
-			// Wait for the container to start accepting HTTP connections.
+			await Bun.sleep(DOCLING_PROBE_INTERVAL_MS)
 		}
-		await Bun.sleep(DOCLING_PROBE_INTERVAL_MS)
+		/* eslint-enable no-await-in-loop */
+		if (!signal.aborted) {
+			console.warn("Docling Serve did not become ready; file conversion will fail until it does")
+		}
+	} catch (error) {
+		console.error("Docling Serve readiness check failed", error)
 	}
-	/* eslint-enable no-await-in-loop */
-	console.warn("Docling Serve did not become ready; file conversion will fail until it does")
+}
+
+// Stop watching before sweeping, so the poll cannot hold the process open after the apps exit.
+const shutdown = async (): Promise<void> => {
+	doclingWatch.abort()
+	await watching
+	await stopContainers()
 }
 
 for (const [signal, code] of Object.entries(INTERRUPT_EXIT_CODES)) {
 	// Wait for startup to settle before sweeping, and let every press share one teardown.
 	process.on(signal, async () => {
 		await composeUp.catch(() => {})
-		await stopContainers()
+		await shutdown()
 		process.exit(code)
 	})
 }
@@ -65,11 +92,12 @@ try {
 	if (upExitCode !== 0) throw new Error(`docker compose up exited with code ${upExitCode}`)
 	const address = await $`docker compose port postgres 5432`.cwd(root).quiet().text()
 	const databasePort = address.trim().split(":").at(-1)
+	if (!databasePort) throw new Error("PostgreSQL did not expose its port")
 	const doclingAddress = await $`docker compose port docling 5001`.cwd(root).quiet().text()
 	const doclingPort = doclingAddress.trim().split(":").at(-1)
 	if (!doclingPort) throw new Error("Docling Serve did not expose its HTTP port")
 	const doclingUrl = `http://127.0.0.1:${doclingPort}`
-	watchDocling(doclingUrl)
+	watching = watchDocling(doclingUrl)
 	const databaseUrl = `postgres://talqo:talqo@127.0.0.1:${databasePort}/talqo`
 	const devEnv = {
 		...Bun.env,
@@ -107,5 +135,5 @@ try {
 
 	process.exitCode = await turbo.exited
 } finally {
-	await stopContainers()
+	await shutdown()
 }
