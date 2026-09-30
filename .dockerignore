@@ -1,8 +1,6 @@
-node_modules
-dist
-.git
-.turbo
+**/node_modules
+**/dist
+**/.turbo
 apps/e2e/test-results
-.playwright
 *.log
 **/.env
