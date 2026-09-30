@@ -3,6 +3,46 @@ title: Deployment
 description: Self-hosted Talqo deployment requirements.
 ---
 
+## Docker Compose
+
+The recommended way to run Talqo is the [talqo-deploy](https://github.com/Talqo/talqo-deploy) repository. It starts Talqo, Postgres, and Docling together as one Compose project. The Talqo image serves the dashboard, the widget, and the API from a single origin, so no CORS configuration is needed.
+
+Clone the repository and start the stack:
+
+```sh
+git clone https://github.com/Talqo/talqo-deploy.git
+cd talqo-deploy/docker-compose
+cp .env.example .env
+```
+
+Then edit `.env` before the first start, because Talqo refuses to boot on the placeholder secret:
+
+```sh
+docker compose up -d
+```
+
+Talqo applies its own database migrations on start, so there is no separate migration step. The dashboard is on [http://127.0.0.1:3000](http://127.0.0.1:3000).
+
+| Variable            | Default  | Purpose                                                         |
+| ------------------- | -------- | --------------------------------------------------------------- |
+| `TALQO_VERSION`     | `latest` | Image tag. Pin a specific version such as `0.1.0` to hold still |
+| `TALQO_PORT`        | `3000`   | Host port, bound to loopback only                               |
+| `APP_SECRET`        | None     | Required. Encrypts stored provider credentials, see below       |
+| `POSTGRES_PASSWORD` | None     | Required. Must use URL-safe characters, see below               |
+
+The port binds to `127.0.0.1`, so Talqo is reachable only from the machine it runs on. Put a reverse proxy on that host to terminate TLS and expose it. Setting `host_ip` in `compose.yaml` changes the binding, but do not publish Talqo to the internet without TLS in front of it.
+
+Upgrades are a pull and a restart:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Migrations are not reversible, so tracking `latest` means each pull can change your database schema. Take a database dump first, or pin `TALQO_VERSION` to decide exactly when that happens. Never run `docker compose down -v`: it deletes both named volumes, the database and the uploaded files.
+
+`POSTGRES_PASSWORD` must be set once and then never changed. The Postgres image only reads it while initializing an empty data directory, so the stored role keeps its original password and changing the value in `.env` locks Talqo out of its own database.
+
 ## Application secret
 
 Set `APP_SECRET` before running database migrations or starting the API. The API refuses to boot without it. It must be base64url-encoded and decode to at least 32 random bytes:
@@ -11,7 +51,7 @@ Set `APP_SECRET` before running database migrations or starting the API. The API
 openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
 ```
 
-Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes them unusable, and they must be entered again.
+Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes them unusable, and they must be entered again. Sessions survive a change, since session tokens are hashed without the secret, but rate limit counters reset.
 
 ## End-user chat policy
 
