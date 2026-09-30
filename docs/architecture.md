@@ -174,6 +174,8 @@ module contracts + route metadata
 
 `apps/web` is a client-rendered API consumer. This logical boundary does not require separate deployment images; static web assets and the API may be packaged together.
 
+The production image serves the built dashboard from the API process when `TALQO_SERVE_STATIC` is set (see ADR-0016). The dashboard resolves widget URLs from its own runtime origin, so self-hosted domains need no baked CDN URL.
+
 ```text
 apps/web/src/
 |-- main.tsx                         # entry point; creates the router
@@ -207,7 +209,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source.
+`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
 
 ## E2E Tests
 

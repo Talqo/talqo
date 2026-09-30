@@ -67,6 +67,12 @@ const envSchema = z
 			.default(DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS),
 		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
 		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
+		TALQO_SERVE_STATIC: z
+			.enum(["true", "false"])
+			.default("false")
+			.transform((value) => value === "true"),
+		TALQO_WEB_DIST: z.string().min(1).optional(),
+		TALQO_WIDGET_DIST: z.string().min(1).optional(),
 		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
@@ -137,6 +143,15 @@ export const env: Env = {
 	},
 	get TALQO_UPLOAD_DIR() {
 		return load().TALQO_UPLOAD_DIR
+	},
+	get TALQO_SERVE_STATIC() {
+		return load().TALQO_SERVE_STATIC
+	},
+	get TALQO_WEB_DIST() {
+		return load().TALQO_WEB_DIST
+	},
+	get TALQO_WIDGET_DIST() {
+		return load().TALQO_WIDGET_DIST
 	},
 	get TALQO_DOCLING_URL() {
 		return load().TALQO_DOCLING_URL

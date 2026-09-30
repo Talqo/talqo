@@ -6,7 +6,7 @@ import { type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined
-const widgetUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+const configuredWidgetUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
 
 const FRAME_WIDTH = 336
 const FRAME_HEIGHT = 420
@@ -48,11 +48,9 @@ function previewSrc(
 	appearance: WidgetAppearance,
 	title: string | undefined,
 	activeScheme: "light" | "dark" | undefined,
+	previewUrl: string,
 ) {
-	if (!configuredPreviewUrl) {
-		return undefined
-	}
-	const url = new URL(configuredPreviewUrl)
+	const url = new URL(previewUrl)
 	schemeSearchParams(url, "light", appearance.light)
 	schemeSearchParams(url, "dark", appearance.dark)
 	url.searchParams.set("position", appearance.position)
@@ -102,20 +100,19 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 
 	// Once per widget: recomputing per keystroke would reload the frame.
 	const [source] = useState(() => {
-		const src = previewSrc(appearance, title, activeScheme)
-		if (src) {
-			const origin = new URL(src).origin
-			return { expectedOrigin: origin, src, srcDoc: undefined, targetOrigin: origin }
-		}
-		if (widgetUrl) {
+		// A CDN script without a preview document keeps the sandboxed inline preview.
+		if (!configuredPreviewUrl && configuredWidgetUrl) {
 			return {
 				expectedOrigin: "null",
 				src: undefined,
-				srcDoc: buildPreviewDocument(widgetUrl, window.location.origin),
+				srcDoc: buildPreviewDocument(configuredWidgetUrl, window.location.origin),
 				targetOrigin: "*",
 			}
 		}
-		return undefined
+		const previewUrl = configuredPreviewUrl ?? `${window.location.origin}/preview.html`
+		const src = previewSrc(appearance, title, activeScheme, previewUrl)
+		const origin = new URL(previewUrl).origin
+		return { expectedOrigin: origin, src, srcDoc: undefined, targetOrigin: origin }
 	})
 	const latest = useRef({ appearance, title, activeScheme })
 	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
@@ -162,19 +159,6 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 			targetOrigin,
 		)
 	}, [appearance, title, activeScheme, targetOrigin])
-
-	if (!source) {
-		return (
-			<div
-				className={cn(
-					"text-muted-foreground absolute flex h-32 w-[336px] items-center justify-center text-sm",
-					insetClasses[appearance.position],
-				)}
-			>
-				{t("embedSetup.previewUnavailable")}
-			</div>
-		)
-	}
 
 	return (
 		<div

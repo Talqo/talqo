@@ -1,14 +1,21 @@
 import { app } from "./app.ts"
 import { parseEnv } from "./config/env.ts"
+import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
 // Misconfiguration must fail the process at boot, not during the first request.
 const config = parseEnv(process.env)
+// Static files bypass the API app entirely so its routes stay API-only.
+const serveStatic = createStaticResponder(resolveStaticDirs())
 const WORKER_RESTART_DELAY_MS = 3_000
 
 const server = Bun.serve({
 	fetch(request, bunServer) {
-		return app.fetch(request, { peerAddress: bunServer.requestIP(request)?.address })
+		const peerAddress = bunServer.requestIP(request)?.address
+		if (request.method === "GET" || request.method === "HEAD") {
+			return serveStatic(request).then((response) => response ?? app.fetch(request, { peerAddress }))
+		}
+		return app.fetch(request, { peerAddress })
 	},
 	hostname: "0.0.0.0",
 	port: config.TALQO_API_PORT,
