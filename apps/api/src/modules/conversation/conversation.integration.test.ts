@@ -1217,7 +1217,7 @@ describe("conversation lifecycle", () => {
 })
 
 describe("chat retrieval", () => {
-	it("injects retrieved chunks into the system prompt", async () => {
+	it("injects retrieved chunks into the user message", async () => {
 		const { createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["refund policy: 30 days"])
