@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 
 import { parseEnv } from "./env.ts"
 
@@ -37,7 +35,6 @@ describe("parseEnv", () => {
 			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 			TALQO_DOCLING_URL: DOCLING,
 			NODE_ENV: "production",
-			TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			TALQO_SERVE_STATIC: "true",
 			TALQO_WEB_DIST: "/app/apps/web/dist",
 			TALQO_WIDGET_DIST: "/app/apps/widget/dist",
@@ -121,7 +118,6 @@ describe("parseEnv", () => {
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "production",
-				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			}),
 		).toThrow(/APP_SECRET/)
 	})
@@ -166,20 +162,8 @@ describe("parseEnv", () => {
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "production",
-				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			}),
 		).toThrow(/APP_SECRET/)
-	})
-
-	it("rejects a missing TALQO_UPLOAD_DIR in production", () => {
-		expect(() =>
-			parseEnv({
-				APP_SECRET,
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "production",
-			}),
-		).toThrow(/TALQO_UPLOAD_DIR/)
 	})
 
 	it("requires the deployment-wired Docling endpoint", () => {
@@ -187,7 +171,6 @@ describe("parseEnv", () => {
 			APP_SECRET,
 			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 			NODE_ENV: "production",
-			TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 		}
 		expect(() => parseEnv(base)).toThrow(/TALQO_DOCLING_URL/)
 		expect(parseEnv({ ...base, TALQO_DOCLING_URL: DOCLING }).TALQO_DOCLING_URL).toBe(DOCLING)
@@ -197,17 +180,6 @@ describe("parseEnv", () => {
 		expect(() =>
 			parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", TALQO_DOCLING_URL: DOCLING }),
 		).toThrow(/NODE_ENV/)
-	})
-
-	it("defaults TALQO_UPLOAD_DIR to a talqo directory in the OS temp dir", () => {
-		const env = parseEnv({
-			APP_SECRET,
-			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-			TALQO_DOCLING_URL: DOCLING,
-			NODE_ENV: "development",
-		})
-
-		expect(env.TALQO_UPLOAD_DIR).toBe(join(tmpdir(), "talqo"))
 	})
 
 	it("rejects a missing DATABASE_URL", () => {
