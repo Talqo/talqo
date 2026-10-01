@@ -2,13 +2,18 @@ import { useGetSession } from "@/api/generated/identity/identity.ts"
 import {
 	type DeleteUserMutationError,
 	getListUsersQueryKey,
+	useCreateInvitation,
 	useDeleteUser,
+	useGetMyPermissions,
 	useListUsers,
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
+import { PageHeader } from "@/components/page-header"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
+import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
 import { getProblemMessage } from "@/lib/problem-message.ts"
+import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
@@ -27,7 +32,7 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Check, Copy } from "lucide-react"
+import { Check, Copy, UserPlus } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -255,7 +260,7 @@ function DeleteUserDialog({
 	)
 }
 
-export function UsersPanel() {
+function UsersList() {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
@@ -317,6 +322,121 @@ export function UsersPanel() {
 					</CardContent>
 				</Card>
 			))}
+		</div>
+	)
+}
+
+function InviteMemberDialog() {
+	const { t } = useTranslation()
+	const { language } = useLanguage()
+	const createInvitation = useCreateInvitation()
+	const [open, setOpen] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const [copied, setCopied] = useState(false)
+
+	function handleOpenChange(next: boolean) {
+		setOpen(next)
+		if (!next) {
+			// A generated link is a one-shot artifact; drop it so the next open starts clean.
+			createInvitation.reset()
+			setError(null)
+			setCopied(false)
+		}
+	}
+
+	async function handleCreate() {
+		setError(null)
+		setCopied(false)
+		try {
+			await createInvitation.mutateAsync()
+		} catch (caught) {
+			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
+		}
+	}
+
+	async function copyInvitation(url: string) {
+		setError(null)
+		setCopied(false)
+		try {
+			await navigator.clipboard.writeText(url)
+			setCopied(true)
+		} catch {
+			setError(t("auth.invitations.copyFailed"))
+		}
+	}
+
+	const invite = createInvitation.data?.data
+	const inviteUrl = invite ? buildInvitationUrl(window.location.origin, invite.token) : null
+
+	return (
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<DialogTrigger render={<Button />} nativeButton={false}>
+				<UserPlus className="size-4" />
+				{t("auth.invitations.heading")}
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
+					<DialogDescription>{t("auth.invitations.description")}</DialogDescription>
+				</DialogHeader>
+				{error ? (
+					<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
+						{error}
+					</p>
+				) : null}
+				{invite && inviteUrl ? (
+					<div className="bg-muted/50 rounded-surface space-y-3 border p-4">
+						<Label htmlFor="invitation-link">{t("auth.invitations.linkLabel")}</Label>
+						<div className="flex gap-2">
+							<Input id="invitation-link" className="font-mono text-xs" value={inviteUrl} readOnly />
+							<Button
+								variant="outline"
+								size="icon"
+								type="button"
+								onClick={() => copyInvitation(inviteUrl)}
+								aria-label={t("auth.invitations.copy")}
+							>
+								{copied ? <Check className="text-primary" /> : <Copy />}
+							</Button>
+						</div>
+						<p className="text-muted-foreground text-xs">
+							{t("auth.invitations.expiresLabel", {
+								date: formatInvitationExpiry(invite.expiresAt, language),
+							})}
+						</p>
+						{copied ? (
+							<p className="text-primary text-xs" role="status">
+								{t("auth.invitations.copied")}
+							</p>
+						) : null}
+					</div>
+				) : null}
+				<DialogFooter>
+					<Button variant="outline" onClick={() => handleOpenChange(false)}>
+						{t("users.cancel")}
+					</Button>
+					<Button type="button" onClick={handleCreate} disabled={createInvitation.isPending || Boolean(inviteUrl)}>
+						{t("auth.invitations.create")}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	)
+}
+
+export function UsersPage() {
+	const { t } = useTranslation()
+	// The nav item is admin-only, so this only matters for a direct link.
+	const isAdmin = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
+
+	return (
+		<div className="mx-auto max-w-3xl space-y-6">
+			<PageHeader
+				title={t("users.heading")}
+				description={t("users.subheading")}
+				actions={isAdmin ? <InviteMemberDialog /> : undefined}
+			/>
+			{isAdmin ? <UsersList /> : null}
 		</div>
 	)
 }
