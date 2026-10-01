@@ -42,8 +42,8 @@ export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 				(caught as EnableEmbedMutationError | DisableEmbedMutationError).status === NOT_FOUND_STATUS
 					? t("embedSetup.notFound")
 					: enabled
-						? t("embedSetup.enableWidgetFailed")
-						: t("embedSetup.disableWidgetFailed"),
+						? t("embedSetup.enableEmbedFailed")
+						: t("embedSetup.disableEmbedFailed"),
 			)
 		}
 	}
@@ -61,9 +61,9 @@ export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 					checked={!embed.isDisabled}
 					disabled={pending}
 					onCheckedChange={(checked) => void onToggle(checked)}
-					aria-label={t("embedSetup.widgetEnabled")}
+					aria-label={t("embedSetup.embedEnabled")}
 				/>
-				<span className="text-muted-foreground text-sm">{t("embedSetup.widgetEnabled")}</span>
+				<span className="text-muted-foreground text-sm">{t("embedSetup.embedEnabled")}</span>
 			</div>
 			{error && (
 				<p role="alert" className="text-destructive text-sm">

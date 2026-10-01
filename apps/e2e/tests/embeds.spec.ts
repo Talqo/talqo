@@ -258,19 +258,19 @@ test("embed snippet carries the public token", async ({ page }) => {
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
 })
 
-test("operator disables the widget from the embeds overview and the public config reflects it", async ({ page }) => {
+test("operator disables the embed from the embeds overview and the public config reflects it", async ({ page }) => {
 	const source = seeded.find(({ name }) => name === "Website")
 	if (!source) throw new Error("Shared seed Website embed is missing")
 
 	const card = page.locator("[data-slot=card]", { hasText: "Website" })
-	const toggle = card.getByRole("switch", { name: "Widget enabled" })
+	const toggle = card.getByRole("switch", { name: "Embed enabled" })
 
 	try {
 		await expect(toggle).toBeChecked()
 		await toggle.click()
 		await expect(toggle).not.toBeChecked()
 
-		// The ETag-cached public config is how already-installed widgets learn the state.
+		// The ETag-cached public config is how already-installed embeds learn the state.
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
@@ -292,7 +292,7 @@ test("operator disables the widget from the embeds overview and the public confi
 	}
 })
 
-test("a read-only user does not see the widget toggle on the embeds overview", async ({ page }) => {
+test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
 	const viewer = { username: "user", password: "user1234" }
 
 	// Grant through the API boundary, then switch accounts and inspect the same page.
@@ -319,7 +319,7 @@ test("a read-only user does not see the widget toggle on the embeds overview", a
 		await page.getByRole("link", { name: /Website Assistant/ }).click()
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
-		await expect(page.getByRole("switch", { name: "Widget enabled" })).toHaveCount(0)
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
 	} finally {
 		await page.request.post("/api/auth/login", { data: operator })
 		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()

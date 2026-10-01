@@ -316,12 +316,14 @@
 		"deleteTitle": "Smazat integraci?",
 		"deleting": "Mazání…",
 		"detailSubheading": "Nalaďte paletu a zkopírujte kód pro vložení.",
-		"disableWidgetFailed": "Widget se nepodařilo vypnout. Zkuste to znovu.",
+		"disableEmbedFailed": "Integraci se nepodařilo vypnout. Zkuste to znovu.",
 		"embedCode": "Kód pro vložení",
 		"embedDescription": "Vložte tento úryvek před uzavírací značku body. Změny vzhledu se projeví bez opětovného kopírování.",
+		"embedDisabledNote": "Tato integrace je vypnutá: nainstalovaný chat se nezobrazuje a nové zprávy jsou odmítány.",
+		"embedEnabled": "Integrace zapnutá",
 		"embedToken": "Token integrace",
 		"embedTokenDescription": "Veřejný identifikátor v kódu této integrace. Objevuje se ve zdrojovém kódu webu a není tajný.",
-		"enableWidgetFailed": "Widget se nepodařilo zapnout. Zkuste to znovu.",
+		"enableEmbedFailed": "Integraci se nepodařilo zapnout. Zkuste to znovu.",
 		"hexValue": "Hex hodnota: {{label}}",
 		"language": "Jazyk",
 		"livePreview": "Živý náhled",
@@ -354,9 +356,7 @@
 		"themeDark": "Tmavý",
 		"themeLight": "Světlý",
 		"themeSystem": "Podle systému návštěvníka",
-		"themeToggle": "Umožnit návštěvníkům přepínat světlý a tmavý režim",
-		"widgetDisabledNote": "Tento widget je vypnutý: nainstalovaný chat se zobrazuje jako vypnutý a nové zprávy jsou odmítány.",
-		"widgetEnabled": "Widget zapnutý"
+		"themeToggle": "Umožnit návštěvníkům přepínat světlý a tmavý režim"
 	},
 	"header": {
 		"language": "Jazyk",

@@ -316,12 +316,14 @@
 		"deleteTitle": "删除嵌入项？",
 		"deleting": "正在删除…",
 		"detailSubheading": "调整配色，并复制嵌入代码。",
-		"disableWidgetFailed": "无法停用聊天组件。请重试。",
+		"disableEmbedFailed": "无法停用嵌入项。请重试。",
 		"embedCode": "嵌入代码",
 		"embedDescription": "将此代码片段粘贴到站点 body 结束标签之前。外观更改无需重新复制即可生效。",
+		"embedDisabledNote": "此嵌入项已停用：已安装的聊天不再渲染，新消息将被拒绝。",
+		"embedEnabled": "嵌入项已启用",
 		"embedToken": "嵌入令牌",
 		"embedTokenDescription": "此嵌入项代码中的公开标识符。它会出现在站点标记中，并非机密。",
-		"enableWidgetFailed": "无法启用聊天组件。请重试。",
+		"enableEmbedFailed": "无法启用嵌入项。请重试。",
 		"hexValue": "{{label}} 十六进制值",
 		"language": "语言",
 		"livePreview": "实时预览",
@@ -354,9 +356,7 @@
 		"themeDark": "深色",
 		"themeLight": "浅色",
 		"themeSystem": "跟随访客系统",
-		"themeToggle": "允许访客切换浅色和深色",
-		"widgetDisabledNote": "此聊天组件已停用：已安装的聊天显示为停用状态，新消息将被拒绝。",
-		"widgetEnabled": "聊天组件已启用"
+		"themeToggle": "允许访客切换浅色和深色"
 	},
 	"header": {
 		"language": "语言",

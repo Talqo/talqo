@@ -284,7 +284,7 @@ function EmbedDetailPage() {
 							<RotateEmbedTokenDialog embedId={embedId} />
 						</div>
 					)}
-					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.widgetDisabledNote")}</p>}
+					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 				</CardContent>
 			</Card>
 

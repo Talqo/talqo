@@ -388,16 +388,14 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.querySelector("[role='alert']")?.className).toContain("tw:text-destructive")
 	})
 
-	test("a disabled embed shows the chat-disabled state and never sends", async () => {
+	test("a disabled embed renders nothing and never sends", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
 			configuration: { title: "SDK support", appearance: {}, isDisabled: true },
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
 
-		expect(host.textContent).toContain("This chat is currently disabled.")
-		expect(input().disabled).toBe(true)
+		expect(host.textContent).toBe("")
 		expect(store.calls.sends).toEqual([])
 	})
 

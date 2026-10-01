@@ -149,8 +149,6 @@ type ChatPresentation = {
 	snapshot?: ChatSnapshot
 	client?: ChatClient
 	unavailable?: boolean
-	/** Operator-disabled embed: the unavailable presentation with its own explanation. */
-	embedDisabled?: boolean
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
@@ -163,7 +161,6 @@ function WidgetChat({
 	snapshot,
 	client,
 	unavailable,
-	embedDisabled,
 }: {
 	title?: string
 	appearance: WidgetAppearance
@@ -189,13 +186,9 @@ function WidgetChat({
 	const generation = snapshot?.generation ?? "idle"
 	const resetting = snapshot?.reset === "resetting"
 	const activeGeneration = generation !== "idle"
-	const unusable = unavailable || embedDisabled === true || initialization === "error"
+	const unusable = unavailable || initialization === "error"
 	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
-	const visibleError = unavailable
-		? ({ code: "embed-not-found" } satisfies ChatError)
-		: embedDisabled === true
-			? ({ code: "embed-disabled" } satisfies ChatError)
-			: snapshot?.error
+	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
 	const hasStreamingAssistant = messages.some(
 		(message) => message.role === "assistant" && message.outcome === "streaming",
 	)
@@ -560,6 +553,10 @@ export function ConnectedEmbeddedWidget({
 		i18n.changeLanguage(resolved.language)
 	}, [i18n, resolved.language])
 
+	if (snapshot.configuration?.isDisabled === true) {
+		return null
+	}
+
 	return (
 		<I18nextProvider i18n={i18n}>
 			<WidgetChat
@@ -575,7 +572,6 @@ export function ConnectedEmbeddedWidget({
 				unavailable={
 					initializationFailed && snapshot.initialization !== "error" && snapshot.configuration === undefined
 				}
-				embedDisabled={snapshot.configuration?.isDisabled === true}
 			/>
 		</I18nextProvider>
 	)

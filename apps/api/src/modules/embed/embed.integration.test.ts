@@ -222,7 +222,7 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).appearance.light.primary).toBe("#ff0000")
 	})
 
-	it("reports the disabled flag to already-embedded widgets and flips their ETag", async () => {
+	it("reports the disabled flag to already-installed embeds and flips their ETag", async () => {
 		const agentId = await createAgent()
 		const created = await createEmbed(agentId)
 
@@ -233,7 +233,7 @@ describe("public config lookup", () => {
 
 		await service.disableEmbed(created.id)
 
-		// A fresh ETag lets every cached widget learn the state within the max-age window.
+		// A fresh ETag lets every cached embed learn the state within the max-age window.
 		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
 			headers: { "If-None-Match": etag },
 		})

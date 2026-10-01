@@ -73,7 +73,7 @@ const embedResponseSchema = z
 	.openapi("Embed")
 
 // `name` is public here on purpose (FR-2.5 UX review): the embedded chat header shows it.
-// `isDisabled` is public for the same reason: an already-installed widget must learn it.
+// `isDisabled` is public for the same reason: an already-installed embed must learn it.
 export const embedConfigResponseSchema = z
 	.object({
 		version: z.number(),
