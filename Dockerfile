@@ -18,6 +18,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
 	TALQO_SERVE_STATIC=true \
+	TALQO_UPLOAD_DIR=/data/uploads \
 	TALQO_WEB_DIST=/app/apps/web/dist \
 	TALQO_WIDGET_DIST=/app/apps/widget/dist
 
