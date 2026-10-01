@@ -230,9 +230,7 @@
 			"description": "Vytvořte bezpečný jednorázový odkaz pro nového člena.",
 			"expiresLabel": "(vyprší {{date}})",
 			"heading": "Pozvat člena",
-			"linkLabel": "Odkaz na pozvánku:",
-			"loginLink": "Přihlásit se",
-			"loginRequired": "Pro pozvání člena se musíte přihlásit."
+			"linkLabel": "Odkaz na pozvánku:"
 		},
 		"loading": "Načítání…",
 		"login": {
@@ -367,7 +365,6 @@
 		"aiConfiguration": "Konfigurace AI",
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
-		"invitations": "Pozvánky",
 		"users": "Uživatelé"
 	},
 	"permissions": {

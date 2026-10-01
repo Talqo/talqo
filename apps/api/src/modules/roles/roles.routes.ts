@@ -58,7 +58,7 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, service.Permission.UsersInvite))) {
+		if (!(await service.authorize(user.id, service.Permission.Admin))) {
 			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 		}
 

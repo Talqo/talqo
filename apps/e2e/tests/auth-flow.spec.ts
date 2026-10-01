@@ -13,11 +13,15 @@ async function logIn(page: Page, account: { password: string; username: string }
 // Disposable member, so password-mutating tests never touch the shared seed accounts.
 async function inviteMember(page: Page, username: string, password: string) {
 	await logIn(page, ADMIN)
-	await page.getByRole("link", { name: "Invitations" }).click()
-	await page.getByRole("button", { name: "Create invitation" }).click()
-	const inviteUrl = await page.getByLabel("Invitation link:").inputValue()
+	await page.getByRole("link", { name: "Users" }).click()
+	await page.getByRole("button", { name: "Invite a member" }).click()
+	const dialog = page.getByRole("dialog")
+	await dialog.getByRole("button", { name: "Create invitation" }).click()
+	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
 	const token = new URL(inviteUrl).searchParams.get("token")
 	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
+	// The dialog is modal, so close it before reaching the header controls.
+	await page.keyboard.press("Escape")
 	await page.getByRole("button", { name: "Log out" }).click()
 
 	await page.goto(`/accept-invite?token=${token}`)
@@ -66,12 +70,14 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 
-	await page.getByRole("link", { name: "Invitations" }).click()
-	await expect(page).toHaveURL("/dashboard/invitations")
-	await expect(page.getByRole("heading", { name: "Invite a member" })).toBeVisible()
+	await page.getByRole("link", { name: "Users" }).click()
+	await expect(page).toHaveURL("/dashboard/users")
+	await page.getByRole("button", { name: "Invite a member" }).click()
 
-	await page.getByRole("button", { name: "Create invitation" }).click()
-	const inviteUrl = await page.getByLabel("Invitation link:").inputValue()
+	const dialog = page.getByRole("dialog")
+	await expect(dialog.getByRole("heading", { name: "Invite a member" })).toBeVisible()
+	await dialog.getByRole("button", { name: "Create invitation" }).click()
+	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
 	expect(inviteUrl).toMatch(/^https?:\/\//)
 	const token = new URL(inviteUrl).searchParams.get("token")
 	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
@@ -86,12 +92,12 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 			},
 		})
 	})
-	const copyButton = page.getByRole("button", { name: "Copy invitation link" })
+	const copyButton = dialog.getByRole("button", { name: "Copy invitation link" })
 	await copyButton.click()
-	await expect(page.getByRole("alert")).toContainText("The invitation link could not be copied")
+	await expect(dialog.getByRole("alert")).toContainText("The invitation link could not be copied")
 	await copyButton.click()
-	await expect(page.getByRole("alert")).toHaveCount(0)
-	await expect(page.getByText("Invitation link copied.")).toBeVisible()
+	await expect(dialog.getByRole("alert")).toHaveCount(0)
+	await expect(dialog.getByText("Invitation link copied.")).toBeVisible()
 
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
@@ -108,7 +114,7 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
-	await page.goto("/dashboard/invitations")
+	await page.goto("/dashboard/users")
 	await expect(page).toHaveURL("/login")
 })
 

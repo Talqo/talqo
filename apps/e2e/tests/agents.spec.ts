@@ -91,7 +91,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 
 		await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
 		await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
-		await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
@@ -126,7 +126,7 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toHaveCount(0)
-	await expect(page.getByRole("link", { name: "Invitations", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
 
 	await page.goto("/dashboard/agents")
 	await expect(page.getByText("Access restricted")).toBeVisible()

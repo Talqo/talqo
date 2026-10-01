@@ -53,25 +53,25 @@ describe("auth flow", () => {
 		const memberCookie = await login(memberUsername, memberPassword)
 
 		// Before any grant, the member has no elevated access at all.
-		const beforeGrant = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
+		const beforeGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
 		expect(beforeGrant.status).toBe(403)
 
-		// 4. Admin grants the member `users:invite`.
+		// 4. Admin grants the member `agents:read`.
 		const grantResponse = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: member.id, permission: "agents:read" }),
 		})
 		expect(grantResponse.status).toBe(201)
 
 		// 5. Member's access reflects exactly that grant: granted action succeeds, uncovered admin-only actions still fail.
-		const afterGrant = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
-		expect(afterGrant.status).toBe(201)
+		const afterGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		expect(afterGrant.status).toBe(200)
 
 		const memberTriesToGrant = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: memberCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: member.id, permission: "agents:read" }),
 		})
 		expect(memberTriesToGrant.status).toBe(403)
 

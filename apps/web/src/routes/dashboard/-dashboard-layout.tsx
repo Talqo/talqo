@@ -4,17 +4,16 @@ import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, Settings2, User, UserPlus, Users, X } from "lucide-react"
+import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "admin" | "agentRead" | "invite" | "providerManage"
+type NavRequirement = "admin" | "agentRead" | "providerManage"
 
 type NavItem = {
 	to:
 		| "/dashboard"
 		| "/dashboard/agents"
-		| "/dashboard/invitations"
 		| "/dashboard/users"
 		| "/dashboard/analytics"
 		| "/dashboard/ai-configuration"
@@ -26,7 +25,6 @@ type NavItem = {
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
-	{ to: "/dashboard/invitations", icon: UserPlus, requires: "invite" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
 	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
@@ -36,7 +34,6 @@ const navItems: readonly NavItem[] = [
 const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
-	"/dashboard/invitations": "nav.invitations",
 	"/dashboard/users": "nav.users",
 	"/dashboard/analytics": "nav.analytics",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
@@ -45,12 +42,10 @@ const navLabels = {
 
 function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
-	const canInvite = permissions?.includes("users:invite") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
 	const isAdmin = permissions?.includes("admin") ?? false
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
-		if (item.requires === "invite") return canInvite
 		if (item.requires === "providerManage") return canManageProvider
 		if (item.requires === "admin") return isAdmin
 		return true

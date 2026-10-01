@@ -230,9 +230,7 @@
 			"description": "Create a secure, single-use link for a new member.",
 			"expiresLabel": "(expires {{date}})",
 			"heading": "Invite a member",
-			"linkLabel": "Invitation link:",
-			"loginLink": "Log in",
-			"loginRequired": "You need to log in to invite a member."
+			"linkLabel": "Invitation link:"
 		},
 		"loading": "Loading…",
 		"login": {
@@ -367,7 +365,6 @@
 		"aiConfiguration": "AI configuration",
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
-		"invitations": "Invitations",
 		"users": "Users"
 	},
 	"permissions": {

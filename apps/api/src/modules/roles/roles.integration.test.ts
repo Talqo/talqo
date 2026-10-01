@@ -231,7 +231,7 @@ describe("permission grants", () => {
 		const response = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage" }),
 		})
 
 		expect(response.status).toBe(201)
@@ -239,7 +239,7 @@ describe("permission grants", () => {
 			grant: { permission: string; userId: string }
 		}
 		expect(grant.userId).toBe(member.id)
-		expect(grant.permission).toBe("users:invite")
+		expect(grant.permission).toBe("ai_provider:manage")
 	})
 
 	it("denies a non-admin from creating a permission grant", async () => {
@@ -249,26 +249,18 @@ describe("permission grants", () => {
 		const response = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: cookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: target.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: target.id, permission: "ai_provider:manage" }),
 		})
 
 		expect(response.status).toBe(403)
 	})
 
-	it("lets a member with a users:invite grant create invitations, extending the admin-only check", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-		await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
-		})
+	it("denies a non-admin from creating an invitation", async () => {
+		const cookie = await createMemberSession()
 
-		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
-		const response = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
+		const response = await app.request("/api/invitations", { method: "POST", headers: { Cookie: cookie } })
 
-		expect(response.status).toBe(201)
+		expect(response.status).toBe(403)
 	})
 
 	it("rejects grant bodies that still try to scope a grant to one agent", async () => {
@@ -278,7 +270,7 @@ describe("permission grants", () => {
 		const response = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite", agentId: crypto.randomUUID() }),
+			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage", agentId: crypto.randomUUID() }),
 		})
 
 		expect(response.status).toBe(400)
@@ -303,13 +295,13 @@ describe("permission grants", () => {
 		const grantResponse = await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: member.id, permission: "agents:read" }),
 		})
 		const { grant } = (await grantResponse.json()) as { grant: { id: string } }
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
-		const beforeRevoke = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
-		expect(beforeRevoke.status).toBe(201)
+		const beforeRevoke = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		expect(beforeRevoke.status).toBe(200)
 
 		const revokeResponse = await app.request(`/api/permission-grants/${grant.id}`, {
 			method: "DELETE",
@@ -319,7 +311,7 @@ describe("permission grants", () => {
 
 		// Same cookie, no re-login: proves authorize() reads grants fresh per request
 		// rather than relying on anything cached in the session.
-		const afterRevoke = await app.request("/api/invitations", { method: "POST", headers: { Cookie: memberCookie } })
+		const afterRevoke = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
 		expect(afterRevoke.status).toBe(403)
 	})
 })
@@ -362,11 +354,11 @@ describe("effective permissions", () => {
 		await app.request("/api/permission-grants", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "users:invite" }),
+			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage" }),
 		})
 
 		const afterGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
-		expect(await afterGrant.json()).toEqual({ permissions: ["users:invite"] })
+		expect(await afterGrant.json()).toEqual({ permissions: ["ai_provider:manage"] })
 	})
 })
 

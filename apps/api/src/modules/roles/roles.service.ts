@@ -11,13 +11,12 @@ const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 export const PUBLIC_PATHS = ["/setup", "/invitations/redeem"]
 
-export const PERMISSIONS = ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"] as const
+export const PERMISSIONS = ["admin", "ai_provider:manage", "agents:read", "agents:manage"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 
 // Named constants for call sites, so authorization checks never depend on hand-typed strings.
 export const Permission = {
 	Admin: "admin",
-	UsersInvite: "users:invite",
 	AiProviderManage: "ai_provider:manage",
 	AgentsRead: "agents:read",
 	AgentsManage: "agents:manage",

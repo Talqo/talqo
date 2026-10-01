@@ -230,9 +230,7 @@
 			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
-			"linkLabel": "邀请链接：",
-			"loginLink": "登录",
-			"loginRequired": "您需要登录才能邀请成员。"
+			"linkLabel": "邀请链接："
 		},
 		"loading": "正在加载…",
 		"login": {
@@ -367,7 +365,6 @@
 		"aiConfiguration": "AI 配置",
 		"analytics": "分析",
 		"dashboard": "仪表盘",
-		"invitations": "邀请",
 		"users": "用户"
 	},
 	"permissions": {
