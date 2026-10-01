@@ -1,6 +1,6 @@
 **/node_modules
 **/dist
 **/.turbo
-apps/e2e/test-results
+apps/e2e
 *.log
 **/.env
