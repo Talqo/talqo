@@ -28,7 +28,7 @@ export async function chunkFile(
 
 	const deadline = Date.now() + OVERALL_TIMEOUT_MS
 	/* eslint-disable no-await-in-loop -- task status polling is inherently sequential */
-	for (;;) {
+	while (true) {
 		if (Date.now() > deadline) throw new Error("Docling Serve conversion timed out")
 		const poll = await fetcher(new URL(`/v1/status/poll/${taskId}`, baseUrl), {
 			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -50,7 +50,7 @@ export async function chunkFile(
 	const pieces: Uint8Array[] = []
 	let length = 0
 	/* eslint-disable no-await-in-loop -- a response stream must be consumed in order with a byte cap */
-	for (;;) {
+	while (true) {
 		const { done, value } = await reader.read()
 		if (done) break
 		length += value.byteLength

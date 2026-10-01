@@ -267,7 +267,7 @@ export async function runIngestion(): Promise<void> {
 		await repository.recover()
 		await recoverUploads()
 		/* eslint-disable no-await-in-loop -- each batch finishes before the next poll */
-		for (;;) {
+		while (true) {
 			await connection`SELECT 1`
 			try {
 				const model = await aiProvider.prepareEmbeddingOperation()

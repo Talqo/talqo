@@ -24,7 +24,7 @@ const server = Bun.serve({
 console.log(`API listening on http://localhost:${server.port}`)
 void (async () => {
 	/* eslint-disable no-await-in-loop -- only one worker may run per process */
-	for (;;) {
+	while (true) {
 		try {
 			await runIngestion()
 		} catch (error) {
