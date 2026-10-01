@@ -1,9 +1,6 @@
 import { $ } from "bun"
 
 const DEV_APP_SECRET_BYTES = 32
-const DOCLING_STARTUP_TIMEOUT_MS = 120_000
-const DOCLING_PROBE_TIMEOUT_MS = 2_000
-const DOCLING_PROBE_INTERVAL_MS = 500
 const INTERRUPT_EXIT_CODES = { SIGHUP: 129, SIGINT: 130, SIGTERM: 143 } as const
 const DEV_APP_SECRET = Buffer.alloc(DEV_APP_SECRET_BYTES, 1).toString("base64url")
 const root = (await $`git rev-parse --show-toplevel`.quiet().text()).trim()
@@ -17,76 +14,26 @@ let composeUp: Promise<unknown> = Promise.resolve()
 let teardown: Promise<unknown> | undefined
 // Detached so a second Ctrl-C cannot kill the teardown client halfway.
 const stopContainers = () =>
-	(teardown ??= (async () => {
-		try {
-			await Bun.spawn(["docker", "compose", "down"], {
-				cwd: root,
-				detached: true,
-				stderr: "inherit",
-				stdin: "ignore",
-				stdout: "inherit",
-			}).exited
-		} catch (error) {
-			console.error("docker compose down failed", error)
-		}
-	})())
-
-const doclingWatch = new AbortController()
-let watching: Promise<void> = Promise.resolve()
-// Best effort, so it reports failures instead of rejecting at the caller.
-const watchDocling = async (url: string): Promise<void> => {
-	const { signal } = doclingWatch
-	const deadline = Date.now() + DOCLING_STARTUP_TIMEOUT_MS
-	try {
-		/* eslint-disable no-await-in-loop -- readiness must be polled before dependent work */
-		while (!signal.aborted && Date.now() < deadline) {
-			try {
-				const probe = await fetch(`${url}/livez`, {
-					signal: AbortSignal.any([AbortSignal.timeout(DOCLING_PROBE_TIMEOUT_MS), signal]),
-				})
-				if (probe.ok) {
-					console.log("Docling Serve is ready")
-					return
-				}
-			} catch {
-				// Wait for the container to start accepting HTTP connections.
-			}
-			await Bun.sleep(DOCLING_PROBE_INTERVAL_MS)
-		}
-		/* eslint-enable no-await-in-loop */
-		if (!signal.aborted) {
-			console.warn("Docling Serve did not become ready; file conversion will fail until it does")
-		}
-	} catch (error) {
-		console.error("Docling Serve readiness check failed", error)
-	}
-}
-
-// Stop watching before sweeping, so the poll cannot hold the process open after the apps exit.
-const shutdown = async (): Promise<void> => {
-	doclingWatch.abort()
-	await watching
-	await stopContainers()
-}
+	(teardown ??= Bun.spawn(["docker", "compose", "down"], {
+		cwd: root,
+		detached: true,
+		stderr: "inherit",
+		stdin: "ignore",
+		stdout: "inherit",
+	}).exited)
 
 for (const [signal, code] of Object.entries(INTERRUPT_EXIT_CODES)) {
 	// Wait for startup to settle before sweeping, and let every press share one teardown.
 	process.on(signal, async () => {
 		await composeUp.catch(() => {})
-		await shutdown()
+		await stopContainers()
 		process.exit(code)
 	})
 }
 
 try {
-	// Detached so Ctrl-C cannot kill this client after the daemon accepted its creates.
-	const up = Bun.spawn(
-		["docker", "compose", "up", "--detach", "--wait", "--wait-timeout", "30", "postgres", "docling"],
-		{ cwd: root, detached: true, stderr: "inherit", stdin: "ignore", stdout: "inherit" },
-	)
-	composeUp = up.exited
-	const upExitCode = await composeUp
-	if (upExitCode !== 0) throw new Error(`docker compose up exited with code ${upExitCode}`)
+	composeUp = $`docker compose up --detach --wait --wait-timeout 30 postgres docling`.cwd(root)
+	await composeUp
 	const address = await $`docker compose port postgres 5432`.cwd(root).quiet().text()
 	const databasePort = address.trim().split(":").at(-1)
 	if (!databasePort) throw new Error("PostgreSQL did not expose its port")
@@ -94,7 +41,6 @@ try {
 	const doclingPort = doclingAddress.trim().split(":").at(-1)
 	if (!doclingPort) throw new Error("Docling Serve did not expose its HTTP port")
 	const doclingUrl = `http://127.0.0.1:${doclingPort}`
-	watching = watchDocling(doclingUrl)
 	const databaseUrl = `postgres://talqo:talqo@127.0.0.1:${databasePort}/talqo`
 	const devEnv = {
 		...Bun.env,
@@ -132,5 +78,5 @@ try {
 
 	process.exitCode = await turbo.exited
 } finally {
-	await shutdown()
+	await stopContainers()
 }
