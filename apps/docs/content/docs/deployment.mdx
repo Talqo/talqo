@@ -29,6 +29,10 @@ Add a proxy such as Caddy or Traefik in the same Compose project, point it at th
 
 If your proxy runs on a separate machine or container network, add that network's address to `TALQO_TRUSTED_PROXY_CIDRS` so rate limiting sees real visitor addresses instead of the proxy's.
 
+Talqo speaks HTTP/1.1, so your proxy handles TLS and can offer clients HTTP/2 or HTTP/3 on its own.
+
+Chat replies stream over Server-Sent Events, so the proxy must not buffer responses and must allow reads longer than `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS`. nginx breaks both by default: it withholds streamed replies until the model finishes, and its 60s read timeout cuts generations short before Talqo's 120s default.
+
 ## Keeping your data
 
 Talqo stores its database and uploaded files in the `talqo_postgres-data` and `talqo_uploads` volumes. Back both up. Avoid `docker compose down -v`, which deletes them.
