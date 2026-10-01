@@ -1,4 +1,4 @@
-# Required runtime env: APP_SECRET, DATABASE_URL, TALQO_DOCLING_URL, TALQO_UPLOAD_DIR.
+# Required runtime env: APP_SECRET, DATABASE_URL, TALQO_DOCLING_URL.
 
 FROM oven/bun:1.4.2 AS build
 
@@ -25,6 +25,9 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/drizzle ./apps/api/drizzle
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/apps/widget/dist ./apps/widget/dist
+
+# Fresh named volumes mounted here inherit this dir's owner.
+RUN mkdir -p /data/uploads && chown bun:bun /data/uploads
 
 USER bun
 
