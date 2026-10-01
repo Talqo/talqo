@@ -3,7 +3,9 @@ import { z } from "zod"
 const MAX_RESPONSE_BYTES = 20_000_000
 const MAX_CHUNKS = 20_000
 const CHUNK_TOKENS = 256
-const TIMEOUT_MS = 300_000
+const REQUEST_TIMEOUT_MS = 30_000
+const OVERALL_TIMEOUT_MS = 3_600_000
+const POLL_INTERVAL_MS = 2_000
 const responseSchema = z.object({ chunks: z.array(z.object({ text: z.string() })).max(MAX_CHUNKS) })
 type FetchDocling = (url: URL, init: RequestInit) => Promise<Response>
 
@@ -16,13 +18,34 @@ export async function chunkFile(
 	const form = new FormData()
 	form.append("files", new File([new Uint8Array(data)], name, { type: "application/octet-stream" }))
 	form.append("chunking_max_tokens", String(CHUNK_TOKENS))
-	const response = await fetcher(new URL("/v1/chunk/hybrid/file", baseUrl), {
+	const submit = await fetcher(new URL("/v1/chunk/hybrid/file/async", baseUrl), {
 		method: "POST",
 		body: form,
-		signal: AbortSignal.timeout(TIMEOUT_MS),
+		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
-	if (!response.ok) throw new Error(`Docling Serve rejected the file (${response.status})`)
-	const reader = response.body?.getReader()
+	if (!submit.ok) throw new Error(`Docling Serve rejected the file (${submit.status})`)
+	const { task_id: taskId } = (await submit.json()) as { task_id: string }
+
+	const deadline = Date.now() + OVERALL_TIMEOUT_MS
+	/* eslint-disable no-await-in-loop -- task status polling is inherently sequential */
+	for (;;) {
+		if (Date.now() > deadline) throw new Error("Docling Serve conversion timed out")
+		const poll = await fetcher(new URL(`/v1/status/poll/${taskId}`, baseUrl), {
+			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+		})
+		if (!poll.ok) throw new Error(`Docling Serve lost the task (${poll.status})`)
+		const status = ((await poll.json()) as { task_status: string }).task_status
+		if (status === "success") break
+		if (status === "failure") throw new Error("Docling Serve failed to convert the file")
+		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+	}
+	/* eslint-enable no-await-in-loop */
+
+	const result = await fetcher(new URL(`/v1/result/${taskId}`, baseUrl), {
+		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+	})
+	if (!result.ok) throw new Error(`Docling Serve result fetch failed (${result.status})`)
+	const reader = result.body?.getReader()
 	if (!reader) throw new Error("Docling Serve returned no response")
 	const pieces: Uint8Array[] = []
 	let length = 0
