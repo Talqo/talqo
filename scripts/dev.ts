@@ -15,8 +15,7 @@ const [apiPort, webPort, widgetPort] = reservations.map(({ port }) => String(por
 
 let composeUp: Promise<unknown> = Promise.resolve()
 let teardown: Promise<unknown> | undefined
-// Detached so a second Ctrl-C cannot kill the teardown client halfway. It never rejects, so a
-// failure here cannot skip the exit path or mask an earlier error.
+// Detached so a second Ctrl-C cannot kill the teardown client halfway.
 const stopContainers = () =>
 	(teardown ??= (async () => {
 		try {
@@ -34,8 +33,6 @@ const stopContainers = () =>
 
 const doclingWatch = new AbortController()
 let watching: Promise<void> = Promise.resolve()
-// Docling needs about half a minute to load its models and nothing needs it until a file is
-// uploaded. Ingestion reports those as failed conversions, which the dashboard can retry.
 // Best effort, so it reports failures instead of rejecting at the caller.
 const watchDocling = async (url: string): Promise<void> => {
 	const { signal } = doclingWatch
