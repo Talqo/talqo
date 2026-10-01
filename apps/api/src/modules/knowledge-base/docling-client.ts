@@ -61,13 +61,7 @@ export async function chunkFile(
 		pieces.push(value)
 	}
 	/* eslint-enable no-await-in-loop */
-	const bytes = new Uint8Array(length)
-	let offset = 0
-	for (const piece of pieces) {
-		bytes.set(piece, offset)
-		offset += piece.byteLength
-	}
-	const body: unknown = JSON.parse(new TextDecoder().decode(bytes))
+	const body: unknown = JSON.parse(new TextDecoder().decode(Buffer.concat(pieces)))
 	return responseSchema
 		.parse(body)
 		.chunks.map(({ text }) => text.trim())
