@@ -15,7 +15,6 @@ const NOT_FOUND_STATUS = 404
 
 type EmbedTarget = { id: string; agentId: string; isDisabled: boolean }
 
-/** Sits inside a Link: swallows clicks so toggling never navigates to the detail page. */
 export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -49,13 +48,7 @@ export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 	}
 
 	return (
-		<div
-			// Propagation guard only; the switch inside is the interactive control.
-			onClick={(e) => {
-				e.preventDefault()
-				e.stopPropagation()
-			}}
-		>
+		<div>
 			<div className="flex items-center gap-2">
 				<Switch
 					checked={!embed.isDisabled}

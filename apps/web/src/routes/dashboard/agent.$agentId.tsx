@@ -369,38 +369,39 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{embeds.map((embed) => (
-						<Link
-							key={embed.id}
-							to="/dashboard/embeds/$embedId"
-							params={{ embedId: embed.id }}
-							search={{ colorTab: undefined }}
-							className="group"
-						>
-							<Card className="group-hover:border-primary/40 h-full transition-colors">
-								<CardHeader>
-									<CardTitle>{embed.name}</CardTitle>
-								</CardHeader>
-								<CardContent className="space-y-3">
-									<div className="flex items-center justify-between gap-2">
-										<div className="flex items-center gap-1.5" aria-hidden="true">
-											{LIGHT_PALETTE_KEYS.map((key) => (
-												<span
-													key={key}
-													className="size-4 rounded-full border"
-													style={{ backgroundColor: embed.appearance.light[key] }}
-												/>
-											))}
-										</div>
-										<span className="text-muted-foreground text-sm">
-											{isSupportedLanguage(embed.appearance.language)
-												? supportedLanguages[embed.appearance.language]
-												: embed.appearance.language}
-										</span>
+						<Card key={embed.id} className="h-full">
+							<CardHeader>
+								<CardTitle>
+									<Link
+										to="/dashboard/embeds/$embedId"
+										params={{ embedId: embed.id }}
+										search={{ colorTab: undefined }}
+										className="hover:underline"
+									>
+										{embed.name}
+									</Link>
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-3">
+								<div className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5" aria-hidden="true">
+										{LIGHT_PALETTE_KEYS.map((key) => (
+											<span
+												key={key}
+												className="size-4 rounded-full border"
+												style={{ backgroundColor: embed.appearance.light[key] }}
+											/>
+										))}
 									</div>
-									{canManage && <EmbedEnabledSwitch embed={embed} />}
-								</CardContent>
-							</Card>
-						</Link>
+									<span className="text-muted-foreground text-sm">
+										{isSupportedLanguage(embed.appearance.language)
+											? supportedLanguages[embed.appearance.language]
+											: embed.appearance.language}
+									</span>
+								</div>
+								{canManage && <EmbedEnabledSwitch embed={embed} />}
+							</CardContent>
+						</Card>
 					))}
 				</div>
 			)}
