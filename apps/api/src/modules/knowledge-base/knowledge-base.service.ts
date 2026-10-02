@@ -3,6 +3,7 @@ import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
 import { copyFile, mkdir, readdir, readFile, rm, stat, unlink, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { extname, join } from "node:path"
 import { z } from "zod"
 
@@ -22,6 +23,8 @@ export const MAX_UPLOAD_BODY_BYTES = MAX_FILE_SIZE_BYTES + MULTIPART_MARGIN_BYTE
 
 export const ALLOWED_EXTENSIONS = [".docx", ".md", ".pdf", ".txt"] as const
 const ALLOWED_EXTENSION_SET: ReadonlySet<string> = new Set(ALLOWED_EXTENSIONS)
+
+const UPLOAD_DIR = env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
 
 const FORBIDDEN_NAME_CHARS = /[/\\\0]|\.{2}/
 
@@ -51,7 +54,7 @@ export class InvalidFileError extends Error {}
 export class FileTooLargeError extends InvalidFileError {}
 
 function agentDir(agentId: string): string {
-	return join(env.TALQO_UPLOAD_DIR, agentId)
+	return join(UPLOAD_DIR, agentId)
 }
 
 function buildFile(name: string, stats: { size: number; birthtime: Date; mtime: Date }): StoredFile {
@@ -101,7 +104,7 @@ async function list(agentId: string): Promise<StoredFile[]> {
 
 async function listAgentDirectories(): Promise<string[]> {
 	try {
-		const entries = await readdir(env.TALQO_UPLOAD_DIR, { withFileTypes: true })
+		const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
 		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
@@ -233,6 +236,13 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 	if (!(await repository.retry(agentId, name))) throw new FileNotRetryableError("File is not in a failed state")
 }
 
+const RETRIEVAL_TOP_K = 5
+
+export async function searchKnowledge(agentId: string, text: string): Promise<string[]> {
+	const operation = await aiProvider.prepareEmbeddingOperation()
+	return repository.search(agentId, await operation.embed(text), operation.key, RETRIEVAL_TOP_K)
+}
+
 async function recoverUploads(): Promise<void> {
 	/* eslint-disable no-await-in-loop -- scan local directories without flooding the database */
 	for (const agentId of await listAgentDirectories()) {
@@ -265,7 +275,7 @@ export async function runIngestion(): Promise<void> {
 		await repository.recover()
 		await recoverUploads()
 		/* eslint-disable no-await-in-loop -- each batch finishes before the next poll */
-		for (;;) {
+		while (true) {
 			await connection`SELECT 1`
 			try {
 				const model = await aiProvider.prepareEmbeddingOperation()

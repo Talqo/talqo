@@ -1,4 +1,5 @@
 export class SessionUnauthorizedError extends Error {}
+export class EmbedDisabledError extends Error {}
 export class RequestConflictError extends Error {}
 export class ConversationTooLongError extends Error {}
 export class DailyAllowanceExceededError extends Error {}

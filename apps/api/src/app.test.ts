@@ -277,7 +277,9 @@ describe("api", () => {
 				"/api/chat/cancel",
 				"/api/embeds",
 				"/api/embeds/{embedId}",
+				"/api/embeds/{embedId}/disable",
 				"/api/embeds/{embedId}/embed-token/rotate",
+				"/api/embeds/{embedId}/enable",
 				"/api/users/{userId}",
 				"/api/users/{userId}/password",
 				"/health",
@@ -313,6 +315,7 @@ describe("api", () => {
 		const expectedSendProblems = {
 			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],
 			401: ["chat-session-unauthorized"],
+			403: ["embed-disabled"],
 			404: ["embed-not-found"],
 			409: ["chat-request-conflict"],
 			413: ["payload-too-large"],

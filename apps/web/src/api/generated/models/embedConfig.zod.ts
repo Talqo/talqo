@@ -12,6 +12,7 @@ export const EmbedConfig = zod.object({
 	version: zod.number(),
 	name: zod.string(),
 	appearance: EmbedAppearance,
+	isDisabled: zod.boolean(),
 })
 
 export type EmbedConfig = zod.input<typeof EmbedConfig>

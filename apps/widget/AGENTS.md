@@ -5,3 +5,4 @@
 - Preview contract with the dashboard: versioned, source- and origin-checked `postMessage` (wire protocol owned by `@talqo/shared/preview-channel`). CDN-only deployments use a sandboxed `srcdoc` frame instead of `preview.html`. `apps/web` never imports widget source.
 - Host-page CSS isolation: Tailwind utilities carry the `tw:` prefix; the build scopes everything else under `.talqo-widget` and fails on leftovers (`@keyframes` pass through globally). Dev-mode CSS is unscoped.
 - Domain-neutral reused presentation belongs in `packages/ui`.
+- Keep this app's locales in `src/locales/<lang>.json` with its own i18next instance; never share locale files with another app. Add a key to every locale file in the same change and keep key sets identical.

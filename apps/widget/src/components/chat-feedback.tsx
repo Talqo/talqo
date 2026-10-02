@@ -22,6 +22,7 @@ const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {
 	"provider-error": (t) => t("errorProvider"),
 	"internal-server-error": (t) => t("errorInternalServer"),
 	"embed-not-found": (t) => t("errorEmbedNotFound"),
+	"embed-disabled": (t) => t("errorEmbedDisabled"),
 	"request-failed": (t) => t("errorRequestFailed"),
 	"invalid-response": (t) => t("errorInvalidResponse"),
 	"transport-error": (t) => t("errorTransport"),

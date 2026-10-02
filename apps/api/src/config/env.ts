@@ -1,6 +1,4 @@
 import ipaddr from "ipaddr.js"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 import { z } from "zod"
 
 const DEFAULT_API_PORT = 3000
@@ -14,8 +12,6 @@ const DEFAULT_IPV6_PREFIX_LENGTH = 64
 const DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 16_384
 const DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS = 120
 const MAX_CHAT_GENERATION_TIMEOUT_SECONDS = 300
-
-const DEFAULT_UPLOAD_DIR = join(tmpdir(), "talqo")
 
 const positiveSafeInteger = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER)
 const trustedCidrsSchema = z
@@ -66,7 +62,13 @@ const envSchema = z
 			.max(MAX_CHAT_GENERATION_TIMEOUT_SECONDS)
 			.default(DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS),
 		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
+		TALQO_SERVE_STATIC: z
+			.enum(["true", "false"])
+			.default("false")
+			.transform((value) => value === "true"),
 		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
+		TALQO_WEB_DIST: z.string().min(1).optional(),
+		TALQO_WIDGET_DIST: z.string().min(1).optional(),
 		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
@@ -79,24 +81,16 @@ const envSchema = z
 				message: "APP_SECRET must not be zero-filled in production",
 			})
 		}
-		if (!env.TALQO_UPLOAD_DIR) {
-			context.addIssue({
-				code: "custom",
-				path: ["TALQO_UPLOAD_DIR"],
-				message: "TALQO_UPLOAD_DIR is required in production",
-			})
-		}
 	})
 
-export type Env = Omit<z.infer<typeof envSchema>, "TALQO_UPLOAD_DIR"> & { TALQO_UPLOAD_DIR: string }
+export type Env = z.infer<typeof envSchema>
 
 export function parseEnv(source: Record<string, string | undefined>): Env {
 	const result = envSchema.safeParse(source)
 	if (!result.success) {
 		throw new Error(`Invalid environment configuration:\n${z.prettifyError(result.error)}`)
 	}
-	// The default is applied after superRefine so production without TALQO_UPLOAD_DIR fails boot.
-	return { ...result.data, TALQO_UPLOAD_DIR: result.data.TALQO_UPLOAD_DIR ?? DEFAULT_UPLOAD_DIR }
+	return result.data
 }
 
 let cached: Env | undefined
@@ -135,8 +129,17 @@ export const env: Env = {
 	get TALQO_API_PORT() {
 		return load().TALQO_API_PORT
 	},
+	get TALQO_SERVE_STATIC() {
+		return load().TALQO_SERVE_STATIC
+	},
 	get TALQO_UPLOAD_DIR() {
 		return load().TALQO_UPLOAD_DIR
+	},
+	get TALQO_WEB_DIST() {
+		return load().TALQO_WEB_DIST
+	},
+	get TALQO_WIDGET_DIST() {
+		return load().TALQO_WIDGET_DIST
 	},
 	get TALQO_DOCLING_URL() {
 		return load().TALQO_DOCLING_URL

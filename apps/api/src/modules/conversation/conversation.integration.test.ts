@@ -2,6 +2,8 @@ import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import { ProviderContextLimitError, type TextMessage } from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
+import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.repository.ts"
+import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
@@ -10,6 +12,7 @@ import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
+	EmbedDisabledError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
@@ -135,6 +138,13 @@ async function* contextLimitGeneration() {
 	throw new ProviderContextLimitError()
 }
 
+async function seedReadyChunk(agentId: string): Promise<void> {
+	await knowledgeRepository.enqueue(agentId, "guide.md")
+	const job = await knowledgeRepository.claim("test-key")
+	if (!job) throw new Error("Expected an ingestion job")
+	await knowledgeRepository.complete(job, "test-key", [{ text: "seeded fact", embedding: [1, 0, 0] }])
+}
+
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE usage_record, message, generation_attempt, conversation_daily_counter, conversation, embed, blacklist_word, agent CASCADE`
 })
@@ -225,6 +235,57 @@ describe("conversation lifecycle", () => {
 			{ role: "user", content: "first" },
 			{ role: "assistant", content: "one" },
 			{ role: "user", content: "second" },
+		])
+	})
+
+	it("rejects messages to a disabled embed without charging and resumes after re-enable", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const sent = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "hello",
+			networkHash: "network-a",
+		})
+		await sent.done
+		await embed.disableEmbed(createdEmbed.id)
+
+		await expect(
+			instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_2,
+				text: "still there?",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(EmbedDisabledError)
+		await expect(
+			instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_2,
+				requestId: REQUEST_3,
+				text: "new visitor",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(EmbedDisabledError)
+		expect((await sql`SELECT count(*)::int AS count FROM generation_attempt`)[0]?.count).toBe(1)
+		expect((await sql`SELECT count(*)::int AS count FROM conversation_daily_counter`)[0]?.count).toBe(1)
+
+		await embed.enableEmbed(createdEmbed.id)
+		const resumed = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_2,
+			text: "still there?",
+			networkHash: "network-a",
+		})
+		await resumed.done
+		expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
+			"hello",
+			"answer",
+			"still there?",
+			"answer",
 		])
 	})
 
@@ -454,7 +515,7 @@ describe("conversation lifecycle", () => {
 			await other.cancel(CREDENTIAL_1, sent.generationId)
 			await sent.done
 			expect(attempts).toBeGreaterThanOrEqual(2)
-			expect(logged).toHaveBeenCalledTimes(1)
+			expect(logged.mock.calls.filter(([event]) => event === "conversation.poll.failed")).toHaveLength(1)
 			expect((await owner.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("cancelled")
 		} finally {
 			poll.mockRestore()
@@ -1204,5 +1265,63 @@ describe("conversation lifecycle", () => {
 			{ role: "assistant", content: "afterwards" },
 			{ role: "user", content: "repeat me" },
 		])
+	})
+})
+
+describe("chat retrieval", () => {
+	it("injects retrieved chunks into the user message", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["refund policy: 30 days"])
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "what is the refund policy",
+				networkHash: "network-a",
+			})
+			await sent.done
+			const systemPrompt = instance.prompts[0]?.[0]
+			expect(systemPrompt).toMatchObject({ role: "system" })
+			expect(systemPrompt?.content).toMatch(/\S\nSystem$/)
+			const question = instance.prompts[0]?.at(-1)
+			expect(question).toMatchObject({ role: "user" })
+			expect(question?.content).toContain("refund policy: 30 days")
+			expect(question?.content).toContain("only if relevant")
+			expect(question?.content).toContain("what is the refund policy")
+			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
+				"what is the refund policy",
+				"answer",
+			])
+		} finally {
+			search.mockRestore()
+		}
+	})
+
+	it("proceeds without context when retrieval throws", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await seedReadyChunk(createdAgent.id)
+		const instance = service()
+		const search = spyOn(knowledge, "searchKnowledge").mockRejectedValue(new Error("embedding down"))
+		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "hello",
+				networkHash: "network-a",
+			})
+			await sent.done
+			expect(logged).toHaveBeenCalledWith("knowledge-base.retrieval.degraded", expect.anything())
+			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
+				"hello",
+				"answer",
+			])
+		} finally {
+			search.mockRestore()
+			logged.mockRestore()
+		}
 	})
 })

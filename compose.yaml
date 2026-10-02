@@ -13,10 +13,11 @@ services:
       POSTGRES_USER: talqo
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
+      start_interval: 1s
       start_period: 5s
+      interval: 10s
+      timeout: 5s
+      retries: 3
     ports:
       - target: 5432
         host_ip: 127.0.0.1
@@ -33,10 +34,11 @@ services:
       POSTGRES_USER: talqo
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
+      start_interval: 1s
       start_period: 5s
+      interval: 10s
+      timeout: 5s
+      retries: 3
     ports:
       - target: 5432
         host_ip: 127.0.0.1

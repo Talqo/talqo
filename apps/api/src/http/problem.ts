@@ -26,6 +26,7 @@ export const PROBLEM_CODES = {
 	CHAT_SESSION_UNAUTHORIZED: "chat-session-unauthorized",
 	CONFIGURATION_CONFLICT: "configuration-conflict",
 	CURRENT_PASSWORD_INCORRECT: "current-password-incorrect",
+	EMBED_DISABLED: "embed-disabled",
 	EMBED_NOT_FOUND: "embed-not-found",
 	INTERNAL_SERVER_ERROR: "internal-server-error",
 	INVALID_AI_PROVIDER_CONFIGURATION: "invalid-ai-provider-configuration",

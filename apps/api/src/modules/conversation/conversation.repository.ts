@@ -5,6 +5,7 @@ import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from
 import {
 	ConcurrentGenerationLimitError,
 	DailyAllowanceExceededError,
+	EmbedDisabledError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
@@ -182,7 +183,7 @@ export async function acceptGenerationAttempt(input: {
 		)
 
 		const [validEmbed] = await tx
-			.select({ id: embed.id })
+			.select({ id: embed.id, isDisabled: embed.isDisabled })
 			.from(embed)
 			.where(
 				and(
@@ -194,6 +195,8 @@ export async function acceptGenerationAttempt(input: {
 			.for("update")
 			.limit(1)
 		if (!validEmbed) throw new SessionUnauthorizedError()
+		// Row-locked check: a disable racing acceptance either lands first here or after it.
+		if (validEmbed.isDisabled) throw new EmbedDisabledError()
 
 		const [existingConversation] = await tx
 			.select()

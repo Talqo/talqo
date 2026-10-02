@@ -9,9 +9,11 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import {
 	createEmbedRoute,
 	deleteEmbedRoute,
+	disableEmbedRoute,
 	embedConfigResponseSchema,
 	embedDetailResponseSchema,
 	embedListResponseSchema,
+	enableEmbedRoute,
 	getEmbedConfigRoute,
 	getEmbedRoute,
 	listEmbedsRoute,
@@ -113,6 +115,36 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 
 		try {
 			const embed = await service.rotateEmbedToken(c.req.valid("param").embedId)
+			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
+		} catch (error) {
+			const mapped = mapDomainError(error)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
+			throw error
+		}
+	})
+	.openapi(disableEmbedRoute, async (c) => {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+		}
+
+		try {
+			const embed = await service.disableEmbed(c.req.valid("param").embedId)
+			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
+		} catch (error) {
+			const mapped = mapDomainError(error)
+			if (mapped) return problemResponse(c, mapped.code, mapped.status)
+			throw error
+		}
+	})
+	.openapi(enableEmbedRoute, async (c) => {
+		const user = c.get("user")
+		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
+			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+		}
+
+		try {
+			const embed = await service.enableEmbed(c.req.valid("param").embedId)
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)

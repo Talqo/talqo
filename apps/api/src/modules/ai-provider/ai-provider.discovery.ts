@@ -63,7 +63,7 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	const chunks: Uint8Array[] = []
 	if (response.body) {
 		const reader = response.body.getReader()
-		for (;;) {
+		while (true) {
 			const { done, value } = await reader.read() // oxlint-disable-line no-await-in-loop -- sequential stream read requires await
 			if (done) break
 			bytes += value.byteLength

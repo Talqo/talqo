@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 
 import { parseEnv } from "./env.ts"
 
@@ -26,6 +24,37 @@ describe("parseEnv", () => {
 		expect(env.TALQO_CHAT_MAX_INPUT_CHARACTERS).toBe(400_000)
 		expect(env.TALQO_CHAT_MAX_OUTPUT_TOKENS).toBe(16_384)
 		expect(env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS).toBe(120)
+		expect(env.TALQO_SERVE_STATIC).toBe(false)
+		expect(env.TALQO_WEB_DIST).toBeUndefined()
+		expect(env.TALQO_WIDGET_DIST).toBeUndefined()
+	})
+
+	it("parses the static serving switch and dist overrides", () => {
+		const env = parseEnv({
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			TALQO_DOCLING_URL: DOCLING,
+			NODE_ENV: "production",
+			TALQO_SERVE_STATIC: "true",
+			TALQO_WEB_DIST: "/app/apps/web/dist",
+			TALQO_WIDGET_DIST: "/app/apps/widget/dist",
+		})
+
+		expect(env.TALQO_SERVE_STATIC).toBe(true)
+		expect(env.TALQO_WEB_DIST).toBe("/app/apps/web/dist")
+		expect(env.TALQO_WIDGET_DIST).toBe("/app/apps/widget/dist")
+	})
+
+	it("rejects an invalid static serving switch", () => {
+		expect(() =>
+			parseEnv({
+				APP_SECRET,
+				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+				TALQO_DOCLING_URL: DOCLING,
+				NODE_ENV: "development",
+				TALQO_SERVE_STATIC: "yes",
+			}),
+		).toThrow(/TALQO_SERVE_STATIC/)
 	})
 
 	it("parses chat policy and trusted proxy CIDRs", () => {
@@ -89,7 +118,6 @@ describe("parseEnv", () => {
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "production",
-				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			}),
 		).toThrow(/APP_SECRET/)
 	})
@@ -134,20 +162,8 @@ describe("parseEnv", () => {
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "production",
-				TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 			}),
 		).toThrow(/APP_SECRET/)
-	})
-
-	it("rejects a missing TALQO_UPLOAD_DIR in production", () => {
-		expect(() =>
-			parseEnv({
-				APP_SECRET,
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "production",
-			}),
-		).toThrow(/TALQO_UPLOAD_DIR/)
 	})
 
 	it("requires the deployment-wired Docling endpoint", () => {
@@ -155,7 +171,6 @@ describe("parseEnv", () => {
 			APP_SECRET,
 			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 			NODE_ENV: "production",
-			TALQO_UPLOAD_DIR: "/data/talqo-uploads",
 		}
 		expect(() => parseEnv(base)).toThrow(/TALQO_DOCLING_URL/)
 		expect(parseEnv({ ...base, TALQO_DOCLING_URL: DOCLING }).TALQO_DOCLING_URL).toBe(DOCLING)
@@ -165,17 +180,6 @@ describe("parseEnv", () => {
 		expect(() =>
 			parseEnv({ DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo", TALQO_DOCLING_URL: DOCLING }),
 		).toThrow(/NODE_ENV/)
-	})
-
-	it("defaults TALQO_UPLOAD_DIR to a talqo directory in the OS temp dir", () => {
-		const env = parseEnv({
-			APP_SECRET,
-			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-			TALQO_DOCLING_URL: DOCLING,
-			NODE_ENV: "development",
-		})
-
-		expect(env.TALQO_UPLOAD_DIR).toBe(join(tmpdir(), "talqo"))
 	})
 
 	it("rejects a missing DATABASE_URL", () => {

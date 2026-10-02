@@ -2,7 +2,7 @@
 
 This file is the single canonical internal architecture guide. `apps/docs` owns public product documentation; root `docs` owns internal engineering documentation and ADRs.
 
-Update this guide in the same change as any decision that changes architecture, boundaries, ownership, canonical structure, or the technology roles below. Add or supersede an ADR when the decision is significant and durable.
+Update this guide in the same change as any decision that changes architecture, boundaries, ownership, canonical structure, or the technology roles below. Add or supersede an ADR when the choice had credible alternatives with real tradeoffs.
 
 ## System Shape
 
@@ -106,7 +106,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
 - Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
-- Recorded exception: `conversation`'s acceptance transaction reads and row-locks `EMBED` inside the advisory-locked write, because embed validity and access version must hold atomically at acceptance and transactions cannot flow through service APIs. `conversation` (the send-operation owner) is the orchestration owner; the access is limited to that single read/lock.
+- Recorded exception: `conversation`'s acceptance transaction reads and row-locks `EMBED` inside the advisory-locked write, because embed validity, access version, and the disabled flag must hold atomically at acceptance and transactions cannot flow through service APIs. `conversation` (the send-operation owner) is the orchestration owner; the access is limited to that single read/lock.
 
 ### Contracts And Routes
 
@@ -174,6 +174,8 @@ module contracts + route metadata
 
 `apps/web` is a client-rendered API consumer. This logical boundary does not require separate deployment images; static web assets and the API may be packaged together.
 
+The production image serves the built dashboard from the API process when `TALQO_SERVE_STATIC` is set (see ADR-0016). The dashboard resolves widget URLs from its own runtime origin, so self-hosted domains need no baked CDN URL.
+
 ```text
 apps/web/src/
 |-- main.tsx                         # entry point; creates the router
@@ -207,7 +209,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source.
+`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
 
 ## E2E Tests
 
