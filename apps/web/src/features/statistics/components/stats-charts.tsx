@@ -1,19 +1,34 @@
-import type { DailyStatsPoint, PageStats } from "@/features/statistics/page-stats"
+import type { AgentDailyPoint, DailyStatsPoint, PageStats } from "@/features/statistics/page-stats"
 
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardHeader, CardDescription, CardTitle } from "@talqo/ui/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { useMemo } from "react"
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 export const statsMetricKeys = ["conversations", "messages", "tokens"] as const
 export type StatsMetric = (typeof statsMetricKeys)[number]
 export type StatsMetricLabels = Record<StatsMetric, string>
 
-const metricColors: Record<StatsMetric, string> = {
-	conversations: "var(--chart-1)",
-	messages: "var(--chart-2)",
-	tokens: "var(--chart-3)",
+// Per-agent line colors cycle through the chart palette; the aggregated "total" series
+// stays neutral so it always reads as the reference line.
+const agentLineColors = [
+	"var(--chart-1)",
+	"var(--chart-2)",
+	"var(--chart-3)",
+	"var(--chart-4)",
+	"var(--chart-5)",
+] as const
+const totalLineColor = "var(--foreground)"
+
+export function agentLineColor(index: number): string {
+	return agentLineColors[index % agentLineColors.length] ?? "var(--chart-1)"
+}
+
+export type AgentLine = {
+	color: string
+	id: string
+	name: string
 }
 
 const DATE_FORMAT_UTC = "T00:00:00Z"
@@ -57,20 +72,43 @@ export function StatsMetricCards({
 
 function MetricChart({
 	daily,
+	agentDaily,
+	agentLines,
 	metric,
-	label,
+	totalLabel,
 	language,
 	compactNumber,
 }: {
 	daily: DailyStatsPoint[]
+	agentDaily: AgentDailyPoint[]
+	agentLines: AgentLine[]
 	metric: StatsMetric
-	label: string
+	totalLabel: string
 	language: string
 	compactNumber: Intl.NumberFormat
 }) {
+	// One row per day: the aggregated "total" plus each selected agent, zero-filled so
+	// the lines stay continuous across days without activity.
+	const rows = useMemo(() => {
+		const byAgent = new Map<string, Map<string, AgentDailyPoint>>()
+		for (const point of agentDaily) {
+			let byDate = byAgent.get(point.agentId)
+			if (!byDate) {
+				byDate = new Map()
+				byAgent.set(point.agentId, byDate)
+			}
+			byDate.set(point.date, point)
+		}
+		return daily.map((day) => ({
+			date: day.date,
+			total: day[metric],
+			...Object.fromEntries(agentLines.map((line) => [line.id, byAgent.get(line.id)?.get(day.date)?.[metric] ?? 0])),
+		}))
+	}, [daily, agentDaily, agentLines, metric])
+
 	return (
 		<ResponsiveContainer width="100%" height={280}>
-			<AreaChart data={daily} margin={{ top: 8, right: 8, left: 8 }}>
+			<ComposedChart data={rows} margin={{ top: 8, right: 8, left: 8 }}>
 				<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
 				<XAxis
 					dataKey="date"
@@ -100,19 +138,42 @@ function MetricChart({
 				/>
 				<Area
 					type="monotone"
-					dataKey={metric}
-					name={label}
-					stroke={metricColors[metric]}
-					fill={metricColors[metric]}
+					dataKey="total"
+					name={totalLabel}
+					stroke={totalLineColor}
+					fill={totalLineColor}
 					fillOpacity={0.15}
 					strokeWidth={2}
 				/>
-			</AreaChart>
+				{agentLines.map((line) => (
+					<Line
+						key={line.id}
+						type="monotone"
+						dataKey={line.id}
+						name={line.name}
+						stroke={line.color}
+						strokeWidth={2}
+						dot={false}
+					/>
+				))}
+			</ComposedChart>
 		</ResponsiveContainer>
 	)
 }
 
-export function DailyStatsChart({ daily, labels }: { daily: DailyStatsPoint[]; labels: StatsMetricLabels }) {
+export function DailyStatsChart({
+	daily,
+	agentDaily,
+	agentLines,
+	labels,
+	totalLabel,
+}: {
+	daily: DailyStatsPoint[]
+	agentDaily: AgentDailyPoint[]
+	agentLines: AgentLine[]
+	labels: StatsMetricLabels
+	totalLabel: string
+}) {
 	const { language } = useLanguage()
 	const compactNumber = useCompactNumber()
 	return (
@@ -128,8 +189,10 @@ export function DailyStatsChart({ daily, labels }: { daily: DailyStatsPoint[]; l
 				<TabsContent key={metric} value={metric}>
 					<MetricChart
 						daily={daily}
+						agentDaily={agentDaily}
+						agentLines={agentLines}
 						metric={metric}
-						label={labels[metric]}
+						totalLabel={totalLabel}
 						language={language}
 						compactNumber={compactNumber}
 					/>

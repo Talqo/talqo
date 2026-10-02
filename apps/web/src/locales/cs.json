@@ -188,20 +188,6 @@
 		"unusableWarning": "Uložené přihlašovací údaje již nelze dešifrovat. Zadejte a uložte přihlašovací údaje znovu.",
 		"validationError": "Před uložením vyberte oba poskytovatele a ID modelů."
 	},
-	"analytics": {
-		"conversations": "Konverzace",
-		"dailyTotals": "Denní součty za posledních 30 dní.",
-		"empty": "Zatím žádní agenti. Pro zobrazení statistik vytvořte agenta na stránce Agenti.",
-		"heading": "Analytika",
-		"last30Days": "{{metric}} (30 dní)",
-		"loading": "Načítání agentů…",
-		"loadingStats": "Načítání statistik…",
-		"messages": "Zprávy",
-		"selectAgent": "Vyberte agenta",
-		"subheading": "Statistiky konverzací a využití pro jednotlivé agenty.",
-		"tokens": "Tokeny",
-		"usageOverTime": "Využití v čase"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "Zvolte si přihlašovací údaje a připojte se k tomuto pracovnímu prostoru Talqo.",
@@ -266,17 +252,23 @@
 	},
 	"dashboard": {
 		"agentColumn": "Agent",
+		"agentsLabel": "Agenti",
+		"agentsSelected": "{{selected}} z {{total}} agentů",
 		"conversations": "Konverzace",
 		"dailyTotals": "Denní součty za posledních 30 dní.",
+		"deselectAll": "Zrušit výběr",
 		"empty": "Zatím žádné konverzace. Statistiky se zobrazí, jakmile vaši agenti začnou komunikovat.",
 		"heading": "Vítejte v Talqo",
 		"last30Days": "{{metric}} (30 dní)",
 		"loading": "Načítání statistik…",
 		"messages": "Zprávy",
+		"noAgentsSelected": "Nejsou vybraní žádní agenti. Statistiky se zobrazí po výběru alespoň jednoho agenta.",
 		"perAgentDescription": "Součty za jednotlivé agenty za posledních 30 dní.",
 		"perAgentTitle": "Přehled podle agentů",
+		"selectAll": "Vybrat vše",
 		"subheading": "Statistiky konverzací a využití napříč vašimi agenty.",
 		"tokens": "Tokeny",
+		"total": "Celkem",
 		"usageOverTime": "Využití v čase"
 	},
 	"embedSetup": {
@@ -423,7 +415,6 @@
 		"account": "Účet",
 		"agents": "Agenti",
 		"aiConfiguration": "Konfigurace AI",
-		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"users": "Uživatelé"
 	},

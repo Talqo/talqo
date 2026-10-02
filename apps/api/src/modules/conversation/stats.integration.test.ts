@@ -159,6 +159,34 @@ describe("stats overview aggregation", () => {
 			outputTokens: 0,
 		})
 		expect(overview.totals).toEqual({ conversations: 4, messages: 8, inputTokens: 311, outputTokens: 157 })
+		// The sparse per-agent daily series feeds the dashboard per-agent chart lines.
+		const byAgentDate = new Map(overview.agentDaily.map((point) => [`${point.agentId}:${point.date}`, point]))
+		expect(byAgentDate.get(`${agentA.id}:${utcDate(0).slice(0, 10)}`)).toEqual({
+			agentId: agentA.id,
+			date: utcDate(0).slice(0, 10),
+			conversations: 2,
+			messages: 4,
+			inputTokens: 300,
+			outputTokens: 150,
+		})
+		expect(byAgentDate.get(`${agentA.id}:${utcDate(2).slice(0, 10)}`)).toEqual({
+			agentId: agentA.id,
+			date: utcDate(2).slice(0, 10),
+			conversations: 1,
+			messages: 2,
+			inputTokens: 10,
+			outputTokens: 5,
+		})
+		expect(byAgentDate.get(`${agentB.id}:${utcDate(0).slice(0, 10)}`)).toEqual({
+			agentId: agentB.id,
+			date: utcDate(0).slice(0, 10),
+			conversations: 1,
+			messages: 2,
+			inputTokens: 1,
+			outputTokens: 2,
+		})
+		// Days without activity have no per-agent row; the consumer zero-fills the axis.
+		expect(byAgentDate.has(`${agentA.id}:${utcDate(5).slice(0, 10)}`)).toBe(false)
 		expect(overview.agents).toEqual([
 			{
 				agentId: agentA.id,
@@ -192,6 +220,8 @@ describe("stats overview aggregation", () => {
 		expect(overview.daily.reduce((sum, day) => sum + day.conversations, 0)).toBe(1)
 		// The per-agent breakdown stays global; the filter scopes totals and the daily series.
 		expect(overview.agents).toHaveLength(2)
+		// The per-agent daily series stays global as well so callers can re-aggregate client-side.
+		expect(new Set(overview.agentDaily.map((point) => point.agentId)).size).toBe(2)
 	})
 
 	it("respects the requested day window", async () => {

@@ -552,57 +552,31 @@ export async function recoverExpiredGenerationAttempts(): Promise<void> {
 	})
 }
 
-export type DailyCount = {
+export type AgentDailyCount = {
+	agentId: string
 	count: number
 	date: string
-}
-
-export type AgentConversationTotals = {
-	agentId: string
-	conversations: number
-	messages: number
 }
 
 const conversationDay = sql<string>`to_char(${conversation.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 
-export async function getDailyConversationCounts(since: Date, agentId?: string): Promise<DailyCount[]> {
+// Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
+export async function getDailyConversationCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
 	return db
-		.select({ date: conversationDay, count: count() })
-		.from(conversation)
-		.where(and(gte(conversation.createdAt, since), agentId ? eq(conversation.agentId, agentId) : undefined))
-		.groupBy(conversationDay)
-		.orderBy(conversationDay)
-}
-
-export async function getDailyMessageCounts(since: Date, agentId?: string): Promise<DailyCount[]> {
-	return db
-		.select({ date: messageDay, count: count() })
-		.from(message)
-		.innerJoin(conversation, eq(message.conversationId, conversation.id))
-		.where(and(gte(message.createdAt, since), agentId ? eq(conversation.agentId, agentId) : undefined))
-		.groupBy(messageDay)
-		.orderBy(messageDay)
-}
-
-export async function getConversationTotalsByAgent(since: Date): Promise<AgentConversationTotals[]> {
-	const conversations = db
-		.select({ agentId: conversation.agentId, conversations: count() })
+		.select({ agentId: conversation.agentId, date: conversationDay, count: count() })
 		.from(conversation)
 		.where(gte(conversation.createdAt, since))
-		.groupBy(conversation.agentId)
-	const messages = db
-		.select({ agentId: conversation.agentId, messages: count() })
+		.groupBy(conversation.agentId, conversationDay)
+		.orderBy(conversation.agentId, conversationDay)
+}
+
+export async function getDailyMessageCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
+	return db
+		.select({ agentId: conversation.agentId, date: messageDay, count: count() })
 		.from(message)
 		.innerJoin(conversation, eq(message.conversationId, conversation.id))
 		.where(gte(message.createdAt, since))
-		.groupBy(conversation.agentId)
-	const [conversationRows, messageRows] = await Promise.all([conversations, messages])
-	const messagesByAgent = new Map(messageRows.map((row) => [row.agentId, row.messages]))
-	const agentIds = new Set([...conversationRows.map((row) => row.agentId), ...messageRows.map((row) => row.agentId)])
-	return [...agentIds].map((agentId) => ({
-		agentId,
-		conversations: conversationRows.find((row) => row.agentId === agentId)?.conversations ?? 0,
-		messages: messagesByAgent.get(agentId) ?? 0,
-	}))
+		.groupBy(conversation.agentId, messageDay)
+		.orderBy(conversation.agentId, messageDay)
 }

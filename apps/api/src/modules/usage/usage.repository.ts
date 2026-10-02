@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { and, eq, gte, sql } from "drizzle-orm"
+import { eq, gte, sql } from "drizzle-orm"
 
 import { usageRecord } from "./usage.schema.ts"
 
@@ -32,31 +32,31 @@ export async function recordUsage(value: UsageRecord): Promise<void> {
 	}
 }
 
-export type DailyUsageTotals = {
+type DailyUsageTotals = {
 	date: string
 	inputTokens: number
 	outputTokens: number
+}
+
+export type AgentDailyUsageTotals = DailyUsageTotals & {
+	agentId: string
 }
 
 const usageDay = sql<string>`to_char(${usageRecord.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const usageInputTokens = sql<number>`coalesce(sum(${usageRecord.inputTokens}), 0)::int`
 const usageOutputTokens = sql<number>`coalesce(sum(${usageRecord.outputTokens}), 0)::int`
 
-export async function getDailyUsageTotals(since: Date, agentId?: string): Promise<DailyUsageTotals[]> {
+// Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
+export async function getDailyUsageTotalsByAgent(since: Date): Promise<AgentDailyUsageTotals[]> {
 	return db
-		.select({ date: usageDay, inputTokens: usageInputTokens, outputTokens: usageOutputTokens })
-		.from(usageRecord)
-		.where(and(gte(usageRecord.createdAt, since), agentId ? eq(usageRecord.agentId, agentId) : undefined))
-		.groupBy(usageDay)
-		.orderBy(usageDay)
-}
-
-export async function getUsageTotalsByAgent(
-	since: Date,
-): Promise<{ agentId: string; inputTokens: number; outputTokens: number }[]> {
-	return db
-		.select({ agentId: usageRecord.agentId, inputTokens: usageInputTokens, outputTokens: usageOutputTokens })
+		.select({
+			agentId: usageRecord.agentId,
+			date: usageDay,
+			inputTokens: usageInputTokens,
+			outputTokens: usageOutputTokens,
+		})
 		.from(usageRecord)
 		.where(gte(usageRecord.createdAt, since))
-		.groupBy(usageRecord.agentId)
+		.groupBy(usageRecord.agentId, usageDay)
+		.orderBy(usageRecord.agentId, usageDay)
 }

@@ -6,20 +6,14 @@ import { accessGate, useRequiredPermission } from "@/features/permissions/requir
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
+import { Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 type NavRequirement = "admin" | "agentRead" | "providerManage"
 
 type NavItem = {
-	to:
-		| "/dashboard"
-		| "/dashboard/agents"
-		| "/dashboard/users"
-		| "/dashboard/analytics"
-		| "/dashboard/ai-configuration"
-		| "/dashboard/account"
+	to: "/dashboard" | "/dashboard/agents" | "/dashboard/users" | "/dashboard/ai-configuration" | "/dashboard/account"
 	icon: typeof LayoutDashboard
 	requires?: NavRequirement
 }
@@ -28,7 +22,6 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
-	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
 ]
@@ -37,7 +30,6 @@ const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
 	"/dashboard/users": "nav.users",
-	"/dashboard/analytics": "nav.analytics",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>

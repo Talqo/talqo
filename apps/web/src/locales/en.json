@@ -188,20 +188,6 @@
 		"unusableWarning": "Stored credentials can no longer be decrypted. Re-enter and save the provider credentials.",
 		"validationError": "Choose both providers and model IDs before saving."
 	},
-	"analytics": {
-		"conversations": "Conversations",
-		"dailyTotals": "Daily totals for the last 30 days.",
-		"empty": "No agents yet. Create an agent on the Agents page to see statistics.",
-		"heading": "Analytics",
-		"last30Days": "{{metric}} (30 days)",
-		"loading": "Loading agents…",
-		"loadingStats": "Loading statistics…",
-		"messages": "Messages",
-		"selectAgent": "Select an agent",
-		"subheading": "Conversation and usage statistics per agent.",
-		"tokens": "Tokens",
-		"usageOverTime": "Usage over time"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "Choose your credentials to join this Talqo workspace.",
@@ -266,17 +252,23 @@
 	},
 	"dashboard": {
 		"agentColumn": "Agent",
+		"agentsLabel": "Agents",
+		"agentsSelected": "{{selected}} of {{total}} agents",
 		"conversations": "Conversations",
 		"dailyTotals": "Daily totals for the last 30 days.",
+		"deselectAll": "Deselect all",
 		"empty": "No conversations yet. Statistics appear once your agents start chatting.",
 		"heading": "Welcome to Talqo",
 		"last30Days": "{{metric}} (30 days)",
 		"loading": "Loading statistics…",
 		"messages": "Messages",
+		"noAgentsSelected": "No agents selected. Select at least one agent to see statistics.",
 		"perAgentDescription": "Totals per agent over the last 30 days.",
 		"perAgentTitle": "Per-agent breakdown",
+		"selectAll": "Select all",
 		"subheading": "Conversation and usage statistics across your agents.",
 		"tokens": "Tokens",
+		"total": "Total",
 		"usageOverTime": "Usage over time"
 	},
 	"embedSetup": {
@@ -423,7 +415,6 @@
 		"account": "Account",
 		"agents": "Agents",
 		"aiConfiguration": "AI configuration",
-		"analytics": "Analytics",
 		"dashboard": "Dashboard",
 		"users": "Users"
 	},

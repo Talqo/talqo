@@ -24,6 +24,16 @@ export const GetStatsOverview200 = zod.object({
 				outputTokens: zod.int(),
 			}),
 		),
+		agentDaily: zod.array(
+			zod.object({
+				date: zod.string(),
+				conversations: zod.int(),
+				messages: zod.int(),
+				inputTokens: zod.int(),
+				outputTokens: zod.int(),
+				agentId: zod.string(),
+			}),
+		),
 		agents: zod.array(
 			zod.object({
 				conversations: zod.int(),

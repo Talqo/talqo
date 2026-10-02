@@ -5108,6 +5108,33 @@
 														"required": ["date", "conversations", "messages", "inputTokens", "outputTokens"]
 													}
 												},
+												"agentDaily": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"date": {
+																"type": "string"
+															},
+															"conversations": {
+																"type": "integer"
+															},
+															"messages": {
+																"type": "integer"
+															},
+															"inputTokens": {
+																"type": "integer"
+															},
+															"outputTokens": {
+																"type": "integer"
+															},
+															"agentId": {
+																"type": "string"
+															}
+														},
+														"required": ["date", "conversations", "messages", "inputTokens", "outputTokens", "agentId"]
+													}
+												},
 												"agents": {
 													"type": "array",
 													"items": {
@@ -5143,7 +5170,7 @@
 													}
 												}
 											},
-											"required": ["days", "totals", "daily", "agents"]
+											"required": ["days", "totals", "daily", "agentDaily", "agents"]
 										}
 									},
 									"required": ["overview"]

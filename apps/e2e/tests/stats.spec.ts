@@ -123,8 +123,28 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await expect(agentRow.getByRole("cell").nth(2)).toHaveText("2")
 	await expect(agentRow.getByRole("cell").nth(3)).toHaveText("18")
 
-	// The analytics page reads the same statistics for the journey agent.
-	await page.getByRole("link", { name: "Analytics" }).click()
-	await expect(page).toHaveURL(/\/dashboard\/analytics/)
-	await expect(page.getByText("Conversations (30 days)")).toBeVisible()
+	// The merged statistics dashboard scopes every agent through the multi-select filter box;
+	// all agents are selected by default.
+	const agentFilter = page.getByRole("combobox", { name: "Agents", exact: true })
+	const agentOption = () => page.getByRole("option", { name: agentName, exact: true })
+	await agentFilter.click()
+	await expect(agentOption()).toBeVisible()
+	await expect(agentOption()).toHaveAttribute("aria-selected", "true")
+
+	// Removing the agent from the filter hides it from the per-agent breakdown.
+	await agentOption().click()
+	await expect(agentOption()).toHaveAttribute("aria-selected", "false")
+	await page.keyboard.press("Escape")
+	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toHaveCount(0)
+
+	// The quick actions clear and restore the whole selection.
+	await agentFilter.click()
+	await page.getByRole("button", { name: "Deselect all", exact: true }).click()
+	await page.keyboard.press("Escape")
+	await expect(page.getByText("No agents selected")).toBeVisible()
+	await agentFilter.click()
+	await page.getByRole("button", { name: "Select all", exact: true }).click()
+	await page.keyboard.press("Escape")
+	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toBeVisible()
+	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
 })

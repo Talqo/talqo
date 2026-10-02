@@ -188,20 +188,6 @@
 		"unusableWarning": "无法解密已存储的凭据。请重新输入并保存提供商凭据。",
 		"validationError": "保存前请选择两个提供商和模型 ID。"
 	},
-	"analytics": {
-		"conversations": "对话数",
-		"dailyTotals": "最近 30 天的每日总量。",
-		"empty": "还没有智能体。请在“智能体”页面创建智能体以查看统计。",
-		"heading": "分析",
-		"last30Days": "{{metric}}（30 天）",
-		"loading": "正在加载智能体…",
-		"loadingStats": "正在加载统计…",
-		"messages": "消息数",
-		"selectAgent": "选择智能体",
-		"subheading": "每个智能体的对话和使用统计。",
-		"tokens": "令牌数",
-		"usageOverTime": "使用量趋势"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "设置登录凭据以加入此 Talqo 工作区。",
@@ -266,17 +252,23 @@
 	},
 	"dashboard": {
 		"agentColumn": "智能体",
+		"agentsLabel": "智能体",
+		"agentsSelected": "已选择 {{selected}}/{{total}} 个智能体",
 		"conversations": "对话数",
 		"dailyTotals": "最近 30 天的每日总量。",
+		"deselectAll": "取消全选",
 		"empty": "还没有对话。智能体开始对话后，这里会显示统计信息。",
 		"heading": "欢迎使用 Talqo",
 		"last30Days": "{{metric}}（30 天）",
 		"loading": "正在加载统计…",
 		"messages": "消息数",
+		"noAgentsSelected": "未选择智能体。请至少选择一个智能体以查看统计信息。",
 		"perAgentDescription": "最近 30 天每个智能体的总量。",
 		"perAgentTitle": "按智能体细分",
+		"selectAll": "全选",
 		"subheading": "您所有智能体的对话和使用统计。",
 		"tokens": "令牌数",
+		"total": "总计",
 		"usageOverTime": "使用量趋势"
 	},
 	"embedSetup": {
@@ -423,7 +415,6 @@
 		"account": "账户",
 		"agents": "智能体",
 		"aiConfiguration": "AI 配置",
-		"analytics": "分析",
 		"dashboard": "仪表盘",
 		"users": "用户"
 	},

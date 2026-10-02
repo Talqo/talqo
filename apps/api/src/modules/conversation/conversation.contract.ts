@@ -146,7 +146,7 @@ export const cancelRoute = createRoute({
 	},
 })
 
-export const STATS_MAX_DAYS = 365
+const STATS_MAX_DAYS = 365
 const statsQuerySchema = z.object({
 	days: z.coerce.number().int().min(1).max(STATS_MAX_DAYS).optional(),
 	agentId: z.string().optional(),
@@ -168,11 +168,15 @@ const statsAgentTotalsSchema = statsTotalsSchema.extend({
 	agentId: z.string(),
 	agentName: z.string(),
 })
+const statsAgentDailyPointSchema = statsDailyPointSchema.extend({
+	agentId: z.string(),
+})
 export const statsOverviewResponseSchema = z.object({
 	overview: z.object({
 		days: z.number().int(),
 		totals: statsTotalsSchema,
 		daily: z.array(statsDailyPointSchema),
+		agentDaily: z.array(statsAgentDailyPointSchema),
 		agents: z.array(statsAgentTotalsSchema),
 	}),
 })

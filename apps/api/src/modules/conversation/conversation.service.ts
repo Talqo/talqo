@@ -536,7 +536,7 @@ export type StatsOverviewQuery = {
 	days: number
 }
 
-export type StatsDailyPoint = {
+type StatsDailyPoint = {
 	conversations: number
 	date: string
 	inputTokens: number
@@ -544,7 +544,7 @@ export type StatsDailyPoint = {
 	outputTokens: number
 }
 
-export type StatsAgentTotals = {
+type StatsAgentTotals = {
 	agentId: string
 	agentName: string
 	conversations: number
@@ -553,7 +553,12 @@ export type StatsAgentTotals = {
 	outputTokens: number
 }
 
+type StatsAgentDailyPoint = StatsDailyPoint & {
+	agentId: string
+}
+
 export type StatsOverview = {
+	agentDaily: StatsAgentDailyPoint[]
 	agents: StatsAgentTotals[]
 	daily: StatsDailyPoint[]
 	days: number
@@ -573,70 +578,101 @@ function utcDateKey(date: Date): string {
 
 // Orchestration owner for the statistics read model: daily conversation/message counts come
 // from this module, token sums come from the usage module (usage never depends on conversation).
+// The sparse per-agent-day rows are the single source; totals, the dense daily axis, and the
+// per-agent breakdown are all derived from them so the views can never disagree.
 export async function getStatsOverview(query: StatsOverviewQuery): Promise<StatsOverview> {
 	const since = new Date(Date.now() - (query.days - 1) * MILLISECONDS_PER_DAY)
 	since.setUTCHours(0, 0, 0, 0)
-	const [conversationCounts, messageCounts, dailyUsage, conversationByAgent, usageByAgent, agents] = await Promise.all([
-		repository.getDailyConversationCounts(since, query.agentId),
-		repository.getDailyMessageCounts(since, query.agentId),
-		usageService.getDailyUsageTotals(since, query.agentId),
-		repository.getConversationTotalsByAgent(since),
-		usageService.getUsageTotalsByAgent(since),
+	const [conversationCounts, messageCounts, usageTotals, agents] = await Promise.all([
+		repository.getDailyConversationCountsByAgent(since),
+		repository.getDailyMessageCountsByAgent(since),
+		usageService.getDailyUsageTotalsByAgent(since),
 		agentService.listAgents(),
 	])
-	const conversationsByDay = new Map(conversationCounts.map((row) => [row.date, row.count]))
-	const messagesByDay = new Map(messageCounts.map((row) => [row.date, row.count]))
-	const usageByDay = new Map(dailyUsage.map((row) => [row.date, row]))
-	const daily: StatsDailyPoint[] = []
-	for (let offset = 0; offset < query.days; offset += 1) {
-		const date = utcDateKey(new Date(since.getTime() + offset * MILLISECONDS_PER_DAY))
-		const usage = usageByDay.get(date)
-		daily.push({
-			date,
-			conversations: conversationsByDay.get(date) ?? 0,
-			messages: messagesByDay.get(date) ?? 0,
-			inputTokens: usage?.inputTokens ?? 0,
-			outputTokens: usage?.outputTokens ?? 0,
-		})
+	const byAgentDay = new Map<string, Map<string, StatsAgentDailyPoint>>()
+	const dayPoint = (agentId: string, date: string): StatsAgentDailyPoint => {
+		let byDay = byAgentDay.get(agentId)
+		if (!byDay) {
+			byDay = new Map()
+			byAgentDay.set(agentId, byDay)
+		}
+		let point = byDay.get(date)
+		if (!point) {
+			point = { agentId, date, conversations: 0, messages: 0, inputTokens: 0, outputTokens: 0 }
+			byDay.set(date, point)
+		}
+		return point
 	}
+	for (const row of conversationCounts) dayPoint(row.agentId, row.date).conversations += row.count
+	for (const row of messageCounts) dayPoint(row.agentId, row.date).messages += row.count
+	for (const row of usageTotals) {
+		const point = dayPoint(row.agentId, row.date)
+		point.inputTokens += row.inputTokens
+		point.outputTokens += row.outputTokens
+	}
+	const agentDaily: StatsAgentDailyPoint[] = []
+	for (const byDay of byAgentDay.values()) {
+		agentDaily.push(...byDay.values())
+	}
+	agentDaily.sort((left, right) => left.agentId.localeCompare(right.agentId) || left.date.localeCompare(right.date))
+
 	const agentNames = new Map(agents.map((agent) => [agent.id, agent.name]))
-	const conversationTotalsByAgent = new Map(conversationByAgent.map((row) => [row.agentId, row]))
-	const usageTotalsByAgent = new Map(usageByAgent.map((row) => [row.agentId, row]))
+	const agentTotals: StatsAgentTotals[] = []
+	for (const [agentId, byDay] of byAgentDay) {
+		const totalsRow: StatsAgentTotals = {
+			agentId,
+			agentName: agentNames.get(agentId) ?? agentId,
+			conversations: 0,
+			messages: 0,
+			inputTokens: 0,
+			outputTokens: 0,
+		}
+		for (const point of byDay.values()) {
+			totalsRow.conversations += point.conversations
+			totalsRow.messages += point.messages
+			totalsRow.inputTokens += point.inputTokens
+			totalsRow.outputTokens += point.outputTokens
+		}
+		agentTotals.push(totalsRow)
+	}
+	agentTotals.sort((left, right) => left.agentName.localeCompare(right.agentName))
+
+	// The optional agent filter scopes only the dense daily axis and the overall totals;
+	// the per-agent series and breakdown stay global for client-side selection.
+	const axisTotals = new Map<string, StatsDailyPoint>()
+	for (const point of agentDaily) {
+		if (query.agentId && point.agentId !== query.agentId) continue
+		const day = axisTotals.get(point.date) ?? {
+			date: point.date,
+			conversations: 0,
+			messages: 0,
+			inputTokens: 0,
+			outputTokens: 0,
+		}
+		day.conversations += point.conversations
+		day.messages += point.messages
+		day.inputTokens += point.inputTokens
+		day.outputTokens += point.outputTokens
+		axisTotals.set(point.date, day)
+	}
+	const daily: StatsDailyPoint[] = []
 	const totals = {
 		conversations: 0,
 		messages: 0,
 		inputTokens: 0,
 		outputTokens: 0,
 	}
-	const agentIds = new Set([...conversationTotalsByAgent.keys(), ...usageTotalsByAgent.keys()])
-	const agentTotals: StatsAgentTotals[] = [...agentIds].map((agentId) => {
-		const conversations = conversationTotalsByAgent.get(agentId)
-		const usage = usageTotalsByAgent.get(agentId)
-		return {
-			agentId,
-			agentName: agentNames.get(agentId) ?? agentId,
-			conversations: conversations?.conversations ?? 0,
-			messages: conversations?.messages ?? 0,
-			inputTokens: usage?.inputTokens ?? 0,
-			outputTokens: usage?.outputTokens ?? 0,
-		}
-	})
-	agentTotals.sort((left, right) => left.agentName.localeCompare(right.agentName))
-	if (query.agentId) {
-		const filtered = agentTotals.find((row) => row.agentId === query.agentId)
-		totals.conversations = filtered?.conversations ?? 0
-		totals.messages = filtered?.messages ?? 0
-		totals.inputTokens = filtered?.inputTokens ?? 0
-		totals.outputTokens = filtered?.outputTokens ?? 0
-	} else {
-		for (const day of daily) {
-			totals.conversations += day.conversations
-			totals.messages += day.messages
-			totals.inputTokens += day.inputTokens
-			totals.outputTokens += day.outputTokens
-		}
+	// The daily series stays dense so charts render zero-activity days.
+	for (let offset = 0; offset < query.days; offset += 1) {
+		const date = utcDateKey(new Date(since.getTime() + offset * MILLISECONDS_PER_DAY))
+		const day = axisTotals.get(date) ?? { date, conversations: 0, messages: 0, inputTokens: 0, outputTokens: 0 }
+		daily.push(day)
+		totals.conversations += day.conversations
+		totals.messages += day.messages
+		totals.inputTokens += day.inputTokens
+		totals.outputTokens += day.outputTokens
 	}
-	return { agents: agentTotals, daily, days: query.days, totals }
+	return { agentDaily, agents: agentTotals, daily, days: query.days, totals }
 }
 
 let defaultService: ReturnType<typeof createConversationService> | undefined
