@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -288,12 +289,14 @@ function UsersList() {
 	}
 
 	if (usersQuery.isError) {
+		// Covers an admin grant revoked while the page is already open.
+		if (errorStatus === FORBIDDEN_STATUS) {
+			return <AccessDenied resource={t("users.heading")} />
+		}
 		return (
 			<Card>
 				<CardContent>
-					<p className="text-muted-foreground text-sm">
-						{errorStatus === FORBIDDEN_STATUS ? t("users.forbidden") : t("auth.errorFallback")}
-					</p>
+					<p className="text-muted-foreground text-sm">{t("auth.errorFallback")}</p>
 				</CardContent>
 			</Card>
 		)
@@ -426,17 +429,31 @@ function InviteMemberDialog() {
 
 export function UsersPage() {
 	const { t } = useTranslation()
-	// The nav item is admin-only, so this only matters for a direct link.
-	const isAdmin = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
+	const permissionsQuery = useGetMyPermissions()
+	const isAdmin = permissionsQuery.data?.data.permissions.includes("admin") ?? false
+
+	if (permissionsQuery.isLoading) {
+		return <p className="text-muted-foreground">{t("auth.loading")}</p>
+	}
+
+	// An unresolved permission is not a denial, so never let it read as one.
+	if (permissionsQuery.isError) {
+		return <p className="text-muted-foreground">{t("auth.errorFallback")}</p>
+	}
+
+	if (!isAdmin) {
+		return (
+			<div className="mx-auto max-w-3xl space-y-6">
+				<PageHeader title={t("users.heading")} description={t("users.subheading")} />
+				<AccessDenied resource={t("users.heading")} />
+			</div>
+		)
+	}
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
-			<PageHeader
-				title={t("users.heading")}
-				description={t("users.subheading")}
-				actions={isAdmin ? <InviteMemberDialog /> : undefined}
-			/>
-			{isAdmin ? <UsersList /> : null}
+			<PageHeader title={t("users.heading")} description={t("users.subheading")} actions={<InviteMemberDialog />} />
+			<UsersList />
 		</div>
 	)
 }

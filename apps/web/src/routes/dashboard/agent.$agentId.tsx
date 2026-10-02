@@ -148,7 +148,7 @@ function AgentConfigPage() {
 		return (
 			<div className="mx-auto max-w-3xl space-y-6">
 				<BackLink t={t} />
-				<AccessDenied />
+				<AccessDenied resource={t("agents.heading")} />
 			</div>
 		)
 	}

@@ -370,8 +370,8 @@
 		"users": "Uživatelé"
 	},
 	"permissions": {
-		"accessDeniedBody": "Požádejte správce o přidělení přístupu k agentům, pokud ho potřebujete.",
-		"accessDeniedDescription": "Váš účet nemá oprávnění přistupovat k agentům.",
+		"accessDeniedBody": "Správce vám ho může udělit. Do té doby zůstávají dveře zavřené.",
+		"accessDeniedDescription": "Dobrý pokus. {{resource}} je za oprávněním, které váš účet nemá.",
 		"accessDeniedTitle": "Přístup omezen"
 	},
 	"problems": {
@@ -422,7 +422,6 @@
 		"deletePrompt": "Tímto trvale smažete účet {{username}}, uživatel bude odhlášen ze všech relací a přijde o svá oprávnění. Akci nelze vrátit.",
 		"deleteTitle": "Smazat uživatele?",
 		"deleting": "Mazání…",
-		"forbidden": "Pro zobrazení uživatelů potřebujete přístup správce.",
 		"generate": "Vygenerovat",
 		"heading": "Uživatelé",
 		"loading": "Načítání uživatelů…",

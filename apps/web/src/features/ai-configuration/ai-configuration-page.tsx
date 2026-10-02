@@ -13,6 +13,7 @@ import {
 	useListAiProviders,
 	useSaveAiProviderConfiguration,
 } from "@/api/generated/ai-providers/ai-providers.ts"
+import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import {
 	aiConfigurationFormSchema,
@@ -23,6 +24,7 @@ import { storedCredentialsMatch } from "@/features/ai-configuration/discovery-re
 import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplete"
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
 import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
@@ -393,8 +395,10 @@ function RoleFields(props: {
 
 export function AiConfigurationPage() {
 	const { t } = useTranslation()
-	const providersQuery = useListAiProviders()
-	const configurationQuery = useGetAiProviderConfiguration()
+	const permissionsQuery = useGetMyPermissions()
+	const canManage = permissionsQuery.data?.data.permissions.includes("ai_provider:manage") ?? false
+	const providersQuery = useListAiProviders({ query: { enabled: canManage } })
+	const configurationQuery = useGetAiProviderConfiguration({ query: { enabled: canManage } })
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
@@ -416,6 +420,21 @@ export function AiConfigurationPage() {
 	}, [configurationQuery.data, reset])
 
 	const watchedTextRole = useWatch({ control, name: "text" })
+
+	if (permissionsQuery.isLoading) return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>
+	if (permissionsQuery.isError)
+		return (
+			<p role="alert" className="text-destructive">
+				{t("aiConfiguration.loadError")}
+			</p>
+		)
+	if (!canManage)
+		return (
+			<div className="mx-auto max-w-3xl space-y-6">
+				<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
+				<AccessDenied resource={t("aiConfiguration.heading")} />
+			</div>
+		)
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
 		return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>

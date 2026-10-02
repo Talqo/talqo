@@ -105,7 +105,7 @@ function AnalyticsPage() {
 		return (
 			<div className="mx-auto max-w-5xl space-y-6">
 				<PageHeader title={t("analytics.heading")} description={t("analytics.subheading")} />
-				<AccessDenied />
+				<AccessDenied resource={t("analytics.heading")} />
 			</div>
 		)
 	}

@@ -130,6 +130,11 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 
 	await page.goto("/dashboard/agents")
 	await expect(page.getByText("Access restricted")).toBeVisible()
+
+	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.
+	await page.goto("/dashboard/users")
+	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page.getByRole("button", { name: "Invite a member" })).toHaveCount(0)
 })
 
 test("switching accounts does not reuse cached agent permissions", async ({ page }) => {

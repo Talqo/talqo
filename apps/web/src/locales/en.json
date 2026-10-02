@@ -370,8 +370,8 @@
 		"users": "Users"
 	},
 	"permissions": {
-		"accessDeniedBody": "Ask an admin to grant your account agent access if you need it.",
-		"accessDeniedDescription": "Your account does not have permission to access agents.",
+		"accessDeniedBody": "An admin can grant it. Until then, this door's closed.",
+		"accessDeniedDescription": "Nice try. {{resource}} sits behind a permission your account doesn't have.",
 		"accessDeniedTitle": "Access restricted"
 	},
 	"problems": {
@@ -422,7 +422,6 @@
 		"deletePrompt": "This permanently deletes {{username}}, signs them out everywhere, and removes their permissions. There is no undo.",
 		"deleteTitle": "Delete user?",
 		"deleting": "Deleting…",
-		"forbidden": "You need admin access to view users.",
 		"generate": "Generate",
 		"heading": "Users",
 		"loading": "Loading users…",
