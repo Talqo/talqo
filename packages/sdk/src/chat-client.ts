@@ -257,7 +257,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					storage.getItem(storageKey),
 				])
 				configuration = loadedConfiguration
-				// A disabled embed never opens a session: no restore, no pending-send recovery.
 				if (!loadedConfiguration.isDisabled) {
 					const record = readChatStorageRecord(serialized)
 					credential = record?.credential

@@ -4,7 +4,6 @@ import type { AsyncStorage } from "./storage"
 export type ChatConfiguration = {
 	readonly title: string
 	readonly appearance: Readonly<Record<string, unknown>>
-	/** Operator off-switch from the public embed config; a disabled embed never opens sessions. */
 	readonly isDisabled: boolean
 }
 
