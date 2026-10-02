@@ -15,10 +15,11 @@ Talqo covers the embeddable widget, the operator dashboard, and the connection S
 | Term | Meaning |
 |------|---------|
 | Agent | The configured AI persona (system prompt, blacklist, knowledge base, MCP tools) that answers end users; a deployment may run multiple agents |
+| Embed | One configured website integration: the agent it points at, its public token, and its appearance. The SDK reads it, and any UI uses its token to talk to the API |
 | MCP | Model Context Protocol — lets the agent call external tools/structured data sources |
 | RAG | Retrieval-Augmented Generation — extracts relevant context from the knowledge base when responding to end user |
-| SDK | The headless connection SDK (FR-3) |
-| Widget | The pre-built, embeddable chat UI (FR-1) |
+| SDK | The headless client (FR-3) any UI uses to talk to the API with an embed token |
+| Widget | The pre-built, embeddable chat UI (FR-1); one of many UIs that can use an embed token through the SDK |
 | Knowledge base | Content (uploaded files or crawled site pages) the agent references when answering |
 
 ### 1.4 Intended Audience

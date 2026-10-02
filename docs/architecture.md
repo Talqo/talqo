@@ -2,7 +2,7 @@
 
 This file is the single canonical internal architecture guide. `apps/docs` owns public product documentation; root `docs` owns internal engineering documentation and ADRs.
 
-Update this guide in the same change as any decision that changes architecture, boundaries, ownership, canonical structure, or the technology roles below. Add or supersede an ADR when the decision is significant and durable.
+Update this guide in the same change as any decision that changes architecture, boundaries, ownership, canonical structure, or the technology roles below. Add or supersede an ADR when the choice had credible alternatives with real tradeoffs.
 
 ## System Shape
 
