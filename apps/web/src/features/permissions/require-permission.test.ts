@@ -21,8 +21,7 @@ describe("accessGate", () => {
 		expect(accessGate("ai_provider:manage", granted)).toBe("denied")
 	})
 
-	// A failed request is not an authorization decision, and reporting it as one
-	// told operators they lacked access they still had.
+	// A failed request is not an authorization decision.
 	test("reports an unresolved permission as pending, never as a denial", () => {
 		expect(accessGate("admin", query({ isPending: true }))).toBe("pending")
 	})

@@ -122,8 +122,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const accountName = useGetSession().data?.data.user?.username ?? "…"
 	const permissionsQuery = useGetMyPermissions()
 	const permissions = permissionsQuery.data?.data.permissions
-	// Children stay unmounted until the gate opens, so a denied or unresolved
-	// caller never triggers the page's own queries.
+	// Children stay unmounted until the gate opens, so a denied caller fires no queries.
 	const gate = accessGate(useRequiredPermission(), permissionsQuery)
 
 	return (

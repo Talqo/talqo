@@ -14,14 +14,12 @@ type PermissionQuery = {
 	isError: boolean
 }
 
-// Declares a route's permission requirement as route context. The dashboard
-// layout enforces it once, so no page renders its own denial.
+// Carries the requirement into route context, for the layout to enforce.
 export function requirePermission(permission: Permission) {
 	return () => ({ requires: permission }) as const
 }
 
-// Matches arrive root-first, so the last requirement found is the deepest one.
-// A nested route can therefore tighten what its parent already required.
+// Matches arrive root-first, so the last requirement found is the deepest.
 export function useRequiredPermission(): Permission | undefined {
 	let required: Permission | undefined
 	for (const match of useMatches()) {
@@ -30,8 +28,7 @@ export function useRequiredPermission(): Permission | undefined {
 	return required
 }
 
-// Unresolved permissions are never a denial: a failed or in-flight request must
-// not read as "your account lacks access".
+// An unresolved request is never a denial.
 export function accessGate(required: Permission | undefined, query: PermissionQuery): AccessGate {
 	if (!required) return "open"
 	if (query.isPending) return "pending"

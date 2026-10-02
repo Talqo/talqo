@@ -2,8 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talq
 import { LockIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-// Deliberately calm and unnamed: nothing failed, and copy that names no
-// resource cannot go stale when a page moves.
+// Names no resource, so the copy cannot go stale when a page moves.
 export function AccessDenied() {
 	const { t } = useTranslation()
 	return (
