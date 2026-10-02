@@ -188,7 +188,8 @@ function EmbedDetailPage() {
 	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: t(themeLabels[value]) }))
 	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
-	const scriptUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+	const configuredScriptUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+	const scriptUrl = embed ? (configuredScriptUrl ?? `${window.location.origin}/widget.js`) : undefined
 	const snippet =
 		scriptUrl && embed
 			? buildEmbedSnippet(scriptUrl, {
@@ -253,22 +254,18 @@ function EmbedDetailPage() {
 					<CardDescription>{t("embedSetup.embedDescription")}</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{snippet ? (
-						<div className="relative">
-							<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
-							<Button
-								variant="outline"
-								size="icon"
-								className="absolute top-2 right-2"
-								onClick={copySnippet}
-								aria-label={t("embedSetup.copyEmbed")}
-							>
-								{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
-							</Button>
-						</div>
-					) : (
-						<p className="text-muted-foreground">{t("embedSetup.scriptUrlMissing")}</p>
-					)}
+					<div className="relative">
+						<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
+						<Button
+							variant="outline"
+							size="icon"
+							className="absolute top-2 right-2"
+							onClick={copySnippet}
+							aria-label={t("embedSetup.copyEmbed")}
+						>
+							{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
+						</Button>
+					</div>
 				</CardContent>
 			</Card>
 

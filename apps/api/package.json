@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bun build src/index.ts --outdir dist --target bun",
+		"build": "bun build src/index.ts src/db/migrate.ts --outdir dist --target bun",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bun run src/db/migrate.ts",
 		"db:seed": "bun run src/db/seed.ts",

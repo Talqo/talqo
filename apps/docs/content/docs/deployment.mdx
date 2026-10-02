@@ -3,17 +3,54 @@ title: Deployment
 description: Self-hosted Talqo deployment requirements.
 ---
 
-## Application secret
+## Docker Compose
 
-Set `APP_SECRET` before running database migrations or starting the API. The API refuses to boot without it. It must be base64url-encoded and decode to at least 32 random bytes:
+The [talqo-deploy](https://github.com/Talqo/talqo-deploy) repository runs Talqo, Postgres, and Docling as one Compose project:
 
 ```sh
-openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+git clone https://github.com/Talqo/talqo-deploy.git
+cd talqo-deploy/docker-compose
+cp .env.example .env
 ```
 
-Back up this value separately from the database. Provider credentials stored through **Dashboard → AI configuration** are encrypted with a key derived from `APP_SECRET`; changing or losing it makes them unusable, and they must be entered again.
+Set `APP_SECRET` and `POSTGRES_PASSWORD` in `.env`, following the comments there, then start the stack. Talqo runs its own migrations on start:
+
+```sh
+docker compose up -d
+```
+
+The dashboard is on [http://127.0.0.1:3000](http://127.0.0.1:3000). Everything is served from that one origin, so there is no CORS setup.
+
+## Exposing Talqo
+
+The published port binds to loopback, so nothing outside the machine can reach Talqo until you put a reverse proxy in front of it. Talqo serves plain HTTP and does not terminate TLS itself.
+
+Add a proxy such as Caddy or Traefik in the same Compose project, point it at the `app` service on port `3000`, and give it a certificate. Serve Talqo at the domain root rather than a subfolder, because the widget script resolves absolute paths from the origin.
+
+If your proxy runs on a separate machine or container network, add that network's address to `TALQO_TRUSTED_PROXY_CIDRS` so rate limiting sees real visitor addresses instead of the proxy's.
+
+Talqo speaks HTTP/1.1, so your proxy handles TLS and can offer clients HTTP/2 or HTTP/3 on its own.
+
+Chat replies stream over Server-Sent Events, so the proxy must not buffer responses and must allow reads longer than `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS`. nginx breaks both by default: it withholds streamed replies until the model finishes, and its 60s read timeout cuts generations short before Talqo's 120s default.
+
+## Keeping your data
+
+Talqo stores its database and uploaded files in the `talqo_postgres-data` and `talqo_uploads` volumes. Back both up. Avoid `docker compose down -v`, which deletes them.
+
+Back up `APP_SECRET` too. It encrypts the provider credentials you enter under **Dashboard → AI configuration**, and it cannot be recovered from the database. If you lose it, you must re-enter those credentials.
+
+## Updating
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Database migrations are not reversible. Each pull that brings a newer image can change the schema, so dump the database first, or pin `TALQO_VERSION` to a specific version to decide when that happens.
 
 ## End-user chat policy
+
+Each variable below is available in `.env` and passed to the API by the Compose file, so you can change any of them there. Uncomment the ones you want in `.env.example` and restart.
 
 | Variable                                       | Default  | Purpose                                                                |
 | ---------------------------------------------- | -------- | ---------------------------------------------------------------------- |
