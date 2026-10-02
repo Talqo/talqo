@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header"
 import { useActiveAgent } from "@/features/agents/use-active-agent"
-import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { requirePermission } from "@/features/permissions/require-permission"
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -12,9 +12,8 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 
 import { createMockStats, type AgentStats } from "./-agent-stats"
 
-const FORBIDDEN_STATUS = 403
-
 export const Route = createFileRoute("/dashboard/analytics")({
+	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		agent: typeof search.agent === "string" ? search.agent : undefined,
 	}),
@@ -96,19 +95,10 @@ function MetricChart({
 
 function AnalyticsPage() {
 	const { t } = useTranslation()
-	const { agents, error, isLoading, activeId, setSelectedId } = useActiveAgent()
+	const { agents, isLoading, activeId, setSelectedId } = useActiveAgent()
 	const stats = activeId ? createMockStats(activeId) : undefined
 	const { language } = useLanguage()
 	const compactNumber = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
-
-	if (error?.status === FORBIDDEN_STATUS) {
-		return (
-			<div className="mx-auto max-w-5xl space-y-6">
-				<PageHeader title={t("analytics.heading")} description={t("analytics.subheading")} />
-				<AccessDenied resource={t("analytics.heading")} />
-			</div>
-		)
-	}
 
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">

@@ -371,7 +371,7 @@
 	},
 	"permissions": {
 		"accessDeniedBody": "管理员可以为您授权。在此之前，此门暂不开放。",
-		"accessDeniedDescription": "不错的尝试。{{resource}} 需要您的账号没有的权限。",
+		"accessDeniedDescription": "不错的尝试。此页面需要您的账号没有的权限。",
 		"accessDeniedTitle": "访问受限"
 	},
 	"problems": {

@@ -371,7 +371,7 @@
 	},
 	"permissions": {
 		"accessDeniedBody": "An admin can grant it. Until then, this door's closed.",
-		"accessDeniedDescription": "Nice try. {{resource}} sits behind a permission your account doesn't have.",
+		"accessDeniedDescription": "Nice try. This page sits behind a permission your account doesn't have.",
 		"accessDeniedTitle": "Access restricted"
 	},
 	"problems": {

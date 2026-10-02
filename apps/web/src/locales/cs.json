@@ -371,7 +371,7 @@
 	},
 	"permissions": {
 		"accessDeniedBody": "Správce vám ho může udělit. Do té doby zůstávají dveře zavřené.",
-		"accessDeniedDescription": "Dobrý pokus. {{resource}} je za oprávněním, které váš účet nemá.",
+		"accessDeniedDescription": "Dobrý pokus. Tato stránka je za oprávněním, které váš účet nemá.",
 		"accessDeniedTitle": "Přístup omezen"
 	},
 	"problems": {

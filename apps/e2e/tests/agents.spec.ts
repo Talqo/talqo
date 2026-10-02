@@ -135,6 +135,11 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await page.goto("/dashboard/users")
 	await expect(page.getByText("Access restricted")).toBeVisible()
 	await expect(page.getByRole("button", { name: "Invite a member" })).toHaveCount(0)
+
+	// Nested routes are covered by the same gate, not just top-level ones.
+	await page.goto("/dashboard/ai-configuration")
+	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 })
 
 test("switching accounts does not reuse cached agent permissions", async ({ page }) => {

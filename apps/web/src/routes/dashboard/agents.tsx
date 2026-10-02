@@ -2,7 +2,7 @@ import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { nextDefaultAgentName } from "@/features/agents/default-agent-name"
-import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { requirePermission } from "@/features/permissions/require-permission"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -12,6 +12,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agents")({
+	beforeLoad: requirePermission("agents:read"),
 	component: AgentsPage,
 })
 
@@ -37,15 +38,12 @@ function AgentsPage() {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
 	const navigate = useNavigate()
-	const permissionsQuery = useGetMyPermissions()
-	const permissions = permissionsQuery.data?.data.permissions
 	const { data, error, isLoading, refetch, isFetching } = useListAgents()
 	const agents = data?.data.agents
 	const createAgent = useCreateAgent()
 	const [createError, setCreateError] = useState<string | null>(null)
 
-	const canRead = permissions?.includes("agents:read") ?? false
-	const canManage = permissions?.includes("agents:manage") ?? false
+	const canManage = useGetMyPermissions().data?.data.permissions.includes("agents:manage") ?? false
 
 	async function handleCreate() {
 		setCreateError(null)
@@ -70,23 +68,6 @@ function AgentsPage() {
 						: t("agents.createFailed"),
 			)
 		}
-	}
-
-	if (permissionsQuery.isLoading) {
-		return (
-			<div className="mx-auto max-w-5xl">
-				<p className="text-muted-foreground">{t("agents.loading")}</p>
-			</div>
-		)
-	}
-
-	if (!canRead) {
-		return (
-			<div className="mx-auto max-w-5xl space-y-6">
-				<PageHeader title={t("agents.heading")} description={t("agents.subheading")} />
-				<AccessDenied resource={t("agents.heading")} />
-			</div>
-		)
 	}
 
 	return (

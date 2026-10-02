@@ -4,7 +4,6 @@ import {
 	getListUsersQueryKey,
 	useCreateInvitation,
 	useDeleteUser,
-	useGetMyPermissions,
 	useListUsers,
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
@@ -289,10 +288,8 @@ function UsersList() {
 	}
 
 	if (usersQuery.isError) {
-		// Covers an admin grant revoked while the page is already open.
-		if (errorStatus === FORBIDDEN_STATUS) {
-			return <AccessDenied resource={t("users.heading")} />
-		}
+		// A grant revoked while the page is open still lands here.
+		if (errorStatus === FORBIDDEN_STATUS) return <AccessDenied />
 		return (
 			<Card>
 				<CardContent>
@@ -429,26 +426,6 @@ function InviteMemberDialog() {
 
 export function UsersPage() {
 	const { t } = useTranslation()
-	const permissionsQuery = useGetMyPermissions()
-	const isAdmin = permissionsQuery.data?.data.permissions.includes("admin") ?? false
-
-	if (permissionsQuery.isLoading) {
-		return <p className="text-muted-foreground">{t("auth.loading")}</p>
-	}
-
-	// An unresolved permission is not a denial, so never let it read as one.
-	if (permissionsQuery.isError) {
-		return <p className="text-muted-foreground">{t("auth.errorFallback")}</p>
-	}
-
-	if (!isAdmin) {
-		return (
-			<div className="mx-auto max-w-3xl space-y-6">
-				<PageHeader title={t("users.heading")} description={t("users.subheading")} />
-				<AccessDenied resource={t("users.heading")} />
-			</div>
-		)
-	}
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
