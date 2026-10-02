@@ -417,9 +417,9 @@
 					"primaryKey": false,
 					"notNull": true
 				},
-				"estimated_input_tokens": {
-					"name": "estimated_input_tokens",
-					"type": "integer",
+				"input_text": {
+					"name": "input_text",
+					"type": "text",
 					"primaryKey": false,
 					"notNull": true
 				},
