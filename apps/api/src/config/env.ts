@@ -66,6 +66,7 @@ const envSchema = z
 			.enum(["true", "false"])
 			.default("false")
 			.transform((value) => value === "true"),
+		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
 		TALQO_WEB_DIST: z.string().min(1).optional(),
 		TALQO_WIDGET_DIST: z.string().min(1).optional(),
 		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
@@ -130,6 +131,9 @@ export const env: Env = {
 	},
 	get TALQO_SERVE_STATIC() {
 		return load().TALQO_SERVE_STATIC
+	},
+	get TALQO_UPLOAD_DIR() {
+		return load().TALQO_UPLOAD_DIR
 	},
 	get TALQO_WEB_DIST() {
 		return load().TALQO_WEB_DIST

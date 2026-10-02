@@ -24,7 +24,7 @@ export const MAX_UPLOAD_BODY_BYTES = MAX_FILE_SIZE_BYTES + MULTIPART_MARGIN_BYTE
 export const ALLOWED_EXTENSIONS = [".docx", ".md", ".pdf", ".txt"] as const
 const ALLOWED_EXTENSION_SET: ReadonlySet<string> = new Set(ALLOWED_EXTENSIONS)
 
-const UPLOAD_DIR = process.env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
+const UPLOAD_DIR = env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
 
 const FORBIDDEN_NAME_CHARS = /[/\\\0]|\.{2}/
 
