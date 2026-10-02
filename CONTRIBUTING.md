@@ -64,6 +64,6 @@ Run `bun run build` for build-affecting changes and `bun run e2e` for critical j
 
 ## Documentation And Pull Requests
 
-Update `apps/docs` for public product behavior and root `docs` for internal engineering guidance. Keep `docs/architecture.md` aligned with changes to architecture, boundaries, ownership, or canonical structure. Record significant, long-lived decisions in `docs/adr` using its local instructions.
+Update `apps/docs` for public product behavior and root `docs` for internal engineering guidance. Keep `docs/architecture.md` aligned with changes to architecture, boundaries, ownership, or canonical structure. Record decisions that had credible alternatives with real tradeoffs in `docs/adr` using its local instructions.
 
 Pull requests must follow the [pull request template](.github/pull_request_template.md), describe verification, and keep documentation and tests aligned with the change.
