@@ -66,6 +66,7 @@ const badRequestProblems = problemResponse([
 	PROBLEM_CODES.CHAT_CONVERSATION_TOO_LONG,
 ])
 const unauthorizedProblem = problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED])
+const forbiddenProblem = problemResponse([PROBLEM_CODES.EMBED_DISABLED])
 const notFoundProblem = problemResponse([PROBLEM_CODES.EMBED_NOT_FOUND])
 const conflictProblem = problemResponse([PROBLEM_CODES.CHAT_REQUEST_CONFLICT])
 const rateLimitProblems = problemResponse([
@@ -92,6 +93,7 @@ export const sendRoute = createRoute({
 		200: sseResponse,
 		400: badRequestProblems,
 		401: unauthorizedProblem,
+		403: forbiddenProblem,
 		404: notFoundProblem,
 		409: conflictProblem,
 		413: payloadTooLargeResponse,

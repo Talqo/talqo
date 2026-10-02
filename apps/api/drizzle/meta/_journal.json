@@ -57,6 +57,13 @@
 			"when": 1790532846475,
 			"tag": "0007_flowery_paibok",
 			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1790617313242,
+			"tag": "0008_jazzy_mulholland_black",
+			"breakpoints": true
 		}
 	]
 }

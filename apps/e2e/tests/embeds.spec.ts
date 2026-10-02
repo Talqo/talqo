@@ -80,7 +80,7 @@ test("operator permanently deletes an embed from its danger zone", async ({ page
 		await page.reload()
 		const embedCard = page.locator("[data-slot=card]", { hasText: name })
 		await expect(embedCard).toBeVisible()
-		await embedCard.click()
+		await page.getByRole("link", { name, exact: true }).click()
 		await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
 		const deleteButton = page.getByRole("button", { name: "Delete embed" })
 		await expect(deleteButton).toBeVisible()
@@ -105,7 +105,7 @@ test("operator permanently deletes an embed from its danger zone", async ({ page
 test("operator customizes an embed and the widget preview follows without reloading", async ({ page }) => {
 	const card = page.locator("[data-slot=card]", { hasText: "Website" })
 	await expect(card).toBeVisible()
-	await card.click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 	const previewCard = page.locator("[data-slot=card]", { hasText: "Live preview" })
 	await expect(
 		previewCard.locator("[data-slot=card-content]").getByRole("button", { name: "Open full-screen preview" }),
@@ -132,7 +132,7 @@ test("operator customizes an embed and the widget preview follows without reload
 })
 
 test("changing the light text color leaves the light background untouched", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -149,7 +149,7 @@ test("changing the light text color leaves the light background untouched", asyn
 })
 
 test("operator switches to the Dark tab and edits an independent palette", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -170,7 +170,7 @@ test("operator switches to the Dark tab and edits an independent palette", async
 
 test("switching color tabs keeps the scroll position", async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 480 })
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const darkTab = page.getByRole("tab", { name: "Dark" })
 	await darkTab.scrollIntoViewIfNeeded()
@@ -196,7 +196,7 @@ test("switching color tabs keeps the scroll position", async ({ page }) => {
 })
 
 test("operator moves the embedded widget to the other corner", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const positionSelect = page.getByLabel("Position")
 	await expect(positionSelect).toContainText("Bottom right")
@@ -241,7 +241,7 @@ test("operator reassigns the embed to a different agent", async ({ page }) => {
 })
 
 test("the widget's own name reaches the embedded chat header", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const preview = page.frameLocator("iframe")
 	const launcher = preview.getByRole("button", { name: "Open chat" })
@@ -252,10 +252,78 @@ test("the widget's own name reaches the embedded chat header", async ({ page }) 
 })
 
 test("embed snippet carries the public token", async ({ page }) => {
-	await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
+})
+
+test("operator disables the embed from the embeds overview and the public config reflects it", async ({ page }) => {
+	const source = seeded.find(({ name }) => name === "Website")
+	if (!source) throw new Error("Shared seed Website embed is missing")
+
+	const card = page.locator("[data-slot=card]", { hasText: "Website" })
+	const toggle = card.getByRole("switch", { name: "Embed enabled" })
+
+	try {
+		await expect(toggle).toBeChecked()
+		await toggle.click()
+		await expect(toggle).not.toBeChecked()
+
+		// The ETag-cached public config is how already-installed embeds learn the state.
+		await expect
+			.poll(async () => {
+				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
+				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+			})
+			.toBe(true)
+
+		await toggle.click()
+		await expect(toggle).toBeChecked()
+		await expect
+			.poll(async () => {
+				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
+				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+			})
+			.toBe(false)
+	} finally {
+		// The shared seed keeps serving other journeys, so restore it on any failure path.
+		await page.request.post(`/api/embeds/${source.id}/enable`)
+	}
+})
+
+test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
+	const viewer = { username: "user", password: "user1234" }
+
+	// Grant through the API boundary, then switch accounts and inspect the same page.
+	const { users } = (await (await page.request.get("/api/users")).json()) as {
+		users: { id: string; username: string }[]
+	}
+	const user = users.find(({ username }) => username === viewer.username)
+	if (!user) throw new Error("Seed user is missing")
+	const grantResponse = await page.request.post("/api/permission-grants", {
+		data: { userId: user.id, permission: "agents:read" },
+	})
+	await expect(grantResponse).toBeOK()
+	const grantId = ((await grantResponse.json()) as { grant: { id: string } }).grant.id
+
+	try {
+		await page.getByRole("button", { name: "Log out" }).click()
+		await expect(page).toHaveURL("/login")
+		await page.getByLabel("Username").fill(viewer.username)
+		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
+		await page.getByRole("button", { name: "Log in" }).click()
+		await expect(page).toHaveURL("/dashboard")
+
+		await page.getByRole("link", { name: "Agents", exact: true }).click()
+		await page.getByRole("link", { name: /Website Assistant/ }).click()
+		await page.getByRole("tab", { name: "Embeds" }).click()
+		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
+	} finally {
+		await page.request.post("/api/auth/login", { data: operator })
+		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+	}
 })
 
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {

@@ -233,6 +233,13 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 	if (!(await repository.retry(agentId, name))) throw new FileNotRetryableError("File is not in a failed state")
 }
 
+const RETRIEVAL_TOP_K = 5
+
+export async function searchKnowledge(agentId: string, text: string): Promise<string[]> {
+	const operation = await aiProvider.prepareEmbeddingOperation()
+	return repository.search(agentId, await operation.embed(text), operation.key, RETRIEVAL_TOP_K)
+}
+
 async function recoverUploads(): Promise<void> {
 	/* eslint-disable no-await-in-loop -- scan local directories without flooding the database */
 	for (const agentId of await listAgentDirectories()) {

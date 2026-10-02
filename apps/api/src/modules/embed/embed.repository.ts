@@ -52,6 +52,13 @@ export async function rotateEmbedToken(id: string, embedToken: string): Promise<
 	return row
 }
 
+// No accessVersion bump: disabling must not silently kill live sessions (the flag is
+// enforced at acceptance instead). `updatedAt` still moves so the public config ETag flips.
+export async function setEmbedDisabled(id: string, isDisabled: boolean): Promise<Embed | undefined> {
+	const [row] = await db.update(embed).set({ isDisabled, updatedAt: new Date() }).where(eq(embed.id, id)).returning()
+	return row
+}
+
 export async function deleteEmbed(id: string): Promise<void> {
 	await db.delete(embed).where(eq(embed.id, id))
 }
