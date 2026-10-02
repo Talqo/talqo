@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from "bun:test"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 
 await import("./test-setup")
 
@@ -31,5 +31,49 @@ describe("built embed bundle", () => {
 		expect(html).toContain("data-talqo-preview")
 		expect(html).not.toContain('href="./widget.css"')
 		expect(html).not.toContain("/src/")
+	})
+
+	// The embed is one tag, so the bundle must carry its own styles; a sibling file is
+	// undiscoverable from a script tag and re-breaks every embed the moment it goes missing.
+	test("injects its scoped stylesheet and emits no separate CSS asset", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+
+		new Function(code)()
+
+		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
+		expect(injected).toContain(".talqo-widget")
+		expect(existsSync(new URL("../dist/widget.css", import.meta.url))).toBe(false)
+	})
+
+	// Whether the shipped CSS ends up scoped depends on plugin order, and an unscoped Tailwind
+	// preflight rewrites the host page. Assert the artifact, not the intent.
+	test("ships no unscoped css", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+
+		for (const leak of ["@layer base", "@property", "*,:before,:after,::backdrop", ":root"]) {
+			expect(code).not.toContain(leak)
+		}
+	})
+
+	// `async` lets the bundle run mid-parse, when document.body may still be absent.
+	test("defers its mount until the document is parsed", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+		const globalScope = window as { TalqoWidget?: { unmount: () => void } }
+		globalScope.TalqoWidget?.unmount()
+		document.querySelector("#talqo-widget")?.remove()
+
+		const hadOwnReadyState = Object.hasOwn(document, "readyState")
+		const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")
+		Object.defineProperty(document, "readyState", { value: "loading", configurable: true })
+		try {
+			new Function(code)()
+			expect(document.querySelector("#talqo-widget")).toBeNull()
+
+			document.dispatchEvent(new Event("DOMContentLoaded"))
+			expect(document.querySelector("#talqo-widget")).not.toBeNull()
+		} finally {
+			if (hadOwnReadyState && ownReadyState) Object.defineProperty(document, "readyState", ownReadyState)
+			else Reflect.deleteProperty(document, "readyState")
+		}
 	})
 })

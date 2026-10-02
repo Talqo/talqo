@@ -13,6 +13,11 @@ describe("buildEmbedSnippet", () => {
 		expect(snippet).not.toContain("data-talqo-widget")
 	})
 
+	// The host page must not parse-block on a third-party chat widget.
+	test("loads asynchronously so the widget stays off the host critical path", () => {
+		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123" })).toStartWith("<script async")
+	})
+
 	test("omits the API origin when it is not supplied", () => {
 		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123" })).not.toContain("data-talqo-api")
 	})

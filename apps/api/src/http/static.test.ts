@@ -17,7 +17,6 @@ function fixtureDirs() {
 	writeFileSync(join(webDist, "index.html"), "<html>app</html>")
 	writeFileSync(join(webDist, "assets", "app-abc123.js"), "console.log(1)")
 	writeFileSync(join(widgetDist, "widget.js"), "console.log(2)")
-	writeFileSync(join(widgetDist, "widget.css"), ".x{}")
 	writeFileSync(join(widgetDist, "preview.html"), "<html>preview</html>")
 	return { webDist, widgetDist }
 }
@@ -53,10 +52,6 @@ describe("createStaticResponder", () => {
 
 		const versioned = await serve(request("/widget.js?v=42"))
 		expect(versioned?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
-
-		const css = await serve(request("/widget.css?v=42"))
-		expect(css?.status).toBe(200)
-		expect(css?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
 
 		const preview = await serve(request("/preview.html"))
 		expect(preview?.status).toBe(200)

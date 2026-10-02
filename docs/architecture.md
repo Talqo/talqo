@@ -209,7 +209,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships `dist/widget.js` + `widget.css` for customer websites. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
+`apps/widget` builds and ships a single self-contained `dist/widget.js` for customer websites; the build inlines the scoped stylesheet so one `async` script tag is the whole embed. It owns presentation only and consumes `packages/sdk` for chat state and transport; `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
 
 ## E2E Tests
 

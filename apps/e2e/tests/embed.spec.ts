@@ -40,9 +40,7 @@ test.beforeAll(async () => {
 			return
 		}
 		const file =
-			requestUrl.pathname === "/widget.js" ||
-			requestUrl.pathname === "/widget.css" ||
-			requestUrl.pathname === "/preview.html"
+			requestUrl.pathname === "/widget.js" || requestUrl.pathname === "/preview.html"
 				? path.join(DIST, requestUrl.pathname.slice(1))
 				: null
 		if (!file) {
@@ -51,7 +49,7 @@ test.beforeAll(async () => {
 		}
 		readFile(file)
 			.then((content) => {
-				const contentType = file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "text/html"
+				const contentType = file.endsWith(".js") ? "text/javascript" : "text/html"
 				res.writeHead(200, { "content-type": contentType }).end(content)
 			})
 			.catch(() => res.writeHead(404).end())
@@ -126,8 +124,8 @@ test("built preview executes production assets", async ({ page }) => {
 	await expect(page.locator(".talqo-widget")).toBeVisible()
 	await page.getByRole("button", { name: "Open chat" }).click()
 	await expect(page.getByText("Production preview")).toBeVisible()
-	expect(assets).toContain(`${baseURL}/widget.css`)
-	expect(assets).toContain(`${baseURL}/widget.js`)
+	// One artifact: the bundle carries its own styles, so no stylesheet request is made.
+	expect(assets).toEqual([`${baseURL}/widget.js`])
 })
 
 test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }) => {
