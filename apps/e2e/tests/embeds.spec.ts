@@ -251,11 +251,13 @@ test("the widget's own name reaches the embedded chat header", async ({ page }) 
 	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Website")
 })
 
-test("embed snippet carries the public token", async ({ page }) => {
+test("embed snippet carries the public token and loads asynchronously", async ({ page }) => {
 	await page.getByRole("link", { name: "Website", exact: true }).click()
 
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
+	// Parser-blocking a customer page on a chat widget is a defect, not a default.
+	await expect(snippet).toContainText("<script async")
 })
 
 test("operator disables the embed from the embeds overview and the public config reflects it", async ({ page }) => {

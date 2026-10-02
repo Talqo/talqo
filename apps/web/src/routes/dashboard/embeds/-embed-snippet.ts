@@ -9,14 +9,14 @@ function escapeAttribute(value: string): string {
 	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-/** Identity only: a baked-in color would pin the embed to the palette it was copied with. */
+/** Identity only: a baked-in color would pin the embed to a stale palette. `async` is what keeps the widget off the host's critical path. */
 export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): string {
 	const attributes = [
 		`src="${escapeAttribute(scriptUrl)}"`,
 		`data-talqo-embed-token="${escapeAttribute(config.embedToken)}"`,
 		config.apiOrigin ? `data-talqo-api="${escapeAttribute(config.apiOrigin)}"` : undefined,
 	].filter((attribute): attribute is string => typeof attribute === "string")
-	return ["<script", ...attributes.map((attribute) => `  ${attribute}`), "></script>"].join("\n")
+	return ["<script async", ...attributes.map((attribute) => `  ${attribute}`), "></script>"].join("\n")
 }
 
 /** The widget defaults to its own script origin, so the attribute is for split deployments only. */
