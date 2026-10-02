@@ -40,6 +40,7 @@ export interface EmbedConfig {
 	version: number
 	name: string
 	appearance: EmbedAppearance
+	isDisabled: boolean
 }
 
 export type ProblemDetails =
@@ -130,6 +131,10 @@ export type ProblemDetails =
 	| {
 			code: "current-password-incorrect"
 			type: "https://docs.talqo.chat/problems#current-password-incorrect"
+	  }
+	| {
+			code: "embed-disabled"
+			type: "https://docs.talqo.chat/problems#embed-disabled"
 	  }
 	| {
 			code: "embed-not-found"
@@ -369,6 +374,11 @@ export type sendChatMessageResponse401 = {
 	status: 401
 }
 
+export type sendChatMessageResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
 export type sendChatMessageResponse404 = {
 	data: ProblemDetails
 	status: 404
@@ -405,6 +415,7 @@ export type sendChatMessageResponseSuccess = sendChatMessageResponse200 & {
 export type sendChatMessageResponseError = (
 	| sendChatMessageResponse400
 	| sendChatMessageResponse401
+	| sendChatMessageResponse403
 	| sendChatMessageResponse404
 	| sendChatMessageResponse409
 	| sendChatMessageResponse413

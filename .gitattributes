@@ -4,3 +4,4 @@
 /apps/docs/src/routeTree.gen.ts linguist-generated
 /apps/web/src/routeTree.gen.ts linguist-generated
 /apps/web/src/api/generated/** linguist-generated
+/packages/sdk/src/generated/** linguist-generated

@@ -9,6 +9,7 @@
 	"errorContextLimit": "此对话超出了模型上下文限制。请开始新聊天以继续。",
 	"errorConversationTooLong": "此对话已满。请开始新聊天以继续。",
 	"errorDailyAllowance": "此网络的每日消息限额已用完。将在 {{reset}} 重置。",
+	"errorEmbedDisabled": "此聊天当前已停用。",
 	"errorEmbedNotFound": "此聊天嵌入不可用或无效。",
 	"errorInputIncompatible": "此消息与配置的模型不兼容。",
 	"errorInternalServer": "聊天服务遇到内部错误。",

@@ -23,6 +23,8 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { CreateEmbed201 } from "../models/embed/createEmbed201.zod"
 import type { CreateEmbedBody } from "../models/embed/createEmbedBody.zod"
+import type { DisableEmbed200 } from "../models/embed/disableEmbed200.zod"
+import type { EnableEmbed200 } from "../models/embed/enableEmbed200.zod"
 import type { GetEmbed200 } from "../models/embed/getEmbed200.zod"
 import type { ListEmbeds200 } from "../models/embed/listEmbeds200.zod"
 import type { ListEmbedsParams } from "../models/embed/listEmbedsParams.zod"
@@ -881,4 +883,227 @@ export const useRotateEmbedToken = <
 	TContext
 > => {
 	return useMutation(getRotateEmbedTokenMutationOptions(options), queryClient)
+}
+export type disableEmbedResponse200 = {
+	data: DisableEmbed200
+	status: 200
+}
+
+export type disableEmbedResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type disableEmbedResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type disableEmbedResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type disableEmbedResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type disableEmbedResponseSuccess = disableEmbedResponse200 & {
+	headers: Headers
+}
+export type disableEmbedResponseError = (
+	| disableEmbedResponse401
+	| disableEmbedResponse403
+	| disableEmbedResponse404
+	| disableEmbedResponse500
+) & {
+	headers: Headers
+}
+
+export const getDisableEmbedUrl = (embedId: string) => {
+	return `/api/embeds/${embedId}/disable`
+}
+
+export const disableEmbed = async (embedId: string, options?: RequestInit): Promise<disableEmbedResponseSuccess> => {
+	const res = await fetch(getDisableEmbedUrl(embedId), {
+		credentials: "include",
+		...options,
+		method: "POST",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: disableEmbedResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: disableEmbedResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: disableEmbedResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as disableEmbedResponseSuccess
+}
+
+export const getDisableEmbedMutationKey = () => ["disableEmbed"] as const
+
+export const getDisableEmbedMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof disableEmbed>>,
+		TError,
+		DisableEmbedMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof disableEmbed>>, TError, DisableEmbedMutationVariables, TContext> => {
+	const mutationKey = getDisableEmbedMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof disableEmbed>>, DisableEmbedMutationVariables> = (
+		props,
+	) => {
+		const { embedId } = props ?? {}
+
+		return disableEmbed(embedId, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type DisableEmbedMutationResult = NonNullable<Awaited<ReturnType<typeof disableEmbed>>>
+
+export type DisableEmbedMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type DisableEmbedMutationVariables = { embedId: string }
+
+export const useDisableEmbed = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof disableEmbed>>,
+			TError,
+			DisableEmbedMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof disableEmbed>>, TError, DisableEmbedMutationVariables, TContext> => {
+	return useMutation(getDisableEmbedMutationOptions(options), queryClient)
+}
+export type enableEmbedResponse200 = {
+	data: EnableEmbed200
+	status: 200
+}
+
+export type enableEmbedResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type enableEmbedResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type enableEmbedResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type enableEmbedResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type enableEmbedResponseSuccess = enableEmbedResponse200 & {
+	headers: Headers
+}
+export type enableEmbedResponseError = (
+	| enableEmbedResponse401
+	| enableEmbedResponse403
+	| enableEmbedResponse404
+	| enableEmbedResponse500
+) & {
+	headers: Headers
+}
+
+export const getEnableEmbedUrl = (embedId: string) => {
+	return `/api/embeds/${embedId}/enable`
+}
+
+export const enableEmbed = async (embedId: string, options?: RequestInit): Promise<enableEmbedResponseSuccess> => {
+	const res = await fetch(getEnableEmbedUrl(embedId), {
+		credentials: "include",
+		...options,
+		method: "POST",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: enableEmbedResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: enableEmbedResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: enableEmbedResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as enableEmbedResponseSuccess
+}
+
+export const getEnableEmbedMutationKey = () => ["enableEmbed"] as const
+
+export const getEnableEmbedMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof enableEmbed>>, TError, EnableEmbedMutationVariables, TContext>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof enableEmbed>>, TError, EnableEmbedMutationVariables, TContext> => {
+	const mutationKey = getEnableEmbedMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof enableEmbed>>, EnableEmbedMutationVariables> = (
+		props,
+	) => {
+		const { embedId } = props ?? {}
+
+		return enableEmbed(embedId, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type EnableEmbedMutationResult = NonNullable<Awaited<ReturnType<typeof enableEmbed>>>
+
+export type EnableEmbedMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type EnableEmbedMutationVariables = { embedId: string }
+
+export const useEnableEmbed = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof enableEmbed>>,
+			TError,
+			EnableEmbedMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof enableEmbed>>, TError, EnableEmbedMutationVariables, TContext> => {
+	return useMutation(getEnableEmbedMutationOptions(options), queryClient)
 }

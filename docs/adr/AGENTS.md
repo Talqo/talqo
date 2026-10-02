@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Use an ADR for a significant technical decision whose rationale and consequences future contributors must understand. Do not create one for temporary, low-risk, or already documented choices.
+Write an ADR when at least two credible options existed, each with a cost or risk worth accepting, and a future contributor would otherwise reopen the choice. Skip one when there was no real alternative, when the choice is cheap to reverse, or when `docs/architecture.md` already settles it. Record the rationale for those smaller choices beside the code instead.
 
 ## Rules
 

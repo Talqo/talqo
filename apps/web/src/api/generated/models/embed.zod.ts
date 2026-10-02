@@ -16,6 +16,7 @@ export const Embed = zod.object({
 	name: zod.string(),
 	embedToken: zod.string(),
 	accessVersion: zod.int().gt(embedAccessVersionExclusiveMin),
+	isDisabled: zod.boolean(),
 	appearance: EmbedAppearance,
 })
 

@@ -236,6 +236,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			return {
 				title: configuration.name,
 				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
+				isDisabled: configuration.isDisabled,
 			}
 		},
 
