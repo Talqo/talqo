@@ -540,22 +540,46 @@ export function ConnectedEmbeddedWidget({
 }: ConnectedEmbeddedWidgetProps) {
 	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
 	const [initializationFailed, setInitializationFailed] = useState(false)
-	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
-	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
-	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
 	useEffect(() => {
 		void client.initialize().catch(() => setInitializationFailed(true))
 		return () => client.dispose()
 	}, [client])
 
-	useEffect(() => {
-		i18n.changeLanguage(resolved.language)
-	}, [i18n, resolved.language])
-
+	// Render nothing for a disabled embed: the content component (and its i18n setup) never mounts.
 	if (snapshot.configuration?.isDisabled === true) {
 		return null
 	}
+
+	return (
+		<ConnectedWidgetContent
+			client={client}
+			snapshot={snapshot}
+			initializationFailed={initializationFailed}
+			title={title}
+			appearance={appearance}
+			hidden={hidden}
+			forcedScheme={forcedScheme}
+		/>
+	)
+}
+
+function ConnectedWidgetContent({
+	client,
+	snapshot,
+	initializationFailed,
+	title,
+	appearance,
+	hidden,
+	forcedScheme,
+}: ConnectedEmbeddedWidgetProps & { snapshot: ChatSnapshot; initializationFailed: boolean }) {
+	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
+	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
+	const [i18n] = useState(() => createWidgetI18n(resolved.language))
+
+	useEffect(() => {
+		i18n.changeLanguage(resolved.language)
+	}, [i18n, resolved.language])
 
 	return (
 		<I18nextProvider i18n={i18n}>

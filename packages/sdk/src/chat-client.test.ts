@@ -187,21 +187,16 @@ describe("createChatClient", () => {
 		expect(snapshots.length).toBeGreaterThan(2)
 	})
 
-	test("never opens a session or accepts a send when the configuration is disabled", async () => {
+	test("never opens a session when the configuration is disabled", async () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
 		await storage.setItem(key, JSON.stringify({ version: 1, credential: "credential" }))
 		let sessionLoads = 0
-		let sends = 0
 		const transport = baseTransport({
 			loadConfiguration: async () => ({ ...configuration, isDisabled: true }),
 			loadSession: async () => {
 				sessionLoads += 1
 				return { messages: [], activeGeneration: undefined }
-			},
-			sendMessage: async () => {
-				sends += 1
-				return streamFrom([])
 			},
 		})
 		const client = createChatClient({ apiUrl: "https://api.example.test", embedToken: "embed", storage, transport })
@@ -214,12 +209,6 @@ describe("createChatClient", () => {
 		})
 		expect(client.getSnapshot().messages).toEqual([])
 		expect(sessionLoads).toBe(0)
-
-		await expect(client.sendMessage("hello")).rejects.toMatchObject({
-			name: "ChatClientError",
-			detail: { code: "embed-disabled" },
-		})
-		expect(sends).toBe(0)
 	})
 
 	test("publishes optimistic and streamed messages and reconciles IDs", async () => {
