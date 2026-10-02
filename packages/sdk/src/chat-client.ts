@@ -257,23 +257,25 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					storage.getItem(storageKey),
 				])
 				configuration = loadedConfiguration
-				const record = readChatStorageRecord(serialized)
-				credential = record?.credential
-				pendingMessage = record?.pending
-				if (credential !== undefined && pendingMessage === undefined) {
-					await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
-				} else if (pendingMessage !== undefined) {
-					messages = [
-						{
-							id: `pending:${pendingMessage.requestId}`,
-							role: "user",
-							text: pendingMessage.text,
-							createdAt: now().toISOString(),
-							outcome: "interrupted",
-						},
-					]
-					generation = "recovery"
-					recovery = "pending"
+				if (!loadedConfiguration.isDisabled) {
+					const record = readChatStorageRecord(serialized)
+					credential = record?.credential
+					pendingMessage = record?.pending
+					if (credential !== undefined && pendingMessage === undefined) {
+						await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
+					} else if (pendingMessage !== undefined) {
+						messages = [
+							{
+								id: `pending:${pendingMessage.requestId}`,
+								role: "user",
+								text: pendingMessage.text,
+								createdAt: now().toISOString(),
+								outcome: "interrupted",
+							},
+						]
+						generation = "recovery"
+						recovery = "pending"
+					}
 				}
 				initialization = "ready"
 				publish()

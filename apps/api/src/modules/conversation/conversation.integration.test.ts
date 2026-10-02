@@ -12,6 +12,7 @@ import {
 	ConcurrentGenerationLimitError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
+	EmbedDisabledError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
@@ -234,6 +235,57 @@ describe("conversation lifecycle", () => {
 			{ role: "user", content: "first" },
 			{ role: "assistant", content: "one" },
 			{ role: "user", content: "second" },
+		])
+	})
+
+	it("rejects messages to a disabled embed without charging and resumes after re-enable", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const sent = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "hello",
+			networkHash: "network-a",
+		})
+		await sent.done
+		await embed.disableEmbed(createdEmbed.id)
+
+		await expect(
+			instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_2,
+				text: "still there?",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(EmbedDisabledError)
+		await expect(
+			instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_2,
+				requestId: REQUEST_3,
+				text: "new visitor",
+				networkHash: "network-a",
+			}),
+		).rejects.toBeInstanceOf(EmbedDisabledError)
+		expect((await sql`SELECT count(*)::int AS count FROM generation_attempt`)[0]?.count).toBe(1)
+		expect((await sql`SELECT count(*)::int AS count FROM conversation_daily_counter`)[0]?.count).toBe(1)
+
+		await embed.enableEmbed(createdEmbed.id)
+		const resumed = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_2,
+			text: "still there?",
+			networkHash: "network-a",
+		})
+		await resumed.done
+		expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
+			"hello",
+			"answer",
+			"still there?",
+			"answer",
 		])
 	})
 

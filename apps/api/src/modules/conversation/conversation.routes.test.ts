@@ -3,7 +3,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
 
 import { chatEventSchema } from "./conversation.contract.ts"
-import { ProviderUnavailableError } from "./conversation.errors.ts"
+import { EmbedDisabledError, ProviderUnavailableError } from "./conversation.errors.ts"
 import { createConversationRoutes } from "./conversation.routes.ts"
 
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
@@ -16,12 +16,13 @@ function parseEvents(body: string) {
 		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
 }
 
-function routes(failure: "embed" | "none" | "post-accept" | "pre-accept" = "none") {
+function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void) => {
 			calls.push(input)
 			if (failure === "embed") throw new EmbedNotFoundError()
+			if (failure === "disabled") throw new EmbedDisabledError()
 			if (failure === "pre-accept") throw new ProviderUnavailableError()
 			emit({
 				version: 1,
@@ -183,5 +184,18 @@ describe("public conversation routes", () => {
 
 		expect(response.status).toBe(404)
 		expect(await response.json()).toMatchObject({ code: "embed-not-found" })
+	})
+
+	it("rejects a message to a disabled embed with embed-disabled before streaming", async () => {
+		const { app } = routes("disabled")
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+
+		expect(response.status).toBe(403)
+		expect(response.headers.get("content-type")).toContain("application/problem+json")
+		expect(await response.json()).toMatchObject({ code: "embed-disabled" })
 	})
 })

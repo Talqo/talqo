@@ -108,7 +108,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		// Embeds ride on the same permission, so their controls must disappear too.
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
-		await page.locator("[data-slot=card]", { hasText: "Website" }).click()
+		await page.getByRole("link", { name: "Website", exact: true }).click()
 
 		await expect(page.getByLabel("Name")).toBeDisabled()
 		await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
