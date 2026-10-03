@@ -230,9 +230,7 @@
 			"description": "Create a secure, single-use link for a new member.",
 			"expiresLabel": "(expires {{date}})",
 			"heading": "Invite a member",
-			"linkLabel": "Invitation link:",
-			"loginLink": "Log in",
-			"loginRequired": "You need to log in to invite a member."
+			"linkLabel": "Invitation link:"
 		},
 		"loading": "Loading…",
 		"login": {
@@ -369,12 +367,11 @@
 		"aiConfiguration": "AI configuration",
 		"analytics": "Analytics",
 		"dashboard": "Dashboard",
-		"invitations": "Invitations",
 		"users": "Users"
 	},
 	"permissions": {
-		"accessDeniedBody": "Ask an admin to grant your account agent access if you need it.",
-		"accessDeniedDescription": "Your account does not have permission to access agents.",
+		"accessDeniedBody": "An admin can grant it. Until then, this door's closed.",
+		"accessDeniedDescription": "Nice try. This page sits behind a permission your account doesn't have.",
 		"accessDeniedTitle": "Access restricted"
 	},
 	"problems": {
@@ -425,7 +422,6 @@
 		"deletePrompt": "This permanently deletes {{username}}, signs them out everywhere, and removes their permissions. There is no undo.",
 		"deleteTitle": "Delete user?",
 		"deleting": "Deleting…",
-		"forbidden": "You need admin access to view users.",
 		"generate": "Generate",
 		"heading": "Users",
 		"loading": "Loading users…",

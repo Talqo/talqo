@@ -4,19 +4,19 @@ import { can, effectivePermissions, PERMISSIONS } from "./roles.service.ts"
 
 describe("can", () => {
 	it("lets an admin grant pass any check", () => {
-		expect(can([{ permission: "admin" }], "users:invite")).toBe(true)
+		expect(can([{ permission: "admin" }], "ai_provider:manage")).toBe(true)
 	})
 
 	it("denies a non-admin with no matching grant", () => {
-		expect(can([], "users:invite")).toBe(false)
+		expect(can([], "ai_provider:manage")).toBe(false)
 	})
 
 	it("allows a non-admin with the exact grant", () => {
-		expect(can([{ permission: "users:invite" }], "users:invite")).toBe(true)
+		expect(can([{ permission: "ai_provider:manage" }], "ai_provider:manage")).toBe(true)
 	})
 
 	it("denies a grant for a different permission", () => {
-		expect(can([{ permission: "users:invite" }], "agents:read")).toBe(false)
+		expect(can([{ permission: "ai_provider:manage" }], "agents:read")).toBe(false)
 	})
 
 	it("lets agents:manage satisfy an agents:read check", () => {
@@ -38,7 +38,7 @@ describe("effectivePermissions", () => {
 	})
 
 	it("denies a grant for a different permission", () => {
-		expect(effectivePermissions([{ permission: "users:invite" }])).toEqual(["users:invite"])
+		expect(effectivePermissions([{ permission: "ai_provider:manage" }])).toEqual(["ai_provider:manage"])
 	})
 
 	it("expands agents:manage into agents:read and agents:manage", () => {
@@ -50,9 +50,9 @@ describe("effectivePermissions", () => {
 			effectivePermissions([
 				{ permission: "agents:read" },
 				{ permission: "agents:manage" },
-				{ permission: "users:invite" },
+				{ permission: "ai_provider:manage" },
 			]),
-		).toEqual(["users:invite", "agents:read", "agents:manage"])
+		).toEqual(["ai_provider:manage", "agents:read", "agents:manage"])
 	})
 
 	it("drops unknown grant strings", () => {

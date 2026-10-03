@@ -12,7 +12,7 @@ import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-s
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
-import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { requirePermission } from "@/features/permissions/require-permission"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
@@ -47,6 +47,7 @@ function isAgentTab(value: unknown): value is AgentTab {
 }
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
+	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		tab: isAgentTab(search.tab) ? search.tab : undefined,
 	}),
@@ -63,8 +64,7 @@ function AgentConfigPage() {
 	const { agentId } = Route.useParams()
 	const { tab = "configuration" } = Route.useSearch()
 	const setTab = Route.useNavigate()
-	const permissionsQuery = useGetMyPermissions()
-	const permissions = permissionsQuery.data?.data.permissions
+	const permissions = useGetMyPermissions().data?.data.permissions
 	const agentQuery = useGetAgent(agentId)
 	const agent = agentQuery.data?.data.agent
 	const { error, isLoading } = agentQuery
@@ -78,7 +78,6 @@ function AgentConfigPage() {
 	const [confirmation, setConfirmation] = useState("")
 	const [confirmOpen, setConfirmOpen] = useState(false)
 
-	const canRead = permissions?.includes("agents:read") ?? false
 	const canManage = permissions?.includes("agents:manage") ?? false
 
 	const {
@@ -136,19 +135,10 @@ function AgentConfigPage() {
 		}
 	}
 
-	if (isLoading || permissionsQuery.isLoading) {
+	if (isLoading) {
 		return (
 			<div className="mx-auto max-w-3xl">
 				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
-			</div>
-		)
-	}
-
-	if (!canRead) {
-		return (
-			<div className="mx-auto max-w-3xl space-y-6">
-				<BackLink t={t} />
-				<AccessDenied />
 			</div>
 		)
 	}

@@ -124,8 +124,12 @@ test("ungranted operator cannot discover or open AI configuration", async ({ pag
 	await login(page, UNGRANTED)
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
+	// A hidden nav item is not an authorization boundary: the URL stays put and
+	// says why, rather than silently bouncing to the dashboard.
 	await page.goto("/dashboard/ai-configuration")
-	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByText("Access restricted")).toBeVisible()
+
+	// The API stays the boundary regardless of what the page renders.
 	const response = await page.request.get("/api/ai-providers")
 	await expect(response).not.toBeOK()
 	expect(response.status()).toBe(403)

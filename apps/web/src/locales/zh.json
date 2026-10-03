@@ -230,9 +230,7 @@
 			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
-			"linkLabel": "邀请链接：",
-			"loginLink": "登录",
-			"loginRequired": "您需要登录才能邀请成员。"
+			"linkLabel": "邀请链接："
 		},
 		"loading": "正在加载…",
 		"login": {
@@ -369,12 +367,11 @@
 		"aiConfiguration": "AI 配置",
 		"analytics": "分析",
 		"dashboard": "仪表盘",
-		"invitations": "邀请",
 		"users": "用户"
 	},
 	"permissions": {
-		"accessDeniedBody": "如需智能体访问权限，请让管理员为你的账户授权。",
-		"accessDeniedDescription": "你的账户没有访问智能体的权限。",
+		"accessDeniedBody": "管理员可以为您授权。在此之前，此门暂不开放。",
+		"accessDeniedDescription": "不错的尝试。此页面需要您的账号没有的权限。",
 		"accessDeniedTitle": "访问受限"
 	},
 	"problems": {
@@ -425,7 +422,6 @@
 		"deletePrompt": "这将永久删除 {{username}}，使其在所有设备上退出登录并移除其权限。此操作无法撤销。",
 		"deleteTitle": "删除用户？",
 		"deleting": "正在删除…",
-		"forbidden": "您需要管理员权限才能查看用户。",
 		"generate": "生成",
 		"heading": "用户",
 		"loading": "正在加载用户…",

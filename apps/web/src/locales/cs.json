@@ -230,9 +230,7 @@
 			"description": "Vytvořte bezpečný jednorázový odkaz pro nového člena.",
 			"expiresLabel": "(vyprší {{date}})",
 			"heading": "Pozvat člena",
-			"linkLabel": "Odkaz na pozvánku:",
-			"loginLink": "Přihlásit se",
-			"loginRequired": "Pro pozvání člena se musíte přihlásit."
+			"linkLabel": "Odkaz na pozvánku:"
 		},
 		"loading": "Načítání…",
 		"login": {
@@ -369,12 +367,11 @@
 		"aiConfiguration": "Konfigurace AI",
 		"analytics": "Analytika",
 		"dashboard": "Přehled",
-		"invitations": "Pozvánky",
 		"users": "Uživatelé"
 	},
 	"permissions": {
-		"accessDeniedBody": "Požádejte správce o přidělení přístupu k agentům, pokud ho potřebujete.",
-		"accessDeniedDescription": "Váš účet nemá oprávnění přistupovat k agentům.",
+		"accessDeniedBody": "Správce vám ho může udělit. Do té doby zůstávají dveře zavřené.",
+		"accessDeniedDescription": "Dobrý pokus. Tato stránka je za oprávněním, které váš účet nemá.",
 		"accessDeniedTitle": "Přístup omezen"
 	},
 	"problems": {
@@ -425,7 +422,6 @@
 		"deletePrompt": "Tímto trvale smažete účet {{username}}, uživatel bude odhlášen ze všech relací a přijde o svá oprávnění. Akci nelze vrátit.",
 		"deleteTitle": "Smazat uživatele?",
 		"deleting": "Mazání…",
-		"forbidden": "Pro zobrazení uživatelů potřebujete přístup správce.",
 		"generate": "Vygenerovat",
 		"heading": "Uživatelé",
 		"loading": "Načítání uživatelů…",

@@ -1,20 +1,21 @@
 import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
+import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, Settings2, User, UserPlus, Users, X } from "lucide-react"
+import { BarChart3, Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "admin" | "agentRead" | "invite" | "providerManage"
+type NavRequirement = "admin" | "agentRead" | "providerManage"
 
 type NavItem = {
 	to:
 		| "/dashboard"
 		| "/dashboard/agents"
-		| "/dashboard/invitations"
 		| "/dashboard/users"
 		| "/dashboard/analytics"
 		| "/dashboard/ai-configuration"
@@ -26,7 +27,6 @@ type NavItem = {
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
-	{ to: "/dashboard/invitations", icon: UserPlus, requires: "invite" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
 	{ to: "/dashboard/analytics", icon: BarChart3, requires: "agentRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
@@ -36,7 +36,6 @@ const navItems: readonly NavItem[] = [
 const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
-	"/dashboard/invitations": "nav.invitations",
 	"/dashboard/users": "nav.users",
 	"/dashboard/analytics": "nav.analytics",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
@@ -45,12 +44,10 @@ const navLabels = {
 
 function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
-	const canInvite = permissions?.includes("users:invite") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
 	const isAdmin = permissions?.includes("admin") ?? false
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
-		if (item.requires === "invite") return canInvite
 		if (item.requires === "providerManage") return canManageProvider
 		if (item.requires === "admin") return isAdmin
 		return true
@@ -79,8 +76,15 @@ function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavi
 	)
 }
 
-function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
-	const permissions = useGetMyPermissions().data?.data.permissions
+function NavList({
+	className,
+	onNavigate,
+	permissions,
+}: {
+	className: string
+	onNavigate: () => void
+	permissions: string[] | undefined
+}) {
 	const items = allowedNavItems(permissions)
 	return (
 		<nav className={className}>
@@ -116,12 +120,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const closeMobile = () => setMobileOpen(false)
 	const accountName = useGetSession().data?.data.user?.username ?? "…"
+	const permissionsQuery = useGetMyPermissions()
+	const permissions = permissionsQuery.data?.data.permissions
+	// Children stay unmounted until the gate opens, so a denied caller fires no queries.
+	const gate = accessGate(useRequiredPermission(), permissionsQuery)
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
 				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
-				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
+				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} permissions={permissions} />
 			</aside>
 
 			<div className="flex min-h-screen flex-1 flex-col">
@@ -148,10 +156,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					<NavList
 						className="border-border bg-sidebar flex flex-col gap-1 border-b p-4 md:hidden"
 						onNavigate={closeMobile}
+						permissions={permissions}
 					/>
 				)}
 
-				<main className="flex-1 p-6">{children}</main>
+				<main className="flex-1 p-6">
+					{gate === "open" && children}
+					{gate === "pending" && <p className="text-muted-foreground">{t("auth.loading")}</p>}
+					{gate === "error" && <p className="text-muted-foreground">{t("auth.errorFallback")}</p>}
+					{gate === "denied" && <AccessDenied />}
+				</main>
 			</div>
 		</div>
 	)
