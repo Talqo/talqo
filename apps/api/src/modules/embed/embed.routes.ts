@@ -1,6 +1,5 @@
 import type { Context } from "hono"
 
-import { allowPublic } from "@/http/access.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -129,6 +128,3 @@ export const embedRoutes = new OpenAPIHono()
 	})
 
 export const embedConfigRoutes = new OpenAPIHono().openapi(getEmbedConfigRoute, serveEmbedConfig)
-
-// Compatibility only for already shipped data-talqo-widget snippets. Keep it out of OpenAPI.
-export const legacyWidgetConfigRoutes = new OpenAPIHono().get("/:embedToken", allowPublic, serveEmbedConfig)
