@@ -41,7 +41,6 @@ describe("embed CRUD authentication boundary", () => {
 		expect((await app.request("/api/embeds/any-id/config")).status).toBe(404)
 	})
 
-	// ADR-0013 keeps one public configuration URL; the retired one must never answer as public.
 	it("no longer serves the retired widget-config URL", async () => {
 		expect((await app.request("/api/widget-config/any-token")).status).toBe(404)
 	})

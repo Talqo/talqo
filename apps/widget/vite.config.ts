@@ -79,11 +79,7 @@ function assertNoGlobalRules(root: Root): void {
 	}
 }
 
-/**
- * Scopes the built stylesheet before `cssInjectedByJs` folds it into the bundle. Tailwind
- * expands the source after any `transform` hook, so the only place the final CSS exists is the
- * emitted asset.
- */
+/** Tailwind expands CSS after any transform hook, so scoping must run on the emitted asset. */
 function widgetCssPlugin(): Plugin {
 	return {
 		name: "talqo-widget-css",

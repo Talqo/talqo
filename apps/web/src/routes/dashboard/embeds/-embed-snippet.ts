@@ -9,7 +9,7 @@ function escapeAttribute(value: string): string {
 	return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
-/** Identity only: a baked-in color would pin the embed to a stale palette. `async` is what keeps the widget off the host's critical path. */
+/** Identity only: a baked-in color would pin the embed to the palette it was copied with. */
 export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): string {
 	const attributes = [
 		`src="${escapeAttribute(scriptUrl)}"`,

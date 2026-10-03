@@ -124,7 +124,7 @@ test("built preview executes production assets", async ({ page }) => {
 	await expect(page.locator(".talqo-widget")).toBeVisible()
 	await page.getByRole("button", { name: "Open chat" }).click()
 	await expect(page.getByText("Production preview")).toBeVisible()
-	// One artifact: the bundle carries its own styles, so no stylesheet request is made.
+	// The bundle carries its styles, so no stylesheet is fetched.
 	expect(assets).toEqual([`${baseURL}/widget.js`])
 })
 

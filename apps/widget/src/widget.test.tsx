@@ -68,8 +68,7 @@ describe("widget mount", () => {
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
 
-	// ADR-0013. A snippet still carrying the retired attribute must fail visibly, not
-	// silently render an unbranded widget.
+	// ADR-0013: honouring it would fire a request for appearance.
 	test("ignores the retired data-talqo-widget attribute", async () => {
 		const script = document.createElement("script")
 		script.dataset.talqoWidget = "legacy-token"

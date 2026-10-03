@@ -256,7 +256,6 @@ test("embed snippet carries the public token and loads asynchronously", async ({
 
 	const snippet = page.locator("pre")
 	await expect(snippet).toContainText('data-talqo-embed-token="F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"')
-	// Parser-blocking a customer page on a chat widget is a defect, not a default.
 	await expect(snippet).toContainText("<script async")
 })
 
