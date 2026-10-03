@@ -6,3 +6,5 @@ import { matchedRoutes } from "hono/route"
 export function hasMatchedRoute(context: Context): boolean {
 	return matchedRoutes(context).some((route) => route.method !== "ALL")
 }
+
+export const API_PREFIX = "/api"

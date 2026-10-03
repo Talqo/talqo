@@ -1,8 +1,10 @@
 import type { Context } from "hono"
 
+import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
 
 import { app, handleError } from "./app.ts"
+import { allowPublic, isAccessPolicy, requireAccessPolicy } from "./http/access.ts"
 import { PROBLEM_CODES } from "./http/problem.ts"
 import { createOpenApiDocument } from "./openapi.ts"
 
@@ -238,6 +240,37 @@ describe("api", () => {
 			"/api/chat/*",
 			"/api/agents/:agentId/files",
 		])
+	})
+
+	it("declares an access policy on every API endpoint", () => {
+		const endpoints = app.routes.filter((route) => route.method !== "ALL" && route.path.startsWith("/api/"))
+		const withoutPolicy = endpoints
+			.filter(
+				(endpoint) =>
+					!endpoints.some(
+						(route) =>
+							route.method === endpoint.method && route.path === endpoint.path && isAccessPolicy(route.handler),
+					),
+			)
+			.map((route) => `${route.method} ${route.path}`)
+
+		expect(endpoints.length).toBeGreaterThan(0)
+		expect([...new Set(withoutPolicy)]).toEqual([])
+	})
+
+	it("refuses an endpoint registered without an access policy", async () => {
+		using _ = spyOn(console, "error").mockImplementation(() => {})
+		const probe = new OpenAPIHono()
+		probe.use("*", requireAccessPolicy)
+		probe.get("/undeclared", (c) => c.text("reachable"))
+		probe.get("/declared", allowPublic, (c) => c.text("reachable"))
+
+		const undeclared = await probe.request("/undeclared")
+
+		expect(undeclared.status).toBe(500)
+		expect(await undeclared.json()).toMatchObject({ code: "internal-server-error" })
+		expect(console.error).toHaveBeenCalledWith("route.access_policy_missing", { method: "GET", path: "/undeclared" })
+		expect((await probe.request("/declared")).status).toBe(200)
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {

@@ -9,8 +9,6 @@ import * as repo from "./roles.repository.ts"
 // eslint-disable-next-line no-magic-numbers
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
-export const PUBLIC_PATHS = ["/setup", "/invitations/redeem"]
-
 export const PERMISSIONS = ["admin", "users:invite", "ai_provider:manage", "agents:read", "agents:manage"] as const
 export type Permission = (typeof PERMISSIONS)[number]
 

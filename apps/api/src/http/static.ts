@@ -1,4 +1,4 @@
-import { API_PREFIX } from "@/http/require-auth.ts"
+import { API_PREFIX } from "@/http/route-match.ts"
 
 const IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
 const DOCUMENT_CACHE = "no-cache"

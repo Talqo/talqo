@@ -1,5 +1,7 @@
-import { payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { AI_PROVIDER_IDS, AI_PROVIDER_ROLES, AUTH_MODES } from "./ai-provider.registry.ts"
@@ -119,7 +121,7 @@ export const listAiProvidersRoute = createRoute({
 	path: "/ai-providers",
 	operationId: "listAiProviders",
 	tags: ["AI Providers"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AiProviderManage),
 	responses: {
 		200: {
 			content: { "application/json": { schema: providerMetadataResponseSchema } },
@@ -136,7 +138,7 @@ export const getAiProviderConfigurationRoute = createRoute({
 	path: "/ai-provider-configuration",
 	operationId: "getAiProviderConfiguration",
 	tags: ["AI Providers"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AiProviderManage),
 	responses: {
 		200: {
 			content: { "application/json": { schema: configurationResponseSchema } },
@@ -153,7 +155,7 @@ export const saveAiProviderConfigurationRoute = createRoute({
 	path: "/ai-provider-configuration",
 	operationId: "saveAiProviderConfiguration",
 	tags: ["AI Providers"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AiProviderManage),
 	request: {
 		body: { content: { "application/json": { schema: saveConfigurationRequestSchema } }, required: true },
 	},
@@ -180,7 +182,7 @@ export const discoverAiProviderModelsRoute = createRoute({
 	path: "/ai-provider-models/discover",
 	operationId: "discoverAiProviderModels",
 	tags: ["AI Providers"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AiProviderManage),
 	request: {
 		body: { content: { "application/json": { schema: discoverModelsRequestSchema } }, required: true },
 	},

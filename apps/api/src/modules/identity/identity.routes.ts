@@ -1,5 +1,3 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
-
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -21,7 +19,7 @@ import * as service from "./identity.service.ts"
 
 const { SESSION_COOKIE } = service
 
-const authRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const authRoutes = new OpenAPIHono()
 	.openapi(loginRoute, async (c) => {
 		try {
 			const { token, expiresAt, user } = await service.login(c.req.valid("json"))
@@ -46,7 +44,7 @@ const authRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		return c.json(sessionResponseSchema.parse({ user: result?.user ?? null }), HTTP_STATUS.OK)
 	})
 
-const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const accountRoutes = new OpenAPIHono()
 	.openapi(updateAccountRoute, async (c) => {
 		try {
 			const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
@@ -93,6 +91,6 @@ const accountRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 
-export const identityRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+export const identityRoutes = new OpenAPIHono()
 identityRoutes.route("/auth", authRoutes)
 identityRoutes.route("/me", accountRoutes)

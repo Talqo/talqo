@@ -1,4 +1,5 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
@@ -59,6 +60,7 @@ export const loginRoute = createRoute({
 	path: "/login",
 	operationId: "login",
 	tags: ["Identity"],
+	...access.public,
 	request: {
 		body: { content: { "application/json": { schema: loginRequestSchema } }, required: true },
 	},
@@ -76,6 +78,7 @@ export const logoutRoute = createRoute({
 	path: "/logout",
 	operationId: "logout",
 	tags: ["Identity"],
+	...access.public,
 	responses: {
 		204: noContentResponse,
 		500: serverError,
@@ -87,6 +90,7 @@ export const getSessionRoute = createRoute({
 	path: "/session",
 	operationId: "getSession",
 	tags: ["Identity"],
+	...access.public,
 	responses: {
 		200: { content: { "application/json": { schema: sessionResponseSchema } }, description: "Current session" },
 		500: serverError,
@@ -98,7 +102,7 @@ export const updateAccountRoute = createRoute({
 	path: "/",
 	operationId: "updateAccount",
 	tags: ["Identity"],
-	security: sessionSecurity,
+	...access.session(),
 	request: {
 		body: { content: { "application/json": { schema: updateAccountRequestSchema } }, required: true },
 	},
@@ -118,7 +122,7 @@ export const changePasswordRoute = createRoute({
 	path: "/password",
 	operationId: "changePassword",
 	tags: ["Identity"],
-	security: sessionSecurity,
+	...access.session({ allowPendingPasswordChange: true }),
 	request: {
 		body: { content: { "application/json": { schema: changePasswordRequestSchema } }, required: true },
 	},
@@ -140,7 +144,7 @@ export const completeForcedPasswordChangeRoute = createRoute({
 	path: "/password/forced",
 	operationId: "completeForcedPasswordChange",
 	tags: ["Identity"],
-	security: sessionSecurity,
+	...access.session({ allowPendingPasswordChange: true }),
 	request: {
 		body: { content: { "application/json": { schema: forcedPasswordChangeRequestSchema } }, required: true },
 	},
@@ -159,7 +163,7 @@ export const deleteAccountRoute = createRoute({
 	path: "/",
 	operationId: "deleteAccount",
 	tags: ["Identity"],
-	security: sessionSecurity,
+	...access.session(),
 	responses: {
 		204: noContentResponse,
 		401: authRequired,

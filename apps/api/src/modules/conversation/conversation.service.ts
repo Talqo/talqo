@@ -34,8 +34,6 @@ const OUTPUT_BATCH_SIZE = 1_024
 const OUTPUT_FLUSH_MS = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
 
-export const PUBLIC_PATH_PATTERNS = [/^\/api\/chat(?:\/.*)?$/] as const
-
 type GenerationEvent =
 	| { model: string; provider: string; type: "start" }
 	| { text: string; type: "text" }

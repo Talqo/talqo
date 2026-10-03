@@ -25,17 +25,13 @@ import { getConversationService } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
+type ChatEnv = { Bindings: ChatBindings; Variables: { chatCredential: string } }
 type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): string | undefined } }) => {
 	forwardedFor: string | undefined
 	peerAddress: string | undefined
 }
 const UTC_RESET_HOUR = 24
 const MILLISECONDS_PER_SECOND = 1000
-
-function bearer(header: string | undefined): string | undefined {
-	const match = /^Bearer ([^\s]+)$/.exec(header ?? "")
-	return match?.[1]
-}
 
 function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Response | undefined {
 	if (error instanceof EmbedNotFoundError)
@@ -70,19 +66,6 @@ function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Res
 	return undefined
 }
 
-async function withBearer<T>(c: Context, action: (credential: string) => Promise<T>) {
-	try {
-		const credential = bearer(c.req.header("authorization"))
-		if (!credential) throw new SessionUnauthorizedError()
-		return await action(credential)
-	} catch (error) {
-		if (error instanceof SessionUnauthorizedError) {
-			return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
-		}
-		throw error
-	}
-}
-
 function sse(event: ChatEvent): Uint8Array {
 	return new TextEncoder().encode(`event: chat\ndata: ${JSON.stringify(event)}\n\n`)
 }
@@ -104,7 +87,7 @@ export function createConversationRoutes(
 
 	const activeService = () => service ?? getConversationService()
 
-	async function send(c: Context<{ Bindings: ChatBindings }>) {
+	async function send(c: Context<ChatEnv>) {
 		const peer = peerSource(c)
 		const normalized = resolveClientNetwork(
 			peer.peerAddress,
@@ -128,15 +111,13 @@ export function createConversationRoutes(
 			} else pending.push(bytes)
 		}
 		try {
-			const credential = bearer(c.req.header("authorization"))
-			if (!credential) throw new SessionUnauthorizedError()
 			const embedToken = c.req.param("embedToken")
 			if (!embedToken) throw new InvalidChatInputError()
 			const body = await c.req.json<{ requestId: string; text: string }>()
 			const result = await activeService().send(
 				{
 					...body,
-					credential,
+					credential: c.get("chatCredential"),
 					embedToken,
 					networkHash: hashClientNetwork(normalized, env.APP_SECRET),
 				},
@@ -174,16 +155,27 @@ export function createConversationRoutes(
 
 	return routes
 		.openapi(sendRoute, send)
-		.openapi(sessionRoute, (c) =>
-			withBearer(c, async (credential) =>
-				c.json(sessionStateSchema.parse(await activeService().getSession(credential)), HTTP_STATUS.OK),
-			),
-		)
-		.openapi(cancelRoute, (c) =>
-			withBearer(c, async (credential) => {
-				const body = c.req.valid("json") as { generationId?: string } | undefined
-				await activeService().cancel(credential, body?.generationId)
+		.openapi(sessionRoute, async (c) => {
+			try {
+				const session = await activeService().getSession(c.get("chatCredential"))
+				return c.json(sessionStateSchema.parse(session), HTTP_STATUS.OK)
+			} catch (error) {
+				if (error instanceof SessionUnauthorizedError) {
+					return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
+				}
+				throw error
+			}
+		})
+		.openapi(cancelRoute, async (c) => {
+			const body = c.req.valid("json") as { generationId?: string } | undefined
+			try {
+				await activeService().cancel(c.get("chatCredential"), body?.generationId)
 				return c.body(null, HTTP_STATUS.NO_CONTENT)
-			}),
-		)
+			} catch (error) {
+				if (error instanceof SessionUnauthorizedError) {
+					return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
+				}
+				throw error
+			}
+		})
 }

@@ -8,12 +8,6 @@ import * as repo from "./embed.repository.ts"
 
 export const EMBED_NAME_MAX_LENGTH = 80
 
-/**
- * Exempted from authentication in `http/require-auth.ts`, so it is anchored at both ends
- * over a single segment and kept off the authenticated `/api/embeds` namespace.
- */
-export const PUBLIC_PATH_PATTERNS = [/^\/api\/embed-config\/[^/]+$/, /^\/api\/widget-config\/[^/]+$/] as const
-
 export type Embed = {
 	accessVersion: number
 	agentId: string
