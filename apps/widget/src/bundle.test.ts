@@ -33,8 +33,6 @@ describe("built embed bundle", () => {
 		expect(html).not.toContain("/src/")
 	})
 
-	// The embed is one tag, so the bundle must carry its own styles; a sibling file is
-	// undiscoverable from a script tag and re-breaks every embed the moment it goes missing.
 	test("injects its scoped stylesheet and emits no separate CSS asset", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
@@ -45,8 +43,7 @@ describe("built embed bundle", () => {
 		expect(existsSync(new URL("../dist/widget.css", import.meta.url))).toBe(false)
 	})
 
-	// Whether the shipped CSS ends up scoped depends on plugin order, and an unscoped Tailwind
-	// preflight rewrites the host page. Assert the artifact, not the intent.
+	// Plugin order decides this; unscoped preflight rewrites the host page.
 	test("ships no unscoped css", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
@@ -55,7 +52,6 @@ describe("built embed bundle", () => {
 		}
 	})
 
-	// `async` lets the bundle run mid-parse, when document.body may still be absent.
 	test("defers its mount until the document is parsed", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 		const globalScope = window as { TalqoWidget?: { unmount: () => void } }
