@@ -1,4 +1,5 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import {
 	PASSWORD_MAX_LENGTH,
@@ -10,7 +11,7 @@ import {
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
-import { PERMISSIONS } from "./roles.service.ts"
+import { PERMISSIONS, Permission } from "./roles.service.ts"
 
 const usernameSchema = z
 	.string()
@@ -91,7 +92,7 @@ export const myPermissionsRoute = createRoute({
 	path: "/me/permissions",
 	operationId: "getMyPermissions",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.session(),
 	responses: {
 		200: {
 			content: { "application/json": { schema: myPermissionsResponseSchema } },
@@ -128,7 +129,7 @@ export const getAccessRoute = createRoute({
 	path: "/access",
 	operationId: "getAccess",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.session(),
 	responses: {
 		200: {
 			content: { "application/json": { schema: accessResponseSchema } },
@@ -145,6 +146,7 @@ export const getSetupStatusRoute = createRoute({
 	path: "/setup",
 	operationId: "getSetupStatus",
 	tags: ["Roles"],
+	...access.public,
 	responses: {
 		200: { content: { "application/json": { schema: setupStatusResponseSchema } }, description: "Setup status" },
 		500: serverError,
@@ -156,6 +158,7 @@ export const bootstrapAdminRoute = createRoute({
 	path: "/setup",
 	operationId: "bootstrapAdmin",
 	tags: ["Roles"],
+	...access.public,
 	request: {
 		body: { content: { "application/json": { schema: bootstrapAdminRequestSchema } }, required: true },
 	},
@@ -176,7 +179,7 @@ export const createInvitationRoute = createRoute({
 	path: "/",
 	operationId: "createInvitation",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	responses: {
 		201: {
 			content: { "application/json": { schema: createInvitationResponseSchema } },
@@ -193,6 +196,7 @@ export const redeemInvitationRoute = createRoute({
 	path: "/redeem",
 	operationId: "redeemInvitation",
 	tags: ["Roles"],
+	...access.public,
 	request: {
 		body: { content: { "application/json": { schema: redeemInvitationRequestSchema } }, required: true },
 	},
@@ -213,7 +217,7 @@ export const createPermissionGrantRoute = createRoute({
 	path: "/",
 	operationId: "createPermissionGrant",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	request: {
 		body: { content: { "application/json": { schema: createGrantRequestSchema } }, required: true },
 	},
@@ -234,7 +238,7 @@ export const revokePermissionGrantRoute = createRoute({
 	path: "/{id}",
 	operationId: "revokePermissionGrant",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	request: { params: permissionGrantParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -249,7 +253,7 @@ export const getUsersRoute = createRoute({
 	path: "/users",
 	operationId: "listUsers",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	responses: {
 		200: { content: { "application/json": { schema: userListResponseSchema } }, description: "All users" },
 		401: authRequired,
@@ -263,7 +267,7 @@ export const deleteUserRoute = createRoute({
 	path: "/users/{userId}",
 	operationId: "deleteUser",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	request: { params: userParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -280,7 +284,7 @@ export const resetUserPasswordRoute = createRoute({
 	path: "/users/{userId}/password",
 	operationId: "resetUserPassword",
 	tags: ["Roles"],
-	security: sessionSecurity,
+	...access.permission(Permission.Admin),
 	request: {
 		params: userParamsSchema,
 		body: { content: { "application/json": { schema: resetPasswordRequestSchema } }, required: true },

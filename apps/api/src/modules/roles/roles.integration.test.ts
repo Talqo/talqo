@@ -408,6 +408,23 @@ describe("admin password reset", () => {
 		expect(finalUser.mustChangePassword).toBe(false)
 	})
 
+	it("blocks every other session route until a pending password change is completed", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		await app.request(`/api/users/${member.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "admin-reset-password-456" }),
+		})
+		const memberCookie = await login(memberUsername, "admin-reset-password-456")
+
+		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "password-change-required" })
+	})
+
 	it("invalidates the target account's existing sessions once the reset happens", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()

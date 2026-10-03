@@ -54,7 +54,6 @@ type Generate = (input: {
 }) => AsyncIterable<RawGenerationEvent>
 
 type ServiceDependencies = {
-	authorize(userId: string): Promise<boolean>
 	discover(input: DiscoveryRequest): Promise<string[]>
 	generate?: Generate
 	repository: Repository
@@ -69,7 +68,6 @@ type RedactedConfiguration = {
 	embedding: (RedactedRole & { credentialSource: StoredEmbeddingConfiguration["credentialSource"] }) | null
 }
 
-export class PermissionDeniedError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidConfigurationError extends Error {}
 export class UnusableConfigurationError extends Error {}
@@ -237,15 +235,9 @@ function redact(configuration: StoredConfiguration | undefined, vault: Vault): R
 }
 
 export function createAiProviderService(dependencies: ServiceDependencies) {
-	async function requirePermission(userId: string): Promise<void> {
-		if (!(await dependencies.authorize(userId)))
-			throw new PermissionDeniedError("Missing ai_provider:manage permission")
-	}
-
 	return {
 		repository: dependencies.repository,
-		async getProviders(userId: string) {
-			await requirePermission(userId)
+		getProviders() {
 			return PROVIDER_DEFINITIONS.map((provider) => ({
 				id: provider.id,
 				roles: [...provider.roles],
@@ -257,12 +249,10 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				discovery: provider.discovery,
 			}))
 		},
-		async getConfiguration(userId: string): Promise<RedactedConfiguration> {
-			await requirePermission(userId)
+		async getConfiguration(): Promise<RedactedConfiguration> {
 			return redact(await dependencies.repository.find(), dependencies.vault)
 		},
-		async saveConfiguration(userId: string, input: SaveConfigurationInput): Promise<RedactedConfiguration> {
-			await requirePermission(userId)
+		async saveConfiguration(input: SaveConfigurationInput): Promise<RedactedConfiguration> {
 			const existing = await dependencies.repository.find()
 			try {
 				validateConfigurationInput(input, {
@@ -306,8 +296,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 			if (!saved) throw new RevisionConflictError("AI provider configuration changed; reload and retry")
 			return redact(saved, dependencies.vault)
 		},
-		async discoverModels(userId: string, input: DiscoverModelsInput): Promise<string[]> {
-			await requirePermission(userId)
+		async discoverModels(input: DiscoverModelsInput): Promise<string[]> {
 			let credentials = input.authMode === "static" ? input.credentials : undefined
 			if (!credentials && input.authMode === "static" && input.storedCredentialRole) {
 				const stored = await dependencies.repository.find()
@@ -412,12 +401,10 @@ let defaultServicePromise: Promise<ReturnType<typeof createAiProviderService>> |
 async function getDefaultService(): Promise<ReturnType<typeof createAiProviderService>> {
 	defaultServicePromise ??= Promise.all([
 		import("@/config/env.ts"),
-		import("@/modules/roles/roles.service.ts"),
 		import("./ai-provider.repository.ts"),
 		import("./credential-vault.ts"),
-	]).then(([{ env }, roles, repository, { createCredentialVault }]) =>
+	]).then(([{ env }, repository, { createCredentialVault }]) =>
 		createAiProviderService({
-			authorize: (userId) => roles.authorize(userId, roles.Permission.AiProviderManage),
 			discover: (input) => discoverProviderModels(input),
 			repository,
 			vault: createCredentialVault(env.APP_SECRET),
@@ -426,20 +413,20 @@ async function getDefaultService(): Promise<ReturnType<typeof createAiProviderSe
 	return defaultServicePromise
 }
 
-export async function getProviders(userId: string) {
-	return (await getDefaultService()).getProviders(userId)
+export async function getProviders() {
+	return (await getDefaultService()).getProviders()
 }
 
-export async function getConfiguration(userId: string) {
-	return (await getDefaultService()).getConfiguration(userId)
+export async function getConfiguration() {
+	return (await getDefaultService()).getConfiguration()
 }
 
-export async function saveConfiguration(userId: string, input: SaveConfigurationInput) {
-	return (await getDefaultService()).saveConfiguration(userId, input)
+export async function saveConfiguration(input: SaveConfigurationInput) {
+	return (await getDefaultService()).saveConfiguration(input)
 }
 
-export async function discoverModels(userId: string, input: DiscoverModelsInput) {
-	return (await getDefaultService()).discoverModels(userId, input)
+export async function discoverModels(input: DiscoverModelsInput) {
+	return (await getDefaultService()).discoverModels(input)
 }
 
 export async function prepareTextOperation(input: PrepareTextOperationInput) {

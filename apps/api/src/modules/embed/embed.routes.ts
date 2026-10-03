@@ -1,9 +1,8 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
 import type { Context } from "hono"
 
+import { allowPublic } from "@/http/access.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -53,21 +52,12 @@ function serveEmbedConfig(c: Context) {
 		})
 }
 
-export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+export const embedRoutes = new OpenAPIHono()
 	.openapi(listEmbedsRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const { agentId } = c.req.valid("query")
 		return c.json(embedListResponseSchema.parse({ embeds: await service.listEmbeds(agentId) }), HTTP_STATUS.OK)
 	})
 	.openapi(createEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.createEmbed(c.req.valid("json"))
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.CREATED)
@@ -78,11 +68,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(getEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.getEmbed(c.req.valid("param").embedId)
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
@@ -93,11 +78,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(updateEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.updateEmbed(c.req.valid("param").embedId, c.req.valid("json"))
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
@@ -108,11 +88,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(rotateEmbedTokenRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.rotateEmbedToken(c.req.valid("param").embedId)
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
@@ -123,11 +98,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(disableEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.disableEmbed(c.req.valid("param").embedId)
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
@@ -138,11 +108,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(enableEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const embed = await service.enableEmbed(c.req.valid("param").embedId)
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
@@ -153,11 +118,6 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(deleteEmbedRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			await service.deleteEmbed(c.req.valid("param").embedId)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
@@ -168,15 +128,7 @@ export const embedRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 
-// Mounted apart from the CRUD namespace so its auth exemption can never widen into
-// `/api/embeds`; `embed.routes.test.ts` guards that boundary.
-export const embedConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(
-	getEmbedConfigRoute,
-	serveEmbedConfig,
-)
+export const embedConfigRoutes = new OpenAPIHono().openapi(getEmbedConfigRoute, serveEmbedConfig)
 
 // Compatibility only for already shipped data-talqo-widget snippets. Keep it out of OpenAPI.
-export const legacyWidgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().get(
-	"/:embedToken",
-	serveEmbedConfig,
-)
+export const legacyWidgetConfigRoutes = new OpenAPIHono().get("/:embedToken", allowPublic, serveEmbedConfig)

@@ -111,6 +111,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Contracts And Routes
 
 - `<module>.contract.ts` owns Zod transport schemas and route/OpenAPI metadata for that module. Domain rules remain in services.
+- Every route declares its access in its contract by spreading one `access.*` entry from `src/http/access.ts`; that sets both OpenAPI `security` and enforcement. The global gate answers 500 for a route without one.
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.

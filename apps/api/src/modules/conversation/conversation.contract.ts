@@ -1,5 +1,6 @@
 import { MAX_CHAT_INPUT_CHARACTERS } from "@/config/env.ts"
-import { chatBearerSecurity, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
@@ -84,7 +85,7 @@ export const sendRoute = createRoute({
 	path: "/{embedToken}/messages",
 	operationId: "sendChatMessage",
 	tags: ["Public Chat"],
-	security: chatBearerSecurity,
+	...access.chatBearer,
 	request: {
 		params: embedParams,
 		body: { required: true, content: { "application/json": { schema: sendBody } } },
@@ -108,7 +109,7 @@ export const sessionRoute = createRoute({
 	path: "/session",
 	operationId: "getChatSession",
 	tags: ["Public Chat"],
-	security: chatBearerSecurity,
+	...access.chatBearer,
 	responses: {
 		200: { content: { "application/json": { schema: sessionStateSchema } }, description: "Conversation history" },
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
@@ -121,7 +122,7 @@ export const cancelRoute = createRoute({
 	path: "/cancel",
 	operationId: "cancelChatGeneration",
 	tags: ["Public Chat"],
-	security: chatBearerSecurity,
+	...access.chatBearer,
 	request: { body: { required: false, content: { "application/json": { schema: cancelBody } } } },
 	responses: {
 		204: { description: "Cancellation requested" },
