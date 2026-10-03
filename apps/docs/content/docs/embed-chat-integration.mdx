@@ -20,7 +20,7 @@ Create an embed in the dashboard and use the generated snippet. Its canonical sh
 ></script>
 ```
 
-Keep `async`. It keeps the widget off the host page's critical path, so the widget never delays the page's own content. Omit `data-talqo-api` when `widget.js` and the API share an origin. `data-talqo-embed-token` is the only snippet attribute and `/api/embed-config/:token` the only configuration endpoint. The earlier `data-talqo-widget` attribute and `/api/widget-config/:token` were never released and have been removed. Agent-level embed tokens are not supported.
+Keep `async`, so the widget never delays the host page's own content. Omit `data-talqo-api` when `widget.js` and the API share an origin. Agent-level embed tokens are not supported.
 
 Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
 

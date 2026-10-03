@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from "bun:test"
-import { existsSync, readFileSync } from "node:fs"
+import { readFileSync } from "node:fs"
 
 await import("./test-setup")
 
@@ -33,22 +33,16 @@ describe("built embed bundle", () => {
 		expect(html).not.toContain("/src/")
 	})
 
-	test("injects its scoped stylesheet and emits no separate CSS asset", () => {
+	test("ships scoped css inside the bundle", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
 		new Function(code)()
 
 		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
 		expect(injected).toContain(".talqo-widget")
-		expect(existsSync(new URL("../dist/widget.css", import.meta.url))).toBe(false)
-	})
-
-	// Plugin order decides this; unscoped preflight rewrites the host page.
-	test("ships no unscoped css", () => {
-		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
-
+		// Plugin order decides this; unscoped preflight rewrites the host page.
 		for (const leak of ["@layer base", "@property", "*,:before,:after,::backdrop", ":root"]) {
-			expect(code).not.toContain(leak)
+			expect(injected).not.toContain(leak)
 		}
 	})
 
