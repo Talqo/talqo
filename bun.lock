@@ -101,6 +101,7 @@
         "zod": "4.6.5",
       },
       "devDependencies": {
+        "@happy-dom/global-registrator": "^20.14.5",
         "@tailwindcss/vite": "4.3.3",
         "@talqo/typescript-config": "workspace:*",
         "@tanstack/router-plugin": "1.168.40",
