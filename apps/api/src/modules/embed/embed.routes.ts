@@ -174,9 +174,3 @@ export const embedConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>
 	getEmbedConfigRoute,
 	serveEmbedConfig,
 )
-
-// Compatibility only for already shipped data-talqo-widget snippets. Keep it out of OpenAPI.
-export const legacyWidgetConfigRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().get(
-	"/:embedToken",
-	serveEmbedConfig,
-)

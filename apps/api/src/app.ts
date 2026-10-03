@@ -10,7 +10,7 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
 import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
-import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
+import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
@@ -52,10 +52,6 @@ app.use(
 	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
 )
 app.use(
-	`${API_PREFIX}/widget-config/*`,
-	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
-)
-app.use(
 	`${API_PREFIX}/chat/*`,
 	cors({
 		origin: "*",
@@ -72,7 +68,6 @@ api.route("/", rolesRoutes)
 api.route("/agents", agentRoutes)
 api.route("/embeds", embedRoutes)
 api.route("/embed-config", embedConfigRoutes)
-api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
 app.route(API_PREFIX, api)

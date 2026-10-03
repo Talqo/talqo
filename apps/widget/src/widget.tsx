@@ -21,7 +21,7 @@ const embedScript: HTMLScriptElement | null =
 
 function findEmbedScript(): HTMLScriptElement | null {
 	const scripts = document.querySelectorAll<HTMLScriptElement>(
-		"script[data-talqo-widget], script[data-talqo-embed-token], script[data-talqo-preview]",
+		"script[data-talqo-embed-token], script[data-talqo-preview]",
 	)
 	if (scripts.length > 1) {
 		console.warn("TalqoWidget: multiple embed snippets found; using the first")
@@ -64,7 +64,7 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 		root.render(<PreviewWidget parentOrigin={dataset.talqoParentOrigin} />)
 		return
 	}
-	const embedToken = dataset?.talqoEmbedToken ?? dataset?.talqoWidget
+	const embedToken = dataset?.talqoEmbedToken
 	const origin = apiOrigin(embedScript)
 	const overrides = appearanceFromDataset(dataset)
 

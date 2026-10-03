@@ -20,16 +20,6 @@ describe("public embed config endpoints", () => {
 
 		expect(response.headers.get("access-control-allow-credentials")).toBeNull()
 	})
-
-	it("keeps the shipped widget-config URL compatible", async () => {
-		const response = await app.request("/api/widget-config/any-token", {
-			method: "OPTIONS",
-			headers: { Origin: "https://customer.example", "Access-Control-Request-Method": "GET" },
-		})
-
-		expect(response.status).toBe(204)
-		expect(response.headers.get("access-control-allow-origin")).toBe("*")
-	})
 })
 
 describe("embed CRUD authentication boundary", () => {
@@ -51,8 +41,12 @@ describe("embed CRUD authentication boundary", () => {
 		expect((await app.request("/api/embeds/any-id/config")).status).toBe(404)
 	})
 
+	// ADR-0013 keeps one public configuration URL; the retired one must never answer as public.
+	it("no longer serves the retired widget-config URL", async () => {
+		expect((await app.request("/api/widget-config/any-token")).status).toBe(404)
+	})
+
 	it("does not treat a deeper path under the public prefix as an endpoint", async () => {
-		expect((await app.request("/api/widget-config/token/extra")).status).toBe(404)
 		expect((await app.request("/api/embed-config/token/extra")).status).toBe(404)
 	})
 })

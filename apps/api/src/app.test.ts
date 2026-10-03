@@ -232,12 +232,7 @@ describe("api", () => {
 			.map((route) => route.path)
 
 		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
-		expect(wildcardApiRoutes).toEqual([
-			"/api/embed-config/*",
-			"/api/widget-config/*",
-			"/api/chat/*",
-			"/api/agents/:agentId/files",
-		])
+		expect(wildcardApiRoutes).toEqual(["/api/embed-config/*", "/api/chat/*", "/api/agents/:agentId/files"])
 	})
 
 	it("describes every route through OpenAPI 3.1.1", () => {
