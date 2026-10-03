@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 
-const { ensureWidgetStylesheet, mount, unmount } = await import("./test-setup").then(() => import("./widget"))
+const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
 
 /** mount() commits outside act(), so the rendered root appears on a later tick. */
 async function widgetRoot(): Promise<HTMLElement> {
@@ -67,33 +67,20 @@ describe("widget mount", () => {
 
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
-})
 
-describe("widget stylesheet", () => {
-	beforeEach(() => {
-		document.querySelectorAll("link[rel=stylesheet]").forEach((link) => link.remove())
-	})
-
-	test("loads the sibling stylesheet with the script version", () => {
+	// ADR-0013: honouring it would fire a request for appearance.
+	test("ignores the retired data-talqo-widget attribute", async () => {
 		const script = document.createElement("script")
-		script.src = "https://cdn.example.com/releases/widget.js?v=42"
+		script.dataset.talqoWidget = "legacy-token"
+		script.dataset.talqoApi = "https://api.example.com"
+		document.body.append(script)
 
-		ensureWidgetStylesheet(script)
+		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
+		mount()
 
-		const stylesheet = document.querySelector<HTMLLinkElement>("link[rel=stylesheet]")
-		expect(stylesheet?.href).toBe("https://cdn.example.com/releases/widget.css?v=42")
-	})
+		expect(fetchSpy).not.toHaveBeenCalled()
+		expect(await widgetRoot()).toBeInstanceOf(HTMLElement)
 
-	test("does not add a duplicate stylesheet", () => {
-		const script = document.createElement("script")
-		script.src = "https://cdn.example.com/widget.js"
-		const existing = document.createElement("link")
-		existing.rel = "stylesheet"
-		existing.href = "https://cdn.example.com/widget.css"
-		document.head.append(existing)
-
-		ensureWidgetStylesheet(script)
-
-		expect(document.querySelectorAll('link[rel="stylesheet"]').length).toBe(1)
+		script.remove()
 	})
 })

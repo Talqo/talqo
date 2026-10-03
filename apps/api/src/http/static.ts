@@ -2,7 +2,7 @@ import { API_PREFIX } from "@/http/require-auth.ts"
 
 const IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
 const DOCUMENT_CACHE = "no-cache"
-const WIDGET_PATHS = new Set(["/widget.js", "/widget.css", "/preview.html"])
+const WIDGET_PATHS = new Set(["/widget.js", "/preview.html"])
 
 export type StaticDirs = {
 	webDist?: string
@@ -40,7 +40,6 @@ export function createStaticResponder({
 	const exact: Record<string, { file: string; cache: string }> = widgetDist
 		? {
 				"/widget.js": { file: `${widgetDist}/widget.js`, cache: "versioned" },
-				"/widget.css": { file: `${widgetDist}/widget.css`, cache: "versioned" },
 				"/preview.html": { file: `${widgetDist}/preview.html`, cache: DOCUMENT_CACHE },
 			}
 		: {}

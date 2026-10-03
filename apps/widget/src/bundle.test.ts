@@ -32,4 +32,38 @@ describe("built embed bundle", () => {
 		expect(html).not.toContain('href="./widget.css"')
 		expect(html).not.toContain("/src/")
 	})
+
+	test("ships scoped css inside the bundle", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+
+		new Function(code)()
+
+		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
+		expect(injected).toContain(".talqo-widget")
+		// Plugin order decides this; unscoped preflight rewrites the host page.
+		for (const leak of ["@layer base", "@property", "*,:before,:after,::backdrop", ":root"]) {
+			expect(injected).not.toContain(leak)
+		}
+	})
+
+	test("defers its mount until the document is parsed", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+		const globalScope = window as { TalqoWidget?: { unmount: () => void } }
+		globalScope.TalqoWidget?.unmount()
+		document.querySelector("#talqo-widget")?.remove()
+
+		const hadOwnReadyState = Object.hasOwn(document, "readyState")
+		const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")
+		Object.defineProperty(document, "readyState", { value: "loading", configurable: true })
+		try {
+			new Function(code)()
+			expect(document.querySelector("#talqo-widget")).toBeNull()
+
+			document.dispatchEvent(new Event("DOMContentLoaded"))
+			expect(document.querySelector("#talqo-widget")).not.toBeNull()
+		} finally {
+			if (hadOwnReadyState && ownReadyState) Object.defineProperty(document, "readyState", ownReadyState)
+			else Reflect.deleteProperty(document, "readyState")
+		}
+	})
 })
