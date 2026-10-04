@@ -1018,6 +1018,7 @@
 			"get": {
 				"operationId": "getHealth",
 				"tags": ["Health"],
+				"security": [],
 				"responses": {
 					"200": {
 						"description": "API is healthy",
@@ -1863,6 +1864,7 @@
 			"post": {
 				"operationId": "login",
 				"tags": ["Identity"],
+				"security": [],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -1950,6 +1952,7 @@
 			"post": {
 				"operationId": "logout",
 				"tags": ["Identity"],
+				"security": [],
 				"responses": {
 					"204": {
 						"description": "No content"
@@ -1971,6 +1974,7 @@
 			"get": {
 				"operationId": "getSession",
 				"tags": ["Identity"],
+				"security": [],
 				"responses": {
 					"200": {
 						"description": "Current session",
@@ -2390,6 +2394,7 @@
 			"get": {
 				"operationId": "getSetupStatus",
 				"tags": ["Roles"],
+				"security": [],
 				"responses": {
 					"200": {
 						"description": "Setup status",
@@ -2422,6 +2427,7 @@
 			"post": {
 				"operationId": "bootstrapAdmin",
 				"tags": ["Roles"],
+				"security": [],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -2573,6 +2579,7 @@
 			"post": {
 				"operationId": "redeemInvitation",
 				"tags": ["Roles"],
+				"security": [],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -4467,6 +4474,7 @@
 			"get": {
 				"operationId": "getEmbedConfig",
 				"tags": ["Public Chat"],
+				"security": [],
 				"parameters": [
 					{
 						"schema": {

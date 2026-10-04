@@ -344,6 +344,8 @@ describe("api", () => {
 		for (const path of ["/api/chat/{embedToken}/messages", "/api/chat/session", "/api/chat/cancel"] as const) {
 			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
 		}
+		expect(paths["/health"]?.get?.security).toEqual([])
+		expect(paths["/api/auth/login"]?.post?.security).toEqual([])
 		const sendResponses = paths["/api/chat/{embedToken}/messages"]?.post?.responses ?? {}
 		const expectedSendProblems = {
 			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],

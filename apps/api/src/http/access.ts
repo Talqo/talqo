@@ -69,7 +69,7 @@ const requireChatBearer = policy(
 )
 
 export const access = {
-	public: { middleware: allowPublic },
+	public: { security: [], middleware: allowPublic },
 	// Only the password-change routes pass allowPendingPasswordChange: they clear the flag.
 	session: (options: { allowPendingPasswordChange?: boolean } = {}) => ({
 		security: sessionSecurity,
