@@ -101,6 +101,15 @@ describe("roles", () => {
 		expect(await service.authorize(user.id, "admin")).toBe(false)
 	})
 
+	it("denies a member without grants from listing users", async () => {
+		const cookie = await createMemberSession()
+
+		const response = await app.request("/api/users", { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "admin-access-required" })
+	})
+
 	it("enforces at most one admin grant at the database level, not just in application code", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })

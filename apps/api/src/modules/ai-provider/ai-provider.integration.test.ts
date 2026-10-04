@@ -1,5 +1,6 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
@@ -7,13 +8,23 @@ import { beforeEach, describe, expect, it } from "bun:test"
 async function adminCookie(): Promise<string> {
 	const username = uniqueUsername()
 	await roles.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
+	return sessionCookie(username)
+}
+
+async function memberCookie(): Promise<string> {
+	const username = uniqueUsername()
+	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	return sessionCookie(username)
+}
+
+async function sessionCookie(username: string): Promise<string> {
 	const response = await app.request("/api/auth/login", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
 	})
 	const cookie = response.headers.get("set-cookie")?.split(";")[0]
-	if (!cookie) throw new Error("Expected admin session cookie")
+	if (!cookie) throw new Error("Expected session cookie")
 	return cookie
 }
 
@@ -38,6 +49,15 @@ const configuration = {
 describe("AI provider configuration", () => {
 	beforeEach(async () => {
 		await sql`TRUNCATE TABLE ai_provider_config, permission_grant, invitation, session, "user" CASCADE`
+	})
+
+	it("denies a member without the AI provider permission", async () => {
+		const cookie = await memberCookie()
+
+		const response = await app.request("/api/ai-provider-configuration", { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "permission-denied" })
 	})
 
 	it("stores encrypted credentials and returns only redacted state", async () => {
