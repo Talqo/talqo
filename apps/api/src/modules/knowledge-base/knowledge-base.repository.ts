@@ -85,6 +85,12 @@ export async function requeue(job: Job): Promise<void> {
 		AND generation = ${job.generation} AND status = 'processing'`
 }
 
+export async function hasReadyFiles(agentId: string): Promise<boolean> {
+	const [row] = await sql<{ ready: boolean }[]>`
+		SELECT EXISTS (SELECT 1 FROM agent_file WHERE agent_id = ${agentId} AND status = 'ready') AS ready`
+	return row?.ready === true
+}
+
 export async function search(agentId: string, embedding: number[], modelKey: string, limit: number): Promise<string[]> {
 	const rows = await sql<{ text: string }[]>`
 		SELECT c.text FROM agent_file_chunk c
