@@ -11,6 +11,7 @@ const { AiConfigurationPage } = await import("./ai-configuration-page")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
+const { t } = await import("i18next")
 
 const PROVIDER: ProviderMetadata = {
 	id: "openai-compatible",
@@ -131,7 +132,7 @@ describe("AiConfigurationPage", () => {
 		)
 		await settle()
 
-		expect(host.textContent).toContain("Configuration saved")
+		expect(host.textContent).toContain(t("aiConfiguration.saved"))
 		expect(baseUrlInput().value).toBe("https://saved.example/v1")
 	})
 })
