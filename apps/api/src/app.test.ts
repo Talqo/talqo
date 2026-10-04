@@ -242,8 +242,8 @@ describe("api", () => {
 		])
 	})
 
-	it("declares an access policy on every API endpoint", () => {
-		const endpoints = app.routes.filter((route) => route.method !== "ALL" && route.path.startsWith("/api/"))
+	it("declares an access policy on every endpoint", () => {
+		const endpoints = app.routes.filter((route) => route.method !== "ALL")
 		const withoutPolicy = endpoints
 			.filter(
 				(endpoint) =>
