@@ -451,14 +451,14 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							{deleteError}
 						</p>
 					)}
-					<DialogFooter>
+					<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 						<Button variant="outline" onClick={() => setDeleteTarget(null)}>
 							{t("agentFiles.deleteCancel")}
 						</Button>
 						<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
 							{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
 						</Button>
-					</DialogFooter>
+					</div>
 				</DialogContent>
 			</Dialog>
 		</Card>

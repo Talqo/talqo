@@ -1,4 +1,3 @@
-import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
@@ -148,9 +147,6 @@ function EmbedDetailPage() {
 	const queryClient = useQueryClient()
 	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
 	const embed = embedResponse?.data.embed
-	const { data: agentsResponse } = useListAgents()
-	const agents = agentsResponse?.data.agents
-	const agentOptions = agents?.map((agent) => ({ value: agent.id, label: agent.name })) ?? []
 	const permissions = useGetMyPermissions().data?.data.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
@@ -303,33 +299,6 @@ function EmbedDetailPage() {
 										aria-invalid={formState.errors.name ? true : undefined}
 										{...register("name")}
 									/>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="widget-agent">{t("embedSetup.agentLabel")}</Label>
-									<Controller
-										control={control}
-										name="agentId"
-										render={({ field }) => (
-											<Select
-												items={agentOptions}
-												value={field.value}
-												onValueChange={(value) => field.onChange(value ?? "")}
-											>
-												<SelectTrigger id="widget-agent" className="w-full">
-													<SelectValue placeholder={t("embedSetup.selectAgent")} />
-												</SelectTrigger>
-												<SelectContent>
-													{agentOptions.map((option) => (
-														<SelectItem key={option.value} value={option.value}>
-															{option.label}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										)}
-									/>
-									<p className="text-muted-foreground text-xs">{t("embedSetup.agentHelp")}</p>
 								</div>
 
 								<p className="text-muted-foreground text-xs">{t("embedSetup.colorsHelp")}</p>

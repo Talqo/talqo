@@ -42,7 +42,7 @@
 		"save": "保存更改",
 		"saved": "刚刚已保存。",
 		"saving": "正在保存…",
-		"subheading": "更新智能体的名称、行为和屏蔽词。",
+		"subheading": "更新智能体的名称、行为、知识文件和嵌入项。",
 		"tabConfiguration": "配置",
 		"tabContext": "上下文",
 		"tabEmbeds": "嵌入项",
@@ -282,8 +282,6 @@
 		"subheading": "在一个地方管理您的智能体和分析。"
 	},
 	"embedSetup": {
-		"agentHelp": "一个智能体可以服务任意数量的嵌入项。",
-		"agentLabel": "智能体",
 		"agentPanelDescription": "服务此智能体的嵌入项。",
 		"appearance": "外观",
 		"appearanceDescription": "应用于嵌入式聊天组件的视觉配置。",
@@ -345,7 +343,6 @@
 		"saved": "刚刚已保存。",
 		"saveError": "无法保存更改。请重试。",
 		"saving": "保存中…",
-		"selectAgent": "选择智能体",
 		"tabDark": "深色",
 		"tabLight": "浅色",
 		"theme": "默认主题",

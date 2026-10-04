@@ -42,7 +42,7 @@
 		"save": "Save changes",
 		"saved": "Saved just now.",
 		"saving": "Saving…",
-		"subheading": "Update the agent's name, behavior, and blocked words.",
+		"subheading": "Update the agent's name, behavior, knowledge files, and embeds.",
 		"tabConfiguration": "Configuration",
 		"tabContext": "Context",
 		"tabEmbeds": "Embeds",
@@ -282,8 +282,6 @@
 		"subheading": "Manage your agents and analytics from one place."
 	},
 	"embedSetup": {
-		"agentHelp": "One agent can serve any number of embeds.",
-		"agentLabel": "Agent",
 		"agentPanelDescription": "Embeds serving this agent.",
 		"appearance": "Appearance",
 		"appearanceDescription": "Visual configuration applied to the embedded widget.",
@@ -345,7 +343,6 @@
 		"saved": "Saved just now.",
 		"saveError": "Could not save changes. Try again.",
 		"saving": "Saving…",
-		"selectAgent": "Select an agent",
 		"tabDark": "Dark",
 		"tabLight": "Light",
 		"theme": "Default theme",

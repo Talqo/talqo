@@ -42,7 +42,7 @@
 		"save": "Uložit změny",
 		"saved": "Uloženo právě teď.",
 		"saving": "Ukládání…",
-		"subheading": "Aktualizujte název, chování a blokovaná slova agenta.",
+		"subheading": "Aktualizujte název, chování, znalostní soubory a integrace agenta.",
 		"tabConfiguration": "Nastavení",
 		"tabContext": "Kontext",
 		"tabEmbeds": "Integrace",
@@ -282,8 +282,6 @@
 		"subheading": "Spravujte své agenty a analytiku na jednom místě."
 	},
 	"embedSetup": {
-		"agentHelp": "Jeden agent může obsluhovat libovolný počet integrací.",
-		"agentLabel": "Agent",
 		"agentPanelDescription": "Integrace obsluhující tohoto agenta.",
 		"appearance": "Vzhled",
 		"appearanceDescription": "Vizuální nastavení použité ve vloženém widgetu.",
@@ -345,7 +343,6 @@
 		"saved": "Právě uloženo.",
 		"saveError": "Změny se nepodařilo uložit. Zkuste to znovu.",
 		"saving": "Ukládání…",
-		"selectAgent": "Vyberte agenta",
 		"tabDark": "Tmavý",
 		"tabLight": "Světlý",
 		"theme": "Výchozí motiv",
