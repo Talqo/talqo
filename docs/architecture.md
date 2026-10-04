@@ -119,7 +119,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Persistence And Migrations
 
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
-- `<module>.repository.ts` contains persistence operations for owned data. Services own authorization, invariants, sequencing, and application errors.
+- `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
