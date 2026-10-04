@@ -448,8 +448,6 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							{deleteError}
 						</p>
 					)}
-					{/* Short names share a row with the buttons; only a name long enough to
-					    reach them wraps onto its own row above them. */}
 					<div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
 						<p className="mr-auto min-w-0 truncate text-sm font-medium" title={deleteTarget?.name}>
 							{deleteTarget?.name}
