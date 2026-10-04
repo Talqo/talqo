@@ -13,6 +13,7 @@ const configuration: ChatConfiguration = {
 	title: "Support",
 	appearance: { primary: "#123456" },
 	isDisabled: false,
+	isAvailable: true,
 }
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void } {
@@ -327,6 +328,53 @@ describe("createChatClient", () => {
 		expect(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
 		await client.sendMessage("different")
 		expect(sends).toBe(2)
+	})
+
+	test("treats a pre-acceptance provider-error as a definite rejection instead of recovering", async () => {
+		const rejection = new ChatTransportError({ code: "provider-error", status: 502 })
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					throw rejection
+				},
+			}),
+			randomUUID: () => crypto.randomUUID(),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hey")).rejects.toBe(rejection)
+		expect(client.getSnapshot()).toMatchObject({
+			generation: "idle",
+			recovery: "idle",
+			error: rejection.detail,
+			messages: [],
+		})
+		expect(sends).toBe(1)
+	})
+
+	test("refuses to send while the chat is unavailable", async () => {
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				loadConfiguration: async () => ({ ...configuration, isAvailable: false }),
+				sendMessage: async () => {
+					sends += 1
+					return streamFrom([])
+				},
+			}),
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hey")).rejects.toThrow("Chat is unavailable")
+		expect(client.getSnapshot()).toMatchObject({ generation: "idle", messages: [] })
+		expect(sends).toBe(0)
 	})
 
 	test("polls an uncertain first session to completion without regenerating", async () => {

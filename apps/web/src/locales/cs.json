@@ -265,6 +265,8 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
+		"aiProviderMissing": "Vaši agenti zatím nemohou návštěvníkům odpovídat. Nastavte poskytovatele AI, aby odpovědi začaly fungovat.",
+		"aiProviderMissingAction": "Nastavit poskytovatele AI",
 		"cards": {
 			"account": {
 				"description": "Upravte svůj profil a předvolby.",

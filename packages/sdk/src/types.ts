@@ -5,6 +5,8 @@ export type ChatConfiguration = {
 	readonly title: string
 	readonly appearance: Readonly<Record<string, unknown>>
 	readonly isDisabled: boolean
+	/** False while the deployment cannot generate replies; sending is refused until it changes. */
+	readonly isAvailable: boolean
 }
 
 export type ChatMessageRole = "user" | "assistant"

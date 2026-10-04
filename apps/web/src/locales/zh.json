@@ -265,6 +265,8 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
+		"aiProviderMissing": "您的智能体还无法回复访客。请设置 AI 提供商以开启回复。",
+		"aiProviderMissingAction": "设置 AI 提供商",
 		"cards": {
 			"account": {
 				"description": "更新您的个人资料和偏好设置。",

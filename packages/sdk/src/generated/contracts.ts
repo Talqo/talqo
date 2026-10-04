@@ -41,6 +41,7 @@ export interface EmbedConfig {
 	name: string
 	appearance: EmbedAppearance
 	isDisabled: boolean
+	isAvailable: boolean
 }
 
 export type ProblemDetails =

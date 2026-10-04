@@ -1,6 +1,7 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
@@ -28,6 +29,7 @@ async function replaceEmbed(embed: service.Embed, overrides: Partial<service.Emb
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE embed CASCADE`
 	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
+	await sql`TRUNCATE TABLE ai_provider_config`
 })
 
 describe("embed lifecycle", () => {
@@ -242,6 +244,36 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(true)
 	})
 
+	it("reports availability once an AI provider is configured and flips the ETag", async () => {
+		const created = await createEmbed(await createAgent())
+		const before = await app.request(`/api/embed-config/${created.embedToken}`)
+		expect(await before.json()).toMatchObject({ isAvailable: false })
+
+		await aiProvider.saveConfiguration({
+			expectedRevision: 0,
+			text: {
+				providerId: "openai",
+				modelId: "gpt-5-mini",
+				authMode: "static",
+				settings: {},
+				credentials: { apiKey: "sk-test" },
+			},
+			embedding: {
+				providerId: "openai",
+				modelId: "text-embedding-3-small",
+				authMode: "static",
+				settings: {},
+				credentialSource: "text",
+			},
+		})
+
+		const after = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(after.status).toBe(200)
+		expect(await after.json()).toMatchObject({ isAvailable: true })
+	})
+
 	it("serves the config over HTTP without a session, with cache headers", async () => {
 		const agentId = await createAgent()
 		const created = await createEmbed(agentId, { name: "Marketing site" })
@@ -256,6 +288,7 @@ describe("public config lookup", () => {
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			isDisabled: false,
+			isAvailable: false,
 		})
 	})
 

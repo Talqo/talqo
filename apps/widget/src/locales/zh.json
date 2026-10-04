@@ -1,6 +1,7 @@
 {
 	"agentResponding": "智能助手正在回复",
 	"allowanceReset": "限额将在 {{reset}} 重置。",
+	"chatUnavailable": "聊天暂时无法回复。请稍后再试。",
 	"closeChat": "关闭聊天",
 	"defaultTitle": "AI 聊天",
 	"errorCancelFailed": "无法停止回复。回复可能仍在进行。",

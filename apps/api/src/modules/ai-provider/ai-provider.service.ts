@@ -486,6 +486,10 @@ export async function getConfiguration() {
 	return (await getDefaultService()).getConfiguration()
 }
 
+export async function getHealth(): Promise<RedactedConfiguration["health"]> {
+	return (await getConfiguration()).health
+}
+
 export async function saveConfiguration(input: SaveConfigurationInput) {
 	return (await getDefaultService()).saveConfiguration(input)
 }
