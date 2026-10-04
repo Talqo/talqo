@@ -438,26 +438,30 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					if (!open) setDeleteTarget(null)
 				}}
 			>
-				<DialogContent>
+				<DialogContent className="gap-4">
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
 						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>
 					</DialogHeader>
-					<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
-						{deleteTarget?.name}
-					</p>
 					{deleteError && (
 						<p role="alert" className="text-destructive text-xs">
 							{deleteError}
 						</p>
 					)}
-					<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-						<Button variant="outline" onClick={() => setDeleteTarget(null)}>
-							{t("agentFiles.deleteCancel")}
-						</Button>
-						<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
-							{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
-						</Button>
+					{/* Short names share a row with the buttons; only a name long enough to
+					    reach them wraps onto its own row above them. */}
+					<div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+						<p className="mr-auto min-w-0 truncate text-sm font-medium" title={deleteTarget?.name}>
+							{deleteTarget?.name}
+						</p>
+						<div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:justify-end">
+							<Button variant="outline" onClick={() => setDeleteTarget(null)}>
+								{t("agentFiles.deleteCancel")}
+							</Button>
+							<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
+								{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
+							</Button>
+						</div>
 					</div>
 				</DialogContent>
 			</Dialog>
