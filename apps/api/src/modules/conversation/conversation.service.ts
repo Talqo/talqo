@@ -536,6 +536,11 @@ export type StatsOverviewQuery = {
 	days: number
 }
 
+type StatsActiveConversations = {
+	agentId: string
+	conversations: number
+}
+
 type StatsDailyPoint = {
 	conversations: number
 	date: string
@@ -558,6 +563,8 @@ type StatsAgentDailyPoint = StatsDailyPoint & {
 }
 
 export type StatsOverview = {
+	active: StatsActiveConversations[]
+	activeWindowMinutes: number
 	agentDaily: StatsAgentDailyPoint[]
 	agents: StatsAgentTotals[]
 	daily: StatsDailyPoint[]
@@ -570,7 +577,10 @@ export type StatsOverview = {
 	}
 }
 
+const MILLISECONDS_PER_MINUTE = 60_000
 const MILLISECONDS_PER_DAY = 86_400_000
+// "Active" means any recorded message inside this rolling window; the client labels it verbatim.
+const ACTIVE_CONVERSATION_WINDOW_MINUTES = 60
 
 function utcDateKey(date: Date): string {
 	return date.toISOString().slice(0, "YYYY-MM-DD".length)
@@ -583,12 +593,18 @@ function utcDateKey(date: Date): string {
 export async function getStatsOverview(query: StatsOverviewQuery): Promise<StatsOverview> {
 	const since = new Date(Date.now() - (query.days - 1) * MILLISECONDS_PER_DAY)
 	since.setUTCHours(0, 0, 0, 0)
-	const [conversationCounts, messageCounts, usageTotals, agents] = await Promise.all([
+	const activeCutoff = new Date(Date.now() - ACTIVE_CONVERSATION_WINDOW_MINUTES * MILLISECONDS_PER_MINUTE)
+	const [conversationCounts, messageCounts, usageTotals, activeCounts, agents] = await Promise.all([
 		repository.getDailyConversationCountsByAgent(since),
 		repository.getDailyMessageCountsByAgent(since),
 		usageService.getDailyUsageTotalsByAgent(since),
+		repository.getActiveConversationCountsByAgent(activeCutoff),
 		agentService.listAgents(),
 	])
+	const active: StatsActiveConversations[] = activeCounts.map((row) => ({
+		agentId: row.agentId,
+		conversations: row.count,
+	}))
 	const byAgentDay = new Map<string, Map<string, StatsAgentDailyPoint>>()
 	const dayPoint = (agentId: string, date: string): StatsAgentDailyPoint => {
 		let byDay = byAgentDay.get(agentId)
@@ -672,7 +688,15 @@ export async function getStatsOverview(query: StatsOverviewQuery): Promise<Stats
 		totals.inputTokens += day.inputTokens
 		totals.outputTokens += day.outputTokens
 	}
-	return { agentDaily, agents: agentTotals, daily, days: query.days, totals }
+	return {
+		active,
+		activeWindowMinutes: ACTIVE_CONVERSATION_WINDOW_MINUTES,
+		agentDaily,
+		agents: agentTotals,
+		daily,
+		days: query.days,
+		totals,
+	}
 }
 
 let defaultService: ReturnType<typeof createConversationService> | undefined

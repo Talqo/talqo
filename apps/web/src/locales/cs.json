@@ -251,6 +251,7 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
+		"activeConversations": "Aktivní konverzace",
 		"agentColumn": "Agent",
 		"agentsLabel": "Agenti",
 		"agentsSelected": "{{selected}} z {{total}} agentů",
@@ -262,12 +263,15 @@
 		"last30Days": "{{metric}} (30 dní)",
 		"loading": "Načítání statistik…",
 		"messages": "Zprávy",
+		"messagesPerConversation": "Zprávy na konverzaci",
 		"noAgentsSelected": "Nejsou vybraní žádní agenti. Statistiky se zobrazí po výběru alespoň jednoho agenta.",
 		"perAgentDescription": "Součty za jednotlivé agenty za posledních 30 dní.",
 		"perAgentTitle": "Přehled podle agentů",
+		"recentMinutes": "{{metric}} (posledních {{minutes}} min)",
 		"selectAll": "Vybrat vše",
 		"subheading": "Statistiky konverzací a využití napříč vašimi agenty.",
 		"tokens": "Tokeny",
+		"tokensPerConversation": "Tokeny na konverzaci",
 		"total": "Celkem",
 		"usageOverTime": "Využití v čase"
 	},

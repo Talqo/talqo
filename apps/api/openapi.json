@@ -5168,9 +5168,27 @@
 															"agentName"
 														]
 													}
+												},
+												"active": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"agentId": {
+																"type": "string"
+															},
+															"conversations": {
+																"type": "integer"
+															}
+														},
+														"required": ["agentId", "conversations"]
+													}
+												},
+												"activeWindowMinutes": {
+													"type": "integer"
 												}
 											},
-											"required": ["days", "totals", "daily", "agentDaily", "agents"]
+											"required": ["days", "totals", "daily", "agentDaily", "agents", "active", "activeWindowMinutes"]
 										}
 									},
 									"required": ["overview"]

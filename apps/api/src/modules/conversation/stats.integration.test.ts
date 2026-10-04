@@ -159,6 +159,12 @@ describe("stats overview aggregation", () => {
 			outputTokens: 0,
 		})
 		expect(overview.totals).toEqual({ conversations: 4, messages: 8, inputTokens: 311, outputTokens: 157 })
+		// Active conversations count any conversation with a recent message; the 2-day and
+		// 40-day-old conversations stay outside the window.
+		expect(overview.activeWindowMinutes).toBe(60)
+		expect(overview.active).toHaveLength(2)
+		expect(overview.active).toContainEqual({ agentId: agentA.id, conversations: 2 })
+		expect(overview.active).toContainEqual({ agentId: agentB.id, conversations: 1 })
 		// The sparse per-agent daily series feeds the dashboard per-agent chart lines.
 		const byAgentDate = new Map(overview.agentDaily.map((point) => [`${point.agentId}:${point.date}`, point]))
 		expect(byAgentDate.get(`${agentA.id}:${utcDate(0).slice(0, 10)}`)).toEqual({

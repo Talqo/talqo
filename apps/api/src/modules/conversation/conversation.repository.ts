@@ -1,6 +1,6 @@
 import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
-import { and, asc, count, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { and, asc, count, countDistinct, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -579,4 +579,20 @@ export async function getDailyMessageCountsByAgent(since: Date): Promise<AgentDa
 		.where(gte(message.createdAt, since))
 		.groupBy(conversation.agentId, messageDay)
 		.orderBy(conversation.agentId, messageDay)
+}
+
+export type AgentConversationCount = {
+	agentId: string
+	count: number
+}
+
+// Conversations touched by any message since the cutoff, counted per owning agent.
+export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<AgentConversationCount[]> {
+	return db
+		.select({ agentId: conversation.agentId, count: countDistinct(message.conversationId) })
+		.from(message)
+		.innerJoin(conversation, eq(message.conversationId, conversation.id))
+		.where(gte(message.createdAt, cutoff))
+		.groupBy(conversation.agentId)
+		.orderBy(conversation.agentId)
 }

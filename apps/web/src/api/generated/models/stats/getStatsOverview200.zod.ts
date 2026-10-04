@@ -44,6 +44,13 @@ export const GetStatsOverview200 = zod.object({
 				agentName: zod.string(),
 			}),
 		),
+		active: zod.array(
+			zod.object({
+				agentId: zod.string(),
+				conversations: zod.int(),
+			}),
+		),
+		activeWindowMinutes: zod.int(),
 	}),
 })
 

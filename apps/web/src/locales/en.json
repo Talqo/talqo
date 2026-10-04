@@ -251,6 +251,7 @@
 		"showPassword": "Show password"
 	},
 	"dashboard": {
+		"activeConversations": "Active conversations",
 		"agentColumn": "Agent",
 		"agentsLabel": "Agents",
 		"agentsSelected": "{{selected}} of {{total}} agents",
@@ -262,12 +263,15 @@
 		"last30Days": "{{metric}} (30 days)",
 		"loading": "Loading statistics…",
 		"messages": "Messages",
+		"messagesPerConversation": "Messages per conversation",
 		"noAgentsSelected": "No agents selected. Select at least one agent to see statistics.",
 		"perAgentDescription": "Totals per agent over the last 30 days.",
 		"perAgentTitle": "Per-agent breakdown",
+		"recentMinutes": "{{metric}} (last {{minutes}} min)",
 		"selectAll": "Select all",
 		"subheading": "Conversation and usage statistics across your agents.",
 		"tokens": "Tokens",
+		"tokensPerConversation": "Tokens per conversation",
 		"total": "Total",
 		"usageOverTime": "Usage over time"
 	},

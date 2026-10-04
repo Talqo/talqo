@@ -70,6 +70,33 @@ export function StatsMetricCards({
 	)
 }
 
+export type StatsInsightCard = {
+	format: "compact" | "decimal"
+	label: string
+	value: number
+}
+
+// Averages read best with one fraction digit, while counts round compactly like the volume cards.
+export function StatsInsightCards({ cards }: { cards: StatsInsightCard[] }) {
+	const { language } = useLanguage()
+	const compact = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
+	const decimal = useMemo(() => new Intl.NumberFormat(language, { maximumFractionDigits: 1 }), [language])
+	return (
+		<div className="grid gap-4 sm:grid-cols-3">
+			{cards.map((card) => (
+				<Card key={card.label}>
+					<CardHeader>
+						<CardDescription>{card.label}</CardDescription>
+						<CardTitle className="text-2xl">
+							{(card.format === "compact" ? compact : decimal).format(card.value)}
+						</CardTitle>
+					</CardHeader>
+				</Card>
+			))}
+		</div>
+	)
+}
+
 function MetricChart({
 	daily,
 	agentDaily,
@@ -128,6 +155,8 @@ function MetricChart({
 				/>
 				<Tooltip
 					labelFormatter={(axisLabel) => formatHistoryDate(language, String(axisLabel))}
+					// The aggregated total always leads the tooltip, above the per-agent entries.
+					itemSorter={(item) => (item.dataKey === "total" ? 0 : 1)}
 					contentStyle={{
 						background: "var(--popover)",
 						border: "1px solid var(--border)",

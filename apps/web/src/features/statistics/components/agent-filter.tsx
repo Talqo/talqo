@@ -11,6 +11,8 @@ import { useTranslation } from "react-i18next"
 
 import type { AgentLine } from "./stats-charts"
 
+import { usePreserveScrollOnOpen } from "./use-preserve-scroll-on-open"
+
 // A compact multi-select keeps the filter to one line even with many agents; the popup
 // stays open while items toggle, so several agents can be picked without reopening it.
 export function AgentFilter({
@@ -23,11 +25,25 @@ export function AgentFilter({
 	onChange: (ids: string[]) => void
 }) {
 	const { t } = useTranslation()
+	const { capturePreOpenScroll, onOpenChange } = usePreserveScrollOnOpen()
 	return (
 		<div className="flex items-center gap-2">
 			<span className="text-muted-foreground text-sm font-medium">{t("dashboard.agentsLabel")}</span>
-			<Select multiple value={selectedIds} onValueChange={(nextIds: string[]) => onChange(nextIds)}>
-				<SelectTrigger size="sm" aria-label={t("dashboard.agentsLabel")} className="min-w-40">
+			{/* Non-modal so opening the popup never scroll-locks the page behind it. */}
+			<Select
+				multiple
+				modal={false}
+				value={selectedIds}
+				onValueChange={(nextIds: string[]) => onChange(nextIds)}
+				onOpenChange={onOpenChange}
+			>
+				<SelectTrigger
+					size="sm"
+					aria-label={t("dashboard.agentsLabel")}
+					className="min-w-40"
+					onPointerDownCapture={capturePreOpenScroll}
+					onKeyDownCapture={capturePreOpenScroll}
+				>
 					<SelectValue>
 						{t("dashboard.agentsSelected", { selected: selectedIds.length, total: agentLines.length })}
 					</SelectValue>
@@ -58,7 +74,7 @@ export function AgentFilter({
 					<SelectSeparator />
 					{agentLines.map((line) => (
 						<SelectItem key={line.id} value={line.id}>
-							<span className="size-2 shrink-0 rounded-full" style={{ background: line.color }} />
+							<span className="size-2 shrink-0 self-center rounded-full" style={{ background: line.color }} />
 							{line.name}
 						</SelectItem>
 					))}

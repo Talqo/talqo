@@ -123,6 +123,11 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await expect(agentRow.getByRole("cell").nth(2)).toHaveText("2")
 	await expect(agentRow.getByRole("cell").nth(3)).toHaveText("18")
 
+	// Live and per-conversation insight cards render alongside the volume cards.
+	await expect(page.getByText("Active conversations (last 60 min)")).toBeVisible()
+	await expect(page.getByText("Messages per conversation (30 days)")).toBeVisible()
+	await expect(page.getByText("Tokens per conversation (30 days)")).toBeVisible()
+
 	// The merged statistics dashboard scopes every agent through the multi-select filter box;
 	// all agents are selected by default.
 	const agentFilter = page.getByRole("combobox", { name: "Agents", exact: true })

@@ -7,6 +7,7 @@ import * as mcp from "@/modules/mcp/mcp.seed.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
 
 import { sql } from "./client.ts"
+import * as stats from "./seed-stats.ts"
 
 export async function seed(): Promise<void> {
 	if (env.NODE_ENV !== "development" && env.NODE_ENV !== "test") {
@@ -25,6 +26,7 @@ export async function seed(): Promise<void> {
 	await agent.seed()
 	await embed.seed()
 	await mcp.seed()
+	await stats.seed()
 }
 
 if (import.meta.main) {

@@ -171,6 +171,10 @@ const statsAgentTotalsSchema = statsTotalsSchema.extend({
 const statsAgentDailyPointSchema = statsDailyPointSchema.extend({
 	agentId: z.string(),
 })
+const statsActiveConversationsSchema = z.object({
+	agentId: z.string(),
+	conversations: z.number().int(),
+})
 export const statsOverviewResponseSchema = z.object({
 	overview: z.object({
 		days: z.number().int(),
@@ -178,6 +182,8 @@ export const statsOverviewResponseSchema = z.object({
 		daily: z.array(statsDailyPointSchema),
 		agentDaily: z.array(statsAgentDailyPointSchema),
 		agents: z.array(statsAgentTotalsSchema),
+		active: z.array(statsActiveConversationsSchema),
+		activeWindowMinutes: z.number().int(),
 	}),
 })
 

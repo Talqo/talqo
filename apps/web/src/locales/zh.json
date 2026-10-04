@@ -251,6 +251,7 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
+		"activeConversations": "活跃对话",
 		"agentColumn": "智能体",
 		"agentsLabel": "智能体",
 		"agentsSelected": "已选择 {{selected}}/{{total}} 个智能体",
@@ -262,12 +263,15 @@
 		"last30Days": "{{metric}}（30 天）",
 		"loading": "正在加载统计…",
 		"messages": "消息数",
+		"messagesPerConversation": "每对话消息数",
 		"noAgentsSelected": "未选择智能体。请至少选择一个智能体以查看统计信息。",
 		"perAgentDescription": "最近 30 天每个智能体的总量。",
 		"perAgentTitle": "按智能体细分",
+		"recentMinutes": "{{metric}}（近 {{minutes}} 分钟）",
 		"selectAll": "全选",
 		"subheading": "您所有智能体的对话和使用统计。",
 		"tokens": "令牌数",
+		"tokensPerConversation": "每对话令牌数",
 		"total": "总计",
 		"usageOverTime": "使用量趋势"
 	},

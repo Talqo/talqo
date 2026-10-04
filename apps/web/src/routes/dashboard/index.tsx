@@ -6,6 +6,7 @@ import { AgentFilter } from "@/features/statistics/components/agent-filter"
 import {
 	agentLineColor,
 	DailyStatsChart,
+	StatsInsightCards,
 	StatsMetricCards,
 	statsMetricKeys,
 	useCompactNumber,
@@ -14,8 +15,8 @@ import {
 } from "@/features/statistics/components/stats-charts"
 import { toAgentBreakdown, toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-stats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useMemo } from "react"
+import { createFileRoute } from "@tanstack/react-router"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 const FORBIDDEN_STATUS = 403
@@ -23,7 +24,9 @@ const STATS_DAYS = 30
 const ZERO_BREAKDOWN_TOTALS = { conversations: 0, messages: 0, tokens: 0 }
 
 export const Route = createFileRoute("/dashboard/")({
-	// The declared return type keeps the filter optional so plain `to: "/dashboard"` links keep working.
+	// The optional filter only seeds the initial selection (e.g. the analytics redirect); picking
+	// agents stays in local state afterwards. The declared return type keeps plain
+	// `to: "/dashboard"` links working.
 	validateSearch: (search: Record<string, unknown>): { agents?: string[] } => ({
 		agents: Array.isArray(search.agents)
 			? search.agents.filter((id): id is string => typeof id === "string")
@@ -42,8 +45,7 @@ function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
 
 function DashboardIndexPage() {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
-	const { agents: searchAgents } = Route.useSearch()
+	const { agents: initialAgents } = Route.useSearch()
 	const { data, error, isLoading } = useGetStatsOverview({ days: STATS_DAYS })
 	const agentsQuery = useListAgents()
 	const labels = metricLabels(t)
@@ -57,9 +59,12 @@ function DashboardIndexPage() {
 		() => (allAgents ?? []).map((agent, index) => ({ color: agentLineColor(index), id: agent.id, name: agent.name })),
 		[allAgents],
 	)
+	// Picks stay local: toggling the filter must not rewrite the URL, reset the scroll
+	// position, or lose the navigation highlight. `undefined` stands for "all agents".
+	const [selection, setSelection] = useState<string[] | undefined>(initialAgents)
 	const selectedIds = useMemo(
-		() => (searchAgents ?? allIds).filter((id) => (allAgents ?? []).some((agent) => agent.id === id)),
-		[searchAgents, allIds, allAgents],
+		() => (selection ?? allIds).filter((id) => (allAgents ?? []).some((agent) => agent.id === id)),
+		[selection, allIds, allAgents],
 	)
 	const selectedLines = useMemo(
 		() => agentLines.filter((line) => selectedIds.includes(line.id)),
@@ -71,6 +76,32 @@ function DashboardIndexPage() {
 		() => (overview ? toSelectedStats(dailyPoints, axisDates, selectedIds) : undefined),
 		[overview, dailyPoints, axisDates, selectedIds],
 	)
+	const insightCards = useMemo(() => {
+		if (!overview || !stats) return []
+		const activeByAgent = new Map(overview.active.map((row) => [row.agentId, row.conversations]))
+		const activeTotal = selectedIds.reduce((sum, id) => sum + (activeByAgent.get(id) ?? 0), 0)
+		const perConversation = (numerator: number) => (stats.conversations === 0 ? 0 : numerator / stats.conversations)
+		return [
+			{
+				format: "compact" as const,
+				label: t("dashboard.recentMinutes", {
+					metric: t("dashboard.activeConversations"),
+					minutes: overview.activeWindowMinutes,
+				}),
+				value: activeTotal,
+			},
+			{
+				format: "decimal" as const,
+				label: t("dashboard.last30Days", { metric: t("dashboard.messagesPerConversation") }),
+				value: perConversation(stats.messages),
+			},
+			{
+				format: "compact" as const,
+				label: t("dashboard.last30Days", { metric: t("dashboard.tokensPerConversation") }),
+				value: perConversation(stats.tokens),
+			},
+		]
+	}, [overview, stats, selectedIds, t])
 	// Cards, chart, and the breakdown table all read the same per-agent series.
 	const totalsByAgent = useMemo(() => toAgentBreakdown(dailyPoints), [dailyPoints])
 	// Every selected agent gets a row, zero-filled when it had no activity, so the
@@ -92,18 +123,6 @@ function DashboardIndexPage() {
 		)
 	}
 
-	function setSelected(ids: string[]) {
-		void navigate({
-			to: ".",
-			search: (previous: Record<string, unknown>) => ({
-				...previous,
-				// Selecting everything is the default view; the URL stays clean.
-				agents: ids.length === allIds.length ? undefined : ids,
-			}),
-			replace: true,
-		})
-	}
-
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
 			<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
@@ -114,7 +133,7 @@ function DashboardIndexPage() {
 				<p className="text-muted-foreground">{t("dashboard.empty")}</p>
 			) : (
 				<>
-					<AgentFilter agentLines={agentLines} selectedIds={selectedIds} onChange={setSelected} />
+					<AgentFilter agentLines={agentLines} selectedIds={selectedIds} onChange={setSelection} />
 
 					{selectedIds.length === 0 ? (
 						<p className="text-muted-foreground">{t("dashboard.noAgentsSelected")}</p>
@@ -125,6 +144,8 @@ function DashboardIndexPage() {
 								labels={labels}
 								cardDescription={(metric) => t("dashboard.last30Days", { metric })}
 							/>
+
+							<StatsInsightCards cards={insightCards} />
 
 							<Card>
 								<CardHeader>
