@@ -1,6 +1,7 @@
 {
 	"agentResponding": "Agent is responding",
 	"allowanceReset": "Allowance resets at {{reset}}.",
+	"chatUnavailable": "This chat can't reply right now. Please try again later.",
 	"closeChat": "Close chat",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "The response could not be stopped. It may still be running.",

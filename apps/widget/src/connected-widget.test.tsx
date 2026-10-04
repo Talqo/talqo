@@ -18,6 +18,7 @@ const READY_SNAPSHOT: ChatSnapshot = {
 			light: { primary: "#123456", background: "#fefefe" },
 		},
 		isDisabled: false,
+		isAvailable: true,
 	},
 	messages: [],
 	initialization: "ready",
@@ -392,12 +393,24 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("a disabled embed renders nothing and never sends", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			configuration: { title: "SDK support", appearance: {}, isDisabled: true },
+			configuration: { title: "SDK support", appearance: {}, isDisabled: true, isAvailable: true },
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 
 		expect(host.textContent).toBe("")
 		expect(store.calls.sends).toEqual([])
+	})
+
+	test("an embed that cannot reply explains it and blocks the composer", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			configuration: { title: "SDK support", appearance: {}, isDisabled: false, isAvailable: false },
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).toContain("can't reply right now")
+		expect(input().disabled).toBe(true)
 	})
 
 	test("offers an explicit retry only for a retriable failed turn", async () => {

@@ -915,9 +915,12 @@
 					},
 					"isDisabled": {
 						"type": "boolean"
+					},
+					"isAvailable": {
+						"type": "boolean"
 					}
 				},
-				"required": ["version", "name", "appearance", "isDisabled"]
+				"required": ["version", "name", "appearance", "isDisabled", "isAvailable"]
 			},
 			"ChatEventV1": {
 				"oneOf": [

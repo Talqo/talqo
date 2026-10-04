@@ -39,7 +39,8 @@ function serveEmbedConfig(c: Context) {
 	return service
 		.getConfigByToken(c.req.param("embedToken")!)
 		.then((config) => {
-			const etag = `W/"${config.updatedAt.getTime()}"`
+			// Availability follows the AI provider, not the embed row, so it must vary the tag too.
+			const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}"`
 			if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
 			c.header("Cache-Control", `public, max-age=${CONFIG_MAX_AGE_SECONDS}`)
 			c.header("ETag", etag)

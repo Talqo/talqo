@@ -196,7 +196,8 @@ function WidgetChat({
 	const resetting = snapshot?.reset === "resetting"
 	const activeGeneration = generation !== "idle"
 	const unusable = unavailable || initialization === "error"
-	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
+	const cannotReply = snapshot?.configuration?.isAvailable === false
+	const disabled = unusable || cannotReply || initialization !== "ready" || resetting || activeGeneration || submitting
 	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
 	const hasStreamingAssistant = messages.some(
 		(message) => message.role === "assistant" && message.outcome === "streaming",
@@ -416,6 +417,11 @@ function WidgetChat({
 							)}
 							{initialization === "loading" && (
 								<p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
+							)}
+							{cannotReply && (
+								<p role="status" className="tw:rounded-surface tw:bg-muted tw:p-3 tw:text-muted-foreground tw:text-sm">
+									{t("chatUnavailable")}
+								</p>
 							)}
 							{snapshot?.recovery === "pending" && (
 								<p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
