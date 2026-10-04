@@ -77,3 +77,81 @@
 	background: var(--talqo-muted-foreground);
 	background-clip: padding-box;
 }
+
+/* Assistant message markdown: compact prose inside a chat bubble, no block margins at the edges. */
+.talqo-widget .talqo-markdown > :first-child {
+	margin-top: 0;
+}
+
+.talqo-widget .talqo-markdown > :last-child {
+	margin-bottom: 0;
+}
+
+.talqo-widget .talqo-markdown p {
+	margin: 0.5em 0;
+}
+
+.talqo-widget .talqo-markdown ul,
+.talqo-widget .talqo-markdown ol {
+	margin: 0.5em 0;
+	padding-left: 1.25em;
+}
+
+.talqo-widget .talqo-markdown li + li {
+	margin-top: 0.25em;
+}
+
+.talqo-widget .talqo-markdown a {
+	color: var(--talqo-primary);
+	text-decoration: underline;
+}
+
+.talqo-widget .talqo-markdown strong {
+	font-weight: 600;
+}
+
+.talqo-widget .talqo-markdown code {
+	padding: 0.125em 0.25em;
+	border-radius: var(--talqo-radius-control);
+	background: color-mix(in srgb, var(--talqo-foreground) 10%, transparent);
+	font-family: ui-monospace, monospace;
+	font-size: 0.875em;
+}
+
+.talqo-widget .talqo-markdown pre {
+	margin: 0.5em 0;
+	padding: 0.5rem 0.75rem;
+	overflow-x: auto;
+	border-radius: var(--talqo-radius-surface);
+	background: color-mix(in srgb, var(--talqo-foreground) 8%, transparent);
+}
+
+.talqo-widget .talqo-markdown pre code {
+	padding: 0;
+	background: transparent;
+	font-size: 0.8125em;
+}
+
+.talqo-widget .talqo-markdown blockquote {
+	margin: 0.5em 0;
+	padding-left: 0.75em;
+	border-left: 2px solid var(--talqo-border);
+	color: var(--talqo-muted-foreground);
+}
+
+.talqo-widget .talqo-markdown table {
+	margin: 0.5em 0;
+	border-collapse: collapse;
+	font-size: 0.875em;
+}
+
+.talqo-widget .talqo-markdown th,
+.talqo-widget .talqo-markdown td {
+	padding: 0.25em 0.5em;
+	border: 1px solid var(--talqo-border);
+	text-align: left;
+}
+
+.talqo-widget .talqo-markdown th {
+	font-weight: 600;
+}
