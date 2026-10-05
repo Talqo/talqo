@@ -30,6 +30,9 @@ COPY --from=build /app/apps/widget/dist ./apps/widget/dist
 # Fresh named volumes mounted here inherit this dir's owner.
 RUN mkdir -p /data/uploads && chown bun:bun /data/uploads
 
+# MCP stdio servers are documented with `npx`; a symlink would make bun run as a runtime and reject `-y`.
+RUN printf '#!/bin/sh\nexec bun x "$@"\n' > /usr/local/bin/npx && chmod +x /usr/local/bin/npx
+
 USER bun
 
 EXPOSE 3000
