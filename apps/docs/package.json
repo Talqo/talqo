@@ -6,10 +6,11 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite dev --port 3002",
-		"generate": "fumadocs-mdx source.config.ts",
 		"preview": "vite preview",
-		"test": "bun test",
-		"typecheck": "bun run generate && tsc --noEmit"
+		"start": "bun src/serve.ts",
+		"test": "bun test --path-ignore-patterns '**/*.integration.test.ts'",
+		"test:integration": "bun test integration",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@tanstack/react-router": "1.170.41",
@@ -22,6 +23,7 @@
 	"devDependencies": {
 		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
+		"@types/bun": "1.4.2",
 		"@types/mdx": "2.0.14",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
