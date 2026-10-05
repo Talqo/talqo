@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ProblemsRouteImport } from './routes/problems'
-import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsSplatRouteImport } from './routes/docs.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,9 +29,9 @@ const ProblemsRoute = ProblemsRouteImport.update({
   path: '/problems',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => DocsRoute,
 } as any)
 
@@ -39,26 +39,27 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/docs': typeof DocsRouteWithChildren
   '/problems': typeof ProblemsRoute
-  '/docs/': typeof DocsIndexRoute
+  '/docs/$': typeof DocsSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRouteWithChildren
   '/problems': typeof ProblemsRoute
-  '/docs': typeof DocsIndexRoute
+  '/docs/$': typeof DocsSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/docs': typeof DocsRouteWithChildren
   '/problems': typeof ProblemsRoute
-  '/docs/': typeof DocsIndexRoute
+  '/docs/$': typeof DocsSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docs' | '/problems' | '/docs/'
+  fullPaths: '/' | '/docs' | '/problems' | '/docs/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/problems' | '/docs'
-  id: '__root__' | '/' | '/docs' | '/problems' | '/docs/'
+  to: '/' | '/docs' | '/problems' | '/docs/$'
+  id: '__root__' | '/' | '/docs' | '/problems' | '/docs/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -90,22 +91,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProblemsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/': {
-      id: '/docs/'
-      path: '/'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexRouteImport
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
       parentRoute: typeof DocsRoute
     }
   }
 }
 
 interface DocsRouteChildren {
-  DocsIndexRoute: typeof DocsIndexRoute
+  DocsSplatRoute: typeof DocsSplatRoute
 }
 
 const DocsRouteChildren: DocsRouteChildren = {
-  DocsIndexRoute: DocsIndexRoute,
+  DocsSplatRoute: DocsSplatRoute,
 }
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
