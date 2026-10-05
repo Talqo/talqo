@@ -1,8 +1,5 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
-
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -21,23 +18,14 @@ function serialize(agent: service.Agent) {
 	return { ...agent, createdAt: agent.createdAt.toISOString(), updatedAt: agent.updatedAt.toISOString() }
 }
 
-export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+export const agentRoutes = new OpenAPIHono()
 	.openapi(listAgentsRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		return c.json(
 			agentListResponseSchema.parse({ agents: (await service.listAgents()).map(serialize) }),
 			HTTP_STATUS.OK,
 		)
 	})
 	.openapi(createAgentRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const agent = await service.createAgent(c.req.valid("json"))
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
@@ -52,11 +40,6 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(getAgentRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsRead))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const agent = await service.getAgent(c.req.valid("param").agentId)
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
@@ -68,11 +51,6 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(updateAgentRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const agent = await service.updateAgent(c.req.valid("param").agentId, c.req.valid("json"))
 			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
@@ -90,11 +68,6 @@ export const agentRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(deleteAgentRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			await service.deleteAgent(c.req.valid("param").agentId)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)

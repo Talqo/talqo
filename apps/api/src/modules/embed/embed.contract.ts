@@ -1,5 +1,7 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 import { SUPPORTED_LANGUAGES } from "@talqo/shared/languages"
 import { HEX_COLOR_MESSAGE, HEX_COLOR_PATTERN, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
@@ -121,7 +123,7 @@ export const listEmbedsRoute = createRoute({
 	path: "/",
 	operationId: "listEmbeds",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsRead),
 	request: { query: listEmbedsQuerySchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedListResponseSchema } }, description: "All embeds" },
@@ -136,7 +138,7 @@ export const createEmbedRoute = createRoute({
 	path: "/",
 	operationId: "createEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
 	},
@@ -156,7 +158,7 @@ export const getEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "getEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsRead),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "One embed" },
@@ -172,7 +174,7 @@ export const updateEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "updateEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		params: embedParamsSchema,
 		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
@@ -193,7 +195,7 @@ export const rotateEmbedTokenRoute = createRoute({
 	path: "/{embedId}/embed-token/rotate",
 	operationId: "rotateEmbedToken",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed token rotated" },
@@ -209,7 +211,7 @@ export const disableEmbedRoute = createRoute({
 	path: "/{embedId}/disable",
 	operationId: "disableEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed disabled" },
@@ -225,7 +227,7 @@ export const enableEmbedRoute = createRoute({
 	path: "/{embedId}/enable",
 	operationId: "enableEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed enabled" },
@@ -241,7 +243,7 @@ export const deleteEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "deleteEmbed",
 	tags: ["Embed"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -258,6 +260,7 @@ export const getEmbedConfigRoute = createRoute({
 	path: "/{embedToken}",
 	operationId: "getEmbedConfig",
 	tags: ["Public Chat"],
+	...access.public,
 	request: { params: embedTokenParamsSchema },
 	responses: {
 		200: {

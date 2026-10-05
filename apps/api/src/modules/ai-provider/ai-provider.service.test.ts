@@ -7,7 +7,6 @@ import type { StoredConfiguration } from "./ai-provider.service.ts"
 import {
 	createAiProviderService,
 	InvalidConfigurationError,
-	PermissionDeniedError,
 	ProviderContextLimitError,
 	RevisionConflictError,
 	UnusableConfigurationError,
@@ -52,10 +51,9 @@ const input: SaveConfigurationInput = {
 	},
 }
 
-function createMemoryService(authorized = true, generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
+function createMemoryService(generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
-		authorize: async () => authorized,
 		vault: createCredentialVault(APP_SECRET),
 		generate,
 		discover: async () => ["model-a"],
@@ -75,7 +73,7 @@ describe("AI provider service", () => {
 	it("encrypts credentials and returns redacted configuration", async () => {
 		const { service, getStored } = createMemoryService()
 
-		const result = await service.saveConfiguration("user-1", input)
+		const result = await service.saveConfiguration(input)
 
 		expect(result.revision).toBe(1)
 		expect(result.text?.hasCredentials).toBe(true)
@@ -83,25 +81,19 @@ describe("AI provider service", () => {
 		expect(JSON.stringify(getStored())).not.toContain("sk-text")
 	})
 
-	it("denies operators without the management permission", async () => {
-		const { service } = createMemoryService(false)
-
-		await expect(service.getConfiguration("user-1")).rejects.toBeInstanceOf(PermissionDeniedError)
-	})
-
 	it("rejects a stale revision", async () => {
 		const { service } = createMemoryService()
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
-		await expect(service.saveConfiguration("user-1", input)).rejects.toBeInstanceOf(RevisionConflictError)
+		await expect(service.saveConfiguration(input)).rejects.toBeInstanceOf(RevisionConflictError)
 	})
 
 	it("reuses stored credentials when settings arrive in a different key order", async () => {
 		const { service } = createMemoryService()
-		await service.saveConfiguration("user-1", azureInput({ apiVersion: "2024-06-01", baseURL: "https://example.com" }))
+		await service.saveConfiguration(azureInput({ apiVersion: "2024-06-01", baseURL: "https://example.com" }))
 
 		const reordered = azureInput({ baseURL: "https://example.com", apiVersion: "2024-06-01" })
-		const result = await service.saveConfiguration("user-1", {
+		const result = await service.saveConfiguration({
 			expectedRevision: 1,
 			text: { ...reordered.text, authMode: "static", credentials: undefined },
 			embedding: reordered.embedding,
@@ -123,15 +115,15 @@ describe("AI provider service", () => {
 			},
 		} as SaveConfigurationInput
 
-		await expect(service.saveConfiguration("user-1", invalid)).rejects.toBeInstanceOf(InvalidConfigurationError)
+		await expect(service.saveConfiguration(invalid)).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})
 
 	it("requires credentials when switching from reused to separate embedding credentials", async () => {
 		const { service } = createMemoryService()
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		await expect(
-			service.saveConfiguration("user-1", {
+			service.saveConfiguration({
 				...input,
 				expectedRevision: 1,
 				text: { ...input.text, authMode: "static", credentials: undefined },
@@ -143,7 +135,7 @@ describe("AI provider service", () => {
 	it("discovers models without saving transient credentials", async () => {
 		const { service, getStored } = createMemoryService()
 
-		const models = await service.discoverModels("user-1", {
+		const models = await service.discoverModels({
 			providerId: "openai",
 			authMode: "static",
 			settings: {},
@@ -156,7 +148,7 @@ describe("AI provider service", () => {
 
 	it("prepares the embedding role without decrypting unrelated text credentials", async () => {
 		const { service, getStored } = createMemoryService()
-		await service.saveConfiguration("user-1", {
+		await service.saveConfiguration({
 			...input,
 			embedding: {
 				providerId: "openai",
@@ -178,7 +170,7 @@ describe("AI provider service", () => {
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {
 		let call: Record<string, unknown> | undefined
-		const { service } = createMemoryService(true, async function* (generationInput) {
+		const { service } = createMemoryService(async function* (generationInput) {
 			call = generationInput
 			yield { type: "text", text: "Hello" } as const
 			yield {
@@ -187,7 +179,7 @@ describe("AI provider service", () => {
 				usage: { inputTokens: 5, outputTokens: 2 },
 			} as const
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 		const controller = new AbortController()
 
 		const prepared = await service.prepareTextOperation({
@@ -217,11 +209,11 @@ describe("AI provider service", () => {
 
 	it("passes the system prompt as AI SDK instructions instead of a model message", async () => {
 		let call: Record<string, unknown> | undefined
-		const { service } = createMemoryService(true, async function* (generationInput) {
+		const { service } = createMemoryService(async function* (generationInput) {
 			call = generationInput
 			yield { type: "finish", outcome: "completed", usage: {} } as const
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [
@@ -240,10 +232,10 @@ describe("AI provider service", () => {
 	})
 
 	it("does not instantiate the configured embedding model for text generation", async () => {
-		const { service } = createMemoryService(true, async function* () {
+		const { service } = createMemoryService(async function* () {
 			yield { type: "finish", outcome: "completed", usage: {} } as const
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
@@ -254,7 +246,7 @@ describe("AI provider service", () => {
 	})
 
 	it("normalizes provider context-window rejections without exposing their body", async () => {
-		const { service } = createMemoryService(true, async function* () {
+		const { service } = createMemoryService(async function* () {
 			yield* []
 			throw new APICallError({
 				message: "maximum context length exceeded: sensitive provider body",
@@ -264,7 +256,7 @@ describe("AI provider service", () => {
 				responseBody: '{"code":"context_length_exceeded"}',
 			})
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
@@ -290,7 +282,7 @@ describe("AI provider service", () => {
 				'{"error":{"code":400,"message":"The input token count (1197653) exceeds the maximum number of tokens allowed (1048576).","status":"INVALID_ARGUMENT"}}',
 		},
 	])("normalizes $name context-limit rejections", async ({ message, responseBody }) => {
-		const { service } = createMemoryService(true, async function* () {
+		const { service } = createMemoryService(async function* () {
 			yield* []
 			throw new APICallError({
 				message,
@@ -300,7 +292,7 @@ describe("AI provider service", () => {
 				responseBody,
 			})
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
@@ -313,7 +305,7 @@ describe("AI provider service", () => {
 	})
 
 	it("does not classify unrelated client errors as context-limit rejections", async () => {
-		const { service } = createMemoryService(true, async function* () {
+		const { service } = createMemoryService(async function* () {
 			yield* []
 			throw new APICallError({
 				message: "The model `gpt-0` does not exist",
@@ -323,7 +315,7 @@ describe("AI provider service", () => {
 				responseBody: '{"error":{"message":"The model `gpt-0` does not exist","code":"model_not_found"}}',
 			})
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
@@ -335,11 +327,11 @@ describe("AI provider service", () => {
 
 	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
 		let call: Record<string, unknown> | undefined
-		const { service } = createMemoryService(true, async function* (generationInput) {
+		const { service } = createMemoryService(async function* (generationInput) {
 			call = generationInput
 			yield { type: "finish", outcome: "completed", usage: {} } as const
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 
 		const prepared = await service.prepareTextOperation({
 			messages: [{ role: "user", content: "Hi" }],
@@ -356,11 +348,11 @@ describe("AI provider service", () => {
 
 	it("rejects corrupted stored credentials during preparation before provider invocation", async () => {
 		let invoked = false
-		const { service, getStored } = createMemoryService(true, async function* () {
+		const { service, getStored } = createMemoryService(async function* () {
 			invoked = true
 			yield* []
 		})
-		await service.saveConfiguration("user-1", input)
+		await service.saveConfiguration(input)
 		const stored = getStored()
 		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
 		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }

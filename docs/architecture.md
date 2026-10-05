@@ -111,6 +111,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Contracts And Routes
 
 - `<module>.contract.ts` owns Zod transport schemas and route/OpenAPI metadata for that module. Domain rules remain in services.
+- Every route declares its access in its contract by spreading one `access.*` entry from `src/http/access.ts`; that sets both OpenAPI `security` and enforcement. The global gate answers 500 for a route without one.
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
@@ -118,7 +119,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Persistence And Migrations
 
 - `<module>.schema.ts` declares only tables, relations, indexes, and database constraints owned by that module. It contains no domain workflow.
-- `<module>.repository.ts` contains persistence operations for owned data. Services own authorization, invariants, sequencing, and application errors.
+- `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.

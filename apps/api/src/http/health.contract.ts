@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi"
 
+import { access } from "./access.ts"
 import { problemResponse } from "./openapi.ts"
 import { PROBLEM_CODES } from "./problem.ts"
 
@@ -14,6 +15,7 @@ export const getHealthRoute = createRoute({
 	path: "/health",
 	operationId: "getHealth",
 	tags: ["Health"],
+	...access.public,
 	responses: {
 		200: {
 			content: { "application/json": { schema: healthResponseSchema } },

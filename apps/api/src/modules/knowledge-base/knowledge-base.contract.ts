@@ -1,5 +1,7 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { MAX_FILE_NAME_LENGTH } from "./knowledge-base.service.ts"
@@ -65,7 +67,7 @@ export const listAgentFilesRoute = createRoute({
 	path: "/{agentId}/files",
 	operationId: "listAgentFiles",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: {
@@ -84,7 +86,7 @@ export const uploadAgentFileRoute = createRoute({
 	path: "/{agentId}/files",
 	operationId: "uploadAgentFile",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		params: agentParamsSchema,
 		body: {
@@ -109,7 +111,7 @@ export const downloadAgentFileRoute = createRoute({
 	path: "/{agentId}/files/{fileName}",
 	operationId: "downloadAgentFile",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: fileParamsSchema },
 	responses: {
 		200: {
@@ -129,7 +131,7 @@ export const renameAgentFileRoute = createRoute({
 	path: "/{agentId}/files/{fileName}",
 	operationId: "renameAgentFile",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		params: fileParamsSchema,
 		body: { content: { "application/json": { schema: renameAgentFileRequestSchema } }, required: true },
@@ -151,7 +153,7 @@ export const deleteAgentFileRoute = createRoute({
 	path: "/{agentId}/files/{fileName}",
 	operationId: "deleteAgentFile",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -168,7 +170,7 @@ export const retryAgentFileRoute = createRoute({
 	path: "/{agentId}/files/{fileName}/retry",
 	operationId: "retryAgentFile",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,

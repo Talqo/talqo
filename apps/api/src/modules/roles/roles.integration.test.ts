@@ -101,6 +101,15 @@ describe("roles", () => {
 		expect(await service.authorize(user.id, "admin")).toBe(false)
 	})
 
+	it("denies a member without grants from listing users", async () => {
+		const cookie = await createMemberSession()
+
+		const response = await app.request("/api/users", { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "admin-access-required" })
+	})
+
 	it("enforces at most one admin grant at the database level, not just in application code", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
@@ -406,6 +415,23 @@ describe("admin password reset", () => {
 		expect(finalLogin.status).toBe(200)
 		const { user: finalUser } = (await finalLogin.json()) as { user: { mustChangePassword: boolean } }
 		expect(finalUser.mustChangePassword).toBe(false)
+	})
+
+	it("blocks every other session route until a pending password change is completed", async () => {
+		const { cookie: adminCookie } = await createAdminSession()
+		const memberUsername = uniqueUsername()
+		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		await app.request(`/api/users/${member.id}/password`, {
+			method: "PATCH",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ newPassword: "admin-reset-password-456" }),
+		})
+		const memberCookie = await login(memberUsername, "admin-reset-password-456")
+
+		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "password-change-required" })
 	})
 
 	it("invalidates the target account's existing sessions once the reset happens", async () => {

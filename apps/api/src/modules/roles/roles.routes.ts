@@ -1,5 +1,3 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
-
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -31,7 +29,7 @@ import {
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
-export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+export const rolesRoutes = new OpenAPIHono()
 	.openapi(getAccessRoute, async (c) => {
 		return c.json(accessResponseSchema.parse(await service.getAccess(c.get("user").id)), HTTP_STATUS.OK)
 	})
@@ -55,13 +53,9 @@ export const rolesRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 
-const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const invitationRoutes = new OpenAPIHono()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, service.Permission.Admin))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		const { token, expiresAt } = await service.createInvitation(user.id)
 		return c.json(
 			createInvitationResponseSchema.parse({ token, expiresAt: expiresAt.toISOString() }),
@@ -84,13 +78,9 @@ const invitationRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 
-const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const permissionGrantRoutes = new OpenAPIHono()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		if (!(await service.authorize(user.id, service.Permission.Admin))) {
-			return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		try {
 			const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
 			return c.json(
@@ -106,11 +96,6 @@ const permissionGrantRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		}
 	})
 	.openapi(revokePermissionGrantRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await service.authorize(user.id, service.Permission.Admin))) {
-			return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-		}
-
 		await service.revokePermission(c.req.valid("param").id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
@@ -124,20 +109,12 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 })
 
 rolesRoutes.openapi(getUsersRoute, async (c) => {
-	if (!(await service.authorize(c.get("user").id, service.Permission.Admin))) {
-		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-	}
-
 	const users = await identity.listUsers()
 	return c.json(userListResponseSchema.parse({ users }), HTTP_STATUS.OK)
 })
 
 rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 	const user = c.get("user")
-	if (!(await service.authorize(user.id, service.Permission.Admin))) {
-		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-	}
-
 	const targetUserId = c.req.valid("param").userId
 	if (targetUserId === user.id) {
 		return problemResponse(c, PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
@@ -156,10 +133,6 @@ rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
 
 rolesRoutes.openapi(deleteUserRoute, async (c) => {
 	const user = c.get("user")
-	if (!(await service.authorize(user.id, service.Permission.Admin))) {
-		return problemResponse(c, PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, HTTP_STATUS.FORBIDDEN)
-	}
-
 	const targetUserId = c.req.valid("param").userId
 	if (targetUserId === user.id) {
 		return problemResponse(c, PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
