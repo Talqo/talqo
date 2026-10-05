@@ -97,6 +97,15 @@
 	padding-left: 1.25em;
 }
 
+/* Explicit: dev mode keeps Tailwind preflight, which sets list-style: none. */
+.talqo-widget .talqo-markdown ul {
+	list-style-type: disc;
+}
+
+.talqo-widget .talqo-markdown ol {
+	list-style-type: decimal;
+}
+
 .talqo-widget .talqo-markdown li + li {
 	margin-top: 0.25em;
 }
