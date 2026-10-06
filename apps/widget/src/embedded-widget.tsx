@@ -1,4 +1,4 @@
-import type { ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ActiveTool, ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
 import {
 	DEFAULT_WIDGET_APPEARANCE,
@@ -152,6 +152,7 @@ type ChatPresentation = {
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
+const EMPTY_TOOLS: readonly ActiveTool[] = []
 
 function WidgetChat({
 	title,
@@ -182,6 +183,7 @@ function WidgetChat({
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
+	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const initialization = snapshot?.initialization ?? (unavailable ? "error" : "ready")
 	const generation = snapshot?.generation ?? "idle"
 	const resetting = snapshot?.reset === "resetting"
@@ -391,6 +393,15 @@ function WidgetChat({
 							{messages.map((message) => (
 								<TranscriptBubble key={message.id} message={message} />
 							))}
+							{activeTools.length > 0 && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										<ResponseIndicator
+											label={t("toolRunning", { tool: activeTools.map(({ toolName }) => toolName).join(", ") })}
+										/>
+									</BubbleContent>
+								</Bubble>
+							)}
 							{showPendingResponse && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">

@@ -46,5 +46,20 @@ services:
     tmpfs:
       - /var/lib/postgresql
 
+  mcp-demo:
+    image: oven/bun:1.4.2-slim
+    profiles: [demo]
+    working_dir: /app
+    command: ["bun", "run", "test-fixtures/mcp-demo-server.ts", "http"]
+    environment:
+      MCP_DEMO_PORT: 8081
+    # Published host port; the seeded connection uses TALQO_MCP_DEMO_URL to reach it.
+    volumes:
+      - ./apps/api/test-fixtures:/app/test-fixtures:ro
+    ports:
+      - target: 8081
+        host_ip: 127.0.0.1
+        published: ${MCP_DEMO_HOST_PORT:-8092}
+
 volumes:
   postgres-data:

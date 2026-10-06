@@ -15,7 +15,7 @@ erDiagram
     EMBED
     BLACKLIST_WORD
 
-    MCP_CONFIG
+    MCP_SERVER
     AI_PROVIDER_CONFIG
 
     CONVERSATION
@@ -35,7 +35,7 @@ erDiagram
 
     AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
-    AGENT ||--o{ MCP_CONFIG : configures
+    AGENT ||--o{ MCP_SERVER : configures
     AGENT ||--o{ AI_PROVIDER_CONFIG : configures
     AGENT ||--o{ AGENT_FILE : owns
     AGENT_FILE ||--o{ AGENT_FILE_CHUNK : contains

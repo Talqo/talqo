@@ -1,3 +1,4 @@
+import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
 import { describe, expect, it } from "bun:test"
 
@@ -11,7 +12,6 @@ import {
 	RevisionConflictError,
 	UnusableConfigurationError,
 } from "./ai-provider.service.ts"
-import { createCredentialVault } from "./credential-vault.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
 
@@ -54,7 +54,7 @@ const input: SaveConfigurationInput = {
 function createMemoryService(generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
-		vault: createCredentialVault(APP_SECRET),
+		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		generate,
 		discover: async () => ["model-a"],
 		repository: {

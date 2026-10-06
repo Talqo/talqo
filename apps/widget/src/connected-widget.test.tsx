@@ -23,6 +23,7 @@ const READY_SNAPSHOT: ChatSnapshot = {
 	initialization: "ready",
 	generation: "idle",
 	reset: "idle",
+	activeTools: [],
 	persistence: "persistent",
 	recovery: "idle",
 	error: undefined,

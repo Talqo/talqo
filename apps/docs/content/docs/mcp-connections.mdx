@@ -1,0 +1,61 @@
+---
+title: Connect a tools server
+description: Give an agent live data from your own systems.
+---
+
+## What this does
+
+An agent normally answers from documents you uploaded. A **tools connection** lets it also call a program or service you run, so it can answer from live data such as stock levels, order status, or prices.
+
+You add connections on one agent's page, under the **Tools** tab. Each connection belongs to that agent alone, so a secret configured for one agent is never handed to another.
+
+## Two kinds of connection
+
+**Web address** runs the server somewhere you already host it and gives Talqo its address. Most servers work this way, and it is the easier option.
+
+**Local program** runs the server as a child process on the machine running Talqo. Use it for servers you install yourself.
+
+Connections are tested when you save them, and you can test again at any time. A failed test keeps everything you typed: the problem is the server being unreachable, not your setup.
+
+## Web address
+
+Fill in the address the server publishes, usually ending in `/mcp`.
+
+Under **Sign-in**, choose how Talqo authenticates:
+
+- **None** for a server on your own network that needs no credentials.
+- **Secret key** for a fixed header, such as `Authorization: Bearer …` or `X-API-Key`. Give the header name and its value; the value is stored encrypted and never shown again.
+- **Sign in with the server** for a server that supports OAuth, such as Shopify's. Talqo stores the result, so you only do this once.
+
+With **Sign in with the server**, save first, then use the sign-in button on the connection. You are sent to the server to approve access and returned to the agent page when it is done.
+
+## Local program
+
+Fill in the command that starts the server, and one argument per line. For a server published to npm that is usually:
+
+```
+bunx
+```
+
+```
+-y
+@scope/server
+```
+
+If the server needs a secret, give one variable name and value. It is stored encrypted and passed to the program as an environment variable.
+
+The server receives only that variable plus a small set of harmless shell variables. Talqo never passes its own secrets, such as its database password, to a program you configure.
+
+A Python-based server cannot run in the container as shipped, because it has no Python interpreter. Run those yourself over a web address instead.
+
+## Choosing which tools to use
+
+Testing a connection lists the tools the server offers. Turn off any your agent does not need: it will not be able to call them, and a connection with every tool turned off stays configured but costs nothing at chat time.
+
+Turning a tool off is different from disabling the connection. A disabled connection is skipped entirely; a connection with no tools selected still starts, because the model must be able to see each tool's parameters before deciding to call it.
+
+## When something does not work
+
+Chat never fails because of a tools connection. If a server is unreachable, its tools are simply unavailable for that message and the agent answers with what it has. The reason is written to the server log, not shown to your customers.
+
+If a connection stops working, use **Test connection** on the card. It reports what it found without discarding your configuration.

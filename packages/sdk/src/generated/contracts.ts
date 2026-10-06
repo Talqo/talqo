@@ -133,6 +133,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#current-password-incorrect"
 	  }
 	| {
+			code: "duplicate-mcp-server-name"
+			type: "https://docs.talqo.chat/problems#duplicate-mcp-server-name"
+	  }
+	| {
 			code: "embed-disabled"
 			type: "https://docs.talqo.chat/problems#embed-disabled"
 	  }
@@ -143,6 +147,10 @@ export type ProblemDetails =
 	| {
 			code: "internal-server-error"
 			type: "https://docs.talqo.chat/problems#internal-server-error"
+	  }
+	| {
+			code: "invalid-mcp-server-url"
+			type: "https://docs.talqo.chat/problems#invalid-mcp-server-url"
 	  }
 	| {
 			code: "invalid-ai-provider-configuration"
@@ -163,6 +171,18 @@ export type ProblemDetails =
 	| {
 			code: "malformed-json"
 			type: "https://docs.talqo.chat/problems#malformed-json"
+	  }
+	| {
+			code: "mcp-authorization-server-changed"
+			type: "https://docs.talqo.chat/problems#mcp-authorization-server-changed"
+	  }
+	| {
+			code: "mcp-server-not-found"
+			type: "https://docs.talqo.chat/problems#mcp-server-not-found"
+	  }
+	| {
+			code: "mcp-server-unreachable"
+			type: "https://docs.talqo.chat/problems#mcp-server-unreachable"
 	  }
 	| {
 			code: "model-discovery-unsupported"
@@ -250,6 +270,19 @@ export type ChatEventV1 =
 			version: 1
 			type: "terminal"
 			outcome: "completed" | "failed" | "cancelled" | "blocked" | "interrupted"
+	  }
+	| {
+			version: 1
+			type: "tool-start"
+			serverName: string
+			toolName: string
+	  }
+	| {
+			version: 1
+			type: "tool-end"
+			serverName: string
+			toolName: string
+			outcome: "completed" | "failed" | "cancelled"
 	  }
 	| {
 			version: 1

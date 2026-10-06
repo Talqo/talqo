@@ -32,6 +32,19 @@ export const chatEventSchema = z
 		z.object({ version: z.literal(1), type: z.literal("terminal"), outcome: terminalOutcome }),
 		z.object({
 			version: z.literal(1),
+			type: z.literal("tool-start"),
+			serverName: z.string(),
+			toolName: z.string(),
+		}),
+		z.object({
+			version: z.literal(1),
+			type: z.literal("tool-end"),
+			serverName: z.string(),
+			toolName: z.string(),
+			outcome: z.enum(["completed", "failed", "cancelled"]),
+		}),
+		z.object({
+			version: z.literal(1),
 			type: z.literal("error"),
 			outcome: z.enum(["failed", "cancelled", "blocked", "interrupted"]),
 			error: chatErrorSchema,

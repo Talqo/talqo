@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (2026-10-05).
+Implemented (2026-10-05).
 
 ## Goal And Scope
 
@@ -39,9 +39,9 @@ Duplication is accepted: an operator running several agents against the same bac
 
 The client names these differently from this document, which is worth pinning down before someone hunts for a type that does not exist. Its transport config accepts exactly `type: 'sse' | 'http'`, where `'http'` **is** Streamable HTTP and `'sse'` is the deprecated HTTP+SSE transport. So `mcp_transport = 'http'` maps to `{ type: 'http', url, headers?, authProvider? }`, and `mcp_transport = 'stdio'` maps to an `Experimental_StdioMCPTransport` instance rather than to a config object, because stdio is not expressible in that union.
 
-Supporting stdio costs a real constraint on the deployment image. `oven/bun:1.4.2-slim` carries no Python, so a stdio server written in Python cannot run unmodified. What it does carry is `bun`, `bunx`, a POSIX shell, and a `node` shim for bun already on `PATH`, so npm-distributed servers — the largest category — run as-is. The runtime image also installs an `npx` wrapper that invokes `bun x`, so the `npx -y @scope/server` form used by upstream MCP documentation works unchanged. Operators who need a Python server run it themselves over an HTTP transport, which most such servers support.
+Supporting stdio costs a real constraint on the deployment image. `oven/bun:1.4.2-slim` carries no Python, so a stdio server written in Python cannot run unmodified. What it does carry is `bun`, `bunx`, a POSIX shell, and a `node` shim for bun already on `PATH`, so npm-distributed servers — the largest category — run as-is through `bunx`, including the `-y` flag that upstream MCP documentation uses. Operators who need a Python server run it themselves over an HTTP transport, which most such servers support.
 
-A symlink is not sufficient for that wrapper. Bun dispatches on `argv[0]`, so `npx` pointing at `bunx` invokes the runtime and rejects bunx flags such as `-y`. The image therefore ships a two-line shell script that execs `bun x "$@"`, verified against both the flagged and unflagged forms.
+Copy says `bunx`, the runtime's own package runner, rather than `npx`. Bun dispatches on `argv[0]`, so an `npx` symlink to `bunx` would silently run the runtime and reject flags such as `-y`; that is a reason not to pretend the image is Node, not a reason to ship a wrapper. Naming `bunx` keeps the image untouched, and `bunx -y @scope/server` was verified against the image.
 
 Spawning an operator-chosen program is not a privilege escalation: the operator already runs arbitrary code on the machine they deploy Talqo to. The residual risks are resource use and orphaned processes, addressed below.
 
@@ -172,7 +172,7 @@ Applies only to stdio. HTTP servers hold no process.
 
 One stdio server is spawned per generation and closed when the generation ends, whatever ends it. The process must stay alive for the whole generation because it serves the tool calls the model decides to make; respawning per call would be absurd.
 
-Every server with a non-empty tool selection therefore starts at the beginning of every generation, not on demand. This is forced rather than chosen: the model needs each tool's schema before it can decide to call one, and the client's tools are built from a connected transport. Measured in the production image, spawning an `npx`-launched server, completing the handshake, and listing its thirteen tools costs 253ms once the package is installed, and the first install costs 2.6s. Servers start concurrently, so N servers cost roughly one spawn rather than N, and the install cost lands on the probe at configure time rather than on a shopper's first message.
+Every server with a non-empty tool selection therefore starts at the beginning of every generation, not on demand. This is forced rather than chosen: the model needs each tool's schema before it can decide to call one, and the client's tools are built from a connected transport. Measured in the production image, spawning a `bunx`-launched server, completing the handshake, and listing its thirteen tools costs 253ms once the package is installed, and the first install costs 2.6s. Servers start concurrently, so N servers cost roughly one spawn rather than N, and the install cost lands on the probe at configure time rather than on a shopper's first message.
 
 Spawning lazily would move that 253ms onto only the turns that actually call a tool, which for a shop assistant is most of none of them. It is not available without bypassing the client's lifecycle, so it is recorded as a known cost rather than a design gap.
 
@@ -318,7 +318,7 @@ A new `mcp` tab in `AGENT_TABS` alongside `configuration`, `context`, and `embed
 
 One form with a type selector, not two screens. The operator chooses a server address or a program, fills only the fields that apply, and presses Test connection to find out whether it works. A second screen would be a second concept for no gain.
 
-Copy uses `npx`, not `bunx`, because that is what every MCP server's documentation says and the runtime image now provides it. An operator pasting an upstream install command gets working behavior instead of a failure they cannot diagnose. Talqo performs no rewriting of the operator's command; what they type is what runs.
+Copy uses `bunx`, which the runtime image already provides, rather than `npx`, which it does not. An operator who copies a command from a server's own README will need to change `npx` to `bunx`; that is stated plainly in the docs rather than papered over with a wrapper, because the alternative is a shell script in the image that pretends the runtime is Node. Talqo performs no rewriting of the operator's command; what they type is what runs.
 
 Arguments are entered one per line rather than as a shell string, so no quoting rules are needed and nothing is silently word-split.
 
@@ -331,7 +331,7 @@ Operator-facing copy avoids protocol vocabulary: the tab is tools, a server is a
 ## Verification And Acceptance
 
 - A committed stdio fixture server, a small Bun program speaking MCP over stdio, used by the integration and end-to-end suites.
-- Container contract: the built image provides a working `npx` for both the flagged and unflagged forms, since the symlink approach silently degrades to bun's runtime mode; and an `npx`-launched stdio server connects and lists tools under Bun, so the Node-only note on the transport does not become a real dependency. Both are already verified against the built image and stay as regressions.
+- Container contract: `bunx` is present in the image and accepts the `-y` flag, verified against it; and a `bunx`-launched stdio server connects and lists tools under Bun, so the Node-only note on the transport does not become a real dependency.
 - Unit (`mcp.test.ts`): transport-specific validation on both create and update; URL scheme validation; secret masking in responses; tool-selection preservation across a probe returning a changed tool list; duplicate header and variable names rejected by the map shape.
 - Unit (`credential-vault.test.ts`): an `mcp` envelope cannot be decrypted under the `ai-provider` key context and vice versa; a header envelope cannot be decrypted as an environment value; the new JSON-object payload round-trips a numeric field, which the existing string-map payload rejects.
 - Integration through service interfaces: create, update, delete for both transports; cascade on agent delete; probe success and failure; failure preserves the previous snapshot; disabled servers excluded from resolution; selection preserved by name when a tool disappears.
@@ -348,7 +348,7 @@ Operator-facing copy avoids protocol vocabulary: the tab is tools, a server is a
 - E2E: create both an HTTP and a stdio connection in the dashboard, see each one's tools, disable one, then confirm chat stops calling it.
 - Regression: `bun run quality:fix`, `typecheck`, `test`, `test:integration`, `e2e`, `contracts:check`, `i18n:fix`.
 
-The stdio transport is documented as Node-only and spawns through `cross-spawn`, so it was spiked against Bun before anything else was built. It works: in the production image, `npx -y @modelcontextprotocol/server-everything` launched through the wrapper, spawned under Bun, completed the legacy handshake, and returned its thirteen tools. Era discovery cost one spawn, not two, so the fallback of importing the official SDK's `StdioClientTransport` is not needed and the single-MCP-stack property holds.
+The stdio transport is documented as Node-only and spawns through `cross-spawn`, so it was spiked against Bun before anything else was built. It works: in the production image, a `bunx -y` launched server spawned under Bun, completed the legacy handshake, and returned its thirteen tools. Era discovery cost one spawn, not two, so the fallback of importing the official SDK's `StdioClientTransport` is not needed and the single-MCP-stack property holds.
 
 Because the probe runs when the operator saves rather than when a shopper chats, a first-run package install is paid at configure time instead of on the first customer message.
 

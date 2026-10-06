@@ -13,6 +13,7 @@ import { createConversationRoutes, type ChatBindings } from "@/modules/conversat
 import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
+import { mcpOAuthCallbackRoutes, mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
@@ -75,6 +76,8 @@ api.route("/embed-config", embedConfigRoutes)
 api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
+api.route("/agents", mcpServerRoutes)
+api.route("/agents", mcpOAuthCallbackRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,

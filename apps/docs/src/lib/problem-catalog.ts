@@ -183,6 +183,42 @@ export const PROBLEMS = [
 		guidance: "Request a new invitation.",
 	},
 	{
+		code: "duplicate-mcp-server-name",
+		title: "Connection name already used",
+		status: "409",
+		meaning: "This agent already has a connection with that name.",
+		guidance: "Pick a different name; names only need to be unique within one agent.",
+	},
+	{
+		code: "invalid-mcp-server-url",
+		title: "Connection details not accepted",
+		status: "400",
+		meaning: "The address, command, or header name is not usable for the selected type.",
+		guidance: "Check the address starts with http or https, and that no reserved header is used.",
+	},
+	{
+		code: "mcp-authorization-server-changed",
+		title: "Sign-in server changed",
+		status: "400",
+		meaning: "The server now points at a different sign-in provider, so stored credentials were discarded.",
+		guidance: "Review the new provider, then start the connection's sign-in again.",
+	},
+	{
+		code: "mcp-server-not-found",
+		title: "Connection not found",
+		status: "404",
+		meaning: "This connection no longer belongs to the agent.",
+		guidance: "Refresh the list; it may have been deleted in another tab.",
+	},
+	{
+		code: "mcp-server-unreachable",
+		title: "Connection not reachable",
+		status: "502",
+		meaning: "The test could not reach the server or start the command.",
+		guidance: "The configuration was kept. Fix the address or command, then test again.",
+	},
+
+	{
 		code: "invalid-request",
 		title: "Invalid request",
 		status: "400",

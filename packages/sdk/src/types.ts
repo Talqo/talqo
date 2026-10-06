@@ -77,6 +77,8 @@ export type ChatSnapshot = {
 	readonly initialization: "idle" | "loading" | "ready" | "error"
 	readonly generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling"
 	readonly reset: "idle" | "resetting"
+	/** Tool calls the agent is running right now. Tool activity never blocks the stream. */
+	readonly activeTools: readonly ActiveTool[]
 	readonly persistence: "persistent" | "memory"
 	readonly recovery: "idle" | "pending" | "unavailable"
 	readonly error: ChatError | undefined
@@ -88,6 +90,8 @@ export type SessionState = {
 	readonly activeGeneration: { readonly id: string } | undefined
 }
 
+export type ActiveTool = { readonly serverName: string; readonly toolName: string }
+
 export type ChatEvent =
 	| {
 			type: "accepted"
@@ -97,6 +101,8 @@ export type ChatEvent =
 			assistantMessage: { id: string; createdAt: string }
 	  }
 	| { type: "delta"; assistantMessageId: string; text: string }
+	| { type: "tool-start"; serverName: string; toolName: string }
+	| { type: "tool-end"; serverName: string; toolName: string; outcome: "completed" | "failed" | "cancelled" }
 	| { type: "terminal"; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming"> }
 	| { type: "error"; error: ChatError; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming" | "completed"> }
 

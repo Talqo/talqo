@@ -96,6 +96,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
 	}),
 	zod.object({
+		code: zod.enum(["duplicate-mcp-server-name"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#duplicate-mcp-server-name"]),
+	}),
+	zod.object({
 		code: zod.enum(["embed-disabled"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#embed-disabled"]),
 	}),
@@ -106,6 +110,10 @@ export const ProblemDetails = zod.union([
 	zod.object({
 		code: zod.enum(["internal-server-error"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#internal-server-error"]),
+	}),
+	zod.object({
+		code: zod.enum(["invalid-mcp-server-url"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-mcp-server-url"]),
 	}),
 	zod.object({
 		code: zod.enum(["invalid-ai-provider-configuration"]),
@@ -126,6 +134,18 @@ export const ProblemDetails = zod.union([
 	zod.object({
 		code: zod.enum(["malformed-json"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
+	}),
+	zod.object({
+		code: zod.enum(["mcp-authorization-server-changed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#mcp-authorization-server-changed"]),
+	}),
+	zod.object({
+		code: zod.enum(["mcp-server-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-not-found"]),
+	}),
+	zod.object({
+		code: zod.enum(["mcp-server-unreachable"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-unreachable"]),
 	}),
 	zod.object({
 		code: zod.enum(["model-discovery-unsupported"]),

@@ -1,4 +1,5 @@
 import type {
+	ActiveTool,
 	ChatClient,
 	ChatClientOptions,
 	ChatConfiguration,
@@ -84,6 +85,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let credential: string | undefined
 	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
+	let activeTools: readonly ActiveTool[] = []
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
 	let activeSend:
@@ -122,6 +124,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	function createSnapshot(): ChatSnapshot {
 		return {
 			configuration,
+			activeTools,
 			messages,
 			initialization,
 			generation,
@@ -371,6 +374,15 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				} else if (event.type === "delta") {
 					assistantId = event.assistantMessageId
 					replaceMessage(assistantId, (message) => ({ ...message, text: message.text + event.text }))
+					publish()
+				} else if (event.type === "tool-start") {
+					const { serverName, toolName } = event
+					activeTools = activeTools.some((t) => t.toolName === toolName)
+						? activeTools.map((t) => (t.toolName === toolName ? { ...t, serverName } : t))
+						: [...activeTools, { serverName, toolName }]
+					publish()
+				} else if (event.type === "tool-end") {
+					activeTools = activeTools.filter((t) => t.toolName !== event.toolName)
 					publish()
 				} else {
 					terminalReceived = true

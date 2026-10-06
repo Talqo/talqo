@@ -4,6 +4,7 @@ import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
+import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
 import { z } from "zod"
 
@@ -46,7 +47,11 @@ type GenerationEvent =
 	  }
 
 type PreparedOperation = {
-	invoke(signal: AbortSignal): AsyncIterable<GenerationEvent>
+	invoke(
+		signal: AbortSignal,
+		tools?: aiProvider.ToolBinding,
+		onToolEvent?: (event: aiProvider.ToolEvent) => void,
+	): AsyncIterable<GenerationEvent>
 	model: string
 	provider: string
 }
@@ -84,6 +89,14 @@ export type ChatEvent =
 	  }
 	| { version: 1; assistantMessageId: string; text: string; type: "delta" }
 	| { version: 1; outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"; type: "terminal" }
+	| { version: 1; serverName: string; toolName: string; type: "tool-start" }
+	| {
+			version: 1
+			outcome: "cancelled" | "completed" | "failed"
+			serverName: string
+			toolName: string
+			type: "tool-end"
+	  }
 	| {
 			version: 1
 			error: { code: string; newChatAvailable: boolean; retriable: boolean }
@@ -283,13 +296,31 @@ export function createConversationService(dependencies: Dependencies) {
 			retriable: true,
 			newChatAvailable: false,
 		}
+		// Resolution belongs here rather than in prepareAndAccept: this is the first point with an abort
+		// signal, and prepare retries on stale history, which would orphan anything spawned earlier.
+		let connection: mcp.OpenTools | undefined
+		try {
+			connection = await mcp.openTools(agent.id, controller.signal)
+		} catch (error) {
+			console.error("mcp.tools.degraded", { agentId: agent.id, error })
+		}
+		const inFlight = new Map<string, { serverName: string; toolName: string }>()
 		try {
 			if (
 				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
 			) {
 				return
 			}
-			for await (const event of prepared.invoke(controller.signal)) {
+			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
+				const key = `${toolEvent.identity.serverName}\u0000${toolEvent.identity.toolName}`
+				if (toolEvent.type === "tool-start") {
+					inFlight.set(key, toolEvent.identity)
+					emit({ version: 1, type: "tool-start", ...toolEvent.identity })
+				} else {
+					inFlight.delete(key)
+					emit({ version: 1, type: "tool-end", ...toolEvent.identity, outcome: toolEvent.outcome })
+				}
+			})) {
 				if (event.type === "start") {
 					provider = event.provider
 					model = event.model
@@ -333,12 +364,18 @@ export function createConversationService(dependencies: Dependencies) {
 						}
 			}
 		} finally {
+			// An abort never reaches the provider's own callback, so unresolved calls close here.
+			for (const identity of inFlight.values()) {
+				emit({ version: 1, type: "tool-end", ...identity, outcome: "cancelled" })
+			}
+			inFlight.clear()
 			clearTimeout(flushTimer)
 			try {
 				if (outcome !== "blocked") await queueOutput(filter.finish())
 				await flushOutput()
 			} finally {
 				poller.unregister(generationAttempt.id)
+				await connection?.close()
 			}
 		}
 		if (outputFailed && outcome !== "blocked") outcome = "failed"

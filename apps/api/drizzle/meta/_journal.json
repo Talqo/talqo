@@ -64,6 +64,13 @@
 			"when": 1790617313242,
 			"tag": "0008_jazzy_mulholland_black",
 			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "7",
+			"when": 1791236022920,
+			"tag": "0009_mean_shatterstar",
+			"breakpoints": true
 		}
 	]
 }

@@ -34,6 +34,19 @@ export const ChatEventV1 = zod.union([
 	}),
 	zod.object({
 		version: zod.literal(1),
+		type: zod.enum(["tool-start"]),
+		serverName: zod.string(),
+		toolName: zod.string(),
+	}),
+	zod.object({
+		version: zod.literal(1),
+		type: zod.enum(["tool-end"]),
+		serverName: zod.string(),
+		toolName: zod.string(),
+		outcome: zod.enum(["completed", "failed", "cancelled"]),
+	}),
+	zod.object({
+		version: zod.literal(1),
 		type: zod.enum(["error"]),
 		outcome: zod.enum(["failed", "cancelled", "blocked", "interrupted"]),
 		error: zod.object({

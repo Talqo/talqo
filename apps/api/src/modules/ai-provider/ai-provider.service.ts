@@ -1,9 +1,10 @@
+import type { CredentialEnvelope, createCredentialVault } from "@/lib/credential-vault.ts"
+
 import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
-import { embed as aiEmbed, streamText as aiStreamText } from "ai"
+import { embed as aiEmbed, isStepCount, streamText as aiStreamText } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
-import type { CredentialEnvelope, createCredentialVault } from "./credential-vault.ts"
 
 import { validateConfigurationInput } from "./ai-provider.configuration.ts"
 import { discoverModels as discoverProviderModels, type DiscoveryRequest } from "./ai-provider.discovery.ts"
@@ -13,6 +14,20 @@ import { PROVIDER_DEFINITIONS, getProviderDefinition } from "./ai-provider.regis
 export type { StoredConfiguration } from "./ai-provider.types.ts"
 
 const CONFIG_ID = "singleton"
+
+/**
+ * `streamText` defaults to `isStepCount(1)`, so a tool result would never reach the model and every
+ * answer would ignore the data while appearing to work. Each step is a separately billed call, which
+ * is what this bound exists to cap.
+ */
+const MAX_TOOL_STEPS = 5
+
+/** How a resolved tool identifies itself to a caller. Carried opaquely; no MCP types cross over. */
+export type ToolIdentity = { serverName: string; toolName: string }
+
+export type ToolEvent =
+	| { identity: ToolIdentity; type: "tool-start" }
+	| { identity: ToolIdentity; outcome: "completed" | "failed"; type: "tool-end" }
 
 type Vault = ReturnType<typeof createCredentialVault>
 type Repository = {
@@ -24,6 +39,12 @@ type Repository = {
 }
 
 export type TextMessage = { content: string; role: "assistant" | "system" | "user" }
+
+/** What a caller hands `invoke`: the tool record plus the names behind each key. */
+export type ToolBinding = {
+	names: Map<string, ToolIdentity>
+	tools: Record<string, unknown>
+}
 type RuntimeTextMessage = { content: string; role: "assistant" | "user" }
 export type PrepareTextOperationInput = {
 	maxOutputTokens: number
@@ -49,8 +70,11 @@ type Generate = (input: {
 	maxRetries: 0
 	messages: RuntimeTextMessage[]
 	model: LanguageModelV4
+	onToolEvent?: (event: ToolEvent) => void
 	signal: AbortSignal
 	timeoutMs: number
+	toolNames?: Map<string, ToolIdentity>
+	tools?: Record<string, unknown>
 }) => AsyncIterable<RawGenerationEvent>
 
 type ServiceDependencies = {
@@ -96,8 +120,11 @@ async function* invokePreparedOperation(
 		messages: RuntimeTextMessage[]
 		model: LanguageModelV4
 		modelId: string
+		onToolEvent?: (event: ToolEvent) => void
 		providerId: string
 		signal: AbortSignal
+		toolNames?: Map<string, ToolIdentity>
+		tools?: Record<string, unknown>
 	},
 ) {
 	try {
@@ -109,6 +136,7 @@ async function* invokePreparedOperation(
 			maxRetries: 0,
 			signal: input.signal,
 			timeoutMs: input.timeoutMs,
+			...(input.tools ? { tools: input.tools, toolNames: input.toolNames, onToolEvent: input.onToolEvent } : {}),
 		})) {
 			if (event.type === "text") yield event
 			else yield { ...event, provider: input.providerId, model: input.modelId }
@@ -128,6 +156,9 @@ const defaultGenerate: Generate = async function* (input) {
 		maxRetries: input.maxRetries,
 		abortSignal: input.signal,
 		timeout: input.timeoutMs,
+		stopWhen: isStepCount(MAX_TOOL_STEPS),
+		...(input.tools ? { tools: input.tools as never } : {}),
+		...toolCallbacks(input),
 	})
 	try {
 		for await (const text of result.textStream) yield { type: "text", text }
@@ -152,6 +183,26 @@ const defaultGenerate: Generate = async function* (input) {
 	}
 }
 
+/**
+ * Emitted through a callback rather than the event stream so tool activity reaches the client the
+ * moment it happens, instead of waiting for the next text chunk to flush.
+ */
+type ToolCallbackOptions = Pick<Parameters<typeof aiStreamText>[0], "onToolExecutionStart" | "onToolExecutionEnd">
+
+function toolCallbacks(input: Parameters<Generate>[0]): ToolCallbackOptions {
+	if (!input.tools || !input.onToolEvent) return {}
+	const identity = (name: string): ToolIdentity => input.toolNames?.get(name) ?? { serverName: "", toolName: name }
+	const emit = input.onToolEvent
+	return {
+		onToolExecutionStart: ({ toolCall }) => emit({ type: "tool-start", identity: identity(toolCall.toolName) }),
+		onToolExecutionEnd: ({ toolCall, toolOutput }) =>
+			emit({
+				type: "tool-end",
+				identity: identity(toolCall.toolName),
+				outcome: toolOutput.type === "tool-result" ? "completed" : "failed",
+			}),
+	}
+}
 function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
 	const firstKeys = Object.keys(first)
 	const secondKeys = Object.keys(second)
@@ -376,7 +427,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				return {
 					provider: stored.text.providerId,
 					model: stored.text.modelId,
-					invoke(signal: AbortSignal) {
+					invoke(signal: AbortSignal, tools?: ToolBinding, onToolEvent?: (event: ToolEvent) => void) {
 						return invokePreparedOperation(generate, {
 							...input,
 							...(instructions === undefined ? {} : { instructions }),
@@ -385,6 +436,8 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 							providerId: stored.text.providerId,
 							modelId: stored.text.modelId,
 							signal,
+							...(tools ? { tools: tools.tools, toolNames: tools.names } : {}),
+							onToolEvent,
 						})
 					},
 				}
@@ -402,12 +455,12 @@ async function getDefaultService(): Promise<ReturnType<typeof createAiProviderSe
 	defaultServicePromise ??= Promise.all([
 		import("@/config/env.ts"),
 		import("./ai-provider.repository.ts"),
-		import("./credential-vault.ts"),
+		import("@/lib/credential-vault.ts"),
 	]).then(([{ env }, repository, { createCredentialVault }]) =>
 		createAiProviderService({
 			discover: (input) => discoverProviderModels(input),
 			repository,
-			vault: createCredentialVault(env.APP_SECRET),
+			vault: createCredentialVault(env.APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		}),
 	)
 	return defaultServicePromise
