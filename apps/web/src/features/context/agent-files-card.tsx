@@ -448,7 +448,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							{deleteError}
 						</p>
 					)}
-					<div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+					<DialogFooter className="min-w-0 flex-row flex-wrap items-center justify-end gap-x-4 gap-y-2">
 						<p className="mr-auto min-w-0 truncate text-sm font-medium" title={deleteTarget?.name}>
 							{deleteTarget?.name}
 						</p>
@@ -460,7 +460,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 								{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
 							</Button>
 						</div>
-					</div>
+					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 		</Card>
