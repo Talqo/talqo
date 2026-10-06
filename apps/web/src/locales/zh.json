@@ -378,7 +378,7 @@
 		"agent-file-name-taken": "已存在同名智能体文件。",
 		"agent-file-not-found": "未找到该智能体文件。",
 		"agent-file-not-retryable": "该文件尚未失败。请在状态改变后重试。",
-		"agent-in-use": "一个或多个嵌入项正在使用此智能体，因此无法删除。",
+		"agent-in-use": "一个或多个嵌入项正在使用此智能体，因此无法删除。请先删除这些嵌入项。",
 		"agent-invalid": "智能体配置无效。",
 		"agent-name-taken": "已存在同名智能体。",
 		"agent-not-found": "未找到该智能体。",

@@ -378,7 +378,7 @@
 		"agent-file-name-taken": "An agent file with this name already exists.",
 		"agent-file-not-found": "The agent file was not found.",
 		"agent-file-not-retryable": "The agent file has not failed. Try again after its status changes.",
-		"agent-in-use": "The agent cannot be deleted while one or more embeds use it.",
+		"agent-in-use": "The agent cannot be deleted while one or more embeds use it. Delete those embeds first.",
 		"agent-invalid": "The agent configuration is invalid.",
 		"agent-name-taken": "An agent with this name already exists.",
 		"agent-not-found": "The agent was not found.",
