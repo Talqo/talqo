@@ -163,7 +163,7 @@ function EmbedDetailPage() {
 	const { register, handleSubmit, reset, control, formState } = useForm<EmbedFormValues>({
 		resolver: zodResolver(embedFormSchema),
 		// `values` lands one render after mount; without defaults the selects mount uncontrolled.
-		defaultValues: { name: "", agentId: "", ...EMBED_FORM_DEFAULTS },
+		defaultValues: { name: "", ...EMBED_FORM_DEFAULTS },
 		// keepDirtyValues so a background refetch never discards the operator's typing.
 		values: embed ? toFormValues(embed) : undefined,
 		resetOptions: { keepDirtyValues: true },
@@ -209,12 +209,14 @@ function EmbedDetailPage() {
 	}
 
 	function onValid(submitted: EmbedFormValues) {
+		if (!embed) return
 		updateEmbed.mutate(
 			{
 				embedId,
+				// The agent selector is gone from the form; the update contract still requires it.
 				data: {
 					name: submitted.name.trim(),
-					agentId: submitted.agentId,
+					agentId: embed.agentId,
 					appearance: toAppearance(submitted),
 				},
 			},
