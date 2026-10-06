@@ -1,0 +1,1 @@
+ALTER TABLE "embed" ALTER COLUMN "theme_toggle_enabled" SET DEFAULT false;
