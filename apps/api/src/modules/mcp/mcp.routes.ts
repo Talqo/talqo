@@ -11,7 +11,6 @@ import {
 	getMcpServerRoute,
 	listMcpServersRoute,
 	mcpCallbackRoute,
-	probeMcpServerRoute,
 	setMcpServerDisabledRoute,
 	serverDetailSchema,
 	serverListSchema,
@@ -115,17 +114,6 @@ export const mcpServerRoutes = new OpenAPIHono()
 		try {
 			const { agentId, serverId, action } = c.req.valid("param")
 			const server = await service.setServerDisabled(agentId, serverId, action === "disable")
-			return c.json(serverDetailSchema.parse({ server }), HTTP_STATUS.OK)
-		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status)
-			throw error
-		}
-	})
-	.openapi(probeMcpServerRoute, async (c) => {
-		try {
-			const { agentId, serverId } = c.req.valid("param")
-			const server = await service.retestServer(agentId, serverId)
 			return c.json(serverDetailSchema.parse({ server }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)

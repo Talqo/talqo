@@ -117,7 +117,7 @@ describe("mcp schema constraints", () => {
 })
 
 describe("mcp server lifecycle", () => {
-	it("keeps a failed probe from costing the operator their configuration", async () => {
+	it("keeps an unreachable connection configured, with no tools to show for it", async () => {
 		const agentId = await createAgent()
 
 		const created = await service.createServer(agentId, {
@@ -128,8 +128,8 @@ describe("mcp server lifecycle", () => {
 			headers: { "X-API-Key": "secret-value" },
 		})
 
-		expect(created.health).toBe("unhealthy")
-		expect(created.healthDetail).toBeTruthy()
+		expect(created.isWorking).toBe(false)
+		expect(created.tools).toEqual([])
 		expect(created.url).toBe(UNREACHABLE_URL)
 		// The value is named but never returned.
 		expect(created.headers).toEqual([{ name: "X-API-Key", hasValue: true }])
@@ -310,7 +310,6 @@ describe("mcp routes", () => {
 		["POST", "/api/agents/any/mcp-servers"],
 		["PUT", "/api/agents/any/mcp-servers/any"],
 		["DELETE", "/api/agents/any/mcp-servers/any"],
-		["POST", "/api/agents/any/mcp-servers/any/probe"],
 		["POST", "/api/agents/any/mcp-servers/any/enable"],
 		["POST", "/api/agents/any/mcp-servers/any/disable"],
 	] as const)("requires a session for %s %s", async (method, path) => {
@@ -378,7 +377,7 @@ describe("stdio connections", () => {
 
 		const created = await createDemo(agentId)
 
-		expect(created.health).toBe("healthy")
+		expect(created.isWorking).toBe(true)
 		expect(created.tools.map(({ name }) => name)).toEqual(["get_stock_level", "list_orders", "report_environment"])
 		// Nothing is selected until the operator chooses; the seed is what turns tools on.
 		expect(created.tools.every((tool) => tool.selected)).toBe(false)

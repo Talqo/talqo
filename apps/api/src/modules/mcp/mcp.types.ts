@@ -42,7 +42,6 @@ export type McpSecretName = { hasValue: boolean; name: string }
 
 type McpTransport = "http" | "stdio"
 type McpAuthMode = "none" | "headers" | "oauth"
-type McpHealth = "healthy" | "unconfigured" | "unhealthy"
 
 export type McpServerView = {
 	args: string[]
@@ -50,8 +49,7 @@ export type McpServerView = {
 	command: string | null
 	env: McpSecretName[]
 	headers: McpSecretName[]
-	health: McpHealth
-	healthDetail: string | null
+	isWorking: boolean
 	id: string
 	isDisabled: boolean
 	name: string

@@ -2,7 +2,14 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { describe, expect, test } from "bun:test"
 
-import { EMPTY_DRAFT, parseArgs, toCreateBody, toUpdateBody, toggleTool, type ConnectionDraft } from "./connection-body"
+import {
+	EMPTY_DRAFT,
+	toCreateBody,
+	toEditBody,
+	toUpdateBody,
+	toggleTool,
+	type ConnectionDraft,
+} from "./connection-body"
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {
@@ -17,23 +24,12 @@ function server(overrides: Partial<McpServer> = {}): McpServer {
 		env: [],
 		tools: [],
 		toolCount: 0,
-		health: "healthy",
-		healthDetail: null,
+		isWorking: true,
 		isDisabled: false,
 		revision: 4,
 		...overrides,
 	}
 }
-
-describe("parseArgs", () => {
-	test("takes one argument per line and ignores blank ones", () => {
-		expect(parseArgs("-y\n\n  @scope/server  \n")).toEqual(["-y", "@scope/server"])
-	})
-
-	test("keeps an argument containing spaces intact", () => {
-		expect(parseArgs("run server --port 3000")).toEqual(["run server --port 3000"])
-	})
-})
 
 function draft(patch: Partial<ConnectionDraft> = {}): ConnectionDraft {
 	return { ...EMPTY_DRAFT, name: "Stock", ...patch }
@@ -61,11 +57,16 @@ describe("toCreateBody", () => {
 	test("builds a stdio body with one variable", () => {
 		expect(
 			toCreateBody(
-				draft({ transport: "stdio", command: "npx", args: "-y\n@scope/server", envName: "KEY", envValue: "v" }),
+				draft({
+					transport: "stdio",
+					command: "bunx",
+					args: ["-y", "@scope/server"],
+					env: [{ name: "KEY", value: "v" }],
+				}),
 			),
 		).toMatchObject({
 			ok: true,
-			body: { server: { transport: "stdio", command: "npx", args: ["-y", "@scope/server"], env: { KEY: "v" } } },
+			body: { server: { transport: "stdio", command: "bunx", args: ["-y", "@scope/server"], env: { KEY: "v" } } },
 		})
 	})
 
@@ -126,5 +127,62 @@ describe("toggleTool", () => {
 			{ name: "get_stock", description: "", selected: true },
 			{ name: "get_price", description: "", selected: false },
 		])
+	})
+})
+
+function edit(patch: Partial<ConnectionDraft> = {}) {
+	return toEditBody(
+		{ ...EMPTY_DRAFT, name: "Stock", url: "https://example.test/mcp", ...patch },
+		{
+			isDisabled: true,
+			revision: 7,
+		},
+	)
+}
+
+describe("toEditBody", () => {
+	test("keeps the revision and the disabled flag", () => {
+		expect(edit()).toMatchObject({ ok: true, body: { expectedRevision: 7, isDisabled: true, name: "Stock" } })
+	})
+
+	test("leaves a stored secret alone when the operator leaves the value blank", () => {
+		const body = edit({ authMode: "headers", headerName: "X-API-Key" })
+
+		expect(body).toMatchObject({ ok: true, body: { server: { authMode: "headers" } } })
+		// Sending the masked shape would replace the stored value with an empty one.
+		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("headers")
+	})
+
+	test("sends a newly typed secret", () => {
+		expect(edit({ authMode: "headers", headerName: "X-API-Key", headerValue: "v" })).toMatchObject({
+			ok: true,
+			body: { server: { headers: { "X-API-Key": "v" } } },
+		})
+	})
+})
+
+describe("env variables", () => {
+	test("keeps every variable the operator added", () => {
+		const body = toCreateBody(
+			draft({
+				transport: "stdio",
+				command: "bunx",
+				env: [
+					{ name: "API_KEY", value: "one" },
+					{ name: "REGION", value: "eu" },
+				],
+			}),
+		)
+
+		expect(body).toMatchObject({ ok: true, body: { server: { env: { API_KEY: "one", REGION: "eu" } } } })
+	})
+
+	test("leaves a variable with no value out so the stored one survives", () => {
+		const body = toEditBody(
+			{ ...EMPTY_DRAFT, name: "Shop", transport: "stdio", command: "bunx", env: [{ name: "API_KEY", value: "" }] },
+			{ isDisabled: false, revision: 1 },
+		)
+
+		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("env")
 	})
 })

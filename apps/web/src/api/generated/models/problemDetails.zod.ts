@@ -144,10 +144,6 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-not-found"]),
 	}),
 	zod.object({
-		code: zod.enum(["mcp-server-unreachable"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-unreachable"]),
-	}),
-	zod.object({
 		code: zod.enum(["model-discovery-unsupported"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
 	}),

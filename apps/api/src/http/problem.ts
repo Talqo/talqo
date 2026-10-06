@@ -38,7 +38,6 @@ export const PROBLEM_CODES = {
 	MALFORMED_JSON: "malformed-json",
 	MCP_AUTHORIZATION_SERVER_CHANGED: "mcp-authorization-server-changed",
 	MCP_SERVER_NOT_FOUND: "mcp-server-not-found",
-	MCP_SERVER_UNREACHABLE: "mcp-server-unreachable",
 	MODEL_DISCOVERY_UNSUPPORTED: "model-discovery-unsupported",
 	PASSWORD_CHANGE_NOT_REQUIRED: "password-change-not-required",
 	PASSWORD_CHANGE_REQUIRED: "password-change-required",

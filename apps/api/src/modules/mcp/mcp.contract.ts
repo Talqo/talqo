@@ -68,8 +68,7 @@ const serverResponseSchema = z
 		env: z.array(secretNameSchema),
 		tools: z.array(toolSnapshotSchema),
 		toolCount: z.number().int().nonnegative(),
-		health: z.enum(["unconfigured", "healthy", "unhealthy"]),
-		healthDetail: z.string().nullable(),
+		isWorking: z.boolean(),
 		isDisabled: z.boolean(),
 		revision: z.number().int().nonnegative(),
 	})
@@ -201,20 +200,6 @@ export const setMcpServerDisabledRoute = createRoute({
 	responses: {
 		200: { content: { "application/json": { schema: serverDetailSchema } }, description: "Connection updated" },
 		...domain,
-	},
-})
-
-export const probeMcpServerRoute = createRoute({
-	...access.permission(roles.Permission.AgentsManage),
-	method: "post",
-	path: "/{agentId}/mcp-servers/{serverId}/probe",
-	operationId: "probeMcpServer",
-	tags: ["MCP"],
-	request: { params: serverParamsSchema },
-	responses: {
-		200: { content: { "application/json": { schema: serverDetailSchema } }, description: "Connection tested" },
-		...domain,
-		502: problemResponse([PROBLEM_CODES.MCP_SERVER_UNREACHABLE]),
 	},
 })
 

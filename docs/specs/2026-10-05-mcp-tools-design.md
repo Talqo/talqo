@@ -13,7 +13,7 @@ Included:
 - Per-agent MCP server configuration, managed from a new `mcp` tab on the agent page.
 - Both non-deprecated MCP transports: Streamable HTTP, addressed by URL, and stdio, addressed by a command to run.
 - Three HTTP auth modes: `none`, static request headers, OAuth 2.1. stdio servers take credentials from their environment map.
-- A connectivity probe that connects, fetches the server's tool list, records health, and populates the operator's tool selection.
+- A discovery pass on save that connects, fetches the server's tool list, and populates the operator's tool selection. Whether a connection works is inferred from whether it has tools, so there is no separate test action and no stored health.
 - Per-server enable/disable that preserves configuration.
 - Tool resolution and invocation during chat, with tool activity visible to end users.
 - Graceful degradation: an unreachable, unrunnable, or failing MCP server never fails a chat reply.
@@ -53,7 +53,7 @@ Static-header servers never execute OAuth code at runtime. No metadata discovery
 
 ## Boundaries And Ownership
 
-- A new `mcp` module owns `mcp_server`, its probe, its credential handling, its OAuth provider, and stdio process lifecycle. It exposes only values other modules need and no Drizzle types.
+- A new `mcp` module owns `mcp_server`, tool discovery, its credential handling, its OAuth provider, and stdio process lifecycle. It exposes only values other modules need and no Drizzle types.
 - `mcp` owns the OpenAPI tag `MCP`, so `orval.config.ts` gains `MCP` to the `web` target's tag filter.
 - `mcp` imports `agent`'s table for the foreign key only. `mcp.service.ts` imports nothing from `agent` at runtime.
 - `conversation` opens tools through one `mcp` service call inside `run`, where the abort signal exists, and closes it in a `finally`. It does not construct MCP clients, spawn processes, read `mcp_server`, or know what a tool is.
@@ -82,9 +82,7 @@ Table `mcp_server`, owned by `mcp`:
 | `command` | text | Required iff `transport = 'stdio'` |
 | `args` | jsonb | `string[]`, default `[]`. Empty when `transport = 'http'` |
 | `env` | jsonb | `{ [VAR]: CredentialEnvelope }`, default `{}`. Empty when `transport = 'http'` |
-| `tools` | jsonb | `[{ name, description, selected }]` from the last successful probe |
-| `health` | text | `unconfigured` \| `healthy` \| `unhealthy`, reusing the `ai-provider` vocabulary |
-| `health_detail` | text | One short operator-facing sentence. Null when healthy |
+| `tools` | jsonb | `[{ name, description, selected }]` from the last successful discovery |
 | `is_disabled` | boolean | Default `false` |
 | `revision` | integer | Default `1`. Bumped only by operator edits — see below |
 | `created_at` / `updated_at` | timestamptz | |
@@ -102,8 +100,6 @@ The name uniqueness index is composite on `agent_id` and `lower(name)`, not on `
 
 Each jsonb column is declared `jsonb("...").$type<...>()`, which is how `ai-provider.schema.ts:13-14` keeps a JSON column typed, so a malformed stored shape is a type error rather than a runtime surprise. `updated_at` is written by the repository with `.set({ ..., updatedAt: new Date() })`, matching `agent.repository.ts:76`. There is no database trigger.
 
-`health` and `health_detail` hold the last probe result, written only by the probe. This differs from `ai-provider`, which derives its health at read time from the stored credential envelope (`ai-provider.service.ts:208-237`). Derivation is impossible here: whether a server is reachable cannot be computed from stored state, only observed. What *is* derivable — whether the stored secret still decrypts — is deliberately not folded into `health`, because doing so would make a background chat turn overwrite an operator's last explicit test result.
-
 No composite index on `is_disabled` is added. The runtime query is "enabled servers for this agent", served by `mcp_server_agent_id_idx`, and expected scale is single digits per agent, so a wider index would cost write amplification for no measurable gain.
 
 The check constraints make a mixed or incomplete row unrepresentable:
@@ -117,7 +113,7 @@ The check constraints make a mixed or incomplete row unrepresentable:
 
 The OAuth direction is deliberately asymmetric. A row moving into `oauth` mode may legitimately hold no tokens yet, so the constraint forbids a token set without `oauth` mode, not the reverse. Everything else is an equality.
 
-`revision` is bumped only by `PUT`, because only an operator edit can conflict with another operator edit. The probe writes `tools` and `health`, and an OAuth callback or refresh writes `oauth_tokens`, `oauth_client`, and `oauth_pending`, all from inside a chat generation or a redirect. If those bumped `revision`, every probe and every token refresh would hand an operator with an open edit form a spurious `configuration-conflict`.
+`revision` is bumped only by `PUT`, because only an operator edit can conflict with another operator edit. Discovery writes `tools`, and an OAuth callback or refresh writes `oauth_tokens`, `oauth_client`, and `oauth_pending`, all from inside a chat generation or a redirect. If those bumped `revision`, every probe and every token refresh would hand an operator with an open edit form a spurious `configuration-conflict`.
 
 Closed settings are columns so an invalid row cannot exist and changes appear in the migration, following `embed.schema.ts`. The jsonb columns hold what genuinely has no fixed shape: header and environment names are arbitrary, the OAuth token set and its client registration are defined by the authorization server, and discovered tools are machine-shaped and never queried. `args` is a plain string array and `env` is a secret map, so both are narrow despite being jsonb. `ai-provider` draws the same line, with columns for closed settings and jsonb for `text_config` and `embedding_config`.
 
@@ -125,7 +121,7 @@ Secrets are stored as a map from name to envelope rather than an array. Names ar
 
 `tools` stores only `name`, `description`, and the operator's `selected` flag. It renders the tool list and records the selection; it is never used to execute a call. Schemas for execution are always read live, so a server that changes a tool's parameters cannot leave Talqo calling a stale shape.
 
-Disabling keeps the row, its secrets, and its tool snapshot. It only removes the server from tool resolution, so re-enabling needs no re-entry and no re-probe.
+Disabling keeps the row, its secrets, and its tool snapshot. It only removes the server from tool resolution, so re-enabling needs no re-entry and no re-discovery.
 
 ## Contract Surface
 
@@ -133,12 +129,11 @@ All routes nested under the agent, tagged `MCP`, using the existing permission s
 
 | Route | Purpose |
 |---|---|
-| `GET /api/agents/{agentId}/mcp-servers` | List with masked secrets, health, tool count |
-| `POST /api/agents/{agentId}/mcp-servers` | Create, then probe |
+| `GET /api/agents/{agentId}/mcp-servers` | List with masked secrets, tool count, and whether tools were found |
+| `POST /api/agents/{agentId}/mcp-servers` | Create, then discover its tools |
 | `GET /api/agents/{agentId}/mcp-servers/{serverId}` | Read one |
-| `PUT /api/agents/{agentId}/mcp-servers/{serverId}` | Update, re-probe when the transport, endpoint, command, or auth changed, preserve tool selection by name |
+| `PUT /api/agents/{agentId}/mcp-servers/{serverId}` | Update, rediscover when the transport, endpoint, command, or auth changed, preserve tool selection by name |
 | `DELETE /api/agents/{agentId}/mcp-servers/{serverId}` | Delete, destroying stored secrets |
-| `POST /api/agents/{agentId}/mcp-servers/{serverId}/probe` | Re-probe on demand; the retry behind FR-2.19 |
 | `POST /api/agents/{agentId}/mcp-servers/{serverId}/oauth/authorize` | Begin the OAuth flow, redirect to the authorization server |
 | `GET /api/agents/{agentId}/mcp-servers/{serverId}/oauth/callback` | Complete it, then redirect back to the agent tab |
 
@@ -150,21 +145,21 @@ Reserved header names are rejected, but only those the client or the protocol ac
 
 The callback is the one route that does not answer JSON. It is reached by the operator's browser from the authorization server and answers `302` back to the agent page, so it sits outside the problem-details response path and never renders an API error body to a browser.
 
-Probe failure is reported in the response body's `health` and `health_detail`, never as an error status. `mcp-server-unreachable` exists only on the explicit `probe` route, where the operator asked to test and a failure is the answer. New problem codes are `invalid-mcp-server-url`, `duplicate-mcp-server-name`, `mcp-server-unreachable`, and `mcp-authorization-server-changed`; `configuration-conflict` and `agent-not-found` are reused. Codes are kebab-case, matching `apps/docs/src/lib/problem-catalog.ts`, and each new code needs an entry there.
+Discovery failure is reported as an empty tool list, never as an error status: the save succeeded. New problem codes are `invalid-mcp-server-url`, `duplicate-mcp-server-name`, `mcp-server-not-found`, and `mcp-authorization-server-changed`; `configuration-conflict` and `agent-not-found` are reused. Codes are kebab-case, matching `apps/docs/src/lib/problem-catalog.ts`, and each new code needs an entry there.
 
-## Probe
+## Discovery
 
-Runs on create, on update when the transport, endpoint, command, or auth changed, and on demand. The probe calls the client's `listTools()` for raw tool definitions rather than `tools()`, which builds provider-ready tool objects the dashboard has no use for.
+Runs on every save. The probe calls the client's `listTools()` for raw tool definitions rather than `tools()`, which builds provider-ready tool objects the dashboard has no use for.
 
 Protocol era discovery is left at its default of `true`, which probes the `2026-07-28` stateless era and falls back to the legacy handshake — the split that exists in the current server population.
 
 1. Connect and list tools.
-2. On success: `health = "healthy"`, `health_detail = null`, `tools` replaced with the discovered list, each `selected` defaulting to `true` for a server with no prior snapshot and preserved by name for one that has. Tools the operator had selected but the server no longer offers are dropped, and the response says so.
-3. On failure: `health = "unhealthy"`, `health_detail` carries a short plain-language sentence, and the previously stored `tools` snapshot is left untouched.
+2. On success: `tools` is replaced with the discovered list, each `selected` defaulting to `false`, and preserved by name for tools the operator already chose. Tools the server no longer offers disappear.
+3. On failure: no tools are written, so the previous snapshot survives and a server that has never answered shows no tools at all.
 
-The save succeeds in both cases. A server in maintenance must not cost the operator their configuration.
+The save succeeds either way. A server in maintenance must not cost the operator their configuration.
 
-For stdio the probe spawns the process, lists tools, and closes it. It is the same affordance as HTTP, which is what makes the type selector safe to offer a non-technical operator: either way, paste something and press Test connection.
+There is no operator-triggered retest. A red dot on the card means the last save found no tools, and saving again is the retry, so a second route and a second button would only give the operator a second thing to understand.
 
 ## Process Lifecycle
 
@@ -285,7 +280,7 @@ The authorization redirect passes through the operator's browser and returns to 
 
 ## Failure Behavior
 
-- **Probe fails on save.** Save succeeds. Health records the failure with a plain-language reason. Tools stay empty or keep their previous snapshot. The agent gains no tools and chat is unaffected.
+- **Discovery fails on save.** Save succeeds. No tools are written, so a connection that has never answered shows none. The agent gains no tools and chat is unaffected.
 - **An HTTP server is unreachable during generation.** That server contributes no tools. Every other server still resolves. Chat proceeds.
 - **A stdio server fails to spawn, exits immediately, or times out.** Treated exactly as an unreachable HTTP server. The reason is recorded in the structured log, never surfaced to an end user, and the other servers still resolve.
 - **Tool resolution fails for any reason.** `openTools` returns an empty tool set with `degraded` set; `conversation` logs `mcp.tools.degraded` and proceeds, exactly as it already does for a failed knowledge-base search. Chat never fails because of MCP.
@@ -294,7 +289,7 @@ The authorization redirect passes through the operator's browser and returns to 
 - **A server hangs.** Bounded by `MAX_STDIO_CONNECT_MS`, `MAX_TOOL_STEPS`, the existing generation timeout, and the abort signal.
 - **A stdio server writes unbounded stdout.** Not bounded by Talqo, because `Experimental_StdioMCPTransport` exposes no output-size bound. The generation timeout and the container memory limit are the only backstops. Recorded as an accepted gap in the transport, not a decision.
 - **An operator enables very many stdio servers.** Accepted risk, with no Talqo-side defense and no cap. Each chat turn spawns one process per enabled stdio server, and an operator who configures dozens on a small deployment can exhaust memory and have the container killed. The failure is loud, external, and recoverable by removing servers, and the decision not to cap is deliberate. Expected scale is single digits, so this is a tail risk rather than a routine one, and concurrency means the per-turn cost stays near one spawn.
-- **A stored secret cannot be decrypted** at resolution time, for example after an `APP_SECRET` change. That server is dropped for the generation and a structured log names it; the raw crypto error never reaches a response. Resolution never writes `health`, because a chat turn must not mutate configuration state — `health` moves only on probe and on an operator-triggered test, so an operator's view reflects the last explicit check rather than background traffic.
+- **A stored secret cannot be decrypted** at resolution time, for example after an `APP_SECRET` change. That server is dropped for the generation and a structured log names it; the raw crypto error never reaches a response. A chat turn never writes configuration, so what the operator sees reflects the last save rather than background traffic.
 - **OAuth state is missing, mismatched, or expired on callback.** The callback fails with an operator-facing error naming the server and one recovery action: start the connection again. `oauth_pending` is discarded and never partially applied.
 - **The discovered authorization-server issuer differs** from the confirmed one. Stored tokens are dropped, `mcp-authorization-server-changed` is returned, and the operator must confirm the new issuer before credentials are sent to it.
 - **Duplicate server name within an agent.** Rejected with `duplicate-mcp-server-name`.
@@ -314,13 +309,13 @@ One version detail to watch: the package currently depends on `@ai-sdk/provider`
 
 ## Dashboard
 
-A new `mcp` tab in `AGENT_TABS` alongside `configuration`, `context`, and `embeds`, with the matching key in all three locale files. Its panel lists servers with name, transport, endpoint or command, health, tool count, and an enable toggle that saves immediately. Expanding a server shows the discovered tools as checkboxes bound to the stored selection, plus a `Test connection` button that re-probes.
+A new `mcp` tab in `AGENT_TABS` alongside `configuration`, `context`, and `embeds`, with the matching key in all three locale files. Its panel lists servers with name, endpoint or command, a dot for whether tools were found, tool count, and an enable toggle that saves immediately. Expanding a server shows the discovered tools as checkboxes bound to the stored selection. Each card carries Edit and Remove, and Edit reuses the add form.
 
-One form with a type selector, not two screens. The operator chooses a server address or a program, fills only the fields that apply, and presses Test connection to find out whether it works. A second screen would be a second concept for no gain.
+One form with a type selector, not two screens, and it serves both adding and editing. The operator chooses a server address or a program, fills only the fields that apply, and saves to find out whether it works. A second screen would be a second concept for no gain.
 
 Copy uses `bunx`, which the runtime image already provides, rather than `npx`, which it does not. An operator who copies a command from a server's own README will need to change `npx` to `bunx`; that is stated plainly in the docs rather than papered over with a wrapper, because the alternative is a shell script in the image that pretends the runtime is Node. Talqo performs no rewriting of the operator's command; what they type is what runs.
 
-Arguments are entered one per line rather than as a shell string, so no quoting rules are needed and nothing is silently word-split.
+Arguments are added one at a time as removable chips rather than as a shell string or a textarea expecting one per line, so no quoting rules are needed and nothing is silently word-split.
 
 The existing `MCP tools` metric placeholder on the agent cards in `agents.tsx` is filled from the server list, and its `TODO(mcp-api)` comment is removed.
 

@@ -19,47 +19,37 @@ const DEMO_TOOLS = [
 	},
 ]
 
-export type McpSeedOptions = {
-	/** Where the demo HTTP server is reachable from the API process. Skipped when absent. */
-	httpUrl?: string
-}
+/** Where the demo HTTP server listens; it needs `docker compose --profile demo up mcp-demo`. */
+const DEMO_HTTP_URL = "http://127.0.0.1:8092/mcp"
 
-export async function seed(options: McpSeedOptions = {}): Promise<void> {
+export async function seed(): Promise<void> {
 	const rows = [
 		{
 			id: SEED_STDIO_SERVER_ID,
 			agentId: SEED_AGENT_ID,
-			name: "Demo shop (local program)",
+			name: "stdio",
 			transport: "stdio" as const,
 			url: null,
 			authMode: null,
 			headers: null,
-			command: process.execPath,
+			command: "bun",
 			args: [DEMO_STDIO_SCRIPT, "stdio"],
 			env: {},
 			tools: DEMO_TOOLS,
-			health: "healthy",
-			healthDetail: null,
 		},
-		...(options.httpUrl
-			? [
-					{
-						id: SEED_HTTP_SERVER_ID,
-						agentId: SEED_AGENT_ID,
-						name: "Demo shop (web address)",
-						transport: "http" as const,
-						url: options.httpUrl,
-						authMode: "none" as const,
-						headers: null,
-						command: null,
-						args: [],
-						env: {},
-						tools: DEMO_TOOLS,
-						health: "healthy",
-						healthDetail: null,
-					},
-				]
-			: []),
+		{
+			id: SEED_HTTP_SERVER_ID,
+			agentId: SEED_AGENT_ID,
+			name: "http",
+			transport: "http" as const,
+			url: DEMO_HTTP_URL,
+			authMode: "none" as const,
+			headers: null,
+			command: null,
+			args: [],
+			env: {},
+			tools: DEMO_TOOLS,
+		},
 	]
 
 	await Promise.all(

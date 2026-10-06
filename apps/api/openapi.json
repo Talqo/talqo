@@ -535,21 +535,6 @@
 						"properties": {
 							"code": {
 								"type": "string",
-								"enum": ["mcp-server-unreachable"]
-							},
-							"type": {
-								"type": "string",
-								"enum": ["https://docs.talqo.chat/problems#mcp-server-unreachable"]
-							}
-						},
-						"required": ["code", "type"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"code": {
-								"type": "string",
 								"enum": ["model-discovery-unsupported"]
 							},
 							"type": {
@@ -1210,12 +1195,8 @@
 						"type": "integer",
 						"minimum": 0
 					},
-					"health": {
-						"type": "string",
-						"enum": ["unconfigured", "healthy", "unhealthy"]
-					},
-					"healthDetail": {
-						"type": ["string", "null"]
+					"isWorking": {
+						"type": "boolean"
 					},
 					"isDisabled": {
 						"type": "boolean"
@@ -1237,8 +1218,7 @@
 					"env",
 					"tools",
 					"toolCount",
-					"health",
-					"healthDetail",
+					"isWorking",
 					"isDisabled",
 					"revision"
 				]
@@ -6479,123 +6459,6 @@
 					},
 					"500": {
 						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/agents/{agentId}/mcp-servers/{serverId}/probe": {
-			"post": {
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"operationId": "probeMcpServer",
-				"tags": ["MCP"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "agentId",
-						"in": "path"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "serverId",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Connection tested",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"server": {
-											"$ref": "#/components/schemas/McpServer"
-										}
-									},
-									"required": ["server"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: permission-denied.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"502": {
-						"description": "Problem response. Codes: mcp-server-unreachable.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

@@ -16,7 +16,6 @@ type Vault = ReturnType<typeof createCredentialVault>
 
 const TOOL_NAME_MAX_LENGTH = 64
 const HASH_HEX_LENGTH = 6
-const PROBE_DETAIL_MAX_LENGTH = 200
 
 /** Provider tool-name grammars reject `shopify.get_product`, so names are sanitized and namespaced. */
 export function namespaceToolName(serverName: string, toolName: string): string {
@@ -92,26 +91,21 @@ async function listAllTools(client: MCPClient): Promise<ListToolsResult["tools"]
 	return collected
 }
 
-export type McpProbeResult = { detail?: string; tools: McpToolSnapshot[] }
-
-function probeFailure(error: unknown): McpProbeResult {
-	const message = error instanceof Error ? error.message : String(error)
-	return { tools: [], detail: message.slice(0, PROBE_DETAIL_MAX_LENGTH) }
-}
-
-/** Connects, lists tools, closes. Never throws: a broken server must not cost the operator their setup. */
-export async function probe(row: McpServerRow, options: McpConnectOptions): Promise<McpProbeResult> {
+/**
+ * Connects, lists tools, closes. Returns nothing for a server that could not be reached, which is how a
+ * connection is judged working: if it has no tools, it is not.
+ */
+export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<McpToolSnapshot[]> {
 	let client: MCPClient | undefined
 	try {
 		client = await connect(row, options)
-		const tools = (await listAllTools(client)).map((tool) => ({
+		return (await listAllTools(client)).map((tool) => ({
 			name: tool.name,
 			description: tool.description ?? "",
 			selected: true,
 		}))
-		return { tools }
-	} catch (error) {
-		return probeFailure(error)
+	} catch {
+		return []
 	} finally {
 		await client?.close().catch(() => {})
 	}

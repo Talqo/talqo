@@ -70,7 +70,6 @@ const envSchema = z
 		TALQO_WEB_DIST: z.string().min(1).optional(),
 		TALQO_WIDGET_DIST: z.string().min(1).optional(),
 		TALQO_DOCLING_URL: z.url({ protocol: /^https?$/ }),
-		TALQO_MCP_DEMO_URL: z.url({ protocol: /^https?$/ }).optional(),
 		NODE_ENV: z.enum(["development", "production", "test"]),
 	})
 	.superRefine((env, context) => {
@@ -132,9 +131,6 @@ export const env: Env = {
 	},
 	get TALQO_SERVE_STATIC() {
 		return load().TALQO_SERVE_STATIC
-	},
-	get TALQO_MCP_DEMO_URL() {
-		return load().TALQO_MCP_DEMO_URL
 	},
 	get TALQO_UPLOAD_DIR() {
 		return load().TALQO_UPLOAD_DIR

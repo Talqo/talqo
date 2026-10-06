@@ -49,8 +49,6 @@ export const mcpServer = pgTable(
 			.$type<McpToolSnapshot[]>()
 			.notNull()
 			.default(sql`'[]'::jsonb`),
-		health: text("health").notNull().default("unconfigured"),
-		healthDetail: text("health_detail"),
 		isDisabled: boolean("is_disabled").notNull().default(false),
 		revision: integer("revision").notNull().default(1),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

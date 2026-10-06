@@ -2,6 +2,8 @@ import type { CreateMcpServerBody } from "@/api/generated/models/mcp/createMcpSe
 import type { UpdateMcpServerBody } from "@/api/generated/models/mcp/updateMcpServerBody.zod"
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
+import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
+
 /**
  * Rebuilds an update body from a server whose secrets came back masked. Header and environment
  * values are deliberately omitted: sending them would send `{}` and erase what is stored, so an
@@ -40,11 +42,10 @@ export type ConnectionDraft = {
 	url: string
 	authMode: "none" | "headers" | "oauth"
 	command: string
-	args: string
+	args: string[]
 	headerName: string
 	headerValue: string
-	envName: string
-	envValue: string
+	env: EnvVariable[]
 }
 
 export const EMPTY_DRAFT: ConnectionDraft = {
@@ -53,56 +54,76 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 	url: "",
 	authMode: "none",
 	command: "",
-	args: "",
+	args: [],
 	headerName: "",
 	headerValue: "",
-	envName: "",
-	envValue: "",
-}
-
-/** One blank line per argument, so no quoting rules exist and nothing is silently word-split. */
-export function parseArgs(args: string): string[] {
-	return args
-		.split("\n")
-		.map((line) => line.trim())
-		.filter((line) => line.length > 0)
+	env: [],
 }
 
 export type DraftReason = "nameRequired" | "addressRequired" | "commandRequired" | "secretRequired"
 
-export type DraftResult = { ok: true; body: CreateMcpServerBody } | { ok: false; reason: DraftReason }
+/**
+ * Both halves are required before a secret is sent. Sending a name with an empty value would replace
+ * the stored one with an empty string, and a blank field has to mean "leave it alone".
+ */
+function headerSecret(draft: ConnectionDraft) {
+	return draft.headerName.trim() && draft.headerValue ? { [draft.headerName.trim()]: draft.headerValue } : undefined
+}
 
-export function toCreateBody(draft: ConnectionDraft): DraftResult {
-	if (!draft.name.trim()) return { ok: false, reason: "nameRequired" }
+const envCount = (env: Record<string, string>) => Object.keys(env).length
+
+function serverOf(draft: ConnectionDraft) {
 	if (draft.transport === "http") {
-		if (!draft.url.trim()) return { ok: false, reason: "addressRequired" }
-		if (draft.authMode === "headers" && !(draft.headerName.trim() && draft.headerValue))
-			return { ok: false, reason: "secretRequired" }
+		const headers = headerSecret(draft)
 		return {
-			ok: true,
-			body: {
-				name: draft.name.trim(),
-				server: {
-					transport: "http",
-					url: draft.url.trim(),
-					authMode: draft.authMode,
-					...(draft.authMode === "headers" ? { headers: { [draft.headerName.trim()]: draft.headerValue } } : {}),
-				},
-			},
+			transport: "http" as const,
+			url: draft.url.trim(),
+			authMode: draft.authMode,
+			...(draft.authMode === "headers" && headers ? { headers } : {}),
 		}
 	}
-	if (!draft.command.trim()) return { ok: false, reason: "commandRequired" }
-	if ((draft.envName.trim() !== "") !== Boolean(draft.envValue)) return { ok: false, reason: "secretRequired" }
+	const env = toEnvRecord(draft.env)
 	return {
-		ok: true,
-		body: {
-			name: draft.name.trim(),
-			server: {
-				transport: "stdio",
-				command: draft.command.trim(),
-				args: parseArgs(draft.args),
-				...(draft.envName.trim() ? { env: { [draft.envName.trim()]: draft.envValue } } : {}),
-			},
-		},
+		transport: "stdio" as const,
+		command: draft.command.trim(),
+		args: draft.args,
+		...(envCount(env) > 0 ? { env } : {}),
 	}
+}
+
+export type CreateResult = { ok: true; body: CreateMcpServerBody } | { ok: false; reason: DraftReason }
+export type UpdateResult = { ok: true; body: UpdateMcpServerBody } | { ok: false; reason: DraftReason }
+
+function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
+	if (!draft.name.trim()) return "nameRequired"
+	if (draft.transport === "http") {
+		if (!draft.url.trim()) return "addressRequired"
+		if (draft.authMode === "headers" && draft.headerName.trim() && !draft.headerValue && requireSecretValue)
+			return "secretRequired"
+		if (draft.authMode === "headers" && !draft.headerName.trim() && requireSecretValue) return "secretRequired"
+	} else if (!draft.command.trim()) return "commandRequired"
+	// A variable missing its name has nowhere to go.
+	if (draft.env.some(({ name }) => !name.trim())) return "secretRequired"
+	return undefined
+}
+
+export function toCreateBody(draft: ConnectionDraft): CreateResult {
+	const reason = validate(draft, true)
+	return reason ? { ok: false, reason } : { ok: true, body: { name: draft.name.trim(), server: serverOf(draft) } }
+}
+
+/** Editing keeps every stored tool selection; only the endpoint and secrets on the form can change. */
+export function toEditBody(draft: ConnectionDraft, server: { isDisabled: boolean; revision: number }): UpdateResult {
+	const reason = validate(draft, false)
+	return reason
+		? { ok: false, reason }
+		: {
+				ok: true,
+				body: {
+					name: draft.name.trim(),
+					expectedRevision: server.revision,
+					isDisabled: server.isDisabled,
+					server: serverOf(draft),
+				},
+			}
 }

@@ -1,5 +1,5 @@
 {
-	"id": "c7a56e9c-bb0c-4220-8f41-71951d690c59",
+	"id": "5e37db18-b8be-4501-a50a-d82efe479124",
 	"prevId": "f1803df3-8433-4667-bcf0-8527b17eca91",
 	"version": "7",
 	"dialect": "postgresql",
@@ -1358,19 +1358,6 @@
 					"primaryKey": false,
 					"notNull": true,
 					"default": "'[]'::jsonb"
-				},
-				"health": {
-					"name": "health",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "'unconfigured'"
-				},
-				"health_detail": {
-					"name": "health_detail",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": false
 				},
 				"is_disabled": {
 					"name": "is_disabled",

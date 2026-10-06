@@ -181,10 +181,6 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#mcp-server-not-found"
 	  }
 	| {
-			code: "mcp-server-unreachable"
-			type: "https://docs.talqo.chat/problems#mcp-server-unreachable"
-	  }
-	| {
 			code: "model-discovery-unsupported"
 			type: "https://docs.talqo.chat/problems#model-discovery-unsupported"
 	  }

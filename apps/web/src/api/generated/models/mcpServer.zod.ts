@@ -40,8 +40,7 @@ export const McpServer = zod.object({
 		}),
 	),
 	toolCount: zod.int().min(mcpServerToolCountMin),
-	health: zod.enum(["unconfigured", "healthy", "unhealthy"]),
-	healthDetail: zod.string().nullable(),
+	isWorking: zod.boolean(),
 	isDisabled: zod.boolean(),
 	revision: zod.int().min(mcpServerRevisionMin),
 })

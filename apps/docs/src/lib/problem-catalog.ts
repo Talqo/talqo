@@ -210,13 +210,6 @@ export const PROBLEMS = [
 		meaning: "This connection no longer belongs to the agent.",
 		guidance: "Refresh the list; it may have been deleted in another tab.",
 	},
-	{
-		code: "mcp-server-unreachable",
-		title: "Connection not reachable",
-		status: "502",
-		meaning: "The test could not reach the server or start the command.",
-		guidance: "The configuration was kept. Fix the address or command, then test again.",
-	},
 
 	{
 		code: "invalid-request",

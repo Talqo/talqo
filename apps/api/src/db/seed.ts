@@ -24,7 +24,7 @@ export async function seed(): Promise<void> {
 	await identity.seedUser()
 	await agent.seed()
 	await embed.seed()
-	await mcp.seed({ httpUrl: env.TALQO_MCP_DEMO_URL })
+	await mcp.seed()
 }
 
 if (import.meta.main) {

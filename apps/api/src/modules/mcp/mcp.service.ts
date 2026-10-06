@@ -19,7 +19,7 @@ import type {
 	McpUpdateInput,
 } from "./mcp.types.ts"
 
-import { openTools as openServerTools, probe as probeServer } from "./mcp.client.ts"
+import { discoverTools, openTools as openServerTools } from "./mcp.client.ts"
 import { AuthorizationServerChangedError, createOAuthProvider } from "./mcp.oauth.ts"
 import * as repo from "./mcp.repository.ts"
 import { MCP_SERVER_NAME_MAX_LENGTH } from "./mcp.types.ts"
@@ -67,8 +67,7 @@ function toView(row: McpServerRow): McpServerView {
 		env: secretNames(row.env),
 		tools: row.tools,
 		toolCount: row.tools.length,
-		health: row.health as McpServerView["health"],
-		healthDetail: row.healthDetail,
+		isWorking: row.tools.length > 0,
 		isDisabled: row.isDisabled,
 		revision: row.revision,
 	}
@@ -144,14 +143,11 @@ function endpointChanged(existing: McpServerRow, input: McpCreateInput): boolean
 	return existing.command !== input.command
 }
 
-/** A failed probe still keeps the configuration and the previous tool snapshot. */
-async function probeRow(row: McpServerRow): Promise<McpServerRow> {
-	const result = await probeServer(row, { vault: vault() })
-	const patch =
-		result.detail === undefined
-			? { health: "healthy", healthDetail: null, tools: mergeTools(row.tools, result.tools) }
-			: { health: "unhealthy", healthDetail: result.detail }
-	return (await repo.update(row.id, patch)) ?? row
+/** A connection works when it offered tools. A failure leaves the configuration and any snapshot alone. */
+async function withDiscoveredTools(row: McpServerRow): Promise<McpServerRow> {
+	const discovered = await discoverTools(row, { vault: vault() })
+	if (discovered.length === 0) return row
+	return (await repo.update(row.id, { tools: mergeTools(row.tools, discovered) })) ?? row
 }
 
 export async function listServers(agentId: string): Promise<McpServerView[]> {
@@ -173,7 +169,7 @@ export async function createServer(agentId: string, input: McpCreateInput): Prom
 			transport: input.transport,
 			...(input.transport === "http" ? httpColumns(id, input) : stdioColumns(id, input)),
 		})
-		return toView(await probeRow(row))
+		return toView(await withDiscoveredTools(row))
 	} catch (error) {
 		if (isUniqueViolation(error)) throw new DuplicateMcpServerNameError(`Already named ${input.name}`)
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError(`Agent ${agentId} not found`)
@@ -203,16 +199,12 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 		input.expectedRevision,
 	)
 	if (!saved) throw new RevisionConflictError("Connection changed; reload and retry")
-	return toView(await probeRow(saved))
+	return toView(await withDiscoveredTools(saved))
 }
 
 export async function deleteServer(agentId: string, serverId: string): Promise<void> {
 	await ownedRow(agentId, serverId)
 	await repo.remove(serverId)
-}
-
-export async function retestServer(agentId: string, serverId: string): Promise<McpServerView> {
-	return toView(await probeRow(await ownedRow(agentId, serverId)))
 }
 
 /** Flipping the flag never disturbs the configuration or its secrets. */

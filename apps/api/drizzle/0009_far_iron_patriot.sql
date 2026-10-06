@@ -16,8 +16,6 @@ CREATE TABLE "mcp_server" (
 	"args" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"env" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"tools" jsonb DEFAULT '[]'::jsonb NOT NULL,
-	"health" text DEFAULT 'unconfigured' NOT NULL,
-	"health_detail" text,
 	"is_disabled" boolean DEFAULT false NOT NULL,
 	"revision" integer DEFAULT 1 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
