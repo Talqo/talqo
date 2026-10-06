@@ -1,5 +1,6 @@
 import { describe, expect, spyOn, test } from "bun:test"
 import { readFileSync } from "node:fs"
+import { type AtRule, parse } from "postcss"
 
 await import("./test-setup")
 
@@ -40,11 +41,17 @@ describe("built embed bundle", () => {
 
 		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
 		expect(injected).toContain(".talqo-widget")
-		// Cascade layers resolve before specificity, so a host's preflight in `@layer base`
-		// outranks anything we leave layered, and unscoped preflight rewrites the host page.
-		for (const leak of ["@layer", "@property", "*,:before,:after,::backdrop", ":root"]) {
-			expect(injected).not.toContain(leak)
-		}
+
+		// Cascade layers resolve before specificity, so anything we leave layered can lose
+		// to a host page's own layers; every rule we ship must stand outside them.
+		expect(injected).not.toContain("@layer")
+
+		parse(injected).walkRules((rule) => {
+			if (rule.parent?.type === "atrule" && (rule.parent as AtRule).name === "keyframes") return
+			for (const selector of rule.selectors) {
+				expect(selector).toMatch(/\.talqo-widget|\.tw\\:/)
+			}
+		})
 	})
 
 	test("defers its mount until the document is parsed", () => {

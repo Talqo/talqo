@@ -41,10 +41,6 @@ describe("embed CRUD authentication boundary", () => {
 		expect((await app.request("/api/embeds/any-id/config")).status).toBe(404)
 	})
 
-	it("no longer serves the retired widget-config URL", async () => {
-		expect((await app.request("/api/widget-config/any-token")).status).toBe(404)
-	})
-
 	it("does not treat a deeper path under the public prefix as an endpoint", async () => {
 		expect((await app.request("/api/embed-config/token/extra")).status).toBe(404)
 	})

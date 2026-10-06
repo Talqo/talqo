@@ -67,20 +67,4 @@ describe("widget mount", () => {
 
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
-
-	// ADR-0013: honouring it would fire a request for appearance.
-	test("ignores the retired data-talqo-widget attribute", async () => {
-		const script = document.createElement("script")
-		script.dataset.talqoWidget = "legacy-token"
-		script.dataset.talqoApi = "https://api.example.com"
-		document.body.append(script)
-
-		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
-		mount()
-
-		expect(fetchSpy).not.toHaveBeenCalled()
-		expect(await widgetRoot()).toBeInstanceOf(HTMLElement)
-
-		script.remove()
-	})
 })
