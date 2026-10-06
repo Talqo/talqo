@@ -5,20 +5,16 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import type { McpCreateBody, McpUpdateBody } from "./mcp.contract.ts"
 
 import {
-	authorizeMcpServerRoute,
 	createMcpServerRoute,
 	deleteMcpServerRoute,
 	getMcpServerRoute,
 	listMcpServersRoute,
-	mcpCallbackRoute,
 	setMcpServerDisabledRoute,
 	serverDetailSchema,
 	serverListSchema,
 	updateMcpServerRoute,
 } from "./mcp.contract.ts"
 import * as service from "./mcp.service.ts"
-
-const AGENT_TAB_PATH = "/dashboard/agents"
 
 /**
  * Probe failure is a body field, not a status: a server in maintenance must not cost the operator their setup.
@@ -33,19 +29,9 @@ function mapDomainError(error: unknown) {
 		return { code: PROBLEM_CODES.DUPLICATE_MCP_SERVER_NAME, status: HTTP_STATUS.CONFLICT } as const
 	if (error instanceof service.RevisionConflictError)
 		return { code: PROBLEM_CODES.CONFIGURATION_CONFLICT, status: HTTP_STATUS.CONFLICT } as const
-	if (error instanceof service.AuthorizationServerChangedError)
-		return { code: PROBLEM_CODES.MCP_AUTHORIZATION_SERVER_CHANGED, status: HTTP_STATUS.BAD_REQUEST } as const
 	if (error instanceof service.InvalidMcpServerError)
 		return { code: PROBLEM_CODES.INVALID_MCP_SERVER_URL, status: HTTP_STATUS.BAD_REQUEST } as const
 	return null
-}
-
-function backToTab(agentId: string): string {
-	return `${AGENT_TAB_PATH}/${agentId}?tab=mcp&oauth=complete`
-}
-
-function backToTabWithError(agentId: string, code: string): string {
-	return `${AGENT_TAB_PATH}/${agentId}?tab=mcp&oauth=${encodeURIComponent(code)}`
 }
 
 export const mcpServerRoutes = new OpenAPIHono()
@@ -121,31 +107,3 @@ export const mcpServerRoutes = new OpenAPIHono()
 			throw error
 		}
 	})
-	.openapi(authorizeMcpServerRoute, async (c) => {
-		try {
-			const { agentId, serverId } = c.req.valid("param")
-			const url = await service.beginAuthorization(agentId, serverId, new URL(c.req.url).origin)
-			return c.json({ authorizationUrl: url }, HTTP_STATUS.OK)
-		} catch (error) {
-			const mapped = mapDomainError(error)
-			if (mapped) return problemResponse(c, mapped.code, mapped.status)
-			throw error
-		}
-	})
-
-/** Reached by the operator's browser, so it answers a redirect and never an API error body. */
-export const mcpOAuthCallbackRoutes = new OpenAPIHono().openapi(mcpCallbackRoute, async (c) => {
-	const { agentId, serverId } = c.req.valid("param")
-	const { code, state, error } = c.req.valid("query")
-	if (error || !code || !state) return c.redirect(backToTabWithError(agentId, error ?? "sign-in-was-cancelled"))
-	try {
-		await service.completeAuthorization(agentId, serverId, new URL(c.req.url).origin, {
-			code,
-			state,
-		})
-	} catch (cause) {
-		const mapped = mapDomainError(cause)
-		return c.redirect(backToTabWithError(agentId, mapped?.code ?? "sign-in-failed"))
-	}
-	return c.redirect(backToTab(agentId))
-})

@@ -1,5 +1,5 @@
 {
-	"id": "5e37db18-b8be-4501-a50a-d82efe479124",
+	"id": "07f6ba84-ebe3-4c35-8116-0581469524ca",
 	"prevId": "f1803df3-8433-4667-bcf0-8527b17eca91",
 	"version": "7",
 	"dialect": "postgresql",
@@ -1308,30 +1308,6 @@
 					"primaryKey": false,
 					"notNull": false
 				},
-				"oauth_tokens": {
-					"name": "oauth_tokens",
-					"type": "jsonb",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"oauth_client": {
-					"name": "oauth_client",
-					"type": "jsonb",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"oauth_pending": {
-					"name": "oauth_pending",
-					"type": "jsonb",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"oauth_state_expires_at": {
-					"name": "oauth_state_expires_at",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				},
 				"command": {
 					"name": "command",
 					"type": "text",
@@ -1447,7 +1423,7 @@
 				},
 				"mcp_server_auth_fields_check": {
 					"name": "mcp_server_auth_fields_check",
-					"value": "(\n\t\t\t\t(\"mcp_server\".\"auth_mode\" IS NULL OR \"mcp_server\".\"auth_mode\" = 'none')\n\t\t\t\t\tAND \"mcp_server\".\"headers\" IS NULL AND \"mcp_server\".\"oauth_tokens\" IS NULL\n\t\t\t\t\tAND \"mcp_server\".\"oauth_client\" IS NULL AND \"mcp_server\".\"oauth_pending\" IS NULL\n\t\t\t\t\tAND \"mcp_server\".\"oauth_state_expires_at\" IS NULL\n\t\t\t) OR (\n\t\t\t\t\"mcp_server\".\"auth_mode\" IS NOT DISTINCT FROM 'headers' AND \"mcp_server\".\"headers\" IS NOT NULL\n\t\t\t\t\tAND \"mcp_server\".\"oauth_tokens\" IS NULL AND \"mcp_server\".\"oauth_client\" IS NULL\n\t\t\t\t\tAND \"mcp_server\".\"oauth_pending\" IS NULL AND \"mcp_server\".\"oauth_state_expires_at\" IS NULL\n\t\t\t) OR (\n\t\t\t\t\"mcp_server\".\"auth_mode\" IS NOT DISTINCT FROM 'oauth' AND \"mcp_server\".\"headers\" IS NULL\n\t\t\t\t\tAND (\"mcp_server\".\"oauth_pending\" IS NULL) = (\"mcp_server\".\"oauth_state_expires_at\" IS NULL)\n\t\t\t)"
+					"value": "(\n\t\t\t\t(\"mcp_server\".\"auth_mode\" IS NULL OR \"mcp_server\".\"auth_mode\" = 'none')\n\t\t\t\t\tAND \"mcp_server\".\"headers\" IS NULL\n\t\t\t) OR (\n\t\t\t\t\"mcp_server\".\"auth_mode\" IS NOT DISTINCT FROM 'headers' AND \"mcp_server\".\"headers\" IS NOT NULL\n\t\t\t)"
 				}
 			},
 			"isRLSEnabled": false
@@ -1797,7 +1773,7 @@
 		"public.mcp_auth_mode": {
 			"name": "mcp_auth_mode",
 			"schema": "public",
-			"values": ["none", "headers", "oauth"]
+			"values": ["none", "headers"]
 		},
 		"public.mcp_transport": {
 			"name": "mcp_transport",

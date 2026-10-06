@@ -294,8 +294,6 @@ describe("api", () => {
 				"/api/agents/{agentId}/mcp-servers",
 				"/api/agents/{agentId}/mcp-servers/{serverId}",
 				"/api/agents/{agentId}/mcp-servers/{serverId}/{action}",
-				"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/authorize",
-				"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/callback",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",

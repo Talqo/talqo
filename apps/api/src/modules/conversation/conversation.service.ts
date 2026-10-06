@@ -312,7 +312,8 @@ export function createConversationService(dependencies: Dependencies) {
 				return
 			}
 			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
-				const key = `${toolEvent.identity.serverName}\u0000${toolEvent.identity.toolName}`
+				// Parallel calls to the same tool share a name; only the call id tells them apart.
+				const key = toolEvent.toolCallId
 				if (toolEvent.type === "tool-start") {
 					inFlight.set(key, toolEvent.identity)
 					emit({ version: 1, type: "tool-start", ...toolEvent.identity })

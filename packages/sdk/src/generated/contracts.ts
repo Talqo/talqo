@@ -173,10 +173,6 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#malformed-json"
 	  }
 	| {
-			code: "mcp-authorization-server-changed"
-			type: "https://docs.talqo.chat/problems#mcp-authorization-server-changed"
-	  }
-	| {
 			code: "mcp-server-not-found"
 			type: "https://docs.talqo.chat/problems#mcp-server-not-found"
 	  }

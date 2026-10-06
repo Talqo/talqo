@@ -505,21 +505,6 @@
 						"properties": {
 							"code": {
 								"type": "string",
-								"enum": ["mcp-authorization-server-changed"]
-							},
-							"type": {
-								"type": "string",
-								"enum": ["https://docs.talqo.chat/problems#mcp-authorization-server-changed"]
-							}
-						},
-						"required": ["code", "type"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"code": {
-								"type": "string",
 								"enum": ["mcp-server-not-found"]
 							},
 							"type": {
@@ -1132,7 +1117,7 @@
 					},
 					"authMode": {
 						"type": ["string", "null"],
-						"enum": ["none", "headers", "oauth", null]
+						"enum": ["none", "headers", null]
 					},
 					"command": {
 						"type": ["string", "null"]
@@ -5684,7 +5669,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -5790,7 +5775,7 @@
 													},
 													"authMode": {
 														"type": "string",
-														"enum": ["none", "headers", "oauth"]
+														"enum": ["none", "headers"]
 													},
 													"headers": {
 														"type": "object",
@@ -5863,7 +5848,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -5980,7 +5965,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6094,7 +6079,7 @@
 													},
 													"authMode": {
 														"type": "string",
-														"enum": ["none", "headers", "oauth"]
+														"enum": ["none", "headers"]
 													},
 													"headers": {
 														"type": "object",
@@ -6103,6 +6088,15 @@
 															"minLength": 1,
 															"maxLength": 4096
 														}
+													},
+													"deleteHeaders": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 256
+														},
+														"maxItems": 50
 													}
 												},
 												"required": ["transport", "url", "authMode"],
@@ -6135,6 +6129,15 @@
 															"minLength": 1,
 															"maxLength": 4096
 														}
+													},
+													"deleteEnv": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 256
+														},
+														"maxItems": 50
 													}
 												},
 												"required": ["transport", "command"],
@@ -6190,7 +6193,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6292,7 +6295,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6408,232 +6411,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: permission-denied.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/authorize": {
-			"post": {
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"operationId": "authorizeMcpServer",
-				"tags": ["MCP"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "agentId",
-						"in": "path"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "serverId",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Sign-in URL, or null when no sign-in is needed",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"authorizationUrl": {
-											"type": ["string", "null"]
-										}
-									},
-									"required": ["authorizationUrl"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: permission-denied.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/callback": {
-			"get": {
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"operationId": "completeMcpServerAuthorization",
-				"tags": ["MCP"],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "agentId",
-						"in": "path"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "serverId",
-						"in": "path"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": false,
-						"name": "code",
-						"in": "query"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": false,
-						"name": "state",
-						"in": "query"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": false,
-						"name": "error",
-						"in": "query"
-					}
-				],
-				"responses": {
-					"302": {
-						"description": "Redirects back to the agent page"
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, mcp-authorization-server-changed.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

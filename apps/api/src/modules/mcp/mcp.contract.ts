@@ -31,7 +31,7 @@ const secretNameSchema = z.object({ name: z.string(), hasValue: z.boolean() })
 const httpServerSchema = z.strictObject({
 	transport: z.literal("http"),
 	url: z.url(),
-	authMode: z.enum(["none", "headers", "oauth"]),
+	authMode: z.enum(["none", "headers"]),
 	headers: secretRecordSchema.optional(),
 })
 
@@ -48,7 +48,15 @@ const createRequestSchema = z.strictObject({ name: serverNameSchema, server: mcp
 
 const updateRequestSchema = z.strictObject({
 	name: serverNameSchema,
-	server: mcpServerInputSchema,
+	/** Removals are explicit names: values stay masked, so omission means preserve. */
+	server: z.discriminatedUnion("transport", [
+		httpServerSchema.extend({
+			deleteHeaders: z.array(z.string().min(1).max(SECRET_NAME_MAX_LENGTH)).max(MAX_SECRET_ENTRIES).optional(),
+		}),
+		stdioServerSchema.extend({
+			deleteEnv: z.array(z.string().min(1).max(SECRET_NAME_MAX_LENGTH)).max(MAX_SECRET_ENTRIES).optional(),
+		}),
+	]),
 	expectedRevision: z.number().int().nonnegative(),
 	isDisabled: z.boolean().optional(),
 	/** Names and flags only: the schema and description come from the last probe. */
@@ -61,7 +69,7 @@ const serverResponseSchema = z
 		name: z.string(),
 		transport: z.enum(["http", "stdio"]),
 		url: z.string().nullable(),
-		authMode: z.enum(["none", "headers", "oauth"]).nullable(),
+		authMode: z.enum(["none", "headers"]).nullable(),
 		command: z.string().nullable(),
 		args: z.array(z.string()),
 		headers: z.array(secretNameSchema),
@@ -84,11 +92,6 @@ const serverParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
 	serverId: z.string().openapi({ param: { name: "serverId", in: "path" } }),
 })
-const callbackQuerySchema = z.object({
-	code: z.string().optional(),
-	state: z.string().optional(),
-	error: z.string().optional(),
-})
 
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const forbidden = problemResponse([PROBLEM_CODES.PERMISSION_DENIED])
@@ -100,7 +103,6 @@ const domain = {
 		PROBLEM_CODES.INVALID_REQUEST,
 		PROBLEM_CODES.MALFORMED_JSON,
 		PROBLEM_CODES.INVALID_MCP_SERVER_URL,
-		PROBLEM_CODES.MCP_AUTHORIZATION_SERVER_CHANGED,
 	]),
 	401: authRequired,
 	403: forbidden,
@@ -199,35 +201,6 @@ export const setMcpServerDisabledRoute = createRoute({
 	},
 	responses: {
 		200: { content: { "application/json": { schema: serverDetailSchema } }, description: "Connection updated" },
-		...domain,
-	},
-})
-
-export const authorizeMcpServerRoute = createRoute({
-	...access.permission(roles.Permission.AgentsManage),
-	method: "post",
-	path: "/{agentId}/mcp-servers/{serverId}/oauth/authorize",
-	operationId: "authorizeMcpServer",
-	tags: ["MCP"],
-	request: { params: serverParamsSchema },
-	responses: {
-		200: {
-			content: { "application/json": { schema: z.object({ authorizationUrl: z.string().nullable() }) } },
-			description: "Sign-in URL, or null when no sign-in is needed",
-		},
-		...domain,
-	},
-})
-
-export const mcpCallbackRoute = createRoute({
-	...access.permission(roles.Permission.AgentsManage),
-	method: "get",
-	path: "/{agentId}/mcp-servers/{serverId}/oauth/callback",
-	operationId: "completeMcpServerAuthorization",
-	tags: ["MCP"],
-	request: { params: serverParamsSchema, query: callbackQuerySchema },
-	responses: {
-		302: { description: "Redirects back to the agent page" },
 		...domain,
 	},
 })

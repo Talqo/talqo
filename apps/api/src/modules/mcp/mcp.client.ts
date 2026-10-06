@@ -1,5 +1,5 @@
 import type { CredentialSecretMap, createCredentialVault } from "@/lib/credential-vault.ts"
-import type { MCPClient, MCPClientConfig, OAuthClientProvider } from "@ai-sdk/mcp"
+import type { MCPClient, MCPClientConfig } from "@ai-sdk/mcp"
 import type { ListToolsResult } from "@ai-sdk/mcp"
 import type { ToolSet } from "ai"
 
@@ -10,7 +10,15 @@ import { createHash } from "node:crypto"
 import type { McpServerRow } from "./mcp.schema.ts"
 import type { McpToolSnapshot } from "./mcp.types.ts"
 
-import { MAX_STDIO_CONNECT_MS, MAX_TOOL_DESCRIPTION_CHARACTERS, STDIO_INHERITED_ENV } from "./mcp.types.ts"
+import {
+	MAX_STDIO_CONNECT_MS,
+	MAX_TOOL_DESCRIPTION_CHARACTERS,
+	MAX_TOOL_LIST_PAGES,
+	MAX_TOOL_RESULT_CHARACTERS,
+	MAX_TOOLS_PER_SERVER,
+	STDIO_INHERITED_ENV,
+	TOOL_LIST_TIMEOUT_MS,
+} from "./mcp.types.ts"
 
 type Vault = ReturnType<typeof createCredentialVault>
 
@@ -45,7 +53,6 @@ function secretsOf(
 }
 
 export type McpConnectOptions = {
-	authProvider?: OAuthClientProvider
 	signal?: AbortSignal
 	vault: Vault
 }
@@ -65,7 +72,6 @@ function buildTransport(row: McpServerRow, options: McpConnectOptions): MCPClien
 		type: "http",
 		url: row.url!,
 		...(Object.keys(headers).length > 0 ? { headers } : {}),
-		...(options.authProvider ? { authProvider: options.authProvider } : {}),
 		redirect: "error",
 	}
 }
@@ -78,17 +84,44 @@ async function connect(row: McpServerRow, options: McpConnectOptions): Promise<M
 	})
 }
 
-async function listAllTools(client: MCPClient): Promise<ListToolsResult["tools"]> {
+async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<ListToolsResult["tools"]> {
 	const collected: ListToolsResult["tools"] = []
 	let cursor: string | undefined
-	do {
+	// A hostile server answers every page with another cursor; the caps keep one listing from
+	// hanging the chat that triggered it. Timeouts surface as degraded, never as chat failures.
+	for (let page = 0; page < MAX_TOOL_LIST_PAGES; page++) {
 		// Each cursor is only known once the previous page arrives, so these cannot be parallel.
 		// oxlint-disable-next-line no-await-in-loop -- sequential pagination.
-		const page: ListToolsResult = await client.listTools(cursor ? { params: { cursor } } : undefined)
-		collected.push(...page.tools)
-		cursor = page.nextCursor
-	} while (cursor)
-	return collected
+		const listed: ListToolsResult = await withListTimeout(
+			client.listTools(cursor ? { params: { cursor } } : undefined),
+			signal,
+		)
+		collected.push(...listed.tools)
+		cursor = listed.nextCursor
+		if (!cursor || collected.length >= MAX_TOOLS_PER_SERVER) break
+	}
+	return collected.slice(0, MAX_TOOLS_PER_SERVER)
+}
+
+function withListTimeout<T>(listing: Promise<T>, signal?: AbortSignal): Promise<T> {
+	signal?.throwIfAborted()
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error("MCP tool listing timed out")), TOOL_LIST_TIMEOUT_MS)
+		const onAbort = () => reject(signal?.reason ?? new Error("MCP tool listing aborted"))
+		signal?.addEventListener("abort", onAbort, { once: true })
+		listing.then(
+			(value) => {
+				clearTimeout(timer)
+				signal?.removeEventListener("abort", onAbort)
+				resolve(value)
+			},
+			(error: unknown) => {
+				clearTimeout(timer)
+				signal?.removeEventListener("abort", onAbort)
+				reject(error instanceof Error ? error : new Error("MCP tool listing failed"))
+			},
+		)
+	})
 }
 
 /**
@@ -99,7 +132,7 @@ export async function discoverTools(row: McpServerRow, options: McpConnectOption
 	let client: MCPClient | undefined
 	try {
 		client = await connect(row, options)
-		return (await listAllTools(client)).map((tool) => ({
+		return (await listAllTools(client, options.signal)).map((tool) => ({
 			name: tool.name,
 			description: tool.description ?? "",
 			selected: true,
@@ -137,11 +170,16 @@ export async function openTools(
 			try {
 				const client = await connect(row, options)
 				clients.push(client)
-				const live = (await listAllTools(client)).filter((tool) => selected.has(tool.name))
+				const live = (await listAllTools(client, options.signal)).filter((tool) => selected.has(tool.name))
 				const built = client.toolsFromDefinitions({ tools: live })
 				for (const [toolName, tool] of Object.entries(built)) {
 					const key = namespaceToolName(row.name, toolName)
-					tools[key] = truncateDescription(tool)
+					// `my server` and `my_server` sanitize identically; the first server keeps the name.
+					if (key in tools) {
+						options.onDegraded(row, new Error(`Tool name ${key} is already taken by another connection`))
+						continue
+					}
+					tools[key] = boundTool(tool)
 					names.set(key, { serverName: row.name, toolName })
 				}
 			} catch (error) {
@@ -166,4 +204,48 @@ function truncateDescription(tool: ToolSet[string]): ToolSet[string] {
 	const { description } = tool
 	if (typeof description !== "string" || description.length <= MAX_TOOL_DESCRIPTION_CHARACTERS) return tool
 	return { ...tool, description: description.slice(0, MAX_TOOL_DESCRIPTION_CHARACTERS) }
+}
+
+/**
+ * Tool output lands verbatim in the model's context, so a hostile server could burn it with a
+ * megabyte of instructions-to-ignore. Text parts are cut at a shared budget with a marker.
+ */
+function truncateResult(result: unknown): unknown {
+	if (typeof result === "string")
+		return result.length <= MAX_TOOL_RESULT_CHARACTERS
+			? result
+			: `${result.slice(0, MAX_TOOL_RESULT_CHARACTERS)}…[truncated, the server returned more]`
+	if (!result || typeof result !== "object" || !Array.isArray((result as { content?: unknown }).content)) return result
+	let remaining = MAX_TOOL_RESULT_CHARACTERS
+	const content: unknown[] = []
+	for (const part of (result as { content: unknown[] }).content) {
+		if (
+			!part ||
+			typeof part !== "object" ||
+			(part as { type?: unknown }).type !== "text" ||
+			typeof (part as { text?: unknown }).text !== "string"
+		) {
+			content.push(part)
+			continue
+		}
+		const text = (part as { text: string }).text
+		if (text.length <= remaining) {
+			remaining -= text.length
+			content.push(part)
+			continue
+		}
+		content.push(Object.assign({}, part, { text: `${text.slice(0, remaining)}…[truncated, the server returned more]` }))
+		remaining = 0
+	}
+	return Object.assign({}, result, { content })
+}
+
+function boundTool(tool: ToolSet[string]): ToolSet[string] {
+	const described = truncateDescription(tool)
+	const { execute } = described
+	if (!execute) return described
+	return {
+		...described,
+		execute: (async (...call: Parameters<typeof execute>) => truncateResult(await execute(...call))) as typeof execute,
+	}
 }

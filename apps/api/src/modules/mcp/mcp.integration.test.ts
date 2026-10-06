@@ -72,20 +72,9 @@ describe("mcp schema constraints", () => {
 		["http carrying arguments", { transport: "http", url: UNREACHABLE_URL, authMode: "none", args: ["x"] }],
 		["stdio with an auth mode", { transport: "stdio", command: "npx", authMode: "none" }],
 		["stdio with headers", { transport: "stdio", command: "npx", headers: { a: secret } }],
-		["stdio with oauth tokens", { transport: "stdio", command: "npx", oauthTokens: secret }],
 		["stdio with no command", { transport: "stdio" }],
 		["none carrying headers", { transport: "http", url: UNREACHABLE_URL, authMode: "none", headers: { a: secret } }],
-		["none carrying oauth tokens", { transport: "http", url: UNREACHABLE_URL, authMode: "none", oauthTokens: secret }],
 		["headers with no headers", { transport: "http", url: UNREACHABLE_URL, authMode: "headers" }],
-		[
-			"headers carrying oauth tokens",
-			{ transport: "http", url: UNREACHABLE_URL, authMode: "headers", headers: { a: secret }, oauthTokens: secret },
-		],
-		["oauth carrying headers", { transport: "http", url: UNREACHABLE_URL, authMode: "oauth", headers: { a: secret } }],
-		[
-			"oauth pending without an expiry",
-			{ transport: "http", url: UNREACHABLE_URL, authMode: "oauth", oauthPending: secret },
-		],
 	]
 
 	for (const [label, columns] of rejected) {
@@ -100,8 +89,6 @@ describe("mcp schema constraints", () => {
 	const accepted: [string, Columns][] = [
 		["http with no headers", { transport: "http", url: UNREACHABLE_URL, authMode: "none" }],
 		["stdio with a command and arguments", { transport: "stdio", command: "npx", args: ["-y", "srv"] }],
-		// A row entering oauth mode legitimately holds no token yet.
-		["oauth with no tokens", { transport: "http", url: UNREACHABLE_URL, authMode: "oauth" }],
 	]
 
 	for (const [label, columns] of accepted) {
@@ -238,6 +225,31 @@ describe("mcp server lifecycle", () => {
 		expect(renamed.headers).toEqual([{ name: "X-API-Key", hasValue: true }])
 		const [row] = await db.select({ headers: mcpServer.headers }).from(mcpServer).where(eq(mcpServer.id, created.id))
 		expect(JSON.stringify(row?.headers)).not.toContain("secret-value")
+	})
+
+	it("deletes a stored secret the operator explicitly removed", async () => {
+		const agentId = await createAgent()
+		const created = await service.createServer(agentId, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "headers",
+			headers: { "X-API-Key": "secret-value", "X-Other": "other-value" },
+		})
+
+		const updated = await service.updateServer(agentId, created.id, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "headers",
+			headers: { "X-API-Key": "rotated-value" },
+			deleteHeaders: ["X-Other"],
+			expectedRevision: created.revision,
+		})
+
+		expect(updated.headers).toEqual([{ name: "X-API-Key", hasValue: true }])
+		const [row] = await db.select({ headers: mcpServer.headers }).from(mcpServer).where(eq(mcpServer.id, created.id))
+		expect(Object.keys(row?.headers ?? {})).toEqual(["X-API-Key"])
 	})
 
 	it("excludes a disabled connection from tool resolution", async () => {

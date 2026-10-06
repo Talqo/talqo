@@ -41,16 +41,30 @@ export function createCredentialVault(appSecret: string | undefined, keyContext:
 				tag: cipher.getAuthTag().toString("base64url"),
 			}
 		},
-		/** `T` defaults to the string map every provider credential uses; OAuth payloads opt out. */
+		/** `T` defaults to the string map every stored credential uses. */
 		decrypt<T = Record<string, string>>(envelope: CredentialEnvelope, context: object): T {
-			const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(envelope.nonce, "base64url"))
-			decipher.setAAD(associatedData(context))
-			decipher.setAuthTag(Buffer.from(envelope.tag, "base64url"))
-			const plaintext = Buffer.concat([
-				decipher.update(Buffer.from(envelope.ciphertext, "base64url")),
-				decipher.final(),
-			])
-			return JSON.parse(plaintext.toString("utf8")) as T
+			const open = (aad: Buffer): T => {
+				const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(envelope.nonce, "base64url"))
+				decipher.setAAD(aad)
+				decipher.setAuthTag(Buffer.from(envelope.tag, "base64url"))
+				const plaintext = Buffer.concat([
+					decipher.update(Buffer.from(envelope.ciphertext, "base64url")),
+					decipher.final(),
+				])
+				return JSON.parse(plaintext.toString("utf8")) as T
+			}
+			try {
+				return open(associatedData(context))
+			} catch (error) {
+				// Envelopes sealed before the vault moved to src/lib carried `version: 1` in their AAD,
+				// which sorts last, so this is byte-identical to the old construction. They stay readable
+				// with no migration; the first re-save seals them in the new form.
+				try {
+					return open(associatedData({ ...context, version: ENVELOPE_VERSION }))
+				} catch {
+					throw error
+				}
+			}
 		},
 	}
 }

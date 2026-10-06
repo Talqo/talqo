@@ -15,9 +15,7 @@ export const McpServer = zod.object({
 	name: zod.string(),
 	transport: zod.enum(["http", "stdio"]),
 	url: zod.string().nullable(),
-	authMode: zod
-		.union([zod.literal("none"), zod.literal("headers"), zod.literal("oauth"), zod.literal(null)])
-		.nullable(),
+	authMode: zod.union([zod.literal("none"), zod.literal("headers"), zod.literal(null)]).nullable(),
 	command: zod.string().nullable(),
 	args: zod.array(zod.string()),
 	headers: zod.array(

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { createCipheriv, hkdfSync, randomBytes } from "node:crypto"
 
 import { createCredentialVault } from "./credential-vault.ts"
 
@@ -46,5 +47,25 @@ describe("credential vault", () => {
 		const envelope = vault.encrypt(tokens, { serverId: "s1" })
 
 		expect(vault.decrypt<typeof tokens>(envelope, { serverId: "s1" })).toEqual(tokens)
+	})
+
+	it("still opens envelopes sealed with the pre-move AAD", () => {
+		// The old vault built its AAD as JSON.stringify({configId, providerId, role, version: 1});
+		// sealed by hand here so the test does not depend on the code it guards.
+		const key = Buffer.from(hkdfSync("sha256", Buffer.from(APP_SECRET, "base64url"), Buffer.alloc(0), AI_PROVIDER, 32))
+		const nonce = randomBytes(12)
+		const cipher = createCipheriv("aes-256-gcm", key, nonce)
+		cipher.setAAD(Buffer.from(JSON.stringify({ ...context, version: 1 })))
+		const ciphertext = Buffer.concat([cipher.update(JSON.stringify({ apiKey: "sk-legacy" }), "utf8"), cipher.final()])
+		const legacy = {
+			version: 1 as const,
+			nonce: nonce.toString("base64url"),
+			ciphertext: ciphertext.toString("base64url"),
+			tag: cipher.getAuthTag().toString("base64url"),
+		}
+
+		expect(createCredentialVault(APP_SECRET, AI_PROVIDER).decrypt<Record<string, string>>(legacy, context)).toEqual({
+			apiKey: "sk-legacy",
+		})
 	})
 })

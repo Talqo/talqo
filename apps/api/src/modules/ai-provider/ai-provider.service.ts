@@ -26,8 +26,8 @@ const MAX_TOOL_STEPS = 5
 export type ToolIdentity = { serverName: string; toolName: string }
 
 export type ToolEvent =
-	| { identity: ToolIdentity; type: "tool-start" }
-	| { identity: ToolIdentity; outcome: "completed" | "failed"; type: "tool-end" }
+	| { identity: ToolIdentity; toolCallId: string; type: "tool-start" }
+	| { identity: ToolIdentity; outcome: "completed" | "failed"; toolCallId: string; type: "tool-end" }
 
 type Vault = ReturnType<typeof createCredentialVault>
 type Repository = {
@@ -194,14 +194,22 @@ function toolCallbacks(input: Parameters<Generate>[0]): ToolCallbackOptions {
 	const identity = (name: string): ToolIdentity => input.toolNames?.get(name) ?? { serverName: "", toolName: name }
 	const emit = input.onToolEvent
 	return {
-		onToolExecutionStart: ({ toolCall }) => emit({ type: "tool-start", identity: identity(toolCall.toolName) }),
+		onToolExecutionStart: ({ toolCall }) =>
+			emit({ type: "tool-start", identity: identity(toolCall.toolName), toolCallId: toolCall.toolCallId }),
 		onToolExecutionEnd: ({ toolCall, toolOutput }) =>
 			emit({
 				type: "tool-end",
 				identity: identity(toolCall.toolName),
-				outcome: toolOutput.type === "tool-result" ? "completed" : "failed",
+				toolCallId: toolCall.toolCallId,
+				// A tool-result carrying isError still reports success upstream; the demo server proves it.
+				outcome: toolOutput.type === "tool-result" && !isErrorOutput(toolOutput.output) ? "completed" : "failed",
 			}),
 	}
+}
+
+/** MCP servers answer failures inside a successful result envelope. */
+function isErrorOutput(output: unknown): boolean {
+	return !!output && typeof output === "object" && (output as { isError?: unknown }).isError === true
 }
 function settingsEqual(first: Record<string, string>, second: Record<string, string>): boolean {
 	const firstKeys = Object.keys(first)

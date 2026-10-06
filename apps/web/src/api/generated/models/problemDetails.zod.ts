@@ -136,10 +136,6 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
 	}),
 	zod.object({
-		code: zod.enum(["mcp-authorization-server-changed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#mcp-authorization-server-changed"]),
-	}),
-	zod.object({
 		code: zod.enum(["mcp-server-not-found"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-not-found"]),
 	}),

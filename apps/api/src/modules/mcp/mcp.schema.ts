@@ -1,4 +1,4 @@
-import type { CredentialEnvelope, CredentialSecretMap } from "@/lib/credential-vault.ts"
+import type { CredentialSecretMap } from "@/lib/credential-vault.ts"
 
 import { agent } from "@/modules/agent/agent.schema.ts"
 import { sql } from "drizzle-orm"
@@ -18,7 +18,7 @@ import {
 import type { McpToolSnapshot } from "./mcp.types.ts"
 
 export const mcpTransportEnum = pgEnum("mcp_transport", ["http", "stdio"])
-export const mcpAuthModeEnum = pgEnum("mcp_auth_mode", ["none", "headers", "oauth"])
+export const mcpAuthModeEnum = pgEnum("mcp_auth_mode", ["none", "headers"])
 
 export const mcpServer = pgTable(
 	"mcp_server",
@@ -32,10 +32,6 @@ export const mcpServer = pgTable(
 		url: text("url"),
 		authMode: mcpAuthModeEnum("auth_mode"),
 		headers: jsonb("headers").$type<CredentialSecretMap>(),
-		oauthTokens: jsonb("oauth_tokens").$type<CredentialEnvelope>(),
-		oauthClient: jsonb("oauth_client").$type<CredentialEnvelope>(),
-		oauthPending: jsonb("oauth_pending").$type<CredentialEnvelope>(),
-		oauthStateExpiresAt: timestamp("oauth_state_expires_at", { withTimezone: true, mode: "date" }),
 		command: text("command"),
 		args: jsonb("args")
 			.$type<string[]>()
@@ -68,23 +64,15 @@ export const mcpServer = pgTable(
 					AND ${table.authMode} IS NULL
 			)`,
 		),
-		// A row entering oauth mode may hold no token yet, so only the reverse direction is forbidden.
 		// `IS NOT DISTINCT FROM` rather than `=`: a stdio row's null auth_mode would make `=` yield
 		// null, and a check whose result is null passes, admitting any secret column.
 		check(
 			"mcp_server_auth_fields_check",
 			sql`(
 				(${table.authMode} IS NULL OR ${table.authMode} = 'none')
-					AND ${table.headers} IS NULL AND ${table.oauthTokens} IS NULL
-					AND ${table.oauthClient} IS NULL AND ${table.oauthPending} IS NULL
-					AND ${table.oauthStateExpiresAt} IS NULL
+					AND ${table.headers} IS NULL
 			) OR (
 				${table.authMode} IS NOT DISTINCT FROM 'headers' AND ${table.headers} IS NOT NULL
-					AND ${table.oauthTokens} IS NULL AND ${table.oauthClient} IS NULL
-					AND ${table.oauthPending} IS NULL AND ${table.oauthStateExpiresAt} IS NULL
-			) OR (
-				${table.authMode} IS NOT DISTINCT FROM 'oauth' AND ${table.headers} IS NULL
-					AND (${table.oauthPending} IS NULL) = (${table.oauthStateExpiresAt} IS NULL)
 			)`,
 		),
 	],

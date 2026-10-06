@@ -10,6 +10,10 @@ export const updateMcpServerBodyNameMax = 80
 
 export const updateMcpServerBodyServerOneHeadersMaxOne = 4096
 
+export const updateMcpServerBodyServerOneDeleteHeadersItemMax = 256
+
+export const updateMcpServerBodyServerOneDeleteHeadersMax = 50
+
 export const updateMcpServerBodyServerTwoCommandMax = 512
 
 export const updateMcpServerBodyServerTwoArgsItemMax = 1000
@@ -17,6 +21,10 @@ export const updateMcpServerBodyServerTwoArgsItemMax = 1000
 export const updateMcpServerBodyServerTwoArgsMax = 50
 
 export const updateMcpServerBodyServerTwoEnvMaxOne = 4096
+
+export const updateMcpServerBodyServerTwoDeleteEnvItemMax = 256
+
+export const updateMcpServerBodyServerTwoDeleteEnvMax = 50
 
 export const updateMcpServerBodyExpectedRevisionMin = 0
 
@@ -26,8 +34,12 @@ export const UpdateMcpServerBody = zod.object({
 		zod.object({
 			transport: zod.enum(["http"]),
 			url: zod.url(),
-			authMode: zod.enum(["none", "headers", "oauth"]),
+			authMode: zod.enum(["none", "headers"]),
 			headers: zod.record(zod.string(), zod.string().min(1).max(updateMcpServerBodyServerOneHeadersMaxOne)).optional(),
+			deleteHeaders: zod
+				.array(zod.string().min(1).max(updateMcpServerBodyServerOneDeleteHeadersItemMax))
+				.max(updateMcpServerBodyServerOneDeleteHeadersMax)
+				.optional(),
 		}),
 		zod.object({
 			transport: zod.enum(["stdio"]),
@@ -37,6 +49,10 @@ export const UpdateMcpServerBody = zod.object({
 				.max(updateMcpServerBodyServerTwoArgsMax)
 				.optional(),
 			env: zod.record(zod.string(), zod.string().min(1).max(updateMcpServerBodyServerTwoEnvMaxOne)).optional(),
+			deleteEnv: zod
+				.array(zod.string().min(1).max(updateMcpServerBodyServerTwoDeleteEnvItemMax))
+				.max(updateMcpServerBodyServerTwoDeleteEnvMax)
+				.optional(),
 		}),
 	]),
 	expectedRevision: zod.int().min(updateMcpServerBodyExpectedRevisionMin),

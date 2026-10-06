@@ -24,7 +24,7 @@ export const CreateMcpServerBody = zod.object({
 		zod.object({
 			transport: zod.enum(["http"]),
 			url: zod.url(),
-			authMode: zod.enum(["none", "headers", "oauth"]),
+			authMode: zod.enum(["none", "headers"]),
 			headers: zod.record(zod.string(), zod.string().min(1).max(createMcpServerBodyServerOneHeadersMaxOne)).optional(),
 		}),
 		zod.object({

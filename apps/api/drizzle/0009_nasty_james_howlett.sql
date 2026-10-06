@@ -1,4 +1,4 @@
-CREATE TYPE "public"."mcp_auth_mode" AS ENUM('none', 'headers', 'oauth');--> statement-breakpoint
+CREATE TYPE "public"."mcp_auth_mode" AS ENUM('none', 'headers');--> statement-breakpoint
 CREATE TYPE "public"."mcp_transport" AS ENUM('http', 'stdio');--> statement-breakpoint
 CREATE TABLE "mcp_server" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -8,10 +8,6 @@ CREATE TABLE "mcp_server" (
 	"url" text,
 	"auth_mode" "mcp_auth_mode",
 	"headers" jsonb,
-	"oauth_tokens" jsonb,
-	"oauth_client" jsonb,
-	"oauth_pending" jsonb,
-	"oauth_state_expires_at" timestamp with time zone,
 	"command" text,
 	"args" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"env" jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -30,16 +26,9 @@ CREATE TABLE "mcp_server" (
 			)),
 	CONSTRAINT "mcp_server_auth_fields_check" CHECK ((
 				("mcp_server"."auth_mode" IS NULL OR "mcp_server"."auth_mode" = 'none')
-					AND "mcp_server"."headers" IS NULL AND "mcp_server"."oauth_tokens" IS NULL
-					AND "mcp_server"."oauth_client" IS NULL AND "mcp_server"."oauth_pending" IS NULL
-					AND "mcp_server"."oauth_state_expires_at" IS NULL
+					AND "mcp_server"."headers" IS NULL
 			) OR (
 				"mcp_server"."auth_mode" IS NOT DISTINCT FROM 'headers' AND "mcp_server"."headers" IS NOT NULL
-					AND "mcp_server"."oauth_tokens" IS NULL AND "mcp_server"."oauth_client" IS NULL
-					AND "mcp_server"."oauth_pending" IS NULL AND "mcp_server"."oauth_state_expires_at" IS NULL
-			) OR (
-				"mcp_server"."auth_mode" IS NOT DISTINCT FROM 'oauth' AND "mcp_server"."headers" IS NULL
-					AND ("mcp_server"."oauth_pending" IS NULL) = ("mcp_server"."oauth_state_expires_at" IS NULL)
 			))
 );
 --> statement-breakpoint

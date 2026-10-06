@@ -36,7 +36,6 @@ export const PROBLEM_CODES = {
 	INVALID_INVITATION: "invalid-invitation",
 	INVALID_REQUEST: "invalid-request",
 	MALFORMED_JSON: "malformed-json",
-	MCP_AUTHORIZATION_SERVER_CHANGED: "mcp-authorization-server-changed",
 	MCP_SERVER_NOT_FOUND: "mcp-server-not-found",
 	MODEL_DISCOVERY_UNSUPPORTED: "model-discovery-unsupported",
 	PASSWORD_CHANGE_NOT_REQUIRED: "password-change-not-required",
