@@ -1,5 +1,3 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
-
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -28,8 +26,6 @@ const AGENT_TAB_PATH = "/dashboard/agents"
  * Only these are hard errors.
  */
 function mapDomainError(error: unknown) {
-	if (error instanceof service.PermissionDeniedError)
-		return { code: PROBLEM_CODES.PERMISSION_DENIED, status: HTTP_STATUS.FORBIDDEN } as const
 	if (error instanceof service.McpServerNotFoundError)
 		return { code: PROBLEM_CODES.MCP_SERVER_NOT_FOUND, status: HTTP_STATUS.NOT_FOUND } as const
 	if (error instanceof service.UnknownAgentError)
@@ -53,10 +49,10 @@ function backToTabWithError(agentId: string, code: string): string {
 	return `${AGENT_TAB_PATH}/${agentId}?tab=mcp&oauth=${encodeURIComponent(code)}`
 }
 
-export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+export const mcpServerRoutes = new OpenAPIHono()
 	.openapi(listMcpServersRoute, async (c) => {
 		try {
-			const servers = await service.listServers(c.get("user").id, c.req.valid("param").agentId)
+			const servers = await service.listServers(c.req.valid("param").agentId)
 			return c.json(serverListSchema.parse({ servers }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -68,7 +64,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		try {
 			const { agentId } = c.req.valid("param")
 			const { name, server } = c.req.valid("json") as McpCreateBody
-			const created = await service.createServer(c.get("user").id, agentId, { name, ...server })
+			const created = await service.createServer(agentId, { name, ...server })
 			return c.json(serverDetailSchema.parse({ server: created }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -79,7 +75,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(getMcpServerRoute, async (c) => {
 		try {
 			const { agentId, serverId } = c.req.valid("param")
-			const server = await service.getServer(c.get("user").id, agentId, serverId)
+			const server = await service.getServer(agentId, serverId)
 			return c.json(serverDetailSchema.parse({ server }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -91,7 +87,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 		try {
 			const { agentId, serverId } = c.req.valid("param")
 			const { name, server, expectedRevision, isDisabled } = c.req.valid("json") as McpUpdateBody
-			const updated = await service.updateServer(c.get("user").id, agentId, serverId, {
+			const updated = await service.updateServer(agentId, serverId, {
 				name,
 				...server,
 				expectedRevision,
@@ -107,7 +103,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(deleteMcpServerRoute, async (c) => {
 		try {
 			const { agentId, serverId } = c.req.valid("param")
-			await service.deleteServer(c.get("user").id, agentId, serverId)
+			await service.deleteServer(agentId, serverId)
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -118,7 +114,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(setMcpServerDisabledRoute, async (c) => {
 		try {
 			const { agentId, serverId, action } = c.req.valid("param")
-			const server = await service.setServerDisabled(c.get("user").id, agentId, serverId, action === "disable")
+			const server = await service.setServerDisabled(agentId, serverId, action === "disable")
 			return c.json(serverDetailSchema.parse({ server }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -129,7 +125,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(probeMcpServerRoute, async (c) => {
 		try {
 			const { agentId, serverId } = c.req.valid("param")
-			const server = await service.retestServer(c.get("user").id, agentId, serverId)
+			const server = await service.retestServer(agentId, serverId)
 			return c.json(serverDetailSchema.parse({ server }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -140,7 +136,7 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	.openapi(authorizeMcpServerRoute, async (c) => {
 		try {
 			const { agentId, serverId } = c.req.valid("param")
-			const url = await service.beginAuthorization(c.get("user").id, agentId, serverId, new URL(c.req.url).origin)
+			const url = await service.beginAuthorization(agentId, serverId, new URL(c.req.url).origin)
 			return c.json({ authorizationUrl: url }, HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -150,21 +146,18 @@ export const mcpServerRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>()
 	})
 
 /** Reached by the operator's browser, so it answers a redirect and never an API error body. */
-export const mcpOAuthCallbackRoutes = new OpenAPIHono<{ Variables: AuthedVariables }>().openapi(
-	mcpCallbackRoute,
-	async (c) => {
-		const { agentId, serverId } = c.req.valid("param")
-		const { code, state, error } = c.req.valid("query")
-		if (error || !code || !state) return c.redirect(backToTabWithError(agentId, error ?? "sign-in-was-cancelled"))
-		try {
-			await service.completeAuthorization(c.get("user").id, agentId, serverId, new URL(c.req.url).origin, {
-				code,
-				state,
-			})
-		} catch (cause) {
-			const mapped = mapDomainError(cause)
-			return c.redirect(backToTabWithError(agentId, mapped?.code ?? "sign-in-failed"))
-		}
-		return c.redirect(backToTab(agentId))
-	},
-)
+export const mcpOAuthCallbackRoutes = new OpenAPIHono().openapi(mcpCallbackRoute, async (c) => {
+	const { agentId, serverId } = c.req.valid("param")
+	const { code, state, error } = c.req.valid("query")
+	if (error || !code || !state) return c.redirect(backToTabWithError(agentId, error ?? "sign-in-was-cancelled"))
+	try {
+		await service.completeAuthorization(agentId, serverId, new URL(c.req.url).origin, {
+			code,
+			state,
+		})
+	} catch (cause) {
+		const mapped = mapDomainError(cause)
+		return c.redirect(backToTabWithError(agentId, mapped?.code ?? "sign-in-failed"))
+	}
+	return c.redirect(backToTab(agentId))
+})

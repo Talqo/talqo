@@ -5666,13 +5666,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers": {
 			"get": {
-				"operationId": "listMcpServers",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "listMcpServers",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -5766,13 +5766,13 @@
 				}
 			},
 			"post": {
-				"operationId": "createMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "createMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -5957,13 +5957,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers/{serverId}": {
 			"get": {
-				"operationId": "getMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "getMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6062,13 +6062,13 @@
 				}
 			},
 			"put": {
-				"operationId": "updateMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "updateMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6282,13 +6282,13 @@
 				}
 			},
 			"delete": {
-				"operationId": "deleteMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "deleteMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6376,13 +6376,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers/{serverId}/{action}": {
 			"post": {
-				"operationId": "setMcpServerDisabled",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "setMcpServerDisabled",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6492,13 +6492,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers/{serverId}/probe": {
 			"post": {
-				"operationId": "probeMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "probeMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6609,13 +6609,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/authorize": {
 			"post": {
-				"operationId": "authorizeMcpServer",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "authorizeMcpServer",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {
@@ -6716,13 +6716,13 @@
 		},
 		"/api/agents/{agentId}/mcp-servers/{serverId}/oauth/callback": {
 			"get": {
-				"operationId": "completeMcpServerAuthorization",
-				"tags": ["MCP"],
 				"security": [
 					{
 						"SessionCookie": []
 					}
 				],
+				"operationId": "completeMcpServerAuthorization",
+				"tags": ["MCP"],
 				"parameters": [
 					{
 						"schema": {

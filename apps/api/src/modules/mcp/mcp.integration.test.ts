@@ -12,6 +12,30 @@ import * as service from "./mcp.service.ts"
 
 const UNREACHABLE_URL = "http://127.0.0.1:1/mcp"
 
+async function login(username: string): Promise<string> {
+	const response = await app.request("/api/auth/login", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
+	})
+	const setCookie = response.headers.get("set-cookie")
+	if (!setCookie) throw new Error("Expected a Set-Cookie header")
+	const [cookiePair] = setCookie.split(";")
+	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
+	return cookiePair
+}
+
+/** Access is declared per route, so a read-only member is created by granting exactly one permission. */
+async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {
+	const username = uniqueUsername()
+	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	const grantor = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+	await Promise.all(
+		permissions.map((permission) => roles.grantPermission({ userId: member.id, permission, grantedBy: grantor.id })),
+	)
+	return login(username)
+}
+
 /** Asserts the row was refused by a named check constraint, so a foreign key cannot pass for one. */
 async function expectCheckViolation(insert: Promise<unknown>): Promise<void> {
 	const error = await insert.then(
@@ -25,16 +49,6 @@ async function expectCheckViolation(insert: Promise<unknown>): Promise<void> {
 
 async function createAgent(name = `Shop assistant ${crypto.randomUUID().slice(0, 8)}`): Promise<string> {
 	return (await agent.createAgent({ name, systemPrompt: "You help shoppers.", wordBlacklist: [] })).id
-}
-
-async function managerUserId(): Promise<string> {
-	const account = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-	await roles.grantPermission({
-		userId: account.id,
-		permission: roles.Permission.AgentsManage,
-		grantedBy: account.id,
-	})
-	return account.id
 }
 
 beforeEach(async () => {
@@ -105,9 +119,8 @@ describe("mcp schema constraints", () => {
 describe("mcp server lifecycle", () => {
 	it("keeps a failed probe from costing the operator their configuration", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
 
-		const created = await service.createServer(userId, agentId, {
+		const created = await service.createServer(agentId, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -126,9 +139,8 @@ describe("mcp server lifecycle", () => {
 	it("rejects a duplicate name within one agent but not across two", async () => {
 		const first = await createAgent()
 		const second = await createAgent()
-		const userId = await managerUserId()
 
-		await service.createServer(userId, first, {
+		await service.createServer(first, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -136,7 +148,7 @@ describe("mcp server lifecycle", () => {
 		})
 
 		await expect(
-			service.createServer(userId, first, {
+			service.createServer(first, {
 				name: "stock",
 				transport: "http",
 				url: UNREACHABLE_URL,
@@ -144,7 +156,7 @@ describe("mcp server lifecycle", () => {
 			}),
 		).rejects.toBeInstanceOf(service.DuplicateMcpServerNameError)
 		await expect(
-			service.createServer(userId, second, {
+			service.createServer(second, {
 				name: "Stock",
 				transport: "http",
 				url: UNREACHABLE_URL,
@@ -155,10 +167,9 @@ describe("mcp server lifecycle", () => {
 
 	it("rejects a reserved header name and a non-http address", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
 
 		await expect(
-			service.createServer(userId, agentId, {
+			service.createServer(agentId, {
 				name: "Reserved",
 				transport: "http",
 				url: UNREACHABLE_URL,
@@ -167,7 +178,7 @@ describe("mcp server lifecycle", () => {
 			}),
 		).rejects.toBeInstanceOf(service.InvalidMcpServerError)
 		await expect(
-			service.createServer(userId, agentId, {
+			service.createServer(agentId, {
 				name: "Bad scheme",
 				transport: "http",
 				url: "file:///etc/passwd",
@@ -178,8 +189,7 @@ describe("mcp server lifecycle", () => {
 
 	it("rejects a stale revision but not a write made since the read", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
-		const created = await service.createServer(userId, agentId, {
+		const created = await service.createServer(agentId, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -187,18 +197,18 @@ describe("mcp server lifecycle", () => {
 		})
 		const body = { transport: "http" as const, url: UNREACHABLE_URL, authMode: "none" as const }
 
-		await service.setServerDisabled(userId, agentId, created.id, true)
+		await service.setServerDisabled(agentId, created.id, true)
 
 		// A probe or token refresh moves updatedAt but not revision, so this still applies.
 		await expect(
-			service.updateServer(userId, agentId, created.id, {
+			service.updateServer(agentId, created.id, {
 				...body,
 				name: "Renamed",
 				expectedRevision: created.revision,
 			}),
 		).resolves.toMatchObject({ name: "Renamed", isDisabled: true })
 		await expect(
-			service.updateServer(userId, agentId, created.id, {
+			service.updateServer(agentId, created.id, {
 				...body,
 				name: "Again",
 				expectedRevision: created.revision,
@@ -208,8 +218,7 @@ describe("mcp server lifecycle", () => {
 
 	it("preserves a stored secret that an update does not mention", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
-		const created = await service.createServer(userId, agentId, {
+		const created = await service.createServer(agentId, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -218,7 +227,7 @@ describe("mcp server lifecycle", () => {
 		})
 
 		// The dashboard never sees the value, so a rename cannot send it back.
-		const renamed = await service.updateServer(userId, agentId, created.id, {
+		const renamed = await service.updateServer(agentId, created.id, {
 			name: "Stock v2",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -233,8 +242,7 @@ describe("mcp server lifecycle", () => {
 
 	it("excludes a disabled connection from tool resolution", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
-		const created = await service.createServer(userId, agentId, {
+		const created = await service.createServer(agentId, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -246,19 +254,18 @@ describe("mcp server lifecycle", () => {
 			.where(eq(mcpServer.id, created.id))
 
 		const controller = new AbortController()
-		await service.setServerDisabled(userId, agentId, created.id, true)
+		await service.setServerDisabled(agentId, created.id, true)
 
 		const disabled = await service.openTools(agentId, controller.signal)
 		expect(disabled.tools).toEqual({})
 		await disabled.close()
 		// Reaching here at all proves the server was never contacted while disabled.
-		await service.setServerDisabled(userId, agentId, created.id, false)
+		await service.setServerDisabled(agentId, created.id, false)
 	})
 
 	it("deletes a connection's secrets with the agent", async () => {
 		const agentId = await createAgent()
-		const userId = await managerUserId()
-		await service.createServer(userId, agentId, {
+		await service.createServer(agentId, {
 			name: "Stock",
 			transport: "http",
 			url: UNREACHABLE_URL,
@@ -271,24 +278,29 @@ describe("mcp server lifecycle", () => {
 		expect(await db.select({ id: mcpServer.id }).from(mcpServer)).toEqual([])
 	})
 
-	it("requires the permission the route checks", async () => {
+	it("gives a read-only member the list and refuses every mutation", async () => {
 		const agentId = await createAgent()
-		const reader = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-		await roles.grantPermission({
-			userId: reader.id,
-			permission: roles.Permission.AgentsRead,
-			grantedBy: reader.id,
-		})
+		const reader = await memberSession(["agents:read"])
 
-		await expect(service.listServers(reader.id, agentId)).resolves.toEqual([])
-		await expect(
-			service.createServer(reader.id, agentId, {
-				name: "Stock",
-				transport: "http",
-				url: UNREACHABLE_URL,
-				authMode: "none",
-			}),
-		).rejects.toBeInstanceOf(service.PermissionDeniedError)
+		const listed = await app.request(`/api/agents/${agentId}/mcp-servers`, { headers: { Cookie: reader } })
+		expect(listed.status).toBe(200)
+
+		const body = { name: "Stock", server: { transport: "http", url: UNREACHABLE_URL, authMode: "none" } }
+		for (const [method, path] of [
+			["POST", `/api/agents/${agentId}/mcp-servers`],
+			["PUT", `/api/agents/${agentId}/mcp-servers/any`],
+			["DELETE", `/api/agents/${agentId}/mcp-servers/any`],
+			["POST", `/api/agents/${agentId}/mcp-servers/any/probe`],
+			["POST", `/api/agents/${agentId}/mcp-servers/any/disable`],
+		] as const) {
+			// oxlint-disable-next-line no-await-in-loop -- asserts per route in order.
+			const response = await app.request(path, {
+				method,
+				headers: { Cookie: reader, "Content-Type": "application/json" },
+				body: JSON.stringify(body),
+			})
+			expect(response.status).toBe(403)
+		}
 	})
 })
 
@@ -351,7 +363,7 @@ describe("stdio connections", () => {
 	const DEMO_SCRIPT = "test-fixtures/mcp-demo-server.ts"
 
 	async function createDemo(agentId: string, overrides: { env?: Record<string, string> } = {}) {
-		return service.createServer(await managerUserId(), agentId, {
+		return service.createServer(agentId, {
 			name: "Demo shop",
 			transport: "stdio",
 			command: process.execPath,

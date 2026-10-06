@@ -1,5 +1,7 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { MCP_SERVER_NAME_MAX_LENGTH } from "./mcp.types.ts"
@@ -109,11 +111,11 @@ const domain = {
 }
 
 export const listMcpServersRoute = createRoute({
+	...access.permission(roles.Permission.AgentsRead),
 	method: "get",
 	path: "/{agentId}/mcp-servers",
 	operationId: "listMcpServers",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: serverListSchema } }, description: "Connections listed" },
@@ -122,11 +124,11 @@ export const listMcpServersRoute = createRoute({
 })
 
 export const createMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
 	path: "/{agentId}/mcp-servers",
 	operationId: "createMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: {
 		params: agentParamsSchema,
 		body: { required: true, content: { "application/json": { schema: createRequestSchema } } },
@@ -139,11 +141,11 @@ export const createMcpServerRoute = createRoute({
 })
 
 export const getMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsRead),
 	method: "get",
 	path: "/{agentId}/mcp-servers/{serverId}",
 	operationId: "getMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: serverParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: serverDetailSchema } }, description: "Connection read" },
@@ -152,11 +154,11 @@ export const getMcpServerRoute = createRoute({
 })
 
 export const updateMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "put",
 	path: "/{agentId}/mcp-servers/{serverId}",
 	operationId: "updateMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: {
 		params: serverParamsSchema,
 		body: { required: true, content: { "application/json": { schema: updateRequestSchema } } },
@@ -169,11 +171,11 @@ export const updateMcpServerRoute = createRoute({
 })
 
 export const deleteMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "delete",
 	path: "/{agentId}/mcp-servers/{serverId}",
 	operationId: "deleteMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: serverParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -184,11 +186,11 @@ export const deleteMcpServerRoute = createRoute({
 // Dedicated enable/disable, mirroring embed: PUT carries the whole configuration, so flipping a
 // boolean through it would mean re-sending secrets the operator never sees.
 export const setMcpServerDisabledRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
 	path: "/{agentId}/mcp-servers/{serverId}/{action}",
 	operationId: "setMcpServerDisabled",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: {
 		params: z.object({
 			agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
@@ -203,11 +205,11 @@ export const setMcpServerDisabledRoute = createRoute({
 })
 
 export const probeMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
 	path: "/{agentId}/mcp-servers/{serverId}/probe",
 	operationId: "probeMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: serverParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: serverDetailSchema } }, description: "Connection tested" },
@@ -217,11 +219,11 @@ export const probeMcpServerRoute = createRoute({
 })
 
 export const authorizeMcpServerRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
 	path: "/{agentId}/mcp-servers/{serverId}/oauth/authorize",
 	operationId: "authorizeMcpServer",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: serverParamsSchema },
 	responses: {
 		200: {
@@ -233,11 +235,11 @@ export const authorizeMcpServerRoute = createRoute({
 })
 
 export const mcpCallbackRoute = createRoute({
+	...access.permission(roles.Permission.AgentsManage),
 	method: "get",
 	path: "/{agentId}/mcp-servers/{serverId}/oauth/callback",
 	operationId: "completeMcpServerAuthorization",
 	tags: ["MCP"],
-	security: sessionSecurity,
 	request: { params: serverParamsSchema, query: callbackQuerySchema },
 	responses: {
 		302: { description: "Redirects back to the agent page" },

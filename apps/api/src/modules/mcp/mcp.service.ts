@@ -5,7 +5,6 @@ import type { ToolBinding } from "@/modules/ai-provider/ai-provider.service.ts"
 import { env } from "@/config/env.ts"
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { auth } from "@ai-sdk/mcp"
 
 import type { McpServerPatch } from "./mcp.schema.ts"
@@ -44,12 +43,6 @@ export type OpenTools = {
 }
 
 const vault = () => createCredentialVault(env.APP_SECRET, KEY_CONTEXT)
-
-export class PermissionDeniedError extends Error {}
-
-async function requireAgentPermission(userId: string, permission: roles.Permission): Promise<void> {
-	if (!(await roles.authorize(userId, permission))) throw new PermissionDeniedError("Missing agents permission")
-}
 
 async function ownedRow(agentId: string, serverId: string): Promise<McpServerRow> {
 	const row = await repo.find(serverId)
@@ -161,18 +154,15 @@ async function probeRow(row: McpServerRow): Promise<McpServerRow> {
 	return (await repo.update(row.id, patch)) ?? row
 }
 
-export async function listServers(userId: string, agentId: string): Promise<McpServerView[]> {
-	await requireAgentPermission(userId, roles.Permission.AgentsRead)
+export async function listServers(agentId: string): Promise<McpServerView[]> {
 	return (await repo.listForAgent(agentId)).map(toView)
 }
 
-export async function getServer(userId: string, agentId: string, serverId: string): Promise<McpServerView> {
-	await requireAgentPermission(userId, roles.Permission.AgentsRead)
+export async function getServer(agentId: string, serverId: string): Promise<McpServerView> {
 	return toView(await ownedRow(agentId, serverId))
 }
 
-export async function createServer(userId: string, agentId: string, input: McpCreateInput): Promise<McpServerView> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
+export async function createServer(agentId: string, input: McpCreateInput): Promise<McpServerView> {
 	assertValid(input)
 	const id = crypto.randomUUID()
 	try {
@@ -191,13 +181,7 @@ export async function createServer(userId: string, agentId: string, input: McpCr
 	}
 }
 
-export async function updateServer(
-	userId: string,
-	agentId: string,
-	serverId: string,
-	input: McpUpdateInput,
-): Promise<McpServerView> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
+export async function updateServer(agentId: string, serverId: string, input: McpUpdateInput): Promise<McpServerView> {
 	const existing = await ownedRow(agentId, serverId)
 	assertValid(input)
 	const base =
@@ -222,25 +206,21 @@ export async function updateServer(
 	return toView(await probeRow(saved))
 }
 
-export async function deleteServer(userId: string, agentId: string, serverId: string): Promise<void> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
+export async function deleteServer(agentId: string, serverId: string): Promise<void> {
 	await ownedRow(agentId, serverId)
 	await repo.remove(serverId)
 }
 
-export async function retestServer(userId: string, agentId: string, serverId: string): Promise<McpServerView> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
+export async function retestServer(agentId: string, serverId: string): Promise<McpServerView> {
 	return toView(await probeRow(await ownedRow(agentId, serverId)))
 }
 
 /** Flipping the flag never disturbs the configuration or its secrets. */
 export async function setServerDisabled(
-	userId: string,
 	agentId: string,
 	serverId: string,
 	isDisabled: boolean,
 ): Promise<McpServerView> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
 	const row = await ownedRow(agentId, serverId)
 	return toView((await repo.update(serverId, { isDisabled })) ?? row)
 }
@@ -258,13 +238,7 @@ export async function openTools(agentId: string, signal: AbortSignal): Promise<O
 }
 
 /** Returns the URL the operator's browser must follow, or null when the server needs no sign-in. */
-export async function beginAuthorization(
-	userId: string,
-	agentId: string,
-	serverId: string,
-	origin: string,
-): Promise<string | null> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
+export async function beginAuthorization(agentId: string, serverId: string, origin: string): Promise<string | null> {
 	const row = await ownedRow(agentId, serverId)
 	if (row.transport !== "http" || row.authMode !== "oauth")
 		throw new InvalidMcpServerError("This connection does not use sign-in")
@@ -284,13 +258,11 @@ export async function beginAuthorization(
 }
 
 export async function completeAuthorization(
-	userId: string,
 	agentId: string,
 	serverId: string,
 	origin: string,
 	query: { code: string; state: string },
 ): Promise<void> {
-	await requireAgentPermission(userId, roles.Permission.AgentsManage)
 	const row = await ownedRow(agentId, serverId)
 	const provider = createOAuthProvider({
 		row,
