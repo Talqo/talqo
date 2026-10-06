@@ -215,23 +215,23 @@ apps/web/src/
 
 ## Docs
 
-`apps/docs` is the public documentation site, not part of the self-hosted product. No operator needs it, so it ships as its own image from `apps/docs/Dockerfile` instead of joining the single image in ADR-0016. API problem types are published as `https://docs.talqo.chat/problems#{code}` and compiled into generated API schemas, which fixes the site's origin and path. Its own routes are root-relative, so it must be served at that origin's root.
+`apps/docs` is the public documentation site, not part of the self-hosted product. No operator needs it, so it ships as its own image from `apps/docs/Dockerfile` instead of joining the single image in ADR-0016. API problem types are published as `https://docs.talqo.chat/problems#{code}` and compiled into generated API schemas, which fixes the site's origin. Nothing else lives on that origin, so the site carries no path prefix: pages are served at the root (`docs.talqo.chat/deployment`) beside `/problems`.
 
 ```text
 apps/docs/
 |-- Dockerfile                       # own image
 |-- content/docs/                    # MDX pages
 `-- src/
-    |-- lib/source.ts                # Fumadocs collection and page tree
-    |-- routes/docs.$                # renders every page by slug
+    |-- lib/source.ts                # Fumadocs collection, page tree, and base URL
+    |-- routes/$                     # renders every page by slug
     |-- serve.ts                     # process entry point only
     `-- routeTree.gen.ts             # generated; never hand-edit
 ```
 
 - Content is compiled by the bundler through the Fumadocs macro API, one lazy chunk per page. Adding or moving a page needs no route change.
 - The SSR bundle is built with `noExternal` so the image carries only `dist` and the entry point. Runtime dependencies must stay bundled.
-- The site is server-rendered, so every page must stay addressable by slug and `/problems` must keep serving the published problem type URIs.
-- `src/serve.integration.test.ts` fetches the built artifact and fails when a content page renders nowhere.
+- The site is server-rendered, so every page must stay addressable by slug and `/problems` must keep serving the published problem type URIs. As a root splat sibling, it relies on static paths outranking the splat.
+- `src/serve.integration.test.ts` fetches the built artifact and fails when a content page renders nowhere or a rendered link 404s.
 
 ## E2E Tests
 

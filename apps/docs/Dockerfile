@@ -29,6 +29,6 @@ USER bun
 EXPOSE 3002
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-	CMD ["bun", "-e", "fetch('http://127.0.0.1:' + (process.env.TALQO_DOCS_PORT || '3002') + '/docs').then((r) => { if (!r.ok) process.exit(1) })"]
+	CMD ["bun", "-e", "fetch('http://127.0.0.1:' + (process.env.TALQO_DOCS_PORT || '3002') + '/').then((r) => { if (!r.ok) process.exit(1) })"]
 
 CMD ["bun", "apps/docs/src/serve.ts"]

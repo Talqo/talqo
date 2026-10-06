@@ -16,6 +16,12 @@ function request(path: string): Promise<Response> {
 	return app.fetch(new Request(new URL(path, "http://localhost")))
 }
 
+async function get(path: string): Promise<{ status: number; html: string }> {
+	const response = await request(path)
+
+	return { status: response.status, html: renderedText(await response.text()) }
+}
+
 // React separates adjacent text nodes with comment markers, so `problems#` and the
 // code that follows it are not one literal run of text in the server-rendered HTML.
 function renderedText(html: string): string {
@@ -29,12 +35,16 @@ async function docUrls(): Promise<string[]> {
 		.filter((file) => /\.mdx?$/.test(file))
 		.map((file) => {
 			const slug = file.replace(/\.mdx?$/, "")
-			return slug === "index" ? "/docs" : `/docs/${slug}`
+			return slug === "index" ? "/" : `/${slug}`
 		})
 }
 
-// The sidebar advertises every page in the content directory, so a page without a
-// route is a dead link rather than a missing feature.
+async function statusesOf(paths: string[]): Promise<Map<string, number>> {
+	const results = await Promise.all(paths.map(async (path) => [path, (await get(path)).status] as const))
+
+	return new Map(results)
+}
+
 describe("docs routes", () => {
 	it("renders every page in the content directory", async () => {
 		const urls = await docUrls()
@@ -42,8 +52,9 @@ describe("docs routes", () => {
 
 		const pages = await Promise.all(
 			urls.map(async (url) => {
-				const response = await request(url)
-				return { url, status: response.status, html: await response.text() }
+				const { status, html } = await get(url)
+
+				return { url, status, html }
 			}),
 		)
 
@@ -53,21 +64,31 @@ describe("docs routes", () => {
 		}
 	})
 
-	it("redirects the site root to the docs index", async () => {
-		const response = await request("/")
+	it("does not render a link to an address that 404s", async () => {
+		const index = (await get("/")).html
+		const links = [
+			...new Set(
+				[...index.matchAll(/href="(\/[^"#]*)"/g)]
+					.map((match) => match[1])
+					.filter((link): link is string => link !== undefined && !link.startsWith("/assets/")),
+			),
+		]
 
-		expect(response.status).toBe(307)
-		expect(response.headers.get("location")).toBe("/docs")
+		expect(links.length).toBeGreaterThan(1)
+
+		for (const [link, status] of await statusesOf(links)) {
+			expect(status, link).toBeLessThan(400)
+		}
 	})
 
 	it("does not find a slug that is not in the content directory", async () => {
-		expect((await request("/docs/does-not-exist")).status).toBe(404)
+		expect((await get("/does-not-exist")).status).toBe(404)
 	})
 })
 
 describe("problem types", () => {
 	it("serves every problem type URI that API errors point at", async () => {
-		const html = renderedText(await (await request("/problems")).text())
+		const { html } = await get("/problems")
 
 		for (const problem of PROBLEMS) {
 			expect(html).toContain(`https://docs.talqo.chat/problems#${problem.code}`)
