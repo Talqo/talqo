@@ -40,8 +40,9 @@ describe("built embed bundle", () => {
 
 		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
 		expect(injected).toContain(".talqo-widget")
-		// Plugin order decides this; unscoped preflight rewrites the host page.
-		for (const leak of ["@layer base", "@property", "*,:before,:after,::backdrop", ":root"]) {
+		// Cascade layers resolve before specificity, so a host's preflight in `@layer base`
+		// outranks anything we leave layered, and unscoped preflight rewrites the host page.
+		for (const leak of ["@layer", "@property", "*,:before,:after,::backdrop", ":root"]) {
 			expect(injected).not.toContain(leak)
 		}
 	})

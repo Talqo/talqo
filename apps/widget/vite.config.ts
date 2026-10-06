@@ -15,7 +15,9 @@ function scopeWidgetCss(css: string): string {
 	root.walkAtRules("layer", (atRule) => {
 		if (atRule.params === "base") {
 			atRule.remove()
+			return
 		}
+		atRule.replaceWith(...(atRule.nodes ?? []))
 	})
 	root.walkAtRules("property", (atRule) => {
 		atRule.remove()
@@ -79,7 +81,11 @@ function assertNoGlobalRules(root: Root): void {
 	}
 }
 
-/** Tailwind expands CSS after any transform hook, so scoping must run on the emitted asset. */
+/**
+ * Tailwind expands CSS after any transform hook, so scoping must run on the emitted asset.
+ * Our CSS is left unlayered: cascade layers resolve before specificity, so a host's `@layer
+ * base` preflight would otherwise outrank everything we ship.
+ */
 function widgetCssPlugin(): Plugin {
 	return {
 		name: "talqo-widget-css",
