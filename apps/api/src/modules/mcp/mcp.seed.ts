@@ -19,7 +19,8 @@ const DEMO_TOOLS = [
 	},
 ]
 
-/** Where the demo HTTP server listens; it needs `docker compose --profile demo up mcp-demo`. */
+// Deliberately nothing is listening here. The pair seeds one connection that works and one that does
+// not, so both the working card and the failed one are visible without extra infrastructure.
 const DEMO_HTTP_URL = "http://127.0.0.1:8092/mcp"
 
 export async function seed(): Promise<void> {
@@ -33,7 +34,7 @@ export async function seed(): Promise<void> {
 			authMode: null,
 			headers: null,
 			command: "bun",
-			args: [DEMO_STDIO_SCRIPT, "stdio"],
+			args: [DEMO_STDIO_SCRIPT],
 			env: {},
 			tools: DEMO_TOOLS,
 		},
@@ -48,7 +49,8 @@ export async function seed(): Promise<void> {
 			command: null,
 			args: [],
 			env: {},
-			tools: DEMO_TOOLS,
+			// No tools, so it reads as not working, which is what it is.
+			tools: [],
 		},
 	]
 

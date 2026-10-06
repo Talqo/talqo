@@ -366,7 +366,7 @@ describe("stdio connections", () => {
 			name: "Demo shop",
 			transport: "stdio",
 			command: process.execPath,
-			args: [DEMO_SCRIPT, "stdio"],
+			args: [DEMO_SCRIPT],
 			env: {},
 			...overrides,
 		})

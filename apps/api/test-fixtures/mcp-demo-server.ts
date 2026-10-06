@@ -2,15 +2,15 @@
  * Demo MCP server for the Talqo dev stack and integration tests. Speaks the wire protocol directly so
  * the repository keeps a single MCP stack: @ai-sdk/mcp is the client, this is the other end of it.
  *
- * Run as `bun test-fixtures/mcp-demo-server.ts stdio` or `... http`.
+ * Run as `bun test-fixtures/mcp-demo-server.ts`.
  */
 const PROTOCOL_FALLBACK = "2025-06-18"
 const SERVER_INFO = { name: "talqo-demo-server", version: "1.0.0" }
 
 const CATALOGUE = [
-	{ sku: "TALQO-TEA-001", name: "Earl Grey, 100 bags", stock: 42, priceCents: 1290 },
-	{ sku: "TALQO-TEA-002", name: "Jasmine, 100 bags", stock: 0, priceCents: 1340 },
-	{ sku: "TALQO-MUG-001", name: "Talqo mug", stock: 7, priceCents: 1800 },
+	{ sku: "TALQO-TEA-001", name: "Earl Grey, 100 bags", stock: 42 },
+	{ sku: "TALQO-TEA-002", name: "Jasmine, 100 bags", stock: 0 },
+	{ sku: "TALQO-MUG-001", name: "Talqo mug", stock: 7 },
 ]
 
 const ORDERS = [
@@ -69,7 +69,7 @@ function callTool(name: string, args: Record<string, unknown>) {
 }
 
 /** Returns a JSON-RPC response, or undefined for notifications that get no reply. */
-export function handle(message: JsonRpc): JsonRpc | undefined {
+function handle(message: JsonRpc): JsonRpc | undefined {
 	const id = message.id
 	if (message.method === "initialize") {
 		const requested = (message.params as { protocolVersion?: string } | undefined)?.protocolVersion
@@ -110,31 +110,4 @@ function serveStdio(): void {
 	process.stdin.on("end", () => process.exit(0))
 }
 
-export function startDemoHttpServer(port = 0): { port: number; url: string; stop: () => void } {
-	const server = Bun.serve({
-		port,
-		hostname: "0.0.0.0",
-		async fetch(request) {
-			if (request.method !== "POST") return new Response(null, { status: 405 })
-			const message = (await request.json()) as JsonRpc
-			const response = handle(message)
-			return response
-				? Response.json(response, { headers: { "Content-Type": "application/json" } })
-				: new Response(null, { status: 202 })
-		},
-	})
-	return {
-		port: server.port,
-		url: `http://127.0.0.1:${server.port}/mcp`,
-		stop: () => server.stop(true),
-	}
-}
-
-if (import.meta.main) {
-	if (process.argv[2] === "http") {
-		const started = startDemoHttpServer(Number(process.env.MCP_DEMO_PORT ?? 0))
-		console.log(`Demo MCP server listening on ${started.url}`)
-	} else {
-		serveStdio()
-	}
-}
+if (import.meta.main) serveStdio()
