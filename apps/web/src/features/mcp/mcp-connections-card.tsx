@@ -281,37 +281,35 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 	const queryClient = useQueryClient()
 	const [open, setOpen] = useState(false)
 	const [draft, setDraft] = useState<ConnectionDraft>(() => draftFor(server))
-	const [reason, setReason] = useState<DraftReason | null>(null)
-	const [failure, setFailure] = useState<string | null>(null)
+	const [error, setError] = useState<string | null>(null)
 	// Without this the card keeps a stale revision, and the next edit or tool toggle is rejected as a conflict.
 	const saved = async () => {
-		close()
+		setOpen(false)
 		await queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
 	}
 	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
 	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
 	const pending = create.isPending || update.isPending
 	const set = (patch: Partial<ConnectionDraft>) => setDraft((current) => ({ ...current, ...patch }))
+	const failed = (caught: unknown) => setError(apiError(caught, t))
 
 	function onSubmit() {
+		setError(null)
 		if (server) {
 			const result = toEditBody(draft, server)
 			if (!result.ok) {
-				setReason(result.reason)
+				setError(draftErrorText(result.reason, t))
 				return
 			}
-			setReason(null)
-			void update.mutateAsync({ agentId, serverId: server.id, data: result.body })
+			void update.mutateAsync({ agentId, serverId: server.id, data: result.body }).catch(failed)
 			return
 		}
 		const result = toCreateBody(draft)
 		if (!result.ok) {
-			setReason(result.reason)
+			setError(draftErrorText(result.reason, t))
 			return
 		}
-		setReason(null)
-		setFailure(null)
-		void create.mutateAsync({ agentId, data: result.body }).catch((caught: unknown) => setFailure(apiError(caught, t)))
+		void create.mutateAsync({ agentId, data: result.body }).catch(failed)
 	}
 
 	return (
@@ -432,17 +430,17 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 							<McpEnvEditor env={draft.env} onChange={(env) => set({ env })} />
 						</>
 					)}
-					{(reason ? draftErrorText(reason, t) : failure) && (
+					{error && (
 						<p role="alert" className="text-destructive text-xs">
-							{reason ? draftErrorText(reason, t) : failure}
+							{error}
 						</p>
 					)}
 					<DialogFooter>
-						<Button variant="outline" onClick={close} disabled={pending}>
+						<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
 							{t("common.cancel")}
 						</Button>
 						<Button type="submit" disabled={pending}>
-							{server ? (pending ? t("mcp.saving") : t("mcp.save")) : pending ? t("mcp.saving") : t("mcp.add")}
+							{pending ? t("mcp.saving") : server ? t("mcp.save") : t("mcp.add")}
 						</Button>
 					</DialogFooter>
 				</form>

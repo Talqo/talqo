@@ -427,8 +427,8 @@
 		"signIn": "Přihlášení",
 		"toolsAvailable": "Dostupné nástroje: {{toolCount}}",
 		"toolsLegend": "Nástroje, které smí tento agent používat",
-		"transportHttp": "Webová adresa",
-		"transportStdio": "Místní program",
+		"transportHttp": "http",
+		"transportStdio": "stdio",
 		"unreachable": "K tomuto připojení se nepodařilo připojit."
 	},
 	"nav": {

@@ -427,8 +427,8 @@
 		"signIn": "登录",
 		"toolsAvailable": "可用工具：{{toolCount}} 个",
 		"toolsLegend": "该智能体可用的工具",
-		"transportHttp": "网址",
-		"transportStdio": "本地程序",
+		"transportHttp": "http",
+		"transportStdio": "stdio",
 		"unreachable": "无法连接此连接。"
 	},
 	"nav": {

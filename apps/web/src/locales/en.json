@@ -427,9 +427,9 @@
 		"signIn": "Sign-in",
 		"toolsAvailable": "Tools available: {{toolCount}}",
 		"toolsLegend": "Tools this agent may use",
-		"transportHttp": "Web address",
-		"transportStdio": "Local program",
-		"unreachable": "mcp.unreachable"
+		"transportHttp": "http",
+		"transportStdio": "stdio",
+		"unreachable": "This connection could not be reached."
 	},
 	"nav": {
 		"account": "Account",
