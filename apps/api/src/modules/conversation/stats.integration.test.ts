@@ -9,10 +9,35 @@ import { beforeEach, describe, expect, it } from "bun:test"
 import { getStatsOverview } from "./conversation.service.ts"
 
 const MILLISECONDS_PER_DAY = 86_400_000
+const MILLISECONDS_PER_MINUTE = 60_000
 const OUTSIDE_WINDOW_DAYS = 40
 
 function utcDate(daysAgo: number): string {
 	return new Date(Date.now() - daysAgo * MILLISECONDS_PER_DAY).toISOString()
+}
+
+// One conversation whose only message sits exactly `minutesAgo` back, to probe the
+// active-conversation window boundary at minute granularity.
+async function seedWindowConversation(agentId: string, minutesAgo: number): Promise<void> {
+	const createdAt = new Date(Date.now() - minutesAgo * MILLISECONDS_PER_MINUTE).toISOString()
+	const conversationId = crypto.randomUUID()
+	const attemptId = crypto.randomUUID()
+	await sql`
+		INSERT INTO conversation (id, agent_id, embed_access_version, created_at)
+		VALUES (${conversationId}, ${agentId}, 1, ${createdAt})
+	`
+	await sql`
+		INSERT INTO generation_attempt
+			(id, conversation_id, request_id, estimated_input_tokens, network_hash, lease_token, lease_expires_at, created_at)
+		VALUES
+			(${attemptId}, ${conversationId}, ${crypto.randomUUID()}, 1, 'network', ${crypto.randomUUID()},
+				${createdAt}, ${createdAt})
+	`
+	await sql`
+		INSERT INTO message (id, conversation_id, generation_attempt_id, role, text, outcome, created_at)
+		VALUES
+			(${crypto.randomUUID()}, ${conversationId}, ${attemptId}, 'user', 'question', 'completed', ${createdAt})
+	`
 }
 
 async function login(username: string): Promise<string> {
@@ -239,6 +264,19 @@ describe("stats overview aggregation", () => {
 
 		expect(overview.daily).toHaveLength(1)
 		expect(overview.totals).toEqual({ conversations: 3, messages: 6, inputTokens: 301, outputTokens: 152 })
+	})
+
+	it("applies the active-conversation window at minute granularity around its boundary", async () => {
+		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
+		// 59 minutes ago still counts as active; 61 minutes ago no longer does. The boundary
+		// is the rolling 60-minute window, independent of the day-scale series.
+		await seedWindowConversation(agentA.id, 59)
+		await seedWindowConversation(agentA.id, 61)
+
+		const overview = await getStatsOverview({ days: 30 })
+
+		expect(overview.activeWindowMinutes).toBe(60)
+		expect(overview.active).toEqual([{ agentId: agentA.id, conversations: 1 }])
 	})
 
 	it("rejects members without agents:read and serves admins", async () => {

@@ -11,6 +11,8 @@ const DAYS = 30
 const INSERT_CHUNK_SIZE = 300
 const MARKER_PREFIX = "seed-stats-"
 const MILLISECONDS_PER_MINUTE = 60_000
+// Matches the API's active-conversation window so the refreshed fixtures count as active.
+const ACTIVE_WINDOW_MINUTES = 60
 const MILLISECONDS_PER_DAY = 86_400_000
 const MESSAGE_GAP_MS = 45_000
 const MESSAGES_PER_TURN = 2
@@ -225,7 +227,10 @@ function planRows(now: Date): PlannedRowSets {
 
 export async function seed(): Promise<void> {
 	const [marker] = await sql`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
-	if (marker) return
+	if (marker) {
+		await refreshStaleRecentActivity()
+		return
+	}
 	const rows = planRows(new Date())
 	const chunkPromises: Promise<unknown>[] = []
 	for (let index = 0; index < rows.conversations.length; index += INSERT_CHUNK_SIZE) {
@@ -247,4 +252,46 @@ export async function seed(): Promise<void> {
 		usagePromises.push(db.insert(usageRecord).values(rows.usages.slice(index, index + INSERT_CHUNK_SIZE)))
 	}
 	await Promise.all(usagePromises)
+}
+
+// "Guaranteed recent activity" only holds relative to seed time: once the fixture was seeded
+// more than an hour ago, the active-conversations card would read zero forever. Shift the two
+// seeded active-window conversations (the highest marker sequence numbers — they are planned
+// last) back to now, preserving their internal structure; the historical 30-day fixture stays
+// deterministic and untouched. All date arithmetic stays in SQL: the raw client returns
+// timestamps as strings, which a JS-side instanceof Date check would silently skip.
+async function refreshStaleRecentActivity(): Promise<void> {
+	const [fresh] = await sql`
+		SELECT EXISTS (
+			SELECT 1 FROM message m JOIN conversation c ON c.id = m.conversation_id
+			WHERE c.id LIKE ${`${MARKER_PREFIX}%`} AND m.created_at > now() - ${ACTIVE_WINDOW_MINUTES} * interval '1 minute'
+		) AS fresh
+	`
+	if (fresh?.fresh === true) return
+	const stale = await sql`
+		SELECT id FROM conversation
+		WHERE id LIKE ${`${MARKER_PREFIX}%conversation`}
+		ORDER BY CAST(split_part(id, '-', 3) AS integer) DESC
+		LIMIT 2
+	`
+	const targetStart = new Date(Date.now() - ACTIVE_START_MINUTES_AGO * MILLISECONDS_PER_MINUTE).toISOString()
+	// The child-table shifts are computed from the conversation's original created_at, so the
+	// conversation rows themselves move only after those updates have landed.
+	const childUpdates: Promise<unknown>[] = []
+	const conversationUpdates: Promise<unknown>[] = []
+	for (const row of stale) {
+		if (typeof row?.id !== "string") continue
+		childUpdates.push(
+			sql`UPDATE message SET created_at = message.created_at + (${targetStart}::timestamptz - conversation.created_at), updated_at = message.updated_at + (${targetStart}::timestamptz - conversation.created_at) FROM conversation WHERE message.conversation_id = conversation.id AND conversation.id = ${row.id}`,
+		)
+		childUpdates.push(
+			sql`UPDATE generation_attempt SET created_at = generation_attempt.created_at + (${targetStart}::timestamptz - conversation.created_at), updated_at = generation_attempt.updated_at + (${targetStart}::timestamptz - conversation.created_at), usage_recorded_at = generation_attempt.usage_recorded_at + (${targetStart}::timestamptz - conversation.created_at) FROM conversation WHERE generation_attempt.conversation_id = conversation.id AND conversation.id = ${row.id}`,
+		)
+		childUpdates.push(
+			sql`UPDATE usage_record SET created_at = usage_record.created_at + (${targetStart}::timestamptz - conversation.created_at) FROM conversation WHERE usage_record.conversation_id = conversation.id AND conversation.id = ${row.id}`,
+		)
+		conversationUpdates.push(sql`UPDATE conversation SET created_at = ${targetStart}::timestamptz WHERE id = ${row.id}`)
+	}
+	await Promise.all(childUpdates)
+	await Promise.all(conversationUpdates)
 }

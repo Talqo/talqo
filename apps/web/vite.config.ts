@@ -17,9 +17,6 @@ export default defineConfig({
 		host: "0.0.0.0",
 		port: Number(process.env.TALQO_WEB_PORT ?? DEFAULT_WEB_PORT),
 		strictPort: true,
-		// Inotify events do not reach bind-mounted workspaces (Docker containers), so fall
-		// back to polling to keep HMR transforms fresh there.
-		watch: process.env.TALQO_VITE_POLLING === "true" ? { usePolling: true } : undefined,
 		// Proxying keeps /api same-origin so the SameSite=Lax session cookie is actually sent (no CORS needed).
 		proxy: {
 			"/api": `http://localhost:${process.env.TALQO_API_PORT ?? DEFAULT_API_PORT}`,

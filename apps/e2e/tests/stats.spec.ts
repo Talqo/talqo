@@ -116,7 +116,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page).toHaveURL("/dashboard")
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
-	await expect(page.getByText("Per-agent breakdown")).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
 	const agentRow = page.getByRole("row", { name: new RegExp(`^${agentName}`) })
 	await expect(agentRow).toBeVisible()
 	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")

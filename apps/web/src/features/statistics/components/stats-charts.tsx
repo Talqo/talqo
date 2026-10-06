@@ -4,14 +4,14 @@ import { useLanguage } from "@/lib/use-language"
 import { Card, CardHeader, CardDescription, CardTitle } from "@talqo/ui/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { useMemo } from "react"
-import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 export const statsMetricKeys = ["conversations", "messages", "tokens"] as const
 export type StatsMetric = (typeof statsMetricKeys)[number]
 export type StatsMetricLabels = Record<StatsMetric, string>
 
 // Per-agent line colors cycle through the chart palette; the aggregated "total" series
-// stays neutral so it always reads as the reference line.
+// stays a muted dashed reference line so it never visually swallows the agent lines.
 const agentLineColors = [
 	"var(--chart-1)",
 	"var(--chart-2)",
@@ -19,7 +19,7 @@ const agentLineColors = [
 	"var(--chart-4)",
 	"var(--chart-5)",
 ] as const
-const totalLineColor = "var(--foreground)"
+const totalLineColor = "var(--muted-foreground)"
 
 export function agentLineColor(index: number): string {
 	return agentLineColors[index % agentLineColors.length] ?? "var(--chart-1)"
@@ -103,6 +103,8 @@ function MetricChart({
 	agentLines,
 	metric,
 	totalLabel,
+	chartTitle,
+	chartDescription,
 	language,
 	compactNumber,
 }: {
@@ -111,6 +113,8 @@ function MetricChart({
 	agentLines: AgentLine[]
 	metric: StatsMetric
 	totalLabel: string
+	chartTitle: string
+	chartDescription: string
 	language: string
 	compactNumber: Intl.NumberFormat
 }) {
@@ -135,7 +139,7 @@ function MetricChart({
 
 	return (
 		<ResponsiveContainer width="100%" height={280}>
-			<ComposedChart data={rows} margin={{ top: 8, right: 8, left: 8 }}>
+			<ComposedChart data={rows} margin={{ top: 8, right: 8, left: 8 }} title={chartTitle} desc={chartDescription}>
 				<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
 				<XAxis
 					dataKey="date"
@@ -165,14 +169,15 @@ function MetricChart({
 						fontSize: 12,
 					}}
 				/>
-				<Area
+				<Legend />
+				<Line
 					type="monotone"
 					dataKey="total"
 					name={totalLabel}
 					stroke={totalLineColor}
-					fill={totalLineColor}
-					fillOpacity={0.15}
-					strokeWidth={2}
+					strokeWidth={1}
+					strokeDasharray="4 4"
+					dot={false}
 				/>
 				{agentLines.map((line) => (
 					<Line
@@ -196,12 +201,16 @@ export function DailyStatsChart({
 	agentLines,
 	labels,
 	totalLabel,
+	chartTitle,
+	chartDescription,
 }: {
 	daily: DailyStatsPoint[]
 	agentDaily: AgentDailyPoint[]
 	agentLines: AgentLine[]
 	labels: StatsMetricLabels
 	totalLabel: string
+	chartTitle: (metricLabel: string) => string
+	chartDescription: string
 }) {
 	const { language } = useLanguage()
 	const compactNumber = useCompactNumber()
@@ -222,6 +231,8 @@ export function DailyStatsChart({
 						agentLines={agentLines}
 						metric={metric}
 						totalLabel={totalLabel}
+						chartTitle={chartTitle(labels[metric])}
+						chartDescription={chartDescription}
 						language={language}
 						compactNumber={compactNumber}
 					/>

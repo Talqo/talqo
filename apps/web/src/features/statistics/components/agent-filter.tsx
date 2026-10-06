@@ -1,12 +1,5 @@
 import { Button } from "@talqo/ui/components/button"
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@talqo/ui/components/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { useTranslation } from "react-i18next"
 
 import type { AgentLine } from "./stats-charts"
@@ -45,33 +38,43 @@ export function AgentFilter({
 					onKeyDownCapture={capturePreOpenScroll}
 				>
 					<SelectValue>
-						{t("dashboard.agentsSelected", { selected: selectedIds.length, total: agentLines.length })}
+						{t("dashboard.agentsSelected", {
+							selected: selectedIds.length,
+							total: agentLines.length,
+							count: agentLines.length,
+						})}
 					</SelectValue>
 				</SelectTrigger>
-				<SelectContent align="start" className="w-auto max-w-72 min-w-(--anchor-width)">
-					<div className="bg-popover sticky top-0 z-10 flex gap-1 p-1">
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="flex-1"
-							onClick={() => onChange(agentLines.map((line) => line.id))}
-							disabled={selectedIds.length === agentLines.length}
-						>
-							{t("dashboard.selectAll")}
-						</Button>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="flex-1"
-							onClick={() => onChange([])}
-							disabled={selectedIds.length === 0}
-						>
-							{t("dashboard.deselectAll")}
-						</Button>
-					</div>
-					<SelectSeparator />
+				<SelectContent
+					align="start"
+					className="w-auto max-w-72 min-w-(--anchor-width)"
+					header={
+						// Outside the option list (role="listbox"), so Tab reaches these buttons in
+						// normal DOM order; arrow keys keep navigating only the options below.
+						<div className="bg-popover sticky top-0 z-10 flex gap-1 p-1">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="flex-1"
+								onClick={() => onChange(agentLines.map((line) => line.id))}
+								disabled={selectedIds.length === agentLines.length}
+							>
+								{t("dashboard.selectAll")}
+							</Button>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="flex-1"
+								onClick={() => onChange([])}
+								disabled={selectedIds.length === 0}
+							>
+								{t("dashboard.deselectAll")}
+							</Button>
+						</div>
+					}
+				>
 					{agentLines.map((line) => (
 						<SelectItem key={line.id} value={line.id}>
 							<span className="size-2 shrink-0 self-center rounded-full" style={{ background: line.color }} />

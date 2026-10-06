@@ -19,7 +19,7 @@ type NavItem = {
 }
 
 const navItems: readonly NavItem[] = [
-	{ to: "/dashboard", icon: LayoutDashboard },
+	{ to: "/dashboard", icon: LayoutDashboard, requires: "agentRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
@@ -52,7 +52,7 @@ function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavi
 	return (
 		<Link
 			to={item.to}
-			activeOptions={{ exact: item.to === "/dashboard" }}
+			activeOptions={{ exact: item.to === "/dashboard", includeSearch: false }}
 			activeProps={{
 				className: "bg-sidebar-primary text-sidebar-primary-foreground",
 			}}

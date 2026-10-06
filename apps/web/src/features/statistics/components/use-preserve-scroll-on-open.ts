@@ -5,10 +5,16 @@ const FOCUS_RESET_SCROLL_TOP = 4
 const SCROLL_RESTORE_ATTEMPTS = 12
 const SCROLL_RESTORE_INTERVAL_MS = 120
 
-// Base UI's list navigation calls scrollIntoView on the freshly highlighted option a frame
-// or more after opening; while the popup still lacks final positioning, the browser may scroll
-// the document to the top. Capture the scroll position while the trigger is pressed, retry the
-// restore until it sticks — but stop as soon as the user scrolls anywhere themselves.
+// Workaround for a browser-level side effect of @base-ui/react@1.8.0 (the version pinned in
+// apps/web and packages/ui): the Select popup's list navigation —
+// @base-ui/react/floating-ui-react/hooks/useListNavigation.js, around lines 162-172 in that
+// package — calls `waitedItem.scrollIntoView({ block: 'nearest', inline: 'nearest' })` on the
+// freshly highlighted option a frame or more after opening, without `{ preventScroll: true }`
+// on the accompanying focus call. While the popup still lacks final positioning, that
+// scrollIntoView can scroll the document to the top (Chrome parks the page at scrollY≈4).
+// No upstream issue was filed at the time this was written. Capture the scroll position while
+// the trigger is pressed, retry the restore until it sticks — but stop as soon as the user
+// scrolls anywhere themselves. See docs/adr/0020-preserve-scroll-past-the-select-popup.md.
 export function usePreserveScrollOnOpen(): {
 	capturePreOpenScroll: () => void
 	onOpenChange: (open: boolean) => void

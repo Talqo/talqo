@@ -20,17 +20,11 @@ export type PageStats = {
 	daily: DailyStatsPoint[]
 }
 
-export type AgentBreakdownTotals = {
-	conversations: number
-	messages: number
-	tokens: number
-}
-
 // The wire shape keeps input/output tokens separate; the visualization tracks one token metric.
-// The per-agent series is sparse server-side: days without activity have no row. An older API
-// deployment may not return it yet, so tolerate its absence instead of crashing the page.
+// The per-agent series is sparse server-side: days without activity have no row, and the
+// consumer zero-fills against the dense date axis.
 export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
-	return (overview.agentDaily ?? []).map((point) => ({
+	return overview.agentDaily.map((point) => ({
 		agentId: point.agentId,
 		date: point.date,
 		conversations: point.conversations,
@@ -39,27 +33,29 @@ export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
 	}))
 }
 
-// Per-agent sums over the window; agents appear only when they had activity.
-export function toAgentBreakdown(points: AgentDailyPoint[]): Map<string, AgentBreakdownTotals> {
-	const totals = new Map<string, AgentBreakdownTotals>()
-	for (const point of points) {
-		const agent = totals.get(point.agentId) ?? { conversations: 0, messages: 0, tokens: 0 }
-		agent.conversations += point.conversations
-		agent.messages += point.messages
-		agent.tokens += point.tokens
-		totals.set(point.agentId, agent)
+// Aggregates the selection into the card totals and the dense "total" daily series. The
+// unfiltered view consumes the server's own contract-tested totals and daily axis verbatim;
+// a subset re-aggregates the sparse per-agent series client-side, zero-filled per axis date so
+// days without activity stay on the chart.
+export function toSelectedStats(overview: StatsOverview, selectedIds: string[], allSelected: boolean): PageStats {
+	if (allSelected) {
+		return {
+			conversations: overview.totals.conversations,
+			messages: overview.totals.messages,
+			tokens: overview.totals.inputTokens + overview.totals.outputTokens,
+			daily: overview.daily.map((day) => ({
+				date: day.date,
+				conversations: day.conversations,
+				messages: day.messages,
+				tokens: day.inputTokens + day.outputTokens,
+			})),
+		}
 	}
-	return totals
-}
-
-// Aggregates the selected agents into the card totals and the dense "total" daily series.
-// The date axis comes from dates so zero-activity days stay on the chart.
-export function toSelectedStats(points: AgentDailyPoint[], dates: string[], selectedIds: string[]): PageStats {
 	const selected = new Set(selectedIds)
 	const byDate = new Map<string, DailyStatsPoint>(
-		dates.map((date) => [date, { date, conversations: 0, messages: 0, tokens: 0 }]),
+		overview.daily.map((day) => [day.date, { date: day.date, conversations: 0, messages: 0, tokens: 0 }]),
 	)
-	for (const point of points) {
+	for (const point of toAgentDailyPoints(overview)) {
 		if (!selected.has(point.agentId)) continue
 		const day = byDate.get(point.date)
 		if (!day) continue
