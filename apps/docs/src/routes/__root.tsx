@@ -22,7 +22,7 @@ function NotFound() {
 		<main className="mx-auto max-w-3xl px-6 py-12">
 			<h1 className="text-3xl font-semibold">Page not found</h1>
 			<p className="text-fd-muted-foreground mt-3">
-				That address does not exist. Start from the <a href="/docs">documentation index</a>.
+				That address does not exist. Start from the <a href="/">documentation index</a>.
 			</p>
 		</main>
 	)
