@@ -5,37 +5,7 @@ import { cn } from "@talqo/ui/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 import * as React from "react"
 
-/**
- * The trigger has no access to item labels on its own: Base UI resolves them from the `items` prop, and
- * items inside a closed popup never register. Reading them off our own children is what makes the
- * trigger show "Local program" instead of "stdio".
- */
-function collectLabels(
-	children: React.ReactNode,
-	labels: Record<string, React.ReactNode> = {},
-): Record<string, React.ReactNode> {
-	React.Children.forEach(children, (child) => {
-		if (!React.isValidElement(child)) return
-		const props = child.props as { children?: React.ReactNode; value?: unknown }
-		if (typeof props.value === "string" || typeof props.value === "number") {
-			labels[String(props.value)] = props.children
-		}
-		if (props.children) collectLabels(props.children, labels)
-	})
-	return labels
-}
-
-function Select<Value, Multiple extends boolean | undefined = false>({
-	children,
-	items,
-	...props
-}: SelectPrimitive.Root.Props<Value, Multiple>) {
-	return (
-		<SelectPrimitive.Root items={items ?? collectLabels(children)} {...props}>
-			{children}
-		</SelectPrimitive.Root>
-	)
-}
+const Select = SelectPrimitive.Root
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
 	return <SelectPrimitive.Group data-slot="select-group" className={cn("scroll-my-1 p-1", className)} {...props} />
