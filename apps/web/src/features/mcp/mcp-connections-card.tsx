@@ -172,29 +172,30 @@ function ConnectionCard({ agentId, canManage, server }: { agentId: string; canMa
 				)}
 
 				{canManage && (
-					<div className="flex flex-wrap items-center justify-between gap-2">
-						<div className="flex items-center gap-2">
-							<Switch
-								checked={!server.isDisabled}
-								disabled={setDisabled.isPending}
-								onCheckedChange={(checked) =>
-									void guard(() =>
-										setDisabled.mutateAsync({
-											agentId,
-											serverId: server.id,
-											action: checked ? "enable" : "disable",
-										}),
-									)
-								}
-								aria-label={t("mcp.enabled")}
-							/>
-							<span className="text-muted-foreground text-sm">{t("mcp.enabled")}</span>
-						</div>
-						<div className="flex items-center gap-2">
+					<div className="flex items-center justify-between gap-2">
+						<Switch
+							checked={!server.isDisabled}
+							disabled={setDisabled.isPending}
+							onCheckedChange={(checked) =>
+								void guard(() =>
+									setDisabled.mutateAsync({
+										agentId,
+										serverId: server.id,
+										action: checked ? "enable" : "disable",
+									}),
+								)
+							}
+							aria-label={t("mcp.enabled")}
+						/>
+						<div className="flex items-center gap-1">
 							<ConnectionDialog agentId={agentId} server={server} />
-							<Button variant="destructive" size="xs" onClick={() => setConfirmOpen(true)}>
+							<Button
+								variant="destructive"
+								size="icon-sm"
+								onClick={() => setConfirmOpen(true)}
+								aria-label={t("mcp.remove")}
+							>
 								<Trash2 className="size-4" />
-								{t("mcp.remove")}
 							</Button>
 						</div>
 					</div>
@@ -319,9 +320,23 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 				if (!pending) setOpen(next)
 			}}
 		>
-			<DialogTrigger render={server ? <Button variant="outline" size="xs" /> : <Button disabled={create.isPending} />}>
-				{server ? <Pencil className="size-4" /> : <Plus className="size-4" />}
-				{server ? t("mcp.edit") : create.isPending ? t("mcp.adding") : t("mcp.add")}
+			<DialogTrigger
+				render={
+					server ? (
+						<Button variant="ghost" size="icon-sm" aria-label={t("mcp.edit")} />
+					) : (
+						<Button disabled={create.isPending} />
+					)
+				}
+			>
+				{server ? (
+					<Pencil className="size-4" />
+				) : (
+					<>
+						<Plus className="size-4" />
+						{create.isPending ? t("mcp.adding") : t("mcp.add")}
+					</>
+				)}
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
@@ -376,6 +391,11 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 								<Label htmlFor="mcp-auth">{t("mcp.signIn")}</Label>
 								<Select
 									value={draft.authMode}
+									items={{
+										none: t("mcp.authNone"),
+										headers: t("mcp.authHeaders"),
+										oauth: t("mcp.authSignIn"),
+									}}
 									onValueChange={(value) => set({ authMode: value as ConnectionDraft["authMode"] })}
 								>
 									<SelectTrigger id="mcp-auth" className="w-full">

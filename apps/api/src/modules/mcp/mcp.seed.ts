@@ -28,7 +28,7 @@ export async function seed(): Promise<void> {
 		{
 			id: SEED_STDIO_SERVER_ID,
 			agentId: SEED_AGENT_ID,
-			name: "stdio",
+			name: "Shop inventory",
 			transport: "stdio" as const,
 			url: null,
 			authMode: null,
@@ -41,7 +41,7 @@ export async function seed(): Promise<void> {
 		{
 			id: SEED_HTTP_SERVER_ID,
 			agentId: SEED_AGENT_ID,
-			name: "http",
+			name: "Warehouse API",
 			transport: "http" as const,
 			url: DEMO_HTTP_URL,
 			authMode: "none" as const,
