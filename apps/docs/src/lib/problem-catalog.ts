@@ -43,6 +43,13 @@ export const PROBLEMS = [
 		guidance: "Refresh the file list and use an existing name.",
 	},
 	{
+		code: "agent-file-not-retryable",
+		title: "Agent file cannot be retried",
+		status: "409",
+		meaning: "The file is not in a failed state, so there is nothing to retry.",
+		guidance: "Retry only files whose conversion failed.",
+	},
+	{
 		code: "agent-invalid",
 		title: "Invalid agent",
 		status: "400",
@@ -322,6 +329,13 @@ export const PROBLEMS = [
 		status: "404",
 		meaning: "The requested user does not exist.",
 		guidance: "Refresh the user list and use an existing ID.",
+	},
+	{
+		code: "embed-disabled",
+		title: "Embed disabled",
+		status: "403",
+		meaning: "The requested embed exists but is disabled.",
+		guidance: "Enable the embed before using it for chat.",
 	},
 	{
 		code: "embed-not-found",
