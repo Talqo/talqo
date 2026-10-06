@@ -5,9 +5,9 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
 
 /**
- * Rebuilds an update body from a server whose secrets came back masked. Header and environment
- * values are deliberately omitted: sending them would send `{}` and erase what is stored, so an
- * update that does not touch a secret must not mention it.
+ * Rebuilds an update body from a server whose secrets came back masked. Entered values are sent,
+ * removed names travel in deleteHeaders/deleteEnv, and whatever is mentioned in neither keeps its
+ * stored envelope.
  */
 export function toUpdateBody(
 	server: McpServer,
@@ -40,7 +40,7 @@ export type ConnectionDraft = {
 	name: string
 	transport: "http" | "stdio"
 	url: string
-	authMode: "none" | "headers" | "oauth"
+	authMode: "none" | "headers"
 	command: string
 	args: string[]
 	headerName: string
@@ -72,22 +72,34 @@ function headerSecret(draft: ConnectionDraft) {
 
 const envCount = (env: Record<string, string>) => Object.keys(env).length
 
-function serverOf(draft: ConnectionDraft) {
+type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
+const storedNames = (entries: { name: string }[]) => entries.map(({ name }) => name)
+
+function serverOf(draft: ConnectionDraft, stored?: StoredSecrets) {
 	if (draft.transport === "http") {
-		const headers = headerSecret(draft)
-		return {
-			transport: "http" as const,
-			url: draft.url.trim(),
-			authMode: draft.authMode,
-			...(draft.authMode === "headers" && headers ? { headers } : {}),
+		const base = { transport: "http" as const, url: draft.url.trim(), authMode: draft.authMode }
+		if (draft.authMode !== "headers") return base
+		const pair = headerSecret(draft)
+		if (pair) {
+			const [entered] = Object.keys(pair)
+			const renamed = storedNames(stored?.headers ?? []).filter((name) => name !== entered)
+			return { ...base, headers: pair, ...(renamed.length > 0 ? { deleteHeaders: renamed } : {}) }
 		}
+		// A cleared name on a connection that had one deletes it; otherwise there is nothing to say.
+		const storedHeaders = storedNames(stored?.headers ?? [])
+		if (!draft.headerName.trim() && !draft.headerValue && storedHeaders.length > 0)
+			return { ...base, deleteHeaders: storedHeaders }
+		return base
 	}
 	const env = toEnvRecord(draft.env)
+	const present = new Set(draft.env.map(({ name }) => name.trim()).filter(Boolean))
+	const removed = storedNames(stored?.env ?? []).filter((name) => !present.has(name))
 	return {
 		transport: "stdio" as const,
 		command: draft.command.trim(),
 		args: draft.args,
 		...(envCount(env) > 0 ? { env } : {}),
+		...(removed.length > 0 ? { deleteEnv: removed } : {}),
 	}
 }
 
@@ -98,9 +110,11 @@ function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftRea
 	if (!draft.name.trim()) return "nameRequired"
 	if (draft.transport === "http") {
 		if (!draft.url.trim()) return "addressRequired"
+		// A value without a name goes nowhere on either path; on edit a blank pair deletes instead.
+		if (draft.authMode === "headers" && !draft.headerName.trim() && (draft.headerValue || requireSecretValue))
+			return "secretRequired"
 		if (draft.authMode === "headers" && draft.headerName.trim() && !draft.headerValue && requireSecretValue)
 			return "secretRequired"
-		if (draft.authMode === "headers" && !draft.headerName.trim() && requireSecretValue) return "secretRequired"
 	} else if (!draft.command.trim()) return "commandRequired"
 	// A variable missing its name has nowhere to go.
 	if (draft.env.some(({ name }) => !name.trim())) return "secretRequired"
@@ -113,7 +127,10 @@ export function toCreateBody(draft: ConnectionDraft): CreateResult {
 }
 
 /** Editing keeps every stored tool selection; only the endpoint and secrets on the form can change. */
-export function toEditBody(draft: ConnectionDraft, server: { isDisabled: boolean; revision: number }): UpdateResult {
+export function toEditBody(
+	draft: ConnectionDraft,
+	server: Pick<McpServer, "isDisabled" | "revision"> & StoredSecrets,
+): UpdateResult {
 	const reason = validate(draft, false)
 	return reason
 		? { ok: false, reason }
@@ -123,7 +140,7 @@ export function toEditBody(draft: ConnectionDraft, server: { isDisabled: boolean
 					name: draft.name.trim(),
 					expectedRevision: server.revision,
 					isDisabled: server.isDisabled,
-					server: serverOf(draft),
+					server: serverOf(draft, server),
 				},
 			}
 }

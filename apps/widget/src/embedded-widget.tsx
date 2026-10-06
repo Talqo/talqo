@@ -396,9 +396,7 @@ function WidgetChat({
 							{activeTools.length > 0 && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
-										<ResponseIndicator
-											label={t("toolRunning", { tool: activeTools.map(({ toolName }) => toolName).join(", ") })}
-										/>
+										<ResponseIndicator label={t("toolRunning")} />
 									</BubbleContent>
 								</Bubble>
 							)}

@@ -377,12 +377,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					publish()
 				} else if (event.type === "tool-start") {
 					const { serverName, toolName } = event
-					activeTools = activeTools.some((t) => t.toolName === toolName)
-						? activeTools.map((t) => (t.toolName === toolName ? { ...t, serverName } : t))
+					const same = (t: { serverName: string; toolName: string }) =>
+						t.toolName === toolName && t.serverName === serverName
+					activeTools = activeTools.some(same)
+						? activeTools.map((t) => (same(t) ? { ...t, serverName } : t))
 						: [...activeTools, { serverName, toolName }]
 					publish()
 				} else if (event.type === "tool-end") {
-					activeTools = activeTools.filter((t) => t.toolName !== event.toolName)
+					activeTools = activeTools.filter((t) => t.toolName !== event.toolName || t.serverName !== event.serverName)
 					publish()
 				} else {
 					terminalReceived = true

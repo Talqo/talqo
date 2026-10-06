@@ -388,13 +388,12 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="mcp-auth">{t("mcp.signIn")}</Label>
+								<Label htmlFor="mcp-auth">{t("mcp.authMethod")}</Label>
 								<Select
 									value={draft.authMode}
 									items={{
 										none: t("mcp.authNone"),
 										headers: t("mcp.authHeaders"),
-										oauth: t("mcp.authSignIn"),
 									}}
 									onValueChange={(value) => set({ authMode: value as ConnectionDraft["authMode"] })}
 								>
@@ -404,7 +403,6 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 									<SelectContent>
 										<SelectItem value="none">{t("mcp.authNone")}</SelectItem>
 										<SelectItem value="headers">{t("mcp.authHeaders")}</SelectItem>
-										<SelectItem value="oauth">{t("mcp.authSignIn")}</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>

@@ -130,12 +130,18 @@ describe("toggleTool", () => {
 	})
 })
 
-function edit(patch: Partial<ConnectionDraft> = {}) {
+function edit(
+	patch: Partial<ConnectionDraft> = {},
+	stored: { headers?: { name: string }[]; env?: { name: string }[] } = {},
+) {
 	return toEditBody(
 		{ ...EMPTY_DRAFT, name: "Stock", url: "https://example.test/mcp", ...patch },
 		{
 			isDisabled: true,
 			revision: 7,
+			headers: [],
+			env: [],
+			...stored,
 		},
 	)
 }
@@ -146,11 +152,12 @@ describe("toEditBody", () => {
 	})
 
 	test("leaves a stored secret alone when the operator leaves the value blank", () => {
-		const body = edit({ authMode: "headers", headerName: "X-API-Key" })
+		const body = edit({ authMode: "headers", headerName: "X-API-Key" }, { headers: [{ name: "X-API-Key" }] })
 
 		expect(body).toMatchObject({ ok: true, body: { server: { authMode: "headers" } } })
 		// Sending the masked shape would replace the stored value with an empty one.
 		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("headers")
+		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("deleteHeaders")
 	})
 
 	test("sends a newly typed secret", () => {
@@ -158,6 +165,26 @@ describe("toEditBody", () => {
 			ok: true,
 			body: { server: { headers: { "X-API-Key": "v" } } },
 		})
+	})
+
+	test("deletes the stored secret when the operator clears its name", () => {
+		expect(edit({ authMode: "headers" }, { headers: [{ name: "X-API-Key" }] })).toMatchObject({
+			ok: true,
+			body: { server: { deleteHeaders: ["X-API-Key"] } },
+		})
+	})
+
+	test("forgets the old name when a header is renamed", () => {
+		expect(
+			edit({ authMode: "headers", headerName: "X-New-Key", headerValue: "v" }, { headers: [{ name: "X-API-Key" }] }),
+		).toMatchObject({
+			ok: true,
+			body: { server: { headers: { "X-New-Key": "v" }, deleteHeaders: ["X-API-Key"] } },
+		})
+	})
+
+	test("refuses a value with no name instead of silently dropping it", () => {
+		expect(edit({ authMode: "headers", headerValue: "v" })).toEqual({ ok: false, reason: "secretRequired" })
 	})
 })
 
@@ -180,9 +207,44 @@ describe("env variables", () => {
 	test("leaves a variable with no value out so the stored one survives", () => {
 		const body = toEditBody(
 			{ ...EMPTY_DRAFT, name: "Shop", transport: "stdio", command: "bunx", env: [{ name: "API_KEY", value: "" }] },
-			{ isDisabled: false, revision: 1 },
+			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
 		)
 
 		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("env")
+		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("deleteEnv")
+	})
+
+	test("deletes a variable whose row the operator removed", () => {
+		const body = toEditBody(
+			{
+				...EMPTY_DRAFT,
+				name: "Shop",
+				transport: "stdio",
+				command: "bunx",
+				env: [{ name: "REGION", value: "" }],
+			},
+			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }, { name: "REGION" }] },
+		)
+
+		expect(body).toMatchObject({ ok: true, body: { server: { deleteEnv: ["API_KEY"] } } })
+	})
+
+	test("sends an entered value without forgetting the untouched variables", () => {
+		const body = toEditBody(
+			{
+				...EMPTY_DRAFT,
+				name: "Shop",
+				transport: "stdio",
+				command: "bunx",
+				env: [
+					{ name: "API_KEY", value: "" },
+					{ name: "REGION", value: "eu" },
+				],
+			},
+			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
+		)
+
+		expect(body).toMatchObject({ ok: true, body: { server: { env: { REGION: "eu" } } } })
+		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("deleteEnv")
 	})
 })

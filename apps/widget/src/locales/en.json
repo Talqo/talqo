@@ -45,5 +45,5 @@
 	"stopping": "Stopping...",
 	"switchToDark": "Switch to dark theme",
 	"switchToLight": "Switch to light theme",
-	"toolRunning": "Checking live data: {{tool}}"
+	"toolRunning": "Checking live information…"
 }

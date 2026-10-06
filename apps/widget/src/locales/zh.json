@@ -45,5 +45,5 @@
 	"stopping": "正在停止...",
 	"switchToDark": "切换到深色主题",
 	"switchToLight": "切换到浅色主题",
-	"toolRunning": "正在查询实时数据：{{tool}}"
+	"toolRunning": "正在查询实时信息…"
 }

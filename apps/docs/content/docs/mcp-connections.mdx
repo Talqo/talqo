@@ -23,19 +23,18 @@ A card with a green dot offered at least one tool. A red dot means it offered no
 
 Fill in the address the server publishes, usually ending in `/mcp`.
 
-Under **Sign-in**, choose how Talqo authenticates:
+Under **Authentication**, choose how Talqo authenticates:
 
 - **None** for a server on your own network that needs no credentials.
 - **Secret key** for a fixed header, such as `Authorization: Bearer …` or `X-API-Key`. Give the header name and its value; the value is stored encrypted and never shown again.
-- **Sign in with the server** for a server that supports OAuth, such as Shopify's. Talqo stores the result, so you only do this once.
-
-With **Sign in with the server**, save first, then use the sign-in button on the connection. You are sent to the server to approve access and returned to the agent page when it is done.
 
 ## Local program
 
 Fill in the command that starts the server, then add its arguments one at a time. For a server published to npm that is usually the `bunx` command with `-y` and the package name as two separate arguments.
 
 If the server needs a secret, give one variable name and value. It is stored encrypted and passed to the program as an environment variable.
+
+The command runs on your own server, as the same user Talqo itself runs as. Only point it at programs you trust.
 
 The server receives only that variable plus a small set of harmless shell variables. Talqo never passes its own secrets, such as its database password, to a program you configure.
 
