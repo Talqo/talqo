@@ -56,10 +56,6 @@
 		"i18n:fix": {},
 		"@talqo/widget#test": {
 			"dependsOn": ["^build", "build"]
-		},
-		"@talqo/docs#test:integration": {
-			"cache": false,
-			"dependsOn": ["build"]
 		}
 	}
 }

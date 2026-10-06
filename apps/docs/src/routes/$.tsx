@@ -7,8 +7,25 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs"
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page"
 import { Suspense, use } from "react"
 
+const MAX_SLUGS = 32
+const MAX_SLUG_CHARACTERS = 256
+
+// Slugs arrive from the URL splat, so constrain shape and size before lookup.
+function validSlugs(slugs: unknown): string[] {
+	if (
+		!Array.isArray(slugs) ||
+		slugs.length > MAX_SLUGS ||
+		!slugs.every(
+			(slug): slug is string => typeof slug === "string" && slug.length > 0 && slug.length <= MAX_SLUG_CHARACTERS,
+		)
+	) {
+		throw new Error("invalid doc slugs")
+	}
+	return slugs
+}
+
 const getDoc = createServerFn({ method: "GET" })
-	.validator((slugs: string[]) => slugs)
+	.validator(validSlugs)
 	.handler(async ({ data: slugs }) => {
 		const { source } = await import("@/lib/source")
 
@@ -21,7 +38,8 @@ const getDoc = createServerFn({ method: "GET" })
 export const Route = createFileRoute("/$")({
 	loader: async ({ params }) => {
 		// oxlint-disable-next-line no-underscore-dangle -- TanStack Router names the splat param `_splat`.
-		const doc = await getDoc({ data: params._splat?.split("/") ?? [] })
+		const slugs = (params._splat ?? "").split("/").filter((segment) => segment.length > 0)
+		const doc = await getDoc({ data: slugs })
 
 		// Preloading settles the tracked load promise, so `toc` and `body` never suspend on render.
 		await docs.getPage(doc.path)?.preload()
@@ -35,8 +53,10 @@ function Page() {
 	const { path, pageTree } = Route.useLoaderData()
 	const page = docs.getPage(path)
 
+	// The loader already resolved this path server-side; if the client collection
+	// disagrees, the address does not exist here either.
 	if (!page) {
-		throw new Error(`unknown doc: ${path}`)
+		throw notFound()
 	}
 
 	const { toc } = use(page.load())
