@@ -35,10 +35,7 @@ const uploadBodyLimit = bodyLimit({
 	onError: (c) => problemResponse(c, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE),
 })
 
-const routes = new OpenAPIHono()
-routes.use("/:agentId/files", uploadBodyLimit)
-
-export const agentFilesRoutes = routes
+const filesRoutes = new OpenAPIHono()
 	.openapi(listAgentFilesRoute, async (c) => {
 		const agentId = c.req.valid("param").agentId
 		await requireAgent(agentId)
@@ -100,3 +97,9 @@ export const agentFilesRoutes = routes
 		await files.retryEmbedding(agentId, fileName)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
+
+const routes = new OpenAPIHono()
+routes.use("/:agentId/files", uploadBodyLimit)
+routes.route("/:agentId/files", filesRoutes)
+
+export const agentFilesRoutes = routes
