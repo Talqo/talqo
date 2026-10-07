@@ -96,7 +96,7 @@ export function ConnectionCard({
 	}
 
 	return (
-		<Card className="h-full">
+		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					{/* Green dot means last save found tools. */}

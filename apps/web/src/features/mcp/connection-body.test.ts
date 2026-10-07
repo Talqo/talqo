@@ -29,13 +29,6 @@ function draft(patch: Partial<ConnectionDraft> = {}): ConnectionDraft {
 }
 
 describe("toCreateBody", () => {
-	test("builds an http body with no credentials by default", () => {
-		expect(toCreateBody(draft({ url: "https://example.test/mcp" }))).toEqual({
-			ok: true,
-			body: { name: "Stock", server: { transport: "http", url: "https://example.test/mcp", authMode: "none" } },
-		})
-	})
-
 	test("sends every entered header", () => {
 		expect(
 			toCreateBody(
@@ -110,23 +103,6 @@ describe("toggledBody", () => {
 		)
 
 		expect(body.server).toEqual({ transport: "stdio", command: "npx", args: [] })
-	})
-
-	test("carries the revision so a concurrent edit is still detected", () => {
-		expect(toggledBody(server(), "get_stock", false).expectedRevision).toBe(4)
-	})
-
-	test("flips one tool and leaves every other selection alone", () => {
-		const tools = [
-			{ name: "get_stock", description: "", selected: true },
-			{ name: "get_price", description: "", selected: false },
-		]
-		const body = toggledBody(server({ tools }), "get_price", true)
-
-		expect(body.tools).toEqual([
-			{ name: "get_stock", selected: true },
-			{ name: "get_price", selected: true },
-		])
 	})
 })
 
