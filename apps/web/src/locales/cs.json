@@ -372,7 +372,7 @@
 		"adding": "Přidávání...",
 		"address": "Adresa serveru",
 		"addTitle": "Přidat připojení",
-		"argumentPlaceholder": "-y",
+		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "Argumenty",
 		"argumentsCount": "Přidáno {{used}} z {{limit}} argumentů",
 		"authHeaders": "Tajný klíč",

@@ -372,7 +372,7 @@
 		"adding": "添加中...",
 		"address": "服务器地址",
 		"addTitle": "添加连接",
-		"argumentPlaceholder": "-y",
+		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "参数",
 		"argumentsCount": "已添加 {{used}} / {{limit}} 个参数",
 		"authHeaders": "密钥",

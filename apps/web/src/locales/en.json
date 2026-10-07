@@ -372,7 +372,7 @@
 		"adding": "Adding...",
 		"address": "Server address",
 		"addTitle": "Add a connection",
-		"argumentPlaceholder": "-y",
+		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "Arguments",
 		"argumentsCount": "{{used}} of {{limit}} arguments added",
 		"authHeaders": "Secret key",
