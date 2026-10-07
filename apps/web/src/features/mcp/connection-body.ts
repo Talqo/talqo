@@ -9,12 +9,11 @@ import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
  * Rebuilds an update body from pieces the dialog or the card assembled. Secrets travel as entered
  * values plus the names to forget; whatever is mentioned in neither keeps its stored envelope.
  */
-export function toUpdateBody(
-	base: Pick<McpServer, "isDisabled" | "name" | "revision"> & {
-		server: UpdateMcpServerBody["server"]
-	},
-	tools?: { name: string; selected: boolean }[],
-): UpdateMcpServerBody {
+type UpdateAssembly = Pick<McpServer, "isDisabled" | "name" | "revision"> & {
+	server: UpdateMcpServerBody["server"]
+}
+
+function toUpdateBody(base: UpdateAssembly, tools?: { name: string; selected: boolean }[]): UpdateMcpServerBody {
 	return {
 		name: base.name,
 		expectedRevision: base.revision,
