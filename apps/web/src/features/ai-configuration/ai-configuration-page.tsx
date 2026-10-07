@@ -40,7 +40,7 @@ import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { LockIcon, PencilLineIcon } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -197,7 +197,7 @@ function ConnectionFields({
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
 	stored: RedactedRoleConfiguration | null
-	drafts: Map<string, RoleValue>
+	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
@@ -208,12 +208,12 @@ function ConnectionFields({
 		if (providerId === value.providerId) return
 		const next = providers.find((item) => item.id === providerId)
 		if (!next) return
-		drafts.set(`${role}:${value.providerId}`, {
+		drafts.current.set(`${role}:${value.providerId}`, {
 			...value,
 			settings: { ...value.settings },
 			credentials: { ...value.credentials },
 		})
-		const draft = drafts.get(`${role}:${providerId}`)
+		const draft = drafts.current.get(`${role}:${providerId}`)
 		if (draft) {
 			onChange({ ...draft, settings: { ...draft.settings }, credentials: { ...draft.credentials } })
 			return
@@ -365,7 +365,7 @@ function RoleFields(props: {
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
 	stored: RedactedRoleConfiguration | null
-	drafts: Map<string, RoleValue>
+	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
@@ -398,7 +398,7 @@ export function AiConfigurationPage() {
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
-	const drafts = useRef(new Map<string, RoleValue>()).current
+	const drafts = useRef(new Map<string, RoleValue>())
 	const {
 		control,
 		handleSubmit,
@@ -411,22 +411,26 @@ export function AiConfigurationPage() {
 		defaultValues: configurationToFormValues({ revision: 0, health: "unconfigured", text: null, embedding: null }),
 	})
 
+	// Depend on the response body, not the envelope: its `headers` makes the envelope new on every refetch.
+	const configuration = configurationQuery.data?.data
 	useEffect(() => {
-		if (configurationQuery.data) reset(configurationToFormValues(configurationQuery.data.data))
-	}, [configurationQuery.data, reset])
+		if (!configuration) return
+		drafts.current.clear()
+		reset(configurationToFormValues(configuration))
+	}, [configuration, reset])
 
 	const watchedTextRole = useWatch({ control, name: "text" })
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
 		return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>
-	if (!providersQuery.data || !configurationQuery.data)
+	if (!providersQuery.data || !configuration)
 		return (
 			<p role="alert" className="text-destructive">
 				{t("aiConfiguration.loadError")}
 			</p>
 		)
 
-	const configuration = configurationQuery.data.data
+	const storedEmbedding = configuration.embedding
 	const providers = providersQuery.data.data.providers
 	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
 
@@ -443,12 +447,11 @@ export function AiConfigurationPage() {
 	}
 
 	async function onValid(values: AiConfigurationFormValues) {
-		const previous = configuration.embedding
 		if (
-			previous &&
-			(previous.providerId !== values.embedding.providerId ||
-				previous.modelId !== values.embedding.modelId ||
-				settingsKey(previous.settings) !== settingsKey(values.embedding.settings))
+			storedEmbedding &&
+			(storedEmbedding.providerId !== values.embedding.providerId ||
+				storedEmbedding.modelId !== values.embedding.modelId ||
+				settingsKey(storedEmbedding.settings) !== settingsKey(values.embedding.settings))
 		) {
 			setPendingSave(values)
 			return
@@ -541,7 +544,7 @@ export function AiConfigurationPage() {
 											onValueChange={(next) => {
 												if (next === "same") {
 													if (!textProvider) return
-													drafts.set("embedding:separate", {
+													drafts.current.set("embedding:separate", {
 														...field.value,
 														settings: { ...field.value.settings },
 														credentials: { ...field.value.credentials },
@@ -557,7 +560,7 @@ export function AiConfigurationPage() {
 													return
 												}
 												if (sameProvider) {
-													const draft = drafts.get("embedding:separate")
+													const draft = drafts.current.get("embedding:separate")
 													if (draft) {
 														field.onChange({
 															...draft,
