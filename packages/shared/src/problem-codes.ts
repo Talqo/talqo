@@ -1,6 +1,3 @@
-// Canonical problem codes. The API emits them in RFC 9457 responses and the
-// docs site explains each one, so both apps consume this list instead of
-// maintaining their own copies.
 export const PROBLEM_CODES = {
 	ADMIN_ACCESS_REQUIRED: "admin-access-required",
 	ADMIN_ALREADY_EXISTS: "admin-already-exists",

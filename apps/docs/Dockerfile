@@ -1,5 +1,4 @@
 # Required runtime env: none. TALQO_DOCS_PORT defaults to 3002.
-# Separate image: the docs site is not part of the self-hosted product (see ADR-0016).
 # Build from the repository root: docker build -f apps/docs/Dockerfile .
 
 FROM oven/bun:1.4.2 AS build
