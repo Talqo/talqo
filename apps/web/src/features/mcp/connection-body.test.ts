@@ -2,15 +2,7 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { describe, expect, test } from "bun:test"
 
-import {
-	EMPTY_DRAFT,
-	toCreateBody,
-	toEditBody,
-	toUpdateBody,
-	toggleTool,
-	toggledBody,
-	type ConnectionDraft,
-} from "./connection-body"
+import { EMPTY_DRAFT, toCreateBody, toEditBody, toggleTool, toggledBody, type ConnectionDraft } from "./connection-body"
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {
@@ -97,35 +89,6 @@ describe("toCreateBody", () => {
 	})
 })
 
-describe("toUpdateBody", () => {
-	test("assembles the body the dialog hands it without touching secrets", () => {
-		const body = toUpdateBody({
-			name: "Stock",
-			revision: 4,
-			isDisabled: false,
-			server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
-		})
-
-		expect(body).toEqual({
-			name: "Stock",
-			expectedRevision: 4,
-			isDisabled: false,
-			server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
-		})
-	})
-
-	test("omits the tools list the dialog never sends", () => {
-		expect(
-			toUpdateBody({
-				name: "Stock",
-				revision: 4,
-				isDisabled: false,
-				server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
-			}),
-		).not.toHaveProperty("tools")
-	})
-})
-
 describe("toggledBody", () => {
 	test("never resends a secret the operator cannot see", () => {
 		const body = toggledBody(
@@ -198,8 +161,12 @@ function edit(
 }
 
 describe("toEditBody", () => {
-	test("keeps the revision and the disabled flag", () => {
-		expect(edit()).toMatchObject({ ok: true, body: { expectedRevision: 7, isDisabled: true, name: "Stock" } })
+	test("keeps the revision and the disabled flag without touching tools", () => {
+		const body = edit()
+
+		expect(body).toMatchObject({ ok: true, body: { expectedRevision: 7, isDisabled: true, name: "Stock" } })
+		// An explicit list replaces the selection, so the dialog sends none and the stored one survives.
+		expect((body as { body: object }).body).not.toHaveProperty("tools")
 	})
 
 	test("leaves a stored secret alone when the operator leaves the value blank", () => {

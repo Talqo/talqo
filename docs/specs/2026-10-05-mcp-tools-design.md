@@ -251,35 +251,6 @@ Neither carries arguments or results, and `toolName` is the server's own name ra
 
 Persisting tool calls on `generation_attempt` is excluded. It would let an operator review what the agent did after the fact, which is genuinely useful, but it is a separate change to storage, history, and the dashboard, and shipping it half-done would be worse than not shipping it. The consequence to accept is that a shopper's transcript shows that a tool ran and what it was called, but not what it returned.
 
-## OAuth 2.1
-
-Removed during implementation: no authorization flow completed a round trip, so the section below is the rejected design, kept for context.
-
-Applies only to HTTP servers. Implemented by supplying an `OAuthClientProvider` to `createMCPClient`. The client performs RFC 9728 protected-resource discovery, RFC 8414 authorization-server metadata discovery with issuer validation, RFC 9207 `iss` checking, RFC 8707 `resource` parameters, PKCE, client registration, and refresh. Talqo implements the provider's storage side and nothing protocol-level.
-
-The provider interface requires more than token storage, and every piece needs a home:
-
-| Provider member | Backing |
-|---|---|
-| `tokens`, `saveTokens`, `invalidateCredentials` | `oauth_tokens`, an envelope around the token set |
-| `clientInformation`, `saveClientInformation` | `oauth_client`, an envelope — see below |
-| `codeVerifier`, `saveCodeVerifier`, `state`, `saveState`, `storedState` | `oauth_pending`, an envelope, valid only until `oauth_state_expires_at` |
-| `redirectUrl` | derived from the request origin, never stored |
-| `redirectToAuthorization` | an HTTP redirect built from the provider's own authorization URL |
-| `validateAuthorizationServerURL` | see the issuer rule below |
-
-Three consequences that are easy to get wrong:
-
-**The vault payload must widen.** `credential-vault.ts:57-71` decrypts to `Record<string, string>` and throws on any non-string value, but `OAuthTokens` carries a numeric `expires_in`. The move to `src/lib/credential-vault.ts` therefore adds a JSON-object payload variant alongside the existing string-map one, and `mcp` uses the JSON variant for OAuth material. Without this, storing a token set fails at decryption.
-
-**`oauth_client` holds a secret.** Dynamic client registration returns a `client_secret`, which the client then sends to the token endpoint. Stored as plaintext jsonb it would be the one secret in the schema outside the vault, so it is an envelope like everything else.
-
-**The issuer is confirmed, not allowlisted.** There is no operator-managed allowlist to store, and inventing one would add a second concept to a self-hosted, single-operator product. Instead: on first authorization the operator is shown the discovered issuer and must confirm it; the confirmed issuer is recorded inside `oauth_client`; and a later discovery of a different issuer invalidates the stored tokens and requires confirmation again. A server that tries to redirect credentials to a different issuer therefore cannot do so silently. Rejection and re-confirmation use one new problem code, `mcp-authorization-server-changed`.
-
-Both client-registration paths are supported: Client ID Metadata Documents when the deployment has a publicly reachable URL, and dynamic client registration otherwise. DCR is deprecated in the current spec but is the only path available to a private-network deployment, so it cannot be dropped. Most Talqo deployments are private, so DCR is the expected path and CIMD the exception. `oauth_pending` rows are discarded once the callback completes or expires, so a half-finished authorization leaves nothing behind.
-
-The authorization redirect passes through the operator's browser and returns to wherever their browser already reaches Talqo. The token exchange is a server-to-server back channel and needs no public reachability, so a fully private deployment works provided the operator's browser can reach their own dashboard. Whether a given authorization server accepts a private or loopback `redirect_uri` is a deployment-support question, not a code question.
-
 ## Failure Behavior
 
 - **Discovery fails on save.** Save succeeds. No tools are written, so a connection that has never answered shows none. The agent gains no tools and chat is unaffected.
