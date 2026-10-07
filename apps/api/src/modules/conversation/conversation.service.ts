@@ -302,7 +302,7 @@ export function createConversationService(dependencies: Dependencies) {
 		try {
 			connection = await mcp.openTools(agent.id, controller.signal)
 		} catch (error) {
-			console.error("mcp.tools.degraded", { agentId: agent.id, error })
+			console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
 		}
 		const inFlight = new Map<string, { serverName: string; toolName: string }>()
 		try {
@@ -386,28 +386,36 @@ export function createConversationService(dependencies: Dependencies) {
 			outputText: observedOutput,
 			usage: providerUsage,
 		})
-		if (
-			await repository.stageFinalization({
-				generationAttemptId: generationAttempt.id,
-				leaseToken: generationAttempt.leaseToken,
-				provider,
-				model,
-				outcome,
-				...normalized,
-			})
-		) {
-			const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
-			if (pending) await recordPendingUsage(pending)
-			if (outcome === "failed") {
-				emit({
-					version: 1,
-					type: "error",
+		try {
+			if (
+				await repository.stageFinalization({
+					generationAttemptId: generationAttempt.id,
+					leaseToken: generationAttempt.leaseToken,
+					provider,
+					model,
 					outcome,
-					error: publicError,
+					...normalized,
 				})
-			} else {
-				emit({ version: 1, type: "terminal", outcome })
+			) {
+				const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
+				if (pending) await recordPendingUsage(pending)
+				if (outcome === "failed") {
+					emit({
+						version: 1,
+						type: "error",
+						outcome,
+						error: publicError,
+					})
+				} else {
+					emit({ version: 1, type: "terminal", outcome })
+				}
 			}
+		} catch (error) {
+			console.error("conversation.finalization.failed", {
+				generationAttemptId: generationAttempt.id,
+				error: error instanceof Error ? error.message : error,
+			})
+			emit({ version: 1, type: "error", outcome: "failed", error: publicError })
 		}
 	}
 
@@ -446,7 +454,7 @@ export function createConversationService(dependencies: Dependencies) {
 						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
 					}
 				} catch (error) {
-					console.error("knowledge-base.retrieval.degraded", { agentId, error })
+					console.error("knowledge-base.retrieval.degraded", { agentId, error: String(error) })
 				}
 				const messages = completedPrompt(systemPrompt, history.messages, question)
 				const promptContent = promptText(messages)

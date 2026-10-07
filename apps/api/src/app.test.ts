@@ -1,5 +1,6 @@
 import type { Context } from "hono"
 
+import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
 
@@ -127,6 +128,31 @@ describe("api", () => {
 			type: "https://docs.talqo.chat/problems#internal-server-error",
 		})
 		expect(console.error).toHaveBeenCalled()
+	})
+
+	it("redacts provider call errors in logs", async () => {
+		using logged = spyOn(console, "error").mockImplementation(() => {})
+		let response: Response | undefined
+		const context = {
+			json: (data: unknown, status: number, headers?: Record<string, string>) => {
+				response = new Response(JSON.stringify(data), { headers, status })
+				return response
+			},
+		}
+		await handleError(
+			new APICallError({
+				message: "Internal error encountered.",
+				url: "https://provider.invalid/stream",
+				requestBodyValues: { contents: [{ secret: "must-not-leak" }] },
+				statusCode: 500,
+				responseBody: '{"error":{"message":"Internal error encountered."}}',
+			}),
+			context as unknown as Context,
+		)
+
+		expect(response?.status).toBe(500)
+		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
+		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
 	})
 
 	it("normalizes responses carried by response-bearing errors", async () => {

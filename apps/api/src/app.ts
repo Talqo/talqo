@@ -15,6 +15,7 @@ import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
 import { mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
+import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
 
@@ -110,7 +111,16 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 		}
 	}
 
-	console.error(error)
+	if (APICallError.isInstance(error)) {
+		console.error("provider.call.failed", {
+			message: error.message,
+			statusCode: error.statusCode,
+			url: error.url,
+			isRetryable: error.isRetryable,
+		})
+	} else {
+		console.error(error)
+	}
 	return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
 }
 

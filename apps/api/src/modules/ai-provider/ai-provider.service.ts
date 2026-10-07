@@ -148,19 +148,21 @@ async function* invokePreparedOperation(
 }
 
 const defaultGenerate: Generate = async function* (input) {
-	const result = aiStreamText({
-		model: input.model,
-		instructions: input.instructions,
-		messages: input.messages,
-		maxOutputTokens: input.maxOutputTokens,
-		maxRetries: input.maxRetries,
-		abortSignal: input.signal,
-		timeout: input.timeoutMs,
-		stopWhen: isStepCount(MAX_TOOL_STEPS),
-		...(input.tools ? { tools: input.tools as never } : {}),
-		...toolCallbacks(input),
-	})
+	let result: ReturnType<typeof aiStreamText> | undefined
 	try {
+		result = aiStreamText({
+			model: input.model,
+			instructions: input.instructions,
+			messages: input.messages,
+			maxOutputTokens: input.maxOutputTokens,
+			maxRetries: input.maxRetries,
+			abortSignal: input.signal,
+			timeout: input.timeoutMs,
+			stopWhen: isStepCount(MAX_TOOL_STEPS),
+			onError: () => undefined,
+			...(input.tools ? { tools: input.tools as never } : {}),
+			...toolCallbacks(input),
+		})
 		for await (const text of result.textStream) yield { type: "text", text }
 		const usage = await result.usage
 		yield {
@@ -175,6 +177,7 @@ const defaultGenerate: Generate = async function* (input) {
 			},
 		}
 	} catch (error) {
+		if (result) void Promise.resolve(result.usage).catch(() => undefined)
 		if (input.signal.aborted) {
 			yield { type: "finish", outcome: "cancelled", usage: {} }
 			return
