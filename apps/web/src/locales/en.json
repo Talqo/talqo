@@ -393,6 +393,7 @@
 		"errorConflict": "Someone else changed this connection. Close and try again.",
 		"errorDuplicateName": "This agent already has a connection with that name.",
 		"errorName": "Give the connection a name.",
+		"errorNameAscii": "Use letters without accents, numbers, spaces, and simple symbols.",
 		"errorSave": "The connection could not be saved.",
 		"errorSecret": "Enter both the name and the value.",
 		"headerName": "Header name",

@@ -42,6 +42,7 @@ function apiError(caught: unknown, t: (key: string) => string): string {
 
 function draftErrorText(reason: DraftReason, t: (key: string) => string): string {
 	if (reason === "nameRequired") return t("mcp.errorName")
+	if (reason === "nameAscii") return t("mcp.errorNameAscii")
 	if (reason === "addressRequired") return t("mcp.errorAddress")
 	return reason === "commandRequired" ? t("mcp.errorCommand") : t("mcp.errorSecret")
 }

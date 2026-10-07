@@ -80,6 +80,17 @@ describe("toCreateBody", () => {
 			),
 		).toEqual({ ok: false, reason: "secretRequired" })
 	})
+
+	test("refuses a name outside ASCII instead of mangling it into underscores", () => {
+		expect(toCreateBody(draft({ name: "Obchodník", url: "https://example.test/mcp" }))).toEqual({
+			ok: false,
+			reason: "nameAscii",
+		})
+		expect(toCreateBody(draft({ name: "🔥 Shop", url: "https://example.test/mcp" }))).toEqual({
+			ok: false,
+			reason: "nameAscii",
+		})
+	})
 })
 
 describe("toggledBody", () => {

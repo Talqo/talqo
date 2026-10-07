@@ -393,6 +393,7 @@
 		"errorConflict": "Někdo jiný toto připojení změnil. Zavřete a zkuste znovu.",
 		"errorDuplicateName": "Tento agent už má připojení s tímto názvem.",
 		"errorName": "Pojmenujte připojení.",
+		"errorNameAscii": "Používejte písmena bez diakritiky, číslice, mezery a jednoduché symboly.",
 		"errorSave": "Připojení se nepodařilo uložit.",
 		"errorSecret": "Zadejte název i hodnotu.",
 		"headerName": "Název hlavičky",

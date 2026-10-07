@@ -152,6 +152,19 @@ describe("mcp server lifecycle", () => {
 		).resolves.toMatchObject({ name: "Stock" })
 	})
 
+	it("rejects a non-ASCII name instead of mangling it into underscores", async () => {
+		const agentId = await createAgent()
+		const attempts = await Promise.allSettled(
+			["Obchodník", "🔥 Shop", "库存"].map((name) =>
+				service.createServer(agentId, { name, transport: "http", url: UNREACHABLE_URL, authMode: "none" }),
+			),
+		)
+		for (const attempt of attempts) {
+			expect(attempt.status).toBe("rejected")
+			if (attempt.status === "rejected") expect(attempt.reason).toBeInstanceOf(service.InvalidMcpServerError)
+		}
+	})
+
 	it("rejects a reserved header name and a non-http address", async () => {
 		const agentId = await createAgent()
 

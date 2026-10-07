@@ -67,7 +67,7 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 	env: [],
 }
 
-export type DraftReason = "nameRequired" | "addressRequired" | "commandRequired" | "secretRequired"
+export type DraftReason = "nameRequired" | "nameAscii" | "addressRequired" | "commandRequired" | "secretRequired"
 
 type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
 
@@ -124,6 +124,8 @@ function secretRefused(rows: EnvVariable[], requireSecretValue: boolean): boolea
 
 function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
 	if (!draft.name.trim()) return "nameRequired"
+	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
+	if (!/^[\x20-\x7E]+$/.test(draft.name)) return "nameAscii"
 	if (draft.transport === "http") {
 		if (!draft.url.trim()) return "addressRequired"
 		if (draft.authMode === "headers" && secretRefused(draft.headers, requireSecretValue)) return "secretRequired"
