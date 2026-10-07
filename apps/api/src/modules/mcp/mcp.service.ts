@@ -125,10 +125,10 @@ function stdioColumns(serverId: string, input: McpStdioInput, existing?: Credent
 	}
 }
 
-/** Preserves the operator's selection by tool name; tools the server has dropped simply disappear. */
+/** A tool stays as the operator left it; a tool the server just gained starts enabled. */
 function mergeTools(previous: McpToolSnapshot[], discovered: McpToolSnapshot[]): McpToolSnapshot[] {
-	const selected = new Set(previous.filter((tool) => tool.selected).map((tool) => tool.name))
-	return discovered.map((tool) => ({ ...tool, selected: selected.has(tool.name) }))
+	const previousByName = new Map(previous.map((tool) => [tool.name, tool.selected]))
+	return discovered.map((tool) => ({ ...tool, selected: previousByName.get(tool.name) ?? true }))
 }
 
 /** The toggle path always sends the complete list, so an explicit empty list deselects everything. */

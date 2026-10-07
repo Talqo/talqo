@@ -60,8 +60,11 @@ describe("toCreateBody", () => {
 				draft({
 					transport: "stdio",
 					command: "bunx",
-					args: ["-y", "@scope/server"],
-					env: [{ name: "KEY", value: "v" }],
+					args: [
+						{ id: "a1", value: "-y" },
+						{ id: "a2", value: "@scope/server" },
+					],
+					env: [{ id: "k1", name: "KEY", value: "v" }],
 				}),
 			),
 		).toMatchObject({
@@ -195,8 +198,8 @@ describe("env variables", () => {
 				transport: "stdio",
 				command: "bunx",
 				env: [
-					{ name: "API_KEY", value: "one" },
-					{ name: "REGION", value: "eu" },
+					{ id: "e1", name: "API_KEY", value: "one" },
+					{ id: "e2", name: "REGION", value: "eu" },
 				],
 			}),
 		)
@@ -206,7 +209,13 @@ describe("env variables", () => {
 
 	test("leaves a variable with no value out so the stored one survives", () => {
 		const body = toEditBody(
-			{ ...EMPTY_DRAFT, name: "Shop", transport: "stdio", command: "bunx", env: [{ name: "API_KEY", value: "" }] },
+			{
+				...EMPTY_DRAFT,
+				name: "Shop",
+				transport: "stdio",
+				command: "bunx",
+				env: [{ id: "e1", name: "API_KEY", value: "" }],
+			},
 			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
 		)
 
@@ -221,7 +230,7 @@ describe("env variables", () => {
 				name: "Shop",
 				transport: "stdio",
 				command: "bunx",
-				env: [{ name: "REGION", value: "" }],
+				env: [{ id: "e3", name: "REGION", value: "" }],
 			},
 			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }, { name: "REGION" }] },
 		)
@@ -237,8 +246,8 @@ describe("env variables", () => {
 				transport: "stdio",
 				command: "bunx",
 				env: [
-					{ name: "API_KEY", value: "" },
-					{ name: "REGION", value: "eu" },
+					{ id: "e1", name: "API_KEY", value: "" },
+					{ id: "e2", name: "REGION", value: "eu" },
 				],
 			},
 			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
@@ -246,5 +255,46 @@ describe("env variables", () => {
 
 		expect(body).toMatchObject({ ok: true, body: { server: { env: { REGION: "eu" } } } })
 		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("deleteEnv")
+	})
+
+	test("ignores an untouched empty row instead of blocking the save", () => {
+		const body = toCreateBody(
+			draft({
+				transport: "stdio",
+				command: "bunx",
+				env: [
+					{ id: "e1", name: "API_KEY", value: "one" },
+					{ id: "e0", name: "", value: "" },
+				],
+			}),
+		)
+
+		expect(body).toMatchObject({ ok: true, body: { server: { env: { API_KEY: "one" } } } })
+	})
+
+	test("refuses a half-filled variable instead of silently dropping it", () => {
+		expect(
+			toCreateBody(draft({ transport: "stdio", command: "bunx", env: [{ id: "e0", name: "", value: "orphan" }] })),
+		).toEqual({ ok: false, reason: "secretRequired" })
+		expect(
+			toCreateBody(draft({ transport: "stdio", command: "bunx", env: [{ id: "e1", name: "API_KEY", value: "" }] })),
+		).toEqual({ ok: false, reason: "secretRequired" })
+	})
+
+	test("trims arguments and collapses blanks and repeats", () => {
+		const body = toCreateBody(
+			draft({
+				transport: "stdio",
+				command: "bunx",
+				args: [
+					{ id: "a1", value: "-y" },
+					{ id: "a2", value: "" },
+					{ id: "a3", value: "  -y  " },
+					{ id: "a4", value: "@scope/server" },
+				],
+			}),
+		)
+
+		expect(body).toMatchObject({ ok: true, body: { server: { args: ["-y", "@scope/server"] } } })
 	})
 })

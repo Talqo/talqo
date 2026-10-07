@@ -1,6 +1,7 @@
 import type { CreateMcpServerBody } from "@/api/generated/models/mcp/createMcpServerBody.zod"
 import type { UpdateMcpServerBody } from "@/api/generated/models/mcp/updateMcpServerBody.zod"
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
+import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 
 import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
 
@@ -42,7 +43,7 @@ export type ConnectionDraft = {
 	url: string
 	authMode: "none" | "headers"
 	command: string
-	args: string[]
+	args: ArgumentRow[]
 	headerName: string
 	headerValue: string
 	env: EnvVariable[]
@@ -94,10 +95,12 @@ function serverOf(draft: ConnectionDraft, stored?: StoredSecrets) {
 	const env = toEnvRecord(draft.env)
 	const present = new Set(draft.env.map(({ name }) => name.trim()).filter(Boolean))
 	const removed = storedNames(stored?.env ?? []).filter((name) => !present.has(name))
+	// Rows are typed in place, so blanks are filtered and repeats collapse here rather than at save time.
+	const args = [...new Set(draft.args.map(({ value }) => value.trim()).filter((argument) => argument.length > 0))]
 	return {
 		transport: "stdio" as const,
 		command: draft.command.trim(),
-		args: draft.args,
+		args,
 		...(envCount(env) > 0 ? { env } : {}),
 		...(removed.length > 0 ? { deleteEnv: removed } : {}),
 	}
@@ -116,8 +119,13 @@ function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftRea
 		if (draft.authMode === "headers" && draft.headerName.trim() && !draft.headerValue && requireSecretValue)
 			return "secretRequired"
 	} else if (!draft.command.trim()) return "commandRequired"
-	// A variable missing its name has nowhere to go.
-	if (draft.env.some(({ name }) => !name.trim())) return "secretRequired"
+	// Rows are added empty, so untouched rows never block saving. A value without a name goes
+	// nowhere on either path; a name without a value only blocks creating, where there is
+	// nothing stored to keep.
+	if (draft.transport === "stdio") {
+		if (draft.env.some(({ name, value }) => !name.trim() && value)) return "secretRequired"
+		if (requireSecretValue && draft.env.some(({ name, value }) => name.trim() && !value)) return "secretRequired"
+	}
 	return undefined
 }
 

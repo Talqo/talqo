@@ -1,96 +1,58 @@
-import type { ConnectionDraft } from "@/features/mcp/connection-body"
-
-import { addArgument, MCP_ARGUMENT_LIMIT, removeArgument } from "@/features/mcp/mcp-arguments"
-import { Badge } from "@talqo/ui/components/badge"
+import { MCP_ARGUMENT_LIMIT, type ArgumentRow } from "@/features/mcp/mcp-arguments"
 import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Plus, X } from "lucide-react"
-import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-/**
- * One argument at a time, because a textarea that expects one per line is a quoting and
- * word-splitting lesson dressed up as a text field.
- */
+/** Rows are added empty and typed in place, so saving can never silently drop an argument. */
 export function McpArgumentsEditor({
-	draft,
+	args,
 	onChange,
 }: {
-	draft: ConnectionDraft
-	onChange: (draft: ConnectionDraft) => void
+	args: ArgumentRow[]
+	onChange: (args: ArgumentRow[]) => void
 }) {
 	const { t } = useTranslation()
-	const [input, setInput] = useState("")
-	const [error, setError] = useState<string | null>(null)
-
-	function handleAdd() {
-		const result = addArgument(draft.args, input)
-		if (!result.ok) {
-			setError(
-				result.reason === "empty"
-					? t("mcp.errorArgumentEmpty")
-					: result.reason === "duplicate"
-						? t("mcp.errorArgumentDuplicate")
-						: t("mcp.errorArgumentLimit"),
-			)
-			return
-		}
-		setError(null)
-		setInput("")
-		onChange({ ...draft, args: result.args })
-	}
+	const set = (id: string, value: string) => onChange(args.map((row) => (row.id === id ? { ...row, value } : row)))
 
 	return (
 		<div className="space-y-2">
-			<Label htmlFor="mcp-arg">{t("mcp.arguments")}</Label>
-			<div className="flex gap-2">
-				<Input
-					id="mcp-arg"
-					value={input}
-					placeholder={t("mcp.argumentPlaceholder")}
-					aria-invalid={error ? true : undefined}
-					onChange={(event) => {
-						setInput(event.target.value)
-						setError(null)
-					}}
-					onKeyDown={(event) => {
-						if (event.key === "Enter") {
-							event.preventDefault()
-							handleAdd()
-						}
-					}}
-				/>
-				<Button type="button" variant="outline" onClick={handleAdd}>
+			<Label>{t("mcp.arguments")}</Label>
+			{args.map((row, index) => (
+				<div key={row.id} className="flex gap-2">
+					<Input
+						value={row.value}
+						placeholder={t("mcp.argumentPlaceholder")}
+						aria-label={t("mcp.arguments")}
+						autoComplete="off"
+						onChange={(event) => set(row.id, event.target.value)}
+					/>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label={t("mcp.removeArgument", { argument: row.value.trim() || index + 1 })}
+						onClick={() => onChange(args.filter((candidate) => candidate.id !== row.id))}
+					>
+						<X className="size-4" />
+					</Button>
+				</div>
+			))}
+			<div className="flex items-center gap-2">
+				<Button
+					type="button"
+					variant="outline"
+					disabled={args.length >= MCP_ARGUMENT_LIMIT}
+					onClick={() => onChange([...args, { id: crypto.randomUUID(), value: "" }])}
+				>
 					<Plus className="size-4" />
 					{t("mcp.addArgument")}
 				</Button>
-			</div>
-			{error && (
-				<p role="alert" className="text-destructive text-xs">
-					{error}
+				<p className="text-muted-foreground text-xs">
+					{t("mcp.argumentsCount", { used: args.length, limit: MCP_ARGUMENT_LIMIT })}
 				</p>
-			)}
-			{draft.args.length > 0 && (
-				<ul className="flex flex-wrap gap-1" aria-label={t("mcp.argumentsLabel")}>
-					{draft.args.map((argument) => (
-						<Badge key={argument} variant="outline" render={<li />}>
-							<span className="font-mono">{argument}</span>
-							<button
-								type="button"
-								onClick={() => onChange({ ...draft, args: removeArgument(draft.args, argument) })}
-								aria-label={t("mcp.removeArgument", { argument })}
-								className="hover:text-destructive -mr-0.5 ml-1 rounded-full"
-							>
-								<X className="size-3" />
-							</button>
-						</Badge>
-					))}
-				</ul>
-			)}
-			<p className="text-muted-foreground text-xs">
-				{t("mcp.argumentsCount", { used: draft.args.length, limit: MCP_ARGUMENT_LIMIT })}
-			</p>
+			</div>
 		</div>
 	)
 }

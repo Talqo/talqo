@@ -252,6 +252,50 @@ describe("mcp server lifecycle", () => {
 		expect(Object.keys(row?.headers ?? {})).toEqual(["X-API-Key"])
 	})
 
+	it("applies a tool toggle sent through the update route", async () => {
+		const agentId = await createAgent()
+		const manager = await memberSession(["agents:manage"])
+		const created = await service.createServer(agentId, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "none",
+		})
+		await db
+			.update(mcpServer)
+			.set({
+				tools: [
+					{ name: "get_stock", description: "", selected: true },
+					{ name: "get_price", description: "", selected: true },
+				],
+			})
+			.where(eq(mcpServer.id, created.id))
+
+		// The dashboard toggles through PUT, not the service: the route used to drop the list.
+		const response = await app.request(`/api/agents/${agentId}/mcp-servers/${created.id}`, {
+			method: "PUT",
+			headers: { Cookie: manager, "Content-Type": "application/json" },
+			body: JSON.stringify({
+				name: "Stock",
+				expectedRevision: created.revision,
+				server: { transport: "http", url: UNREACHABLE_URL, authMode: "none" },
+				tools: [
+					{ name: "get_stock", selected: true },
+					{ name: "get_price", selected: false },
+				],
+			}),
+		})
+
+		expect(response.status).toBe(200)
+		const json = (await response.json()) as {
+			server: { tools: { description: string; name: string; selected: boolean }[] }
+		}
+		expect(json.server.tools).toEqual([
+			{ name: "get_stock", description: "", selected: true },
+			{ name: "get_price", description: "", selected: false },
+		])
+	})
+
 	it("excludes a disabled connection from tool resolution", async () => {
 		const agentId = await createAgent()
 		const created = await service.createServer(agentId, {
@@ -391,8 +435,8 @@ describe("stdio connections", () => {
 
 		expect(created.isWorking).toBe(true)
 		expect(created.tools.map(({ name }) => name)).toEqual(["get_stock_level", "list_orders", "report_environment"])
-		// Nothing is selected until the operator chooses; the seed is what turns tools on.
-		expect(created.tools.every((tool) => tool.selected)).toBe(false)
+		// Adding a connection enables everything it offers; the operator turns off what it should not use.
+		expect(created.tools.every((tool) => tool.selected)).toBe(true)
 	})
 
 	it("resolves callable tools that return the server's own answer", async () => {

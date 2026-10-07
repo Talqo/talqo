@@ -2,6 +2,7 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import {
 	type DeleteMcpServerMutationError,
+	type ListMcpServersQueryResult,
 	type UpdateMcpServerMutationError,
 	getListMcpServersQueryKey,
 	useCreateMcpServer,
@@ -98,13 +99,46 @@ function ConnectionCard({ agentId, canManage, server }: { agentId: string; canMa
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const refresh = () => queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
-	const update = useUpdateMcpServer({ mutation: { onSuccess: refresh } })
+	const update = useUpdateMcpServer<UpdateMcpServerMutationError, { previous: ListMcpServersQueryResult | undefined }>({
+		mutation: {
+			async onMutate(variables) {
+				const queryKey = getListMcpServersQueryKey(agentId)
+				await queryClient.cancelQueries({ queryKey })
+				const previous = queryClient.getQueryData<ListMcpServersQueryResult>(queryKey)
+				const selection = new Map((variables.data.tools ?? []).map((tool) => [tool.name, tool.selected]))
+				queryClient.setQueryData<ListMcpServersQueryResult>(queryKey, (cached) => {
+					if (!cached) return cached
+					return {
+						...cached,
+						data: {
+							...cached.data,
+							servers: cached.data.servers.map((cachedServer) =>
+								cachedServer.id !== variables.serverId
+									? cachedServer
+									: {
+											...cachedServer,
+											tools: cachedServer.tools.map((tool) => ({
+												...tool,
+												selected: selection.get(tool.name) ?? tool.selected,
+											})),
+										},
+							),
+						},
+					}
+				})
+				return { previous }
+			},
+			onError: (_error, _variables, context) => {
+				if (context?.previous) queryClient.setQueryData(getListMcpServersQueryKey(agentId), context.previous)
+			},
+			onSettled: refresh,
+		},
+	})
 	const setDisabled = useSetMcpServerDisabled({ mutation: { onSuccess: refresh } })
 	const remove = useDeleteMcpServer({ mutation: { onSuccess: refresh } })
 	const [error, setError] = useState<string | null>(null)
 	const [expanded, setExpanded] = useState(false)
 	const [confirmOpen, setConfirmOpen] = useState(false)
-	const [confirmation, setConfirmation] = useState("")
 
 	async function guard(action: () => Promise<unknown>) {
 		setError(null)
@@ -153,7 +187,7 @@ function ConnectionCard({ agentId, canManage, server }: { agentId: string; canMa
 							<label key={tool.name} className="flex items-center gap-2 text-sm">
 								<Checkbox
 									checked={tool.selected}
-									disabled={!canManage || update.isPending}
+									disabled={!canManage}
 									aria-label={tool.name}
 									onCheckedChange={(checked) =>
 										void guard(() =>
@@ -211,10 +245,7 @@ function ConnectionCard({ agentId, canManage, server }: { agentId: string; canMa
 					onOpenChange={(next) => {
 						if (remove.isPending) return
 						setConfirmOpen(next)
-						if (!next) {
-							setConfirmation("")
-							setError(null)
-						}
+						if (!next) setError(null)
 					}}
 				>
 					<DialogContent>
@@ -227,25 +258,13 @@ function ConnectionCard({ agentId, canManage, server }: { agentId: string; canMa
 								{error}
 							</p>
 						)}
-						<div className="space-y-2">
-							<Label htmlFor={`mcp-delete-${server.id}`} className="flex items-center gap-2">
-								<span className="sr-only">{t("mcp.confirmLabel", { name: server.name })}</span>
-							</Label>
-							<Input
-								id={`mcp-delete-${server.id}`}
-								value={confirmation}
-								onChange={(event) => setConfirmation(event.target.value)}
-								placeholder={server.name}
-								autoComplete="off"
-							/>
-						</div>
 						<DialogFooter>
 							<Button variant="outline" onClick={() => setConfirmOpen(false)}>
 								{t("common.cancel")}
 							</Button>
 							<Button
 								variant="destructive"
-								disabled={confirmation !== server.name || remove.isPending}
+								disabled={remove.isPending}
 								onClick={() =>
 									void guard(async () => {
 										await remove.mutateAsync({ agentId, serverId: server.id })
@@ -272,8 +291,8 @@ function draftFor(server?: McpServer): ConnectionDraft {
 		url: server.url ?? "",
 		authMode: server.authMode ?? "none",
 		command: server.command ?? "",
-		args: server.args,
-		env: server.env.map(({ name }) => ({ name, value: "" })),
+		args: server.args.map((value) => ({ id: crypto.randomUUID(), value })),
+		env: server.env.map(({ name }) => ({ id: crypto.randomUUID(), name, value: "" })),
 	}
 }
 
@@ -444,7 +463,7 @@ function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpSe
 									autoComplete="off"
 								/>
 							</div>
-							<McpArgumentsEditor draft={draft} onChange={setDraft} />
+							<McpArgumentsEditor args={draft.args} onChange={(args) => set({ args })} />
 							<McpEnvEditor env={draft.env} onChange={(env) => set({ env })} />
 						</>
 					)}
