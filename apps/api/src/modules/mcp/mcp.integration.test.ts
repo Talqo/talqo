@@ -373,6 +373,56 @@ describe("mcp routes", () => {
 	})
 })
 
+describe("http connections", () => {
+	/** Bare JSON-RPC over POST; the SDK client accepts plain JSON where the server sends no events. */
+	it("discovers tools from a working http server", async () => {
+		const stub = Bun.serve({
+			port: 0,
+			async fetch(request) {
+				// The client opens a GET event stream for server-initiated messages; the stub has none.
+				if (request.method !== "POST") return new Response(null, { status: 405 })
+				const body = (await request.json()) as { id?: unknown; method?: string; params?: { protocolVersion?: string } }
+				const reply = (result: unknown) => Response.json({ jsonrpc: "2.0", id: body.id, result })
+				if (body.method === "initialize")
+					return reply({
+						protocolVersion: body.params?.protocolVersion ?? "2025-06-18",
+						capabilities: { tools: {} },
+						serverInfo: { name: "stub", version: "0" },
+					})
+				if (body.method === "notifications/initialized") return new Response(null, { status: 202 })
+				if (body.method === "tools/list")
+					return reply({
+						tools: [
+							{
+								name: "stub_lookup",
+								description: "Looks things up",
+								inputSchema: { type: "object", properties: {}, additionalProperties: false },
+							},
+						],
+					})
+				return Response.json(
+					{ jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "unknown method" } },
+					{ status: 404 },
+				)
+			},
+		})
+		try {
+			const agentId = await createAgent()
+			const created = await service.createServer(agentId, {
+				name: "Stub",
+				transport: "http",
+				url: `http://127.0.0.1:${stub.port}/mcp`,
+				authMode: "none",
+			})
+
+			expect(created.isWorking).toBe(true)
+			expect(created.tools).toEqual([{ name: "stub_lookup", description: "Looks things up", selected: true }])
+		} finally {
+			stub.stop()
+		}
+	})
+})
+
 const isRunning = async (pid: number) => Bun.file(`/proc/${pid}/stat`).exists()
 
 /** close() kills the child; the reaping is asynchronous, so poll rather than sleep a fixed amount. */

@@ -81,6 +81,8 @@ type ServiceDependencies = {
 	discover(input: DiscoveryRequest): Promise<string[]>
 	generate?: Generate
 	repository: Repository
+	/** streamText is injectable so tests can observe the call options, particularly the step bound. */
+	streamText?: typeof aiStreamText
 	vault: Vault
 }
 
@@ -147,10 +149,10 @@ async function* invokePreparedOperation(
 	}
 }
 
-const defaultGenerate: Generate = async function* (input) {
+async function* defaultGenerate(input: Parameters<Generate>[0], streamText: typeof aiStreamText): ReturnType<Generate> {
 	let result: ReturnType<typeof aiStreamText> | undefined
 	try {
-		result = aiStreamText({
+		result = streamText({
 			model: input.model,
 			instructions: input.instructions,
 			messages: input.messages,
@@ -434,7 +436,8 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				const [firstMessage, ...remainingMessages] = input.messages
 				const instructions = firstMessage?.role === "system" ? firstMessage.content : undefined
 				const messages = (instructions === undefined ? input.messages : remainingMessages) as RuntimeTextMessage[]
-				const generate = dependencies.generate ?? defaultGenerate
+				const streamText = dependencies.streamText ?? aiStreamText
+				const generate = dependencies.generate ?? ((generation) => defaultGenerate(generation, streamText))
 				return {
 					provider: stored.text.providerId,
 					model: stored.text.modelId,
