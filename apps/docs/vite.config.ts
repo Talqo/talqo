@@ -4,16 +4,22 @@ import react from "@vitejs/plugin-react"
 import { fumadocsMdx } from "fumadocs-mdx/vite"
 import { defineConfig } from "vite"
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
 	plugins: [fumadocsMdx(), tailwindcss(), tanstackStart(), react()],
 	resolve: {
 		tsconfigPaths: true,
 	},
-	environments: {
-		// The runtime image ships only `dist`, so the SSR bundle must carry its own dependencies.
-		ssr: { resolve: { noExternal: true } },
-	},
+	// Build-only: the runtime image ships no node_modules, so the SSR bundle
+	// must carry its own dependencies. In dev this breaks the SSR module
+	// runner (`module is not defined` from CJS React).
+	...(command === "build"
+		? {
+				environments: {
+					ssr: { resolve: { noExternal: true } },
+				},
+			}
+		: {}),
 	server: {
 		host: "0.0.0.0",
 	},
-})
+}))
