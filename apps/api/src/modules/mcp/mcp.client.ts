@@ -13,7 +13,6 @@ import type { McpToolSnapshot } from "./mcp.types.ts"
 import {
 	MAX_STDIO_CONNECT_MS,
 	MAX_TOOL_DESCRIPTION_CHARACTERS,
-	MAX_TOOL_LIST_PAGES,
 	MAX_TOOL_RESULT_CHARACTERS,
 	STDIO_INHERITED_ENV,
 	TOOL_LIST_TIMEOUT_MS,
@@ -86,9 +85,7 @@ async function connect(row: McpServerRow, options: McpConnectOptions): Promise<M
 async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<ListToolsResult["tools"]> {
 	const collected: ListToolsResult["tools"] = []
 	let cursor: string | undefined
-	// A hostile server answers every page with another cursor; the page cap keeps one listing from
-	// hanging the chat that triggered it. Timeouts surface as degraded, never as chat failures.
-	for (let page = 0; page < MAX_TOOL_LIST_PAGES; page++) {
+	do {
 		// Each cursor is only known once the previous page arrives, so these cannot be parallel.
 		// oxlint-disable-next-line no-await-in-loop -- sequential pagination.
 		const listed: ListToolsResult = await withListTimeout(
@@ -97,8 +94,7 @@ async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<Li
 		)
 		collected.push(...listed.tools)
 		cursor = listed.nextCursor
-		if (!cursor) break
-	}
+	} while (cursor)
 	return collected
 }
 

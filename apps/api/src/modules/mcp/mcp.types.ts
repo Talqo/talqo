@@ -3,7 +3,6 @@ export const MAX_TOOL_DESCRIPTION_CHARACTERS = 1_000
 export const MAX_TOOL_RESULT_CHARACTERS = 8_000
 export const MAX_STDIO_CONNECT_MS = 10_000
 export const TOOL_LIST_TIMEOUT_MS = 15_000
-export const MAX_TOOL_LIST_PAGES = 20
 
 /** Operator-chosen programs inherit these and nothing else, so Talqo secrets stay unreadable. */
 export const STDIO_INHERITED_ENV = ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"]
