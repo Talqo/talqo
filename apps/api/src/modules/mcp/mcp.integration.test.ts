@@ -278,8 +278,8 @@ describe("mcp server lifecycle", () => {
 			.update(mcpServer)
 			.set({
 				tools: [
-					{ name: "get_stock", description: "", selected: true },
-					{ name: "get_price", description: "", selected: true },
+					{ name: "get_stock", description: "", enabled: true },
+					{ name: "get_price", description: "", enabled: true },
 				],
 			})
 			.where(eq(mcpServer.id, created.id))
@@ -293,19 +293,19 @@ describe("mcp server lifecycle", () => {
 				expectedRevision: created.revision,
 				server: { transport: "http", url: UNREACHABLE_URL, authMode: "none" },
 				tools: [
-					{ name: "get_stock", selected: true },
-					{ name: "get_price", selected: false },
+					{ name: "get_stock", enabled: true },
+					{ name: "get_price", enabled: false },
 				],
 			}),
 		})
 
 		expect(response.status).toBe(200)
 		const json = (await response.json()) as {
-			server: { tools: { description: string; name: string; selected: boolean }[] }
+			server: { tools: { description: string; name: string; enabled: boolean }[] }
 		}
 		expect(json.server.tools).toEqual([
-			{ name: "get_stock", description: "", selected: true },
-			{ name: "get_price", description: "", selected: false },
+			{ name: "get_stock", description: "", enabled: true },
+			{ name: "get_price", description: "", enabled: false },
 		])
 	})
 
@@ -319,7 +319,7 @@ describe("mcp server lifecycle", () => {
 		})
 		await db
 			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock", description: "", selected: true }] })
+			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
 			.where(eq(mcpServer.id, created.id))
 
 		const controller = new AbortController()
@@ -429,7 +429,7 @@ describe("http connections", () => {
 			})
 
 			expect(created.isWorking).toBe(true)
-			expect(created.tools).toEqual([{ name: "stub_lookup", description: "Looks things up", selected: true }])
+			expect(created.tools).toEqual([{ name: "stub_lookup", description: "Looks things up", enabled: true }])
 		} finally {
 			stub.stop()
 		}
@@ -499,7 +499,7 @@ describe("stdio connections", () => {
 		expect(created.isWorking).toBe(true)
 		expect(created.tools.map(({ name }) => name)).toEqual(["get_stock_level", "list_orders", "report_environment"])
 		// Adding a connection enables everything it offers; the operator turns off what it should not use.
-		expect(created.tools.every((tool) => tool.selected)).toBe(true)
+		expect(created.tools.every((tool) => tool.enabled)).toBe(true)
 	})
 
 	it("resolves callable tools that return the server's own answer", async () => {
@@ -507,7 +507,7 @@ describe("stdio connections", () => {
 		await createDemo(agentId)
 		await db
 			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock_level", description: "", selected: true }] })
+			.set({ tools: [{ name: "get_stock_level", description: "", enabled: true }] })
 			.where(eq(mcpServer.name, "Demo shop"))
 
 		const connection = await service.openTools(agentId, new AbortController().signal)
@@ -525,7 +525,7 @@ describe("stdio connections", () => {
 		await createDemo(agentId)
 		await db
 			.update(mcpServer)
-			.set({ tools: [{ name: "report_environment", description: "", selected: true }] })
+			.set({ tools: [{ name: "report_environment", description: "", enabled: true }] })
 			.where(eq(mcpServer.name, "Demo shop"))
 
 		const connection = await service.openTools(agentId, new AbortController().signal)
@@ -545,7 +545,7 @@ describe("stdio connections", () => {
 		await createDemo(agentId, { env: { DEMO_TOKEN: "operator-supplied" } })
 		await db
 			.update(mcpServer)
-			.set({ tools: [{ name: "report_environment", description: "", selected: true }] })
+			.set({ tools: [{ name: "report_environment", description: "", enabled: true }] })
 			.where(eq(mcpServer.name, "Demo shop"))
 
 		const connection = await service.openTools(agentId, new AbortController().signal)

@@ -120,13 +120,13 @@ describe("toggledBody", () => {
 describe("toggleTool", () => {
 	test("changes only the named tool", () => {
 		const tools = [
-			{ name: "get_stock", description: "", selected: true },
-			{ name: "get_price", description: "", selected: true },
+			{ name: "get_stock", description: "", enabled: true },
+			{ name: "get_price", description: "", enabled: true },
 		]
 
 		expect(toggleTool(tools, "get_price", false)).toEqual([
-			{ name: "get_stock", description: "", selected: true },
-			{ name: "get_price", description: "", selected: false },
+			{ name: "get_stock", description: "", enabled: true },
+			{ name: "get_price", description: "", enabled: false },
 		])
 	})
 })
@@ -151,7 +151,7 @@ describe("toEditBody", () => {
 		const body = edit()
 
 		expect(body).toMatchObject({ ok: true, body: { expectedRevision: 7, name: "Stock" } })
-		// An explicit list replaces the selection, so the dialog sends none and the stored one survives.
+		// An explicit list replaces the enabled flags, so the dialog sends none and the stored ones survive.
 		expect((body as { body: object }).body).not.toHaveProperty("tools")
 	})
 

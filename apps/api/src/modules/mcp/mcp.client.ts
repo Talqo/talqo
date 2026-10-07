@@ -15,7 +15,6 @@ import {
 	MAX_TOOL_DESCRIPTION_CHARACTERS,
 	MAX_TOOL_LIST_PAGES,
 	MAX_TOOL_RESULT_CHARACTERS,
-	MAX_TOOLS_PER_SERVER,
 	STDIO_INHERITED_ENV,
 	TOOL_LIST_TIMEOUT_MS,
 } from "./mcp.types.ts"
@@ -87,7 +86,7 @@ async function connect(row: McpServerRow, options: McpConnectOptions): Promise<M
 async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<ListToolsResult["tools"]> {
 	const collected: ListToolsResult["tools"] = []
 	let cursor: string | undefined
-	// A hostile server answers every page with another cursor; the caps keep one listing from
+	// A hostile server answers every page with another cursor; the page cap keeps one listing from
 	// hanging the chat that triggered it. Timeouts surface as degraded, never as chat failures.
 	for (let page = 0; page < MAX_TOOL_LIST_PAGES; page++) {
 		// Each cursor is only known once the previous page arrives, so these cannot be parallel.
@@ -98,9 +97,9 @@ async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<Li
 		)
 		collected.push(...listed.tools)
 		cursor = listed.nextCursor
-		if (!cursor || collected.length >= MAX_TOOLS_PER_SERVER) break
+		if (!cursor) break
 	}
-	return collected.slice(0, MAX_TOOLS_PER_SERVER)
+	return collected
 }
 
 function withListTimeout<T>(listing: Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -132,9 +131,9 @@ export async function discoverTools(row: McpServerRow, options: McpConnectOption
 	try {
 		client = await connect(row, options)
 		return (await listAllTools(client, options.signal)).map((tool) => ({
-			name: tool.name,
 			description: tool.description ?? "",
-			selected: true,
+			enabled: true,
+			name: tool.name,
 		}))
 	} catch {
 		return []
@@ -163,12 +162,12 @@ export async function openTools(
 	const clients: MCPClient[] = []
 	await Promise.all(
 		rows.map(async (row) => {
-			const selected = new Set(row.tools.filter((tool) => tool.selected).map((tool) => tool.name))
-			if (selected.size === 0) return
+			const enabled = new Set(row.tools.filter((tool) => tool.enabled).map((tool) => tool.name))
+			if (enabled.size === 0) return
 			try {
 				const client = await connect(row, options)
 				clients.push(client)
-				const live = (await listAllTools(client, options.signal)).filter((tool) => selected.has(tool.name))
+				const live = (await listAllTools(client, options.signal)).filter((tool) => enabled.has(tool.name))
 				const built = client.toolsFromDefinitions({ tools: live })
 				for (const [toolName, tool] of Object.entries(built)) {
 					const key = namespaceToolName(row.name, toolName)

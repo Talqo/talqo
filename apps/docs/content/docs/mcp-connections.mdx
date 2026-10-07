@@ -44,7 +44,7 @@ A Python-based server cannot run in the container as shipped, because it has no 
 
 Saving a connection lists the tools the server offers. Turn off any your agent does not need: it will not be able to call them, and a connection with every tool turned off stays configured but costs nothing at chat time. Saving again re-reads the tool list, so a server that gains or loses a tool is picked up when you edit it.
 
-Turning a tool off is different from disabling the connection. A disabled connection is skipped entirely; a connection with no tools selected still starts, because the model must be able to see each tool's parameters before deciding to call it.
+Turning a tool off is different from disabling the connection. A disabled connection is skipped entirely; a connection with no tools enabled still starts, because the model must be able to see each tool's parameters before deciding to call it.
 
 ## When something does not work
 

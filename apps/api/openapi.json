@@ -1169,11 +1169,11 @@
 								"description": {
 									"type": "string"
 								},
-								"selected": {
+								"enabled": {
 									"type": "boolean"
 								}
 							},
-							"required": ["name", "description", "selected"]
+							"required": ["name", "description", "enabled"]
 						}
 					},
 					"toolCount": {
@@ -6154,14 +6154,14 @@
 										"items": {
 											"type": "object",
 											"properties": {
+												"enabled": {
+													"type": "boolean"
+												},
 												"name": {
 													"type": "string"
-												},
-												"selected": {
-													"type": "boolean"
 												}
 											},
-											"required": ["name", "selected"],
+											"required": ["enabled", "name"],
 											"additionalProperties": false
 										}
 									}

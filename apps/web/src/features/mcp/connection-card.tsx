@@ -47,7 +47,7 @@ export function ConnectionCard({
 				const queryKey = getListMcpServersQueryKey(agentId)
 				await queryClient.cancelQueries({ queryKey })
 				const previous = queryClient.getQueryData<ListMcpServersQueryResult>(queryKey)
-				const selection = new Map((variables.data.tools ?? []).map((tool) => [tool.name, tool.selected]))
+				const enabled = new Map((variables.data.tools ?? []).map((tool) => [tool.name, tool.enabled]))
 				queryClient.setQueryData<ListMcpServersQueryResult>(queryKey, (cached) => {
 					if (!cached) return cached
 					return {
@@ -61,7 +61,7 @@ export function ConnectionCard({
 											...cachedServer,
 											tools: cachedServer.tools.map((tool) => ({
 												...tool,
-												selected: selection.get(tool.name) ?? tool.selected,
+												enabled: enabled.get(tool.name) ?? tool.enabled,
 											})),
 										},
 							),
@@ -128,7 +128,7 @@ export function ConnectionCard({
 						{server.tools.map((tool) => (
 							<label key={tool.name} className="flex items-center gap-2 text-sm">
 								<Switch
-									checked={tool.selected}
+									checked={tool.enabled}
 									disabled={!canManage}
 									aria-label={tool.name}
 									onCheckedChange={(checked) =>

@@ -23,7 +23,7 @@ const serverNameSchema = z.string().trim().min(1).max(MCP_SERVER_NAME_MAX_LENGTH
 const toolSnapshotSchema = z.object({
 	name: z.string(),
 	description: z.string(),
-	selected: z.boolean(),
+	enabled: z.boolean(),
 })
 
 const secretNameSchema = z.object({ name: z.string(), hasValue: z.boolean() })
@@ -59,7 +59,7 @@ const updateRequestSchema = z.strictObject({
 	]),
 	expectedRevision: z.number().int().nonnegative(),
 	/** Sends names and flags. The schema and description come from the last probe. */
-	tools: z.array(z.strictObject({ name: z.string(), selected: z.boolean() })).optional(),
+	tools: z.array(z.strictObject({ enabled: z.boolean(), name: z.string() })).optional(),
 })
 
 const serverResponseSchema = z

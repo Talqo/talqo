@@ -82,7 +82,7 @@ Table `mcp_server`, owned by `mcp`:
 | `command` | text | Required iff `transport = 'stdio'` |
 | `args` | jsonb | `string[]`, default `[]`. Empty when `transport = 'http'` |
 | `env` | jsonb | `{ [VAR]: CredentialEnvelope }`, default `{}`. Empty when `transport = 'http'` |
-| `tools` | jsonb | `[{ name, description, selected }]` from the last successful discovery |
+| `tools` | jsonb | `[{ name, description, enabled }]` from the last successful discovery |
 | `is_disabled` | boolean | Default `false` |
 | `revision` | integer | Default `1`. Bumped only by operator edits — see below |
 | `created_at` / `updated_at` | timestamptz | |
@@ -119,7 +119,7 @@ Closed settings are columns so an invalid row cannot exist and changes appear in
 
 Secrets are stored as a map from name to envelope rather than an array. Names are unique in both cases — two `Authorization` headers is meaningless, and a duplicated environment variable is not expressible — and names must stay readable in plaintext because they are what gets sent. One shape serves both transports.
 
-`tools` stores only `name`, `description`, and the operator's `selected` flag. It renders the tool list and records the selection; it is never used to execute a call. Schemas for execution are always read live, so a server that changes a tool's parameters cannot leave Talqo calling a stale shape.
+`tools` stores only `name`, `description`, and the operator's `enabled` flag. It renders the tool list and records the enabled set; it is never used to execute a call. Schemas for execution are always read live, so a server that changes a tool's parameters cannot leave Talqo calling a stale shape.
 
 Disabling keeps the row, its secrets, and its tool snapshot. It only removes the server from tool resolution, so re-enabling needs no re-entry and no re-discovery.
 
@@ -154,7 +154,7 @@ Runs on every save. The probe calls the client's `listTools()` for raw tool defi
 Protocol era discovery is left at its default of `true`, which probes the `2026-07-28` stateless era and falls back to the legacy handshake — the split that exists in the current server population.
 
 1. Connect and list tools.
-2. On success: `tools` is replaced with the discovered list, each `selected` defaulting to `false`, and preserved by name for tools the operator already chose. Tools the server no longer offers disappear.
+2. On success: `tools` is replaced with the discovered list, each `enabled` defaulting to `true`, and preserved by name for tools the operator already chose. Tools the server no longer offers disappear.
 3. On failure: no tools are written, so the previous snapshot survives and a server that has never answered shows no tools at all.
 
 The save succeeds either way. A server in maintenance must not cost the operator their configuration.
@@ -215,11 +215,11 @@ Concurrency, request options, retries, protocol-era discovery, and session handl
 
 ## Tool resolution and invocation
 
-- Select enabled servers only, then discard any whose stored selection is empty before connecting. A server with no selected tools contributes nothing, so it must not cost a process or a round trip. Deselecting every tool is therefore a cheaper way to keep a server configured but idle than disabling it.
-- Connect and call `listTools()` live per generation, intersected with the stored `selected` flags. A live fetch is required even when only one tool is selected, because that tool's current schema is what gets executed. When one server's live fetch fails, that server is dropped for this generation exactly as if it were unreachable — no tools from it, and a structured log line naming it. Only a total failure across every server yields no tools at all.
+- Take enabled servers only, then discard any whose stored tool set is all disabled before connecting. A server with no enabled tools contributes nothing, so it must not cost a process or a round trip. Turning every tool off is therefore a cheaper way to keep a server configured but idle than disabling it.
+- Connect and call `listTools()` live per generation, intersected with the stored `enabled` flags. A live fetch is required even when only one tool is enabled, because that tool's current schema is what gets executed. When one server's live fetch fails, that server is dropped for this generation exactly as if it were unreachable — no tools from it, and a structured log line naming it. Only a total failure across every server yields no tools at all.
 - The stored snapshot is never used to build a callable tool. It holds no `inputSchema` and there is no transport behind it, so a snapshot-derived tool would be advertised to the model and then fail when called. There is deliberately no degraded fallback here: a server that cannot be reached this turn contributes nothing rather than contributing something broken.
 - Tool descriptions are truncated to `MAX_TOOL_DESCRIPTION_CHARACTERS` as they are handed to the model. That bounds description text only; the larger `inputSchema` is passed through, because truncating a schema would produce tool calls that fail validation. The real context guards are the step bound and the existing input-length check.
-- A selected tool the live list no longer offers is skipped rather than reported as an error, so a server that quietly removes a tool degrades instead of breaking the turn.
+- An enabled tool the live list no longer offers is skipped rather than reported as an error, so a server that quietly removes a tool degrades instead of breaking the turn.
 - Tool names are namespaced and sanitized, because MCP tool names may contain characters the provider tool-name grammar forbids — `shopify.get_product` must not reach `streamText` as-is. This is not optional: the client's own documented way to combine several servers is to spread-merge their tool sets, which silently lets a later server override an earlier one's identically named tool.
   - Build `{sanitize(serverName)}__{sanitize(toolName)}`, where `sanitize` replaces every character outside `[a-zA-Z0-9_-]` with `_`.
   - Then take the **total** result, hash suffix included, to at most 64 characters: when the joined name exceeds 58 characters, replace its tail with `_` followed by the first 6 hex characters of a hash of the full joined name. Truncating to 64 and *then* appending a hash would produce 70 characters and every call would be rejected.
@@ -308,8 +308,7 @@ Operator-facing copy avoids protocol vocabulary: the tab is tools, a server is a
 - stdio lifecycle: the process exits after a successful generation, after an aborted generation, and after a throwing generation, with no orphans; `close` is safe to call twice; one failing server does not prevent another from resolving; servers connect concurrently.
 - Environment isolation: a fixture server that reports its own environment proves `APP_SECRET` and `DATABASE_URL` are absent and the operator's configured variables are present.
 - Tool namespacing: two servers exposing the same tool name both remain callable, a dotted name is accepted, and a name whose namespaced form exceeds 64 characters stays within 64 and still routes to the right tool.
-- OAuth integration: full authorization-code round trip against a stub authorization server, including refresh, issuer mismatch returning `mcp-authorization-server-changed` and dropping the stored tokens, expired `oauth_pending` rejected, and a DCR response containing a `client_secret` stored encrypted rather than in the clear.
-- `conversation` integration: a tool result reaches the model and changes the reply — the test fails if the step bound is left at the default of one, since the result would be dropped; `stopWhen` reaches `MAX_TOOL_STEPS`; a throwing resolver degrades to a reply with no tools; a failing tool call yields `outcome: "failed"` and the generation still completes; an abort mid-call yields `outcome: "cancelled"` for every in-flight tool; an unselected tool is absent.
+- `conversation` integration: a tool result reaches the model and changes the reply — the test fails if the step bound is left at the default of one, since the result would be dropped; `stopWhen` reaches `MAX_TOOL_STEPS`; a throwing resolver degrades to a reply with no tools; a failing tool call yields `outcome: "failed"` and the generation still completes; an abort mid-call yields `outcome: "cancelled"` for every in-flight tool; a disabled tool is absent.
 - SDK: a stream carrying `tool-start` and `tool-end` before `terminal` does not terminate early and exposes the in-flight tool in public state. Without this test the existing terminal fallback silently reintroduces the bug.
 - Widget: renders in-progress tool activity and the widget locale keys exist for it.
 - Contract: routes tests for each route, and `bun run contracts:check` for the regenerated OpenAPI and both clients.
@@ -331,4 +330,4 @@ Because the probe runs when the operator saves rather than when a shopper chats,
 
 ## Decision
 
-Per-agent MCP servers over Streamable HTTP or stdio, with HTTP auth by mode and stdio credentials from its environment, tools discovered by probe and selected by the operator, invoked live during chat, and degrading silently whenever a server misbehaves.
+Per-agent MCP servers over Streamable HTTP or stdio, with HTTP auth by mode and stdio credentials from its environment, tools discovered by probe and enabled by the operator, invoked live during chat, and degrading silently whenever a server misbehaves.

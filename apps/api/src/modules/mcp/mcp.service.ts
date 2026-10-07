@@ -126,19 +126,16 @@ function stdioColumns(serverId: string, input: McpStdioInput, existing?: Credent
 	}
 }
 
-/** Existing tools keep selection. New tools start enabled. */
+/** Existing tools keep their enabled flag. New tools start enabled. */
 function mergeTools(previous: McpToolSnapshot[], discovered: McpToolSnapshot[]): McpToolSnapshot[] {
-	const previousByName = new Map(previous.map((tool) => [tool.name, tool.selected]))
-	return discovered.map((tool) => ({ ...tool, selected: previousByName.get(tool.name) ?? true }))
+	const previousByName = new Map(previous.map((tool) => [tool.name, tool.enabled]))
+	return discovered.map((tool) => ({ ...tool, enabled: previousByName.get(tool.name) ?? true }))
 }
 
-/** The toggle path always sends the complete list, so an explicit empty list deselects everything. */
-function applySelection(
-	previous: McpToolSnapshot[],
-	selection: { name: string; selected: boolean }[],
-): McpToolSnapshot[] {
-	const enabled = new Set(selection.filter((entry) => entry.selected).map((entry) => entry.name))
-	return previous.map((tool) => ({ ...tool, selected: enabled.has(tool.name) }))
+/** The toggle path always sends the complete list, so an explicit empty list disables everything. */
+function applySelection(previous: McpToolSnapshot[], updates: { enabled: boolean; name: string }[]): McpToolSnapshot[] {
+	const enabled = new Set(updates.filter((entry) => entry.enabled).map((entry) => entry.name))
+	return previous.map((tool) => ({ ...tool, enabled: enabled.has(tool.name) }))
 }
 
 function endpointChanged(existing: McpServerRow, input: McpCreateInput): boolean {
@@ -188,7 +185,7 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 		input.transport === "http"
 			? httpColumns(serverId, input, existing.headers)
 			: stdioColumns(serverId, input, existing.env)
-	// A changed endpoint invalidates the snapshot; otherwise the operator's selection is applied to it.
+	// A changed endpoint invalidates the snapshot; otherwise the operator's toggles are applied to it.
 	const tools = endpointChanged(existing, input)
 		? []
 		: input.tools !== undefined

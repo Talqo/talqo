@@ -13,7 +13,7 @@ type UpdateAssembly = Pick<McpServer, "name" | "revision"> & {
 	server: UpdateMcpServerBody["server"]
 }
 
-function toUpdateBody(base: UpdateAssembly, tools?: { name: string; selected: boolean }[]): UpdateMcpServerBody {
+function toUpdateBody(base: UpdateAssembly, tools?: { enabled: boolean; name: string }[]): UpdateMcpServerBody {
 	return {
 		name: base.name,
 		expectedRevision: base.revision,
@@ -30,15 +30,15 @@ function storedServer(server: McpServer): UpdateMcpServerBody["server"] {
 }
 
 /** The toggle path always sends the complete list, so an explicit empty list deselects everything. */
-export function toggledBody(server: McpServer, name: string, selected: boolean): UpdateMcpServerBody {
+export function toggledBody(server: McpServer, name: string, enabled: boolean): UpdateMcpServerBody {
 	return toUpdateBody(
 		{ name: server.name, revision: server.revision, server: storedServer(server) },
-		toggleTool(server.tools, name, selected).map((tool) => ({ name: tool.name, selected: tool.selected })),
+		toggleTool(server.tools, name, enabled).map((tool) => ({ enabled: tool.enabled, name: tool.name })),
 	)
 }
 
-export function toggleTool(tools: McpServer["tools"], name: string, selected: boolean): McpServer["tools"] {
-	return tools.map((tool) => (tool.name === name ? { ...tool, selected } : tool))
+export function toggleTool(tools: McpServer["tools"], name: string, enabled: boolean): McpServer["tools"] {
+	return tools.map((tool) => (tool.name === name ? { ...tool, enabled } : tool))
 }
 
 export function connectionSummary(server: McpServer): string {

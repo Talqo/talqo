@@ -34,7 +34,7 @@ export const McpServer = zod.object({
 		zod.object({
 			name: zod.string(),
 			description: zod.string(),
-			selected: zod.boolean(),
+			enabled: zod.boolean(),
 		}),
 	),
 	toolCount: zod.int().min(mcpServerToolCountMin),

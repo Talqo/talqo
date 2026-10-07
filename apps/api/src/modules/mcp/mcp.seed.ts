@@ -10,12 +10,12 @@ const SEED_HTTP_SERVER_ID = "55555555-5555-5555-8555-555555555555"
 const DEMO_STDIO_SCRIPT = "test-fixtures/mcp-demo-server.ts"
 
 const DEMO_TOOLS = [
-	{ name: "get_stock_level", description: "How many units of a product are in stock, by SKU.", selected: true },
-	{ name: "list_orders", description: "Recent orders, optionally filtered by status.", selected: true },
+	{ name: "get_stock_level", description: "How many units of a product are in stock, by SKU.", enabled: true },
+	{ name: "list_orders", description: "Recent orders, optionally filtered by status.", enabled: true },
 	{
 		name: "report_environment",
 		description: "Reports the environment variables this server can see.",
-		selected: false,
+		enabled: false,
 	},
 ]
 

@@ -59,8 +59,8 @@ export const UpdateMcpServerBody = zod.object({
 	tools: zod
 		.array(
 			zod.object({
+				enabled: zod.boolean(),
 				name: zod.string(),
-				selected: zod.boolean(),
 			}),
 		)
 		.optional(),
