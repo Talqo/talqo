@@ -9,7 +9,7 @@ import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
  * Rebuilds an update body from pieces the dialog or the card assembled. Secrets travel as entered
  * values plus the names to forget; whatever is mentioned in neither keeps its stored envelope.
  */
-type UpdateAssembly = Pick<McpServer, "isDisabled" | "name" | "revision"> & {
+type UpdateAssembly = Pick<McpServer, "name" | "revision"> & {
 	server: UpdateMcpServerBody["server"]
 }
 
@@ -17,7 +17,6 @@ function toUpdateBody(base: UpdateAssembly, tools?: { name: string; selected: bo
 	return {
 		name: base.name,
 		expectedRevision: base.revision,
-		isDisabled: base.isDisabled,
 		...(tools ? { tools } : {}),
 		server: base.server,
 	}
@@ -33,7 +32,7 @@ function storedServer(server: McpServer): UpdateMcpServerBody["server"] {
 /** The toggle path always sends the complete list, so an explicit empty list deselects everything. */
 export function toggledBody(server: McpServer, name: string, selected: boolean): UpdateMcpServerBody {
 	return toUpdateBody(
-		{ name: server.name, revision: server.revision, isDisabled: server.isDisabled, server: storedServer(server) },
+		{ name: server.name, revision: server.revision, server: storedServer(server) },
 		toggleTool(server.tools, name, selected).map((tool) => ({ name: tool.name, selected: tool.selected })),
 	)
 }
@@ -141,10 +140,7 @@ export function toCreateBody(draft: ConnectionDraft): CreateResult {
 }
 
 /** Editing keeps every stored tool selection; only the endpoint and secrets on the form can change. */
-export function toEditBody(
-	draft: ConnectionDraft,
-	server: Pick<McpServer, "isDisabled" | "revision"> & StoredSecrets,
-): UpdateResult {
+export function toEditBody(draft: ConnectionDraft, server: Pick<McpServer, "revision"> & StoredSecrets): UpdateResult {
 	const reason = validate(draft, false)
 	if (reason) return { ok: false, reason }
 	return {
@@ -152,7 +148,6 @@ export function toEditBody(
 		body: toUpdateBody({
 			name: draft.name.trim(),
 			revision: server.revision,
-			isDisabled: server.isDisabled,
 			server: serverOf(draft, server),
 		}),
 	}

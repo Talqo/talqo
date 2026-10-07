@@ -127,7 +127,6 @@ function edit(
 	return toEditBody(
 		{ ...EMPTY_DRAFT, name: "Stock", url: "https://example.test/mcp", ...patch },
 		{
-			isDisabled: true,
 			revision: 7,
 			headers: [],
 			env: [],
@@ -137,10 +136,10 @@ function edit(
 }
 
 describe("toEditBody", () => {
-	test("keeps the revision and the disabled flag without touching tools", () => {
+	test("keeps the revision without touching tools", () => {
 		const body = edit()
 
-		expect(body).toMatchObject({ ok: true, body: { expectedRevision: 7, isDisabled: true, name: "Stock" } })
+		expect(body).toMatchObject({ ok: true, body: { expectedRevision: 7, name: "Stock" } })
 		// An explicit list replaces the selection, so the dialog sends none and the stored one survives.
 		expect((body as { body: object }).body).not.toHaveProperty("tools")
 	})
@@ -216,7 +215,7 @@ describe("env variables", () => {
 				command: "bunx",
 				env: [{ id: "e1", name: "API_KEY", value: "" }],
 			},
-			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
+			{ revision: 1, headers: [], env: [{ name: "API_KEY" }] },
 		)
 
 		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("env")
@@ -232,7 +231,7 @@ describe("env variables", () => {
 				command: "bunx",
 				env: [{ id: "e3", name: "REGION", value: "" }],
 			},
-			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }, { name: "REGION" }] },
+			{ revision: 1, headers: [], env: [{ name: "API_KEY" }, { name: "REGION" }] },
 		)
 
 		expect(body).toMatchObject({ ok: true, body: { server: { deleteEnv: ["API_KEY"] } } })
@@ -250,7 +249,7 @@ describe("env variables", () => {
 					{ id: "e2", name: "REGION", value: "eu" },
 				],
 			},
-			{ isDisabled: false, revision: 1, headers: [], env: [{ name: "API_KEY" }] },
+			{ revision: 1, headers: [], env: [{ name: "API_KEY" }] },
 		)
 
 		expect(body).toMatchObject({ ok: true, body: { server: { env: { REGION: "eu" } } } })

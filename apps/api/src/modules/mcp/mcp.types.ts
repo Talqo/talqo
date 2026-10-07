@@ -34,7 +34,6 @@ export type McpStdioInput = {
 export type McpCreateInput = { name: string } & (McpHttpInput | McpStdioInput)
 export type McpUpdateInput = McpCreateInput & {
 	expectedRevision: number
-	isDisabled?: boolean
 	tools?: { name: string; selected: boolean }[]
 }
 

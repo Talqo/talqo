@@ -34,7 +34,7 @@ export class InvalidMcpServerError extends Error {}
 /** The open connection that conversation holds for one generation. */
 export type OpenTools = OpenToolsResult
 
-const vault = () => createCredentialVault(env.APP_SECRET, KEY_CONTEXT)
+const vault = createCredentialVault(env.APP_SECRET, KEY_CONTEXT)
 
 async function ownedRow(agentId: string, serverId: string): Promise<McpServerRow> {
 	const row = await repo.find(serverId)
@@ -95,8 +95,7 @@ function mergeSecrets(
 ): CredentialSecretMap {
 	const merged: CredentialSecretMap = { ...existing }
 	for (const name of remove ?? []) delete merged[name]
-	const seal = vault()
-	for (const [name, value] of Object.entries(input ?? {})) merged[name] = seal.encrypt(value, { serverId, purpose })
+	for (const [name, value] of Object.entries(input ?? {})) merged[name] = vault.encrypt(value, { serverId, purpose })
 	return merged
 }
 
@@ -148,7 +147,7 @@ function endpointChanged(existing: McpServerRow, input: McpCreateInput): boolean
 
 /** A connection works when it offered tools. A failure leaves the configuration and any snapshot alone. */
 async function withDiscoveredTools(row: McpServerRow): Promise<McpServerRow> {
-	const discovered = await discoverTools(row, { vault: vault() })
+	const discovered = await discoverTools(row, { vault })
 	if (discovered.length === 0) return row
 	return (await repo.update(row.id, { tools: mergeTools(row.tools, discovered) })) ?? row
 }
@@ -195,7 +194,7 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 			: existing.tools
 	const saved = await repo.updateAtRevision(
 		serverId,
-		{ ...base, name: input.name.trim(), isDisabled: input.isDisabled ?? existing.isDisabled, tools },
+		{ ...base, name: input.name.trim(), tools },
 		input.expectedRevision,
 	)
 	if (!saved) throw new RevisionConflictError("Connection changed; reload and retry")
@@ -221,7 +220,7 @@ export async function setServerDisabled(
 export async function openTools(agentId: string, signal: AbortSignal): Promise<OpenTools> {
 	const enabled = (await repo.listForAgent(agentId)).filter((row) => !row.isDisabled)
 	return openServerTools(enabled, {
-		vault: vault(),
+		vault,
 		signal,
 		onDegraded(row, error) {
 			console.error("mcp.server.degraded", { agentId, serverId: row.id, transport: row.transport, error })

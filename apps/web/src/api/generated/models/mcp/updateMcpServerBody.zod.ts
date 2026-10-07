@@ -56,7 +56,6 @@ export const UpdateMcpServerBody = zod.object({
 		}),
 	]),
 	expectedRevision: zod.int().min(updateMcpServerBodyExpectedRevisionMin),
-	isDisabled: zod.boolean().optional(),
 	tools: zod
 		.array(
 			zod.object({

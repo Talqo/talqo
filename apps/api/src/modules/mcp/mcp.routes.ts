@@ -70,12 +70,11 @@ export const mcpServerRoutes = new OpenAPIHono()
 	.openapi(updateMcpServerRoute, async (c) => {
 		try {
 			const { agentId, serverId } = c.req.valid("param")
-			const { name, server, expectedRevision, isDisabled, tools } = c.req.valid("json") as McpUpdateBody
+			const { name, server, expectedRevision, tools } = c.req.valid("json") as McpUpdateBody
 			const updated = await service.updateServer(agentId, serverId, {
 				name,
 				...server,
 				expectedRevision,
-				isDisabled,
 				tools,
 			})
 			return c.json(serverDetailSchema.parse({ server: updated }), HTTP_STATUS.OK)

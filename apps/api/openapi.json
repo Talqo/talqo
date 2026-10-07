@@ -6149,9 +6149,6 @@
 										"type": "integer",
 										"minimum": 0
 									},
-									"isDisabled": {
-										"type": "boolean"
-									},
 									"tools": {
 										"type": "array",
 										"items": {

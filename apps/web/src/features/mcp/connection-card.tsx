@@ -164,7 +164,7 @@ export function ConnectionCard({
 							aria-label={t("mcp.enabled")}
 						/>
 						<div className="flex items-center gap-1">
-							<ConnectionDialog agentId={agentId} server={server} />
+							<ConnectionDialog key={server.id} agentId={agentId} server={server} />
 							<Button
 								variant="destructive"
 								size="icon-sm"

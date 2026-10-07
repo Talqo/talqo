@@ -58,7 +58,6 @@ const updateRequestSchema = z.strictObject({
 		}),
 	]),
 	expectedRevision: z.number().int().nonnegative(),
-	isDisabled: z.boolean().optional(),
 	/** Sends names and flags. The schema and description come from the last probe. */
 	tools: z.array(z.strictObject({ name: z.string(), selected: z.boolean() })).optional(),
 })
