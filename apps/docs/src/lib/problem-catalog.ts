@@ -197,18 +197,18 @@ export const PROBLEMS = [
 		guidance: "Pick a different name; names only need to be unique within one agent.",
 	},
 	{
+		code: "invalid-mcp-server-name",
+		title: "Connection name not accepted",
+		status: "400",
+		meaning: "The connection name is empty, too long, or contains characters outside printable ASCII.",
+		guidance: "Use a short name with printable ASCII characters.",
+	},
+	{
 		code: "invalid-mcp-server-url",
 		title: "Connection details not accepted",
 		status: "400",
 		meaning: "The address, command, or header name is not usable for the selected type.",
 		guidance: "Check the address starts with http or https, and that no reserved header is used.",
-	},
-	{
-		code: "mcp-authorization-server-changed",
-		title: "Sign-in server changed",
-		status: "400",
-		meaning: "The server now points at a different sign-in provider, so stored credentials were discarded.",
-		guidance: "Review the new provider, then start the connection's sign-in again.",
 	},
 	{
 		code: "mcp-server-not-found",
