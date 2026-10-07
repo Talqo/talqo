@@ -250,7 +250,7 @@ export const revokePermissionGrantRoute = createRoute({
 
 export const getUsersRoute = createRoute({
 	method: "get",
-	path: "/users",
+	path: "/",
 	operationId: "listUsers",
 	tags: ["Roles"],
 	...access.permission(Permission.Admin),
@@ -264,7 +264,7 @@ export const getUsersRoute = createRoute({
 
 export const deleteUserRoute = createRoute({
 	method: "delete",
-	path: "/users/{userId}",
+	path: "/{userId}",
 	operationId: "deleteUser",
 	tags: ["Roles"],
 	...access.permission(Permission.Admin),
@@ -281,7 +281,7 @@ export const deleteUserRoute = createRoute({
 
 export const resetUserPasswordRoute = createRoute({
 	method: "patch",
-	path: "/users/{userId}/password",
+	path: "/{userId}/password",
 	operationId: "resetUserPassword",
 	tags: ["Roles"],
 	...access.permission(Permission.Admin),

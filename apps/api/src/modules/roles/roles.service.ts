@@ -1,7 +1,9 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
 
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
-import { isUniqueViolation } from "@/lib/pg-error.ts"
+import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 
 import * as repo from "./roles.repository.ts"
@@ -51,8 +53,16 @@ export function effectivePermissions(grants: AuthorizationGrant[]): Permission[]
 	)
 }
 
-export class AdminAlreadyExistsError extends Error {}
-export class InvalidInvitationError extends Error {}
+export class AdminAlreadyExistsError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class InvalidInvitationError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_INVITATION, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
 
 export async function hasAdmin(): Promise<boolean> {
 	return repo.adminGrantExists()
@@ -117,13 +127,20 @@ export async function grantPermission(input: {
 	permission: Permission
 	userId: string
 }): Promise<PermissionGrant> {
-	const row = await repo.insertPermissionGrant({
-		id: crypto.randomUUID(),
-		userId: input.userId,
-		permission: input.permission,
-		grantedBy: input.grantedBy,
-	})
-	return { ...row, permission: input.permission }
+	try {
+		const row = await repo.insertPermissionGrant({
+			id: crypto.randomUUID(),
+			userId: input.userId,
+			permission: input.permission,
+			grantedBy: input.grantedBy,
+		})
+		return { ...row, permission: input.permission }
+	} catch (error) {
+		if (isForeignKeyViolation(error))
+			throw new identity.UserNotFoundError(`grantPermission: user ${input.userId} not found`, { cause: error })
+		if (isUniqueViolation(error)) throw new AdminAlreadyExistsError("Permission grant already exists", { cause: error })
+		throw error
+	}
 }
 
 export async function revokePermission(id: string): Promise<void> {

@@ -41,24 +41,17 @@ routes.use("/:agentId/files", uploadBodyLimit)
 export const agentFilesRoutes = routes
 	.openapi(listAgentFilesRoute, async (c) => {
 		const agentId = c.req.valid("param").agentId
-		try {
-			await requireAgent(agentId)
-			const listed = await files.listWithStatus(agentId)
-			return c.json(
-				agentFileListResponseSchema.parse({
-					files: listed.map(serialize),
-					maxSizeBytes: files.MAX_FILE_SIZE_BYTES,
-					maxNameLength: files.MAX_FILE_NAME_LENGTH,
-					allowedExtensions: [...files.ALLOWED_EXTENSIONS],
-				}),
-				HTTP_STATUS.OK,
-			)
-		} catch (error) {
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		const listed = await files.listWithStatus(agentId)
+		return c.json(
+			agentFileListResponseSchema.parse({
+				files: listed.map(serialize),
+				maxSizeBytes: files.MAX_FILE_SIZE_BYTES,
+				maxNameLength: files.MAX_FILE_NAME_LENGTH,
+				allowedExtensions: [...files.ALLOWED_EXTENSIONS],
+			}),
+			HTTP_STATUS.OK,
+		)
 	})
 	.openapi(uploadAgentFileRoute, async (c) => {
 		const agentId = c.req.valid("param").agentId
@@ -67,117 +60,43 @@ export const agentFilesRoutes = routes
 		if (!(file instanceof File)) {
 			return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
 		}
-		try {
-			await requireAgent(agentId)
-			files.validateUpload(file)
-			const stored = await files.upload(agentId, file.name, await file.arrayBuffer())
-			return c.json(agentFileDetailResponseSchema.parse({ file: serialize(stored) }), HTTP_STATUS.CREATED)
-		} catch (error) {
-			if (error instanceof files.FileTooLargeError) {
-				return problemResponse(c, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE)
-			}
-			if (error instanceof files.InvalidFileError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileExistsError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		files.validateUpload(file)
+		const stored = await files.upload(agentId, file.name, await file.arrayBuffer())
+		return c.json(agentFileDetailResponseSchema.parse({ file: serialize(stored) }), HTTP_STATUS.CREATED)
 	})
 	.openapi(downloadAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
-		try {
-			await requireAgent(agentId)
-			files.validateName(fileName)
-			const content = await files.get(agentId, fileName)
-			// attachment forces a download, so the generic type suffices; no per-format map to maintain.
-			return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
-				"Content-Disposition": contentDisposition(fileName),
-				"Content-Type": "application/octet-stream",
-			})
-		} catch (error) {
-			if (error instanceof files.InvalidFileError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		files.validateName(fileName)
+		const content = await files.get(agentId, fileName)
+		// attachment forces a download, so the generic type suffices; no per-format map to maintain.
+		return c.body(new Uint8Array(content), HTTP_STATUS.OK, {
+			"Content-Disposition": contentDisposition(fileName),
+			"Content-Type": "application/octet-stream",
+		})
 	})
 	.openapi(renameAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
-		try {
-			await requireAgent(agentId)
-			files.validateName(fileName)
-			const target = files.resolveRenameTarget(fileName, c.req.valid("json").name)
-			const renamed = await files.rename(agentId, fileName, target)
-			return c.json(agentFileDetailResponseSchema.parse({ file: serialize(renamed) }), HTTP_STATUS.OK)
-		} catch (error) {
-			if (error instanceof files.InvalidFileError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileExistsError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		files.validateName(fileName)
+		const target = files.resolveRenameTarget(fileName, c.req.valid("json").name)
+		const renamed = await files.rename(agentId, fileName, target)
+		return c.json(agentFileDetailResponseSchema.parse({ file: serialize(renamed) }), HTTP_STATUS.OK)
 	})
 	.openapi(deleteAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
-		try {
-			await requireAgent(agentId)
-			files.validateName(fileName)
-			await files.deleteFile(agentId, fileName)
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof files.InvalidFileError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		files.validateName(fileName)
+		await files.deleteFile(agentId, fileName)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(retryAgentFileRoute, async (c) => {
 		const { agentId, fileName } = c.req.valid("param")
-		try {
-			await requireAgent(agentId)
-			files.validateName(fileName)
-			await files.retryEmbedding(agentId, fileName)
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof agent.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.FileNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof files.InvalidFileError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof files.FileNotRetryableError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		await requireAgent(agentId)
+		files.validateName(fileName)
+		await files.retryEmbedding(agentId, fileName)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})

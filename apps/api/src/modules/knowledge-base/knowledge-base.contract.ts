@@ -6,6 +6,8 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 import { MAX_FILE_NAME_LENGTH } from "./knowledge-base.service.ts"
 
+const agentFilesPrefix = "/{agentId}/files"
+
 const agentFileSchema = z
 	.object({
 		name: z.string(),
@@ -64,7 +66,7 @@ const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 
 export const listAgentFilesRoute = createRoute({
 	method: "get",
-	path: "/{agentId}/files",
+	path: agentFilesPrefix,
 	operationId: "listAgentFiles",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),
@@ -83,7 +85,7 @@ export const listAgentFilesRoute = createRoute({
 
 export const uploadAgentFileRoute = createRoute({
 	method: "post",
-	path: "/{agentId}/files",
+	path: agentFilesPrefix,
 	operationId: "uploadAgentFile",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),
@@ -108,7 +110,7 @@ export const uploadAgentFileRoute = createRoute({
 
 export const downloadAgentFileRoute = createRoute({
 	method: "get",
-	path: "/{agentId}/files/{fileName}",
+	path: `${agentFilesPrefix}/{fileName}`,
 	operationId: "downloadAgentFile",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),
@@ -128,7 +130,7 @@ export const downloadAgentFileRoute = createRoute({
 
 export const renameAgentFileRoute = createRoute({
 	method: "patch",
-	path: "/{agentId}/files/{fileName}",
+	path: `${agentFilesPrefix}/{fileName}`,
 	operationId: "renameAgentFile",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),
@@ -150,7 +152,7 @@ export const renameAgentFileRoute = createRoute({
 
 export const deleteAgentFileRoute = createRoute({
 	method: "delete",
-	path: "/{agentId}/files/{fileName}",
+	path: `${agentFilesPrefix}/{fileName}`,
 	operationId: "deleteAgentFile",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),
@@ -167,7 +169,7 @@ export const deleteAgentFileRoute = createRoute({
 
 export const retryAgentFileRoute = createRoute({
 	method: "post",
-	path: "/{agentId}/files/{fileName}/retry",
+	path: `${agentFilesPrefix}/{fileName}/retry`,
 	operationId: "retryAgentFile",
 	tags: ["Agent"],
 	...access.permission(roles.Permission.AgentsManage),

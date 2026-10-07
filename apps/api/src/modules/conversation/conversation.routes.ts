@@ -4,23 +4,12 @@ import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
 import { cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
-import {
-	ConcurrentGenerationLimitError,
-	ConversationTooLongError,
-	DailyAllowanceExceededError,
-	EmbedDisabledError,
-	InvalidChatInputError,
-	ProviderUnavailableError,
-	RequestConflictError,
-	SessionBusyError,
-	SessionUnauthorizedError,
-} from "./conversation.errors.ts"
+import { InvalidChatInputError } from "./conversation.errors.ts"
 import { getConversationService } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
@@ -29,41 +18,6 @@ type ChatEnv = { Bindings: ChatBindings; Variables: { chatCredential: string } }
 type PeerSource = (context: { env?: ChatBindings; req: { header(name: string): string | undefined } }) => {
 	forwardedFor: string | undefined
 	peerAddress: string | undefined
-}
-const UTC_RESET_HOUR = 24
-const MILLISECONDS_PER_SECOND = 1000
-
-function mapError(c: Parameters<typeof problemResponse>[0], error: unknown): Response | undefined {
-	if (error instanceof EmbedNotFoundError)
-		return problemResponse(c, PROBLEM_CODES.EMBED_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-	if (error instanceof EmbedDisabledError)
-		return problemResponse(c, PROBLEM_CODES.EMBED_DISABLED, HTTP_STATUS.FORBIDDEN)
-	if (error instanceof SessionUnauthorizedError)
-		return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
-	if (error instanceof RequestConflictError)
-		return problemResponse(c, PROBLEM_CODES.CHAT_REQUEST_CONFLICT, HTTP_STATUS.CONFLICT)
-	if (error instanceof ConversationTooLongError)
-		return problemResponse(c, PROBLEM_CODES.CHAT_CONVERSATION_TOO_LONG, HTTP_STATUS.BAD_REQUEST)
-	if (error instanceof DailyAllowanceExceededError) {
-		const reset = new Date()
-		reset.setUTCHours(UTC_RESET_HOUR, 0, 0, 0)
-		c.header("Retry-After", String(Math.max(1, Math.ceil((reset.getTime() - Date.now()) / MILLISECONDS_PER_SECOND))))
-		c.header("X-RateLimit-Reset", reset.toISOString())
-		return problemResponse(c, PROBLEM_CODES.CHAT_DAILY_ALLOWANCE_EXCEEDED, HTTP_STATUS.TOO_MANY_REQUESTS)
-	}
-	if (error instanceof ConcurrentGenerationLimitError || error instanceof SessionBusyError) {
-		c.header("Retry-After", "1")
-		return problemResponse(
-			c,
-			error instanceof SessionBusyError ? PROBLEM_CODES.CHAT_SESSION_BUSY : PROBLEM_CODES.CHAT_CONCURRENCY_LIMIT,
-			HTTP_STATUS.TOO_MANY_REQUESTS,
-		)
-	}
-	if (error instanceof InvalidChatInputError)
-		return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
-	if (error instanceof ProviderUnavailableError)
-		return problemResponse(c, PROBLEM_CODES.PROVIDER_ERROR, HTTP_STATUS.BAD_GATEWAY)
-	return undefined
 }
 
 function sse(event: ChatEvent): Uint8Array {
@@ -110,72 +64,52 @@ export function createConversationRoutes(
 				}
 			} else pending.push(bytes)
 		}
-		try {
-			const embedToken = c.req.param("embedToken")
-			if (!embedToken) throw new InvalidChatInputError()
-			const body = await c.req.json<{ requestId: string; text: string }>()
-			const result = await activeService().send(
-				{
-					...body,
-					credential: c.get("chatCredential"),
-					embedToken,
-					networkHash: hashClientNetwork(normalized, env.APP_SECRET),
-				},
-				emit,
-			)
-			const stream = new ReadableStream<Uint8Array>({
-				start(value) {
-					controller = value
-					for (const bytes of pending.splice(0)) value.enqueue(bytes)
-					void result.done
-						.finally(() => {
-							try {
-								value.close()
-							} catch {
-								// Client disconnects do not cancel persisted generation work.
-							}
-						})
-						// Swallow stream-tail failures; they stay recoverable from persisted state.
-						.catch(() => undefined)
-				},
-				cancel() {
-					controller = undefined
-				},
-			})
-			return new Response(stream, {
-				status: HTTP_STATUS.OK,
-				headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache" },
-			})
-		} catch (error) {
-			const mapped = mapError(c, error)
-			if (mapped) return mapped
-			throw error
-		}
+		const embedToken = c.req.param("embedToken")
+		if (!embedToken) throw new InvalidChatInputError()
+		const body = await c.req.json<{ requestId: string; text: string }>()
+		const result = await activeService().send(
+			{
+				...body,
+				credential: c.get("chatCredential"),
+				embedToken,
+				networkHash: hashClientNetwork(normalized, env.APP_SECRET),
+			},
+			emit,
+		)
+		const stream = new ReadableStream<Uint8Array>({
+			start(value) {
+				controller = value
+				for (const bytes of pending.splice(0)) value.enqueue(bytes)
+				void result.done
+					.finally(() => {
+						try {
+							value.close()
+						} catch {
+							// Client disconnects do not cancel persisted generation work.
+						}
+					})
+					// Swallow stream-tail failures; they stay recoverable from persisted state.
+					.catch(() => undefined)
+			},
+			cancel() {
+				controller = undefined
+			},
+		})
+		return new Response(stream, {
+			status: HTTP_STATUS.OK,
+			headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache" },
+		})
 	}
 
 	return routes
 		.openapi(sendRoute, send)
 		.openapi(sessionRoute, async (c) => {
-			try {
-				const session = await activeService().getSession(c.get("chatCredential"))
-				return c.json(sessionStateSchema.parse(session), HTTP_STATUS.OK)
-			} catch (error) {
-				if (error instanceof SessionUnauthorizedError) {
-					return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
-				}
-				throw error
-			}
+			const session = await activeService().getSession(c.get("chatCredential"))
+			return c.json(sessionStateSchema.parse(session), HTTP_STATUS.OK)
 		})
 		.openapi(cancelRoute, async (c) => {
 			const body = c.req.valid("json") as { generationId?: string } | undefined
-			try {
-				await activeService().cancel(c.get("chatCredential"), body?.generationId)
-				return c.body(null, HTTP_STATUS.NO_CONTENT)
-			} catch (error) {
-				if (error instanceof SessionUnauthorizedError) {
-					return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
-				}
-				throw error
-			}
+			await activeService().cancel(c.get("chatCredential"), body?.generationId)
+			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		})
 }

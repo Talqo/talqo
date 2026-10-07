@@ -1,4 +1,7 @@
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
+import { isUniqueViolation } from "@/lib/pg-error.ts"
 import {
 	CREDENTIAL_MAX_LENGTH,
 	PASSWORD_MAX_LENGTH,
@@ -23,12 +26,33 @@ export const SESSION_COOKIE = "session"
 
 export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN }
 
-export class InvalidCredentialsError extends Error {}
-export class InvalidPasswordError extends Error {}
+export class InvalidCredentialsError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED, message, undefined, options)
+	}
+}
+export class InvalidPasswordError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.CURRENT_PASSWORD_INCORRECT, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
 export class InvalidUsernameError extends Error {}
 export class InvalidPasswordFormatError extends Error {}
-export class UserNotFoundError extends Error {}
-export class PasswordChangeNotRequiredError extends Error {}
+export class UserNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class PasswordChangeNotRequiredError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PASSWORD_CHANGE_NOT_REQUIRED, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class UsernameTakenError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
 
 export type PublicUser = Pick<User, "id" | "mustChangePassword" | "username">
 
@@ -59,12 +83,17 @@ export async function createAccount(input: { password: string; username: string 
 	assertValidUsername(input.username)
 	assertValidPassword(input.password)
 	const passwordHash = await Bun.password.hash(input.password)
-	const user = await repo.insertUser({
-		id: crypto.randomUUID(),
-		username: input.username,
-		passwordHash,
-	})
-	return toPublicUser(user)
+	try {
+		const user = await repo.insertUser({
+			id: crypto.randomUUID(),
+			username: input.username,
+			passwordHash,
+		})
+		return toPublicUser(user)
+	} catch (error) {
+		if (isUniqueViolation(error)) throw new UsernameTakenError("Username is already taken", { cause: error })
+		throw error
+	}
 }
 
 export async function createSession(
@@ -184,9 +213,15 @@ export async function listUsers(): Promise<PublicUser[]> {
 
 export async function updateAccount(userId: string, input: { username: string }): Promise<PublicUser> {
 	assertValidUsername(input.username)
-	const user = await repo.updateUser(userId, input)
-	if (!user) throw new UserNotFoundError(`updateAccount: user ${userId} not found`)
-	return toPublicUser(user)
+	try {
+		const user = await repo.updateUser(userId, input)
+		if (!user) throw new UserNotFoundError(`updateAccount: user ${userId} not found`)
+		return toPublicUser(user)
+	} catch (error) {
+		if (error instanceof UserNotFoundError) throw error
+		if (isUniqueViolation(error)) throw new UsernameTakenError("Username is already taken", { cause: error })
+		throw error
+	}
 }
 
 export async function deleteAccount(userId: string): Promise<void> {
