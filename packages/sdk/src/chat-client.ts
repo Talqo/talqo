@@ -85,7 +85,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let credential: string | undefined
 	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
-	let activeTools: readonly ActiveTool[] = []
+	let activeTools: ActiveTool[] = []
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
 	let activeSend:
@@ -377,11 +377,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					publish()
 				} else if (event.type === "tool-start") {
 					const { serverName, toolName } = event
-					const same = (t: { serverName: string; toolName: string }) =>
-						t.toolName === toolName && t.serverName === serverName
-					activeTools = activeTools.some(same)
-						? activeTools.map((t) => (same(t) ? { ...t, serverName } : t))
-						: [...activeTools, { serverName, toolName }]
+					if (!activeTools.some((tool) => tool.toolName === toolName && tool.serverName === serverName))
+						activeTools.push({ serverName, toolName })
 					publish()
 				} else if (event.type === "tool-end") {
 					activeTools = activeTools.filter((t) => t.toolName !== event.toolName || t.serverName !== event.serverName)

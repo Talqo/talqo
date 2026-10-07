@@ -125,8 +125,7 @@ function withListTimeout<T>(listing: Promise<T>, signal?: AbortSignal): Promise<
 }
 
 /**
- * Connects, lists tools, closes. Returns nothing for a server that could not be reached, which is how a
- * connection is judged working: if it has no tools, it is not.
+ * Connects, lists tools, closes. Returns an empty list when unreachable. No tools counts as not working.
  */
 export async function discoverTools(row: McpServerRow, options: McpConnectOptions): Promise<McpToolSnapshot[]> {
 	let client: MCPClient | undefined
@@ -146,7 +145,7 @@ export async function discoverTools(row: McpServerRow, options: McpConnectOption
 
 export type OpenToolsResult = {
 	close: () => Promise<void>
-	/** Namespaced tool name -> the server's own names, so events never show the mangled form. */
+	/** Namespaced tool name to the server and tool names shown to operators. */
 	names: Map<string, { serverName: string; toolName: string }>
 	tools: ToolSet
 }
@@ -164,7 +163,6 @@ export async function openTools(
 	const clients: MCPClient[] = []
 	await Promise.all(
 		rows.map(async (row) => {
-			// An empty selection is skipped before connecting, so it costs neither a process nor a round trip.
 			const selected = new Set(row.tools.filter((tool) => tool.selected).map((tool) => tool.name))
 			if (selected.size === 0) return
 			try {
@@ -207,8 +205,7 @@ function truncateDescription(tool: ToolSet[string]): ToolSet[string] {
 }
 
 /**
- * Tool output lands verbatim in the model's context, so a hostile server could burn it with a
- * megabyte of instructions-to-ignore. Text parts are cut at a shared budget with a marker.
+ * A hostile server could burn model context, so text parts are cut at a shared budget with a marker.
  */
 function truncateResult(result: unknown): unknown {
 	if (typeof result === "string")

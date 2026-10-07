@@ -1,6 +1,5 @@
 /**
- * Demo MCP server for the Talqo dev stack and integration tests. Speaks the wire protocol directly so
- * the repository keeps a single MCP stack: @ai-sdk/mcp is the client, this is the other end of it.
+ * Demo MCP stdio server for tests. Implements JSON-RPC directly, no SDK.
  *
  * Run as `bun test-fixtures/mcp-demo-server.ts`.
  */

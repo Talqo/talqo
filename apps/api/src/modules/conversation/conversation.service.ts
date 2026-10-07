@@ -296,8 +296,7 @@ export function createConversationService(dependencies: Dependencies) {
 			retriable: true,
 			newChatAvailable: false,
 		}
-		// Resolution belongs here rather than in prepareAndAccept: this is the first point with an abort
-		// signal, and prepare retries on stale history, which would orphan anything spawned earlier.
+		// Resolves here because abort exists here. Prepare retries would orphan earlier spawns.
 		let connection: mcp.OpenTools | undefined
 		try {
 			connection = await mcp.openTools(agent.id, controller.signal)

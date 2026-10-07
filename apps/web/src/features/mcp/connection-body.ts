@@ -6,33 +6,43 @@ import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
 
 /**
- * Rebuilds an update body from a server whose secrets came back masked. Entered values are sent,
- * removed names travel in deleteHeaders/deleteEnv, and whatever is mentioned in neither keeps its
- * stored envelope.
+ * Rebuilds an update body from pieces the dialog or the card assembled. Secrets travel as entered
+ * values plus the names to forget; whatever is mentioned in neither keeps its stored envelope.
  */
 export function toUpdateBody(
-	server: McpServer,
-	overrides: { isDisabled?: boolean; tools?: McpServer["tools"] } = {},
+	base: Pick<McpServer, "isDisabled" | "name" | "revision"> & {
+		server: UpdateMcpServerBody["server"]
+	},
+	tools?: { name: string; selected: boolean }[],
 ): UpdateMcpServerBody {
-	const tools = overrides.tools ?? server.tools
 	return {
-		name: server.name,
-		expectedRevision: server.revision,
-		isDisabled: overrides.isDisabled ?? server.isDisabled,
-		tools: tools.map(({ name, selected }) => ({ name, selected })),
-		server:
-			server.transport === "http"
-				? { transport: "http", url: server.url ?? "", authMode: server.authMode ?? "none" }
-				: { transport: "stdio", command: server.command ?? "", args: server.args },
+		name: base.name,
+		expectedRevision: base.revision,
+		isDisabled: base.isDisabled,
+		...(tools ? { tools } : {}),
+		server: base.server,
 	}
 }
 
-/** Flips one tool and leaves every other selection alone. */
+/** The endpoint and secrets as the operator left them; the stored tool selection is untouched. */
+function storedServer(server: McpServer): UpdateMcpServerBody["server"] {
+	return server.transport === "http"
+		? { transport: "http", url: server.url ?? "", authMode: server.authMode ?? "none" }
+		: { transport: "stdio", command: server.command ?? "", args: server.args }
+}
+
+/** The toggle path always sends the complete list, so an explicit empty list deselects everything. */
+export function toggledBody(server: McpServer, name: string, selected: boolean): UpdateMcpServerBody {
+	return toUpdateBody(
+		{ name: server.name, revision: server.revision, isDisabled: server.isDisabled, server: storedServer(server) },
+		toggleTool(server.tools, name, selected).map((tool) => ({ name: tool.name, selected: tool.selected })),
+	)
+}
+
 export function toggleTool(tools: McpServer["tools"], name: string, selected: boolean): McpServer["tools"] {
 	return tools.map((tool) => (tool.name === name ? { ...tool, selected } : tool))
 }
 
-/** The one thing an operator needs to recognise their own connection. */
 export function connectionSummary(server: McpServer): string {
 	return server.transport === "http" ? (server.url ?? "") : [server.command, ...server.args].join(" ")
 }
@@ -44,8 +54,7 @@ export type ConnectionDraft = {
 	authMode: "none" | "headers"
 	command: string
 	args: ArgumentRow[]
-	headerName: string
-	headerValue: string
+	headers: EnvVariable[]
 	env: EnvVariable[]
 }
 
@@ -56,75 +65,73 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 	authMode: "none",
 	command: "",
 	args: [],
-	headerName: "",
-	headerValue: "",
+	headers: [],
 	env: [],
 }
 
 export type DraftReason = "nameRequired" | "addressRequired" | "commandRequired" | "secretRequired"
 
+type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
+
 /**
- * Both halves are required before a secret is sent. Sending a name with an empty value would replace
- * the stored one with an empty string, and a blank field has to mean "leave it alone".
+ * Rows are typed in place, so only entered values are sent and a stored name missing from the
+ * rows is forgotten. Blanks are filtered and repeats collapse here rather than at save time.
  */
-function headerSecret(draft: ConnectionDraft) {
-	return draft.headerName.trim() && draft.headerValue ? { [draft.headerName.trim()]: draft.headerValue } : undefined
+function secretsDiff(rows: EnvVariable[], stored: { name: string }[]) {
+	const record = toEnvRecord(rows)
+	const present = new Set(rows.map(({ name }) => name.trim()).filter(Boolean))
+	const removed = stored.map(({ name }) => name).filter((name) => !present.has(name))
+	return { record, removed }
 }
 
-const envCount = (env: Record<string, string>) => Object.keys(env).length
-
-type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
-const storedNames = (entries: { name: string }[]) => entries.map(({ name }) => name)
+function secretFields(
+	rows: EnvVariable[],
+	stored: { name: string }[],
+	recordKey: "env" | "headers",
+	deleteKey: "deleteEnv" | "deleteHeaders",
+) {
+	const { record, removed } = secretsDiff(rows, stored)
+	return {
+		...(Object.keys(record).length > 0 ? { [recordKey]: record } : {}),
+		...(removed.length > 0 ? { [deleteKey]: removed } : {}),
+	}
+}
 
 function serverOf(draft: ConnectionDraft, stored?: StoredSecrets) {
 	if (draft.transport === "http") {
 		const base = { transport: "http" as const, url: draft.url.trim(), authMode: draft.authMode }
 		if (draft.authMode !== "headers") return base
-		const pair = headerSecret(draft)
-		if (pair) {
-			const [entered] = Object.keys(pair)
-			const renamed = storedNames(stored?.headers ?? []).filter((name) => name !== entered)
-			return { ...base, headers: pair, ...(renamed.length > 0 ? { deleteHeaders: renamed } : {}) }
-		}
-		// A cleared name on a connection that had one deletes it; otherwise there is nothing to say.
-		const storedHeaders = storedNames(stored?.headers ?? [])
-		if (!draft.headerName.trim() && !draft.headerValue && storedHeaders.length > 0)
-			return { ...base, deleteHeaders: storedHeaders }
-		return base
+		return { ...base, ...secretFields(draft.headers, stored?.headers ?? [], "headers", "deleteHeaders") }
 	}
-	const env = toEnvRecord(draft.env)
-	const present = new Set(draft.env.map(({ name }) => name.trim()).filter(Boolean))
-	const removed = storedNames(stored?.env ?? []).filter((name) => !present.has(name))
-	// Rows are typed in place, so blanks are filtered and repeats collapse here rather than at save time.
 	const args = [...new Set(draft.args.map(({ value }) => value.trim()).filter((argument) => argument.length > 0))]
 	return {
 		transport: "stdio" as const,
 		command: draft.command.trim(),
 		args,
-		...(envCount(env) > 0 ? { env } : {}),
-		...(removed.length > 0 ? { deleteEnv: removed } : {}),
+		...secretFields(draft.env, stored?.env ?? [], "env", "deleteEnv"),
 	}
 }
 
 export type CreateResult = { ok: true; body: CreateMcpServerBody } | { ok: false; reason: DraftReason }
 export type UpdateResult = { ok: true; body: UpdateMcpServerBody } | { ok: false; reason: DraftReason }
 
+/**
+ * Rows are added empty, so untouched rows never block saving. A value without a name goes nowhere
+ * on either path; a name without a value only blocks creating, where there is nothing stored to keep.
+ */
+function secretRefused(rows: EnvVariable[], requireSecretValue: boolean): boolean {
+	if (rows.some(({ name, value }) => !name.trim() && value)) return true
+	return requireSecretValue && rows.some(({ name, value }) => name.trim() && !value)
+}
+
 function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
 	if (!draft.name.trim()) return "nameRequired"
 	if (draft.transport === "http") {
 		if (!draft.url.trim()) return "addressRequired"
-		// A value without a name goes nowhere on either path; on edit a blank pair deletes instead.
-		if (draft.authMode === "headers" && !draft.headerName.trim() && (draft.headerValue || requireSecretValue))
-			return "secretRequired"
-		if (draft.authMode === "headers" && draft.headerName.trim() && !draft.headerValue && requireSecretValue)
-			return "secretRequired"
-	} else if (!draft.command.trim()) return "commandRequired"
-	// Rows are added empty, so untouched rows never block saving. A value without a name goes
-	// nowhere on either path; a name without a value only blocks creating, where there is
-	// nothing stored to keep.
-	if (draft.transport === "stdio") {
-		if (draft.env.some(({ name, value }) => !name.trim() && value)) return "secretRequired"
-		if (requireSecretValue && draft.env.some(({ name, value }) => name.trim() && !value)) return "secretRequired"
+		if (draft.authMode === "headers" && secretRefused(draft.headers, requireSecretValue)) return "secretRequired"
+	} else {
+		if (!draft.command.trim()) return "commandRequired"
+		if (secretRefused(draft.env, requireSecretValue)) return "secretRequired"
 	}
 	return undefined
 }
@@ -140,15 +147,14 @@ export function toEditBody(
 	server: Pick<McpServer, "isDisabled" | "revision"> & StoredSecrets,
 ): UpdateResult {
 	const reason = validate(draft, false)
-	return reason
-		? { ok: false, reason }
-		: {
-				ok: true,
-				body: {
-					name: draft.name.trim(),
-					expectedRevision: server.revision,
-					isDisabled: server.isDisabled,
-					server: serverOf(draft, server),
-				},
-			}
+	if (reason) return { ok: false, reason }
+	return {
+		ok: true,
+		body: toUpdateBody({
+			name: draft.name.trim(),
+			revision: server.revision,
+			isDisabled: server.isDisabled,
+			server: serverOf(draft, server),
+		}),
+	}
 }

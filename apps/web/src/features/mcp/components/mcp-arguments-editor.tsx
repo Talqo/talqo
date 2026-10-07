@@ -5,7 +5,6 @@ import { Label } from "@talqo/ui/components/label"
 import { Plus, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-/** Rows are added empty and typed in place, so saving can never silently drop an argument. */
 export function McpArgumentsEditor({
 	args,
 	onChange,

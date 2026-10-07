@@ -77,7 +77,7 @@ export type ChatSnapshot = {
 	readonly initialization: "idle" | "loading" | "ready" | "error"
 	readonly generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling"
 	readonly reset: "idle" | "resetting"
-	/** Tool calls the agent is running right now. Tool activity never blocks the stream. */
+	/** In-flight tool calls. Updated on tool-start/end, independent of deltas. */
 	readonly activeTools: readonly ActiveTool[]
 	readonly persistence: "persistent" | "memory"
 	readonly recovery: "idle" | "pending" | "unavailable"

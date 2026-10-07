@@ -1,4 +1,4 @@
-# 0017: Own MCP Servers Per Agent
+# 0017: Own MCP servers per agent
 
 ## Status
 
@@ -6,7 +6,7 @@ Accepted (2026-10-05)
 
 ## Context
 
-A shared connection store with a per-agent join lets one URL and token serve several agents and centralizes rotation, but makes the operator manage two things — a connection, and which agents use it — needs a screen outside the agent page, and grants every attached agent the credential. Per-agent rows duplicate that URL and token. That cost is bounded only if operators run few agents: an assumption, since one agent already serves many embeds.
+A shared connection store with a per-agent join lets one URL and token serve several agents and centralizes rotation, but makes the operator manage two things, a connection and which agents use it, needs a screen outside the agent page, and grants every attached agent the credential. Per-agent rows duplicate that URL and token. That cost is bounded only if operators run few agents: an assumption, since one agent already serves many embeds.
 
 ## Decision
 

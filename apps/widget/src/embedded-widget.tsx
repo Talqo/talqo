@@ -231,7 +231,7 @@ function WidgetChat({
 		wasOpen.current = open
 	}, [open])
 
-	// Visitor choice (FR-2.21) beats the operator default, which beats the host's preference.
+	// Precedence: visitor, then operator, then host.
 	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
 		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme

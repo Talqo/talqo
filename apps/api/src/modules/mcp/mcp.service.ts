@@ -31,7 +31,7 @@ export class UnknownAgentError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidMcpServerError extends Error {}
 
-/** The open connection conversation holds for one generation; shaped by the client. */
+/** The open connection that conversation holds for one generation. */
 export type OpenTools = OpenToolsResult
 
 const vault = () => createCredentialVault(env.APP_SECRET, KEY_CONTEXT)
@@ -125,7 +125,7 @@ function stdioColumns(serverId: string, input: McpStdioInput, existing?: Credent
 	}
 }
 
-/** A tool stays as the operator left it; a tool the server just gained starts enabled. */
+/** Existing tools keep selection. New tools start enabled. */
 function mergeTools(previous: McpToolSnapshot[], discovered: McpToolSnapshot[]): McpToolSnapshot[] {
 	const previousByName = new Map(previous.map((tool) => [tool.name, tool.selected]))
 	return discovered.map((tool) => ({ ...tool, selected: previousByName.get(tool.name) ?? true }))
@@ -207,7 +207,7 @@ export async function deleteServer(agentId: string, serverId: string): Promise<v
 	await repo.remove(serverId)
 }
 
-/** Flipping the flag never disturbs the configuration or its secrets. */
+/** Toggling disabled leaves configuration and secrets unchanged. */
 export async function setServerDisabled(
 	agentId: string,
 	serverId: string,

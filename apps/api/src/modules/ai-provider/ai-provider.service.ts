@@ -16,9 +16,7 @@ export type { StoredConfiguration } from "./ai-provider.types.ts"
 const CONFIG_ID = "singleton"
 
 /**
- * `streamText` defaults to `isStepCount(1)`, so a tool result would never reach the model and every
- * answer would ignore the data while appearing to work. Each step is a separately billed call, which
- * is what this bound exists to cap.
+ * `streamText` defaults to one step, which drops tool results. Each step is billed, so the bound caps cost.
  */
 const MAX_TOOL_STEPS = 5
 

@@ -17,8 +17,7 @@ import {
 import * as service from "./mcp.service.ts"
 
 /**
- * Probe failure is a body field, not a status: a server in maintenance must not cost the operator their setup.
- * Only these are hard errors.
+ * Probe failure is a body field, not a status. Only these are hard errors.
  */
 function mapDomainError(error: unknown) {
 	if (error instanceof service.McpServerNotFoundError)

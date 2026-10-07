@@ -8,6 +8,7 @@ import {
 	toEditBody,
 	toUpdateBody,
 	toggleTool,
+	toggledBody,
 	type ConnectionDraft,
 } from "./connection-body"
 
@@ -43,14 +44,21 @@ describe("toCreateBody", () => {
 		})
 	})
 
-	test("sends a single header when sign-in is a secret key", () => {
+	test("sends every entered header", () => {
 		expect(
 			toCreateBody(
-				draft({ url: "https://example.test/mcp", authMode: "headers", headerName: "X-API-Key", headerValue: "k" }),
+				draft({
+					url: "https://example.test/mcp",
+					authMode: "headers",
+					headers: [
+						{ id: "h1", name: "X-API-Key", value: "k" },
+						{ id: "h2", name: "X-Tenant", value: "t" },
+					],
+				}),
 			),
 		).toMatchObject({
 			ok: true,
-			body: { server: { authMode: "headers", headers: { "X-API-Key": "k" } } },
+			body: { server: { authMode: "headers", headers: { "X-API-Key": "k", "X-Tenant": "t" } } },
 		})
 	})
 
@@ -78,14 +86,53 @@ describe("toCreateBody", () => {
 		expect(toCreateBody(draft())).toEqual({ ok: false, reason: "addressRequired" })
 		expect(toCreateBody(draft({ transport: "stdio" }))).toEqual({ ok: false, reason: "commandRequired" })
 		expect(
-			toCreateBody(draft({ url: "https://example.test/mcp", authMode: "headers", headerName: "X-API-Key" })),
+			toCreateBody(
+				draft({
+					url: "https://example.test/mcp",
+					authMode: "headers",
+					headers: [{ id: "h1", name: "X-API-Key", value: "" }],
+				}),
+			),
 		).toEqual({ ok: false, reason: "secretRequired" })
 	})
 })
 
 describe("toUpdateBody", () => {
+	test("assembles the body the dialog hands it without touching secrets", () => {
+		const body = toUpdateBody({
+			name: "Stock",
+			revision: 4,
+			isDisabled: false,
+			server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
+		})
+
+		expect(body).toEqual({
+			name: "Stock",
+			expectedRevision: 4,
+			isDisabled: false,
+			server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
+		})
+	})
+
+	test("omits the tools list the dialog never sends", () => {
+		expect(
+			toUpdateBody({
+				name: "Stock",
+				revision: 4,
+				isDisabled: false,
+				server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
+			}),
+		).not.toHaveProperty("tools")
+	})
+})
+
+describe("toggledBody", () => {
 	test("never resends a secret the operator cannot see", () => {
-		const body = toUpdateBody(server({ authMode: "headers", headers: [{ name: "X-API-Key", hasValue: true }] }))
+		const body = toggledBody(
+			server({ authMode: "headers", headers: [{ name: "X-API-Key", hasValue: true }] }),
+			"get_stock",
+			false,
+		)
 
 		// Sending the masked shape as a value would erase the stored secret.
 		expect(body.server).toEqual({ transport: "http", url: "https://example.test/mcp", authMode: "headers" })
@@ -93,28 +140,29 @@ describe("toUpdateBody", () => {
 	})
 
 	test("omits stdio environment variables for the same reason", () => {
-		const body = toUpdateBody(
+		const body = toggledBody(
 			server({ transport: "stdio", url: null, authMode: null, command: "npx", env: [{ name: "KEY", hasValue: true }] }),
+			"get_stock",
+			false,
 		)
 
 		expect(body.server).toEqual({ transport: "stdio", command: "npx", args: [] })
 	})
 
 	test("carries the revision so a concurrent edit is still detected", () => {
-		expect(toUpdateBody(server()).expectedRevision).toBe(4)
+		expect(toggledBody(server(), "get_stock", false).expectedRevision).toBe(4)
 	})
 
-	test("applies an enabled toggle without dropping the selection", () => {
+	test("flips one tool and leaves every other selection alone", () => {
 		const tools = [
 			{ name: "get_stock", description: "", selected: true },
 			{ name: "get_price", description: "", selected: false },
 		]
-		const body = toUpdateBody(server({ tools }), { isDisabled: true })
+		const body = toggledBody(server({ tools }), "get_price", true)
 
-		expect(body.isDisabled).toBe(true)
 		expect(body.tools).toEqual([
 			{ name: "get_stock", selected: true },
-			{ name: "get_price", selected: false },
+			{ name: "get_price", selected: true },
 		])
 	})
 })
@@ -155,7 +203,10 @@ describe("toEditBody", () => {
 	})
 
 	test("leaves a stored secret alone when the operator leaves the value blank", () => {
-		const body = edit({ authMode: "headers", headerName: "X-API-Key" }, { headers: [{ name: "X-API-Key" }] })
+		const body = edit(
+			{ authMode: "headers", headers: [{ id: "h1", name: "X-API-Key", value: "" }] },
+			{ headers: [{ name: "X-API-Key" }] },
+		)
 
 		expect(body).toMatchObject({ ok: true, body: { server: { authMode: "headers" } } })
 		// Sending the masked shape would replace the stored value with an empty one.
@@ -164,22 +215,25 @@ describe("toEditBody", () => {
 	})
 
 	test("sends a newly typed secret", () => {
-		expect(edit({ authMode: "headers", headerName: "X-API-Key", headerValue: "v" })).toMatchObject({
+		expect(edit({ authMode: "headers", headers: [{ id: "h1", name: "X-API-Key", value: "v" }] })).toMatchObject({
 			ok: true,
 			body: { server: { headers: { "X-API-Key": "v" } } },
 		})
 	})
 
-	test("deletes the stored secret when the operator clears its name", () => {
-		expect(edit({ authMode: "headers" }, { headers: [{ name: "X-API-Key" }] })).toMatchObject({
+	test("deletes a stored secret whose row the operator removed", () => {
+		expect(edit({ authMode: "headers", headers: [] }, { headers: [{ name: "X-API-Key" }] })).toMatchObject({
 			ok: true,
 			body: { server: { deleteHeaders: ["X-API-Key"] } },
 		})
 	})
 
-	test("forgets the old name when a header is renamed", () => {
+	test("forgets the old name when a header is replaced", () => {
 		expect(
-			edit({ authMode: "headers", headerName: "X-New-Key", headerValue: "v" }, { headers: [{ name: "X-API-Key" }] }),
+			edit(
+				{ authMode: "headers", headers: [{ id: "h2", name: "X-New-Key", value: "v" }] },
+				{ headers: [{ name: "X-API-Key" }] },
+			),
 		).toMatchObject({
 			ok: true,
 			body: { server: { headers: { "X-New-Key": "v" }, deleteHeaders: ["X-API-Key"] } },
@@ -187,7 +241,10 @@ describe("toEditBody", () => {
 	})
 
 	test("refuses a value with no name instead of silently dropping it", () => {
-		expect(edit({ authMode: "headers", headerValue: "v" })).toEqual({ ok: false, reason: "secretRequired" })
+		expect(edit({ authMode: "headers", headers: [{ id: "h1", name: "", value: "v" }] })).toEqual({
+			ok: false,
+			reason: "secretRequired",
+		})
 	})
 })
 

@@ -4,7 +4,7 @@
 
 Implemented (2026-10-05).
 
-## Goal And Scope
+## Goal and scope
 
 Let an operator give an agent access to external tools over MCP, so the agent can answer from live structured data — stock levels, orders, prices — instead of only from uploaded documents and its own context. Satisfies FR-2.18 and FR-2.19.
 
@@ -31,13 +31,13 @@ Excluded:
 
 ## Decisions
 
-**Cardinality: one agent to many servers, no global store.** `mcp_server.agent_id` is a non-null FK with `onDelete: "cascade"`, matching `agent_file`, `usage_record`, and `blacklist_word`. The alternative — a shared connection table plus a per-agent join — was rejected because it makes the operator manage two things (a connection, and which agents use it), needs a second screen outside the agent page, and silently grants every attached agent the connection's credential. `docs/architecture/module-diagram.md:70` currently states the opposite and is corrected by this design. Recorded in ADR-0017.
+**Cardinality is one agent to many servers with no global store.** `mcp_server.agent_id` is a non-null FK with `onDelete: "cascade"`, matching `agent_file`, `usage_record`, and `blacklist_word`. The alternative — a shared connection table plus a per-agent join — was rejected because it makes the operator manage two things (a connection, and which agents use it), needs a second screen outside the agent page, and silently grants every attached agent the connection's credential. `docs/architecture/module-diagram.md:70` currently states the opposite and is corrected by this design. Recorded in ADR-0017.
 
 Duplication is accepted: an operator running several agents against the same backend re-enters a URL and token. If that becomes real friction, extracting a shared connection table later is possible but not free — credential envelopes are bound to their row id by associated data, so the migration must decrypt and re-encrypt rather than move rows.
 
-**Transports: Streamable HTTP and stdio.** HTTP+SSE is excluded because the specification deprecated it, and deprecated mechanisms are not implemented.
+**Transports are Streamable HTTP and stdio.** HTTP+SSE is excluded because the specification deprecated it, and deprecated mechanisms are not implemented.
 
-The client names these differently from this document, which is worth pinning down before someone hunts for a type that does not exist. Its transport config accepts exactly `type: 'sse' | 'http'`, where `'http'` **is** Streamable HTTP and `'sse'` is the deprecated HTTP+SSE transport. So `mcp_transport = 'http'` maps to `{ type: 'http', url, headers?, authProvider? }`, and `mcp_transport = 'stdio'` maps to an `Experimental_StdioMCPTransport` instance rather than to a config object, because stdio is not expressible in that union.
+The client names these differently from this document. Its transport config accepts exactly `type: 'sse' | 'http'`, where `'http'` **is** Streamable HTTP and `'sse'` is the deprecated HTTP+SSE transport. So `mcp_transport = 'http'` maps to `{ type: 'http', url, headers?, authProvider? }`, and `mcp_transport = 'stdio'` maps to an `Experimental_StdioMCPTransport` instance rather than to a config object, because stdio is not expressible in that union.
 
 Supporting stdio costs a real constraint on the deployment image. `oven/bun:1.4.2-slim` carries no Python, so a stdio server written in Python cannot run unmodified. What it does carry is `bun`, `bunx`, a POSIX shell, and a `node` shim for bun already on `PATH`, so npm-distributed servers — the largest category — run as-is through `bunx`, including the `-y` flag that upstream MCP documentation uses. Operators who need a Python server run it themselves over an HTTP transport, which most such servers support.
 
@@ -45,13 +45,13 @@ Copy says `bunx`, the runtime's own package runner, rather than `npx`. Bun dispa
 
 Spawning an operator-chosen program is not a privilege escalation: the operator already runs arbitrary code on the machine they deploy Talqo to. The residual risks are resource use and orphaned processes, addressed below.
 
-**Auth: three HTTP modes, environment for stdio.** For HTTP servers, `none` covers internal servers such as a DBHub instance on the operator's network; `headers` covers a static `Authorization: Bearer`, an `X-API-Key`, or any other fixed request header; `oauth` covers authorization-code servers such as Shopify's official MCP endpoint. Exactly one mode per server — OAuth tokens are a managed bearer token, and the MCP client reserves the `authorization` header, so combining a static `authorization` header with OAuth is rejected rather than silently ignored.
+**Auth has two HTTP modes, environment for stdio.** For HTTP servers, `none` covers internal servers such as a DBHub instance on the operator's network; `headers` covers a static `Authorization: Bearer`, an `X-API-Key`, or any other fixed request header. OAuth was removed during implementation: no authorization flow completed a round trip, so only `none` and `headers` shipped.
 
 stdio has no auth mode. The specification states that stdio servers retrieve credentials from the environment, so the environment map is the credential mechanism, and OAuth has no stdio analogue. For a stdio row, `auth_mode`, `headers`, and both OAuth columns are null, enforced by a check constraint rather than convention.
 
 Static-header servers never execute OAuth code at runtime. No metadata discovery, no token refresh, no extra round trip.
 
-## Boundaries And Ownership
+## Boundaries and ownership
 
 - A new `mcp` module owns `mcp_server`, tool discovery, its credential handling, its OAuth provider, and stdio process lifecycle. It exposes only values other modules need and no Drizzle types.
 - `mcp` owns the OpenAPI tag `MCP`, so `orval.config.ts` gains `MCP` to the `web` target's tag filter.
@@ -123,7 +123,7 @@ Secrets are stored as a map from name to envelope rather than an array. Names ar
 
 Disabling keeps the row, its secrets, and its tool snapshot. It only removes the server from tool resolution, so re-enabling needs no re-entry and no re-discovery.
 
-## Contract Surface
+## Contract surface
 
 All routes nested under the agent, tagged `MCP`, using the existing permission split — `agents:read` to list and read, `agents:manage` to mutate. No new permission: MCP configuration is agent configuration, and a separate capability would be a second concept for the operator.
 
@@ -161,17 +161,17 @@ The save succeeds either way. A server in maintenance must not cost the operator
 
 There is no operator-triggered retest. A red dot on the card means the last save found no tools, and saving again is the retry, so a second route and a second button would only give the operator a second thing to understand.
 
-## Process Lifecycle
+## Process lifecycle
 
 Applies only to stdio. HTTP servers hold no process.
 
-One stdio server is spawned per generation and closed when the generation ends, whatever ends it. The process must stay alive for the whole generation because it serves the tool calls the model decides to make; respawning per call would be absurd.
+One stdio server is spawned per generation and closed when the generation ends, whatever ends it. The process must stay alive for the whole generation because it serves the tool calls the model decides to make. Respawning per call would move the 253ms spawn cost onto every tool call instead of paying it once.
 
 Every server with a non-empty tool selection therefore starts at the beginning of every generation, not on demand. This is forced rather than chosen: the model needs each tool's schema before it can decide to call one, and the client's tools are built from a connected transport. Measured in the production image, spawning a `bunx`-launched server, completing the handshake, and listing its thirteen tools costs 253ms once the package is installed, and the first install costs 2.6s. Servers start concurrently, so N servers cost roughly one spawn rather than N, and the install cost lands on the probe at configure time rather than on a shopper's first message.
 
 Spawning lazily would move that 253ms onto only the turns that actually call a tool, which for a shop assistant is most of none of them. It is not available without bypassing the client's lifecycle, so it is recorded as a known cost rather than a design gap.
 
-## Where Resolution Runs
+## Where resolution runs
 
 Resolution happens inside `run()`, after the `AbortController` exists — never inside `prepareAndAccept`. This is forced by the existing runtime, not a preference:
 
@@ -184,7 +184,7 @@ So `ai-provider` gains one change: `invoke` takes tools alongside the signal it 
 
 `run` opens the connection, wraps its existing streaming body in `try`/`finally`, and closes it on every exit. Its `catch` maps a tool failure to a tool error result so the model can continue rather than ending the shopper's conversation.
 
-## Tool Loop Bound
+## Tool loop bound
 
 `streamText` defaults to `stopWhen: isStepCount(1)` (`ai@7.0.127`, `dist/index.js:8610`). Left alone, a tool call executes, the loop stops immediately, and the model never sees the result — every answer would ignore the data while appearing to work. A step bound is therefore mandatory, not an optimisation.
 
@@ -213,7 +213,7 @@ Concurrency, request options, retries, protocol-era discovery, and session handl
 
 `Experimental_StdioMCPTransport` accepts `command`, `args`, `env`, `stderr`, and `cwd`, and offers no output-size bound. A child that writes unbounded stdout is therefore bounded only by the generation timeout and by the container's memory limit, not by Talqo. That is a gap in the transport rather than a choice, and it is recorded under Failure Behavior.
 
-## Tool Resolution And Invocation
+## Tool resolution and invocation
 
 - Select enabled servers only, then discard any whose stored selection is empty before connecting. A server with no selected tools contributes nothing, so it must not cost a process or a round trip. Deselecting every tool is therefore a cheaper way to keep a server configured but idle than disabling it.
 - Connect and call `listTools()` live per generation, intersected with the stored `selected` flags. A live fetch is required even when only one tool is selected, because that tool's current schema is what gets executed. When one server's live fetch fails, that server is dropped for this generation exactly as if it were unreachable — no tools from it, and a structured log line naming it. Only a total failure across every server yields no tools at all.
@@ -252,6 +252,8 @@ Neither carries arguments or results, and `toolName` is the server's own name ra
 Persisting tool calls on `generation_attempt` is excluded. It would let an operator review what the agent did after the fact, which is genuinely useful, but it is a separate change to storage, history, and the dashboard, and shipping it half-done would be worse than not shipping it. The consequence to accept is that a shopper's transcript shows that a tool ran and what it was called, but not what it returned.
 
 ## OAuth 2.1
+
+Removed during implementation: no authorization flow completed a round trip, so the section below is the rejected design, kept for context.
 
 Applies only to HTTP servers. Implemented by supplying an `OAuthClientProvider` to `createMCPClient`. The client performs RFC 9728 protected-resource discovery, RFC 8414 authorization-server metadata discovery with issuer validation, RFC 9207 `iss` checking, RFC 8707 `resource` parameters, PKCE, client registration, and refresh. Talqo implements the provider's storage side and nothing protocol-level.
 

@@ -64,8 +64,8 @@ export const mcpServer = pgTable(
 					AND ${table.authMode} IS NULL
 			)`,
 		),
-		// `IS NOT DISTINCT FROM` rather than `=`: a stdio row's null auth_mode would make `=` yield
-		// null, and a check whose result is null passes, admitting any secret column.
+		// Uses IS NOT DISTINCT FROM: with =, a null auth_mode yields null, the check passes,
+		// and any secret column is admitted.
 		check(
 			"mcp_server_auth_fields_check",
 			sql`(

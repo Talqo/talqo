@@ -59,7 +59,7 @@ const updateRequestSchema = z.strictObject({
 	]),
 	expectedRevision: z.number().int().nonnegative(),
 	isDisabled: z.boolean().optional(),
-	/** Names and flags only: the schema and description come from the last probe. */
+	/** Sends names and flags. The schema and description come from the last probe. */
 	tools: z.array(z.strictObject({ name: z.string(), selected: z.boolean() })).optional(),
 })
 
@@ -97,7 +97,6 @@ const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const forbidden = problemResponse([PROBLEM_CODES.PERMISSION_DENIED])
 const notFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.MCP_SERVER_NOT_FOUND])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
-/** Every route maps the same domain errors, so every route declares the same set. */
 const domain = {
 	400: problemResponse([
 		PROBLEM_CODES.INVALID_REQUEST,
