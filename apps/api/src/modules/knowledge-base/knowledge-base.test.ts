@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 
 import {
+	FileTooLargeError,
 	InvalidFileError,
 	MAX_FILE_NAME_LENGTH,
 	MAX_FILE_SIZE_MB,
@@ -23,7 +24,7 @@ describe("validateUpload", () => {
 
 	it("rejects a file over the size limit", () => {
 		expect(() => validateUpload({ name: "big.pdf", size: MAX_FILE_SIZE_MB * BYTES_PER_MB + 1 })).toThrow(
-			InvalidFileError,
+			FileTooLargeError,
 		)
 	})
 

@@ -65,11 +65,9 @@ export class InvalidFileError extends ApiError {
 		super(PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
 	}
 }
-export class FileTooLargeError extends InvalidFileError {
+export class FileTooLargeError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
-		super(message, options)
-		this.problemCode = PROBLEM_CODES.PAYLOAD_TOO_LARGE
-		this.status = HTTP_STATUS.PAYLOAD_TOO_LARGE
+		super(PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE, message, undefined, options)
 	}
 }
 
