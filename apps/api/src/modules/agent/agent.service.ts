@@ -21,7 +21,7 @@ export class AgentNotFoundError extends ApiError {
 		super(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
 	}
 }
-export class DuplicateAgentNameError extends ApiError {
+class DuplicateAgentNameError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}

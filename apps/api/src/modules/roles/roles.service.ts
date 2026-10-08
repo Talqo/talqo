@@ -53,12 +53,12 @@ export function effectivePermissions(grants: AuthorizationGrant[]): Permission[]
 	)
 }
 
-export class AdminAlreadyExistsError extends ApiError {
+class AdminAlreadyExistsError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
-export class InvalidInvitationError extends ApiError {
+class InvalidInvitationError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.INVALID_INVITATION, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}

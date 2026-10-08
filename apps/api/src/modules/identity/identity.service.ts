@@ -26,12 +26,12 @@ export const SESSION_COOKIE = "session"
 
 export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN }
 
-export class InvalidCredentialsError extends ApiError {
+class InvalidCredentialsError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED, message, undefined, options)
 	}
 }
-export class InvalidPasswordError extends ApiError {
+class InvalidPasswordError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.CURRENT_PASSWORD_INCORRECT, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
 	}
@@ -43,12 +43,12 @@ export class UserNotFoundError extends ApiError {
 		super(PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
 	}
 }
-export class PasswordChangeNotRequiredError extends ApiError {
+class PasswordChangeNotRequiredError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PASSWORD_CHANGE_NOT_REQUIRED, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
-export class UsernameTakenError extends ApiError {
+class UsernameTakenError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
