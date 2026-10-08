@@ -1,6 +1,7 @@
 {
 	"agentResponding": "Agent odpovídá",
 	"allowanceReset": "Limit se obnoví {{reset}}.",
+	"chatUnavailable": "Chat teď nemůže odpovídat. Zkuste to prosím později.",
 	"closeChat": "Zavřít chat",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "Odpověď se nepodařilo zastavit. Může stále probíhat.",
@@ -26,7 +27,6 @@
 	"errorStorageUnavailable": "Chat funguje na této kartě, ale po obnovení stránky jej nelze obnovit.",
 	"errorTransport": "Připojení k chatu selhalo. Zkuste to prosím znovu.",
 	"greeting": "Dobrý den! Jak vám mohu dnes pomoci?",
-	"chatUnavailable": "Chat teď nemůže odpovídat. Zkuste to prosím později.",
 	"initializing": "Načítání chatu...",
 	"messageLabel": "Zpráva",
 	"newChat": "Nový chat",
