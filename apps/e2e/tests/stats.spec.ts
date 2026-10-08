@@ -101,7 +101,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	// The fake provider reports 12 input and 6 output tokens for a completed turn.
 	await expect
 		.poll(async () => {
-			const response = await request.get(`${apiOrigin}/api/stats/overview?agentId=${agent.id}`)
+			const response = await request.get(`${apiOrigin}/api/stats?agentId=${agent.id}`)
 			const body = (await response.json()) as {
 				overview: { totals: { conversations: number; inputTokens: number; messages: number; outputTokens: number } }
 			}
@@ -125,8 +125,8 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 
 	// Live and per-conversation insight cards render alongside the volume cards.
 	await expect(page.getByText("Active conversations (last 60 min)")).toBeVisible()
-	await expect(page.getByText("Messages per conversation (30 days)")).toBeVisible()
-	await expect(page.getByText("Tokens per conversation (30 days)")).toBeVisible()
+	await expect(page.getByText("Messages per conversation", { exact: true })).toBeVisible()
+	await expect(page.getByText("Tokens per conversation", { exact: true })).toBeVisible()
 
 	// The merged statistics dashboard scopes every agent through the multi-select filter box;
 	// all agents are selected by default.
@@ -161,4 +161,17 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
 	await expect(page.getByRole("row", { name: /^Website Assistant/ })).toHaveCount(0)
 	await expect(agentFilter).toContainText(/1 of \d+ agents/)
+
+	// The time range selector narrows the whole page and rides in the shareable URL alongside
+	// the agent selection.
+	const rangeFilter = page.getByRole("combobox", { name: "Time range", exact: true })
+	await rangeFilter.click()
+	await page.getByRole("option", { name: "7 days", exact: true }).click()
+	await expect(page.url()).toContain("days=7")
+	await expect(page.url()).toContain("agents=")
+	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
+	await rangeFilter.click()
+	await page.getByRole("option", { name: "All time", exact: true }).click()
+	await expect(page.url()).toContain("days=all")
+	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
 })

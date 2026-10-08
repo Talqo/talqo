@@ -43,7 +43,7 @@ const UINT32_BUCKET_COUNT = 4_294_967_296
 const SEED_AGENT_IDS = [
 	"11111111-1111-4111-8111-111111111111", // Website Assistant
 	"33333333-3333-4333-8333-333333333333", // Product Advisor
-	"44444444-4444-4444-8444-444444444444", // Knowledge Base
+	"44444444-4444-4444-8444-444444444444", // Docs Assistant
 ] as const
 
 type SeedAgentProfile = {

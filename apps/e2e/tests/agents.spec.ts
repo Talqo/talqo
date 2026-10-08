@@ -69,7 +69,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await page.getByRole("button", { name: "Deselect all", exact: true }).click()
 	await page.getByRole("option", { name: "Docs helper", exact: true }).click()
 	await page.keyboard.press("Escape")
-	await expect(page.getByText("Conversations (30 days)")).toBeVisible()
+	await expect(page.getByRole("row", { name: /^Docs helper/ })).toBeVisible()
 
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
 	await page.getByRole("link", { name: /Docs helper/ }).click()

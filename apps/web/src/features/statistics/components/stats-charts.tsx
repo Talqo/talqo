@@ -1,4 +1,4 @@
-import type { AgentDailyPoint, DailyStatsPoint, PageStats } from "@/features/statistics/page-stats"
+import type { AgentDailyPoint, DailyStatsPoint } from "@/features/statistics/page-stats"
 
 import { useLanguage } from "@/lib/use-language"
 import { Card, CardHeader, CardDescription, CardTitle } from "@talqo/ui/components/card"
@@ -46,38 +46,14 @@ function formatHistoryDate(language: string, date: string) {
 	})
 }
 
-export function StatsMetricCards({
-	stats,
-	labels,
-	cardDescription,
-}: {
-	stats: PageStats
-	labels: StatsMetricLabels
-	cardDescription: (metricLabel: string) => string
-}) {
-	const compactNumber = useCompactNumber()
-	return (
-		<div className="grid gap-4 sm:grid-cols-3">
-			{statsMetricKeys.map((metric) => (
-				<Card key={metric}>
-					<CardHeader>
-						<CardDescription>{cardDescription(labels[metric])}</CardDescription>
-						<CardTitle className="text-2xl">{compactNumber.format(stats[metric])}</CardTitle>
-					</CardHeader>
-				</Card>
-			))}
-		</div>
-	)
-}
-
-export type StatsInsightCard = {
+export type StatsCard = {
 	format: "compact" | "decimal"
 	label: string
 	value: number
 }
 
-// Averages read best with one fraction digit, while counts round compactly like the volume cards.
-export function StatsInsightCards({ cards }: { cards: StatsInsightCard[] }) {
+// Averages read best with one fraction digit, while counts round compactly.
+export function StatsCards({ cards }: { cards: StatsCard[] }) {
 	const { language } = useLanguage()
 	const compact = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
 	const decimal = useMemo(() => new Intl.NumberFormat(language, { maximumFractionDigits: 1 }), [language])

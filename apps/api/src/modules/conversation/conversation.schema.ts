@@ -35,7 +35,6 @@ export const conversation = pgTable(
 	(table) => [
 		index("conversation_agent_id_idx").on(table.agentId),
 		index("conversation_embed_id_idx").on(table.embedId),
-		// Backs the per-agent-day statistics aggregation filtered by the rolling window.
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 	],
 )
@@ -98,7 +97,6 @@ export const message = pgTable(
 	(table) => [
 		index("message_order_idx").on(table.conversationId, table.createdAt, table.id),
 		index("message_generation_attempt_idx").on(table.generationAttemptId),
-		// Backs the rolling-window statistics aggregation over message.createdAt.
 		index("message_created_at_idx").on(table.createdAt),
 	],
 )

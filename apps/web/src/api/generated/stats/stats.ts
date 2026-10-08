@@ -85,7 +85,7 @@ export const getGetStatsOverviewUrl = (params?: GetStatsOverviewParams) => {
 
 	const stringifiedParams = normalizedParams.toString()
 
-	return stringifiedParams.length > 0 ? `/api/stats/overview?${stringifiedParams}` : `/api/stats/overview`
+	return stringifiedParams.length > 0 ? `/api/stats?${stringifiedParams}` : `/api/stats`
 }
 
 export const getStatsOverview = async (
@@ -112,7 +112,7 @@ export const getStatsOverview = async (
 }
 
 export const getGetStatsOverviewQueryKey = (params?: GetStatsOverviewParams) => {
-	return [`/api/stats/overview`, ...(params ? [params] : [])] as const
+	return [`/api/stats`, ...(params ? [params] : [])] as const
 }
 
 export const getGetStatsOverviewQueryOptions = <

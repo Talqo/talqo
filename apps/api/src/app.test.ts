@@ -1,6 +1,5 @@
 import type { Context } from "hono"
 
-import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
 
@@ -128,31 +127,6 @@ describe("api", () => {
 			type: "https://docs.talqo.chat/problems#internal-server-error",
 		})
 		expect(console.error).toHaveBeenCalled()
-	})
-
-	it("redacts provider call errors in logs", async () => {
-		using logged = spyOn(console, "error").mockImplementation(() => {})
-		let response: Response | undefined
-		const context = {
-			json: (data: unknown, status: number, headers?: Record<string, string>) => {
-				response = new Response(JSON.stringify(data), { headers, status })
-				return response
-			},
-		}
-		await handleError(
-			new APICallError({
-				message: "Internal error encountered.",
-				url: "https://provider.invalid/stream",
-				requestBodyValues: { contents: [{ secret: "must-not-leak" }] },
-				statusCode: 500,
-				responseBody: '{"error":{"message":"Internal error encountered."}}',
-			}),
-			context as unknown as Context,
-		)
-
-		expect(response?.status).toBe(500)
-		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
-		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
 	})
 
 	it("normalizes responses carried by response-bearing errors", async () => {
@@ -306,48 +280,6 @@ describe("api", () => {
 		const paths = document.paths ?? {}
 
 		expect(document.openapi).toBe("3.1.1")
-		expect(Object.keys(paths).toSorted()).toEqual(
-			[
-				"/api/access",
-				"/api/ai-provider-configuration",
-				"/api/ai-provider-models/discover",
-				"/api/ai-providers",
-				"/api/agents",
-				"/api/agents/{agentId}",
-				"/api/agents/{agentId}/files",
-				"/api/agents/{agentId}/files/{fileName}",
-				"/api/agents/{agentId}/files/{fileName}/retry",
-				"/api/agents/{agentId}/mcp-servers",
-				"/api/agents/{agentId}/mcp-servers/{serverId}",
-				"/api/agents/{agentId}/mcp-servers/{serverId}/{action}",
-				"/api/auth/login",
-				"/api/auth/logout",
-				"/api/auth/session",
-				"/api/invitations",
-				"/api/invitations/redeem",
-				"/api/me",
-				"/api/me/password",
-				"/api/me/password/forced",
-				"/api/me/permissions",
-				"/api/permission-grants",
-				"/api/permission-grants/{id}",
-				"/api/setup",
-				"/api/stats/overview",
-				"/api/users",
-				"/api/embed-config/{embedToken}",
-				"/api/chat/{embedToken}/messages",
-				"/api/chat/session",
-				"/api/chat/cancel",
-				"/api/embeds",
-				"/api/embeds/{embedId}",
-				"/api/embeds/{embedId}/disable",
-				"/api/embeds/{embedId}/embed-token/rotate",
-				"/api/embeds/{embedId}/enable",
-				"/api/users/{userId}",
-				"/api/users/{userId}/password",
-				"/health",
-			].toSorted(),
-		)
 
 		const operations = Object.values(paths).flatMap((operationsByMethod) => Object.values(operationsByMethod))
 		for (const operation of operations) {

@@ -531,18 +531,11 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 }
 
-// Raw daily aggregates for the statistics read model owned by the stats module.
-export async function getDailyConversationCountsByAgent(since: Date): Promise<repository.AgentDailyCount[]> {
-	return repository.getDailyConversationCountsByAgent(since)
-}
-
-export async function getDailyMessageCountsByAgent(since: Date): Promise<repository.AgentDailyCount[]> {
-	return repository.getDailyMessageCountsByAgent(since)
-}
-
-export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<repository.AgentConversationCount[]> {
-	return repository.getActiveConversationCountsByAgent(cutoff)
-}
+export {
+	getActiveConversationCountsByAgent,
+	getDailyConversationCountsByAgent,
+	getDailyMessageCountsByAgent,
+} from "./conversation.repository.ts"
 
 let defaultService: ReturnType<typeof createConversationService> | undefined
 

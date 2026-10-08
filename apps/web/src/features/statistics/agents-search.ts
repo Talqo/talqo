@@ -1,5 +1,6 @@
-// The statistics filter rides in the ?agents= search param (ADR-0018): accepts one id or a JSON
-// id list and normalizes to a deduped list; only a missing param means "all agents".
+// The statistics filter rides in the ?agents= search param so a filtered view is shareable:
+// accepts one id or a JSON id list and normalizes to a deduped list; only a missing param
+// means "all agents".
 export function parseAgentsParam(value: unknown): string[] | undefined {
 	if (value === undefined) return undefined
 	const list = Array.isArray(value) ? value : [value]

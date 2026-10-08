@@ -76,7 +76,7 @@ graph LR
 | `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent source-file lifecycle, durable serial ingestion, Docling conversion/chunking, and per-agent pgvector storage; no chat retrieval yet. |
 | `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config and the AI provider. Knowledge retrieval is future work. |
 | `usage` | `USAGE_RECORD` | Meters tokens/cost per generation attempt; limit enforcement lives in `conversation`. |
-| `stats` | none — read model over `conversation`, `usage`, `agent` | Operator statistics behind `GET /api/stats/overview`; its dev fixtures write across modules as the recorded exception. |
+| `stats` | none — read model over `conversation`, `usage`, `agent` | Operator statistics behind `GET /api/stats`; its dev fixtures write across modules as the recorded exception. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 
 Every entity in [`docs/ERD.md`](../ERD.md) is owned by exactly one module, matching the "a module writes only its own tables" rule.

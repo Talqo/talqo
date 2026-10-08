@@ -5,17 +5,19 @@ import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { parseAgentsParam } from "@/features/statistics/agents-search"
 import { AgentFilter } from "@/features/statistics/components/agent-filter"
+import { RangeFilter } from "@/features/statistics/components/range-filter"
 import {
 	agentLineColor,
 	DailyStatsChart,
-	StatsInsightCards,
-	StatsMetricCards,
+	StatsCards,
 	statsMetricKeys,
 	useCompactNumber,
 	type AgentLine,
+	type StatsCard,
 	type StatsMetric,
 } from "@/features/statistics/components/stats-charts"
 import { toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-stats"
+import { DEFAULT_STATS_DAYS, parseDaysParam, type StatsDays } from "@/features/statistics/ranges"
 import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -27,7 +29,6 @@ import { useTranslation } from "react-i18next"
 const FORBIDDEN_STATUS = 403
 const CLIENT_ERROR_STATUS_MIN = 400
 const CLIENT_ERROR_STATUS_MAX = 499
-const STATS_DAYS = 30
 // The active-conversation card stays live without a manual refresh; one minute matches the
 // metric's own granularity.
 const STATS_REFRESH_MS = 60_000
@@ -35,8 +36,9 @@ const DEFAULT_QUERY_RETRIES = 3
 
 export const Route = createFileRoute("/dashboard/")({
 	beforeLoad: requirePermission("agents:read"),
-	validateSearch: (search: Record<string, unknown>): { agents?: string[] } => ({
+	validateSearch: (search: Record<string, unknown>): { agents?: string[]; days?: StatsDays } => ({
 		agents: parseAgentsParam(search.agents),
+		days: parseDaysParam(search.days),
 	}),
 	component: DashboardIndexPage,
 })
@@ -64,8 +66,13 @@ function retryUnlessClientError(failureCount: number, error: { status?: number }
 
 function DashboardIndexPage() {
 	const { t } = useTranslation()
+	// The agent and range selections live in ?agents= and ?days= so a filtered view is
+	// shareable; a missing param means every agent / the default range. Toggles replace the
+	// URL entry and never move the scroll.
+	const search = Route.useSearch()
+	const days = search.days ?? DEFAULT_STATS_DAYS
 	const statsQuery = useGetStatsOverview(
-		{ days: STATS_DAYS },
+		{ days },
 		{ query: { refetchInterval: STATS_REFRESH_MS, retry: retryUnlessClientError } },
 	)
 	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
@@ -81,15 +88,20 @@ function DashboardIndexPage() {
 		() => (allAgents ?? []).map((agent, index) => ({ color: agentLineColor(index), id: agent.id, name: agent.name })),
 		[allAgents],
 	)
-	// The selection lives in ?agents= so a filtered view is shareable (ADR-0018); a missing
-	// param means all agents. Toggles replace the URL entry and never move the scroll.
-	const selection = Route.useSearch({ select: (search) => search.agents })
+	const selection = search.agents
 	const navigate = useNavigate({ from: Route.fullPath })
 	const setSelection = (ids: string[]) => {
 		void navigate({
 			replace: true,
 			resetScroll: false,
 			search: (prev) => ({ ...prev, agents: ids.length === allIds.length ? undefined : ids }),
+		})
+	}
+	const setRange = (next: StatsDays) => {
+		void navigate({
+			replace: true,
+			resetScroll: false,
+			search: (prev) => ({ ...prev, days: next === DEFAULT_STATS_DAYS ? undefined : next }),
 		})
 	}
 	const selectedIds = useMemo(() => (selection ?? allIds).filter((id) => allIds.includes(id)), [selection, allIds])
@@ -103,30 +115,26 @@ function DashboardIndexPage() {
 		() => (overview ? toSelectedStats(overview, selectedIds, allSelected) : undefined),
 		[overview, selectedIds, allSelected],
 	)
-	const insightCards = useMemo(() => {
+	const cards = useMemo<StatsCard[]>(() => {
 		if (!overview || !stats) return []
+		const cardLabels = metricLabels(t)
 		const activeByAgent = new Map(overview.active.map((row) => [row.agentId, row.conversations]))
 		const activeTotal = selectedIds.reduce((sum, id) => sum + (activeByAgent.get(id) ?? 0), 0)
 		const perConversation = (numerator: number) => (stats.conversations === 0 ? 0 : numerator / stats.conversations)
 		return [
+			{ format: "compact", label: cardLabels.conversations, value: stats.conversations },
+			{ format: "compact", label: cardLabels.messages, value: stats.messages },
+			{ format: "compact", label: cardLabels.tokens, value: stats.tokens },
 			{
-				format: "compact" as const,
+				format: "compact",
 				label: t("dashboard.recentMinutes", {
 					metric: t("dashboard.activeConversations"),
 					minutes: overview.activeWindowMinutes,
 				}),
 				value: activeTotal,
 			},
-			{
-				format: "decimal" as const,
-				label: t("dashboard.lastDays", { metric: t("dashboard.messagesPerConversation"), days: STATS_DAYS }),
-				value: perConversation(stats.messages),
-			},
-			{
-				format: "compact" as const,
-				label: t("dashboard.lastDays", { metric: t("dashboard.tokensPerConversation"), days: STATS_DAYS }),
-				value: perConversation(stats.tokens),
-			},
+			{ format: "decimal", label: t("dashboard.messagesPerConversation"), value: perConversation(stats.messages) },
+			{ format: "compact", label: t("dashboard.tokensPerConversation"), value: perConversation(stats.tokens) },
 		]
 	}, [overview, stats, selectedIds, t])
 	// The breakdown table reads the server's own per-agent totals; only the zero rows for
@@ -205,30 +213,20 @@ function DashboardIndexPage() {
 				<p className="text-muted-foreground">{t("dashboard.empty")}</p>
 			) : (
 				<>
-					<AgentFilter agentLines={agentLines} selectedIds={selectedIds} onChange={setSelection} />
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+						<AgentFilter agentLines={agentLines} selectedIds={selectedIds} onChange={setSelection} />
+						<RangeFilter days={days} onChange={setRange} />
+					</div>
 
 					{selectedIds.length === 0 ? (
 						<p className="text-muted-foreground">{t("dashboard.noAgentsSelected")}</p>
 					) : (
 						<>
-							<section className="space-y-4">
-								<h2 className="text-lg font-semibold">{t("dashboard.lastDaysHeading", { days: STATS_DAYS })}</h2>
-								<StatsMetricCards
-									stats={stats}
-									labels={labels}
-									cardDescription={(metric) => t("dashboard.lastDays", { metric, days: STATS_DAYS })}
-								/>
-							</section>
-
-							<section className="space-y-4">
-								<h2 className="text-lg font-semibold">{t("dashboard.insightHeading")}</h2>
-								<StatsInsightCards cards={insightCards} />
-							</section>
+							<StatsCards cards={cards} />
 
 							<Card>
 								<CardHeader>
 									<CardTitle>{t("dashboard.usageOverTime")}</CardTitle>
-									<CardDescription>{t("dashboard.dailyTotals", { days: STATS_DAYS })}</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<DailyStatsChart
@@ -237,7 +235,7 @@ function DashboardIndexPage() {
 										agentLines={selectedLines}
 										labels={labels}
 										totalLabel={t("dashboard.total")}
-										chartTitle={(metricLabel) => t("dashboard.chartTitle", { metric: metricLabel, days: STATS_DAYS })}
+										chartTitle={(metricLabel) => t("dashboard.chartTitle", { metric: metricLabel })}
 										chartDescription={t("dashboard.chartDescription")}
 									/>
 								</CardContent>
@@ -246,12 +244,12 @@ function DashboardIndexPage() {
 							<Card>
 								<CardHeader>
 									<CardTitle>{t("dashboard.perAgentTitle")}</CardTitle>
-									<CardDescription>{t("dashboard.perAgentDescription", { days: STATS_DAYS })}</CardDescription>
+									<CardDescription>{t("dashboard.perAgentDescription")}</CardDescription>
 								</CardHeader>
 								<CardContent>
 									<div className="overflow-x-auto">
 										<table className="w-full text-sm">
-											<caption className="sr-only">{t("dashboard.perAgentCaption", { days: STATS_DAYS })}</caption>
+											<caption className="sr-only">{t("dashboard.perAgentCaption")}</caption>
 											<thead>
 												<tr className="text-muted-foreground border-b text-left">
 													<th scope="col" className="pb-2 font-medium">

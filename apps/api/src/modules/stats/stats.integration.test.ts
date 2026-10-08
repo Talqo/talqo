@@ -266,6 +266,33 @@ describe("stats overview aggregation", () => {
 		expect(overview.totals).toEqual({ conversations: 3, messages: 6, inputTokens: 301, outputTokens: 152 })
 	})
 
+	it("spans the whole recorded history when days is all", async () => {
+		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
+		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
+		await seedChatHistory(agentA.id, agentB.id)
+
+		const overview = await getStatsOverview({ days: "all" })
+
+		// The axis starts at the 40-day-old conversation, today inclusive.
+		expect(overview.days).toBe(OUTSIDE_WINDOW_DAYS + 1)
+		expect(overview.daily).toHaveLength(OUTSIDE_WINDOW_DAYS + 1)
+		expect(overview.daily[0]).toMatchObject({
+			date: utcDate(OUTSIDE_WINDOW_DAYS).slice(0, 10),
+			conversations: 1,
+			messages: 2,
+		})
+		expect(overview.totals).toEqual({ conversations: 5, messages: 10, inputTokens: 1311, outputTokens: 657 })
+	})
+
+	it("serves a single-day axis over all history when nothing is recorded", async () => {
+		const overview = await getStatsOverview({ days: "all" })
+
+		expect(overview.days).toBe(1)
+		expect(overview.daily).toEqual([
+			{ date: utcDate(0).slice(0, 10), conversations: 0, messages: 0, inputTokens: 0, outputTokens: 0 },
+		])
+	})
+
 	it("applies the active-conversation window at minute granularity around its boundary", async () => {
 		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
 		// 59 minutes ago still counts as active; 61 minutes ago no longer does. The boundary
@@ -285,11 +312,11 @@ describe("stats overview aggregation", () => {
 		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername)
 
-		const forbidden = await app.request("/api/stats/overview", { headers: { Cookie: memberCookie } })
+		const forbidden = await app.request("/api/stats", { headers: { Cookie: memberCookie } })
 		expect(forbidden.status).toBe(403)
 		expect(await forbidden.json()).toMatchObject({ code: "permission-denied" })
 
-		const allowed = await app.request("/api/stats/overview?days=7", { headers: { Cookie: adminCookie } })
+		const allowed = await app.request("/api/stats?days=7", { headers: { Cookie: adminCookie } })
 		expect(allowed.status).toBe(200)
 		const body = (await allowed.json()) as { overview: { days: number; daily: unknown[] } }
 		expect(body.overview.days).toBe(7)
@@ -297,7 +324,7 @@ describe("stats overview aggregation", () => {
 
 		// A member granted agents:read passes the gate.
 		await roles.grantPermission({ userId: member.id, permission: "agents:read", grantedBy: userId })
-		const granted = await app.request("/api/stats/overview", { headers: { Cookie: memberCookie } })
+		const granted = await app.request("/api/stats", { headers: { Cookie: memberCookie } })
 		expect(granted.status).toBe(200)
 	})
 })

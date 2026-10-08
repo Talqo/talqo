@@ -6,7 +6,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 const STATS_MAX_DAYS = 365
 const statsQuerySchema = z.object({
-	days: z.coerce.number().int().min(1).max(STATS_MAX_DAYS).optional(),
+	days: z.union([z.coerce.number().int().min(1).max(STATS_MAX_DAYS), z.literal("all")]).optional(),
 	agentId: z.string().optional(),
 })
 const statsDailyPointSchema = z.object({
@@ -47,7 +47,7 @@ export const statsOverviewResponseSchema = z.object({
 
 export const statsOverviewRoute = createRoute({
 	method: "get",
-	path: "/overview",
+	path: "/",
 	operationId: "getStatsOverview",
 	tags: ["Stats"],
 	...access.permission(roles.Permission.AgentsRead),

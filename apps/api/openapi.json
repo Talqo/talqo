@@ -5023,7 +5023,7 @@
 				}
 			}
 		},
-		"/api/stats/overview": {
+		"/api/stats": {
 			"get": {
 				"operationId": "getStatsOverview",
 				"tags": ["Stats"],
@@ -5035,9 +5035,17 @@
 				"parameters": [
 					{
 						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 365
+							"anyOf": [
+								{
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 365
+								},
+								{
+									"type": "string",
+									"enum": ["all"]
+								}
+							]
 						},
 						"required": false,
 						"name": "days",

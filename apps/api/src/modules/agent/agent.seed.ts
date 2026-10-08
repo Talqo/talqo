@@ -20,7 +20,7 @@ const SEED_AGENTS = [
 	},
 	{
 		id: "44444444-4444-4444-8444-444444444444",
-		name: "Knowledge Base",
+		name: "Docs Assistant",
 		systemPrompt:
 			"You answer questions strictly from the internal knowledge base. Quote the relevant article when you can, and say when the answer is not covered.",
 		wordBlacklist: [],
