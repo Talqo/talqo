@@ -14,4 +14,4 @@ Render assistant markdown in `apps/widget` as presentation; the SDK keeps `ChatM
 
 ## Consequences
 
-The widget adds react-markdown and remark-gfm, never rehype-raw; links open with `target="_blank" rel="noopener noreferrer"`; only assistant messages render markdown; prose scopes under `.talqo-widget`; a doc comment marks `ChatMessage.text` as markdown source. Revisit on an SDK publishing decision, a second rendering surface, or integrator opt-out demand; prefer an opt-in companion package (React kit or markdown package), not an SDK-core flag.
+The widget adds react-markdown and remark-gfm, never rehype-raw; links open with `target="_blank" rel="noopener noreferrer"`; only assistant messages render markdown; prose scopes under `.talqo-widget`. Rendering is React-coupled inside the widget, and any second rendering surface duplicates this setup until cross-app reuse is measured.

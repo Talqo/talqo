@@ -20,7 +20,6 @@ export type ChatMessageOutcome =
 export type ChatMessage = {
 	readonly id: string
 	readonly role: ChatMessageRole
-	/** Assistant text is markdown source intended for consumer-side rendering; user text is plain. */
 	readonly text: string
 	readonly createdAt: string
 	readonly outcome: ChatMessageOutcome
