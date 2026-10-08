@@ -394,6 +394,7 @@
 		"errorDuplicateName": "This agent already has a connection with that name.",
 		"errorName": "Give the connection a name.",
 		"errorNameAscii": "Use letters without accents, numbers, spaces, and simple symbols.",
+		"errorNameLength": "Keep the name under {{limit}} characters.",
 		"errorSave": "The connection could not be saved.",
 		"errorSecret": "Enter both the name and the value.",
 		"headerName": "Header name",

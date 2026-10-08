@@ -31,6 +31,7 @@ export const PROBLEM_CODES = {
 	EMBED_NOT_FOUND: "embed-not-found",
 	INTERNAL_SERVER_ERROR: "internal-server-error",
 	INVALID_MCP_SERVER_URL: "invalid-mcp-server-url",
+	INVALID_MCP_SERVER_NAME: "invalid-mcp-server-name",
 	INVALID_AI_PROVIDER_CONFIGURATION: "invalid-ai-provider-configuration",
 	INVALID_CREDENTIALS: "invalid-credentials",
 	INVALID_INVITATION: "invalid-invitation",

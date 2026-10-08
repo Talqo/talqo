@@ -161,7 +161,7 @@ describe("mcp server lifecycle", () => {
 		)
 		for (const attempt of attempts) {
 			expect(attempt.status).toBe("rejected")
-			if (attempt.status === "rejected") expect(attempt.reason).toBeInstanceOf(service.InvalidMcpServerError)
+			if (attempt.status === "rejected") expect(attempt.reason).toBeInstanceOf(service.InvalidMcpServerNameError)
 		}
 	})
 

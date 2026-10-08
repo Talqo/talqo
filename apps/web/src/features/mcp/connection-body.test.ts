@@ -91,6 +91,13 @@ describe("toCreateBody", () => {
 			reason: "nameAscii",
 		})
 	})
+
+	test("refuses a name longer than the server accepts", () => {
+		expect(toCreateBody(draft({ name: `${"a".repeat(80)}x`, url: "https://example.test/mcp" }))).toEqual({
+			ok: false,
+			reason: "nameTooLong",
+		})
+	})
 })
 
 describe("toggledBody", () => {

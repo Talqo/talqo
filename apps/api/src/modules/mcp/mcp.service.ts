@@ -30,6 +30,7 @@ export class DuplicateMcpServerNameError extends Error {}
 export class UnknownAgentError extends Error {}
 export class RevisionConflictError extends Error {}
 export class InvalidMcpServerError extends Error {}
+export class InvalidMcpServerNameError extends Error {}
 
 /** The open connection that conversation holds for one generation. */
 export type OpenTools = OpenToolsResult
@@ -67,9 +68,9 @@ function toView(row: McpServerRow): McpServerView {
 
 function assertValid(input: McpCreateInput): void {
 	if (!input.name.trim() || input.name.length > MCP_SERVER_NAME_MAX_LENGTH)
-		throw new InvalidMcpServerError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
+		throw new InvalidMcpServerNameError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
-	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerError("Name must contain ASCII characters only")
+	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
 	if (input.transport !== "http") return
 	let url: URL
 	try {

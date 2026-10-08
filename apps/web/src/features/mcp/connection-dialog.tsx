@@ -5,6 +5,7 @@ import { McpArgumentsEditor } from "@/features/mcp/components/mcp-arguments-edit
 import { McpEnvEditor } from "@/features/mcp/components/mcp-env-editor"
 import {
 	EMPTY_DRAFT,
+	MCP_SERVER_NAME_LIMIT,
 	toCreateBody,
 	toEditBody,
 	type ConnectionDraft,
@@ -29,20 +30,23 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 /** Problem details carry a code; the catalog turns it into something an operator can act on. */
-function apiError(caught: unknown, t: (key: string) => string): string {
+function apiError(caught: unknown, t: (key: string, options?: Record<string, number>) => string): string {
 	const code = (caught as { info?: { code?: string } }).info?.code
 	return code === "invalid-request" || code === "malformed-json"
 		? t("mcp.errorAddress")
-		: code === "duplicate-mcp-server-name"
-			? t("mcp.errorDuplicateName")
-			: code === "configuration-conflict"
-				? t("mcp.errorConflict")
-				: t("mcp.errorSave")
+		: code === "invalid-mcp-server-name"
+			? t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
+			: code === "duplicate-mcp-server-name"
+				? t("mcp.errorDuplicateName")
+				: code === "configuration-conflict"
+					? t("mcp.errorConflict")
+					: t("mcp.errorSave")
 }
 
-function draftErrorText(reason: DraftReason, t: (key: string) => string): string {
+function draftErrorText(reason: DraftReason, t: (key: string, options?: Record<string, number>) => string): string {
 	if (reason === "nameRequired") return t("mcp.errorName")
 	if (reason === "nameAscii") return t("mcp.errorNameAscii")
+	if (reason === "nameTooLong") return t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
 	if (reason === "addressRequired") return t("mcp.errorAddress")
 	return reason === "commandRequired" ? t("mcp.errorCommand") : t("mcp.errorSecret")
 }

@@ -430,6 +430,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["invalid-mcp-server-name"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-mcp-server-name"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["invalid-ai-provider-configuration"]
 							},
 							"type": {
@@ -5669,7 +5684,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -5848,7 +5863,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -5965,7 +5980,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6190,7 +6205,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6292,7 +6307,7 @@
 						"description": "No content"
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -6408,7 +6423,7 @@
 						}
 					},
 					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url.",
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

@@ -116,6 +116,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#invalid-mcp-server-url"]),
 	}),
 	zod.object({
+		code: zod.enum(["invalid-mcp-server-name"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#invalid-mcp-server-name"]),
+	}),
+	zod.object({
 		code: zod.enum(["invalid-ai-provider-configuration"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
 	}),

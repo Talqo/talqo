@@ -5,6 +5,9 @@ import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 
 import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
 
+/** Mirrors the API's MCP_SERVER_NAME_MAX_LENGTH; the server rejects anything beyond it. */
+export const MCP_SERVER_NAME_LIMIT = 80
+
 /**
  * Rebuilds an update body from pieces the dialog or the card assembled. Secrets travel as entered
  * values plus the names to forget; whatever is mentioned in neither keeps its stored envelope.
@@ -67,7 +70,13 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 	env: [],
 }
 
-export type DraftReason = "nameRequired" | "nameAscii" | "addressRequired" | "commandRequired" | "secretRequired"
+export type DraftReason =
+	| "nameRequired"
+	| "nameAscii"
+	| "nameTooLong"
+	| "addressRequired"
+	| "commandRequired"
+	| "secretRequired"
 
 type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
 
@@ -126,6 +135,8 @@ function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftRea
 	if (!draft.name.trim()) return "nameRequired"
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
 	if (!/^[\x20-\x7E]+$/.test(draft.name)) return "nameAscii"
+	// Mirrors the API limit; the server re-checks and answers invalid-mcp-server-name.
+	if (draft.name.trim().length > MCP_SERVER_NAME_LIMIT) return "nameTooLong"
 	if (draft.transport === "http") {
 		if (!draft.url.trim()) return "addressRequired"
 		if (draft.authMode === "headers" && secretRefused(draft.headers, requireSecretValue)) return "secretRequired"

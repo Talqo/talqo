@@ -30,6 +30,8 @@ function mapDomainError(error: unknown) {
 		return { code: PROBLEM_CODES.CONFIGURATION_CONFLICT, status: HTTP_STATUS.CONFLICT } as const
 	if (error instanceof service.InvalidMcpServerError)
 		return { code: PROBLEM_CODES.INVALID_MCP_SERVER_URL, status: HTTP_STATUS.BAD_REQUEST } as const
+	if (error instanceof service.InvalidMcpServerNameError)
+		return { code: PROBLEM_CODES.INVALID_MCP_SERVER_NAME, status: HTTP_STATUS.BAD_REQUEST } as const
 	return null
 }
 

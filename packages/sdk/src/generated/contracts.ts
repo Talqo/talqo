@@ -153,6 +153,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#invalid-mcp-server-url"
 	  }
 	| {
+			code: "invalid-mcp-server-name"
+			type: "https://docs.talqo.chat/problems#invalid-mcp-server-name"
+	  }
+	| {
 			code: "invalid-ai-provider-configuration"
 			type: "https://docs.talqo.chat/problems#invalid-ai-provider-configuration"
 	  }

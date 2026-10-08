@@ -394,6 +394,7 @@
 		"errorDuplicateName": "该智能体已有同名连接。",
 		"errorName": "请为连接命名。",
 		"errorNameAscii": "仅使用英文字母、数字、空格和常用符号。",
+		"errorNameLength": "名称不能超过 {{limit}} 个字符。",
 		"errorSave": "无法保存该连接。",
 		"errorSecret": "请输入名称及其值。",
 		"headerName": "请求头名称",
