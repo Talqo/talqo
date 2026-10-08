@@ -200,15 +200,17 @@ function truncateDescription(tool: ToolSet[string]): ToolSet[string] {
 }
 
 /**
- * A hostile server could burn model context, so text parts are cut at a shared budget with a marker.
+ * A hostile server could burn model context, so every part shares one budget. Over-budget
+ * non-text parts are dropped, and the marker is appended at most once.
  */
-function truncateResult(result: unknown): unknown {
+export function truncateResult(result: unknown): unknown {
 	if (typeof result === "string")
 		return result.length <= MAX_TOOL_RESULT_CHARACTERS
 			? result
 			: `${result.slice(0, MAX_TOOL_RESULT_CHARACTERS)}…[truncated, the server returned more]`
 	if (!result || typeof result !== "object" || !Array.isArray((result as { content?: unknown }).content)) return result
 	let remaining = MAX_TOOL_RESULT_CHARACTERS
+	let marked = false
 	const content: unknown[] = []
 	for (const part of (result as { content: unknown[] }).content) {
 		if (
@@ -217,6 +219,15 @@ function truncateResult(result: unknown): unknown {
 			(part as { type?: unknown }).type !== "text" ||
 			typeof (part as { text?: unknown }).text !== "string"
 		) {
+			const size = JSON.stringify(part)?.length ?? 0
+			if (size > remaining) {
+				if (!marked) {
+					marked = true
+					content.push({ type: "text", text: "…[truncated, the server returned more]" })
+				}
+				continue
+			}
+			remaining -= size
 			content.push(part)
 			continue
 		}
@@ -226,7 +237,9 @@ function truncateResult(result: unknown): unknown {
 			content.push(part)
 			continue
 		}
-		content.push(Object.assign({}, part, { text: `${text.slice(0, remaining)}…[truncated, the server returned more]` }))
+		const marker = marked ? "" : "…[truncated, the server returned more]"
+		marked = true
+		content.push(Object.assign({}, part, { text: `${text.slice(0, remaining)}${marker}` }))
 		remaining = 0
 	}
 	return Object.assign({}, result, { content })
