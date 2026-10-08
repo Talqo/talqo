@@ -1,5 +1,6 @@
 # Documentation App
 
 - Never edit `src/routeTree.gen.ts`.
-- Adding or moving a page under `content/docs` needs no route change: `src/routes/$.tsx` renders every page by slug, and `baseUrl` in `src/lib/source.ts` decides the public URLs. The site has no path prefix, so `/problems` stays a sibling of the docs pages and must keep outranking the splat.
-- `src/serve.ts` is the process entry point and the container command. It serves `dist/client/assets` and forwards everything else to the built Start handler, so the SSR bundle must be built with `noExternal` and the image must ship no `node_modules`.
+- Render every content page by slug in `src/routes/$.tsx`; derive public URLs from `baseUrl` in `src/lib/source.ts`.
+- Keep `/problems` as a static sibling of the docs pages; static paths must outrank the splat.
+- Serve `dist/client/assets` and forward everything else to the built Start handler in `src/serve.ts`, the process entry point and container command. Keep the SSR bundle dependency-free (`noExternal`); the image ships no `node_modules`.
