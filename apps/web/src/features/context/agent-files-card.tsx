@@ -438,9 +438,12 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					if (!open) setDeleteTarget(null)
 				}}
 			>
-				<DialogContent className="gap-4">
+				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
+						<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
+							{deleteTarget?.name}
+						</p>
 						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>
 					</DialogHeader>
 					{deleteError && (
@@ -448,18 +451,13 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							{deleteError}
 						</p>
 					)}
-					<DialogFooter className="min-w-0 flex-row flex-wrap items-center justify-end gap-x-4 gap-y-2">
-						<p className="mr-auto min-w-0 truncate text-sm font-medium" title={deleteTarget?.name}>
-							{deleteTarget?.name}
-						</p>
-						<div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:justify-end">
-							<Button variant="outline" onClick={() => setDeleteTarget(null)}>
-								{t("agentFiles.deleteCancel")}
-							</Button>
-							<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
-								{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
-							</Button>
-						</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setDeleteTarget(null)}>
+							{t("agentFiles.deleteCancel")}
+						</Button>
+						<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
+							{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
