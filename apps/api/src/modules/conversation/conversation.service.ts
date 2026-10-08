@@ -4,6 +4,7 @@ import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
+import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
 import { z } from "zod"
 
@@ -46,7 +47,11 @@ type GenerationEvent =
 	  }
 
 type PreparedOperation = {
-	invoke(signal: AbortSignal): AsyncIterable<GenerationEvent>
+	invoke(
+		signal: AbortSignal,
+		tools?: aiProvider.ToolBinding,
+		onToolEvent?: (event: aiProvider.ToolEvent) => void,
+	): AsyncIterable<GenerationEvent>
 	model: string
 	provider: string
 }
@@ -84,6 +89,14 @@ export type ChatEvent =
 	  }
 	| { version: 1; assistantMessageId: string; text: string; type: "delta" }
 	| { version: 1; outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"; type: "terminal" }
+	| { version: 1; serverName: string; toolName: string; type: "tool-start" }
+	| {
+			version: 1
+			outcome: "cancelled" | "completed" | "failed"
+			serverName: string
+			toolName: string
+			type: "tool-end"
+	  }
 	| {
 			version: 1
 			error: { code: string; newChatAvailable: boolean; retriable: boolean }
@@ -283,13 +296,31 @@ export function createConversationService(dependencies: Dependencies) {
 			retriable: true,
 			newChatAvailable: false,
 		}
+		// Resolves here because abort exists here. Prepare retries would orphan earlier spawns.
+		let connection: mcp.OpenTools | undefined
+		try {
+			connection = await mcp.openTools(agent.id, controller.signal)
+		} catch (error) {
+			console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
+		}
+		const inFlight = new Map<string, { serverName: string; toolName: string }>()
 		try {
 			if (
 				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
 			) {
 				return
 			}
-			for await (const event of prepared.invoke(controller.signal)) {
+			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
+				// Parallel calls to the same tool share a name; only the call id tells them apart.
+				const key = toolEvent.toolCallId
+				if (toolEvent.type === "tool-start") {
+					inFlight.set(key, toolEvent.identity)
+					emit({ version: 1, type: "tool-start", ...toolEvent.identity })
+				} else {
+					inFlight.delete(key)
+					emit({ version: 1, type: "tool-end", ...toolEvent.identity, outcome: toolEvent.outcome })
+				}
+			})) {
 				if (event.type === "start") {
 					provider = event.provider
 					model = event.model
@@ -333,12 +364,18 @@ export function createConversationService(dependencies: Dependencies) {
 						}
 			}
 		} finally {
+			// An abort never reaches the provider's own callback, so unresolved calls close here.
+			for (const identity of inFlight.values()) {
+				emit({ version: 1, type: "tool-end", ...identity, outcome: "cancelled" })
+			}
+			inFlight.clear()
 			clearTimeout(flushTimer)
 			try {
 				if (outcome !== "blocked") await queueOutput(filter.finish())
 				await flushOutput()
 			} finally {
 				poller.unregister(generationAttempt.id)
+				await connection?.close()
 			}
 		}
 		if (outputFailed && outcome !== "blocked") outcome = "failed"
@@ -348,28 +385,36 @@ export function createConversationService(dependencies: Dependencies) {
 			outputText: observedOutput,
 			usage: providerUsage,
 		})
-		if (
-			await repository.stageFinalization({
-				generationAttemptId: generationAttempt.id,
-				leaseToken: generationAttempt.leaseToken,
-				provider,
-				model,
-				outcome,
-				...normalized,
-			})
-		) {
-			const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
-			if (pending) await recordPendingUsage(pending)
-			if (outcome === "failed") {
-				emit({
-					version: 1,
-					type: "error",
+		try {
+			if (
+				await repository.stageFinalization({
+					generationAttemptId: generationAttempt.id,
+					leaseToken: generationAttempt.leaseToken,
+					provider,
+					model,
 					outcome,
-					error: publicError,
+					...normalized,
 				})
-			} else {
-				emit({ version: 1, type: "terminal", outcome })
+			) {
+				const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
+				if (pending) await recordPendingUsage(pending)
+				if (outcome === "failed") {
+					emit({
+						version: 1,
+						type: "error",
+						outcome,
+						error: publicError,
+					})
+				} else {
+					emit({ version: 1, type: "terminal", outcome })
+				}
 			}
+		} catch (error) {
+			console.error("conversation.finalization.failed", {
+				generationAttemptId: generationAttempt.id,
+				error: error instanceof Error ? error.message : error,
+			})
+			emit({ version: 1, type: "error", outcome: "failed", error: publicError })
 		}
 	}
 
@@ -408,7 +453,7 @@ export function createConversationService(dependencies: Dependencies) {
 						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
 					}
 				} catch (error) {
-					console.error("knowledge-base.retrieval.degraded", { agentId, error })
+					console.error("knowledge-base.retrieval.degraded", { agentId, error: String(error) })
 				}
 				const messages = completedPrompt(systemPrompt, history.messages, question)
 				const promptContent = promptText(messages)

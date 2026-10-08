@@ -13,7 +13,9 @@ import { createConversationRoutes, type ChatBindings } from "@/modules/conversat
 import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
+import { mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
+import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
 
@@ -75,6 +77,7 @@ api.route("/embed-config", embedConfigRoutes)
 api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
+api.route("/agents", mcpServerRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,
@@ -108,7 +111,16 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 		}
 	}
 
-	console.error(error)
+	if (APICallError.isInstance(error)) {
+		console.error("provider.call.failed", {
+			message: error.message,
+			statusCode: error.statusCode,
+			url: error.url,
+			isRetryable: error.isRetryable,
+		})
+	} else {
+		console.error(error)
+	}
 	return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
 }
 

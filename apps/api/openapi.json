@@ -355,6 +355,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["duplicate-mcp-server-name"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#duplicate-mcp-server-name"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["embed-disabled"]
 							},
 							"type": {
@@ -390,6 +405,36 @@
 							"type": {
 								"type": "string",
 								"enum": ["https://docs.talqo.chat/problems#internal-server-error"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-mcp-server-url"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-mcp-server-url"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["invalid-mcp-server-name"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#invalid-mcp-server-name"]
 							}
 						},
 						"required": ["code", "type"],
@@ -465,6 +510,21 @@
 							"type": {
 								"type": "string",
 								"enum": ["https://docs.talqo.chat/problems#malformed-json"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["mcp-server-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#mcp-server-not-found"]
 							}
 						},
 						"required": ["code", "type"],
@@ -955,6 +1015,50 @@
 							},
 							"type": {
 								"type": "string",
+								"enum": ["tool-start"]
+							},
+							"serverName": {
+								"type": "string"
+							},
+							"toolName": {
+								"type": "string"
+							}
+						},
+						"required": ["version", "type", "serverName", "toolName"]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"version": {
+								"type": "number",
+								"enum": [1]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["tool-end"]
+							},
+							"serverName": {
+								"type": "string"
+							},
+							"toolName": {
+								"type": "string"
+							},
+							"outcome": {
+								"type": "string",
+								"enum": ["completed", "failed", "cancelled"]
+							}
+						},
+						"required": ["version", "type", "serverName", "toolName", "outcome"]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"version": {
+								"type": "number",
+								"enum": [1]
+							},
+							"type": {
+								"type": "string",
 								"enum": ["error"]
 							},
 							"outcome": {
@@ -1009,6 +1113,115 @@
 					}
 				},
 				"required": ["name", "sizeBytes", "createdAt", "embeddingStatus", "embeddingError"]
+			},
+			"McpServer": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"transport": {
+						"type": "string",
+						"enum": ["http", "stdio"]
+					},
+					"url": {
+						"type": ["string", "null"]
+					},
+					"authMode": {
+						"type": ["string", "null"],
+						"enum": ["none", "headers", null]
+					},
+					"command": {
+						"type": ["string", "null"]
+					},
+					"args": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"headers": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"hasValue": {
+									"type": "boolean"
+								}
+							},
+							"required": ["name", "hasValue"]
+						}
+					},
+					"env": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"hasValue": {
+									"type": "boolean"
+								}
+							},
+							"required": ["name", "hasValue"]
+						}
+					},
+					"tools": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"description": {
+									"type": "string"
+								},
+								"enabled": {
+									"type": "boolean"
+								}
+							},
+							"required": ["name", "description", "enabled"]
+						}
+					},
+					"toolCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"isWorking": {
+						"type": "boolean"
+					},
+					"isDisabled": {
+						"type": "boolean"
+					},
+					"revision": {
+						"type": "integer",
+						"minimum": 0
+					}
+				},
+				"required": [
+					"id",
+					"name",
+					"transport",
+					"url",
+					"authMode",
+					"command",
+					"args",
+					"headers",
+					"env",
+					"tools",
+					"toolCount",
+					"isWorking",
+					"isDisabled",
+					"revision"
+				]
 			}
 		},
 		"parameters": {}
@@ -5410,6 +5623,847 @@
 					},
 					"409": {
 						"description": "Problem response. Codes: agent-file-not-retryable.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/mcp-servers": {
+			"get": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "listMcpServers",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Connections listed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"servers": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/McpServer"
+											}
+										}
+									},
+									"required": ["servers"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "createMcpServer",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80
+									},
+									"server": {
+										"oneOf": [
+											{
+												"type": "object",
+												"properties": {
+													"transport": {
+														"type": "string",
+														"enum": ["http"]
+													},
+													"url": {
+														"type": "string",
+														"format": "uri"
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["none", "headers"]
+													},
+													"headers": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 4096
+														}
+													}
+												},
+												"required": ["transport", "url", "authMode"],
+												"additionalProperties": false
+											},
+											{
+												"type": "object",
+												"properties": {
+													"transport": {
+														"type": "string",
+														"enum": ["stdio"]
+													},
+													"command": {
+														"type": "string",
+														"minLength": 1,
+														"maxLength": 512
+													},
+													"args": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"maxLength": 1000
+														},
+														"maxItems": 50
+													},
+													"env": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 4096
+														}
+													}
+												},
+												"required": ["transport", "command"],
+												"additionalProperties": false
+											}
+										]
+									}
+								},
+								"required": ["name", "server"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Connection created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"server": {
+											"$ref": "#/components/schemas/McpServer"
+										}
+									},
+									"required": ["server"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/mcp-servers/{serverId}": {
+			"get": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "getMcpServer",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "serverId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Connection read",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"server": {
+											"$ref": "#/components/schemas/McpServer"
+										}
+									},
+									"required": ["server"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "updateMcpServer",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "serverId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80
+									},
+									"server": {
+										"oneOf": [
+											{
+												"type": "object",
+												"properties": {
+													"transport": {
+														"type": "string",
+														"enum": ["http"]
+													},
+													"url": {
+														"type": "string",
+														"format": "uri"
+													},
+													"authMode": {
+														"type": "string",
+														"enum": ["none", "headers"]
+													},
+													"headers": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 4096
+														}
+													},
+													"deleteHeaders": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 256
+														},
+														"maxItems": 50
+													}
+												},
+												"required": ["transport", "url", "authMode"],
+												"additionalProperties": false
+											},
+											{
+												"type": "object",
+												"properties": {
+													"transport": {
+														"type": "string",
+														"enum": ["stdio"]
+													},
+													"command": {
+														"type": "string",
+														"minLength": 1,
+														"maxLength": 512
+													},
+													"args": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"maxLength": 1000
+														},
+														"maxItems": 50
+													},
+													"env": {
+														"type": "object",
+														"additionalProperties": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 4096
+														}
+													},
+													"deleteEnv": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 256
+														},
+														"maxItems": 50
+													}
+												},
+												"required": ["transport", "command"],
+												"additionalProperties": false
+											}
+										]
+									},
+									"expectedRevision": {
+										"type": "integer",
+										"minimum": 0
+									},
+									"tools": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"enabled": {
+													"type": "boolean"
+												},
+												"name": {
+													"type": "string"
+												}
+											},
+											"required": ["enabled", "name"],
+											"additionalProperties": false
+										}
+									}
+								},
+								"required": ["name", "server", "expectedRevision"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Connection updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"server": {
+											"$ref": "#/components/schemas/McpServer"
+										}
+									},
+									"required": ["server"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "deleteMcpServer",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "serverId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/mcp-servers/{serverId}/{action}": {
+			"post": {
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"operationId": "setMcpServerDisabled",
+				"tags": ["MCP"],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "serverId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string",
+							"enum": ["enable", "disable"]
+						},
+						"required": true,
+						"name": "action",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Connection updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"server": {
+											"$ref": "#/components/schemas/McpServer"
+										}
+									},
+									"required": ["server"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, invalid-mcp-server-url, invalid-mcp-server-name.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: agent-not-found, mcp-server-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

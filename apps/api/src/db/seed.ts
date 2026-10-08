@@ -3,6 +3,7 @@ import * as agent from "@/modules/agent/agent.seed.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.seed.ts"
 import * as embed from "@/modules/embed/embed.seed.ts"
 import * as identity from "@/modules/identity/identity.seed.ts"
+import * as mcp from "@/modules/mcp/mcp.seed.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
 
 import { sql } from "./client.ts"
@@ -23,6 +24,7 @@ export async function seed(): Promise<void> {
 	await identity.seedUser()
 	await agent.seed()
 	await embed.seed()
+	await mcp.seed()
 }
 
 if (import.meta.main) {

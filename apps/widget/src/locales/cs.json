@@ -44,5 +44,6 @@
 	"stopGenerating": "Zastavit generování",
 	"stopping": "Zastavování...",
 	"switchToDark": "Přepnout na tmavý motiv",
-	"switchToLight": "Přepnout na světlý motiv"
+	"switchToLight": "Přepnout na světlý motiv",
+	"toolRunning": "Kontroluji aktuální informace..."
 }

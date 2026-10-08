@@ -775,6 +775,45 @@ describe("createChatClient", () => {
 		})
 	})
 
+	// Without an explicit branch, tool events fall into the terminal case and end every stream early.
+	test("treats tool activity as progress rather than the end of the stream", async () => {
+		const observed: string[][] = []
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async () =>
+					streamFrom([
+						{
+							type: "accepted",
+							requestId: "request",
+							generationId: "generation",
+							userMessage: { id: "u1", createdAt: "now" },
+							assistantMessage: { id: "a1", createdAt: "now" },
+						},
+						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
+						{ type: "delta", assistantMessageId: "a1", text: "Checking" },
+						{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
+						{ type: "delta", assistantMessageId: "a1", text: " stock" },
+						{ type: "terminal", outcome: "completed" },
+					]),
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+		})
+		await client.initialize()
+		client.subscribe(() => observed.push(client.getSnapshot().activeTools.map(({ toolName }) => toolName)))
+
+		await client.sendMessage("is it in stock?")
+
+		expect(observed).toContainEqual(["get_product"])
+		expect(observed).toContainEqual([])
+		expect(client.getSnapshot().messages).toMatchObject([
+			{ id: "u1", outcome: "completed" },
+			{ id: "a1", text: "Checking stock", outcome: "completed" },
+		])
+		expect(client.getSnapshot().activeTools).toEqual([])
+	})
+
 	test("keeps the accepted user completed when the stream fails", async () => {
 		const recoveryStarted = deferred<void>()
 		const client = createChatClient({

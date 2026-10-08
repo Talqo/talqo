@@ -2,6 +2,7 @@ export { ChatClientError, createChatClient } from "./chat-client"
 export { ChatTransportError, createFetchChatTransport, type FetchChatTransportOptions } from "./fetch-transport"
 export type { AsyncStorage } from "./storage"
 export type {
+	ActiveTool,
 	ChatClient,
 	ChatClientOptions,
 	ChatConfiguration,

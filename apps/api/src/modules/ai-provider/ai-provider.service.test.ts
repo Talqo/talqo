@@ -1,3 +1,4 @@
+import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
 import { describe, expect, it } from "bun:test"
 
@@ -11,7 +12,6 @@ import {
 	RevisionConflictError,
 	UnusableConfigurationError,
 } from "./ai-provider.service.ts"
-import { createCredentialVault } from "./credential-vault.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
 
@@ -51,11 +51,15 @@ const input: SaveConfigurationInput = {
 	},
 }
 
-function createMemoryService(generate?: Parameters<typeof createAiProviderService>[0]["generate"]) {
+function createMemoryService(
+	generate?: Parameters<typeof createAiProviderService>[0]["generate"],
+	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
+) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
-		vault: createCredentialVault(APP_SECRET),
+		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		generate,
+		streamText,
 		discover: async () => ["model-a"],
 		repository: {
 			find: async () => stored,
@@ -365,5 +369,25 @@ describe("AI provider service", () => {
 			}),
 		).rejects.toBeInstanceOf(UnusableConfigurationError)
 		expect(invoked).toBe(false)
+	})
+
+	it("lets a tool result reach the model for five steps, then stops", async () => {
+		const calls: Record<string, unknown>[] = []
+		const { service } = createMemoryService(undefined, ((options: unknown) => {
+			calls.push(options as Record<string, unknown>)
+			return { textStream: (async function* () {})(), usage: Promise.resolve({}) }
+		}) as never)
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 77,
+			timeoutMs: 9000,
+		})
+
+		await Array.fromAsync(prepared.invoke(new AbortController().signal))
+
+		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: never[] }) => boolean
+		expect(stopWhen({ steps: Array.from({ length: 4 }) as never[] })).toBe(false)
+		expect(stopWhen({ steps: Array.from({ length: 5 }) as never[] })).toBe(true)
 	})
 })

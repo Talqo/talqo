@@ -1,0 +1,53 @@
+---
+title: Connect a tools server
+description: Give an agent live data from your own systems.
+---
+
+## What this does
+
+An agent normally answers from documents you uploaded. A **tools connection** lets it also call a program or service you run, so it can answer from live data such as stock levels, order status, or prices.
+
+You add connections on one agent's page, under the **Tools** tab. Each connection belongs to that agent alone, so a secret configured for one agent is never handed to another.
+
+## Two kinds of connection
+
+**Web address** runs the server somewhere you already host it and gives Talqo its address. Most servers work this way, and it is the easier option.
+
+**Local program** runs the server as a child process on the machine running Talqo. Use it for servers you install yourself.
+
+Talqo connects when you save, to find out which tools the server offers. A connection that could not be reached is still saved with everything you typed. The problem is the server, not your setup.
+
+A card with a green dot offered at least one tool. A red dot means it offered none, so there is nothing for the agent to call yet, and the card says so.
+
+## Web address
+
+Fill in the address the server publishes, usually ending in `/mcp`.
+
+Under **Authentication**, choose how Talqo authenticates:
+
+- **None** for a server on your own network that needs no credentials.
+- **Secret key** for fixed headers, such as `Authorization: Bearer …` or `X-API-Key`. Click Add for each header and fill in its name and value; values are stored encrypted and never shown again.
+
+## Local program
+
+Fill in the command that starts the server, then click Add for each argument and type it into its own row. For a server published to npm that is usually the `bunx` command with `-y` and the package name as two separate arguments.
+
+If the server needs secrets, click Add for each variable and fill in its name and value. It is stored encrypted and passed to the program as an environment variable.
+
+The command runs on your own server, as the same user Talqo itself runs as. Only point it at programs you trust.
+
+The server receives only that variable plus a small set of harmless shell variables. Talqo never passes its own secrets, such as its database password, to a program you configure.
+
+A Python-based server cannot run in the container as shipped, because it has no Python interpreter. Run those yourself over a web address instead.
+
+## Choosing which tools to use
+
+Saving a connection lists the tools the server offers. Turn off any your agent does not need: it will not be able to call them, and a connection with every tool turned off stays configured but costs nothing at chat time. Saving again re-reads the tool list, so a server that gains or loses a tool is picked up when you edit it.
+
+Turning a tool off is different from disabling the connection. A disabled connection is skipped entirely; a connection with no tools enabled still starts, because the model must be able to see each tool's parameters before deciding to call it.
+
+## When something does not work
+
+Chat never fails because of a tools connection. If a server is unreachable, its tools are simply unavailable for that message and the agent answers with what it has. The reason is written to the server log, not shown to your customers.
+
+A red dot means the last save found no tools, either because the server could not be reached or because it genuinely offers none. Edit the connection and save again to try once more; nothing is lost if it still fails.

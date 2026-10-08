@@ -1,5 +1,6 @@
+import type { CredentialEnvelope } from "@/lib/credential-vault.ts"
+
 import type { AiProviderId, AuthMode } from "./ai-provider.registry.ts"
-import type { CredentialEnvelope } from "./credential-vault.ts"
 
 export type StoredTextConfiguration = {
 	authMode: AuthMode

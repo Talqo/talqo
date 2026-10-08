@@ -1,0 +1,83 @@
+import type { CredentialSecretMap } from "@/lib/credential-vault.ts"
+
+import { agent } from "@/modules/agent/agent.schema.ts"
+import { sql } from "drizzle-orm"
+import {
+	boolean,
+	check,
+	index,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core"
+
+import type { McpToolSnapshot } from "./mcp.types.ts"
+
+export const mcpTransportEnum = pgEnum("mcp_transport", ["http", "stdio"])
+export const mcpAuthModeEnum = pgEnum("mcp_auth_mode", ["none", "headers"])
+
+export const mcpServer = pgTable(
+	"mcp_server",
+	{
+		id: text("id").primaryKey(),
+		agentId: text("agent_id")
+			.notNull()
+			.references(() => agent.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		transport: mcpTransportEnum("transport").notNull(),
+		url: text("url"),
+		authMode: mcpAuthModeEnum("auth_mode"),
+		headers: jsonb("headers").$type<CredentialSecretMap>(),
+		command: text("command"),
+		args: jsonb("args")
+			.$type<string[]>()
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		env: jsonb("env")
+			.$type<CredentialSecretMap>()
+			.notNull()
+			.default(sql`'{}'::jsonb`),
+		tools: jsonb("tools")
+			.$type<McpToolSnapshot[]>()
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		isDisabled: boolean("is_disabled").notNull().default(false),
+		revision: integer("revision").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+	},
+	(table) => [
+		index("mcp_server_agent_id_idx").on(table.agentId),
+		uniqueIndex("mcp_server_agent_name_unique_idx").on(table.agentId, sql`lower(${table.name})`),
+		check(
+			"mcp_server_transport_fields_check",
+			sql`(
+				${table.transport} = 'http' AND ${table.url} IS NOT NULL AND ${table.command} IS NULL
+					AND ${table.authMode} IS NOT NULL
+					AND ${table.args} = '[]'::jsonb AND ${table.env} = '{}'::jsonb
+			) OR (
+				${table.transport} = 'stdio' AND ${table.command} IS NOT NULL AND ${table.url} IS NULL
+					AND ${table.authMode} IS NULL
+			)`,
+		),
+		// Uses IS NOT DISTINCT FROM: with =, a null auth_mode yields null, the check passes,
+		// and any secret column is admitted.
+		check(
+			"mcp_server_auth_fields_check",
+			sql`(
+				(${table.authMode} IS NULL OR ${table.authMode} = 'none')
+					AND ${table.headers} IS NULL
+			) OR (
+				${table.authMode} IS NOT DISTINCT FROM 'headers' AND ${table.headers} IS NOT NULL
+			)`,
+		),
+	],
+)
+
+export type McpServerRow = typeof mcpServer.$inferSelect
+export type NewMcpServer = typeof mcpServer.$inferInsert
+export type McpServerPatch = Partial<Omit<NewMcpServer, "id" | "agentId" | "createdAt">>
