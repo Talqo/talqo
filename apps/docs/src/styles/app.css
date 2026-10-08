@@ -1,3 +1,9 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+
+@media (width >= 48rem) {
+	#nd-docs-layout {
+		--fd-sidebar-width: 220px;
+	}
+}
