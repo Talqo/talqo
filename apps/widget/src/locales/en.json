@@ -1,7 +1,6 @@
 {
 	"agentResponding": "Agent is responding",
 	"allowanceReset": "Allowance resets at {{reset}}.",
-	"chatUnavailable": "This chat can't reply right now. Please try again later.",
 	"closeChat": "Close chat",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "The response could not be stopped. It may still be running.",
@@ -27,6 +26,7 @@
 	"errorStorageUnavailable": "Chat works in this tab, but cannot be restored after a reload.",
 	"errorTransport": "The connection to chat failed. Please try again.",
 	"greeting": "Hi there! How can I help you today?",
+	"chatUnavailable": "This chat can't reply right now. Please try again later.",
 	"initializing": "Loading chat...",
 	"messageLabel": "Message",
 	"newChat": "New chat",

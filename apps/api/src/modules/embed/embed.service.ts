@@ -161,7 +161,7 @@ export async function getConfigByToken(embedToken: string): Promise<EmbedConfig>
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	const { name, appearance, isDisabled } = toEmbed(row)
-	const isAvailable = (await aiProvider.getHealth()) === "configured"
+	const isAvailable = await aiProvider.canGenerateText()
 	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, isDisabled, updatedAt: row.updatedAt }
 }
 

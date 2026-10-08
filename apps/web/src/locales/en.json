@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "Change password",
-		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
 		"comingSoon": "Coming soon",
 		"confirmNewPassword": "Confirm new password",
 		"currentPassword": "Current password",
@@ -10,6 +8,8 @@
 		"dangerZone": "Danger zone",
 		"deleteAccount": "Delete account",
 		"heading": "Account",
+		"changePassword": "Change password",
+		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
 		"name": "Name",
 		"nameInvalid": "Name must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens.",
 		"newPassword": "New password",
@@ -265,6 +265,8 @@
 		"showPassword": "Show password"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "We couldn't check whether your agents can reply to visitors. Open the AI provider settings to review them.",
+		"aiProviderCheckFailedAction": "Review AI provider",
 		"aiProviderMissing": "Your agents can't reply to visitors yet. Set up an AI provider to turn replies on.",
 		"aiProviderMissingAction": "Set up AI provider",
 		"cards": {

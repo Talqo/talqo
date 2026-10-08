@@ -433,7 +433,7 @@ function WidgetChat({
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
 						<BubbleGroup>
-							{messages.length === 0 && initialization === "ready" && !unusable && (
+							{messages.length === 0 && initialization === "ready" && !unusable && !cannotReply && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
 										{t("greeting")}

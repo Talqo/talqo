@@ -312,7 +312,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function sendMessage(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
-		if (configuration?.isAvailable === false) throw new Error("Chat is unavailable")
+		if (configuration?.isAvailable === false) throw new ChatClientError({ code: "chat-unavailable" })
 		if (reset === "resetting") throw new Error("Chat session is resetting")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {

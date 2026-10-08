@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "Změnit heslo",
-		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
@@ -10,6 +8,8 @@
 		"dangerZone": "Nebezpečná zóna",
 		"deleteAccount": "Smazat účet",
 		"heading": "Účet",
+		"changePassword": "Změnit heslo",
+		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
 		"name": "Jméno",
 		"nameInvalid": "Jméno musí mít {{min}}-{{max}} znaků a obsahovat pouze písmena, čísla, podtržítka a pomlčky.",
 		"newPassword": "Nové heslo",
@@ -265,6 +265,8 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "Nepodařilo se ověřit, zda vaši agenti mohou návštěvníkům odpovídat. Zkontrolujte nastavení poskytovatele AI.",
+		"aiProviderCheckFailedAction": "Zkontrolovat poskytovatele AI",
 		"aiProviderMissing": "Vaši agenti zatím nemohou návštěvníkům odpovídat. Nastavte poskytovatele AI, aby odpovědi začaly fungovat.",
 		"aiProviderMissingAction": "Nastavit poskytovatele AI",
 		"cards": {

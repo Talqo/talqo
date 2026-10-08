@@ -428,6 +428,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await openChat()
 
 		expect(host.textContent).toContain("can't reply right now")
+		expect(host.textContent).not.toContain("How can I help")
 		expect(input().disabled).toBe(true)
 	})
 

@@ -98,7 +98,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (embedding-provider precondition pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
-| FR-2.9b | While the AI provider configuration is incomplete or unhealthy, every chat UI shows end users that chat is unavailable and blocks sending, and operators who can manage the provider see a dashboard prompt to finish setup | High | Done |
+| FR-2.9b | While no usable text provider is configured, the widget and custom SDK UIs show end users that chat is unavailable and block sending; while the AI provider configuration is incomplete or unhealthy, operators who can manage the provider see a dashboard prompt to finish setup | High | Done |
 
 #### 3.2.3 Agent configuration (FR-2c)
 
