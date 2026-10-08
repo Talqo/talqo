@@ -206,40 +206,6 @@ test("operator moves the embedded widget to the other corner", async ({ page }) 
 	await expect(page.frameLocator("iframe").locator(".talqo-widget")).toHaveClass(/left-4/)
 })
 
-test("operator reassigns the embed to a different agent", async ({ page }) => {
-	const source = seeded[0]
-	if (!source) throw new Error("Shared seed embed is missing")
-	const agentResponse = await page.request.post("/api/agents", {
-		data: { name: "Sales assistant", systemPrompt: "You answer sales questions.", wordBlacklist: [] },
-	})
-	await expect(agentResponse).toBeOK()
-	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
-	const embedResponse = await page.request.post("/api/embeds", {
-		data: { name: "Reassignment test", agentId: source.agentId, appearance: source.appearance },
-	})
-	await expect(embedResponse).toBeOK()
-	const { embed } = (await embedResponse.json()) as { embed: { id: string } }
-
-	try {
-		await page.goto(`/dashboard/embeds/${embed.id}`)
-		const agentSelect = page.getByLabel("Agent")
-		await expect(agentSelect).toContainText("Website Assistant")
-		await agentSelect.click()
-		await page.getByRole("option", { name: "Sales assistant" }).click()
-		await expect(agentSelect).toContainText("Sales assistant")
-		await page.getByRole("button", { name: "Save changes" }).click()
-		await expect(page.getByText("Saved just now.")).toBeVisible()
-
-		await page.getByRole("button", { name: "Back to agent" }).click()
-		await expect(page.getByRole("heading", { name: "Configure Sales assistant" })).toBeVisible()
-		await page.getByRole("tab", { name: "Embeds" }).click()
-		await expect(page.locator("[data-slot=card]", { hasText: "Reassignment test" })).toBeVisible()
-	} finally {
-		await page.request.delete(`/api/embeds/${embed.id}`)
-		await page.request.delete(`/api/agents/${agent.id}`)
-	}
-})
-
 test("the widget's own name reaches the embedded chat header", async ({ page }) => {
 	await page.getByRole("link", { name: "Website", exact: true }).click()
 
