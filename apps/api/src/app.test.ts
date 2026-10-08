@@ -1,8 +1,11 @@
 import type { Context } from "hono"
 
+import { APICallError } from "@ai-sdk/provider"
+import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
 
 import { app, handleError } from "./app.ts"
+import { allowPublic, isAccessPolicy, requireAccessPolicy } from "./http/access.ts"
 import { PROBLEM_CODES } from "./http/problem.ts"
 import { createOpenApiDocument } from "./openapi.ts"
 
@@ -127,6 +130,31 @@ describe("api", () => {
 		expect(console.error).toHaveBeenCalled()
 	})
 
+	it("redacts provider call errors in logs", async () => {
+		using logged = spyOn(console, "error").mockImplementation(() => {})
+		let response: Response | undefined
+		const context = {
+			json: (data: unknown, status: number, headers?: Record<string, string>) => {
+				response = new Response(JSON.stringify(data), { headers, status })
+				return response
+			},
+		}
+		await handleError(
+			new APICallError({
+				message: "Internal error encountered.",
+				url: "https://provider.invalid/stream",
+				requestBodyValues: { contents: [{ secret: "must-not-leak" }] },
+				statusCode: 500,
+				responseBody: '{"error":{"message":"Internal error encountered."}}',
+			}),
+			context as unknown as Context,
+		)
+
+		expect(response?.status).toBe(500)
+		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
+		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
+	})
+
 	it("normalizes responses carried by response-bearing errors", async () => {
 		using _ = spyOn(console, "error").mockImplementation(() => {})
 
@@ -240,6 +268,37 @@ describe("api", () => {
 		])
 	})
 
+	it("declares an access policy on every endpoint", () => {
+		const endpoints = app.routes.filter((route) => route.method !== "ALL")
+		const withoutPolicy = endpoints
+			.filter(
+				(endpoint) =>
+					!endpoints.some(
+						(route) =>
+							route.method === endpoint.method && route.path === endpoint.path && isAccessPolicy(route.handler),
+					),
+			)
+			.map((route) => `${route.method} ${route.path}`)
+
+		expect(endpoints.length).toBeGreaterThan(0)
+		expect([...new Set(withoutPolicy)]).toEqual([])
+	})
+
+	it("refuses an endpoint registered without an access policy", async () => {
+		using _ = spyOn(console, "error").mockImplementation(() => {})
+		const probe = new OpenAPIHono()
+		probe.use("*", requireAccessPolicy)
+		probe.get("/undeclared", (c) => c.text("reachable"))
+		probe.get("/declared", allowPublic, (c) => c.text("reachable"))
+
+		const undeclared = await probe.request("/undeclared")
+
+		expect(undeclared.status).toBe(500)
+		expect(await undeclared.json()).toMatchObject({ code: "internal-server-error" })
+		expect(console.error).toHaveBeenCalledWith("route.access_policy_missing", { method: "GET", path: "/undeclared" })
+		expect((await probe.request("/declared")).status).toBe(200)
+	})
+
 	it("describes every route through OpenAPI 3.1.1", () => {
 		expect("getOpenAPI31Document" in app).toBe(true)
 
@@ -258,6 +317,9 @@ describe("api", () => {
 				"/api/agents/{agentId}/files",
 				"/api/agents/{agentId}/files/{fileName}",
 				"/api/agents/{agentId}/files/{fileName}/retry",
+				"/api/agents/{agentId}/mcp-servers",
+				"/api/agents/{agentId}/mcp-servers/{serverId}",
+				"/api/agents/{agentId}/mcp-servers/{serverId}/{action}",
 				"/api/auth/login",
 				"/api/auth/logout",
 				"/api/auth/session",
@@ -311,6 +373,8 @@ describe("api", () => {
 		for (const path of ["/api/chat/{embedToken}/messages", "/api/chat/session", "/api/chat/cancel"] as const) {
 			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
 		}
+		expect(paths["/health"]?.get?.security).toEqual([])
+		expect(paths["/api/auth/login"]?.post?.security).toEqual([])
 		const sendResponses = paths["/api/chat/{embedToken}/messages"]?.post?.responses ?? {}
 		const expectedSendProblems = {
 			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],

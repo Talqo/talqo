@@ -37,6 +37,7 @@ const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "applica
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
 const MESSAGE_ROLES = Object.values(GetChatSession200MessagesItemRole)
 const MESSAGE_OUTCOMES = Object.values(GetChatSession200MessagesItemOutcome)
+const TOOL_OUTCOMES = ["completed", "failed", "cancelled"] as const
 const TERMINAL_OUTCOMES = MESSAGE_OUTCOMES.filter(
 	(outcome): outcome is Exclude<MessageOutcome, "streaming"> => outcome !== "streaming",
 )
@@ -193,6 +194,13 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 	if (value.type === "delta") {
 		if (typeof value.assistantMessageId !== "string" || typeof value.text !== "string") return undefined
 		return { type: "delta", assistantMessageId: value.assistantMessageId, text: value.text }
+	}
+	if (value.type === "tool-start" || value.type === "tool-end") {
+		if (typeof value.serverName !== "string" || typeof value.toolName !== "string") return undefined
+		if (value.type === "tool-start")
+			return { type: "tool-start", serverName: value.serverName, toolName: value.toolName }
+		if (!isOneOf(value.outcome, TOOL_OUTCOMES)) return undefined
+		return { type: "tool-end", serverName: value.serverName, toolName: value.toolName, outcome: value.outcome }
 	}
 	if (value.type === "terminal") {
 		if (!isOneOf(value.outcome, TERMINAL_OUTCOMES)) return undefined

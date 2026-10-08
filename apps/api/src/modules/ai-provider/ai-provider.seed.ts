@@ -1,8 +1,8 @@
 import { env } from "@/config/env.ts"
+import { createCredentialVault } from "@/lib/credential-vault.ts"
 
 import { validateConfigurationInput } from "./ai-provider.configuration.ts"
 import * as repo from "./ai-provider.repository.ts"
-import { createCredentialVault } from "./credential-vault.ts"
 
 export async function seed(): Promise<void> {
 	const baseUrl = Bun.env.TALQO_SEED_AI_BASE_URL?.trim()
@@ -32,7 +32,7 @@ export async function seed(): Promise<void> {
 			credentialSource: "text",
 		},
 	})
-	const credentials = createCredentialVault(env.APP_SECRET).encrypt(
+	const credentials = createCredentialVault(env.APP_SECRET, "talqo:ai-provider-credentials:v1").encrypt(
 		{ apiKey },
 		{ configId: "singleton", providerId: "openai-compatible", role: "text" },
 	)

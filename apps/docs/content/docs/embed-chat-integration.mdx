@@ -25,7 +25,7 @@ Fetching appearance or opening the widget does not create a conversation. The fi
 
 ## Chat behavior
 
-Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge, create embeddings, or call MCP tools. Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
+Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge or create embeddings. If an agent has tools connections enabled, chat calls them and the widget shows the activity; see [connecting an MCP server](/docs/mcp-connections). Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
 
 Streaming uses versioned JSON events in SSE framing over a POST response consumed with fetch. It is not browser `EventSource`. Session history and subsequent sends require the private bearer credential; the public embed token alone cannot read a conversation.
 

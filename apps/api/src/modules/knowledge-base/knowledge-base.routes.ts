@@ -1,9 +1,6 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
-
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { bodyLimit } from "hono/body-limit"
 
@@ -38,15 +35,11 @@ const uploadBodyLimit = bodyLimit({
 	onError: (c) => problemResponse(c, PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE),
 })
 
-const routes = new OpenAPIHono<{ Variables: AuthedVariables }>()
+const routes = new OpenAPIHono()
 routes.use("/:agentId/files", uploadBodyLimit)
 
 export const agentFilesRoutes = routes
 	.openapi(listAgentFilesRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const agentId = c.req.valid("param").agentId
 		try {
 			await requireAgent(agentId)
@@ -68,10 +61,6 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(uploadAgentFileRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const agentId = c.req.valid("param").agentId
 		const body = c.req.valid("form")
 		const file = body["file"]
@@ -100,10 +89,6 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(downloadAgentFileRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
 		try {
@@ -129,10 +114,6 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(renameAgentFileRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const { agentId, fileName } = c.req.valid("param")
 		// URL-decoded before routing: %2F reaches us as a literal "/", so traversal must be rejected here.
 		try {
@@ -158,10 +139,6 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(deleteAgentFileRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const { agentId, fileName } = c.req.valid("param")
 		try {
 			await requireAgent(agentId)
@@ -182,10 +159,6 @@ export const agentFilesRoutes = routes
 		}
 	})
 	.openapi(retryAgentFileRoute, async (c) => {
-		const user = c.get("user")
-		if (!(await roles.authorize(user.id, roles.Permission.AgentsManage))) {
-			return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-		}
 		const { agentId, fileName } = c.req.valid("param")
 		try {
 			await requireAgent(agentId)

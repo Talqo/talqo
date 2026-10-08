@@ -44,5 +44,6 @@
 	"stopGenerating": "Stop generating",
 	"stopping": "Stopping...",
 	"switchToDark": "Switch to dark theme",
-	"switchToLight": "Switch to light theme"
+	"switchToLight": "Switch to light theme",
+	"toolRunning": "Checking live information..."
 }

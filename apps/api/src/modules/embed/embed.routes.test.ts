@@ -33,7 +33,7 @@ describe("public embed config endpoints", () => {
 })
 
 describe("embed CRUD authentication boundary", () => {
-	// The public exemption is a pattern; widening it into this namespace is an auth bypass.
+	// The config routes are public; that must never leak into the CRUD namespace beside them.
 	it("still requires a session to list embeds", async () => {
 		expect((await app.request("/api/embeds")).status).toBe(401)
 	})

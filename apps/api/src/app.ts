@@ -1,11 +1,11 @@
-import type { AuthedVariables } from "@/http/require-auth.ts"
 import type { Context } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 
+import { requireAccessPolicy } from "@/http/access.ts"
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
 import { PROBLEM_CODES, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
-import { API_PREFIX, requireAuth } from "@/http/require-auth.ts"
+import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
@@ -13,7 +13,9 @@ import { createConversationRoutes, type ChatBindings } from "@/modules/conversat
 import { embedConfigRoutes, embedRoutes, legacyWidgetConfigRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
+import { mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
+import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
 
@@ -22,7 +24,7 @@ const CORS_MAX_AGE_SECONDS = 86_400
 const MIN_ERROR_STATUS = 400
 const MAX_ERROR_STATUS = 599
 
-export const app = new OpenAPIHono<{ Bindings: ChatBindings; Variables: AuthedVariables }>({
+export const app = new OpenAPIHono<{ Bindings: ChatBindings }>({
 	defaultHook: (result, context) => {
 		if (!result.success) {
 			return problemResponse(context, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
@@ -45,7 +47,7 @@ app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
 app.use("*", rejectOversizedBody)
 app.use("*", rejectMalformedJson)
-// Ahead of requireAuth, so a preflight is not answered with a 401. Scoped to the public
+// Ahead of route access policies, so preflights and 401s carry CORS headers. Scoped to the public
 // config path: `origin: "*"` forbids credentials, but wider would be a CSRF hole (ADR-0013).
 app.use(
 	`${API_PREFIX}/embed-config/*`,
@@ -64,8 +66,8 @@ app.use(
 		maxAge: CORS_MAX_AGE_SECONDS,
 	}),
 )
-app.use("*", requireAuth)
-const api = new OpenAPIHono<{ Bindings: ChatBindings; Variables: AuthedVariables }>()
+app.use("*", requireAccessPolicy)
+const api = new OpenAPIHono<{ Bindings: ChatBindings }>()
 api.route("/", aiProviderRoutes)
 api.route("/", identityRoutes)
 api.route("/", rolesRoutes)
@@ -75,6 +77,7 @@ api.route("/embed-config", embedConfigRoutes)
 api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
+api.route("/agents", mcpServerRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,
@@ -108,7 +111,16 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 		}
 	}
 
-	console.error(error)
+	if (APICallError.isInstance(error)) {
+		console.error("provider.call.failed", {
+			message: error.message,
+			statusCode: error.statusCode,
+			url: error.url,
+			isRetryable: error.isRetryable,
+		})
+	} else {
+		console.error(error)
+	}
 	return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
 }
 

@@ -1,7 +1,10 @@
 {
 	"extends": "@talqo/typescript-config/react-app.json",
 	"compilerOptions": {
-		"types": []
+		"types": [],
+		"paths": {
+			"@talqo/ui/*": ["./src/*"]
+		}
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx"]
 }

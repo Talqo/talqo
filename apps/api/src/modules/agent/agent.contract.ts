@@ -1,5 +1,7 @@
-import { noContentResponse, payloadTooLargeResponse, problemResponse, sessionSecurity } from "@/http/openapi.ts"
+import { access } from "@/http/access.ts"
+import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import {
@@ -51,7 +53,7 @@ export const listAgentsRoute = createRoute({
 	path: "/",
 	operationId: "listAgents",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsRead),
 	responses: {
 		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "All agents" },
 		401: authRequired,
@@ -65,7 +67,7 @@ export const createAgentRoute = createRoute({
 	path: "/",
 	operationId: "createAgent",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		body: { content: { "application/json": { schema: createAgentRequestSchema } }, required: true },
 	},
@@ -85,7 +87,7 @@ export const getAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "getAgent",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsRead),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "One agent" },
@@ -101,7 +103,7 @@ export const updateAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "updateAgent",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: {
 		params: agentParamsSchema,
 		body: { content: { "application/json": { schema: updateAgentRequestSchema } }, required: true },
@@ -123,7 +125,7 @@ export const deleteAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "deleteAgent",
 	tags: ["Agent"],
-	security: sessionSecurity,
+	...access.permission(roles.Permission.AgentsManage),
 	request: { params: agentParamsSchema },
 	responses: {
 		204: noContentResponse,

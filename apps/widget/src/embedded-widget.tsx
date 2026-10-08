@@ -1,4 +1,4 @@
-import type { ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ActiveTool, ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
 import {
 	DEFAULT_WIDGET_APPEARANCE,
@@ -35,6 +35,7 @@ import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { Markdown } from "./components/ui/markdown"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 import { useResizablePanel } from "./lib/use-resizable-panel"
@@ -70,7 +71,13 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 					variant={message.role === "user" ? "default" : "muted"}
 					className={cn(message.role === "assistant" && "tw:text-foreground")}
 				>
-					{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+					{awaitingText ? (
+						<ResponseIndicator label={t("agentResponding")} />
+					) : message.role === "assistant" ? (
+						<Markdown>{message.text}</Markdown>
+					) : (
+						message.text
+					)}
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
@@ -152,6 +159,7 @@ type ChatPresentation = {
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
+const EMPTY_TOOLS: readonly ActiveTool[] = []
 
 function WidgetChat({
 	title,
@@ -182,6 +190,7 @@ function WidgetChat({
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
+	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const initialization = snapshot?.initialization ?? (unavailable ? "error" : "ready")
 	const generation = snapshot?.generation ?? "idle"
 	const resetting = snapshot?.reset === "resetting"
@@ -229,7 +238,7 @@ function WidgetChat({
 		wasOpen.current = open
 	}, [open])
 
-	// Visitor choice (FR-2.21) beats the operator default, which beats the host's preference.
+	// Precedence: visitor, then operator, then host.
 	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
 		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme
@@ -391,6 +400,13 @@ function WidgetChat({
 							{messages.map((message) => (
 								<TranscriptBubble key={message.id} message={message} />
 							))}
+							{activeTools.length > 0 && (
+								<Bubble align="start">
+									<BubbleContent variant="muted" className="tw:text-foreground">
+										<ResponseIndicator label={t("toolRunning")} />
+									</BubbleContent>
+								</Bubble>
+							)}
 							{showPendingResponse && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">

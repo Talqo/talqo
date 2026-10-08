@@ -1324,4 +1324,24 @@ describe("chat retrieval", () => {
 			logged.mockRestore()
 		}
 	})
+
+	it("emits an error event instead of rejecting when finalization fails", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		using _ = spyOn(repository, "stageFinalization").mockRejectedValue(new Error("database down"))
+		const events: { type: string }[] = []
+		const sent = await instance.service.send(
+			{
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "hello",
+				networkHash: "network-a",
+			},
+			(event) => events.push(event),
+		)
+		await sent.done
+
+		expect(events.map((event) => event.type)).toEqual(["accepted", "delta", "error"])
+	})
 })

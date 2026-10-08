@@ -117,8 +117,8 @@ Talqo is related to these repos:
 | FR-2.15 | Operator can delete files from the knowledge base | Medium | Done |
 | FR-2.16 | Operator can provide their website's sitemap (format TBA, e.g. `sitemap.xml`) or a URL pattern to crawl site content into the knowledge base on demand — no MCP server required | High | Not started |
 | FR-2.17 | Operator can explicitly configure the provider and embedding model identifier used to index knowledge base content | Medium | Done |
-| FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Not started |
-| FR-2.19 | Operator can verify MCP server connectivity and view available tools before or after enabling | Medium | Not started |
+| FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Done |
+| FR-2.19 | Operator can verify MCP server connectivity and view available tools before or after enabling | Medium | Done |
 
 #### 3.2.5 Widget appearance (FR-2e)
 
