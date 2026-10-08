@@ -441,11 +441,11 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
-						<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
-							{deleteTarget?.name}
-						</p>
 						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>
 					</DialogHeader>
+					<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
+						{deleteTarget?.name}
+					</p>
 					{deleteError && (
 						<p role="alert" className="text-destructive text-xs">
 							{deleteError}
