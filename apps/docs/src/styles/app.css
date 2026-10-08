@@ -7,3 +7,9 @@
 		--fd-sidebar-width: 220px;
 	}
 }
+
+@media (width >= 120rem) {
+	#nd-docs-layout {
+		--fd-layout-width: 100vw;
+	}
+}
