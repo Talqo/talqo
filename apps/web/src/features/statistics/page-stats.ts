@@ -20,9 +20,7 @@ export type PageStats = {
 	daily: DailyStatsPoint[]
 }
 
-// The wire shape keeps input/output tokens separate; the visualization tracks one token metric.
-// The per-agent series is sparse server-side: days without activity have no row, and the
-// consumer zero-fills against the dense date axis.
+// The wire keeps input/output tokens separate; the page tracks one token metric.
 export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
 	return overview.agentDaily.map((point) => ({
 		agentId: point.agentId,
@@ -33,10 +31,8 @@ export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
 	}))
 }
 
-// Aggregates the selection into the card totals and the dense "total" daily series. The
-// unfiltered view consumes the server's own contract-tested totals and daily axis verbatim;
-// a subset re-aggregates the sparse per-agent series client-side, zero-filled per axis date so
-// days without activity stay on the chart.
+// Unfiltered: server totals and dense daily axis verbatim. Filtered: re-aggregate the sparse
+// per-agent series client-side, zero-filled per axis date so empty days stay on the chart.
 export function toSelectedStats(overview: StatsOverview, selectedIds: string[], allSelected: boolean): PageStats {
 	if (allSelected) {
 		return {

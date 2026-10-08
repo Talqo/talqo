@@ -1,12 +1,10 @@
+import { db, sql } from "@/db/client.ts"
 import { conversation, generationAttempt, message } from "@/modules/conversation/conversation.schema.ts"
 import { usageRecord } from "@/modules/usage/usage.schema.ts"
 import { estimateTokens } from "@/modules/usage/usage.service.ts"
 
-import { db, sql } from "./client.ts"
-
-// Development statistics fixtures: a month of plausible traffic across the seeded agents so the
-// dashboard renders real series. Runs once; the marker prefix tells later seeds to keep hands off,
-// and the deterministic PRNG makes every fresh database identical.
+// Development statistics fixtures: a deterministic month of plausible traffic across the seeded
+// agents so the dashboard renders real series. Runs once; the marker prefix keeps later seeds off.
 const DAYS = 30
 const INSERT_CHUNK_SIZE = 300
 const MARKER_PREFIX = "seed-stats-"
@@ -254,12 +252,8 @@ export async function seed(): Promise<void> {
 	await Promise.all(usagePromises)
 }
 
-// "Guaranteed recent activity" only holds relative to seed time: once the fixture was seeded
-// more than an hour ago, the active-conversations card would read zero forever. Shift the two
-// seeded active-window conversations (the highest marker sequence numbers — they are planned
-// last) back to now, preserving their internal structure; the historical 30-day fixture stays
-// deterministic and untouched. All date arithmetic stays in SQL: the raw client returns
-// timestamps as strings, which a JS-side instanceof Date check would silently skip.
+// Stale fixtures would freeze the active card at zero: shift the two newest marker conversations
+// (planned last) back to now. Date math stays in SQL — the raw client returns timestamps as strings.
 async function refreshStaleRecentActivity(): Promise<void> {
 	const [fresh] = await sql`
 		SELECT EXISTS (

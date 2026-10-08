@@ -6,7 +6,7 @@ import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
-import { getStatsOverview } from "./conversation.service.ts"
+import { getStatsOverview } from "./stats.service.ts"
 
 const MILLISECONDS_PER_DAY = 86_400_000
 const MILLISECONDS_PER_MINUTE = 60_000

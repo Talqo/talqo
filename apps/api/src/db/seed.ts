@@ -5,9 +5,9 @@ import * as embed from "@/modules/embed/embed.seed.ts"
 import * as identity from "@/modules/identity/identity.seed.ts"
 import * as mcp from "@/modules/mcp/mcp.seed.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
+import * as stats from "@/modules/stats/stats.seed.ts"
 
 import { sql } from "./client.ts"
-import * as stats from "./seed-stats.ts"
 
 export async function seed(): Promise<void> {
 	if (env.NODE_ENV !== "development" && env.NODE_ENV !== "test") {

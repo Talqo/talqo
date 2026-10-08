@@ -1,17 +1,17 @@
-# 0018: Keep the statistics agent filter in page-local state
+# 0018: Keep the agent filter in page-local state
 
 ## Status
 
-Proposed (2026-10-06)
+Accepted (2026-10-08)
 
 ## Context
 
-The multi-agent filter needed a home. A URL search parameter (`/dashboard?agents=…`) makes selections shareable and back/forward-restorable, but every toggle rewrote the URL, reset scroll position, and deactivated the Dashboard nav item (active matching compares search by default). Page-local state avoids all of that but cannot be shared via a link.
+The multi-agent statistics filter needs a home. A URL search parameter makes selections shareable, but every toggle rewrites the URL, resets scroll, and flickers the Dashboard nav highlight because active matching compares search by default. Page-local state avoids all of that but cannot be shared as a link.
 
 ## Decision
 
-Keep the agent selection in React state only, with no route search parameter, and redirect `/dashboard/analytics` to plain `/dashboard`.
+Keep the agent selection in page-local React state, with no route search parameter.
 
 ## Consequences
 
-Toggling agents no longer touches the URL, scroll, or navigation highlight, and route typing stays simple. Selections cannot be bookmarked — acceptable because statistics is a monitoring view the operator lands on, not a resource to link to. Nav matching still sets `includeSearch: false` defensively.
+Toggling agents never touches the URL, scroll, or navigation highlight. Selections cannot be bookmarked — acceptable for a monitoring view the operator lands on rather than a resource to link to.
