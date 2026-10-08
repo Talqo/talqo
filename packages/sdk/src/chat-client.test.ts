@@ -1,6 +1,7 @@
 import { describe, expect, spyOn, test } from "bun:test"
 
 import {
+	ChatClientError,
 	ChatTransportError,
 	createChatClient,
 	type ChatConfiguration,
@@ -372,7 +373,9 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 
-		await expect(client.sendMessage("hey")).rejects.toThrow("Chat is unavailable")
+		const refusal = await client.sendMessage("hey").catch((error: unknown) => error)
+		expect(refusal).toBeInstanceOf(ChatClientError)
+		expect(refusal).toMatchObject({ detail: { code: "chat-unavailable" } })
 		expect(client.getSnapshot()).toMatchObject({ generation: "idle", messages: [] })
 		expect(sends).toBe(0)
 	})

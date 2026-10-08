@@ -314,6 +314,22 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 		async getConfiguration(): Promise<RedactedConfiguration> {
 			return redact(await dependencies.repository.find(), dependencies.vault)
 		},
+		// Replies need only the text role; a broken embedding role degrades retrieval instead.
+		async canGenerateText(): Promise<boolean> {
+			const stored = await dependencies.repository.find()
+			if (!stored) return false
+			if (!stored.text.credentials) return true
+			try {
+				dependencies.vault.decrypt(stored.text.credentials, {
+					configId: CONFIG_ID,
+					providerId: stored.text.providerId,
+					role: "text",
+				})
+				return true
+			} catch {
+				return false
+			}
+		},
 		async saveConfiguration(input: SaveConfigurationInput): Promise<RedactedConfiguration> {
 			const existing = await dependencies.repository.find()
 			try {
@@ -486,8 +502,8 @@ export async function getConfiguration() {
 	return (await getDefaultService()).getConfiguration()
 }
 
-export async function getHealth(): Promise<RedactedConfiguration["health"]> {
-	return (await getConfiguration()).health
+export async function canGenerateText(): Promise<boolean> {
+	return (await getDefaultService()).canGenerateText()
 }
 
 export async function saveConfiguration(input: SaveConfigurationInput) {

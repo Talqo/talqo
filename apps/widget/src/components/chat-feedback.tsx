@@ -29,6 +29,7 @@ const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {
 	"storage-unavailable": (t) => t("errorStorageUnavailable"),
 	"cancel-failed": (t) => t("errorCancelFailed"),
 	"reset-failed": (t) => t("errorResetFailed"),
+	"chat-unavailable": (t) => t("chatUnavailable"),
 }
 
 const NEW_CHAT_ERROR_CODES = new Set<ChatError["code"]>([

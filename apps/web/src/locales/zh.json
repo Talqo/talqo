@@ -1,7 +1,5 @@
 {
 	"account": {
-		"changePassword": "修改密码",
-		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
@@ -10,6 +8,8 @@
 		"dangerZone": "危险区域",
 		"deleteAccount": "删除账户",
 		"heading": "账户",
+		"changePassword": "修改密码",
+		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
 		"name": "姓名",
 		"nameInvalid": "姓名必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。",
 		"newPassword": "新密码",
@@ -265,6 +265,8 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "无法确认您的智能体是否能回复访客。请打开 AI 提供商设置进行检查。",
+		"aiProviderCheckFailedAction": "检查 AI 提供商",
 		"aiProviderMissing": "您的智能体还无法回复访客。请设置 AI 提供商以开启回复。",
 		"aiProviderMissingAction": "设置 AI 提供商",
 		"cards": {

@@ -2,6 +2,7 @@ import { useGetAiProviderConfiguration } from "@/api/generated/ai-providers/ai-p
 import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
+import { providerNotice } from "@/features/ai-configuration/provider-notice"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
@@ -101,16 +102,16 @@ function AiProviderMissingNotice({ permissions }: { permissions: string[] | unde
 	const { t } = useTranslation()
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
 	const onConfigurationPage = useMatchRoute()({ to: "/dashboard/ai-configuration" }) !== false
-	const health = useGetAiProviderConfiguration({ query: { enabled: canManageProvider } }).data?.data.health
-	if (!canManageProvider || onConfigurationPage || health === undefined || health === "configured") return null
+	const notice = providerNotice(useGetAiProviderConfiguration({ query: { enabled: canManageProvider } }))
+	if (!canManageProvider || onConfigurationPage || notice === undefined) return null
 	return (
 		<div
 			role="status"
 			className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface p-surface-padding mb-6 flex flex-wrap items-center justify-between gap-3 border text-sm"
 		>
-			<p>{t("dashboard.aiProviderMissing")}</p>
+			<p>{t(notice === "missing" ? "dashboard.aiProviderMissing" : "dashboard.aiProviderCheckFailed")}</p>
 			<Button render={<Link to="/dashboard/ai-configuration" />} nativeButton={false} size="sm">
-				{t("dashboard.aiProviderMissingAction")}
+				{t(notice === "missing" ? "dashboard.aiProviderMissingAction" : "dashboard.aiProviderCheckFailedAction")}
 			</Button>
 		</div>
 	)

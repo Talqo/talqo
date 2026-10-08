@@ -53,6 +53,7 @@ const SDK_ERROR_CODES = [
 	"storage-unavailable",
 	"cancel-failed",
 	"reset-failed",
+	"chat-unavailable",
 ] as const
 
 export type ChatErrorCode = (typeof API_CHAT_ERROR_CODES)[number] | (typeof SDK_ERROR_CODES)[number]
