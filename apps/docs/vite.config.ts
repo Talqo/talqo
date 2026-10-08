@@ -9,9 +9,7 @@ export default defineConfig(({ command }) => ({
 	resolve: {
 		tsconfigPaths: true,
 	},
-	// Build-only: the runtime image ships no node_modules, so the SSR bundle
-	// must carry its own dependencies. In dev this breaks the SSR module
-	// runner (`module is not defined` from CJS React).
+	// Build-only: it breaks dev SSR, and the image ships no node_modules.
 	...(command === "build"
 		? {
 				environments: {
