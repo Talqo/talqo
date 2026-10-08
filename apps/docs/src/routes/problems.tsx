@@ -22,13 +22,12 @@ function ProblemsPage() {
 				{PROBLEMS.map((problem) => (
 					<section id={problem.code} key={problem.code} className="scroll-mt-6 border-t pt-6">
 						<h2 className="text-xl font-semibold">{problem.title}</h2>
+						<p className="text-fd-muted-foreground mt-2 text-sm break-all">
+							{problem.status} · <code>{problem.code}</code>
+						</p>
 						<p className="mt-3">{problem.meaning}</p>
 						<p className="mt-2">
-							<strong>How to fix it:</strong> {problem.guidance}
-						</p>
-						<p className="text-fd-muted-foreground mt-2 text-sm break-all">
-							Status {problem.status} · <code>{problem.code}</code> · https://docs.talqo.chat/problems#
-							{problem.code}
+							<strong>Fix:</strong> {problem.guidance}
 						</p>
 					</section>
 				))}
