@@ -49,7 +49,7 @@ function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] 
 function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavigate: () => void }) {
 	const { t } = useTranslation()
 	const Icon = item.icon
-	// Stale search params (e.g. an old ?agents=… link) must not deactivate a nav item (ADR-0018).
+	// Search params (the stats filter's ?agents=) must not deactivate a nav item (ADR-0018).
 	return (
 		<Link
 			to={item.to}

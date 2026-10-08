@@ -136,11 +136,13 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await expect(agentOption()).toBeVisible()
 	await expect(agentOption()).toHaveAttribute("aria-selected", "true")
 
-	// Removing the agent from the filter hides it from the per-agent breakdown.
+	// Removing the agent from the filter hides it from the per-agent breakdown, and the
+	// selection moves into the URL so a filtered dashboard can be shared.
 	await agentOption().click()
 	await expect(agentOption()).toHaveAttribute("aria-selected", "false")
 	await page.keyboard.press("Escape")
 	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toHaveCount(0)
+	await expect(page.url()).toContain("agents=")
 
 	// The quick actions clear and restore the whole selection.
 	await agentFilter.click()
@@ -152,4 +154,11 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await page.keyboard.press("Escape")
 	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toBeVisible()
 	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
+
+	// A shared link opens exactly the filtered view; the other agents stay out.
+	await page.goto(`/dashboard?agents=${encodeURIComponent(JSON.stringify([agent.id]))}`)
+	await expect(agentRow).toBeVisible()
+	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
+	await expect(page.getByRole("row", { name: /^Website Assistant/ })).toHaveCount(0)
+	await expect(agentFilter).toContainText(/1 of \d+ agents/)
 })

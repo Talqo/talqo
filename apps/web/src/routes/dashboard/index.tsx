@@ -3,6 +3,7 @@ import { useGetStatsOverview } from "@/api/generated/stats/stats.ts"
 import { PageHeader } from "@/components/page-header"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { parseAgentsParam } from "@/features/statistics/agents-search"
 import { AgentFilter } from "@/features/statistics/components/agent-filter"
 import {
 	agentLineColor,
@@ -18,9 +19,9 @@ import { toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-
 import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 const FORBIDDEN_STATUS = 403
@@ -34,6 +35,9 @@ const DEFAULT_QUERY_RETRIES = 3
 
 export const Route = createFileRoute("/dashboard/")({
 	beforeLoad: requirePermission("agents:read"),
+	validateSearch: (search: Record<string, unknown>): { agents?: string[] } => ({
+		agents: parseAgentsParam(search.agents),
+	}),
 	component: DashboardIndexPage,
 })
 
@@ -77,9 +81,17 @@ function DashboardIndexPage() {
 		() => (allAgents ?? []).map((agent, index) => ({ color: agentLineColor(index), id: agent.id, name: agent.name })),
 		[allAgents],
 	)
-	// Picks stay local: toggling the filter must not rewrite the URL, reset the scroll
-	// position, or lose the navigation highlight. `undefined` stands for "all agents".
-	const [selection, setSelection] = useState<string[] | undefined>()
+	// The selection lives in ?agents= so a filtered view is shareable (ADR-0018); a missing
+	// param means all agents. Toggles replace the URL entry and never move the scroll.
+	const selection = Route.useSearch({ select: (search) => search.agents })
+	const navigate = useNavigate({ from: Route.fullPath })
+	const setSelection = (ids: string[]) => {
+		void navigate({
+			replace: true,
+			resetScroll: false,
+			search: (prev) => ({ ...prev, agents: ids.length === allIds.length ? undefined : ids }),
+		})
+	}
 	const selectedIds = useMemo(() => (selection ?? allIds).filter((id) => allIds.includes(id)), [selection, allIds])
 	const allSelected = selectedIds.length === allIds.length
 	const selectedLines = useMemo(

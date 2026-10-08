@@ -5,8 +5,8 @@ const FOCUS_RESET_SCROLL_TOP = 4
 const SCROLL_RESTORE_ATTEMPTS = 12
 const SCROLL_RESTORE_INTERVAL_MS = 120
 
-// Base UI 1.8.0's popup list navigation can reset the document scroll on open (ADR-0020):
-// capture the scroll on trigger press and restore until it sticks; stop once the user scrolls.
+// Base UI 1.8.0's popup list navigation can reset the document scroll on open: capture the
+// scroll on trigger press and restore until it sticks; stop once the user scrolls.
 export function usePreserveScrollOnOpen(): {
 	capturePreOpenScroll: () => void
 	onOpenChange: (open: boolean) => void
