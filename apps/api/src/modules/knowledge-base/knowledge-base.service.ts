@@ -50,12 +50,12 @@ export type IndexedFile = StoredFile & {
 	embeddingError: repository.FailureReason | null
 }
 
-export class FileExistsError extends ApiError {
+class FileExistsError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
-export class FileNotFoundError extends ApiError {
+class FileNotFoundError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
 	}
@@ -205,7 +205,7 @@ const WORKER_INTERVAL_MS = 3_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
 const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
 
-export class FileNotRetryableError extends ApiError {
+class FileNotRetryableError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
