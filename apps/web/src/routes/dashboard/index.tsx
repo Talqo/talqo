@@ -111,10 +111,7 @@ function DashboardIndexPage() {
 		[agentLines, selectedIds],
 	)
 	const dailyPoints = useMemo(() => (overview ? toAgentDailyPoints(overview) : []), [overview])
-	const stats = useMemo(
-		() => (overview ? toSelectedStats(overview, selectedIds, allSelected) : undefined),
-		[overview, selectedIds, allSelected],
-	)
+	const stats = useMemo(() => (overview ? toSelectedStats(overview, selectedIds) : undefined), [overview, selectedIds])
 	const cards = useMemo<StatsCard[]>(() => {
 		if (!overview || !stats) return []
 		const cardLabels = metricLabels(t)

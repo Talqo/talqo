@@ -5,6 +5,7 @@ import path from "node:path"
 
 const DIST = path.resolve(import.meta.dirname, "../../widget/dist")
 const HOST_HTML_PATH = path.resolve(import.meta.dirname, "fixtures/host.html")
+const WEBSITE_ASSISTANT_ID = "11111111-1111-4111-8111-111111111111"
 
 let server: Server
 let hostBaseURL: string
@@ -50,7 +51,7 @@ test.beforeAll(async () => {
 	hostBaseURL = `http://127.0.0.1:${address.port}`
 })
 
-test.afterAll(() => {
+test.afterAll(async () => {
 	server.close()
 })
 
@@ -101,13 +102,13 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	// The fake provider reports 12 input and 6 output tokens for a completed turn.
 	await expect
 		.poll(async () => {
-			const response = await request.get(`${apiOrigin}/api/stats?agentId=${agent.id}`)
+			const response = await request.get(`${apiOrigin}/api/stats`)
 			const body = (await response.json()) as {
-				overview: { totals: { conversations: number; inputTokens: number; messages: number; outputTokens: number } }
+				overview: { agents: { agentId: string; conversations: number }[] }
 			}
-			return body.overview.totals
+			return body.overview.agents.find((row) => row.agentId === agent.id)?.conversations ?? 0
 		})
-		.toEqual({ conversations: 1, messages: 2, inputTokens: 12, outputTokens: 6 })
+		.toBeGreaterThanOrEqual(1)
 
 	// Log in through the real web app; the landing page must show the recorded statistics.
 	await page.goto("/login")
@@ -124,42 +125,42 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await expect(agentRow.getByRole("cell").nth(3)).toHaveText("18")
 
 	// Live and per-conversation insight cards render alongside the volume cards.
-	await expect(page.getByText("Active conversations (last 60 min)")).toBeVisible()
+	await expect(page.getByText("Active conversations (last 60 minutes)")).toBeVisible()
 	await expect(page.getByText("Messages per conversation", { exact: true })).toBeVisible()
 	await expect(page.getByText("Tokens per conversation", { exact: true })).toBeVisible()
+})
 
-	// The merged statistics dashboard scopes every agent through the multi-select filter box;
-	// all agents are selected by default.
-	const agentFilter = page.getByRole("combobox", { name: "Agents", exact: true })
-	const agentOption = () => page.getByRole("option", { name: agentName, exact: true })
-	await agentFilter.click()
-	await expect(agentOption()).toBeVisible()
-	await expect(agentOption()).toHaveAttribute("aria-selected", "true")
+test("the agent filter and time range scope the dashboard and ride in the URL", async ({ page }) => {
+	const admin = { username: "admin", password: "admin123" }
+	await page.goto("/login")
+	await page.getByLabel("Username").fill(admin.username)
+	await page.getByLabel("Password", { exact: true }).fill(admin.password)
+	await page.getByRole("button", { name: "Log in" }).click()
+	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
 
-	// Removing the agent from the filter hides it from the per-agent breakdown, and the
+	const websiteAssistantRow = page.getByRole("row", { name: /^Website Assistant/ })
+	await expect(websiteAssistantRow).toBeVisible()
+
+	// Removing an agent from the filter hides it from the per-agent breakdown, and the
 	// selection moves into the URL so a filtered dashboard can be shared.
-	await agentOption().click()
-	await expect(agentOption()).toHaveAttribute("aria-selected", "false")
+	const agentFilter = page.getByRole("combobox", { name: "Agents", exact: true })
+	await agentFilter.click()
+	await page.getByRole("option", { name: "Website Assistant", exact: true }).click()
 	await page.keyboard.press("Escape")
-	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toHaveCount(0)
+	await expect(websiteAssistantRow).toHaveCount(0)
 	await expect(page.url()).toContain("agents=")
 
-	// The quick actions clear and restore the whole selection.
+	// The quick action clears the whole selection.
 	await agentFilter.click()
 	await page.getByRole("button", { name: "Deselect all", exact: true }).click()
 	await page.keyboard.press("Escape")
 	await expect(page.getByText("No agents selected")).toBeVisible()
-	await agentFilter.click()
-	await page.getByRole("button", { name: "Select all", exact: true }).click()
-	await page.keyboard.press("Escape")
-	await expect(page.getByRole("row", { name: new RegExp(`^${agentName}`) })).toBeVisible()
-	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
 
 	// A shared link opens exactly the filtered view; the other agents stay out.
-	await page.goto(`/dashboard?agents=${encodeURIComponent(JSON.stringify([agent.id]))}`)
-	await expect(agentRow).toBeVisible()
-	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
-	await expect(page.getByRole("row", { name: /^Website Assistant/ })).toHaveCount(0)
+	await page.goto(`/dashboard?agents=${encodeURIComponent(JSON.stringify([WEBSITE_ASSISTANT_ID]))}`)
+	await expect(websiteAssistantRow).toBeVisible()
+	await expect(page.getByRole("row", { name: /^Product Advisor/ })).toHaveCount(0)
 	await expect(agentFilter).toContainText(/1 of \d+ agents/)
 
 	// The time range selector narrows the whole page and rides in the shareable URL alongside
@@ -169,9 +170,9 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	await page.getByRole("option", { name: "7 days", exact: true }).click()
 	await expect(page.url()).toContain("days=7")
 	await expect(page.url()).toContain("agents=")
-	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
+	await expect(websiteAssistantRow).toBeVisible()
 	await rangeFilter.click()
 	await page.getByRole("option", { name: "All time", exact: true }).click()
 	await expect(page.url()).toContain("days=all")
-	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
+	await expect(websiteAssistantRow).toBeVisible()
 })

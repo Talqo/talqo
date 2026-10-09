@@ -1,4 +1,4 @@
-import { STATS_RANGE_PRESETS, type StatsDays } from "@/features/statistics/ranges"
+import { parseDaysParam, STATS_RANGE_PRESETS, type StatsDays } from "@/features/statistics/ranges"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { useTranslation } from "react-i18next"
 
@@ -21,7 +21,9 @@ export function RangeFilter({ days, onChange }: { days: StatsDays; onChange: (da
 			<Select
 				value={`${days}`}
 				onValueChange={(next) => {
-					if (next !== null) onChange(next === "all" ? "all" : (Number(next) as StatsDays))
+					if (next === null) return
+					const parsed = parseDaysParam(next)
+					if (parsed !== undefined) onChange(parsed)
 				}}
 				onOpenChange={onOpenChange}
 			>

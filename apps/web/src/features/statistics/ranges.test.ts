@@ -15,9 +15,12 @@ describe("parseDaysParam", () => {
 		expect(parseDaysParam("all")).toBe("all")
 	})
 
+	it("accepts a numeric preset as a string", () => {
+		expect(parseDaysParam("7")).toBe(7)
+	})
+
 	it("rejects values outside the presets", () => {
 		expect(parseDaysParam(14)).toBeUndefined()
-		expect(parseDaysParam("7")).toBeUndefined()
 		expect(parseDaysParam("monthly")).toBeUndefined()
 		expect(parseDaysParam(null)).toBeUndefined()
 	})

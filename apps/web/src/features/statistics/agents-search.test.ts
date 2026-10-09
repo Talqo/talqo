@@ -15,6 +15,10 @@ describe("parseAgentsParam", () => {
 		expect(parseAgentsParam(["a", "b"])).toEqual(["a", "b"])
 	})
 
+	it("decodes a JSON-encoded id list", () => {
+		expect(parseAgentsParam(JSON.stringify(["a", "b"]))).toEqual(["a", "b"])
+	})
+
 	it("dedupes repeated ids", () => {
 		expect(parseAgentsParam(["a", "a", "b"])).toEqual(["a", "b"])
 	})

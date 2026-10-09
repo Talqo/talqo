@@ -17,5 +17,6 @@ export type StatsDays = (typeof STATS_RANGE_PRESETS)[number]
 export const DEFAULT_STATS_DAYS: StatsDays = 30
 
 export function parseDaysParam(value: unknown): StatsDays | undefined {
-	return STATS_RANGE_PRESETS.find((preset) => preset === value)
+	const coerced = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value
+	return STATS_RANGE_PRESETS.find((preset) => preset === coerced)
 }

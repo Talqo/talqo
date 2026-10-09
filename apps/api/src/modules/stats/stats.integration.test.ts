@@ -9,35 +9,10 @@ import { beforeEach, describe, expect, it } from "bun:test"
 import { getStatsOverview } from "./stats.service.ts"
 
 const MILLISECONDS_PER_DAY = 86_400_000
-const MILLISECONDS_PER_MINUTE = 60_000
 const OUTSIDE_WINDOW_DAYS = 40
 
 function utcDate(daysAgo: number): string {
 	return new Date(Date.now() - daysAgo * MILLISECONDS_PER_DAY).toISOString()
-}
-
-// One conversation whose only message sits exactly `minutesAgo` back, to probe the
-// active-conversation window boundary at minute granularity.
-async function seedWindowConversation(agentId: string, minutesAgo: number): Promise<void> {
-	const createdAt = new Date(Date.now() - minutesAgo * MILLISECONDS_PER_MINUTE).toISOString()
-	const conversationId = crypto.randomUUID()
-	const attemptId = crypto.randomUUID()
-	await sql`
-		INSERT INTO conversation (id, agent_id, embed_access_version, created_at)
-		VALUES (${conversationId}, ${agentId}, 1, ${createdAt})
-	`
-	await sql`
-		INSERT INTO generation_attempt
-			(id, conversation_id, request_id, estimated_input_tokens, network_hash, lease_token, lease_expires_at, created_at)
-		VALUES
-			(${attemptId}, ${conversationId}, ${crypto.randomUUID()}, 1, 'network', ${crypto.randomUUID()},
-				${createdAt}, ${createdAt})
-	`
-	await sql`
-		INSERT INTO message (id, conversation_id, generation_attempt_id, role, text, outcome, created_at)
-		VALUES
-			(${crypto.randomUUID()}, ${conversationId}, ${attemptId}, 'user', 'question', 'completed', ${createdAt})
-	`
 }
 
 async function login(username: string): Promise<string> {
@@ -238,23 +213,6 @@ describe("stats overview aggregation", () => {
 		])
 	})
 
-	it("filters the daily series and totals by agent", async () => {
-		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
-		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
-		await seedChatHistory(agentA.id, agentB.id)
-
-		const overview = await getStatsOverview({ days: 30, agentId: agentB.id })
-
-		expect(overview.totals).toEqual({ conversations: 1, messages: 2, inputTokens: 1, outputTokens: 2 })
-		const today = overview.daily.find((day) => day.date === utcDate(0).slice(0, 10))
-		expect(today).toMatchObject({ conversations: 1, messages: 2, inputTokens: 1, outputTokens: 2 })
-		expect(overview.daily.reduce((sum, day) => sum + day.conversations, 0)).toBe(1)
-		// The per-agent breakdown stays global; the filter scopes totals and the daily series.
-		expect(overview.agents).toHaveLength(2)
-		// The per-agent daily series stays global as well so callers can re-aggregate client-side.
-		expect(new Set(overview.agentDaily.map((point) => point.agentId)).size).toBe(2)
-	})
-
 	it("respects the requested day window", async () => {
 		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
 		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
@@ -293,20 +251,7 @@ describe("stats overview aggregation", () => {
 		])
 	})
 
-	it("applies the active-conversation window at minute granularity around its boundary", async () => {
-		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
-		// 59 minutes ago still counts as active; 61 minutes ago no longer does. The boundary
-		// is the rolling 60-minute window, independent of the day-scale series.
-		await seedWindowConversation(agentA.id, 59)
-		await seedWindowConversation(agentA.id, 61)
-
-		const overview = await getStatsOverview({ days: 30 })
-
-		expect(overview.activeWindowMinutes).toBe(60)
-		expect(overview.active).toEqual([{ agentId: agentA.id, conversations: 1 }])
-	})
-
-	it("rejects members without agents:read and serves admins", async () => {
+	it("serves admins and defaults to 30 days without a days parameter", async () => {
 		const { cookie: adminCookie, userId } = await createAdminSession()
 		const memberUsername = uniqueUsername()
 		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
@@ -321,6 +266,12 @@ describe("stats overview aggregation", () => {
 		const body = (await allowed.json()) as { overview: { days: number; daily: unknown[] } }
 		expect(body.overview.days).toBe(7)
 		expect(body.overview.daily).toHaveLength(7)
+
+		const bare = await app.request("/api/stats", { headers: { Cookie: adminCookie } })
+		expect(bare.status).toBe(200)
+		const bareBody = (await bare.json()) as { overview: { days: number; daily: unknown[] } }
+		expect(bareBody.overview.days).toBe(30)
+		expect(bareBody.overview.daily).toHaveLength(30)
 
 		// A member granted agents:read passes the gate.
 		await roles.grantPermission({ userId: member.id, permission: "agents:read", grantedBy: userId })

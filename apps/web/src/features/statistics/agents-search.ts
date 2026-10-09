@@ -3,6 +3,13 @@
 // means "all agents".
 export function parseAgentsParam(value: unknown): string[] | undefined {
 	if (value === undefined) return undefined
+	if (typeof value === "string" && value.startsWith("[")) {
+		try {
+			value = JSON.parse(value)
+		} catch {
+			// Not JSON; treat the raw string as one id.
+		}
+	}
 	const list = Array.isArray(value) ? value : [value]
 	return [...new Set(list.filter((id): id is string => typeof id === "string" && id.length > 0))]
 }

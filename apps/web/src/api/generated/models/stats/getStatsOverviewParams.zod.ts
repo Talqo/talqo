@@ -10,7 +10,6 @@ export const getStatsOverviewParamsDaysOneMax = 365
 
 export const GetStatsOverviewParams = zod.object({
 	days: zod.union([zod.int().min(1).max(getStatsOverviewParamsDaysOneMax), zod.enum(["all"])]).optional(),
-	agentId: zod.string().optional(),
 })
 
 export type GetStatsOverviewParams = zod.input<typeof GetStatsOverviewParams>

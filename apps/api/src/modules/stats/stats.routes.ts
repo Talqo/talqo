@@ -7,7 +7,7 @@ import * as service from "./stats.service.ts"
 const DEFAULT_STATS_DAYS = 30
 
 export const statsRoutes = new OpenAPIHono().openapi(statsOverviewRoute, async (c) => {
-	const { days, agentId } = c.req.valid("query")
-	const overview = await service.getStatsOverview({ days: days ?? DEFAULT_STATS_DAYS, agentId })
+	const { days } = c.req.valid("query")
+	const overview = await service.getStatsOverview({ days: days ?? DEFAULT_STATS_DAYS })
 	return c.json(statsOverviewResponseSchema.parse({ overview }), HTTP_STATUS.OK)
 })

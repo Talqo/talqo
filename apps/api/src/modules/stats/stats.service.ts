@@ -3,7 +3,6 @@ import * as conversationService from "@/modules/conversation/conversation.servic
 import * as usageService from "@/modules/usage/usage.service.ts"
 
 export type StatsOverviewQuery = {
-	agentId?: string
 	days: number | "all"
 }
 
@@ -50,11 +49,12 @@ export type StatsOverview = {
 
 const MILLISECONDS_PER_MINUTE = 60_000
 const MILLISECONDS_PER_DAY = 86_400_000
+const ISO_DATE_KEY_LENGTH = 10
 // "Active" means any recorded message inside this rolling window; the client labels it verbatim.
 const ACTIVE_CONVERSATION_WINDOW_MINUTES = 60
 
 function utcDateKey(date: Date): string {
-	return date.toISOString().slice(0, "YYYY-MM-DD".length)
+	return date.toISOString().slice(0, ISO_DATE_KEY_LENGTH)
 }
 
 // The sparse per-agent-day rows are the single source; totals, the dense daily axis, and the
@@ -122,11 +122,8 @@ export async function getStatsOverview(query: StatsOverviewQuery): Promise<Stats
 	}
 	agentTotals.sort((left, right) => left.agentName.localeCompare(right.agentName))
 
-	// The optional agent filter scopes only the dense daily axis and the overall totals;
-	// the per-agent series and breakdown stay global for client-side selection.
 	const axisTotals = new Map<string, StatsDailyPoint>()
 	for (const point of agentDaily) {
-		if (query.agentId && point.agentId !== query.agentId) continue
 		const day = axisTotals.get(point.date) ?? {
 			date: point.date,
 			conversations: 0,

@@ -31,22 +31,9 @@ export function toAgentDailyPoints(overview: StatsOverview): AgentDailyPoint[] {
 	}))
 }
 
-// Unfiltered: server totals and dense daily axis verbatim. Filtered: re-aggregate the sparse
-// per-agent series client-side, zero-filled per axis date so empty days stay on the chart.
-export function toSelectedStats(overview: StatsOverview, selectedIds: string[], allSelected: boolean): PageStats {
-	if (allSelected) {
-		return {
-			conversations: overview.totals.conversations,
-			messages: overview.totals.messages,
-			tokens: overview.totals.inputTokens + overview.totals.outputTokens,
-			daily: overview.daily.map((day) => ({
-				date: day.date,
-				conversations: day.conversations,
-				messages: day.messages,
-				tokens: day.inputTokens + day.outputTokens,
-			})),
-		}
-	}
+// Re-aggregates the sparse per-agent series client-side over the selected agents,
+// zero-filled per axis date so empty days stay on the chart.
+export function toSelectedStats(overview: StatsOverview, selectedIds: string[]): PageStats {
 	const selected = new Set(selectedIds)
 	const byDate = new Map<string, DailyStatsPoint>(
 		overview.daily.map((day) => [day.date, { date: day.date, conversations: 0, messages: 0, tokens: 0 }]),

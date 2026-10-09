@@ -256,7 +256,7 @@
 		"agentsLabel": "智能体",
 		"agentsSelected_one": "已选择 {{selected}}/{{total}} 个智能体",
 		"agentsSelected_other": "已选择 {{selected}}/{{total}} 个智能体",
-		"chartDescription": "虚线为总计；每条实线代表一个所选智能体。",
+		"chartDescription": "虚线为总计。每条实线代表一个所选智能体。",
 		"chartTitle": "每日{{metric}}",
 		"conversations": "对话数",
 		"deselectAll": "取消全选",

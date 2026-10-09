@@ -5050,14 +5050,6 @@
 						"required": false,
 						"name": "days",
 						"in": "query"
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": false,
-						"name": "agentId",
-						"in": "query"
 					}
 				],
 				"responses": {

@@ -54,8 +54,8 @@ describe("toAgentDailyPoints", () => {
 })
 
 describe("toSelectedStats", () => {
-	test("consumes the server totals and daily axis when all agents are selected", () => {
-		const stats = toSelectedStats(overview(), ["a", "b"], true)
+	test("re-aggregates every agent from the sparse series and matches the server totals", () => {
+		const stats = toSelectedStats(overview(), ["a", "b"])
 		expect(stats.conversations).toBe(4)
 		expect(stats.messages).toBe(8)
 		expect(stats.tokens).toBe(45)
@@ -69,7 +69,7 @@ describe("toSelectedStats", () => {
 	})
 
 	test("re-aggregates a subset from the sparse per-agent series, zero-filled per axis date", () => {
-		const stats = toSelectedStats(overview(), ["b"], false)
+		const stats = toSelectedStats(overview(), ["b"])
 		expect(stats.conversations).toBe(1)
 		expect(stats.messages).toBe(2)
 		expect(stats.tokens).toBe(7)
@@ -87,7 +87,7 @@ describe("toSelectedStats", () => {
 				{ date: "2026-10-06", conversations: 1, messages: 2, inputTokens: 5, outputTokens: 2, agentId: "a" },
 			],
 		})
-		const stats = toSelectedStats(duplicated, ["a"], false)
+		const stats = toSelectedStats(duplicated, ["a"])
 		expect(stats.conversations).toBe(2)
 		expect(stats.daily[2]).toEqual({ date: "2026-10-06", conversations: 2, messages: 4, tokens: 14 })
 	})
@@ -99,7 +99,7 @@ describe("toSelectedStats", () => {
 				{ date: "2026-10-01", conversations: 9, messages: 9, inputTokens: 9, outputTokens: 9, agentId: "a" },
 			],
 		})
-		const stats = toSelectedStats(stray, ["a"], false)
+		const stats = toSelectedStats(stray, ["a"])
 		expect(stats.conversations).toBe(3)
 	})
 })
