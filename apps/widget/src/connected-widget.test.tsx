@@ -129,6 +129,24 @@ async function submit() {
 	)
 }
 
+function transcript(): HTMLElement {
+	const element = host.querySelector<HTMLElement>(".talqo-scrollbar")
+	if (!element) throw new Error("transcript scroll area not rendered")
+	return element
+}
+
+function mockScrollMetrics(element: HTMLElement, metrics: { scrollHeight: number; clientHeight: number }) {
+	Object.defineProperty(element, "scrollHeight", { configurable: true, get: () => metrics.scrollHeight })
+	Object.defineProperty(element, "clientHeight", { configurable: true, get: () => metrics.clientHeight })
+}
+
+async function scrollTo(top: number) {
+	await act(async () => {
+		transcript().scrollTop = top
+		transcript().dispatchEvent(new Event("scroll", { bubbles: true }))
+	})
+}
+
 beforeEach(() => {
 	host = document.createElement("div")
 	document.body.append(host)
@@ -577,6 +595,104 @@ describe("ConnectedEmbeddedWidget", () => {
 			expect(bubble?.textContent).toContain("Before")
 			expect(bubble?.textContent).toContain("after")
 		})
+	})
+})
+
+describe("transcript autoscroll", () => {
+	test("follows a new message while pinned to the bottom", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(700)
+
+		mockScrollMetrics(transcript(), { scrollHeight: 1400, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1400)
+	})
+
+	test("follows streamed text growth while pinned", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			generation: "streaming",
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(700)
+
+		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [
+					message("u1", "user", "Hello", "completed"),
+					message("a1", "assistant", "Part one and part two", "streaming"),
+				],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1200)
+	})
+
+	test("leaves a scrolled-up visitor alone while the response streams", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			generation: "streaming",
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(0)
+
+		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [
+					message("u1", "user", "Hello", "completed"),
+					message("a1", "assistant", "Part one and part two", "streaming"),
+				],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(0)
+	})
+
+	test("sending re-pins a scrolled-up visitor so the new message is visible", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "First", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(0)
+
+		await draft("second")
+		await submit()
+		mockScrollMetrics(transcript(), { scrollHeight: 1400, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "First", "completed"), message("u2", "user", "second", "completed")],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1400)
 	})
 })
 

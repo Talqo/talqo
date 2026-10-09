@@ -19,6 +19,7 @@ import {
 	memo,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -161,6 +162,9 @@ type ChatPresentation = {
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
 const EMPTY_TOOLS: readonly ActiveTool[] = []
 
+/** Distance from the bottom that still counts as "at the bottom" for autoscroll. */
+const STICKY_SCROLL_THRESHOLD_PX = 48
+
 function WidgetChat({
 	title,
 	appearance,
@@ -186,6 +190,8 @@ function WidgetChat({
 	const draftRef = useRef("")
 	const pendingSend = useRef<{ originalDraft: string; text: string; messageIds: Set<string> } | undefined>(undefined)
 	const wasOpen = useRef(false)
+	const scrollRef = useRef<HTMLDivElement>(null)
+	const stickToBottomRef = useRef(true)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
@@ -238,6 +244,37 @@ function WidgetChat({
 		wasOpen.current = open
 	}, [open])
 
+	const scrollToBottom = useCallback(() => {
+		const element = scrollRef.current
+		if (element) {
+			element.scrollTop = element.scrollHeight
+		}
+	}, [])
+
+	function handleTranscriptScroll() {
+		const element = scrollRef.current
+		if (!element) return
+		stickToBottomRef.current =
+			element.scrollHeight - element.scrollTop - element.clientHeight <= STICKY_SCROLL_THRESHOLD_PX
+	}
+
+	// Reopening starts pinned to the latest message.
+	useLayoutEffect(() => {
+		if (open) {
+			stickToBottomRef.current = true
+			scrollToBottom()
+		}
+	}, [open, scrollToBottom])
+
+	// Follows sent messages and streamed deltas while pinned; a scrolled-up
+	// visitor keeps control until they return to the bottom. Runs after every
+	// commit so any transcript-height change re-pins without tracking each source.
+	useLayoutEffect(() => {
+		if (open && stickToBottomRef.current) {
+			scrollToBottom()
+		}
+	})
+
 	// Precedence: visitor, then operator, then host.
 	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
@@ -252,6 +289,7 @@ function WidgetChat({
 			return
 		}
 		pendingSend.current = { originalDraft: draft, text, messageIds: new Set(messages.map(({ id }) => id)) }
+		stickToBottomRef.current = true
 		setSubmitting(true)
 		try {
 			await client.sendMessage(text)
@@ -264,6 +302,7 @@ function WidgetChat({
 
 	async function handleNewChat() {
 		if (!canStartNewChat) return
+		stickToBottomRef.current = true
 		try {
 			await client.startNewChat()
 			inputRef.current?.focus()
@@ -281,6 +320,7 @@ function WidgetChat({
 	}
 
 	async function handleRetry() {
+		stickToBottomRef.current = true
 		try {
 			await client?.retryLastMessage()
 		} catch {
@@ -388,7 +428,11 @@ function WidgetChat({
 							</button>
 						</div>
 					</header>
-					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4">
+					<div
+						ref={scrollRef}
+						onScroll={handleTranscriptScroll}
+						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
+					>
 						<BubbleGroup>
 							{messages.length === 0 && initialization === "ready" && !unusable && (
 								<Bubble align="start">
