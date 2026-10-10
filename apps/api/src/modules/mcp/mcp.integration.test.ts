@@ -274,7 +274,6 @@ describe("mcp server lifecycle", () => {
 			authMode: "none",
 		})
 
-		// The update used to leave `transport` behind, and the transport check refused the row.
 		const switched = await service.updateServer(agentId, created.id, {
 			name: "Stock",
 			transport: "stdio",

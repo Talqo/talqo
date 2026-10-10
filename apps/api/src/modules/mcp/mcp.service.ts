@@ -192,8 +192,6 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 		: input.tools !== undefined
 			? applySelection(existing.tools, input.tools)
 			: existing.tools
-	// `base` carries the per-transport fields but not `transport` itself; without it a transport
-	// switch writes stdio fields into an http row and the transport check constraint refuses it.
 	const saved = await repo.updateAtRevision(
 		serverId,
 		{ ...base, name: input.name.trim(), transport: input.transport, tools },
