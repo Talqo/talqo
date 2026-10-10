@@ -304,7 +304,7 @@
 		"createEmbed": "新建嵌入项",
 		"createError": "无法创建嵌入项。请重试。",
 		"creating": "创建中…",
-		"dangerDescription": "删除嵌入项将永久停用其已安装的聊天组件代码，且无法撤销。",
+		"dangerDescription": "轮换令牌后，所有已安装的代码片段在更新为新令牌之前将无法使用。删除嵌入项将永久停用其已安装的聊天组件代码，且无法撤销。",
 		"dangerZone": "危险操作区",
 		"defaultName": "AI 助手",
 		"deleteConfirm": "永久删除",

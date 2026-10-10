@@ -194,7 +194,7 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 			: existing.tools
 	const saved = await repo.updateAtRevision(
 		serverId,
-		{ ...base, name: input.name.trim(), tools },
+		{ ...base, name: input.name.trim(), transport: input.transport, tools },
 		input.expectedRevision,
 	)
 	if (!saved) throw new RevisionConflictError("Connection changed; reload and retry")
