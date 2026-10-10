@@ -274,11 +274,6 @@ function EmbedDetailPage() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<Input value={embed.embedToken} readOnly className="font-mono" aria-label={t("embedSetup.embedToken")} />
-					{canManage && (
-						<div className="flex flex-wrap items-center gap-3">
-							<RotateEmbedTokenDialog embedId={embedId} />
-						</div>
-					)}
 					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 				</CardContent>
 			</Card>
@@ -487,7 +482,8 @@ function EmbedDetailPage() {
 						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
 						<CardDescription>{t("embedSetup.dangerDescription")}</CardDescription>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="flex flex-col items-start gap-3">
+						<RotateEmbedTokenDialog embedId={embedId} />
 						<DeleteEmbedDialog embed={embed} />
 					</CardContent>
 				</Card>

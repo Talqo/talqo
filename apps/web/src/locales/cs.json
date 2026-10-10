@@ -304,7 +304,7 @@
 		"createEmbed": "Nová integrace",
 		"createError": "Integraci se nepodařilo vytvořit. Zkuste to znovu.",
 		"creating": "Vytváření…",
-		"dangerDescription": "Smazání integrace trvale deaktivuje její nainstalovaný kód widgetu a nelze ho vrátit zpět.",
+		"dangerDescription": "Otočení tokenu rozbije všechny nainstalované kódy, dokud nebudou obsahovat nový token. Smazání integrace trvale deaktivuje její nainstalovaný kód widgetu a nelze ho vrátit zpět.",
 		"dangerZone": "Nebezpečná zóna",
 		"defaultName": "AI asistent",
 		"deleteConfirm": "Trvale smazat",
