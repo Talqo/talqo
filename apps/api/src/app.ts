@@ -4,7 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { requireAccessPolicy } from "@/http/access.ts"
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
-import { PROBLEM_CODES, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
+import { PROBLEM_CODES, ApiError, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
 import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
@@ -84,6 +84,12 @@ app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND
 // hardened by validating the produced value is a real Response, and keeps a
 // generic body with the original error logged for everything else.
 export async function handleError(error: Error, context: Context): Promise<Response> {
+	if (error instanceof ApiError) {
+		if (error.headers) {
+			for (const [name, value] of Object.entries(error.headers)) context.header(name, value)
+		}
+		return problemResponse(context, error.problemCode, error.status)
+	}
 	if ("getResponse" in error && typeof error.getResponse === "function") {
 		let response: unknown
 		try {

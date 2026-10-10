@@ -113,7 +113,7 @@ const domain = {
 export const listMcpServersRoute = createRoute({
 	...access.permission(roles.Permission.AgentsRead),
 	method: "get",
-	path: "/{agentId}/mcp-servers",
+	path: "/",
 	operationId: "listMcpServers",
 	tags: ["MCP"],
 	request: { params: agentParamsSchema },
@@ -126,7 +126,7 @@ export const listMcpServersRoute = createRoute({
 export const createMcpServerRoute = createRoute({
 	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
-	path: "/{agentId}/mcp-servers",
+	path: "/",
 	operationId: "createMcpServer",
 	tags: ["MCP"],
 	request: {
@@ -143,7 +143,7 @@ export const createMcpServerRoute = createRoute({
 export const getMcpServerRoute = createRoute({
 	...access.permission(roles.Permission.AgentsRead),
 	method: "get",
-	path: "/{agentId}/mcp-servers/{serverId}",
+	path: "/{serverId}",
 	operationId: "getMcpServer",
 	tags: ["MCP"],
 	request: { params: serverParamsSchema },
@@ -156,7 +156,7 @@ export const getMcpServerRoute = createRoute({
 export const updateMcpServerRoute = createRoute({
 	...access.permission(roles.Permission.AgentsManage),
 	method: "put",
-	path: "/{agentId}/mcp-servers/{serverId}",
+	path: "/{serverId}",
 	operationId: "updateMcpServer",
 	tags: ["MCP"],
 	request: {
@@ -173,7 +173,7 @@ export const updateMcpServerRoute = createRoute({
 export const deleteMcpServerRoute = createRoute({
 	...access.permission(roles.Permission.AgentsManage),
 	method: "delete",
-	path: "/{agentId}/mcp-servers/{serverId}",
+	path: "/{serverId}",
 	operationId: "deleteMcpServer",
 	tags: ["MCP"],
 	request: { params: serverParamsSchema },
@@ -188,7 +188,7 @@ export const deleteMcpServerRoute = createRoute({
 export const setMcpServerDisabledRoute = createRoute({
 	...access.permission(roles.Permission.AgentsManage),
 	method: "post",
-	path: "/{agentId}/mcp-servers/{serverId}/{action}",
+	path: "/{serverId}/{action}",
 	operationId: "setMcpServerDisabled",
 	tags: ["MCP"],
 	request: {

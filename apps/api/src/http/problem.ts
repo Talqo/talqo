@@ -106,3 +106,15 @@ export function problemResponse<C extends ProblemCode, S extends ContentfulStatu
 ) {
 	return context.json(problemDetails(code), status, { "Content-Type": "application/problem+json" })
 }
+
+export class ApiError extends Error {
+	constructor(
+		public problemCode: ProblemCode,
+		public status: ContentfulStatusCode,
+		message?: string,
+		public headers?: Record<string, string>,
+		options?: ErrorOptions,
+	) {
+		super(message ?? problemCode, options)
+	}
+}

@@ -1,5 +1,7 @@
 import type { CredentialEnvelope, createCredentialVault } from "@/lib/credential-vault.ts"
 
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
 import { embed as aiEmbed, isStepCount, streamText as aiStreamText } from "ai"
 
@@ -92,8 +94,16 @@ type RedactedConfiguration = {
 	embedding: (RedactedRole & { credentialSource: StoredEmbeddingConfiguration["credentialSource"] }) | null
 }
 
-export class RevisionConflictError extends Error {}
-export class InvalidConfigurationError extends Error {}
+export class RevisionConflictError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.CONFIGURATION_CONFLICT, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class InvalidConfigurationError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_AI_PROVIDER_CONFIGURATION, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
 export class UnusableConfigurationError extends Error {}
 export class ProviderContextLimitError extends Error {}
 const BAD_REQUEST_STATUS = 400

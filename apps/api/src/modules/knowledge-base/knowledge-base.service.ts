@@ -1,4 +1,6 @@
 import { env } from "@/config/env.ts"
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { constants as fsConstants } from "node:fs"
@@ -48,10 +50,26 @@ export type IndexedFile = StoredFile & {
 	embeddingError: repository.FailureReason | null
 }
 
-export class FileExistsError extends Error {}
-export class FileNotFoundError extends Error {}
-export class InvalidFileError extends Error {}
-export class FileTooLargeError extends InvalidFileError {}
+class FileExistsError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_FILE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+class FileNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_FILE_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class InvalidFileError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+export class FileTooLargeError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PAYLOAD_TOO_LARGE, HTTP_STATUS.PAYLOAD_TOO_LARGE, message, undefined, options)
+	}
+}
 
 function agentDir(agentId: string): string {
 	return join(UPLOAD_DIR, agentId)
@@ -187,7 +205,11 @@ const WORKER_INTERVAL_MS = 3_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
 const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
 
-export class FileNotRetryableError extends Error {}
+class FileNotRetryableError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_FILE_NOT_RETRYABLE, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
 
 export async function upload(agentId: string, name: string, data: ArrayBuffer): Promise<IndexedFile> {
 	const stored = await put(agentId, name, data)

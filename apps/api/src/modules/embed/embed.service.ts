@@ -1,5 +1,7 @@
 import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
@@ -32,8 +34,16 @@ export type EmbedInput = {
 	name: string
 }
 
-export class EmbedNotFoundError extends Error {}
-export class UnknownAgentError extends Error {}
+export class EmbedNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.EMBED_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class UnknownAgentError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
 
 type EmbedRow = NonNullable<Awaited<ReturnType<typeof repo.findEmbed>>>
 
