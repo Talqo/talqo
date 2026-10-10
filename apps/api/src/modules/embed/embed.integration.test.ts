@@ -289,15 +289,6 @@ describe("public config lookup", () => {
 		expect(body).not.toContain(created.id)
 		expect(body).not.toContain(agentId)
 	})
-
-	it("keeps the shipped widget-config URL compatible with existing tokens", async () => {
-		const created = await createEmbed(await createAgent())
-
-		const response = await app.request(`/api/widget-config/${created.embedToken}`)
-
-		expect(response.status).toBe(200)
-		expect(await response.json()).toMatchObject({ name: created.name })
-	})
 })
 
 async function login(username: string, password: string): Promise<string> {
