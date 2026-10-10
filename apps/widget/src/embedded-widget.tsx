@@ -266,9 +266,7 @@ function WidgetChat({
 		}
 	}, [open, scrollToBottom])
 
-	// Follows sent messages and streamed deltas while pinned; a scrolled-up
-	// visitor keeps control until they return to the bottom. Runs after every
-	// commit so any transcript-height change re-pins without tracking each source.
+	// No deps: re-pins after every commit while the visitor is at the bottom.
 	useLayoutEffect(() => {
 		if (open && stickToBottomRef.current) {
 			scrollToBottom()

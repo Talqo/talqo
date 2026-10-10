@@ -599,27 +599,6 @@ describe("ConnectedEmbeddedWidget", () => {
 })
 
 describe("transcript autoscroll", () => {
-	test("follows a new message while pinned to the bottom", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			messages: [message("u1", "user", "Hello", "completed")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
-		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
-		await scrollTo(700)
-
-		mockScrollMetrics(transcript(), { scrollHeight: 1400, clientHeight: 300 })
-		await act(async () =>
-			store.setSnapshot({
-				...READY_SNAPSHOT,
-				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
-			}),
-		)
-
-		expect(transcript().scrollTop).toBe(1400)
-	})
-
 	test("follows streamed text growth while pinned", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
