@@ -5023,6 +5023,222 @@
 				}
 			}
 		},
+		"/api/stats": {
+			"get": {
+				"operationId": "getStatsOverview",
+				"tags": ["Stats"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"anyOf": [
+								{
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 365
+								},
+								{
+									"type": "string",
+									"enum": ["all"]
+								}
+							]
+						},
+						"required": false,
+						"name": "days",
+						"in": "query"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Conversation and usage statistics",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"overview": {
+											"type": "object",
+											"properties": {
+												"days": {
+													"type": "integer"
+												},
+												"totals": {
+													"type": "object",
+													"properties": {
+														"conversations": {
+															"type": "integer"
+														},
+														"messages": {
+															"type": "integer"
+														},
+														"inputTokens": {
+															"type": "integer"
+														},
+														"outputTokens": {
+															"type": "integer"
+														}
+													},
+													"required": ["conversations", "messages", "inputTokens", "outputTokens"]
+												},
+												"daily": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"date": {
+																"type": "string"
+															},
+															"conversations": {
+																"type": "integer"
+															},
+															"messages": {
+																"type": "integer"
+															},
+															"inputTokens": {
+																"type": "integer"
+															},
+															"outputTokens": {
+																"type": "integer"
+															}
+														},
+														"required": ["date", "conversations", "messages", "inputTokens", "outputTokens"]
+													}
+												},
+												"agentDaily": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"date": {
+																"type": "string"
+															},
+															"conversations": {
+																"type": "integer"
+															},
+															"messages": {
+																"type": "integer"
+															},
+															"inputTokens": {
+																"type": "integer"
+															},
+															"outputTokens": {
+																"type": "integer"
+															},
+															"agentId": {
+																"type": "string"
+															}
+														},
+														"required": ["date", "conversations", "messages", "inputTokens", "outputTokens", "agentId"]
+													}
+												},
+												"agents": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"conversations": {
+																"type": "integer"
+															},
+															"messages": {
+																"type": "integer"
+															},
+															"inputTokens": {
+																"type": "integer"
+															},
+															"outputTokens": {
+																"type": "integer"
+															},
+															"agentId": {
+																"type": "string"
+															},
+															"agentName": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"conversations",
+															"messages",
+															"inputTokens",
+															"outputTokens",
+															"agentId",
+															"agentName"
+														]
+													}
+												},
+												"active": {
+													"type": "array",
+													"items": {
+														"type": "object",
+														"properties": {
+															"agentId": {
+																"type": "string"
+															},
+															"conversations": {
+																"type": "integer"
+															}
+														},
+														"required": ["agentId", "conversations"]
+													}
+												},
+												"activeWindowMinutes": {
+													"type": "integer"
+												}
+											},
+											"required": ["days", "totals", "daily", "agentDaily", "agents", "active", "activeWindowMinutes"]
+										}
+									},
+									"required": ["overview"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/agents/{agentId}/files": {
 			"get": {
 				"operationId": "listAgentFiles",

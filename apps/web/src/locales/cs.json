@@ -188,20 +188,6 @@
 		"unusableWarning": "Uložené přihlašovací údaje již nelze dešifrovat. Zadejte a uložte přihlašovací údaje znovu.",
 		"validationError": "Před uložením vyberte oba poskytovatele a ID modelů."
 	},
-	"analytics": {
-		"conversations": "Konverzace",
-		"dailyTotals": "Denní součty za posledních 30 dní.",
-		"empty": "Zatím žádní agenti. Pro zobrazení statistik vytvořte agenta na stránce Agenti.",
-		"heading": "Analytika",
-		"last30Days": "{{metric}} (30 dní)",
-		"loading": "Načítání agentů…",
-		"loadingStats": "Načítání statistik…",
-		"messages": "Zprávy",
-		"selectAgent": "Vyberte agenta",
-		"subheading": "Statistiky konverzací a využití pro jednotlivé agenty.",
-		"tokens": "Tokeny",
-		"usageOverTime": "Využití v čase"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "Zvolte si přihlašovací údaje a připojte se k tomuto pracovnímu prostoru Talqo.",
@@ -265,23 +251,42 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "Upravte svůj profil a předvolby.",
-				"title": "Účet"
-			},
-			"agents": {
-				"description": "Spravujte agenty a jejich chování.",
-				"title": "Agenti"
-			},
-			"analytics": {
-				"description": "Zobrazte statistiky konverzací a využití.",
-				"title": "Analytika"
-			}
-		},
+		"activeConversations": "Aktivní konverzace",
+		"agentColumn": "Agent",
+		"agentsLabel": "Agenti",
+		"agentsSelected_one": "{{selected}} z {{total}} agenta",
+		"agentsSelected_few": "{{selected}} z {{total}} agentů",
+		"agentsSelected_many": "{{selected}} z {{total}} agentů",
+		"agentsSelected_other": "{{selected}} z {{total}} agenta",
+		"chartDescription": "Přerušovaná čára je celkový součet. Každá plná čára představuje jednoho vybraného agenta.",
+		"chartTitle": "{{metric}} za den",
+		"conversations": "Konverzace",
+		"deselectAll": "Zrušit výběr",
+		"empty": "Zatím žádné konverzace. Statistiky se zobrazí, jakmile vaši agenti začnou komunikovat.",
 		"heading": "Vítejte v Talqo",
-		"openCard": "Otevřít {{title}} →",
-		"subheading": "Spravujte své agenty a analytiku na jednom místě."
+		"loadFailed": "Statistiky se nepodařilo načíst.",
+		"loading": "Načítání statistik…",
+		"messages": "Zprávy",
+		"messagesPerConversation": "Zprávy na konverzaci",
+		"noAgents": "Zatím žádní agenti. Vytvořte agenta na stránce Agenti a uvidíte statistiky.",
+		"noAgentsSelected": "Nejsou vybraní žádní agenti. Statistiky se zobrazí po výběru alespoň jednoho agenta.",
+		"perAgentCaption": "Konverzace, zprávy a tokeny za jednotlivé agenty.",
+		"perAgentDescription": "Součty za jednotlivé agenty.",
+		"perAgentTitle": "Přehled podle agentů",
+		"range1y": "1 rok",
+		"range30d": "30 dní",
+		"range6m": "6 měsíců",
+		"range7d": "7 dní",
+		"rangeAll": "Od začátku",
+		"rangeLabel": "Období",
+		"recentMinutes": "{{metric}} (posledních {{minutes}} minut)",
+		"retry": "Zkusit znovu",
+		"selectAll": "Vybrat vše",
+		"subheading": "Statistiky konverzací a využití napříč vašimi agenty.",
+		"tokens": "Tokeny",
+		"tokensPerConversation": "Tokeny na konverzaci",
+		"total": "Celkem",
+		"usageOverTime": "Využití v čase"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "Integrace obsluhující tohoto agenta.",
@@ -427,13 +432,12 @@
 		"account": "Účet",
 		"agents": "Agenti",
 		"aiConfiguration": "Konfigurace AI",
-		"analytics": "Analytika",
 		"dashboard": "Přehled",
 		"users": "Uživatelé"
 	},
 	"permissions": {
-		"accessDeniedBody": "Správce vám ho může udělit. Do té doby zůstávají dveře zavřené.",
-		"accessDeniedDescription": "Dobrý pokus. Tato stránka je za oprávněním, které váš účet nemá.",
+		"accessDeniedBody": "Pokud tuto stránku potřebujete, požádejte správce o přístup.",
+		"accessDeniedDescription": "K zobrazení této stránky nemáte oprávnění.",
 		"accessDeniedTitle": "Přístup omezen"
 	},
 	"problems": {

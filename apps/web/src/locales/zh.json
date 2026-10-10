@@ -188,20 +188,6 @@
 		"unusableWarning": "无法解密已存储的凭据。请重新输入并保存提供商凭据。",
 		"validationError": "保存前请选择两个提供商和模型 ID。"
 	},
-	"analytics": {
-		"conversations": "对话数",
-		"dailyTotals": "最近 30 天的每日总量。",
-		"empty": "还没有智能体。请在“智能体”页面创建智能体以查看统计。",
-		"heading": "分析",
-		"last30Days": "{{metric}}（30 天）",
-		"loading": "正在加载智能体…",
-		"loadingStats": "正在加载统计…",
-		"messages": "消息数",
-		"selectAgent": "选择智能体",
-		"subheading": "每个智能体的对话和使用统计。",
-		"tokens": "令牌数",
-		"usageOverTime": "使用量趋势"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "设置登录凭据以加入此 Talqo 工作区。",
@@ -265,23 +251,40 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "更新您的个人资料和偏好设置。",
-				"title": "账户"
-			},
-			"agents": {
-				"description": "管理您的智能体及其行为。",
-				"title": "智能体"
-			},
-			"analytics": {
-				"description": "查看对话和使用统计。",
-				"title": "分析"
-			}
-		},
+		"activeConversations": "活跃对话",
+		"agentColumn": "智能体",
+		"agentsLabel": "智能体",
+		"agentsSelected_one": "已选择 {{selected}}/{{total}} 个智能体",
+		"agentsSelected_other": "已选择 {{selected}}/{{total}} 个智能体",
+		"chartDescription": "虚线为总计。每条实线代表一个所选智能体。",
+		"chartTitle": "每日{{metric}}",
+		"conversations": "对话数",
+		"deselectAll": "取消全选",
+		"empty": "还没有对话。智能体开始对话后，这里会显示统计信息。",
 		"heading": "欢迎使用 Talqo",
-		"openCard": "打开{{title}} →",
-		"subheading": "在一个地方管理您的智能体和分析。"
+		"loadFailed": "无法加载统计数据。",
+		"loading": "正在加载统计…",
+		"messages": "消息数",
+		"messagesPerConversation": "每对话消息数",
+		"noAgents": "还没有智能体。请到智能体页面创建智能体以查看统计。",
+		"noAgentsSelected": "未选择智能体。请至少选择一个智能体以查看统计信息。",
+		"perAgentCaption": "每个智能体的对话、消息和令牌数。",
+		"perAgentDescription": "每个智能体的总量。",
+		"perAgentTitle": "按智能体细分",
+		"range1y": "1 年",
+		"range30d": "30 天",
+		"range6m": "6 个月",
+		"range7d": "7 天",
+		"rangeAll": "全部时间",
+		"rangeLabel": "时间范围",
+		"recentMinutes": "{{metric}}（近 {{minutes}} 分钟）",
+		"retry": "重试",
+		"selectAll": "全选",
+		"subheading": "您所有智能体的对话和使用统计。",
+		"tokens": "令牌数",
+		"tokensPerConversation": "每对话令牌数",
+		"total": "总计",
+		"usageOverTime": "使用量趋势"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "服务此智能体的嵌入项。",
@@ -427,13 +430,12 @@
 		"account": "账户",
 		"agents": "智能体",
 		"aiConfiguration": "AI 配置",
-		"analytics": "分析",
 		"dashboard": "仪表盘",
 		"users": "用户"
 	},
 	"permissions": {
-		"accessDeniedBody": "管理员可以为您授权。在此之前，此门暂不开放。",
-		"accessDeniedDescription": "不错的尝试。此页面需要您的账号没有的权限。",
+		"accessDeniedBody": "如需访问此页面，请联系管理员为您授权。",
+		"accessDeniedDescription": "您没有查看此页面的权限。",
 		"accessDeniedTitle": "访问受限"
 	},
 	"problems": {

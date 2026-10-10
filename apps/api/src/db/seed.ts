@@ -5,6 +5,7 @@ import * as embed from "@/modules/embed/embed.seed.ts"
 import * as identity from "@/modules/identity/identity.seed.ts"
 import * as mcp from "@/modules/mcp/mcp.seed.ts"
 import * as roles from "@/modules/roles/roles.seed.ts"
+import * as stats from "@/modules/stats/stats.seed.ts"
 
 import { sql } from "./client.ts"
 
@@ -25,6 +26,7 @@ export async function seed(): Promise<void> {
 	await agent.seed()
 	await embed.seed()
 	await mcp.seed()
+	await stats.seed()
 }
 
 if (import.meta.main) {

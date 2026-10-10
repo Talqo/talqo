@@ -531,6 +531,12 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 }
 
+export {
+	getActiveConversationCountsByAgent,
+	getDailyConversationCountsByAgent,
+	getDailyMessageCountsByAgent,
+} from "./conversation.repository.ts"
+
 let defaultService: ReturnType<typeof createConversationService> | undefined
 
 export function getConversationService() {

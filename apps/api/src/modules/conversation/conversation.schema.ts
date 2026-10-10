@@ -35,6 +35,7 @@ export const conversation = pgTable(
 	(table) => [
 		index("conversation_agent_id_idx").on(table.agentId),
 		index("conversation_embed_id_idx").on(table.embedId),
+		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 	],
 )
 
@@ -96,6 +97,7 @@ export const message = pgTable(
 	(table) => [
 		index("message_order_idx").on(table.conversationId, table.createdAt, table.id),
 		index("message_generation_attempt_idx").on(table.generationAttemptId),
+		index("message_created_at_idx").on(table.createdAt),
 	],
 )
 

@@ -188,20 +188,6 @@
 		"unusableWarning": "Stored credentials can no longer be decrypted. Re-enter and save the provider credentials.",
 		"validationError": "Choose both providers and model IDs before saving."
 	},
-	"analytics": {
-		"conversations": "Conversations",
-		"dailyTotals": "Daily totals for the last 30 days.",
-		"empty": "No agents yet. Create an agent on the Agents page to see statistics.",
-		"heading": "Analytics",
-		"last30Days": "{{metric}} (30 days)",
-		"loading": "Loading agents…",
-		"loadingStats": "Loading statistics…",
-		"messages": "Messages",
-		"selectAgent": "Select an agent",
-		"subheading": "Conversation and usage statistics per agent.",
-		"tokens": "Tokens",
-		"usageOverTime": "Usage over time"
-	},
 	"auth": {
 		"acceptInvite": {
 			"description": "Choose your credentials to join this Talqo workspace.",
@@ -265,23 +251,40 @@
 		"showPassword": "Show password"
 	},
 	"dashboard": {
-		"cards": {
-			"account": {
-				"description": "Update your profile and preferences.",
-				"title": "Account"
-			},
-			"agents": {
-				"description": "Manage your agents and their behavior.",
-				"title": "Agents"
-			},
-			"analytics": {
-				"description": "View conversation and usage statistics.",
-				"title": "Analytics"
-			}
-		},
+		"activeConversations": "Active conversations",
+		"agentColumn": "Agent",
+		"agentsLabel": "Agents",
+		"agentsSelected_one": "{{selected}} of {{total}} agent",
+		"agentsSelected_other": "{{selected}} of {{total}} agents",
+		"chartDescription": "The dashed line is the total. Each solid line is one selected agent.",
+		"chartTitle": "{{metric}} per day",
+		"conversations": "Conversations",
+		"deselectAll": "Deselect all",
+		"empty": "No conversations yet. Statistics appear once your agents start chatting.",
 		"heading": "Welcome to Talqo",
-		"openCard": "Open {{title}} →",
-		"subheading": "Manage your agents and analytics from one place."
+		"loadFailed": "Statistics could not be loaded.",
+		"loading": "Loading statistics…",
+		"messages": "Messages",
+		"messagesPerConversation": "Messages per conversation",
+		"noAgents": "No agents yet. Create an agent on the Agents page to see statistics.",
+		"noAgentsSelected": "No agents selected. Select at least one agent to see statistics.",
+		"perAgentCaption": "Conversations, messages, and tokens per agent.",
+		"perAgentDescription": "Totals per agent.",
+		"perAgentTitle": "Per-agent breakdown",
+		"range1y": "1 year",
+		"range30d": "30 days",
+		"range6m": "6 months",
+		"range7d": "7 days",
+		"rangeAll": "All time",
+		"rangeLabel": "Time range",
+		"recentMinutes": "{{metric}} (last {{minutes}} minutes)",
+		"retry": "Retry",
+		"selectAll": "Select all",
+		"subheading": "Conversation and usage statistics across your agents.",
+		"tokens": "Tokens",
+		"tokensPerConversation": "Tokens per conversation",
+		"total": "Total",
+		"usageOverTime": "Usage over time"
 	},
 	"embedSetup": {
 		"agentPanelDescription": "Embeds serving this agent.",
@@ -427,13 +430,12 @@
 		"account": "Account",
 		"agents": "Agents",
 		"aiConfiguration": "AI configuration",
-		"analytics": "Analytics",
 		"dashboard": "Dashboard",
 		"users": "Users"
 	},
 	"permissions": {
-		"accessDeniedBody": "An admin can grant it. Until then, this door's closed.",
-		"accessDeniedDescription": "Nice try. This page sits behind a permission your account doesn't have.",
+		"accessDeniedBody": "An admin can grant you access; ask them if you need this page.",
+		"accessDeniedDescription": "You do not have permission to view this page.",
 		"accessDeniedTitle": "Access restricted"
 	},
 	"problems": {

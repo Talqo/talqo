@@ -108,9 +108,10 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	// An invited member is signed in right after accepting, no login round-trip.
+	// An invited member is signed in right after accepting, no login round-trip. Without
+	// agents:read the statistics dashboard is access-restricted, but the session itself works.
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
@@ -135,8 +136,11 @@ test("a member changes their own password and stays signed in", async ({ page })
 	// A self-service change keeps the session: confirmation in place, no login round-trip.
 	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByText("Password changed.")).toBeVisible()
-	await page.getByRole("link", { name: "Dashboard" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	// Reloading proves the session cookie survived the change. The member has no agents:read,
+	// so the Dashboard nav item is hidden and /dashboard itself is access-restricted.
+	await page.reload()
+	await expect(page).toHaveURL("/dashboard/account")
+	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
 
 	// The old password is dead; the new one works for fresh logins.
 	await page.getByRole("button", { name: "Log out" }).click()
@@ -193,9 +197,10 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()
 
-	// The forced change keeps the session, landing straight on the dashboard.
+	// The forced change keeps the session, landing signed in on the dashboard. Without
+	// agents:read the member sees the access-restricted card instead of statistics.
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
 })
 
 test("an admin deletes a member, who can no longer log in", async ({ page }) => {

@@ -15,6 +15,7 @@ import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
 import { mcpServerRoutes } from "@/modules/mcp/mcp.routes.ts"
 import { rolesRoutes } from "@/modules/roles/roles.routes.ts"
+import { statsRoutes } from "@/modules/stats/stats.routes.ts"
 import { APICallError } from "@ai-sdk/provider"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { cors } from "hono/cors"
@@ -76,6 +77,7 @@ api.route("/embeds", embedRoutes)
 api.route("/embed-config", embedConfigRoutes)
 api.route("/widget-config", legacyWidgetConfigRoutes)
 api.route("/chat", createConversationRoutes())
+api.route("/stats", statsRoutes)
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
 app.route(API_PREFIX, api)

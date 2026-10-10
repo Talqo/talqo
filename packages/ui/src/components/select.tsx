@@ -41,11 +41,12 @@ function SelectTrigger({
 	)
 }
 
-// Base UI's default overlaps the popup on the trigger, opening up or down by selection.
-// Every popup anchors below the trigger instead.
+// Every popup anchors below the trigger instead of Base UI's default overlap-on-selection.
+// `header` renders outside the listbox so non-option controls stay Tab-reachable.
 function SelectContent({
 	className,
 	children,
+	header,
 	side = "bottom",
 	sideOffset = 4,
 	align = "center",
@@ -53,7 +54,9 @@ function SelectContent({
 	alignItemWithTrigger = false,
 	...props
 }: SelectPrimitive.Popup.Props &
-	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger">) {
+	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"> & {
+		header?: React.ReactNode
+	}) {
 	return (
 		<SelectPrimitive.Portal>
 			<SelectPrimitive.Positioner
@@ -74,6 +77,7 @@ function SelectContent({
 					{...props}
 				>
 					<SelectScrollUpButton />
+					{header}
 					<SelectPrimitive.List>{children}</SelectPrimitive.List>
 					<SelectScrollDownButton />
 				</SelectPrimitive.Popup>

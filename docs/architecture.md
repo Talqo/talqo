@@ -107,6 +107,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
 - Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
 - Recorded exception: `conversation`'s acceptance transaction reads and row-locks `EMBED` inside the advisory-locked write, because embed validity, access version, and the disabled flag must hold atomically at acceptance and transactions cannot flow through service APIs. `conversation` (the send-operation owner) is the orchestration owner; the access is limited to that single read/lock.
+- Recorded exception: the `stats` development seed fixture writes conversation, message, generation attempt, and usage rows directly. No service API supports deterministic historical inserts. Drop the fixture once one does.
 
 ### Contracts And Routes
 
