@@ -509,6 +509,75 @@ describe("ConnectedEmbeddedWidget", () => {
 		)
 		expect(host.querySelector("time")?.dateTime).toBe("2026-09-13T00:00:00Z")
 	})
+
+	describe("assistant markdown", () => {
+		test("renders assistant markdown to elements: strong, list, and code block", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [
+					message("a1", "assistant", "Here is **bold** text.\n\n- one\n- two\n\n```js\nconst x = 1\n```", "completed"),
+				],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-slot='bubble-content']")
+			expect(bubble?.querySelector("strong")?.textContent).toBe("bold")
+			expect(bubble?.querySelectorAll("li")).toHaveLength(2)
+			expect(bubble?.querySelector("pre code")?.textContent).toContain("const x = 1")
+		})
+
+		test("keeps user message text literal without interpreting markdown", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "**not bold** and `not code`", "completed")],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-align='end'] [data-slot='bubble-content']")
+			expect(bubble?.textContent).toBe("**not bold** and `not code`")
+			expect(bubble?.querySelector("strong")).toBeNull()
+			expect(bubble?.querySelector("code")).toBeNull()
+		})
+
+		test("opens markdown links in a new tab with safe rel", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [message("a1", "assistant", "See [docs](https://example.com/docs).", "completed")],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const link = host.querySelector<HTMLAnchorElement>("[data-slot='bubble-content'] a")
+			expect(link?.getAttribute("href")).toBe("https://example.com/docs")
+			expect(link?.target).toBe("_blank")
+			expect(link?.rel).toContain("noopener")
+			expect(link?.rel).toContain("noreferrer")
+		})
+
+		test("never renders raw HTML in assistant text as live elements", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [
+					message(
+						"a1",
+						"assistant",
+						'Before <img src=x onerror="alert(1)"> middle <script>alert(2)</script> after',
+						"completed",
+					),
+				],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-slot='bubble-content']")
+			expect(bubble?.querySelector("img")).toBeNull()
+			expect(bubble?.querySelector("script")).toBeNull()
+			expect(bubble?.textContent).toContain("Before")
+			expect(bubble?.textContent).toContain("after")
+		})
+	})
 })
 
 test("preview presentation renders directly without a semantic client", async () => {

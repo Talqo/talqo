@@ -35,6 +35,7 @@ import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { Markdown } from "./components/ui/markdown"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 import { useResizablePanel } from "./lib/use-resizable-panel"
@@ -70,7 +71,13 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 					variant={message.role === "user" ? "default" : "muted"}
 					className={cn(message.role === "assistant" && "tw:text-foreground")}
 				>
-					{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+					{awaitingText ? (
+						<ResponseIndicator label={t("agentResponding")} />
+					) : message.role === "assistant" ? (
+						<Markdown>{message.text}</Markdown>
+					) : (
+						message.text
+					)}
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
