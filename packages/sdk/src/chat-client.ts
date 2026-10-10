@@ -66,10 +66,16 @@ function transportError(error: unknown): ChatError {
 	}
 }
 
-function isDefiniteClientError(error: unknown): error is ChatTransportError {
+// The API rejects with provider-error only before acceptance; later provider failures arrive as stream events.
+const PRE_ACCEPTANCE_SERVER_CODES = new Set<ChatError["code"]>(["provider-error"])
+
+function isDefiniteRejection(error: unknown): error is ChatTransportError {
 	if (!(error instanceof ChatTransportError)) return false
 	const status = error.detail.status
-	return status !== undefined && status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR
+	if (status === undefined) return false
+	return (
+		(status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR) || PRE_ACCEPTANCE_SERVER_CODES.has(error.detail.code)
+	)
 }
 
 export function createChatClient(options: ChatClientOptions): ChatClient {
@@ -217,7 +223,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					if (session.activeGeneration === undefined) return
 				} catch (cause) {
 					if (controller.signal.aborted) return
-					if (isDefiniteClientError(cause)) {
+					if (isDefiniteRejection(cause)) {
 						if (attemptedPending !== undefined && pendingMessage?.requestId === attemptedPending.requestId) {
 							const attemptedRequestId = attemptedPending.requestId
 							pendingMessage = undefined
@@ -306,6 +312,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function sendMessage(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
+		if (configuration?.isAvailable === false) throw new ChatClientError({ code: "chat-unavailable" })
 		if (reset === "resetting") throw new Error("Chat session is resetting")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {
@@ -398,7 +405,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			if (!terminalReceived) throw new Error("Chat stream closed without a terminal event")
 		} catch (cause) {
-			const definitelyRejected = !accepted && isDefiniteClientError(cause)
+			const definitelyRejected = !accepted && isDefiniteRejection(cause)
 			if (definitelyRejected) {
 				messages = messages.filter((message) => message.id !== localUserId)
 				pendingMessage = undefined

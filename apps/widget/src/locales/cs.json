@@ -1,6 +1,7 @@
 {
 	"agentResponding": "Agent odpovídá",
 	"allowanceReset": "Limit se obnoví {{reset}}.",
+	"chatUnavailable": "Chat teď nemůže odpovídat. Zkuste to prosím později.",
 	"closeChat": "Zavřít chat",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "Odpověď se nepodařilo zastavit. Může stále probíhat.",

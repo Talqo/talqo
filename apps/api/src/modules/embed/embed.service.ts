@@ -2,6 +2,7 @@ import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 
 import * as repo from "./embed.repository.ts"
@@ -20,6 +21,7 @@ export type Embed = {
 
 export type EmbedConfig = {
 	appearance: WidgetAppearance
+	isAvailable: boolean
 	isDisabled: boolean
 	name: string
 	updatedAt: Date
@@ -159,7 +161,8 @@ export async function getConfigByToken(embedToken: string): Promise<EmbedConfig>
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	const { name, appearance, isDisabled } = toEmbed(row)
-	return { version: WIDGET_CONFIG_VERSION, name, appearance, isDisabled, updatedAt: row.updatedAt }
+	const isAvailable = await aiProvider.canGenerateText()
+	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, isDisabled, updatedAt: row.updatedAt }
 }
 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {

@@ -85,6 +85,40 @@ describe("AI provider service", () => {
 		expect(JSON.stringify(getStored())).not.toContain("sk-text")
 	})
 
+	it("can generate text only once usable text credentials are stored", async () => {
+		const { service, getStored } = createMemoryService()
+		expect(await service.canGenerateText()).toBe(false)
+
+		await service.saveConfiguration(input)
+		expect(await service.canGenerateText()).toBe(true)
+
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
+		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }
+		expect(await service.canGenerateText()).toBe(false)
+	})
+
+	it("can generate text while separate embedding credentials are unusable", async () => {
+		const { service, getStored } = createMemoryService()
+		await service.saveConfiguration({
+			...input,
+			embedding: {
+				providerId: "openai",
+				modelId: "text-embedding-3-small",
+				authMode: "static",
+				settings: {},
+				credentialSource: "separate",
+				credentials: { apiKey: "sk-embedding" },
+			},
+		})
+		const stored = getStored()
+		if (!stored?.embedding.credentials) throw new Error("Expected encrypted embedding credentials")
+		stored.embedding.credentials = { ...stored.embedding.credentials, ciphertext: "corrupted" }
+
+		expect((await service.getConfiguration()).health).toBe("unusable")
+		expect(await service.canGenerateText()).toBe(true)
+	})
+
 	it("rejects a stale revision", async () => {
 		const { service } = createMemoryService()
 		await service.saveConfiguration(input)

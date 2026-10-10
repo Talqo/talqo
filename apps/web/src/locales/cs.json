@@ -265,6 +265,10 @@
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "Nepodařilo se ověřit, zda vaši agenti mohou návštěvníkům odpovídat. Zkontrolujte nastavení poskytovatele AI.",
+		"aiProviderCheckFailedAction": "Zkontrolovat poskytovatele AI",
+		"aiProviderMissing": "Vaši agenti zatím nemohou návštěvníkům odpovídat. Nastavte poskytovatele AI, aby odpovědi začaly fungovat.",
+		"aiProviderMissingAction": "Nastavit poskytovatele AI",
 		"cards": {
 			"account": {
 				"description": "Upravte svůj profil a předvolby.",

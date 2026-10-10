@@ -239,6 +239,8 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 const RETRIEVAL_TOP_K = 5
 
 export async function searchKnowledge(agentId: string, text: string): Promise<string[]> {
+	// Without indexed files there is nothing to match, so skip the paid embedding call.
+	if (!(await repository.hasReadyFiles(agentId))) return []
 	const operation = await aiProvider.prepareEmbeddingOperation()
 	return repository.search(agentId, await operation.embed(text), operation.key, RETRIEVAL_TOP_K)
 }

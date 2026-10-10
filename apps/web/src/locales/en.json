@@ -265,6 +265,10 @@
 		"showPassword": "Show password"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "We couldn't check whether your agents can reply to visitors. Open the AI provider settings to review them.",
+		"aiProviderCheckFailedAction": "Review AI provider",
+		"aiProviderMissing": "Your agents can't reply to visitors yet. Set up an AI provider to turn replies on.",
+		"aiProviderMissingAction": "Set up AI provider",
 		"cards": {
 			"account": {
 				"description": "Update your profile and preferences.",
