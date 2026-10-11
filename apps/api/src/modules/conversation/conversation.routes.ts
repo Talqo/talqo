@@ -9,9 +9,18 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
-import { cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
+import {
+	cancelRoute,
+	conversationListResponseSchema,
+	conversationTranscriptResponseSchema,
+	getConversationRoute,
+	listConversationsRoute,
+	sendRoute,
+	sessionRoute,
+	sessionStateSchema,
+} from "./conversation.contract.ts"
 import { InvalidChatInputError } from "./conversation.errors.ts"
-import { getConversationService } from "./conversation.service.ts"
+import { getConversationService, getConversationTranscript, listAgentConversations } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
@@ -127,3 +136,14 @@ export function createConversationRoutes(
 			return c.body(null, HTTP_STATUS.NO_CONTENT)
 		})
 }
+
+export const conversationOperatorRoutes = new OpenAPIHono()
+	.openapi(listConversationsRoute, async (c) => {
+		const page = await listAgentConversations(c.req.valid("param").agentId, c.req.valid("query"))
+		return c.json(conversationListResponseSchema.parse(page), HTTP_STATUS.OK)
+	})
+	.openapi(getConversationRoute, async (c) => {
+		const { agentId, conversationId } = c.req.valid("param")
+		const conversation = await getConversationTranscript(agentId, conversationId)
+		return c.json(conversationTranscriptResponseSchema.parse({ conversation }), HTTP_STATUS.OK)
+	})

@@ -17,7 +17,7 @@ export default defineConfig({
 		input: {
 			target: "./apps/api/openapi.json",
 			filters: {
-				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed", "MCP", "Stats"],
+				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed", "MCP", "Stats", "Conversation"],
 				schemas: ["ProblemDetails"],
 			},
 		},
@@ -45,6 +45,11 @@ export default defineConfig({
 				query: {
 					shouldExportKeys: true,
 					signal: true,
+				},
+				operations: {
+					listConversations: {
+						query: { useInfinite: true, useInfiniteQueryParam: "before" },
+					},
 				},
 				zod: {
 					generateReusableSchemas: true,

@@ -75,7 +75,7 @@ graph LR
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
 | `mcp` | `MCP_SERVER` | Per-agent tool-server integrations over Streamable HTTP or stdio, with encrypted credentials, OAuth, and tool resolution during chat. One agent serves many connections. |
 | `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent source-file lifecycle, durable serial ingestion, Docling conversion/chunking, and per-agent pgvector storage, and chat retrieval. |
-| `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, knowledge retrieval, and the AI provider. |
+| `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, knowledge retrieval, and the AI provider. Serves operators read-only transcripts by an operator-facing ID, never the visitor credential. |
 | `usage` | `USAGE_RECORD` | Meters tokens/cost per generation attempt; limit enforcement lives in `conversation`. |
 | `stats` | No tables. Reads from `conversation`, `usage`, `agent` | Operator statistics at `GET /api/stats`. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |

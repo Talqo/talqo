@@ -1,4 +1,4 @@
-import { handleError } from "@/app.ts"
+import { app as apiApp, handleError } from "@/app.ts"
 import { type Annotate, createWideEvents, type WideEvent } from "@/http/wide-event.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -239,5 +239,15 @@ describe("public conversation routes", () => {
 		expect(response.status).toBe(403)
 		expect(response.headers.get("content-type")).toContain("application/problem+json")
 		expect(await response.json()).toMatchObject({ code: "embed-disabled" })
+	})
+})
+
+describe("operator conversation authentication boundary", () => {
+	it("requires a session to list or read conversations, even with a chat bearer", async () => {
+		const base = `/api/agents/${REQUEST_ID}/conversations`
+		const bearer = { headers: { Authorization: `Bearer ${CREDENTIAL}` } }
+
+		expect((await apiApp.request(base)).status).toBe(401)
+		expect((await apiApp.request(`${base}/${CREDENTIAL}`, bearer)).status).toBe(401)
 	})
 })

@@ -1,5 +1,6 @@
 import type { Annotation } from "@/http/wide-event.ts"
 
+import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import {
@@ -8,24 +9,34 @@ import {
 	type TextMessage,
 } from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
 import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.repository.ts"
 import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
 import {
 	ConcurrentGenerationLimitError,
+	ConversationNotFoundError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
 	EmbedDisabledError,
+	InvalidConversationCursorError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
 import * as repository from "./conversation.repository.ts"
-import { createConversationService, getConversationService } from "./conversation.service.ts"
+import {
+	createConversationService,
+	getConversationService,
+	getConversationTranscript,
+	listAgentConversations,
+} from "./conversation.service.ts"
 
 const REQUEST_1 = "11111111-1111-4111-8111-111111111111"
 const REQUEST_2 = "22222222-2222-4222-8222-222222222222"
@@ -1450,5 +1461,133 @@ describe("chat retrieval", () => {
 		await sent.done
 
 		expect(events.map((event) => event.type)).toEqual(["accepted", "delta", "error"])
+	})
+})
+
+async function chat(embedToken: string, credential: string, text: string): Promise<void> {
+	const sent = await service().service.send({
+		embedToken,
+		credential,
+		requestId: crypto.randomUUID(),
+		text,
+		networkHash: "network-a",
+	})
+	await sent.done
+}
+
+async function operatorSession(permission?: roles.GrantablePermission): Promise<string> {
+	const username = uniqueUsername()
+	const account = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	if (permission) await giveRole(account.id, [permission])
+	const response = await app.request("/api/auth/login", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
+	})
+	const cookie = response.headers.get("set-cookie")?.split(";")[0]
+	if (!cookie) throw new Error("Expected a session cookie")
+	return cookie
+}
+
+describe("operator conversation reads", () => {
+	it("lists an agent's conversations newest first with previews and counts", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const other = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "first visitor")
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
+		await chat(createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
+		await chat(other.createdEmbed.embedToken, crypto.randomUUID(), "other agent")
+
+		const page = await listAgentConversations(createdAgent.id, { limit: 20 })
+
+		expect(page.nextCursor).toBeNull()
+		expect(page.conversations.map((item) => [item.messageCount, item.preview?.length])).toEqual([
+			[2, 160],
+			[4, "first visitor".length],
+		])
+		expect(page.conversations[1]?.preview).toBe("first visitor")
+		expect(page.conversations.map((item) => item.id)).not.toContain(CREDENTIAL_1)
+	})
+
+	it("pages with a cursor without skipping or repeating conversations", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		for (const text of ["one", "two", "three"]) {
+			// oxlint-disable-next-line no-await-in-loop -- start order defines the expected page order.
+			await chat(createdEmbed.embedToken, crypto.randomUUID(), text)
+		}
+
+		const first = await listAgentConversations(createdAgent.id, { limit: 2 })
+		if (!first.nextCursor) throw new Error("Expected a next page")
+		const second = await listAgentConversations(createdAgent.id, { limit: 2, before: first.nextCursor })
+
+		expect([...first.conversations, ...second.conversations].map((item) => item.preview)).toEqual([
+			"three",
+			"two",
+			"one",
+		])
+		expect(second.nextCursor).toBeNull()
+	})
+
+	it("rejects a cursor from another agent", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const other = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
+		const [own] = (await listAgentConversations(createdAgent.id, { limit: 1 })).conversations
+		if (!own) throw new Error("Expected a conversation")
+
+		await expect(listAgentConversations(other.createdAgent.id, { limit: 1, before: own.id })).rejects.toBeInstanceOf(
+			InvalidConversationCursorError,
+		)
+	})
+
+	it("returns the transcript only for the owning agent", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const other = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
+		const [summary] = (await listAgentConversations(createdAgent.id, { limit: 1 })).conversations
+		if (!summary) throw new Error("Expected a conversation")
+
+		const transcript = await getConversationTranscript(createdAgent.id, summary.id)
+
+		expect(transcript.messages.map((item) => [item.role, item.text, item.outcome])).toEqual([
+			["user", "hello", "completed"],
+			["assistant", "answer", "completed"],
+		])
+		await expect(getConversationTranscript(other.createdAgent.id, summary.id)).rejects.toBeInstanceOf(
+			ConversationNotFoundError,
+		)
+	})
+
+	it("serves conversations over HTTP to agents:read without exposing the visitor credential", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
+		const cookie = await operatorSession(roles.Permission.AgentsRead)
+		const base = `/api/agents/${createdAgent.id}/conversations`
+
+		const list = await app.request(base, { headers: { Cookie: cookie } })
+		const listBody = await list.text()
+		const id = (JSON.parse(listBody) as { conversations: { id: string }[] }).conversations[0]?.id
+		const transcript = await app.request(`${base}/${id}`, { headers: { Cookie: cookie } })
+		const missing = await app.request(`${base}/${crypto.randomUUID()}`, { headers: { Cookie: cookie } })
+		const invalid = await app.request(`${base}?limit=500`, { headers: { Cookie: cookie } })
+
+		expect(list.status).toBe(200)
+		expect(listBody).not.toContain(CREDENTIAL_1)
+		expect(transcript.status).toBe(200)
+		expect(await transcript.text()).not.toContain(CREDENTIAL_1)
+		expect(missing.status).toBe(404)
+		expect(await missing.json()).toMatchObject({ code: "conversation-not-found" })
+		expect(invalid.status).toBe(400)
+		expect(await invalid.json()).toMatchObject({ code: "invalid-request" })
+	})
+
+	it("denies operators without agents:read", async () => {
+		const { createdAgent } = await fixture()
+		const cookie = await operatorSession()
+
+		const response = await app.request(`/api/agents/${createdAgent.id}/conversations`, { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "permission-denied" })
 	})
 })

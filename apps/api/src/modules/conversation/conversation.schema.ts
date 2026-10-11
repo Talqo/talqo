@@ -23,6 +23,11 @@ export const conversation = pgTable(
 	"conversation",
 	{
 		id: text("id").primaryKey(),
+		// Operator-facing ID: `id` is the visitor's bearer credential and stays out of URLs (ADR-0014).
+		referenceId: text("reference_id")
+			.notNull()
+			.unique()
+			.default(sql`gen_random_uuid()::text`),
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
@@ -33,7 +38,7 @@ export const conversation = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
 	(table) => [
-		index("conversation_agent_id_idx").on(table.agentId),
+		index("conversation_agent_created_idx").on(table.agentId, table.createdAt, table.referenceId),
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 	],
