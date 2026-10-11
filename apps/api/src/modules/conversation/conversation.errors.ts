@@ -7,3 +7,5 @@ export class ConcurrentGenerationLimitError extends Error {}
 export class SessionBusyError extends Error {}
 export class InvalidChatInputError extends Error {}
 export class ProviderUnavailableError extends Error {}
+export class ConversationNotFoundError extends Error {}
+export class InvalidConversationCursorError extends Error {}

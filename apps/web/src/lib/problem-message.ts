@@ -20,6 +20,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"agent-not-found": (t) => t("problems.agent-not-found"),
 	"authentication-required": (t) => t("problems.authentication-required"),
 	"configuration-conflict": (t) => t("problems.configuration-conflict"),
+	"conversation-not-found": (t) => t("problems.conversation-not-found"),
 	"current-password-incorrect": (t) => t("problems.current-password-incorrect"),
 	"embed-not-found": (t) => t("problems.embed-not-found"),
 	"internal-server-error": (t) => t("problems.internal-server-error"),

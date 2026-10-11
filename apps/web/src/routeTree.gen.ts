@@ -24,6 +24,7 @@ import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analy
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 import { Route as DashboardEmbedsEmbedIdRouteImport } from './routes/dashboard/embeds/$embedId'
+import { Route as DashboardAgentAgentIdConversationsConversationIdRouteImport } from './routes/dashboard/agent.$agentId_.conversations.$conversationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -101,6 +102,12 @@ const DashboardEmbedsEmbedIdRoute = DashboardEmbedsEmbedIdRouteImport.update({
   path: '/embeds/$embedId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardAgentAgentIdConversationsConversationIdRoute =
+  DashboardAgentAgentIdConversationsConversationIdRouteImport.update({
+    id: '/agent/$agentId_/conversations/$conversationId',
+    path: '/agent/$agentId/conversations/$conversationId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/agent/$agentId/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/agent/$agentId/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/agent/$agentId_/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/agent/$agentId/conversations/$conversationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/agent/$agentId/conversations/$conversationId'
   id:
     | '__root__'
     | '/'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/agent/$agentId_/conversations/$conversationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -323,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardEmbedsEmbedIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/agent/$agentId_/conversations/$conversationId': {
+      id: '/dashboard/agent/$agentId_/conversations/$conversationId'
+      path: '/agent/$agentId/conversations/$conversationId'
+      fullPath: '/dashboard/agent/$agentId/conversations/$conversationId'
+      preLoaderRoute: typeof DashboardAgentAgentIdConversationsConversationIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
@@ -335,6 +355,7 @@ interface DashboardRouteRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
   DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
+  DashboardAgentAgentIdConversationsConversationIdRoute: typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -346,6 +367,8 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
   DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,
+  DashboardAgentAgentIdConversationsConversationIdRoute:
+    DashboardAgentAgentIdConversationsConversationIdRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(

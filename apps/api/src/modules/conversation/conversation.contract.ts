@@ -2,7 +2,10 @@ import { MAX_CHAT_INPUT_CHARACTERS } from "@/config/env.ts"
 import { access } from "@/http/access.ts"
 import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
+
+import { CONVERSATION_PAGE_DEFAULT, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
 
 const requestIdSchema = z.uuid({ version: "v4" })
 
@@ -142,5 +145,96 @@ export const cancelRoute = createRoute({
 		401: problemResponse([PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED]),
 		413: payloadTooLargeResponse,
 		500: problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR]),
+	},
+})
+
+const transcriptMessageSchema = messageSchema.openapi("ConversationMessage")
+export const conversationListResponseSchema = z
+	.object({
+		conversations: z.array(
+			z
+				.object({
+					id: z.string(),
+					startedAt: z.iso.datetime(),
+					messageCount: z.number().int().nonnegative(),
+					preview: z.string().nullable(),
+				})
+				.openapi("ConversationSummary"),
+		),
+		nextCursor: z.string().nullable(),
+	})
+	.openapi("ConversationList")
+export const conversationTranscriptResponseSchema = z
+	.object({
+		conversation: z
+			.object({
+				id: z.string(),
+				agentId: z.string(),
+				startedAt: z.iso.datetime(),
+				messages: z.array(transcriptMessageSchema),
+			})
+			.openapi("ConversationTranscript"),
+	})
+	.openapi("ConversationTranscriptResponse")
+
+const agentParams = z.object({
+	agentId: z.uuid().openapi({ param: { name: "agentId", in: "path" } }),
+})
+const transcriptParams = agentParams.extend({
+	conversationId: z.uuid().openapi({ param: { name: "conversationId", in: "path" } }),
+})
+const listConversationsQuery = z.object({
+	before: z
+		.uuid()
+		.optional()
+		.openapi({ param: { name: "before", in: "query" } }),
+	limit: z.coerce
+		.number()
+		.int()
+		.min(1)
+		.max(CONVERSATION_PAGE_MAX)
+		.default(CONVERSATION_PAGE_DEFAULT)
+		.openapi({ param: { name: "limit", in: "query" } }),
+})
+const operatorAuthRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
+const operatorForbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const operatorServerError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
+
+export const listConversationsRoute = createRoute({
+	method: "get",
+	path: "/{agentId}/conversations",
+	operationId: "listConversations",
+	tags: ["Conversation"],
+	...access.permission(roles.Permission.AgentsRead),
+	request: { params: agentParams, query: listConversationsQuery },
+	responses: {
+		200: {
+			content: { "application/json": { schema: conversationListResponseSchema } },
+			description: "The agent's conversations, newest first",
+		},
+		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST]),
+		401: operatorAuthRequired,
+		403: operatorForbidden,
+		500: operatorServerError,
+	},
+})
+
+export const getConversationRoute = createRoute({
+	method: "get",
+	path: "/{agentId}/conversations/{conversationId}",
+	operationId: "getConversation",
+	tags: ["Conversation"],
+	...access.permission(roles.Permission.AgentsRead),
+	request: { params: transcriptParams },
+	responses: {
+		200: {
+			content: { "application/json": { schema: conversationTranscriptResponseSchema } },
+			description: "Full conversation transcript",
+		},
+		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST]),
+		401: operatorAuthRequired,
+		403: operatorForbidden,
+		404: problemResponse([PROBLEM_CODES.CONVERSATION_NOT_FOUND]),
+		500: operatorServerError,
 	},
 })

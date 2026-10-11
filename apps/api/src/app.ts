@@ -9,7 +9,11 @@ import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
-import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
+import {
+	conversationOperatorRoutes,
+	createConversationRoutes,
+	type ChatBindings,
+} from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
@@ -73,6 +77,7 @@ api.route("/embed-config", embedConfigRoutes)
 api.route("/chat", createConversationRoutes())
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
+api.route("/agents", conversationOperatorRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,

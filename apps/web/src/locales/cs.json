@@ -45,6 +45,7 @@
 		"subheading": "Aktualizujte název, chování, znalostní soubory a integrace agenta.",
 		"tabConfiguration": "Nastavení",
 		"tabContext": "Kontext",
+		"tabConversations": "Konverzace",
 		"tabEmbeds": "Integrace",
 		"tabMcp": "Nástroje",
 		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na aktuální seznam."
@@ -264,6 +265,29 @@
 		"hidePassword": "Skrýt heslo",
 		"showPassword": "Zobrazit heslo"
 	},
+	"conversations": {
+		"agent": "Agent",
+		"backToConversations": "Zpět na konverzace",
+		"empty": "Zatím žádné konverzace. Objeví se tu, jakmile návštěvníci s agentem začnou chatovat.",
+		"heading": "Konverzace",
+		"loadFailed": "Konverzace se nepodařilo načíst.",
+		"loading": "Načítání konverzací…",
+		"loadingMore": "Načítání…",
+		"loadingTranscript": "Načítání konverzace…",
+		"loadMore": "Načíst další",
+		"messageCount": "Zprávy: {{messages}}",
+		"noPreview": "Bez zprávy návštěvníka",
+		"outcomeBlocked": "Zastaveno: odpověď obsahovala slovo z blacklistu slov.",
+		"outcomeCancelled": "Návštěvník tuto odpověď zastavil.",
+		"outcomeFailed": "Agent nedokázal odpovědět.",
+		"outcomeInterrupted": "Odpověď byla přerušena.",
+		"outcomeStreaming": "Agent stále odpovídá…",
+		"panelDescription": "Přečtěte si, na co se návštěvníci agenta ptali a jak odpověděl.",
+		"retry": "Zkusit znovu",
+		"startedAt": "Zahájeno {{date}}",
+		"transcriptLoadFailed": "Tuto konverzaci se nepodařilo načíst.",
+		"visitor": "Návštěvník"
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
@@ -449,6 +473,7 @@
 		"agent-not-found": "Agent nebyl nalezen.",
 		"authentication-required": "Pro pokračování se přihlaste.",
 		"configuration-conflict": "Konfigurace se změnila. Načtěte stránku znovu a akci opakujte.",
+		"conversation-not-found": "Tato konverzace už neexistuje.",
 		"current-password-incorrect": "Aktuální heslo není správné.",
 		"embed-not-found": "Integrace nebyla nalezena.",
 		"internal-server-error": "Na serveru došlo k neočekávané chybě.",

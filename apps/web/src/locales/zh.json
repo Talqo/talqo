@@ -45,6 +45,7 @@
 		"subheading": "更新智能体的名称、行为、知识文件和嵌入项。",
 		"tabConfiguration": "配置",
 		"tabContext": "上下文",
+		"tabConversations": "对话",
 		"tabEmbeds": "嵌入项",
 		"tabMcp": "工具",
 		"wasDeleted": "该智能体已在别处被删除。请返回列表查看最新状态。"
@@ -264,6 +265,29 @@
 		"hidePassword": "隐藏密码",
 		"showPassword": "显示密码"
 	},
+	"conversations": {
+		"agent": "智能体",
+		"backToConversations": "返回对话列表",
+		"empty": "暂无对话。访客与此智能体聊天后，对话会显示在这里。",
+		"heading": "对话",
+		"loadFailed": "无法加载对话。",
+		"loading": "正在加载对话…",
+		"loadingMore": "正在加载…",
+		"loadingTranscript": "正在加载对话…",
+		"loadMore": "加载更多",
+		"messageCount": "消息：{{messages}}",
+		"noPreview": "没有访客消息",
+		"outcomeBlocked": "已停止：回答中包含屏蔽词。",
+		"outcomeCancelled": "访客停止了此回答。",
+		"outcomeFailed": "智能体无法回答。",
+		"outcomeInterrupted": "此回答被中断。",
+		"outcomeStreaming": "仍在回答…",
+		"panelDescription": "查看访客向此智能体提出的问题以及它的回答。",
+		"retry": "重试",
+		"startedAt": "开始于 {{date}}",
+		"transcriptLoadFailed": "无法加载此对话。",
+		"visitor": "访客"
+	},
 	"dashboard": {
 		"cards": {
 			"account": {
@@ -449,6 +473,7 @@
 		"agent-not-found": "未找到该智能体。",
 		"authentication-required": "请先登录再继续。",
 		"configuration-conflict": "配置已更改，请重新加载后重试。",
+		"conversation-not-found": "此对话已不存在。",
 		"current-password-incorrect": "当前密码不正确。",
 		"embed-not-found": "未找到该嵌入项。",
 		"internal-server-error": "服务器遇到意外错误。",

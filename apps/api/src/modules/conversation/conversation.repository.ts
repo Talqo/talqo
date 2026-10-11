@@ -1,6 +1,6 @@
 import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
-import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -550,4 +550,58 @@ export async function recoverExpiredGenerationAttempts(): Promise<void> {
 		await interruptExpiredGenerationAttempts(tx)
 		await tx.delete(conversationDailyCounter).where(lt(conversationDailyCounter.day, DATABASE_DAY))
 	})
+}
+
+export type ConversationSummaryRow = {
+	createdAt: Date
+	messageCount: number
+	preview: string | null
+	referenceId: string
+}
+
+export async function conversationExists(agentId: string, referenceId: string): Promise<boolean> {
+	const [row] = await db
+		.select({ referenceId: conversation.referenceId })
+		.from(conversation)
+		.where(and(eq(conversation.agentId, agentId), eq(conversation.referenceId, referenceId)))
+		.limit(1)
+	return row !== undefined
+}
+
+export async function listAgentConversations(input: {
+	agentId: string
+	before: string | undefined
+	limit: number
+	previewLength: number
+}): Promise<ConversationSummaryRow[]> {
+	// Compare against the cursor row in SQL: JS Dates drop the microseconds Postgres stores.
+	const afterCursor = input.before
+		? sql`(conversation.created_at, conversation.reference_id) < (SELECT c.created_at, c.reference_id FROM conversation c WHERE c.reference_id = ${input.before})`
+		: undefined
+	return db
+		.select({
+			referenceId: conversation.referenceId,
+			createdAt: conversation.createdAt,
+			// Explicit aliases: Drizzle renders single-table columns unqualified, which subqueries would rebind.
+			messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
+			preview: sql<
+				string | null
+			>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
+		})
+		.from(conversation)
+		.where(and(eq(conversation.agentId, input.agentId), afterCursor))
+		.orderBy(desc(conversation.createdAt), desc(conversation.referenceId))
+		.limit(input.limit)
+}
+
+export async function findAgentConversation(
+	agentId: string,
+	referenceId: string,
+): Promise<{ createdAt: Date; id: string; referenceId: string } | undefined> {
+	const [row] = await db
+		.select({ id: conversation.id, referenceId: conversation.referenceId, createdAt: conversation.createdAt })
+		.from(conversation)
+		.where(and(eq(conversation.agentId, agentId), eq(conversation.referenceId, referenceId)))
+		.limit(1)
+	return row
 }
