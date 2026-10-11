@@ -45,7 +45,7 @@ Talqo is related to these repos:
 ### 2.3 Constraints
 
 - Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple agents — e.g. one per website, or multiple agents on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
-- Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1). The admin can assign granular permissions to other registered accounts. There is no superadmin.
+- Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1), and holds every permission. Other accounts receive permissions through roles (FR-2.6b, FR-2.6c) or direct permission grants. There is no superadmin.
 - The operator must supply their own AI provider authentication source; there is no platform-funded default.
 
 ### 2.4 Assumptions & Dependencies
@@ -84,10 +84,13 @@ Talqo is related to these repos:
 | FR-2.3 | Operator can log in and log out of the dashboard | High | Done |
 | FR-2.3a | Operator can log in via SSO (e.g. Google) as an alternative to username/password credentials | Medium | Not started |
 | FR-2.4 | Operator can change their account password | Medium | Done |
-| FR-2.4a | Admin can reset another operator account's password (no self-service password recovery exists, since there is no self-registration or email flow) | Medium | Done |
+| FR-2.4a | An operator with user-management permission can reset another operator account's password, provided they hold every permission that account has (no self-service password recovery exists, since there is no self-registration or email flow) | Medium | In progress (dashboard pending) |
 | FR-2.5 | Operator can update their account information (username) | Medium | Done |
 | FR-2.6 | Operator can delete their account | Medium | Done |
-| FR-2.6a | Admin can delete another operator account; deletion ends its sessions and removes its permissions | Medium | Done |
+| FR-2.6a | An operator with user-management permission can delete another operator account they hold every permission of; deletion ends its sessions and removes its permissions | Medium | In progress (dashboard pending) |
+| FR-2.6b | An operator with role-management permission can create, rename, change and delete roles, each a named set of permissions | Medium | In progress (dashboard pending) |
+| FR-2.6c | An operator with role-management permission can assign several roles to an operator account; the account holds every permission of its roles | Medium | In progress (dashboard pending) |
+| FR-2.6d | An operator can create, change, delete, assign or remove only roles whose permissions they hold, so no one can give access they do not have | High | In progress (dashboard pending) |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
 | FR-2.8 | Operator can rotate an agent's public embed token, which orphans the old token for existing embed code | Medium | Done |
 | FR-2.8a | Operator can rotate a widget's public token to invalidate the embed code already pasted on customer sites | Medium | Done |

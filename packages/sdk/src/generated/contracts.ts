@@ -226,6 +226,14 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#request-failed"
 	  }
 	| {
+			code: "role-name-taken"
+			type: "https://docs.talqo.chat/problems#role-name-taken"
+	  }
+	| {
+			code: "role-not-found"
+			type: "https://docs.talqo.chat/problems#role-not-found"
+	  }
+	| {
 			code: "route-not-found"
 			type: "https://docs.talqo.chat/problems#route-not-found"
 	  }

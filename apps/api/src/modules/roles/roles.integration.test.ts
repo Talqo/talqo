@@ -51,6 +51,28 @@ async function createMember(): Promise<identity.PublicUser> {
 	return identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 }
 
+async function memberWith(permissions: service.Permission[]): Promise<{ cookie: string; userId: string }> {
+	const member = await createMember()
+	await Promise.all(
+		permissions.map((permission) => service.grantPermission({ userId: member.id, permission, grantedBy: member.id })),
+	)
+	const { token } = await identity.createSession(member.id)
+	return { cookie: `${identity.SESSION_COOKIE}=${token}`, userId: member.id }
+}
+
+async function call(cookie: string, method: string, path: string, body?: unknown): Promise<Response> {
+	return app.request(`/api${path}`, {
+		method,
+		headers: { Cookie: cookie, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+		body: body === undefined ? undefined : JSON.stringify(body),
+	})
+}
+
+async function expectCode(response: Response, status: number, code: string): Promise<void> {
+	expect(response.status).toBe(status)
+	expect(await response.json()).toMatchObject({ code })
+}
+
 async function createMemberSession(): Promise<string> {
 	const username = uniqueUsername()
 	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
@@ -115,7 +137,7 @@ describe("roles", () => {
 		const response = await app.request("/api/users", { headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(403)
-		expect(await response.json()).toMatchObject({ code: "admin-access-required" })
+		expect(await response.json()).toMatchObject({ code: "permission-denied" })
 	})
 
 	it("enforces at most one admin grant at the database level, not just in application code", async () => {
@@ -584,6 +606,180 @@ describe("target resolvers", () => {
 		const { userId } = await createAdminSession()
 
 		expect(await service.permissionsOfUser({ params: { userId } })).toEqual([...service.PERMISSIONS])
+	})
+})
+
+function roleBody(permissions: service.Permission[], name = `Role ${crypto.randomUUID()}`) {
+	return { name, permissions }
+}
+
+describe("role routes", () => {
+	it("lists grantable permissions for a role manager and denies other members", async () => {
+		const manager = await memberWith(["roles:manage"])
+		const member = await memberWith(["users:manage"])
+
+		const response = await call(manager.cookie, "GET", "/permissions")
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ permissions: service.listGrantablePermissions() })
+		await expectCode(await call(member.cookie, "GET", "/permissions"), 403, "permission-denied")
+	})
+
+	it("creates, lists, updates and deletes a role within the manager's own permissions", async () => {
+		const manager = await memberWith(["roles:manage", "agents:manage"])
+
+		const created = await call(manager.cookie, "POST", "/roles", roleBody(["agents:read"], "Readers"))
+		expect(created.status).toBe(201)
+		const { role } = (await created.json()) as { role: service.Role }
+		expect(role).toEqual({ id: role.id, name: "Readers", permissions: ["agents:read"], memberCount: 0 })
+
+		const listed = (await (await call(manager.cookie, "GET", "/roles")).json()) as { roles: service.Role[] }
+		expect(listed.roles).toContainEqual(role)
+
+		const updated = await call(manager.cookie, "PUT", `/roles/${role.id}`, roleBody(["agents:manage"], "Editors"))
+		expect(updated.status).toBe(200)
+		expect(await updated.json()).toEqual({ role: { ...role, name: "Editors", permissions: ["agents:manage"] } })
+
+		expect((await call(manager.cookie, "DELETE", `/roles/${role.id}`)).status).toBe(204)
+	})
+
+	it("answers 404 for an unknown role and 409 for a taken name", async () => {
+		const manager = await memberWith(["roles:manage"])
+		const existing = await createRole([])
+		const missing = crypto.randomUUID()
+
+		await expectCode(await call(manager.cookie, "PUT", `/roles/${missing}`, roleBody([])), 404, "role-not-found")
+		await expectCode(await call(manager.cookie, "DELETE", `/roles/${missing}`), 404, "role-not-found")
+		await expectCode(
+			await call(manager.cookie, "POST", "/roles", roleBody([], existing.name.toUpperCase())),
+			409,
+			"role-name-taken",
+		)
+	})
+
+	it("rejects admin, unknown and repeated permissions in a role", async () => {
+		const { cookie } = await createAdminSession()
+
+		for (const permissions of [["admin"], ["agents:fly"], ["agents:read", "agents:read"]]) {
+			// oxlint-disable-next-line no-await-in-loop -- asserts each body in order.
+			await expectCode(await call(cookie, "POST", "/roles", { name: "Bad", permissions }), 400, "invalid-request")
+		}
+	})
+
+	it("refuses role changes that involve permissions the manager lacks", async () => {
+		const manager = await memberWith(["roles:manage", "agents:read"])
+		const powerful = await createRole(["ai_provider:manage"])
+		const exceeds = "permission-exceeds-own"
+
+		await expectCode(await call(manager.cookie, "POST", "/roles", roleBody(["agents:manage"])), 403, exceeds)
+		await expectCode(
+			await call(manager.cookie, "PUT", `/roles/${powerful.id}`, roleBody([], powerful.name)),
+			403,
+			exceeds,
+		)
+		await expectCode(await call(manager.cookie, "DELETE", `/roles/${powerful.id}`), 403, exceeds)
+		expect(await service.listRoles()).toContainEqual(powerful)
+	})
+
+	it("assigns roles and answers 404 for an unknown user or role", async () => {
+		const manager = await memberWith(["roles:manage", "agents:manage"])
+		const member = await createMember()
+		const role = await createRole(["agents:read"])
+
+		const response = await call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds: [role.id] })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ roles: [{ id: role.id, name: role.name }] })
+		await expectCode(
+			await call(manager.cookie, "PUT", `/users/${crypto.randomUUID()}/roles`, { roleIds: [] }),
+			404,
+			"user-not-found",
+		)
+		await expectCode(
+			await call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds: [crypto.randomUUID()] }),
+			404,
+			"role-not-found",
+		)
+	})
+
+	it("refuses assigning or removing a role beyond the manager's permissions but leaves kept roles alone", async () => {
+		const manager = await memberWith(["roles:manage", "agents:read"])
+		const member = await createMember()
+		const [powerful, reader] = await Promise.all([createRole(["ai_provider:manage"]), createRole(["agents:read"])])
+		const assign = (roleIds: string[]) => call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds })
+
+		await expectCode(await assign([powerful.id]), 403, "permission-exceeds-own")
+
+		await service.assignRoles(member.id, [powerful.id])
+		await expectCode(await assign([]), 403, "permission-exceeds-own")
+		expect((await assign([powerful.id, reader.id])).status).toBe(200)
+	})
+})
+
+describe("user management routes", () => {
+	it("lists users with their roles and permissions for users:read", async () => {
+		const reader = await memberWith(["users:read"])
+		const member = await createMember()
+		const role = await createRole(["agents:manage"])
+		await service.assignRoles(member.id, [role.id])
+
+		const response = await call(reader.cookie, "GET", "/users")
+
+		expect(response.status).toBe(200)
+		const { users } = (await response.json()) as { users: service.UserWithAccess[] }
+		expect(users.find(({ id }) => id === member.id)).toEqual({
+			id: member.id,
+			username: member.username,
+			mustChangePassword: false,
+			roles: [{ id: role.id, name: role.name }],
+			permissions: ["agents:read", "agents:manage"],
+		})
+	})
+
+	it("lets users:manage invite but not users:read", async () => {
+		const manager = await memberWith(["users:manage"])
+		const reader = await memberWith(["users:read"])
+
+		expect((await call(manager.cookie, "POST", "/invitations")).status).toBe(201)
+		await expectCode(await call(reader.cookie, "POST", "/invitations"), 403, "permission-denied")
+	})
+
+	it("lets users:manage reset and delete a user whose permissions they hold", async () => {
+		const manager = await memberWith(["users:manage", "agents:read"])
+		const target = await memberWith(["agents:read"])
+
+		const reset = await call(manager.cookie, "PATCH", `/users/${target.userId}/password`, {
+			newPassword: "reset-by-manager-123",
+		})
+
+		expect(reset.status).toBe(204)
+		expect((await call(manager.cookie, "DELETE", `/users/${target.userId}`)).status).toBe(204)
+	})
+
+	it("refuses resetting or deleting the admin or a user with a grant the manager lacks", async () => {
+		const manager = await memberWith(["users:manage"])
+		const { userId: adminId } = await createAdminSession()
+		const granted = await memberWith(["ai_provider:manage"])
+
+		const reset = (userId: string) =>
+			call(manager.cookie, "PATCH", `/users/${userId}/password`, { newPassword: "takeover-password-123" })
+
+		await expectCode(await reset(adminId), 403, "permission-exceeds-own")
+		await expectCode(await reset(granted.userId), 403, "permission-exceeds-own")
+		await expectCode(await call(manager.cookie, "DELETE", `/users/${adminId}`), 403, "permission-exceeds-own")
+		await expectCode(await call(manager.cookie, "DELETE", `/users/${granted.userId}`), 403, "permission-exceeds-own")
+	})
+
+	it("answers 404 when resetting or deleting an unknown user", async () => {
+		const manager = await memberWith(["users:manage"])
+		const missing = crypto.randomUUID()
+
+		await expectCode(
+			await call(manager.cookie, "PATCH", `/users/${missing}/password`, { newPassword: "reset-unknown-123" }),
+			404,
+			"user-not-found",
+		)
+		await expectCode(await call(manager.cookie, "DELETE", `/users/${missing}`), 404, "user-not-found")
 	})
 })
 

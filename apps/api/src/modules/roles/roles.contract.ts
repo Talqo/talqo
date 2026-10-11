@@ -11,7 +11,18 @@ import {
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
-import { PERMISSIONS, Permission } from "./roles.service.ts"
+import {
+	GRANTABLE_PERMISSIONS,
+	PERMISSIONS,
+	Permission,
+	permissionsInRoleAssignment,
+	permissionsInRoleRequest,
+	permissionsInRoleUpdate,
+	permissionsOfRole,
+	permissionsOfUser,
+	ROLE_IDS_MAX,
+	ROLE_NAME_MAX_LENGTH,
+} from "./roles.service.ts"
 
 const usernameSchema = z
 	.string()
@@ -79,12 +90,59 @@ export const myPermissionsResponseSchema = z.object({
 	permissions: z.array(z.enum(PERMISSIONS)),
 })
 
+const roleSummarySchema = z.object({ id: z.string(), name: z.string() }).openapi("RoleSummary")
+
+const roleSchema = z
+	.object({
+		id: z.string(),
+		name: z.string(),
+		permissions: z.array(z.enum(GRANTABLE_PERMISSIONS)),
+		memberCount: z.number().int(),
+	})
+	.openapi("Role")
+
+function hasNoRepeats(values: string[]): boolean {
+	return new Set(values).size === values.length
+}
+
+const roleRequestSchema = z
+	.object({
+		name: z.string().trim().min(1).max(ROLE_NAME_MAX_LENGTH),
+		permissions: z
+			.array(z.enum(GRANTABLE_PERMISSIONS))
+			.refine(hasNoRepeats, { message: "Permissions must not repeat" }),
+	})
+	.strict()
+
+const assignRolesRequestSchema = z
+	.object({
+		roleIds: z
+			.array(z.string().min(1).max(CREDENTIAL_MAX_LENGTH))
+			.max(ROLE_IDS_MAX)
+			.refine(hasNoRepeats, { message: "Role ids must not repeat" }),
+	})
+	.strict()
+
+export const grantablePermissionsResponseSchema = z.object({
+	permissions: z.array(z.object({ permission: z.enum(GRANTABLE_PERMISSIONS), implies: z.array(z.enum(PERMISSIONS)) })),
+})
+
+export const roleListResponseSchema = z.object({ roles: z.array(roleSchema) })
+export const roleResponseSchema = z.object({ role: roleSchema })
+export const userRolesResponseSchema = z.object({ roles: z.array(roleSummarySchema) })
+
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const passwordRequired = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
 const adminRequired = problemResponse([PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
-const invitationForbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const permissionForbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
+const targetForbidden = problemResponse([
+	PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED,
+	PROBLEM_CODES.PERMISSION_DENIED,
+	PROBLEM_CODES.PERMISSION_EXCEEDS_OWN,
+])
 const userNotFound = problemResponse([PROBLEM_CODES.USER_NOT_FOUND])
+const roleNotFound = problemResponse([PROBLEM_CODES.ROLE_NOT_FOUND])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 
 export const myPermissionsRoute = createRoute({
@@ -109,7 +167,9 @@ const resetPasswordRequestSchema = z.object({
 })
 
 export const userListResponseSchema = z.object({
-	users: z.array(userResponseSchema),
+	users: z.array(
+		userResponseSchema.extend({ roles: z.array(roleSummarySchema), permissions: z.array(z.enum(PERMISSIONS)) }),
+	),
 })
 
 export const accessResponseSchema = z.object({
@@ -122,6 +182,10 @@ const permissionGrantParamsSchema = z.object({
 
 const userParamsSchema = z.object({
 	userId: z.string().openapi({ param: { name: "userId", in: "path" } }),
+})
+
+const roleParamsSchema = z.object({
+	roleId: z.string().openapi({ param: { name: "roleId", in: "path" } }),
 })
 
 export const getAccessRoute = createRoute({
@@ -179,14 +243,14 @@ export const createInvitationRoute = createRoute({
 	path: "/",
 	operationId: "createInvitation",
 	tags: ["Roles"],
-	...access.permission(Permission.Admin),
+	...access.permission(Permission.UsersManage),
 	responses: {
 		201: {
 			content: { "application/json": { schema: createInvitationResponseSchema } },
 			description: "Invitation created",
 		},
 		401: authRequired,
-		403: invitationForbidden,
+		403: permissionForbidden,
 		500: serverError,
 	},
 })
@@ -253,11 +317,14 @@ export const getUsersRoute = createRoute({
 	path: "/",
 	operationId: "listUsers",
 	tags: ["Roles"],
-	...access.permission(Permission.Admin),
+	...access.permission(Permission.UsersRead),
 	responses: {
-		200: { content: { "application/json": { schema: userListResponseSchema } }, description: "All users" },
+		200: {
+			content: { "application/json": { schema: userListResponseSchema } },
+			description: "All users with their roles and effective permissions",
+		},
 		401: authRequired,
-		403: adminRequired,
+		403: permissionForbidden,
 		500: serverError,
 	},
 })
@@ -267,13 +334,13 @@ export const deleteUserRoute = createRoute({
 	path: "/{userId}",
 	operationId: "deleteUser",
 	tags: ["Roles"],
-	...access.permission(Permission.Admin),
+	...access.permission(Permission.UsersManage, { target: { resolve: permissionsOfUser } }),
 	request: { params: userParamsSchema },
 	responses: {
 		204: noContentResponse,
 		400: problemResponse([PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED]),
 		401: authRequired,
-		403: adminRequired,
+		403: targetForbidden,
 		404: userNotFound,
 		500: serverError,
 	},
@@ -284,7 +351,7 @@ export const resetUserPasswordRoute = createRoute({
 	path: "/{userId}/password",
 	operationId: "resetUserPassword",
 	tags: ["Roles"],
-	...access.permission(Permission.Admin),
+	...access.permission(Permission.UsersManage, { target: { resolve: permissionsOfUser } }),
 	request: {
 		params: userParamsSchema,
 		body: { content: { "application/json": { schema: resetPasswordRequestSchema } }, required: true },
@@ -297,8 +364,124 @@ export const resetUserPasswordRoute = createRoute({
 			PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED,
 		]),
 		401: authRequired,
-		403: adminRequired,
+		403: targetForbidden,
 		404: userNotFound,
+		413: payloadTooLargeResponse,
+		500: serverError,
+	},
+})
+
+export const listGrantablePermissionsRoute = createRoute({
+	method: "get",
+	path: "/permissions",
+	operationId: "listGrantablePermissions",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	responses: {
+		200: {
+			content: { "application/json": { schema: grantablePermissionsResponseSchema } },
+			description: "Permissions a role may hold, with what each implies",
+		},
+		401: authRequired,
+		403: permissionForbidden,
+		500: serverError,
+	},
+})
+
+export const listRolesRoute = createRoute({
+	method: "get",
+	path: "/roles",
+	operationId: "listRoles",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	responses: {
+		200: { content: { "application/json": { schema: roleListResponseSchema } }, description: "All roles" },
+		401: authRequired,
+		403: permissionForbidden,
+		500: serverError,
+	},
+})
+
+export const createRoleRoute = createRoute({
+	method: "post",
+	path: "/roles",
+	operationId: "createRole",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage, {
+		target: { body: roleRequestSchema, resolve: permissionsInRoleRequest },
+	}),
+	request: {
+		body: { content: { "application/json": { schema: roleRequestSchema } }, required: true },
+	},
+	responses: {
+		201: { content: { "application/json": { schema: roleResponseSchema } }, description: "Role created" },
+		400: invalidRequest,
+		401: authRequired,
+		403: targetForbidden,
+		409: problemResponse([PROBLEM_CODES.ROLE_NAME_TAKEN]),
+		413: payloadTooLargeResponse,
+		500: serverError,
+	},
+})
+
+export const updateRoleRoute = createRoute({
+	method: "put",
+	path: "/roles/{roleId}",
+	operationId: "updateRole",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage, {
+		target: { body: roleRequestSchema, resolve: permissionsInRoleUpdate },
+	}),
+	request: {
+		params: roleParamsSchema,
+		body: { content: { "application/json": { schema: roleRequestSchema } }, required: true },
+	},
+	responses: {
+		200: { content: { "application/json": { schema: roleResponseSchema } }, description: "Role updated" },
+		400: invalidRequest,
+		401: authRequired,
+		403: targetForbidden,
+		404: roleNotFound,
+		409: problemResponse([PROBLEM_CODES.ROLE_NAME_TAKEN]),
+		413: payloadTooLargeResponse,
+		500: serverError,
+	},
+})
+
+export const deleteRoleRoute = createRoute({
+	method: "delete",
+	path: "/roles/{roleId}",
+	operationId: "deleteRole",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage, { target: { resolve: permissionsOfRole } }),
+	request: { params: roleParamsSchema },
+	responses: {
+		204: noContentResponse,
+		401: authRequired,
+		403: targetForbidden,
+		404: roleNotFound,
+		500: serverError,
+	},
+})
+
+export const assignUserRolesRoute = createRoute({
+	method: "put",
+	path: "/users/{userId}/roles",
+	operationId: "assignUserRoles",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage, {
+		target: { body: assignRolesRequestSchema, resolve: permissionsInRoleAssignment },
+	}),
+	request: {
+		params: userParamsSchema,
+		body: { content: { "application/json": { schema: assignRolesRequestSchema } }, required: true },
+	},
+	responses: {
+		200: { content: { "application/json": { schema: userRolesResponseSchema } }, description: "The user's roles" },
+		400: invalidRequest,
+		401: authRequired,
+		403: targetForbidden,
+		404: problemResponse([PROBLEM_CODES.ROLE_NOT_FOUND, PROBLEM_CODES.USER_NOT_FOUND]),
 		413: payloadTooLargeResponse,
 		500: serverError,
 	},

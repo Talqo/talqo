@@ -12,7 +12,7 @@ import * as repo from "./roles.repository.ts"
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 // Everything a role may hold; `admin` is held only through the admin grant.
-const GRANTABLE_PERMISSIONS = [
+export const GRANTABLE_PERMISSIONS = [
 	"users:read",
 	"users:manage",
 	"roles:manage",
@@ -181,11 +181,23 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 }
 
 export const ROLE_NAME_MAX_LENGTH = 64
-const ROLE_IDS_MAX = 100
+export const ROLE_IDS_MAX = 100
 
-export class InvalidRoleInputError extends Error {}
-export class RoleNotFoundError extends Error {}
-export class DuplicateRoleNameError extends Error {}
+export class InvalidRoleInputError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+export class RoleNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.ROLE_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class DuplicateRoleNameError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.ROLE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
 
 export type Role = { id: string; memberCount: number; name: string; permissions: GrantablePermission[] }
 export type RoleInput = { name: string; permissions: Permission[] }
@@ -284,6 +296,18 @@ export async function assignRoles(userId: string, roleIds: string[]): Promise<Ro
 	}
 	await repo.replaceUserRoles(userId, roleIds)
 	return repo.findRolesOfUser(userId)
+}
+
+export type UserWithAccess = PublicUser & { permissions: Permission[]; roles: RoleSummary[] }
+
+export async function listUsersWithAccess(): Promise<UserWithAccess[]> {
+	const users = await identity.listUsers()
+	return Promise.all(
+		users.map(async (user) => {
+			const [roles, permissions] = await Promise.all([repo.findRolesOfUser(user.id), listEffectivePermissions(user.id)])
+			return { id: user.id, username: user.username, mustChangePassword: user.mustChangePassword, roles, permissions }
+		}),
+	)
 }
 
 export function listGrantablePermissions(): { implies: Permission[]; permission: GrantablePermission }[] {

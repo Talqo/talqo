@@ -188,6 +188,14 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
 	}),
 	zod.object({
+		code: zod.enum(["role-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#role-name-taken"]),
+	}),
+	zod.object({
+		code: zod.enum(["role-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#role-not-found"]),
+	}),
+	zod.object({
 		code: zod.enum(["route-not-found"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
 	}),

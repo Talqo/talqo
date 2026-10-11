@@ -476,6 +476,8 @@
 		"provider-rate-limited": "Byl dosažen limit požadavků poskytovatele. Zkuste to později.",
 		"provider-unreachable": "Poskytovatele se nepodařilo kontaktovat.",
 		"request-failed": "Požadavek se nepodařilo dokončit.",
+		"role-name-taken": "Role s tímto názvem už existuje. Zvolte jiný název.",
+		"role-not-found": "Tato role už neexistuje. Obnovte stránku a zobrazte aktuální role.",
 		"route-not-found": "Požadovaná trasa API nebyla nalezena.",
 		"self-delete-not-allowed": "Vlastní účet nelze smazat ze seznamu uživatelů.",
 		"self-password-reset-not-allowed": "Vlastní heslo změňte v nastavení účtu.",

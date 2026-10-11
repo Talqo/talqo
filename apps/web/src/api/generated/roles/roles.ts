@@ -22,18 +22,26 @@ import type {
 import { useMutation, useQuery } from "@tanstack/react-query"
 
 import type { ProblemDetails } from "../models/problemDetails.zod"
+import type { AssignUserRoles200 } from "../models/roles/assignUserRoles200.zod"
+import type { AssignUserRolesBody } from "../models/roles/assignUserRolesBody.zod"
 import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
 import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
 import type { CreatePermissionGrant201 } from "../models/roles/createPermissionGrant201.zod"
 import type { CreatePermissionGrantBody } from "../models/roles/createPermissionGrantBody.zod"
+import type { CreateRole201 } from "../models/roles/createRole201.zod"
+import type { CreateRoleBody } from "../models/roles/createRoleBody.zod"
 import type { GetAccess200 } from "../models/roles/getAccess200.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
 import type { GetSetupStatus200 } from "../models/roles/getSetupStatus200.zod"
+import type { ListGrantablePermissions200 } from "../models/roles/listGrantablePermissions200.zod"
+import type { ListRoles200 } from "../models/roles/listRoles200.zod"
 import type { ListUsers200 } from "../models/roles/listUsers200.zod"
 import type { RedeemInvitation201 } from "../models/roles/redeemInvitation201.zod"
 import type { RedeemInvitationBody } from "../models/roles/redeemInvitationBody.zod"
 import type { ResetUserPasswordBody } from "../models/roles/resetUserPasswordBody.zod"
+import type { UpdateRole200 } from "../models/roles/updateRole200.zod"
+import type { UpdateRoleBody } from "../models/roles/updateRoleBody.zod"
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
 	const result = { queryKey } as T & { queryKey: K }
@@ -1278,6 +1286,829 @@ export function useListUsers<
 	return withQueryKey(query, queryOptions.queryKey)
 }
 
+export type listGrantablePermissionsResponse200 = {
+	data: ListGrantablePermissions200
+	status: 200
+}
+
+export type listGrantablePermissionsResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type listGrantablePermissionsResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type listGrantablePermissionsResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type listGrantablePermissionsResponseSuccess = listGrantablePermissionsResponse200 & {
+	headers: Headers
+}
+export type listGrantablePermissionsResponseError = (
+	| listGrantablePermissionsResponse401
+	| listGrantablePermissionsResponse403
+	| listGrantablePermissionsResponse500
+) & {
+	headers: Headers
+}
+
+export const getListGrantablePermissionsUrl = () => {
+	return `/api/permissions`
+}
+
+export const listGrantablePermissions = async (
+	options?: RequestInit,
+): Promise<listGrantablePermissionsResponseSuccess> => {
+	const res = await fetch(getListGrantablePermissionsUrl(), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: listGrantablePermissionsResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: listGrantablePermissionsResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: listGrantablePermissionsResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as listGrantablePermissionsResponseSuccess
+}
+
+export const getListGrantablePermissionsQueryKey = () => {
+	return [`/api/permissions`] as const
+}
+
+export const getListGrantablePermissionsQueryOptions = <
+	TData = Awaited<ReturnType<typeof listGrantablePermissions>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(options?: {
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>>
+	fetch?: RequestInit
+}) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getListGrantablePermissionsQueryKey()
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof listGrantablePermissions>>> = ({ signal }) =>
+		listGrantablePermissions({ signal, ...fetchOptions })
+
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof listGrantablePermissions>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListGrantablePermissionsQueryResult = NonNullable<Awaited<ReturnType<typeof listGrantablePermissions>>>
+export type ListGrantablePermissionsQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+export function useListGrantablePermissions<
+	TData = Awaited<ReturnType<typeof listGrantablePermissions>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listGrantablePermissions>>,
+					TError,
+					Awaited<ReturnType<typeof listGrantablePermissions>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGrantablePermissions<
+	TData = Awaited<ReturnType<typeof listGrantablePermissions>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listGrantablePermissions>>,
+					TError,
+					Awaited<ReturnType<typeof listGrantablePermissions>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGrantablePermissions<
+	TData = Awaited<ReturnType<typeof listGrantablePermissions>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListGrantablePermissions<
+	TData = Awaited<ReturnType<typeof listGrantablePermissions>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+	const queryOptions = getListGrantablePermissionsQueryOptions(options)
+
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
+export type listRolesResponse200 = {
+	data: ListRoles200
+	status: 200
+}
+
+export type listRolesResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type listRolesResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type listRolesResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type listRolesResponseSuccess = listRolesResponse200 & {
+	headers: Headers
+}
+export type listRolesResponseError = (listRolesResponse401 | listRolesResponse403 | listRolesResponse500) & {
+	headers: Headers
+}
+
+export const getListRolesUrl = () => {
+	return `/api/roles`
+}
+
+export const listRoles = async (options?: RequestInit): Promise<listRolesResponseSuccess> => {
+	const res = await fetch(getListRolesUrl(), {
+		credentials: "include",
+		...options,
+		method: "GET",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: listRolesResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: listRolesResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: listRolesResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as listRolesResponseSuccess
+}
+
+export const getListRolesQueryKey = () => {
+	return [`/api/roles`] as const
+}
+
+export const getListRolesQueryOptions = <
+	TData = Awaited<ReturnType<typeof listRoles>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(options?: {
+	query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>
+	fetch?: RequestInit
+}) => {
+	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
+
+	const queryKey = queryOptions?.queryKey ?? getListRolesQueryKey()
+
+	const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoles>>> = ({ signal }) =>
+		listRoles({ signal, ...fetchOptions })
+
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+		Awaited<ReturnType<typeof listRoles>>,
+		TError,
+		TData
+	> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListRolesQueryResult = NonNullable<Awaited<ReturnType<typeof listRoles>>>
+export type ListRolesQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+export function useListRoles<
+	TData = Awaited<ReturnType<typeof listRoles>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options: {
+		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>> &
+			Pick<
+				DefinedInitialDataOptions<Awaited<ReturnType<typeof listRoles>>, TError, Awaited<ReturnType<typeof listRoles>>>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRoles<
+	TData = Awaited<ReturnType<typeof listRoles>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>> &
+			Pick<
+				UndefinedInitialDataOptions<
+					Awaited<ReturnType<typeof listRoles>>,
+					TError,
+					Awaited<ReturnType<typeof listRoles>>
+				>,
+				"initialData"
+			>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRoles<
+	TData = Awaited<ReturnType<typeof listRoles>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListRoles<
+	TData = Awaited<ReturnType<typeof listRoles>>,
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+>(
+	options?: {
+		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+	const queryOptions = getListRolesQueryOptions(options)
+
+	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+		queryKey: DataTag<QueryKey, TData, TError>
+	}
+
+	return withQueryKey(query, queryOptions.queryKey)
+}
+
+export type createRoleResponse201 = {
+	data: CreateRole201
+	status: 201
+}
+
+export type createRoleResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
+export type createRoleResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type createRoleResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type createRoleResponse409 = {
+	data: ProblemDetails
+	status: 409
+}
+
+export type createRoleResponse413 = {
+	data: ProblemDetails
+	status: 413
+}
+
+export type createRoleResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type createRoleResponseSuccess = createRoleResponse201 & {
+	headers: Headers
+}
+export type createRoleResponseError = (
+	| createRoleResponse400
+	| createRoleResponse401
+	| createRoleResponse403
+	| createRoleResponse409
+	| createRoleResponse413
+	| createRoleResponse500
+) & {
+	headers: Headers
+}
+
+export const getCreateRoleUrl = () => {
+	return `/api/roles`
+}
+
+export const createRole = async (
+	createRoleBody: CreateRoleBody,
+	options?: RequestInit,
+): Promise<createRoleResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
+	}
+	const res = await fetch(getCreateRoleUrl(), {
+		credentials: "include",
+		...options,
+		method: "POST",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(createRoleBody),
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: createRoleResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: createRoleResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: createRoleResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as createRoleResponseSuccess
+}
+
+export const getCreateRoleMutationKey = () => ["createRole"] as const
+
+export const getCreateRoleMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createRole>>, TError, CreateRoleMutationVariables, TContext>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof createRole>>, TError, CreateRoleMutationVariables, TContext> => {
+	const mutationKey = getCreateRoleMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRole>>, CreateRoleMutationVariables> = (props) => {
+		const { data } = props ?? {}
+
+		return createRole(data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type CreateRoleMutationResult = NonNullable<Awaited<ReturnType<typeof createRole>>>
+export type CreateRoleMutationBody = CreateRoleBody
+export type CreateRoleMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type CreateRoleMutationVariables = { data: CreateRoleBody }
+
+export const useCreateRole = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof createRole>>, TError, CreateRoleMutationVariables, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof createRole>>, TError, CreateRoleMutationVariables, TContext> => {
+	return useMutation(getCreateRoleMutationOptions(options), queryClient)
+}
+export type updateRoleResponse200 = {
+	data: UpdateRole200
+	status: 200
+}
+
+export type updateRoleResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
+export type updateRoleResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type updateRoleResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type updateRoleResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type updateRoleResponse409 = {
+	data: ProblemDetails
+	status: 409
+}
+
+export type updateRoleResponse413 = {
+	data: ProblemDetails
+	status: 413
+}
+
+export type updateRoleResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type updateRoleResponseSuccess = updateRoleResponse200 & {
+	headers: Headers
+}
+export type updateRoleResponseError = (
+	| updateRoleResponse400
+	| updateRoleResponse401
+	| updateRoleResponse403
+	| updateRoleResponse404
+	| updateRoleResponse409
+	| updateRoleResponse413
+	| updateRoleResponse500
+) & {
+	headers: Headers
+}
+
+export const getUpdateRoleUrl = (roleId: string) => {
+	return `/api/roles/${roleId}`
+}
+
+export const updateRole = async (
+	roleId: string,
+	updateRoleBody: UpdateRoleBody,
+	options?: RequestInit,
+): Promise<updateRoleResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
+	}
+	const res = await fetch(getUpdateRoleUrl(roleId), {
+		credentials: "include",
+		...options,
+		method: "PUT",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(updateRoleBody),
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: updateRoleResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: updateRoleResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: updateRoleResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as updateRoleResponseSuccess
+}
+
+export const getUpdateRoleMutationKey = () => ["updateRole"] as const
+
+export const getUpdateRoleMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError, UpdateRoleMutationVariables, TContext>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError, UpdateRoleMutationVariables, TContext> => {
+	const mutationKey = getUpdateRoleMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRole>>, UpdateRoleMutationVariables> = (props) => {
+		const { roleId, data } = props ?? {}
+
+		return updateRole(roleId, data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type UpdateRoleMutationResult = NonNullable<Awaited<ReturnType<typeof updateRole>>>
+export type UpdateRoleMutationBody = UpdateRoleBody
+export type UpdateRoleMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type UpdateRoleMutationVariables = { roleId: string; data: UpdateRoleBody }
+
+export const useUpdateRole = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof updateRole>>, TError, UpdateRoleMutationVariables, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof updateRole>>, TError, UpdateRoleMutationVariables, TContext> => {
+	return useMutation(getUpdateRoleMutationOptions(options), queryClient)
+}
+export type deleteRoleResponse204 = {
+	data: void
+	status: 204
+}
+
+export type deleteRoleResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type deleteRoleResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type deleteRoleResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type deleteRoleResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type deleteRoleResponseSuccess = deleteRoleResponse204 & {
+	headers: Headers
+}
+export type deleteRoleResponseError = (
+	| deleteRoleResponse401
+	| deleteRoleResponse403
+	| deleteRoleResponse404
+	| deleteRoleResponse500
+) & {
+	headers: Headers
+}
+
+export const getDeleteRoleUrl = (roleId: string) => {
+	return `/api/roles/${roleId}`
+}
+
+export const deleteRole = async (roleId: string, options?: RequestInit): Promise<deleteRoleResponseSuccess> => {
+	const res = await fetch(getDeleteRoleUrl(roleId), {
+		credentials: "include",
+		...options,
+		method: "DELETE",
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: deleteRoleResponseError["data"]; status?: number } = new globalThis.Error()
+		const data: deleteRoleResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: deleteRoleResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as deleteRoleResponseSuccess
+}
+
+export const getDeleteRoleMutationKey = () => ["deleteRole"] as const
+
+export const getDeleteRoleMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError, DeleteRoleMutationVariables, TContext>
+	fetch?: RequestInit
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError, DeleteRoleMutationVariables, TContext> => {
+	const mutationKey = getDeleteRoleMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteRole>>, DeleteRoleMutationVariables> = (props) => {
+		const { roleId } = props ?? {}
+
+		return deleteRole(roleId, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type DeleteRoleMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRole>>>
+
+export type DeleteRoleMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type DeleteRoleMutationVariables = { roleId: string }
+
+export const useDeleteRole = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteRole>>, TError, DeleteRoleMutationVariables, TContext>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteRole>>, TError, DeleteRoleMutationVariables, TContext> => {
+	return useMutation(getDeleteRoleMutationOptions(options), queryClient)
+}
+export type assignUserRolesResponse200 = {
+	data: AssignUserRoles200
+	status: 200
+}
+
+export type assignUserRolesResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
+export type assignUserRolesResponse401 = {
+	data: ProblemDetails
+	status: 401
+}
+
+export type assignUserRolesResponse403 = {
+	data: ProblemDetails
+	status: 403
+}
+
+export type assignUserRolesResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type assignUserRolesResponse413 = {
+	data: ProblemDetails
+	status: 413
+}
+
+export type assignUserRolesResponse500 = {
+	data: ProblemDetails
+	status: 500
+}
+
+export type assignUserRolesResponseSuccess = assignUserRolesResponse200 & {
+	headers: Headers
+}
+export type assignUserRolesResponseError = (
+	| assignUserRolesResponse400
+	| assignUserRolesResponse401
+	| assignUserRolesResponse403
+	| assignUserRolesResponse404
+	| assignUserRolesResponse413
+	| assignUserRolesResponse500
+) & {
+	headers: Headers
+}
+
+export const getAssignUserRolesUrl = (userId: string) => {
+	return `/api/users/${userId}/roles`
+}
+
+export const assignUserRoles = async (
+	userId: string,
+	assignUserRolesBody: AssignUserRolesBody,
+	options?: RequestInit,
+): Promise<assignUserRolesResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
+	}
+	const res = await fetch(getAssignUserRolesUrl(userId), {
+		credentials: "include",
+		...options,
+		method: "PUT",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(assignUserRolesBody),
+	})
+
+	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+	if (!res.ok) {
+		const err: globalThis.Error & { info?: assignUserRolesResponseError["data"]; status?: number } =
+			new globalThis.Error()
+		const data: assignUserRolesResponseError["data"] = body ? JSON.parse(body) : {}
+		err.info = data
+		err.status = res.status
+		throw err
+	}
+	const data: assignUserRolesResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as assignUserRolesResponseSuccess
+}
+
+export const getAssignUserRolesMutationKey = () => ["assignUserRoles"] as const
+
+export const getAssignUserRolesMutationOptions = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(options?: {
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof assignUserRoles>>,
+		TError,
+		AssignUserRolesMutationVariables,
+		TContext
+	>
+	fetch?: RequestInit
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof assignUserRoles>>,
+	TError,
+	AssignUserRolesMutationVariables,
+	TContext
+> => {
+	const mutationKey = getAssignUserRolesMutationKey()
+	const { mutation: mutationOptions, fetch: fetchOptions } = options
+		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
+			? options
+			: { ...options, mutation: { ...options.mutation, mutationKey } }
+		: { mutation: { mutationKey }, fetch: undefined }
+
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignUserRoles>>, AssignUserRolesMutationVariables> = (
+		props,
+	) => {
+		const { userId, data } = props ?? {}
+
+		return assignUserRoles(userId, data, fetchOptions)
+	}
+
+	return { mutationFn, ...mutationOptions }
+}
+
+export type AssignUserRolesMutationResult = NonNullable<Awaited<ReturnType<typeof assignUserRoles>>>
+export type AssignUserRolesMutationBody = AssignUserRolesBody
+export type AssignUserRolesMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type AssignUserRolesMutationVariables = { userId: string; data: AssignUserRolesBody }
+
+export const useAssignUserRoles = <
+	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+	TContext = unknown,
+>(
+	options?: {
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof assignUserRoles>>,
+			TError,
+			AssignUserRolesMutationVariables,
+			TContext
+		>
+		fetch?: RequestInit
+	},
+	queryClient?: QueryClient,
+): UseMutationResult<
+	Awaited<ReturnType<typeof assignUserRoles>>,
+	TError,
+	AssignUserRolesMutationVariables,
+	TContext
+> => {
+	return useMutation(getAssignUserRolesMutationOptions(options), queryClient)
+}
 export type resetUserPasswordResponse204 = {
 	data: void
 	status: 204

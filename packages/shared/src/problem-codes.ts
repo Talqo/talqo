@@ -44,6 +44,8 @@ export const PROBLEM_CODES = {
 	PROVIDER_RATE_LIMITED: "provider-rate-limited",
 	PROVIDER_UNREACHABLE: "provider-unreachable",
 	REQUEST_FAILED: "request-failed",
+	ROLE_NAME_TAKEN: "role-name-taken",
+	ROLE_NOT_FOUND: "role-not-found",
 	ROUTE_NOT_FOUND: "route-not-found",
 	SELF_DELETE_NOT_ALLOWED: "self-delete-not-allowed",
 	SELF_PASSWORD_RESET_NOT_ALLOWED: "self-password-reset-not-allowed",

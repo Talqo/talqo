@@ -474,6 +474,8 @@
 		"provider-rate-limited": "已达到提供商速率限制，请稍后重试。",
 		"provider-unreachable": "无法连接到提供商。",
 		"request-failed": "无法完成请求。",
+		"role-name-taken": "已存在同名角色。请换一个名称。",
+		"role-not-found": "此角色已不存在。请刷新页面查看当前角色。",
 		"route-not-found": "未找到请求的 API 路由。",
 		"self-delete-not-allowed": "无法在用户列表中删除自己的账户。",
 		"self-password-reset-not-allowed": "请在账户设置中修改自己的密码。",
