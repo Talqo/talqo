@@ -1,10 +1,17 @@
-import { describe, expect, spyOn, test } from "bun:test"
+import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { type AtRule, parse } from "postcss"
+
+import { isScopedSelector } from "./lib/css-scope"
 
 await import("./test-setup")
 
 describe("built embed bundle", () => {
+	beforeEach(() => {
+		;(window as { TalqoWidget?: { unmount: () => void } }).TalqoWidget?.unmount()
+		document.querySelector("#talqo-widget")?.remove()
+		document.querySelectorAll("style").forEach((style) => style.remove())
+	})
 	test("boots without a process global and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
@@ -39,26 +46,32 @@ describe("built embed bundle", () => {
 
 		new Function(code)()
 
-		const injected = [...document.querySelectorAll("style")].map((style) => style.textContent ?? "").join("")
+		const styles = document.querySelectorAll("style")
+		expect(styles).toHaveLength(1)
+		const injected = styles[0]?.textContent ?? ""
 		expect(injected).toContain(".talqo-widget")
 
-		// Cascade layers resolve before specificity, so anything we leave layered can lose
-		// to a host page's own layers; every rule we ship must stand outside them.
+		// Anything layered can lose to a host page's own layers.
 		expect(injected).not.toContain("@layer")
 
 		parse(injected).walkRules((rule) => {
 			if (rule.parent?.type === "atrule" && (rule.parent as AtRule).name === "keyframes") return
 			for (const selector of rule.selectors) {
-				expect(selector).toMatch(/\.talqo-widget|\.tw\\:/)
+				expect(isScopedSelector(selector)).toBe(true)
 			}
 		})
+
+		const globalAtRules: string[] = []
+		parse(injected).walkAtRules((atRule) => {
+			if (atRule.name === "font-face" || atRule.name === "property") {
+				globalAtRules.push(`@${atRule.name} ${atRule.params}`)
+			}
+		})
+		expect(globalAtRules).toEqual([])
 	})
 
 	test("defers its mount until the document is parsed", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
-		const globalScope = window as { TalqoWidget?: { unmount: () => void } }
-		globalScope.TalqoWidget?.unmount()
-		document.querySelector("#talqo-widget")?.remove()
 
 		const hadOwnReadyState = Object.hasOwn(document, "readyState")
 		const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")

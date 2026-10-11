@@ -5,7 +5,8 @@ import { defineConfig, type Plugin } from "vite"
 import cssInjectedByJs from "vite-plugin-css-injected-by-js"
 import svgr from "vite-plugin-svgr"
 
-const SCOPE = ".talqo-widget"
+import { isScopedSelector, WIDGET_SCOPE } from "./src/lib/css-scope"
+
 const DEFAULT_WIDGET_PORT = 5174
 const MAX_LEAKED_SELECTORS = 5
 
@@ -34,17 +35,17 @@ function scopeWidgetCss(css: string): string {
 			switch (selector) {
 				case ":root":
 				case ":host":
-					return SCOPE
+					return WIDGET_SCOPE
 				case "*":
-					return `${SCOPE} *`
+					return `${WIDGET_SCOPE} *`
 				case "::before":
 				case ":before":
-					return `${SCOPE} *::before`
+					return `${WIDGET_SCOPE} *::before`
 				case "::after":
 				case ":after":
-					return `${SCOPE} *::after`
+					return `${WIDGET_SCOPE} *::after`
 				case "::backdrop":
-					return `${SCOPE} ::backdrop`
+					return `${WIDGET_SCOPE} ::backdrop`
 				default:
 					return selector
 			}
@@ -69,9 +70,7 @@ function assertNoGlobalRules(root: Root): void {
 			return
 		}
 		for (const selector of rule.selectors) {
-			const scoped =
-				selector.startsWith(SCOPE) || selector.startsWith(`:where(${SCOPE})`) || selector.includes(".tw\\:")
-			if (!scoped) {
+			if (!isScopedSelector(selector)) {
 				leaked.push(selector)
 			}
 		}
