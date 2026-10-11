@@ -427,7 +427,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
-		expect(host.textContent).toContain("can't reply right now")
+		expect(host.querySelector("[role='alert']")?.textContent).toContain("can't reply right now")
 		expect(host.textContent).not.toContain("How can I help")
 		expect(input().disabled).toBe(true)
 	})

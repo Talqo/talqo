@@ -1,4 +1,5 @@
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { BarChart3, Bot, User } from "lucide-react"
@@ -32,6 +33,8 @@ function DashboardIndexPage() {
 				<h1 className="text-foreground text-3xl font-bold">{t("dashboard.heading")}</h1>
 				<p className="text-muted-foreground mt-2">{t("dashboard.subheading")}</p>
 			</div>
+
+			<ProviderNoticeBanner />
 
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				{visibleCards.map((card) => {
