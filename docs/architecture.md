@@ -27,6 +27,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
+| pino | Request wide events on stdout | [ADR-0019](adr/0019-emit-wide-events-with-pino.md) |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
 | TanStack Router | Routing and URL state | None |
@@ -136,6 +137,23 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Module seeds contribute deterministic records to the centralized, non-destructive development seed. Development and E2E share the same production-plausible baseline; optional external-provider values come from an all-or-none seed environment tuple.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
+
+### Observability
+
+- `src/http/wide-event.ts` writes one JSON `http.request` event per API request to stdout. The `WideEvent` type is the field schema.
+- `/health` and static files are not logged.
+- Code adds fields with `annotate(c, ...)`. Streaming routes call `deferWideEvent(c, work)` so the event covers the whole stream.
+- Field names follow OpenTelemetry semantic conventions as flat dotted keys, such as `http.response.status_code`.
+- Never log query strings, raw paths, headers, cookies, bodies, error messages, usernames, IP addresses, or the chat bearer credential. The chat bearer credential is the conversation ID.
+- Writes are async and capped. When the buffer is full, lines are dropped and `log.dropped` on the next line reports how many.
+
+Before adding a field:
+
+1. Is it useful for debugging or analysis? If not, skip it.
+2. Is it free of secrets and PII, or explicitly approved?
+3. Does the name follow the convention and avoid clashing with existing fields?
+4. Is its type stable, never a string in one place and a number in another?
+5. Is it declared in `WideEvent`?
 
 ## Shared Code Decisions
 

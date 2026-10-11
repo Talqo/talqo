@@ -1,3 +1,4 @@
+import { createWideEvents, type WideEvent } from "@/http/wide-event.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
@@ -44,6 +45,8 @@ function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-ac
 					},
 				})
 			} else {
+				emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
+				emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "completed" })
 				emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
 				emit({ version: 1, type: "terminal", outcome: "completed" })
 			}
@@ -54,18 +57,26 @@ function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-ac
 				generationId: "generation",
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
+				agentId: "agent",
 				duplicate: false,
+				embedId: "embed-id",
 				done: Promise.resolve(),
 			}
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
 	}
-	const app = new OpenAPIHono().route(
-		"/chat",
-		createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
-	)
-	return { app, calls }
+	const logged: WideEvent[] = []
+	const app = new OpenAPIHono()
+		.use(
+			"*",
+			createWideEvents((event) => logged.push(event)),
+		)
+		.route(
+			"/chat",
+			createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
+		)
+	return { app, calls, logged }
 }
 
 describe("public conversation routes", () => {
@@ -81,8 +92,39 @@ describe("public conversation routes", () => {
 		expect(response.headers.get("content-type")).toContain("text/event-stream")
 		const body = await response.text()
 		expect(body).toContain("event: chat")
-		expect(parseEvents(body).map((event) => event.type)).toEqual(["accepted", "delta", "terminal"])
+		expect(parseEvents(body).map((event) => event.type)).toEqual([
+			"accepted",
+			"tool-start",
+			"tool-end",
+			"delta",
+			"terminal",
+		])
 		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, networkHash: expect.any(String), embedToken: "embed" })
+	})
+
+	it("logs one wide event describing the generation without the chat credential", async () => {
+		const { app, logged } = routes()
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+		await response.text()
+
+		expect(logged).toEqual([
+			expect.objectContaining({
+				"http.route": "/chat/:embedToken/messages",
+				"http.response.status_code": 200,
+				"agent.id": "agent",
+				"embed.id": "embed-id",
+				"generation.id": "generation",
+				"chat.outcome": "completed",
+				"chat.duplicate": false,
+				"chat.tool_calls": 1,
+			}),
+		])
+		expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
+		expect(JSON.stringify(logged)).not.toContain('"hi"')
 	})
 
 	it("requires a bearer credential for sends, history, and cancellation", async () => {
@@ -119,7 +161,9 @@ describe("public conversation routes", () => {
 						generationId: "generation",
 						userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 						assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
+						agentId: "agent",
 						duplicate: false,
+						embedId: "embed-id",
 						done: Promise.resolve(),
 					}),
 					getSession: async () => ({ messages: [], activeGeneration: undefined }),

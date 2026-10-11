@@ -4,6 +4,7 @@ import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, deferWideEvent } from "@/http/wide-event.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
@@ -100,7 +101,11 @@ export function createConversationRoutes(
 		}
 		const pending: Uint8Array[] = []
 		let controller: ReadableStreamDefaultController<Uint8Array> | undefined
+		let toolCalls = 0
 		const emit = (event: ChatEvent) => {
+			if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
+			else if (event.type === "terminal" || event.type === "error") annotate(c, { "chat.outcome": event.outcome })
+			else if (event.type === "tool-start") annotate(c, { "chat.tool_calls": (toolCalls += 1) })
 			const bytes = sse(event)
 			if (controller) {
 				try {
@@ -123,6 +128,8 @@ export function createConversationRoutes(
 				},
 				emit,
 			)
+			annotate(c, { "agent.id": result.agentId, "chat.duplicate": result.duplicate, "embed.id": result.embedId })
+			deferWideEvent(c, result.done)
 			const stream = new ReadableStream<Uint8Array>({
 				start(value) {
 					controller = value
