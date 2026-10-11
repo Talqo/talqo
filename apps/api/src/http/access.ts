@@ -5,6 +5,7 @@ import { chatBearerSecurity, sessionSecurity } from "@/http/openapi.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { getCookie } from "hono/cookie"
@@ -24,7 +25,12 @@ export function isAccessPolicy(handler: unknown): boolean {
 	return typeof handler === "function" && policies.has(handler as MiddlewareHandler)
 }
 
-const allowPublic = policy(createMiddleware<BlankEnv>(async (_c, next) => next()))
+const allowPublic = policy(
+	createMiddleware<BlankEnv>(async (c, next) => {
+		annotate(c, { "auth.kind": "public" })
+		return next()
+	}),
+)
 
 type SessionOptions = {
 	allowPendingPasswordChange?: boolean
@@ -34,11 +40,13 @@ type SessionOptions = {
 function requireSession(options: SessionOptions) {
 	return policy(
 		createMiddleware<{ Variables: { user: PublicUser } }>(async (c, next) => {
+			annotate(c, { "auth.kind": "session" })
 			const token = getCookie(c, identity.SESSION_COOKIE)
 			const session = token ? await identity.getSession(token) : null
 			if (!session) {
 				return problemResponse(c, PROBLEM_CODES.AUTHENTICATION_REQUIRED, HTTP_STATUS.UNAUTHORIZED)
 			}
+			annotate(c, { "user.id": session.user.id })
 
 			// Enforced here too: a direct API call bypasses the SPA's redirect.
 			if (session.user.mustChangePassword && !options.allowPendingPasswordChange) {
@@ -70,6 +78,7 @@ function permissionAccess(permission: roles.Permission): SessionAccess {
 // Only extracts the credential; the conversation service decides whether it is valid.
 const requireChatBearer = policy(
 	createMiddleware<{ Variables: { chatCredential: string } }>(async (c, next) => {
+		annotate(c, { "auth.kind": "chat_bearer" })
 		const credential = /^Bearer ([^\s]+)$/.exec(c.req.header("authorization") ?? "")?.[1]
 		if (!credential) {
 			return problemResponse(c, PROBLEM_CODES.CHAT_SESSION_UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
