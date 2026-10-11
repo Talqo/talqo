@@ -6,7 +6,6 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite dev --port 3002",
-		"preview": "vite preview",
 		"start": "bun src/serve.ts",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit"

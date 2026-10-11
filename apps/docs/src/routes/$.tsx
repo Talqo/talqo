@@ -11,6 +11,7 @@ const MAX_SLUGS = 32
 const MAX_SLUG_CHARACTERS = 256
 
 // Slugs arrive from the URL splat, so constrain shape and size before lookup.
+// Rejections are missing addresses, not server failures.
 function validSlugs(slugs: unknown): string[] {
 	if (
 		!Array.isArray(slugs) ||
@@ -19,7 +20,7 @@ function validSlugs(slugs: unknown): string[] {
 			(slug): slug is string => typeof slug === "string" && slug.length > 0 && slug.length <= MAX_SLUG_CHARACTERS,
 		)
 	) {
-		throw new Error("invalid doc slugs")
+		throw notFound()
 	}
 	return slugs
 }
