@@ -25,7 +25,6 @@ const schemeSchema = z.object({
 
 export const embedFormSchema = z.object({
 	name: z.string().trim().min(1),
-	agentId: z.string().min(1),
 	light: schemeSchema,
 	dark: schemeSchema,
 	position: z.enum(WIDGET_POSITIONS),
@@ -37,7 +36,7 @@ export const embedFormSchema = z.object({
 export type EmbedFormValues = z.infer<typeof embedFormSchema>
 type WidgetSchemeFormValues = z.infer<typeof schemeSchema>
 
-export const EMBED_FORM_DEFAULTS: Omit<EmbedFormValues, "agentId" | "name"> = {
+export const EMBED_FORM_DEFAULTS: Omit<EmbedFormValues, "name"> = {
 	light: DEFAULT_WIDGET_APPEARANCE.light,
 	dark: DEFAULT_WIDGET_APPEARANCE.dark,
 	position: DEFAULT_WIDGET_APPEARANCE.position,
@@ -68,11 +67,10 @@ function toSchemeFormValues(scheme: WidgetScheme): WidgetSchemeFormValues {
 	}
 }
 
-export function toFormValues(embed: Pick<Embed, "agentId" | "appearance" | "name">): EmbedFormValues {
+export function toFormValues(embed: Pick<Embed, "appearance" | "name">): EmbedFormValues {
 	const { language, light, dark } = embed.appearance
 	return {
 		name: embed.name,
-		agentId: embed.agentId,
 		light: toSchemeFormValues(light),
 		dark: toSchemeFormValues(dark),
 		position: embed.appearance.position,

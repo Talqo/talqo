@@ -40,6 +40,6 @@ Address normalization, trusted proxies, and IPv6 grouping trade-offs are documen
 
 Rotating an embed token has no overlap period. Update installed snippets immediately. Rotation increments `accessVersion`, so the old token cannot fetch configuration or start chat and sessions created under the old version lose access. Reassigning or deleting an embed also revokes its sessions. These operations retain conversations and usage and cannot undo provider work already dispatched.
 
-Talqo otherwise retains chat history and usage without automatic expiry. Deleting an agent permanently deletes its conversations, sessions, attempts, messages, network counters, and usage. Attached embeds must be deleted or reassigned before the agent can be deleted.
+Talqo otherwise retains chat history and usage without automatic expiry. Deleting an agent permanently deletes its conversations, sessions, attempts, messages, network counters, and usage. Attached embeds must be deleted before the agent can be deleted.
 
 Usage stores unified numeric input and output token counts for each actual model-call attempt. Talqo uses valid provider counts when available and approximates a missing side from the complete input or observed output. Counts include the system prompt and resent completed history on every call, can undercount unobserved cancelled output or hidden reasoning, and are not invoice reconciliation.

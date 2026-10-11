@@ -54,7 +54,7 @@ export const PROBLEMS = [
 		title: "Agent in use",
 		status: "409",
 		meaning: "One or more embeds still use the requested agent.",
-		guidance: "Delete or reassign those embeds before deleting the agent.",
+		guidance: "Delete those embeds before deleting the agent.",
 	},
 	{
 		code: "agent-name-taken",

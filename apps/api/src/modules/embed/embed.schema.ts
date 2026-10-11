@@ -35,7 +35,7 @@ export const embed = pgTable(
 		darkTextColor: text("dark_text_color").notNull(),
 		position: embedPositionEnum("position").notNull().default("bottom-right"),
 		theme: embedThemeEnum("theme").notNull().default("system"),
-		themeToggleEnabled: boolean("theme_toggle_enabled").notNull().default(true),
+		themeToggleEnabled: boolean("theme_toggle_enabled").notNull().default(false),
 		// text, not an enum: `@talqo/shared` owns the set, and an enum costs a migration per language.
 		language: text("language").notNull().default("en"),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),

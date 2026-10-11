@@ -130,7 +130,7 @@ export async function deleteAgent(id: string): Promise<void> {
 			throw new AgentNotFoundError(`deleteAgent: agent ${id} not found`)
 		}
 	} catch (error) {
-		// `embed.agent_id` is ON DELETE RESTRICT: attached embeds must be reassigned first.
+		// `embed.agent_id` is ON DELETE RESTRICT: attached embeds must be deleted first.
 		if (isRestrictViolation(error)) {
 			throw new AgentInUseError("Agent still serves one or more embeds")
 		}

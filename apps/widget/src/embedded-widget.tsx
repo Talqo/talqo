@@ -19,6 +19,7 @@ import {
 	memo,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -35,6 +36,7 @@ import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { Markdown } from "./components/ui/markdown"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 import { useResizablePanel } from "./lib/use-resizable-panel"
@@ -70,7 +72,13 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 					variant={message.role === "user" ? "default" : "muted"}
 					className={cn(message.role === "assistant" && "tw:text-foreground")}
 				>
-					{awaitingText ? <ResponseIndicator label={t("agentResponding")} /> : message.text}
+					{awaitingText ? (
+						<ResponseIndicator label={t("agentResponding")} />
+					) : message.role === "assistant" ? (
+						<Markdown>{message.text}</Markdown>
+					) : (
+						message.text
+					)}
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
@@ -154,6 +162,9 @@ type ChatPresentation = {
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
 const EMPTY_TOOLS: readonly ActiveTool[] = []
 
+/** Distance from the bottom that still counts as "at the bottom" for autoscroll. */
+const STICKY_SCROLL_THRESHOLD_PX = 48
+
 function WidgetChat({
 	title,
 	appearance,
@@ -179,6 +190,8 @@ function WidgetChat({
 	const draftRef = useRef("")
 	const pendingSend = useRef<{ originalDraft: string; text: string; messageIds: Set<string> } | undefined>(undefined)
 	const wasOpen = useRef(false)
+	const scrollRef = useRef<HTMLDivElement>(null)
+	const stickToBottomRef = useRef(true)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
@@ -231,6 +244,35 @@ function WidgetChat({
 		wasOpen.current = open
 	}, [open])
 
+	const scrollToBottom = useCallback(() => {
+		const element = scrollRef.current
+		if (element) {
+			element.scrollTop = element.scrollHeight
+		}
+	}, [])
+
+	function handleTranscriptScroll() {
+		const element = scrollRef.current
+		if (!element) return
+		stickToBottomRef.current =
+			element.scrollHeight - element.scrollTop - element.clientHeight <= STICKY_SCROLL_THRESHOLD_PX
+	}
+
+	// Reopening starts pinned to the latest message.
+	useLayoutEffect(() => {
+		if (open) {
+			stickToBottomRef.current = true
+			scrollToBottom()
+		}
+	}, [open, scrollToBottom])
+
+	// No deps: re-pins after every commit while the visitor is at the bottom.
+	useLayoutEffect(() => {
+		if (open && stickToBottomRef.current) {
+			scrollToBottom()
+		}
+	})
+
 	// Precedence: visitor, then operator, then host.
 	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
@@ -245,6 +287,7 @@ function WidgetChat({
 			return
 		}
 		pendingSend.current = { originalDraft: draft, text, messageIds: new Set(messages.map(({ id }) => id)) }
+		stickToBottomRef.current = true
 		setSubmitting(true)
 		try {
 			await client.sendMessage(text)
@@ -257,6 +300,7 @@ function WidgetChat({
 
 	async function handleNewChat() {
 		if (!canStartNewChat) return
+		stickToBottomRef.current = true
 		try {
 			await client.startNewChat()
 			inputRef.current?.focus()
@@ -274,6 +318,7 @@ function WidgetChat({
 	}
 
 	async function handleRetry() {
+		stickToBottomRef.current = true
 		try {
 			await client?.retryLastMessage()
 		} catch {
@@ -381,7 +426,11 @@ function WidgetChat({
 							</button>
 						</div>
 					</header>
-					<div className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4">
+					<div
+						ref={scrollRef}
+						onScroll={handleTranscriptScroll}
+						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
+					>
 						<BubbleGroup>
 							{messages.length === 0 && initialization === "ready" && !unusable && (
 								<Bubble align="start">

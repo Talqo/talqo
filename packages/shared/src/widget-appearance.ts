@@ -56,7 +56,7 @@ export const DEFAULT_WIDGET_APPEARANCE: WidgetAppearance = {
 	dark: DEFAULT_DARK_SCHEME,
 	position: "bottom-right",
 	theme: "system",
-	themeToggle: true,
+	themeToggle: false,
 	language: "en",
 }
 

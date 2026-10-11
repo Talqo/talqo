@@ -17,7 +17,7 @@ CREATE TABLE "widget" (
 	"dark_text_color" text NOT NULL,
 	"position" "widget_position" DEFAULT 'bottom-right' NOT NULL,
 	"theme" "widget_theme" DEFAULT 'system' NOT NULL,
-	"theme_toggle_enabled" boolean DEFAULT true NOT NULL,
+	"theme_toggle_enabled" boolean DEFAULT false NOT NULL,
 	"language" text DEFAULT 'en' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,

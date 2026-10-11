@@ -129,6 +129,24 @@ async function submit() {
 	)
 }
 
+function transcript(): HTMLElement {
+	const element = host.querySelector<HTMLElement>(".talqo-scrollbar")
+	if (!element) throw new Error("transcript scroll area not rendered")
+	return element
+}
+
+function mockScrollMetrics(element: HTMLElement, metrics: { scrollHeight: number; clientHeight: number }) {
+	Object.defineProperty(element, "scrollHeight", { configurable: true, get: () => metrics.scrollHeight })
+	Object.defineProperty(element, "clientHeight", { configurable: true, get: () => metrics.clientHeight })
+}
+
+async function scrollTo(top: number) {
+	await act(async () => {
+		transcript().scrollTop = top
+		transcript().dispatchEvent(new Event("scroll", { bubbles: true }))
+	})
+}
+
 beforeEach(() => {
 	host = document.createElement("div")
 	document.body.append(host)
@@ -508,6 +526,152 @@ describe("ConnectedEmbeddedWidget", () => {
 			}),
 		)
 		expect(host.querySelector("time")?.dateTime).toBe("2026-09-13T00:00:00Z")
+	})
+
+	describe("assistant markdown", () => {
+		test("renders assistant markdown to elements: strong, list, and code block", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [
+					message("a1", "assistant", "Here is **bold** text.\n\n- one\n- two\n\n```js\nconst x = 1\n```", "completed"),
+				],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-slot='bubble-content']")
+			expect(bubble?.querySelector("strong")?.textContent).toBe("bold")
+			expect(bubble?.querySelectorAll("li")).toHaveLength(2)
+			expect(bubble?.querySelector("pre code")?.textContent).toContain("const x = 1")
+		})
+
+		test("keeps user message text literal without interpreting markdown", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "**not bold** and `not code`", "completed")],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-align='end'] [data-slot='bubble-content']")
+			expect(bubble?.textContent).toBe("**not bold** and `not code`")
+			expect(bubble?.querySelector("strong")).toBeNull()
+			expect(bubble?.querySelector("code")).toBeNull()
+		})
+
+		test("opens markdown links in a new tab with safe rel", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [message("a1", "assistant", "See [docs](https://example.com/docs).", "completed")],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const link = host.querySelector<HTMLAnchorElement>("[data-slot='bubble-content'] a")
+			expect(link?.getAttribute("href")).toBe("https://example.com/docs")
+			expect(link?.target).toBe("_blank")
+			expect(link?.rel).toContain("noopener")
+			expect(link?.rel).toContain("noreferrer")
+		})
+
+		test("never renders raw HTML in assistant text as live elements", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [
+					message(
+						"a1",
+						"assistant",
+						'Before <img src=x onerror="alert(1)"> middle <script>alert(2)</script> after',
+						"completed",
+					),
+				],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-slot='bubble-content']")
+			expect(bubble?.querySelector("img")).toBeNull()
+			expect(bubble?.querySelector("script")).toBeNull()
+			expect(bubble?.textContent).toContain("Before")
+			expect(bubble?.textContent).toContain("after")
+		})
+	})
+})
+
+describe("transcript autoscroll", () => {
+	test("follows streamed text growth while pinned", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			generation: "streaming",
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(700)
+
+		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [
+					message("u1", "user", "Hello", "completed"),
+					message("a1", "assistant", "Part one and part two", "streaming"),
+				],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1200)
+	})
+
+	test("leaves a scrolled-up visitor alone while the response streams", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			generation: "streaming",
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(0)
+
+		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				generation: "streaming",
+				messages: [
+					message("u1", "user", "Hello", "completed"),
+					message("a1", "assistant", "Part one and part two", "streaming"),
+				],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(0)
+	})
+
+	test("sending re-pins a scrolled-up visitor so the new message is visible", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "First", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(0)
+
+		await draft("second")
+		await submit()
+		mockScrollMetrics(transcript(), { scrollHeight: 1400, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "First", "completed"), message("u2", "user", "second", "completed")],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1400)
 	})
 })
 

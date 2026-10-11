@@ -18,7 +18,9 @@
 		"i18next": "^26.4.2",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
-		"react-i18next": "^17.0.15"
+		"react-i18next": "^17.0.15",
+		"react-markdown": "^10.1.0",
+		"remark-gfm": "^4.0.1"
 	},
 	"devDependencies": {
 		"@happy-dom/global-registrator": "^20.14.5",
