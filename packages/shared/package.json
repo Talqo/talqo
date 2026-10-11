@@ -8,6 +8,7 @@
 		"./credentials": "./src/credentials.ts",
 		"./languages": "./src/languages.ts",
 		"./preview-channel": "./src/preview-channel.ts",
+		"./problem-codes": "./src/problem-codes.ts",
 		"./widget-appearance": "./src/widget-appearance.ts"
 	},
 	"scripts": {
