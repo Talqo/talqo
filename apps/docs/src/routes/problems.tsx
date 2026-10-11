@@ -16,7 +16,7 @@ function ProblemsPage() {
 			<h1 className="text-3xl font-semibold">API problem types</h1>
 			<p className="text-fd-muted-foreground mt-3">
 				Talqo API errors use RFC 9457 problem details. The type URI is the primary identifier; the code is a stable
-				localization key.
+				localization key. Append a code below to https://docs.talqo.chat/problems# to get its type URI.
 			</p>
 			<div className="mt-10 space-y-10">
 				{PROBLEMS.map((problem) => (
