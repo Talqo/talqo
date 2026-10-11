@@ -1,6 +1,6 @@
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const invitation = pgTable(
 	"invitation",
@@ -40,4 +40,39 @@ export const permissionGrant = pgTable(
 			.on(table.permission)
 			.where(sql`${table.permission} = 'admin' AND ${table.agentId} IS NULL`),
 	],
+)
+
+export const role = pgTable(
+	"role",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+	},
+	(table) => [uniqueIndex("role_name_unique_idx").on(sql`lower(${table.name})`)],
+)
+
+export const rolePermission = pgTable(
+	"role_permission",
+	{
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+		// Free text like grants; the API validates against the permission catalog.
+		permission: text("permission").notNull(),
+	},
+	(table) => [primaryKey({ columns: [table.roleId, table.permission] })],
+)
+
+export const userRole = pgTable(
+	"user_role",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+	},
+	(table) => [primaryKey({ columns: [table.userId, table.roleId] }), index("user_role_role_id_idx").on(table.roleId)],
 )

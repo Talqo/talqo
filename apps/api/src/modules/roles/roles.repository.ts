@@ -1,7 +1,7 @@
 import { db } from "@/db/client.ts"
 import { and, eq, gt, isNull } from "drizzle-orm"
 
-import { invitation, permissionGrant } from "./roles.schema.ts"
+import { invitation, permissionGrant, rolePermission, userRole } from "./roles.schema.ts"
 
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert
@@ -51,4 +51,12 @@ export async function deletePermissionGrant(id: string): Promise<void> {
 
 export async function findGrantsForUser(userId: string): Promise<PermissionGrant[]> {
 	return db.select().from(permissionGrant).where(eq(permissionGrant.userId, userId))
+}
+
+export async function findRolePermissionsForUser(userId: string): Promise<{ permission: string }[]> {
+	return db
+		.selectDistinct({ permission: rolePermission.permission })
+		.from(userRole)
+		.innerJoin(rolePermission, eq(rolePermission.roleId, userRole.roleId))
+		.where(eq(userRole.userId, userId))
 }

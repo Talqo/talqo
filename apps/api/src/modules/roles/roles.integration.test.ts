@@ -43,6 +43,22 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
 }
 
+// Direct inserts until the role management service exists.
+async function insertRole(permissions: service.Permission[]): Promise<string> {
+	const id = crypto.randomUUID()
+	await sql`INSERT INTO role (id, name) VALUES (${id}, ${`Role ${id}`})`
+	await Promise.all(
+		permissions.map(
+			(permission) => sql`INSERT INTO role_permission (role_id, permission) VALUES (${id}, ${permission})`,
+		),
+	)
+	return id
+}
+
+async function assignRole(userId: string, roleId: string): Promise<void> {
+	await sql`INSERT INTO user_role (user_id, role_id) VALUES (${userId}, ${roleId})`
+}
+
 async function createMemberSession(): Promise<string> {
 	const username = uniqueUsername()
 	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
@@ -360,6 +376,38 @@ describe("effective permissions", () => {
 
 		const afterGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 		expect(await afterGrant.json()).toEqual({ permissions: ["ai_provider:manage"] })
+	})
+
+	it("authorizes through an assigned role, including implied permissions", async () => {
+		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await assignRole(member.id, await insertRole(["agents:manage"]))
+
+		expect(await service.authorize(member.id, "agents:read")).toBe(true)
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "agents:manage"])
+	})
+
+	it("unions permissions across grants and every assigned role", async () => {
+		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await service.grantPermission({ userId: member.id, permission: "ai_provider:manage", grantedBy: member.id })
+		await assignRole(member.id, await insertRole(["agents:read"]))
+		await assignRole(member.id, await insertRole(["agents:manage"]))
+
+		expect(await service.listEffectivePermissions(member.id)).toEqual([
+			"ai_provider:manage",
+			"agents:read",
+			"agents:manage",
+		])
+	})
+
+	it("denies the next check once a role assignment is removed", async () => {
+		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		const roleId = await insertRole(["ai_provider:manage"])
+		await assignRole(member.id, roleId)
+		expect(await service.authorize(member.id, "ai_provider:manage")).toBe(true)
+
+		await sql`DELETE FROM user_role WHERE user_id = ${member.id} AND role_id = ${roleId}`
+
+		expect(await service.authorize(member.id, "ai_provider:manage")).toBe(false)
 	})
 })
 

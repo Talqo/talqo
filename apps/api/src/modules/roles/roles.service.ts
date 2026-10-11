@@ -152,11 +152,15 @@ export async function getAccess(userId: string): Promise<{ permissions: Permissi
 }
 
 export async function authorize(userId: string, permission: Permission): Promise<boolean> {
-	// Fetched fresh on every call, never cached -- a revoked grant denies the very next
-	// request without needing to touch the user's session (see ADR-0008/0009).
-	return effectivePermissions(await repo.findGrantsForUser(userId)).includes(permission)
+	return (await listEffectivePermissions(userId)).includes(permission)
 }
 
+// The only source of a user's permissions: direct grants plus every assigned role's permissions.
+// Fetched fresh on every call, never cached, so a revoked grant or role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
-	return effectivePermissions(await repo.findGrantsForUser(userId))
+	const [grants, rolePermissions] = await Promise.all([
+		repo.findGrantsForUser(userId),
+		repo.findRolePermissionsForUser(userId),
+	])
+	return effectivePermissions([...grants, ...rolePermissions])
 }
