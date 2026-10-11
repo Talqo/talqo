@@ -102,7 +102,14 @@ function ProviderSelect({
 }) {
 	const { t } = useTranslation()
 	return (
-		<Select value={value} onValueChange={(next) => onChange(next as AiProviderId)} disabled={disabled}>
+		<Select<AiProviderId>
+			value={value}
+			onValueChange={(next) => {
+				if (next === null) return
+				onChange(next)
+			}}
+			disabled={disabled}
+		>
 			<SelectTrigger id={id} className="w-full">
 				<SelectValue>
 					{(providerId: AiProviderId) => {
@@ -247,9 +254,12 @@ function ConnectionFields({
 			{provider.authModes.length > 1 && (
 				<div className="space-y-2">
 					<Label htmlFor={`${role}-authentication`}>{t("aiConfiguration.fields.authentication")}</Label>
-					<Select
+					<Select<AiProviderAuthMode>
 						value={value.authMode}
-						onValueChange={(mode) => onChange({ ...value, authMode: mode as AiProviderAuthMode, credentials: {} })}
+						onValueChange={(mode) => {
+							if (mode === null) return
+							onChange({ ...value, authMode: mode, credentials: {} })
+						}}
 						disabled={disabled}
 					>
 						<SelectTrigger id={`${role}-authentication`} className="w-full">

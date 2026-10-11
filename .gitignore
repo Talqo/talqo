@@ -29,6 +29,9 @@ dist/
 # Turbo
 .turbo/
 
+# Knip cache
+.cache/
+
 # Private files for personal use
 /private/
 

@@ -313,77 +313,75 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 									</p>
 									<EmbeddingStatusLine file={file} t={t} />
 								</div>
-								{canManage && (
-									<TooltipProvider>
-										{file.embeddingStatus === "failed" && (
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												disabled={retryingName === file.name}
-												onClick={() => void onRetry(file)}
-												aria-label={t("agentFiles.retry", { name: file.name })}
-											>
-												{retryingName === file.name ? (
-													<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
-												) : (
-													<RotateCcw className="size-4" />
-												)}
-												{t("agentFiles.retryAction")}
-											</Button>
-										)}
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={downloadingName === file.name}
-														onClick={() => void onDownload(file)}
-														aria-label={t("agentFiles.download", { name: file.name })}
-													/>
-												}
-											>
-												<Download className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
-										</Tooltip>
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														onClick={() => openRename(file)}
-														aria-label={t("agentFiles.rename", { name: file.name })}
-													/>
-												}
-											>
-												<Pencil className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
-										</Tooltip>
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={deleteFile.isPending}
-														onClick={() => openDelete(file)}
-														aria-label={t("agentFiles.delete", { name: file.name })}
-													/>
-												}
-											>
-												<Trash2 className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-								)}
+								<TooltipProvider>
+									{file.embeddingStatus === "failed" && (
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={retryingName === file.name}
+											onClick={() => void onRetry(file)}
+											aria-label={t("agentFiles.retry", { name: file.name })}
+										>
+											{retryingName === file.name ? (
+												<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+											) : (
+												<RotateCcw className="size-4" />
+											)}
+											{t("agentFiles.retryAction")}
+										</Button>
+									)}
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													disabled={downloadingName === file.name}
+													onClick={() => void onDownload(file)}
+													aria-label={t("agentFiles.download", { name: file.name })}
+												/>
+											}
+										>
+											<Download className="size-4" />
+										</TooltipTrigger>
+										<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
+									</Tooltip>
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													onClick={() => openRename(file)}
+													aria-label={t("agentFiles.rename", { name: file.name })}
+												/>
+											}
+										>
+											<Pencil className="size-4" />
+										</TooltipTrigger>
+										<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
+									</Tooltip>
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													disabled={deleteFile.isPending}
+													onClick={() => openDelete(file)}
+													aria-label={t("agentFiles.delete", { name: file.name })}
+												/>
+											}
+										>
+											<Trash2 className="size-4" />
+										</TooltipTrigger>
+										<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
 							</li>
 						))}
 					</ul>

@@ -1412,9 +1412,9 @@ describe("createChatClient", () => {
 								userMessage: { id: "user", createdAt: "now" },
 								assistantMessage: { id: "assistant", createdAt: "now" },
 							} as const
-							if (signal.aborted) throw signal.reason
+							signal.throwIfAborted()
 							await terminal.promise
-							if (signal.aborted) throw signal.reason
+							signal.throwIfAborted()
 							yield { type: "terminal", outcome: "completed" } as const
 						},
 					}

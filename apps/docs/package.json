@@ -7,7 +7,7 @@
 		"build": "vite build",
 		"dev": "vite dev --port 3002",
 		"start": "bun src/serve.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "bun check"
 	},
 	"dependencies": {
 		"@talqo/shared": "workspace:*",
@@ -29,6 +29,6 @@
 		"fumadocs-mdx": "15.4.6",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
-		"vite": "8.3.2"
+		"vite": "8.3.4"
 	}
 }

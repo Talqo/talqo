@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "bun check",
 		"test": "bun test",
 		"i18n": "i18next-cli status && i18next-cli lint --quiet && i18next-cli extract --ci --dry-run --quiet",
 		"i18n:fix": "i18next-cli extract --quiet && i18next-cli status && i18next-cli lint --quiet"
@@ -34,7 +34,7 @@
 		"postcss": "^8.5.28",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",
-		"vite": "8.3.2",
+		"vite": "8.3.4",
 		"vite-plugin-css-injected-by-js": "5.0.2",
 		"vite-plugin-svgr": "^5.2.0"
 	}

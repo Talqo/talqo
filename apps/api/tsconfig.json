@@ -6,5 +6,5 @@
 		},
 		"rootDir": "."
 	},
-	"include": ["drizzle.config.ts", "src/**/*.ts"]
+	"include": ["*.ts", "src/**/*.ts", "test-fixtures/**/*.ts"]
 }

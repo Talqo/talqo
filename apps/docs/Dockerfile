@@ -1,7 +1,7 @@
 # Required runtime env: none. TALQO_DOCS_PORT defaults to 3002.
 # Build from the repository root: docker build -f apps/docs/Dockerfile .
 
-FROM oven/bun:1.4.2 AS build
+FROM oven/bun:1.4.3 AS build
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 	bun install --frozen-lockfile && \
 	bunx turbo run build --filter=@talqo/docs
 
-FROM oven/bun:1.4.2-slim AS runtime
+FROM oven/bun:1.4.3-slim AS runtime
 
 WORKDIR /app
 

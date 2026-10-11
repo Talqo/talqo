@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 
-import { namespaceToolName, TOOL_NAME_MAX_LENGTH, truncateResult } from "./mcp.client.ts"
+import { namespaceToolName, TOOL_NAME_MAX_LENGTH, truncateResult, withListTimeout } from "./mcp.client.ts"
 import { MAX_TOOL_RESULT_CHARACTERS } from "./mcp.types.ts"
 
 describe("namespaceToolName", () => {
@@ -65,5 +65,27 @@ describe("truncateResult", () => {
 		const markers = out.content.filter((part) => part.text.includes("truncated")).length
 		expect(markers).toBe(1)
 		expect(JSON.stringify(out).length).toBeLessThan(MAX_TOOL_RESULT_CHARACTERS + 200)
+	})
+})
+
+describe("withListTimeout", () => {
+	it("lets an already-resolved listing win over a later abort", async () => {
+		const controller = new AbortController()
+		const pending = withListTimeout(Promise.resolve("tools"), controller.signal)
+		controller.abort(new Error("late abort"))
+		await expect(pending).resolves.toBe("tools")
+	})
+
+	it("rejects a pending listing when the abort lands first", async () => {
+		const controller = new AbortController()
+		let rejectListing!: (error: unknown) => void
+		const listing = new Promise<never>((_, reject) => {
+			rejectListing = reject
+		})
+		const pending = withListTimeout(listing, controller.signal)
+		controller.abort(new Error("early abort"))
+		await expect(pending).rejects.toThrow("early abort")
+		rejectListing(new Error("too late"))
+		await expect(pending).rejects.toThrow("early abort")
 	})
 })

@@ -129,9 +129,11 @@ describe("agent knowledge files", () => {
 		})
 		expect(renamed.status).toBe(200)
 		expect(((await renamed.json()) as { file: { name: string } }).file.name).toBe("renamed.md")
-		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`).map(({ name }) => name)).toEqual([
-			"renamed.md",
-		])
+		expect(
+			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).map(
+				({ name }) => name,
+			),
+		).toEqual(["renamed.md"])
 
 		const removed = await app.request(`/api/agents/${agentId}/files/renamed.md`, {
 			method: "DELETE",
