@@ -41,7 +41,7 @@ export function useModelDiscovery(
 			setModels(null)
 			setLoading(false)
 			setFailed(false)
-			return
+			return undefined
 		}
 		const requestId = ++requestRef.current
 		setLoading(true)

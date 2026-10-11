@@ -7,7 +7,7 @@ import { initReactI18next } from "react-i18next"
 import { getStoredLanguage } from "./use-language"
 
 use(initReactI18next)
-init({
+void init({
 	lng: getStoredLanguage(),
 	fallbackLng: "en",
 	resources: {

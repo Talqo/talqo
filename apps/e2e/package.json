@@ -5,13 +5,12 @@
 	"type": "module",
 	"scripts": {
 		"e2e": "bun --env-file ../api/.env.example ../../scripts/test-e2e.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "bun check"
 	},
 	"devDependencies": {
-		"@playwright/test": "1.63.0",
+		"@playwright/test": "1.64.0",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.2",
-		"@types/node": "26.6.4",
 		"typescript": "7.0.2"
 	}
 }

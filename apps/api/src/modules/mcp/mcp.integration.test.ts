@@ -39,7 +39,9 @@ async function expectCheckViolation(insert: Promise<unknown>): Promise<void> {
 		(caught: unknown) => caught,
 	)
 	if (!error) throw new Error("expected the insert to be refused")
-	const text = [String(error), String((error as { cause?: unknown }).cause ?? "")].join(" ")
+	const text = [error, error instanceof Error ? error.cause : undefined]
+		.map((part) => (part instanceof Error ? part.message : (JSON.stringify(part) ?? "")))
+		.join(" ")
 	expect(text).toMatch(/mcp_server_\w+_check/)
 }
 
@@ -414,7 +416,7 @@ describe("http connections", () => {
 			expect(created.isWorking).toBe(true)
 			expect(created.tools).toEqual([{ name: "stub_lookup", description: "Looks things up", enabled: true }])
 		} finally {
-			stub.stop()
+			await stub.stop()
 		}
 	})
 })

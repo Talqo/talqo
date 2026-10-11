@@ -373,5 +373,6 @@ type UndocumentedCode = Exclude<ProblemCode, (typeof PROBLEMS)[number]["code"]>
 
 // Every problem code the API can emit needs a docs entry. This fails typecheck
 // (instead of a test) when a code is added without documenting it.
-const allCodesDocumented: Record<UndocumentedCode, never> = {}
+type AssertAllDocumented = UndocumentedCode extends never ? true : ["missing docs for:", UndocumentedCode]
+const allCodesDocumented: AssertAllDocumented = true
 void allCodesDocumented

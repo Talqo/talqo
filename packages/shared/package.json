@@ -13,7 +13,7 @@
 	},
 	"scripts": {
 		"test": "bun test",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "bun check"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",

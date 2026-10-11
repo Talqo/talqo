@@ -8,6 +8,9 @@ const DEFAULT_WEB_PORT = 5173
 
 export default defineConfig({
 	plugins: [tanstackRouter({ autoCodeSplitting: true }), react(), tailwindcss()],
+	build: {
+		reportCompressedSize: false,
+	},
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src`,

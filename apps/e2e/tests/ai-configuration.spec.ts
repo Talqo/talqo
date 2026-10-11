@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 const ADMIN = { username: "admin", password: "admin123" }
 
@@ -35,7 +35,7 @@ test.afterEach(async ({ request }) => {
 	).toBeOK()
 })
 
-async function login(page: import("@playwright/test").Page, account: { password: string; username: string }) {
+async function login(page: Page, account: { password: string; username: string }) {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(account.username)
 	await page.getByLabel("Password", { exact: true }).fill(account.password)

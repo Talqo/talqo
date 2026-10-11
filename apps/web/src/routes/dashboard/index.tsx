@@ -179,8 +179,8 @@ function DashboardIndexPage() {
 					<Button
 						variant="outline"
 						onClick={() => {
-							statsQuery.refetch()
-							agentsQuery.refetch()
+							void statsQuery.refetch()
+							void agentsQuery.refetch()
 						}}
 						disabled={statsQuery.isFetching || agentsQuery.isFetching}
 					>

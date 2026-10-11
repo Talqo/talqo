@@ -203,6 +203,3 @@ export const setMcpServerDisabledRoute = createRoute({
 		...domain,
 	},
 })
-
-export type McpCreateBody = z.infer<typeof createRequestSchema>
-export type McpUpdateBody = z.infer<typeof updateRequestSchema>

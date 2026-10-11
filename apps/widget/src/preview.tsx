@@ -20,7 +20,7 @@ export function PreviewWidget({ parentOrigin: configuredParentOrigin }: { parent
 
 	useEffect(() => {
 		if (!parentOrigin) {
-			return
+			return undefined
 		}
 		function onMessage(event: MessageEvent) {
 			if (event.origin !== parentOrigin) {
