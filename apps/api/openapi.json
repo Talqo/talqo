@@ -2579,7 +2579,15 @@
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": [
+													"admin",
+													"users:read",
+													"users:manage",
+													"roles:manage",
+													"ai_provider:manage",
+													"agents:read",
+													"agents:manage"
+												]
 											}
 										}
 									},
@@ -2923,7 +2931,15 @@
 									},
 									"permission": {
 										"type": "string",
-										"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
+										"enum": [
+											"admin",
+											"users:read",
+											"users:manage",
+											"roles:manage",
+											"ai_provider:manage",
+											"agents:read",
+											"agents:manage"
+										]
 									}
 								},
 								"required": ["userId", "permission"],
@@ -3118,7 +3134,15 @@
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": [
+													"admin",
+													"users:read",
+													"users:manage",
+													"roles:manage",
+													"ai_provider:manage",
+													"agents:read",
+													"agents:manage"
+												]
 											}
 										}
 									},

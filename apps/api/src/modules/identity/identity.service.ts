@@ -206,6 +206,12 @@ export async function setPassword(userId: string, newPassword: string): Promise<
 	await rotatePassword(userId, newPassword, true)
 }
 
+export async function getUser(userId: string): Promise<PublicUser> {
+	const user = await repo.findUserById(userId)
+	if (!user) throw new UserNotFoundError(`getUser: user ${userId} not found`)
+	return toPublicUser(user)
+}
+
 export async function listUsers(): Promise<PublicUser[]> {
 	const users = await repo.listUsers()
 	return users.map(toPublicUser)

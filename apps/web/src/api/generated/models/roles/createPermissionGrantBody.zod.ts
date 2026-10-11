@@ -10,7 +10,15 @@ export const createPermissionGrantBodyUserIdMax = 128
 
 export const CreatePermissionGrantBody = zod.object({
 	userId: zod.string().min(1).max(createPermissionGrantBodyUserIdMax),
-	permission: zod.enum(["admin", "ai_provider:manage", "agents:read", "agents:manage"]),
+	permission: zod.enum([
+		"admin",
+		"users:read",
+		"users:manage",
+		"roles:manage",
+		"ai_provider:manage",
+		"agents:read",
+		"agents:manage",
+	]),
 })
 
 export type CreatePermissionGrantBody = zod.input<typeof CreatePermissionGrantBody>

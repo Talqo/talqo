@@ -3,7 +3,7 @@ import { sql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
-import { describe, expect, it } from "bun:test"
+import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as repo from "./roles.repository.ts"
 import * as service from "./roles.service.ts"
@@ -43,20 +43,12 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
 }
 
-// Direct inserts until the role management service exists.
-async function insertRole(permissions: service.Permission[]): Promise<string> {
-	const id = crypto.randomUUID()
-	await sql`INSERT INTO role (id, name) VALUES (${id}, ${`Role ${id}`})`
-	await Promise.all(
-		permissions.map(
-			(permission) => sql`INSERT INTO role_permission (role_id, permission) VALUES (${id}, ${permission})`,
-		),
-	)
-	return id
+async function createRole(permissions: service.Permission[], name = `Role ${crypto.randomUUID()}`) {
+	return service.createRole({ name, permissions })
 }
 
-async function assignRole(userId: string, roleId: string): Promise<void> {
-	await sql`INSERT INTO user_role (user_id, role_id) VALUES (${userId}, ${roleId})`
+async function createMember(): Promise<identity.PublicUser> {
+	return identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 }
 
 async function createMemberSession(): Promise<string> {
@@ -379,18 +371,21 @@ describe("effective permissions", () => {
 	})
 
 	it("authorizes through an assigned role, including implied permissions", async () => {
-		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-		await assignRole(member.id, await insertRole(["agents:manage"]))
+		const member = await createMember()
+		await service.assignRoles(member.id, [(await createRole(["agents:manage"])).id])
 
 		expect(await service.authorize(member.id, "agents:read")).toBe(true)
 		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "agents:manage"])
 	})
 
 	it("unions permissions across grants and every assigned role", async () => {
-		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		const member = await createMember()
 		await service.grantPermission({ userId: member.id, permission: "ai_provider:manage", grantedBy: member.id })
-		await assignRole(member.id, await insertRole(["agents:read"]))
-		await assignRole(member.id, await insertRole(["agents:manage"]))
+		const roles = [await createRole(["agents:read"]), await createRole(["agents:manage"])]
+		await service.assignRoles(
+			member.id,
+			roles.map((role) => role.id),
+		)
 
 		expect(await service.listEffectivePermissions(member.id)).toEqual([
 			"ai_provider:manage",
@@ -400,14 +395,195 @@ describe("effective permissions", () => {
 	})
 
 	it("denies the next check once a role assignment is removed", async () => {
-		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-		const roleId = await insertRole(["ai_provider:manage"])
-		await assignRole(member.id, roleId)
+		const member = await createMember()
+		await service.assignRoles(member.id, [(await createRole(["ai_provider:manage"])).id])
 		expect(await service.authorize(member.id, "ai_provider:manage")).toBe(true)
 
-		await sql`DELETE FROM user_role WHERE user_id = ${member.id} AND role_id = ${roleId}`
+		await service.assignRoles(member.id, [])
 
 		expect(await service.authorize(member.id, "ai_provider:manage")).toBe(false)
+	})
+})
+
+describe("role management", () => {
+	beforeEach(async () => {
+		await sql`DELETE FROM role`
+	})
+
+	it("creates, lists, updates and deletes a role", async () => {
+		const member = await createMember()
+		const created = await createRole(["agents:manage", "ai_provider:manage"], "  Support  ")
+		await service.assignRoles(member.id, [created.id])
+
+		expect(created).toEqual({
+			id: created.id,
+			name: "Support",
+			permissions: ["ai_provider:manage", "agents:manage"],
+			memberCount: 0,
+		})
+		expect(await service.listRoles()).toEqual([{ ...created, memberCount: 1 }])
+
+		const updated = await service.updateRole(created.id, { name: "Helpdesk", permissions: ["agents:read"] })
+		expect(updated).toEqual({ id: created.id, name: "Helpdesk", permissions: ["agents:read"], memberCount: 1 })
+
+		await service.deleteRole(created.id)
+		expect(await service.listRoles()).toEqual([])
+		expect(await service.listEffectivePermissions(member.id)).toEqual([])
+	})
+
+	it("lists roles by name, case-insensitively", async () => {
+		await createRole([], "beta")
+		await createRole([], "Alpha")
+
+		expect((await service.listRoles()).map((role) => role.name)).toEqual(["Alpha", "beta"])
+	})
+
+	it("rejects a role name already taken in any letter case", async () => {
+		const existing = await createRole([], "Support")
+		const other = await createRole([], "Sales")
+
+		await expect(createRole([], "SUPPORT")).rejects.toBeInstanceOf(service.DuplicateRoleNameError)
+		await expect(service.updateRole(other.id, { name: "support", permissions: [] })).rejects.toBeInstanceOf(
+			service.DuplicateRoleNameError,
+		)
+		expect(await service.updateRole(existing.id, { name: "SUPPORT", permissions: [] })).toMatchObject({
+			name: "SUPPORT",
+		})
+	})
+
+	it("rejects invalid role input", async () => {
+		await expect(createRole([], "   ")).rejects.toBeInstanceOf(service.InvalidRoleInputError)
+		await expect(createRole([], "x".repeat(service.ROLE_NAME_MAX_LENGTH + 1))).rejects.toBeInstanceOf(
+			service.InvalidRoleInputError,
+		)
+		await expect(createRole(["admin"])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
+		await expect(createRole(["agents:read", "agents:read"])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
+	})
+
+	it("reports an unknown role on update and delete", async () => {
+		const missing = crypto.randomUUID()
+
+		await expect(service.updateRole(missing, { name: "Gone", permissions: [] })).rejects.toBeInstanceOf(
+			service.RoleNotFoundError,
+		)
+		await expect(service.deleteRole(missing)).rejects.toBeInstanceOf(service.RoleNotFoundError)
+	})
+
+	it("lists every permission except admin with what each implies", () => {
+		expect(service.listGrantablePermissions()).toEqual([
+			{ permission: "users:read", implies: [] },
+			{ permission: "users:manage", implies: ["users:read"] },
+			{ permission: "roles:manage", implies: ["users:read"] },
+			{ permission: "ai_provider:manage", implies: [] },
+			{ permission: "agents:read", implies: [] },
+			{ permission: "agents:manage", implies: ["agents:read"] },
+		])
+	})
+})
+
+describe("role assignment", () => {
+	it("replaces a user's roles and returns them by name", async () => {
+		const member = await createMember()
+		const [support, sales, billing] = await Promise.all([
+			createRole([], `Support ${crypto.randomUUID()}`),
+			createRole([], `Sales ${crypto.randomUUID()}`),
+			createRole([], `Billing ${crypto.randomUUID()}`),
+		])
+		await service.assignRoles(member.id, [support.id, sales.id])
+
+		const assigned = await service.assignRoles(member.id, [sales.id, billing.id])
+
+		expect(assigned).toEqual([
+			{ id: billing.id, name: billing.name },
+			{ id: sales.id, name: sales.name },
+		])
+	})
+
+	it("rejects an unknown user, an unknown role and duplicate role ids without changing anything", async () => {
+		const member = await createMember()
+		const role = await createRole(["agents:read"])
+		await service.assignRoles(member.id, [role.id])
+
+		await expect(service.assignRoles(crypto.randomUUID(), [])).rejects.toBeInstanceOf(identity.UserNotFoundError)
+		await expect(service.assignRoles(member.id, [crypto.randomUUID()])).rejects.toBeInstanceOf(
+			service.RoleNotFoundError,
+		)
+		await expect(service.assignRoles(member.id, [role.id, role.id])).rejects.toBeInstanceOf(
+			service.InvalidRoleInputError,
+		)
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+	})
+
+	it("drops assignments when the user is deleted", async () => {
+		const member = await createMember()
+		const role = await createRole([])
+		await service.assignRoles(member.id, [role.id])
+
+		await identity.deleteAccount(member.id)
+
+		const listed = (await service.listRoles()).find(({ id }) => id === role.id)
+		expect(listed?.memberCount).toBe(0)
+	})
+})
+
+describe("target resolvers", () => {
+	it("returns the requested permissions of a new role", async () => {
+		expect(await service.permissionsInRoleRequest({ body: { name: "New", permissions: ["agents:read"] } })).toEqual([
+			"agents:read",
+		])
+	})
+
+	it("returns a role's current and requested permissions for an update", async () => {
+		const role = await createRole(["ai_provider:manage"])
+
+		const targeted = await service.permissionsInRoleUpdate({
+			params: { roleId: role.id },
+			body: { name: role.name, permissions: ["agents:read"] },
+		})
+
+		expect(targeted).toEqual(["ai_provider:manage", "agents:read"])
+	})
+
+	it("returns a role's permissions, or none for an unknown role", async () => {
+		const role = await createRole(["agents:manage"])
+
+		expect(await service.permissionsOfRole({ params: { roleId: role.id } })).toEqual(["agents:manage"])
+		expect(await service.permissionsOfRole({ params: { roleId: crypto.randomUUID() } })).toEqual([])
+	})
+
+	it("returns only the permissions of roles an assignment adds or removes", async () => {
+		const member = await createMember()
+		const [kept, removed, added] = await Promise.all([
+			createRole(["ai_provider:manage"]),
+			createRole(["agents:manage"]),
+			createRole(["users:read"]),
+		])
+		await service.assignRoles(member.id, [kept.id, removed.id])
+
+		const targeted = await service.permissionsInRoleAssignment({
+			params: { userId: member.id },
+			body: { roleIds: [kept.id, added.id, crypto.randomUUID()] },
+		})
+
+		expect(targeted).toEqual(["users:read", "agents:manage"])
+	})
+
+	it("returns a user's effective permissions from grants and roles", async () => {
+		const member = await createMember()
+		await service.grantPermission({ userId: member.id, permission: "agents:manage", grantedBy: member.id })
+		await service.assignRoles(member.id, [(await createRole(["users:read"])).id])
+
+		expect(await service.permissionsOfUser({ params: { userId: member.id } })).toEqual([
+			"users:read",
+			"agents:read",
+			"agents:manage",
+		])
+	})
+
+	it("returns every permission for the admin", async () => {
+		const { userId } = await createAdminSession()
+
+		expect(await service.permissionsOfUser({ params: { userId } })).toEqual([...service.PERMISSIONS])
 	})
 })
 
