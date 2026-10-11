@@ -270,6 +270,13 @@ export const PROBLEMS = [
 		guidance: "Ask an administrator to grant access.",
 	},
 	{
+		code: "permission-exceeds-own",
+		title: "Permission not held",
+		status: "403",
+		meaning: "The operation would give, remove, or affect access that the account does not hold itself.",
+		guidance: "Ask an operator who holds that access to make the change.",
+	},
+	{
 		code: "provider-credentials-rejected",
 		title: "Provider credentials rejected",
 		status: "400",

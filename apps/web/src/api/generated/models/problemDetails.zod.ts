@@ -164,6 +164,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
 	}),
 	zod.object({
+		code: zod.enum(["permission-exceeds-own"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#permission-exceeds-own"]),
+	}),
+	zod.object({
 		code: zod.enum(["provider-credentials-rejected"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
 	}),

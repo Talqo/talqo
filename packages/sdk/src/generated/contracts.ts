@@ -202,6 +202,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#permission-denied"
 	  }
 	| {
+			code: "permission-exceeds-own"
+			type: "https://docs.talqo.chat/problems#permission-exceeds-own"
+	  }
+	| {
 			code: "provider-credentials-rejected"
 			type: "https://docs.talqo.chat/problems#provider-credentials-rejected"
 	  }

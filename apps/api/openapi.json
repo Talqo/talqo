@@ -610,6 +610,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["permission-exceeds-own"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#permission-exceeds-own"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["provider-credentials-rejected"]
 							},
 							"type": {

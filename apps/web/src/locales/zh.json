@@ -468,6 +468,7 @@
 		"password-change-required": "继续前必须修改密码。",
 		"payload-too-large": "请求正文过大。",
 		"permission-denied": "您没有执行此操作的权限。",
+		"permission-exceeds-own": "您只能更改自己拥有的访问权限。",
 		"provider-credentials-rejected": "提供商拒绝了这些凭据。",
 		"provider-error": "提供商无法完成请求。",
 		"provider-rate-limited": "已达到提供商速率限制，请稍后重试。",

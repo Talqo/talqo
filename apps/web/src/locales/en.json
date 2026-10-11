@@ -468,6 +468,7 @@
 		"password-change-required": "You must change your password before continuing.",
 		"payload-too-large": "The request body is too large.",
 		"permission-denied": "You do not have permission to perform this action.",
+		"permission-exceeds-own": "You can only change access that you have yourself.",
 		"provider-credentials-rejected": "The provider rejected these credentials.",
 		"provider-error": "The provider could not complete the request.",
 		"provider-rate-limited": "The provider rate limit was reached. Try again later.",

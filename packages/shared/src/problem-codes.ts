@@ -38,6 +38,7 @@ export const PROBLEM_CODES = {
 	PASSWORD_CHANGE_REQUIRED: "password-change-required",
 	PAYLOAD_TOO_LARGE: "payload-too-large",
 	PERMISSION_DENIED: "permission-denied",
+	PERMISSION_EXCEEDS_OWN: "permission-exceeds-own",
 	PROVIDER_CREDENTIALS_REJECTED: "provider-credentials-rejected",
 	PROVIDER_ERROR: "provider-error",
 	PROVIDER_RATE_LIMITED: "provider-rate-limited",

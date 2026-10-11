@@ -33,6 +33,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"password-change-required": (t) => t("problems.password-change-required"),
 	"payload-too-large": (t) => t("problems.payload-too-large"),
 	"permission-denied": (t) => t("problems.permission-denied"),
+	"permission-exceeds-own": (t) => t("problems.permission-exceeds-own"),
 	"provider-credentials-rejected": (t) => t("problems.provider-credentials-rejected"),
 	"provider-error": (t) => t("problems.provider-error"),
 	"provider-rate-limited": (t) => t("problems.provider-rate-limited"),

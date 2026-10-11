@@ -470,6 +470,7 @@
 		"password-change-required": "Před pokračováním musíte změnit heslo.",
 		"payload-too-large": "Tělo požadavku je příliš velké.",
 		"permission-denied": "K této akci nemáte oprávnění.",
+		"permission-exceeds-own": "Můžete měnit jen přístup, který sami máte.",
 		"provider-credentials-rejected": "Poskytovatel tyto přihlašovací údaje odmítl.",
 		"provider-error": "Poskytovatel nemohl požadavek dokončit.",
 		"provider-rate-limited": "Byl dosažen limit požadavků poskytovatele. Zkuste to později.",
