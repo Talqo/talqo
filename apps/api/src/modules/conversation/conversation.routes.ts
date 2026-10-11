@@ -9,19 +9,30 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
 
-import { cancelRoute, sendRoute, sessionRoute, sessionStateSchema } from "./conversation.contract.ts"
+import {
+	cancelRoute,
+	conversationListResponseSchema,
+	conversationTranscriptResponseSchema,
+	getConversationRoute,
+	listConversationsRoute,
+	sendRoute,
+	sessionRoute,
+	sessionStateSchema,
+} from "./conversation.contract.ts"
 import {
 	ConcurrentGenerationLimitError,
+	ConversationNotFoundError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
 	EmbedDisabledError,
 	InvalidChatInputError,
+	InvalidConversationCursorError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
-import { getConversationService } from "./conversation.service.ts"
+import { getConversationService, getConversationTranscript, listAgentConversations } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
@@ -179,3 +190,29 @@ export function createConversationRoutes(
 			}
 		})
 }
+
+export const conversationOperatorRoutes = new OpenAPIHono()
+	.openapi(listConversationsRoute, async (c) => {
+		const { agentId } = c.req.valid("param")
+		try {
+			const page = await listAgentConversations(agentId, c.req.valid("query"))
+			return c.json(conversationListResponseSchema.parse(page), HTTP_STATUS.OK)
+		} catch (error) {
+			if (error instanceof InvalidConversationCursorError) {
+				return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+			}
+			throw error
+		}
+	})
+	.openapi(getConversationRoute, async (c) => {
+		const { agentId, conversationId } = c.req.valid("param")
+		try {
+			const conversation = await getConversationTranscript(agentId, conversationId)
+			return c.json(conversationTranscriptResponseSchema.parse({ conversation }), HTTP_STATUS.OK)
+		} catch (error) {
+			if (error instanceof ConversationNotFoundError) {
+				return problemResponse(c, PROBLEM_CODES.CONVERSATION_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			}
+			throw error
+		}
+	})

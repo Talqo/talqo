@@ -340,6 +340,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["conversation-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#conversation-not-found"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["current-password-incorrect"]
 							},
 							"type": {
@@ -1222,6 +1237,96 @@
 					"isDisabled",
 					"revision"
 				]
+			},
+			"ConversationList": {
+				"type": "object",
+				"properties": {
+					"conversations": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ConversationSummary"
+						}
+					},
+					"nextCursor": {
+						"type": ["string", "null"]
+					}
+				},
+				"required": ["conversations", "nextCursor"]
+			},
+			"ConversationSummary": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"messageCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"preview": {
+						"type": ["string", "null"]
+					}
+				},
+				"required": ["id", "startedAt", "messageCount", "preview"]
+			},
+			"ConversationTranscriptResponse": {
+				"type": "object",
+				"properties": {
+					"conversation": {
+						"$ref": "#/components/schemas/ConversationTranscript"
+					}
+				},
+				"required": ["conversation"]
+			},
+			"ConversationTranscript": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"agentId": {
+						"type": "string"
+					},
+					"startedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"messages": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ConversationMessage"
+						}
+					}
+				},
+				"required": ["id", "agentId", "startedAt", "messages"]
+			},
+			"ConversationMessage": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["user", "assistant"]
+					},
+					"text": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": ["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"]
+					}
+				},
+				"required": ["id", "role", "text", "createdAt", "outcome"]
 			}
 		},
 		"parameters": {}
@@ -6464,6 +6569,193 @@
 					},
 					"409": {
 						"description": "Problem response. Codes: duplicate-mcp-server-name, configuration-conflict.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/conversations": {
+			"get": {
+				"operationId": "listConversations",
+				"tags": ["Conversation"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"required": false,
+						"name": "before",
+						"in": "query"
+					},
+					{
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 50,
+							"default": 20
+						},
+						"required": false,
+						"name": "limit",
+						"in": "query"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "The agent's conversations, newest first",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ConversationList"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/agents/{agentId}/conversations/{conversationId}": {
+			"get": {
+				"operationId": "getConversation",
+				"tags": ["Conversation"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"required": true,
+						"name": "agentId",
+						"in": "path"
+					},
+					{
+						"schema": {
+							"type": "string",
+							"format": "uuid"
+						},
+						"required": true,
+						"name": "conversationId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Full conversation transcript",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ConversationTranscriptResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: conversation-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

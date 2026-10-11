@@ -300,6 +300,8 @@ describe("api", () => {
 				"/api/ai-providers",
 				"/api/agents",
 				"/api/agents/{agentId}",
+				"/api/agents/{agentId}/conversations",
+				"/api/agents/{agentId}/conversations/{conversationId}",
 				"/api/agents/{agentId}/files",
 				"/api/agents/{agentId}/files/{fileName}",
 				"/api/agents/{agentId}/files/{fileName}/retry",

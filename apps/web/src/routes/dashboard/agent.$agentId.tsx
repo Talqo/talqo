@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
+import { ConversationsPanel } from "@/features/conversations/conversations-panel"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { requirePermission } from "@/features/permissions/require-permission"
@@ -39,7 +40,7 @@ import { useTranslation } from "react-i18next"
 
 import { EmbedEnabledSwitch } from "./-embed-enabled-switch"
 
-const AGENT_TABS = ["configuration", "context", "embeds", "mcp"] as const
+const AGENT_TABS = ["configuration", "context", "embeds", "mcp", "conversations"] as const
 const LIGHT_PALETTE_KEYS = ["primary", "background", "surface", "text", "textOnPrimary"] as const
 type AgentTab = (typeof AGENT_TABS)[number]
 
@@ -174,6 +175,7 @@ function AgentConfigPage() {
 					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
 					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
 					<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
+					<TabsTrigger value="conversations">{t("agentConfig.tabConversations")}</TabsTrigger>
 				</TabsList>
 				<TabsContent value="configuration" className="space-y-6">
 					<Card>
@@ -305,6 +307,9 @@ function AgentConfigPage() {
 				</TabsContent>
 				<TabsContent value="mcp">
 					<McpConnectionsCard agentId={agentId} canManage={canManage} />
+				</TabsContent>
+				<TabsContent value="conversations">
+					<ConversationsPanel agentId={agentId} />
 				</TabsContent>
 			</Tabs>
 		</div>

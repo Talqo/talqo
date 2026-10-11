@@ -20,6 +20,7 @@ export const PROBLEM_CODES = {
 	CHAT_SESSION_BUSY: "chat-session-busy",
 	CHAT_SESSION_UNAUTHORIZED: "chat-session-unauthorized",
 	CONFIGURATION_CONFLICT: "configuration-conflict",
+	CONVERSATION_NOT_FOUND: "conversation-not-found",
 	CURRENT_PASSWORD_INCORRECT: "current-password-incorrect",
 	DUPLICATE_MCP_SERVER_NAME: "duplicate-mcp-server-name",
 	EMBED_DISABLED: "embed-disabled",
