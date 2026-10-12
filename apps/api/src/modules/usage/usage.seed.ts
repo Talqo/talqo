@@ -4,7 +4,6 @@ import { usageRecord } from "./usage.schema.ts"
 
 import type { SeededAttempt } from "@/modules/conversation/conversation.seed.ts"
 
-// Then use SeededAttempt directly instead of SeededAttemptUsage
 	generationAttemptId: string
 	agentId: string
 	conversationId: string
