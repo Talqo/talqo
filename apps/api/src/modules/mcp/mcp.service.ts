@@ -5,8 +5,7 @@ import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 
 import type { OpenToolsResult } from "./mcp.client.ts"
-import type { McpServerPatch } from "./mcp.schema.ts"
-import type { McpServerRow } from "./mcp.schema.ts"
+import type { McpServerPatch, McpServerRow, NewMcpServer } from "./mcp.schema.ts"
 import type {
 	McpCreateInput,
 	McpHttpInput,
@@ -102,8 +101,11 @@ function mergeSecrets(
 	return merged
 }
 
-function httpColumns(serverId: string, input: McpHttpInput, existing?: CredentialSecretMap | null): McpServerPatch {
+type TransportColumns = McpServerPatch & Pick<NewMcpServer, "transport">
+
+function httpColumns(serverId: string, input: McpHttpInput, existing?: CredentialSecretMap | null): TransportColumns {
 	return {
+		transport: input.transport,
 		url: input.url,
 		authMode: input.authMode,
 		headers:
@@ -116,8 +118,9 @@ function httpColumns(serverId: string, input: McpHttpInput, existing?: Credentia
 	}
 }
 
-function stdioColumns(serverId: string, input: McpStdioInput, existing?: CredentialSecretMap | null): McpServerPatch {
+function stdioColumns(serverId: string, input: McpStdioInput, existing?: CredentialSecretMap | null): TransportColumns {
 	return {
+		transport: input.transport,
 		url: null,
 		authMode: null,
 		headers: null,
@@ -168,7 +171,6 @@ export async function createServer(agentId: string, input: McpCreateInput): Prom
 			id,
 			agentId,
 			name: input.name.trim(),
-			transport: input.transport,
 			...(input.transport === "http" ? httpColumns(id, input) : stdioColumns(id, input)),
 		})
 		return toView(await withDiscoveredTools(row))
@@ -194,7 +196,7 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 			: existing.tools
 	const saved = await repo.updateAtRevision(
 		serverId,
-		{ ...base, name: input.name.trim(), transport: input.transport, tools },
+		{ ...base, name: input.name.trim(), tools },
 		input.expectedRevision,
 	)
 	if (!saved) throw new RevisionConflictError("Connection changed; reload and retry")
