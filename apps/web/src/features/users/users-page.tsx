@@ -4,6 +4,9 @@ import {
 	getListUsersQueryKey,
 	useCreateInvitation,
 	useDeleteUser,
+	useGetMyPermissions,
+	useListGrantablePermissions,
+	useListRoles,
 	useListUsers,
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
@@ -12,6 +15,7 @@ import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/au
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { holdsAll } from "@/features/roles/role-form"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -36,6 +40,8 @@ import { Check, Copy, UserPlus } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+
+import { EditUserRolesDialog } from "./edit-user-roles-dialog"
 
 const FORBIDDEN_STATUS = 403
 const NOT_FOUND_STATUS = 404
@@ -260,12 +266,16 @@ function DeleteUserDialog({
 	)
 }
 
-function UsersList() {
+function UsersList({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const session = useGetSession()
 	const usersQuery = useListUsers()
+	const canManageUsers = held.includes("users:manage")
+	const canManageRoles = held.includes("roles:manage")
+	const rolesQuery = useListRoles({ query: { enabled: canManageRoles } })
+	const catalogQuery = useListGrantablePermissions({ query: { enabled: canManageRoles } })
 	const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
 
 	const errorStatus = (usersQuery.error as { status?: number } | null)?.status
@@ -300,28 +310,65 @@ function UsersList() {
 	}
 	const currentUserId = session.data?.data.user?.id
 	const users = usersQuery.data.data.users
+	const roles = rolesQuery.data?.data.roles
+	const catalog = catalogQuery.data?.data.permissions
+	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id) ?? [])
+	const ownRoles = roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
 
 	return (
 		<div className="space-y-3">
-			{users.map((user) => (
-				<Card key={user.id}>
-					<CardContent className="flex items-center justify-between gap-4">
-						<div className="flex items-center gap-2">
-							<span className="font-medium">{user.username}</span>
-							{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
-						</div>
-						<div className="flex items-center gap-3">
-							{confirmedUserId === user.id && (
-								<span role="status" className="text-primary text-xs">
-									{t("users.resetSuccess")}
-								</span>
-							)}
-							<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
-							<DeleteUserDialog targetUser={user} disabled={user.id === currentUserId} onDeleted={handleDeleted} />
-						</div>
-					</CardContent>
-				</Card>
-			))}
+			{users.map((user) => {
+				const exceedsOperator = !holdsAll(held, user.permissions)
+				return (
+					<Card key={user.id} data-user-id={user.id}>
+						<CardContent className="flex flex-wrap items-center justify-between gap-4">
+							<div className="flex min-w-0 flex-wrap items-center gap-2">
+								<span className="font-medium break-all">{user.username}</span>
+								{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+								{user.roles.map((role) => (
+									<Badge key={role.id} variant="outline">
+										{role.name}
+									</Badge>
+								))}
+								{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								{confirmedUserId === user.id && (
+									<span role="status" className="text-primary text-xs">
+										{t("users.resetSuccess")}
+									</span>
+								)}
+								{canManageRoles && (rolesQuery.isError || catalogQuery.isError) ? (
+									<p className="text-muted-foreground text-xs">{t("auth.errorFallback")}</p>
+								) : null}
+								{canManageRoles && roles && catalog ? (
+									<EditUserRolesDialog
+										catalog={catalog}
+										heldPermissions={held}
+										isSelf={user.id === currentUserId}
+										ownRoles={ownRoles}
+										roles={roles}
+										targetUser={user}
+									/>
+								) : null}
+								{canManageUsers && exceedsOperator ? (
+									<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
+								) : null}
+								{canManageUsers && !exceedsOperator ? (
+									<>
+										<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
+										<DeleteUserDialog
+											targetUser={user}
+											disabled={user.id === currentUserId}
+											onDeleted={handleDeleted}
+										/>
+									</>
+								) : null}
+							</div>
+						</CardContent>
+					</Card>
+				)
+			})}
 		</div>
 	)
 }
@@ -426,11 +473,16 @@ function InviteMemberDialog() {
 
 export function UsersPage() {
 	const { t } = useTranslation()
+	const held = useGetMyPermissions().data?.data.permissions ?? []
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
-			<PageHeader title={t("users.heading")} description={t("users.subheading")} actions={<InviteMemberDialog />} />
-			<UsersList />
+			<PageHeader
+				title={t("users.heading")}
+				description={t("users.subheading")}
+				actions={held.includes("users:manage") ? <InviteMemberDialog /> : null}
+			/>
+			<UsersList held={held} />
 		</div>
 	)
 }

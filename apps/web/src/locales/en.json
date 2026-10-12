@@ -532,7 +532,9 @@
 		"subheading": "Group access into roles, then give roles to people."
 	},
 	"users": {
+		"adminBadge": "Admin",
 		"cancel": "Cancel",
+		"cannotChange": "You can't reset this user's password or delete them because they have access you don't have yourself.",
 		"confirmHelp": "Type the exact username to confirm: {{username}}",
 		"confirmLabel": "Type \"{{username}}\" to enable deletion",
 		"copy": "Copy generated password",
@@ -542,15 +544,23 @@
 		"deletePrompt": "This permanently deletes {{username}}, signs them out everywhere, and removes their permissions. There is no undo.",
 		"deleteTitle": "Delete user?",
 		"deleting": "Deleting…",
+		"editRoles": "Edit roles",
+		"editRolesDescription": "Choose the roles this user has. They get every access their roles give.",
+		"editRolesTitle": "Roles for {{username}}",
 		"generate": "Generate",
 		"heading": "Users",
 		"loading": "Loading users…",
+		"lockoutWarning": "No other role you keep lets you manage roles. After saving, you won't be able to manage roles or open this page.",
+		"noRoles": "There are no roles yet. Create one on the Roles page first.",
 		"pendingChange": "Pending password change",
 		"resetDialogDescription": "Set a new password for this account.",
 		"resetDialogTitle": "Reset password for {{username}}",
 		"resetPassword": "Reset password",
 		"resetSuccess": "Password reset.",
 		"resetWarning": "This immediately signs them out everywhere and forces a password change on next login.",
-		"subheading": "View accounts, reset passwords, and delete accounts."
+		"roleNotYours": "This role includes access you don't have, so you can't give or remove it.",
+		"saveRoles": "Save roles",
+		"savingRoles": "Saving…",
+		"subheading": "See who can sign in, what roles they have, and manage their accounts."
 	}
 }

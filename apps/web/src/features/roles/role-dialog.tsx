@@ -69,7 +69,11 @@ export function RoleDialog({
 	const included = includedPermissions(selected, catalog)
 	const isSaving = createRole.isPending || updateRole.isPending
 	const idPrefix = `role-${role?.id ?? "new"}`
-	const locksOut = role ? losesRoleManagement({ heldPermissions, nextPermissions: selected, ownRoles, role }) : false
+	const locksOut = losesRoleManagement({
+		heldPermissions,
+		rolesBefore: ownRoles,
+		rolesAfter: ownRoles.map((own) => (own.id === role?.id ? { permissions: selected } : own)),
+	})
 
 	function handleOpenChange(next: boolean) {
 		if (isSaving) return

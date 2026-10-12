@@ -10,7 +10,7 @@ import { Bot, LayoutDashboard, LogOut, Menu, Settings2, ShieldCheck, User, Users
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "admin" | "agentRead" | "providerManage" | "rolesManage"
+type NavRequirement = "agentRead" | "providerManage" | "rolesManage" | "usersRead"
 
 type NavItem = {
 	to:
@@ -27,7 +27,7 @@ type NavItem = {
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard, requires: "agentRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
-	{ to: "/dashboard/users", icon: Users, requires: "admin" },
+	{ to: "/dashboard/users", icon: Users, requires: "usersRead" },
 	{ to: "/dashboard/roles", icon: ShieldCheck, requires: "rolesManage" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
@@ -45,12 +45,12 @@ const navLabels = {
 function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
 	const canReadAgents = permissions?.includes("agents:read") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
-	const isAdmin = permissions?.includes("admin") ?? false
+	const canReadUsers = permissions?.includes("users:read") ?? false
 	const canManageRoles = permissions?.includes("roles:manage") ?? false
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
 		if (item.requires === "providerManage") return canManageProvider
-		if (item.requires === "admin") return isAdmin
+		if (item.requires === "usersRead") return canReadUsers
 		if (item.requires === "rolesManage") return canManageRoles
 		return true
 	})

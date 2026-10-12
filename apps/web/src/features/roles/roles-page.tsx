@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next"
 import { DeleteRoleDialog } from "./delete-role-dialog"
 import { PERMISSION_COPY } from "./permission-labels"
 import { RoleDialog } from "./role-dialog"
-import { explicitPermissions, losesRoleManagement } from "./role-form"
+import { explicitPermissions, holdsAll, losesRoleManagement } from "./role-form"
 
 const FORBIDDEN_STATUS = 403
 const UNAUTHORIZED_STATUS = 401
@@ -93,7 +93,7 @@ export function RolesPage() {
 					const summary = explicitPermissions(role.permissions, catalog)
 						.map((permission) => PERMISSION_COPY[permission].label(t))
 						.join(", ")
-					const changeable = role.permissions.every((permission) => held.includes(permission))
+					const changeable = holdsAll(held, role.permissions)
 					return (
 						<Card key={role.id} data-role-id={role.id}>
 							<CardContent className="flex flex-wrap items-center justify-between gap-4">
@@ -115,9 +115,8 @@ export function RolesPage() {
 											role={role}
 											locksOut={losesRoleManagement({
 												heldPermissions: held,
-												nextPermissions: [],
-												ownRoles,
-												role,
+												rolesBefore: ownRoles,
+												rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
 											})}
 										/>
 									</div>

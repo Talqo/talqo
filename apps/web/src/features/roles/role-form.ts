@@ -40,16 +40,24 @@ export function explicitPermissions(
 		.filter((permission) => selected.includes(permission) && !included.has(permission))
 }
 
-// True when this role is the operator's only visible source of role management and the change drops it.
+type PermissionHolder = Pick<Role, "permissions">
+
+// The API refuses changes involving access the operator lacks, so the UI only offers what they hold.
+export function holdsAll(heldPermissions: readonly string[], permissions: readonly string[]): boolean {
+	return permissions.every((permission) => heldPermissions.includes(permission))
+}
+
+function managesRoles(roles: readonly PermissionHolder[]): boolean {
+	return roles.some(({ permissions }) => permissions.includes("roles:manage"))
+}
+
+// True when the operator's roles give role management before a change and not after it.
 // A direct grant is invisible here, so the warning can appear when it is not needed; it never blocks.
 export function losesRoleManagement(input: {
 	heldPermissions: readonly string[]
-	nextPermissions: readonly string[]
-	ownRoles: readonly Role[]
-	role: Role
+	rolesAfter: readonly PermissionHolder[]
+	rolesBefore: readonly PermissionHolder[]
 }): boolean {
-	const { heldPermissions, nextPermissions, ownRoles, role } = input
-	if (heldPermissions.includes("admin") || nextPermissions.includes("roles:manage")) return false
-	if (!role.permissions.includes("roles:manage") || !ownRoles.some(({ id }) => id === role.id)) return false
-	return !ownRoles.some(({ id, permissions }) => id !== role.id && permissions.includes("roles:manage"))
+	if (input.heldPermissions.includes("admin")) return false
+	return managesRoles(input.rolesBefore) && !managesRoles(input.rolesAfter)
 }

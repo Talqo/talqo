@@ -532,7 +532,9 @@
 		"subheading": "将访问权限归入角色，然后把角色分配给他人。"
 	},
 	"users": {
+		"adminBadge": "管理员",
 		"cancel": "取消",
+		"cannotChange": "此用户拥有你自己没有的访问权限，因此你无法重置其密码或删除该用户。",
 		"confirmHelp": "输入准确的用户名以确认：{{username}}",
 		"confirmLabel": "输入“{{username}}”以启用删除",
 		"copy": "复制生成的密码",
@@ -542,15 +544,23 @@
 		"deletePrompt": "这将永久删除 {{username}}，使其在所有设备上退出登录并移除其权限。此操作无法撤销。",
 		"deleteTitle": "删除用户？",
 		"deleting": "正在删除…",
+		"editRoles": "编辑角色",
+		"editRolesDescription": "选择此用户拥有的角色。用户将获得其角色提供的所有访问权限。",
+		"editRolesTitle": "{{username}} 的角色",
 		"generate": "生成",
 		"heading": "用户",
 		"loading": "正在加载用户…",
+		"lockoutWarning": "你保留的其他角色都不允许你管理角色。保存后，你将无法管理角色，也无法打开此页面。",
+		"noRoles": "还没有角色。请先在“角色”页面创建一个。",
 		"pendingChange": "待修改密码",
 		"resetDialogDescription": "为该账户设置新密码。",
 		"resetDialogTitle": "重置 {{username}} 的密码",
 		"resetPassword": "重置密码",
 		"resetSuccess": "密码已重置。",
 		"resetWarning": "这将立即使该用户在所有设备上退出登录，并要求其在下次登录时设置新密码。",
-		"subheading": "查看账户、重置密码并删除账户。"
+		"roleNotYours": "此角色包含你没有的访问权限，因此你无法分配或移除它。",
+		"saveRoles": "保存角色",
+		"savingRoles": "正在保存…",
+		"subheading": "查看谁可以登录、他们拥有哪些角色，并管理他们的账户。"
 	}
 }
