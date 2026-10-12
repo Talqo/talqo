@@ -80,20 +80,17 @@ export async function findRolesByIds(ids: string[]): Promise<Role[]> {
 	return db.select().from(role).where(inArray(role.id, ids))
 }
 
-export async function findPermissionsOfRoles(roleIds?: string[]): Promise<RolePermission[]> {
-	if (roleIds?.length === 0) return []
-	return db
-		.select()
-		.from(rolePermission)
-		.where(roleIds ? inArray(rolePermission.roleId, roleIds) : undefined)
+export async function findPermissionsOfRoles(roleIds: string[]): Promise<RolePermission[]> {
+	if (roleIds.length === 0) return []
+	return db.select().from(rolePermission).where(inArray(rolePermission.roleId, roleIds))
 }
 
-export async function countMembersByRole(roleIds?: string[]): Promise<{ memberCount: number; roleId: string }[]> {
-	if (roleIds?.length === 0) return []
+export async function countMembersByRole(roleIds: string[]): Promise<{ memberCount: number; roleId: string }[]> {
+	if (roleIds.length === 0) return []
 	return db
 		.select({ roleId: userRole.roleId, memberCount: count() })
 		.from(userRole)
-		.where(roleIds ? inArray(userRole.roleId, roleIds) : undefined)
+		.where(inArray(userRole.roleId, roleIds))
 		.groupBy(userRole.roleId)
 }
 
@@ -140,7 +137,11 @@ export async function replaceUserRoles(userId: string, roleIds: string[]): Promi
 	await db.transaction(async (tx) => {
 		await tx.delete(userRole).where(eq(userRole.userId, userId))
 		if (roleIds.length > 0) {
-			await tx.insert(userRole).values(roleIds.map((roleId) => ({ userId, roleId })))
+			// A simultaneous replace for the same user may already have written these rows.
+			await tx
+				.insert(userRole)
+				.values(roleIds.map((roleId) => ({ userId, roleId })))
+				.onConflictDoNothing()
 		}
 	})
 }

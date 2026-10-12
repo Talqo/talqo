@@ -294,7 +294,14 @@ export async function assignRoles(userId: string, roleIds: string[]): Promise<Ro
 	if ((await repo.findRolesByIds(roleIds)).length !== roleIds.length) {
 		throw new RoleNotFoundError(`assignRoles: unknown role for user ${userId}`)
 	}
-	await repo.replaceUserRoles(userId, roleIds)
+	try {
+		await repo.replaceUserRoles(userId, roleIds)
+	} catch (error) {
+		if (!isForeignKeyViolation(error)) throw error
+		// The user or a role was deleted after the checks above; report which one, not a 500.
+		await identity.getUser(userId)
+		throw new RoleNotFoundError(`assignRoles: a role was deleted while assigning user ${userId}`)
+	}
 	return repo.findRolesOfUser(userId)
 }
 

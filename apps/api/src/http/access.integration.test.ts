@@ -154,6 +154,19 @@ describe("access.permission with a target", () => {
 		expect(resolverCalls).toEqual([])
 	})
 
+	it("refuses a non-JSON body without reading it, since the size limit covers only JSON", async () => {
+		const cookie = await sessionCookie([roles.Permission.AgentsRead])
+
+		const response = await probe.request("/things/t1", {
+			method: "PUT",
+			headers: { Cookie: cookie, "Content-Type": "text/plain" },
+			body: JSON.stringify({ permissions: [] }),
+		})
+
+		await expectProblem(response, 400, PROBLEM_CODES.INVALID_REQUEST)
+		expect(resolverCalls).toEqual([])
+	})
+
 	it("never reads the body of a route that declares no target body", async () => {
 		const cookie = await sessionCookie([roles.Permission.AgentsRead])
 		const form = new FormData()

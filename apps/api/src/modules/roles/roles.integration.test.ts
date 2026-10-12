@@ -3,7 +3,7 @@ import { sql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
-import { beforeEach, describe, expect, it } from "bun:test"
+import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
 import * as repo from "./roles.repository.ts"
 import * as service from "./roles.service.ts"
@@ -534,6 +534,25 @@ describe("role assignment", () => {
 			service.InvalidRoleInputError,
 		)
 		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+	})
+
+	it("settles simultaneous identical assignments without a duplicate-key failure", async () => {
+		const member = await createMember()
+		const role = await createRole(["agents:read"])
+
+		await Promise.all([service.assignRoles(member.id, [role.id]), service.assignRoles(member.id, [role.id])])
+
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+	})
+
+	it("reports a role deleted between the check and the write as not found", async () => {
+		const member = await createMember()
+		const role = await createRole([])
+		const missing = crypto.randomUUID()
+		// Simulates the race: the existence check saw the role, then it was deleted before the insert.
+		using _ = spyOn(repo, "findRolesByIds").mockResolvedValue([{ ...role, id: missing, createdAt: new Date() }])
+
+		await expect(service.assignRoles(member.id, [missing])).rejects.toBeInstanceOf(service.RoleNotFoundError)
 	})
 
 	it("drops assignments when the user is deleted", async () => {

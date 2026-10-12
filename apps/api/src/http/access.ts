@@ -44,6 +44,8 @@ function targetResolver<B>(target: AccessTarget<B>): (c: Context) => Promise<rol
 	return async (c) => {
 		const params = c.req.param()
 		if (!target.body) return target.resolve({ params })
+		// The global body size limit covers only JSON, so never buffer anything else here.
+		if (!c.req.header("Content-Type")?.startsWith("application/json")) return undefined
 		const body = target.body.safeParse(await c.req.json().catch(() => undefined))
 		return body.success ? target.resolve({ body: body.data, params }) : undefined
 	}
