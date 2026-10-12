@@ -1,11 +1,11 @@
 import { db, sql } from "@/db/client.ts"
-import { conversation, generationAttempt, message } from "@/modules/conversation/conversation.schema.ts"
-import { usageRecord } from "@/modules/usage/usage.schema.ts"
 import { estimateTokens } from "@/modules/usage/usage.service.ts"
 
-// Development statistics fixtures: a month of fixed daily traffic per seeded agent plus two
-// recent conversations, so the dashboard renders real series out of the box. Runs once; the
-// marker prefix keeps later seeds off.
+import { conversation, generationAttempt, message } from "./conversation.schema.ts"
+
+// Development traffic fixtures: a month of fixed daily conversations per seeded agent plus two
+// recent ones, so dashboard statistics render real series out of the box. Returns the seeded
+// attempts so the usage seed can meter them; empty when the marker says we already ran.
 const DAYS = 30
 const MARKER_PREFIX = "seed-stats-"
 const MESSAGES_PER_TURN = 2
@@ -13,7 +13,6 @@ const TURNS_PER_CONVERSATION = 2
 const MESSAGE_GAP_MS = 45_000
 const MILLISECONDS_PER_MINUTE = 60_000
 const MILLISECONDS_PER_DAY = 86_400_000
-// Matches the API's active-conversation window so the recent fixtures count as active.
 const ACTIVE_MINUTES_AGO = 12
 const INPUT_TOKENS_PER_TURN = 640
 const OUTPUT_TOKENS_PER_TURN = 160
@@ -53,21 +52,30 @@ function line(bank: readonly string[], index: number): string {
 	return bank[index % bank.length] ?? "…"
 }
 
-type PlannedRowSets = {
-	attempts: (typeof generationAttempt.$inferInsert)[]
-	conversations: (typeof conversation.$inferInsert)[]
-	messages: (typeof message.$inferInsert)[]
-	usages: (typeof usageRecord.$inferInsert)[]
+export type SeededAttempt = {
+	generationAttemptId: string
+	agentId: string
+	conversationId: string
+	inputTokens: number
+	outputTokens: number
+	createdAt: Date
 }
 
-function planConversation(agentId: string, startedAt: Date): PlannedRowSets {
+type PlannedRows = {
+	conversations: (typeof conversation.$inferInsert)[]
+	attempts: (typeof generationAttempt.$inferInsert)[]
+	messages: (typeof message.$inferInsert)[]
+	usages: SeededAttempt[]
+}
+
+function planConversation(agentId: string, startedAt: Date): PlannedRows {
 	const turns = TURNS_PER_CONVERSATION
 	const conversationId = nextId("conversation")
 	const attemptId = nextId("attempt")
 	const base = startedAt.getTime()
 	const inputTokens = turns * INPUT_TOKENS_PER_TURN
 	const outputTokens = turns * OUTPUT_TOKENS_PER_TURN
-	const messages: PlannedRowSets["messages"] = []
+	const messages: PlannedRows["messages"] = []
 	for (let index = 0; index < turns * MESSAGES_PER_TURN; index += 1) {
 		const createdAt = new Date(base + index * MESSAGE_GAP_MS)
 		messages.push({
@@ -85,8 +93,6 @@ function planConversation(agentId: string, startedAt: Date): PlannedRowSets {
 		})
 	}
 	const lastMessageAt = messages[messages.length - 1]?.createdAt ?? startedAt
-	// Fully finalized attempts: anything less looks "pending" to the usage finalization drain
-	// and conflicts with the matching usage_record.
 	return {
 		conversations: [{ id: conversationId, agentId, embedAccessVersion: 1, createdAt: startedAt }],
 		attempts: [
@@ -116,9 +122,6 @@ function planConversation(agentId: string, startedAt: Date): PlannedRowSets {
 				generationAttemptId: attemptId,
 				agentId,
 				conversationId,
-				provider: "seed",
-				model: "chat-model",
-				outcome: "completed",
 				inputTokens,
 				outputTokens,
 				createdAt: lastMessageAt,
@@ -134,9 +137,9 @@ function dayStartUtc(daysAgo: number): Date {
 	return day
 }
 
-function planRows(now: Date): PlannedRowSets {
-	const rows: PlannedRowSets = { attempts: [], conversations: [], messages: [], usages: [] }
-	const merge = (planned: PlannedRowSets) => {
+function planRows(now: Date): PlannedRows {
+	const rows: PlannedRows = { attempts: [], conversations: [], messages: [], usages: [] }
+	const merge = (planned: PlannedRows) => {
 		rows.conversations.push(...planned.conversations)
 		rows.attempts.push(...planned.attempts)
 		rows.messages.push(...planned.messages)
@@ -157,19 +160,18 @@ function planRows(now: Date): PlannedRowSets {
 			}
 		}
 	}
-	// Recent traffic so the live activity card shows figures right after seeding.
 	for (const { agentId } of [SEED_AGENTS[0], SEED_AGENTS[1]]) {
 		merge(planConversation(agentId, new Date(now.getTime() - ACTIVE_MINUTES_AGO * MILLISECONDS_PER_MINUTE)))
 	}
 	return rows
 }
 
-export async function seed(): Promise<void> {
+export async function seed(): Promise<SeededAttempt[]> {
 	const [marker] = await sql`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
-	if (marker) return
+	if (marker) return []
 	const rows = planRows(new Date())
 	await db.insert(conversation).values(rows.conversations)
 	await db.insert(generationAttempt).values(rows.attempts)
 	await db.insert(message).values(rows.messages)
-	await db.insert(usageRecord).values(rows.usages)
+	return rows.usages
 }
