@@ -2,7 +2,9 @@ import { db } from "@/db/client.ts"
 
 import { usageRecord } from "./usage.schema.ts"
 
-export type SeededAttemptUsage = {
+import type { SeededAttempt } from "@/modules/conversation/conversation.seed.ts"
+
+// Then use SeededAttempt directly instead of SeededAttemptUsage
 	generationAttemptId: string
 	agentId: string
 	conversationId: string
