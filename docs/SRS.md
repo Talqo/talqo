@@ -45,7 +45,7 @@ Talqo is related to these repos:
 ### 2.3 Constraints
 
 - Single-tenant only: one deployment serves exactly one operator (e.g. a company or dev group), which may run multiple agents — e.g. one per website, or multiple agents on the same site for A/B testing. The dashboard supports multiple operator accounts within that single tenant.
-- Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1), and holds every permission. Other accounts receive permissions through roles (FR-2.6b, FR-2.6c) or direct permission grants. There is no superadmin.
+- Dashboard accounts are role-based: exactly one admin account exists per deployment, created via first-run setup (FR-2.1), and holds every permission. Other accounts receive permissions only through roles (FR-2.6b, FR-2.6c). There is no superadmin.
 - The operator must supply their own AI provider authentication source; there is no platform-funded default.
 
 ### 2.4 Assumptions & Dependencies

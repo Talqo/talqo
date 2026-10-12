@@ -1,7 +1,7 @@
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi"
 import { beforeEach, describe, expect, it } from "bun:test"
 
@@ -55,11 +55,9 @@ const probe = new OpenAPIHono()
 		return c.json({ fileName: file instanceof File ? file.name : null }, HTTP_STATUS.OK)
 	})
 
-async function sessionCookie(permissions: roles.Permission[]): Promise<string> {
+async function sessionCookie(permissions: roles.GrantablePermission[]): Promise<string> {
 	const user = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-	await Promise.all(
-		permissions.map((permission) => roles.grantPermission({ userId: user.id, permission, grantedBy: user.id })),
-	)
+	await giveRole(user.id, permissions)
 	const { token } = await identity.createSession(user.id)
 	return `${identity.SESSION_COOKIE}=${token}`
 }

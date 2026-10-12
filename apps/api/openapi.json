@@ -25,21 +25,6 @@
 						"properties": {
 							"code": {
 								"type": "string",
-								"enum": ["admin-access-required"]
-							},
-							"type": {
-								"type": "string",
-								"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
-							}
-						},
-						"required": ["code", "type"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"code": {
-								"type": "string",
 								"enum": ["admin-already-exists"]
 							},
 							"type": {
@@ -2979,211 +2964,6 @@
 				}
 			}
 		},
-		"/api/permission-grants": {
-			"post": {
-				"operationId": "createPermissionGrant",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"userId": {
-										"type": "string",
-										"minLength": 1,
-										"maxLength": 128
-									},
-									"permission": {
-										"type": "string",
-										"enum": [
-											"admin",
-											"users:read",
-											"users:manage",
-											"roles:manage",
-											"ai_provider:manage",
-											"agents:read",
-											"agents:manage"
-										]
-									}
-								},
-								"required": ["userId", "permission"],
-								"additionalProperties": false
-							}
-						}
-					}
-				},
-				"responses": {
-					"201": {
-						"description": "Permission granted",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"grant": {
-											"type": "object",
-											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"userId": {
-													"type": "string"
-												},
-												"permission": {
-													"type": "string"
-												},
-												"grantedBy": {
-													"type": ["string", "null"]
-												},
-												"grantedAt": {
-													"type": "string",
-													"format": "date-time"
-												}
-											},
-											"required": ["id", "userId", "permission", "grantedBy", "grantedAt"]
-										}
-									},
-									"required": ["grant"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: user-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Problem response. Codes: admin-already-exists.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Problem response. Codes: payload-too-large.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/permission-grants/{id}": {
-			"delete": {
-				"operationId": "revokePermissionGrant",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "id",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"204": {
-						"description": "No content"
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/me/permissions": {
 			"get": {
 				"operationId": "getMyPermissions",
@@ -3532,7 +3312,8 @@
 												"agents:read",
 												"agents:manage"
 											]
-										}
+										},
+										"maxItems": 6
 									}
 								},
 								"required": ["name", "permissions"],
@@ -3664,7 +3445,8 @@
 												"agents:read",
 												"agents:manage"
 											]
-										}
+										},
+										"maxItems": 6
 									}
 								},
 								"required": ["name", "permissions"],

@@ -44,14 +44,6 @@ const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
 	"roles:manage": ["users:read"],
 }
 
-export type PermissionGrant = {
-	grantedAt: Date
-	grantedBy: string | null
-	id: string
-	permission: Permission
-	userId: string
-}
-
 function expandPermissions(granted: Permission[]): Permission[] {
 	const effective = new Set<Permission>(granted)
 	for (const permission of granted) {
@@ -137,31 +129,6 @@ export async function redeemInvitation(input: {
 	}
 }
 
-export async function grantPermission(input: {
-	grantedBy: string
-	permission: Permission
-	userId: string
-}): Promise<PermissionGrant> {
-	try {
-		const row = await repo.insertPermissionGrant({
-			id: crypto.randomUUID(),
-			userId: input.userId,
-			permission: input.permission,
-			grantedBy: input.grantedBy,
-		})
-		return { ...row, permission: input.permission }
-	} catch (error) {
-		if (isForeignKeyViolation(error))
-			throw new identity.UserNotFoundError(`grantPermission: user ${input.userId} not found`, { cause: error })
-		if (isUniqueViolation(error)) throw new AdminAlreadyExistsError("Permission grant already exists", { cause: error })
-		throw error
-	}
-}
-
-export async function revokePermission(id: string): Promise<void> {
-	await repo.deletePermissionGrant(id)
-}
-
 export async function getAccess(userId: string): Promise<{ permissions: Permission[] }> {
 	return { permissions: await listEffectivePermissions(userId) }
 }
@@ -170,7 +137,7 @@ export async function authorize(userId: string, permission: Permission): Promise
 	return (await listEffectivePermissions(userId)).includes(permission)
 }
 
-// The only source of a user's permissions: direct grants plus every assigned role's permissions.
+// The only source of a user's permissions: the admin grant plus every assigned role's permissions.
 // Fetched fresh on every call, never cached, so a revoked grant or role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
 	const [grants, rolePermissions] = await Promise.all([

@@ -47,10 +47,6 @@ export async function insertPermissionGrant(values: NewPermissionGrant): Promise
 	return row
 }
 
-export async function deletePermissionGrant(id: string): Promise<void> {
-	await db.delete(permissionGrant).where(eq(permissionGrant.id, id))
-}
-
 export async function findGrantsForUser(userId: string): Promise<PermissionGrant[]> {
 	return db.select().from(permissionGrant).where(eq(permissionGrant.userId, userId))
 }

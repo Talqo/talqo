@@ -445,7 +445,6 @@
 		"accessDeniedTitle": "访问受限"
 	},
 	"problems": {
-		"admin-access-required": "此操作需要管理员权限。",
 		"admin-already-exists": "管理员账户已存在。",
 		"agent-file-invalid": "智能体文件无效。",
 		"agent-file-name-taken": "已存在同名智能体文件。",

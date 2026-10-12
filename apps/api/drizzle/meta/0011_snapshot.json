@@ -1,5 +1,5 @@
 {
-  "id": "240c7cd2-e6c2-4d0e-8fe7-f2f36b45e614",
+  "id": "a6a60258-fb34-4044-8a4f-72e72f06483a",
   "prevId": "e2208e00-daba-4f58-92cb-fa6092b178c8",
   "version": "7",
   "dialect": "postgresql",
@@ -1715,7 +1715,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "permission_grant_admin_only": {
+          "name": "permission_grant_admin_only",
+          "value": "\"permission_grant\".\"permission\" = 'admin'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.role": {

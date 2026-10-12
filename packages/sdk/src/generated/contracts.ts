@@ -46,10 +46,6 @@ export interface EmbedConfig {
 
 export type ProblemDetails =
 	| {
-			code: "admin-access-required"
-			type: "https://docs.talqo.chat/problems#admin-access-required"
-	  }
-	| {
 			code: "admin-already-exists"
 			type: "https://docs.talqo.chat/problems#admin-already-exists"
 	  }

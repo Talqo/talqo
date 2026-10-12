@@ -69,23 +69,6 @@ export const redeemInvitationResponseSchema = z.object({
 	user: userResponseSchema,
 })
 
-const createGrantRequestSchema = z
-	.object({
-		userId: z.string().min(1).max(CREDENTIAL_MAX_LENGTH),
-		permission: z.enum(PERMISSIONS),
-	})
-	.strict()
-
-export const grantResponseSchema = z.object({
-	grant: z.object({
-		id: z.string(),
-		userId: z.string(),
-		permission: z.string(),
-		grantedBy: z.string().nullable(),
-		grantedAt: z.iso.datetime(),
-	}),
-})
-
 export const myPermissionsResponseSchema = z.object({
 	permissions: z.array(z.enum(PERMISSIONS)),
 })
@@ -110,6 +93,7 @@ const roleRequestSchema = z
 		name: z.string().trim().min(1).max(ROLE_NAME_MAX_LENGTH),
 		permissions: z
 			.array(z.enum(GRANTABLE_PERMISSIONS))
+			.max(GRANTABLE_PERMISSIONS.length)
 			.refine(hasNoRepeats, { message: "Permissions must not repeat" }),
 	})
 	.strict()
@@ -134,7 +118,6 @@ export const userRolesResponseSchema = z.object({ roles: z.array(roleSummarySche
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const passwordRequired = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
-const adminRequired = problemResponse([PROBLEM_CODES.ADMIN_ACCESS_REQUIRED, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED])
 const permissionForbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
 const targetForbidden = problemResponse([
 	PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED,
@@ -174,10 +157,6 @@ export const userListResponseSchema = z.object({
 
 export const accessResponseSchema = z.object({
 	permissions: z.array(z.enum(PERMISSIONS)),
-})
-
-const permissionGrantParamsSchema = z.object({
-	id: z.string().openapi({ param: { name: "id", in: "path" } }),
 })
 
 const userParamsSchema = z.object({
@@ -272,42 +251,6 @@ export const redeemInvitationRoute = createRoute({
 		400: invalidRequest,
 		409: problemResponse([PROBLEM_CODES.INVALID_INVITATION, PROBLEM_CODES.USERNAME_TAKEN]),
 		413: payloadTooLargeResponse,
-		500: serverError,
-	},
-})
-
-export const createPermissionGrantRoute = createRoute({
-	method: "post",
-	path: "/",
-	operationId: "createPermissionGrant",
-	tags: ["Roles"],
-	...access.permission(Permission.Admin),
-	request: {
-		body: { content: { "application/json": { schema: createGrantRequestSchema } }, required: true },
-	},
-	responses: {
-		201: { content: { "application/json": { schema: grantResponseSchema } }, description: "Permission granted" },
-		400: invalidRequest,
-		401: authRequired,
-		403: adminRequired,
-		404: userNotFound,
-		409: problemResponse([PROBLEM_CODES.ADMIN_ALREADY_EXISTS]),
-		413: payloadTooLargeResponse,
-		500: serverError,
-	},
-})
-
-export const revokePermissionGrantRoute = createRoute({
-	method: "delete",
-	path: "/{id}",
-	operationId: "revokePermissionGrant",
-	tags: ["Roles"],
-	...access.permission(Permission.Admin),
-	request: { params: permissionGrantParamsSchema },
-	responses: {
-		204: noContentResponse,
-		401: authRequired,
-		403: adminRequired,
 		500: serverError,
 	},
 })

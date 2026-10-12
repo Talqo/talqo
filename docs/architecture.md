@@ -123,7 +123,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
-- The `roles` module owns permission grants, roles, role permissions and role assignments. `roles.listEffectivePermissions` is the only computation of a user's permissions (grants plus role permissions); the access gate and the escalation guard both use it.
+- The `roles` module owns the admin grant, roles, role permissions and role assignments. `roles.listEffectivePermissions` is the only computation of a user's permissions (the admin grant plus role permissions); the access gate and the escalation guard both use it.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.
 - Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.

@@ -8,11 +8,15 @@ import * as zod from "zod"
 
 export const updateRoleBodyNameMax = 64
 
+export const updateRoleBodyPermissionsMax = 6
+
 export const UpdateRoleBody = zod.object({
 	name: zod.string().min(1).max(updateRoleBodyNameMax),
-	permissions: zod.array(
-		zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage", "agents:read", "agents:manage"]),
-	),
+	permissions: zod
+		.array(
+			zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage", "agents:read", "agents:manage"]),
+		)
+		.max(updateRoleBodyPermissionsMax),
 })
 
 export type UpdateRoleBody = zod.input<typeof UpdateRoleBody>

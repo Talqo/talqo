@@ -72,11 +72,7 @@ function requireSession(options: SessionOptions) {
 			}
 
 			if (options.permission && !(await roles.authorize(session.user.id, options.permission))) {
-				const code =
-					options.permission === roles.Permission.Admin
-						? PROBLEM_CODES.ADMIN_ACCESS_REQUIRED
-						: PROBLEM_CODES.PERMISSION_DENIED
-				return problemResponse(c, code, HTTP_STATUS.FORBIDDEN)
+				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 			}
 
 			if (options.resolveTarget) {

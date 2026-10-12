@@ -12,23 +12,26 @@ test.afterEach(async ({ page }) => {
 	createdAgentId = undefined
 })
 
-async function grantViewerPermission(page: Page): Promise<string> {
+async function giveViewerRole(page: Page): Promise<string> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
 	const usersResponse = await page.request.get("/api/users")
 	await expect(usersResponse).toBeOK()
 	const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
 	const user = users.find(({ username }) => username === VIEWER.username)
 	if (!user) throw new Error("Seed user is missing")
-	const response = await page.request.post("/api/permission-grants", {
-		data: { userId: user.id, permission: "agents:read" },
+	const response = await page.request.post("/api/roles", {
+		data: { name: `Agent viewers ${Date.now()}`, permissions: ["agents:read"] },
 	})
 	await expect(response).toBeOK()
-	return ((await response.json()) as { grant: { id: string } }).grant.id
+	const roleId = ((await response.json()) as { role: { id: string } }).role.id
+	await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
+	return roleId
 }
 
-async function revokeViewerPermission(page: Page, grantId: string): Promise<void> {
+// Deleting the role also removes the assignment.
+async function removeViewerRole(page: Page, roleId: string): Promise<void> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
-	await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+	await expect(await page.request.delete(`/api/roles/${roleId}`)).toBeOK()
 }
 
 async function logIn(page: Page, account: { password: string; username: string }) {
@@ -93,7 +96,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 })
 
 test("a read-only operator can inspect agents but finds no management controls", async ({ page }) => {
-	const grantId = await grantViewerPermission(page)
+	const roleId = await giveViewerRole(page)
 	try {
 		await logIn(page, VIEWER)
 
@@ -129,7 +132,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
 		await expect(page.getByRole("button", { name: "Delete embed" })).toHaveCount(0)
 	} finally {
-		await revokeViewerPermission(page, grantId)
+		await removeViewerRole(page, roleId)
 	}
 })
 

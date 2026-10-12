@@ -447,7 +447,6 @@
 		"accessDeniedTitle": "Přístup omezen"
 	},
 	"problems": {
-		"admin-access-required": "Je vyžadován přístup správce.",
 		"admin-already-exists": "Účet správce již existuje.",
 		"agent-file-invalid": "Soubor agenta je neplatný.",
 		"agent-file-name-taken": "Soubor agenta s tímto názvem již existuje.",

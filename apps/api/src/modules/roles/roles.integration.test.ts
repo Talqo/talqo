@@ -2,7 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
 import * as repo from "./roles.repository.ts"
@@ -51,11 +51,9 @@ async function createMember(): Promise<identity.PublicUser> {
 	return identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 }
 
-async function memberWith(permissions: service.Permission[]): Promise<{ cookie: string; userId: string }> {
+async function memberWith(permissions: service.GrantablePermission[]): Promise<{ cookie: string; userId: string }> {
 	const member = await createMember()
-	await Promise.all(
-		permissions.map((permission) => service.grantPermission({ userId: member.id, permission, grantedBy: member.id })),
-	)
+	await giveRole(member.id, permissions)
 	const { token } = await identity.createSession(member.id)
 	return { cookie: `${identity.SESSION_COOKIE}=${token}`, userId: member.id }
 }
@@ -114,7 +112,12 @@ describe("roles", () => {
 	it("rejects a second attempt to bootstrap an admin", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
 		const seedAdmin = await identity.createAccount({ username: uniqueUsername(), password: "seed-admin-password" })
-		await service.grantPermission({ userId: seedAdmin.id, permission: "admin", grantedBy: seedAdmin.id })
+		await repo.insertPermissionGrant({
+			id: crypto.randomUUID(),
+			userId: seedAdmin.id,
+			permission: "admin",
+			grantedBy: seedAdmin.id,
+		})
 
 		const response = await app.request("/api/setup", {
 			method: "POST",
@@ -261,89 +264,55 @@ describe("invitations", () => {
 	})
 })
 
-describe("permission grants", () => {
-	it("lets an admin grant a permission to another user", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-
-		const response = await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage" }),
-		})
-
-		expect(response.status).toBe(201)
-		const { grant } = (await response.json()) as {
-			grant: { permission: string; userId: string }
-		}
-		expect(grant.userId).toBe(member.id)
-		expect(grant.permission).toBe("ai_provider:manage")
-	})
-
-	it("denies a non-admin from creating a permission grant", async () => {
+describe("admin grant", () => {
+	it("denies a non-admin from creating an invitation", async () => {
 		const cookie = await createMemberSession()
-		const target = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 
-		const response = await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: cookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: target.id, permission: "ai_provider:manage" }),
-		})
+		const response = await app.request("/api/invitations", { method: "POST", headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(403)
 	})
 
-	it("rejects grant bodies that still try to scope a grant to one agent", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-		const member = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+	it("refuses any direct grant other than admin at the database level", async () => {
+		const member = await createMember()
 
-		const response = await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage", agentId: crypto.randomUUID() }),
-		})
-
-		expect(response.status).toBe(400)
+		await expect(
+			repo.insertPermissionGrant({
+				id: crypto.randomUUID(),
+				userId: member.id,
+				permission: "agents:read",
+				grantedBy: member.id,
+			}),
+		).rejects.toThrow()
 	})
 
-	it("rejects a second admin grant even for the already-admin user", async () => {
-		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
+	it("no longer offers the direct grant routes", async () => {
+		const { cookie } = await createAdminSession()
 
-		const response = await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: adminId, permission: "admin" }),
+		const response = await call(cookie, "POST", "/permission-grants", {
+			userId: crypto.randomUUID(),
+			permission: "agents:read",
 		})
 
-		expect(response.status).toBe(409)
+		await expectCode(response, 404, "route-not-found")
 	})
 
-	it("denies the very next request after revocation, without touching the member's session", async () => {
+	it("denies the very next request after a role is removed, without touching the member's session", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
 		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-		const grantResponse = await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "agents:read" }),
-		})
-		const { grant } = (await grantResponse.json()) as { grant: { id: string } }
+		await giveRole(member.id, ["agents:read"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
-		const beforeRevoke = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
-		expect(beforeRevoke.status).toBe(200)
+		const beforeRemoval = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		expect(beforeRemoval.status).toBe(200)
 
-		const revokeResponse = await app.request(`/api/permission-grants/${grant.id}`, {
-			method: "DELETE",
-			headers: { Cookie: adminCookie },
-		})
-		expect(revokeResponse.status).toBe(204)
+		expect((await call(adminCookie, "PUT", `/users/${member.id}/roles`, { roleIds: [] })).status).toBe(200)
 
-		// Same cookie, no re-login: proves authorize() reads grants fresh per request
+		// Same cookie, no re-login: proves authorize() reads permissions fresh per request
 		// rather than relying on anything cached in the session.
-		const afterRevoke = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
-		expect(afterRevoke.status).toBe(403)
+		const afterRemoval = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		expect(afterRemoval.status).toBe(403)
 	})
 })
 
@@ -357,15 +326,10 @@ describe("effective permissions", () => {
 		expect(await response.json()).toEqual({ permissions: [...service.PERMISSIONS] })
 	})
 
-	it("expands a member's agents:manage grant to include agents:read", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
+	it("expands a member's agents:manage role to include agents:read", async () => {
 		const memberUsername = uniqueUsername()
 		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-		await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "agents:manage" }),
-		})
+		await giveRole(member.id, ["agents:manage"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
 		const response = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
@@ -373,8 +337,7 @@ describe("effective permissions", () => {
 		expect(await response.json()).toEqual({ permissions: ["agents:read", "agents:manage"] })
 	})
 
-	it("returns an empty list for an ungranted member and reflects grants immediately", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
+	it("returns an empty list for a member without roles and reflects a new role immediately", async () => {
 		const memberUsername = uniqueUsername()
 		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
@@ -382,11 +345,7 @@ describe("effective permissions", () => {
 		const beforeGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 		expect(await beforeGrant.json()).toEqual({ permissions: [] })
 
-		await app.request("/api/permission-grants", {
-			method: "POST",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "ai_provider:manage" }),
-		})
+		await giveRole(member.id, ["ai_provider:manage"])
 
 		const afterGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 		expect(await afterGrant.json()).toEqual({ permissions: ["ai_provider:manage"] })
@@ -400,10 +359,13 @@ describe("effective permissions", () => {
 		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "agents:manage"])
 	})
 
-	it("unions permissions across grants and every assigned role", async () => {
+	it("unions permissions across every assigned role", async () => {
 		const member = await createMember()
-		await service.grantPermission({ userId: member.id, permission: "ai_provider:manage", grantedBy: member.id })
-		const roles = [await createRole(["agents:read"]), await createRole(["agents:manage"])]
+		const roles = [
+			await createRole(["ai_provider:manage"]),
+			await createRole(["agents:read"]),
+			await createRole(["agents:manage"]),
+		]
 		await service.assignRoles(
 			member.id,
 			roles.map((role) => role.id),
@@ -609,10 +571,12 @@ describe("target resolvers", () => {
 		expect(targeted).toEqual(["users:read", "agents:manage"])
 	})
 
-	it("returns a user's effective permissions from grants and roles", async () => {
+	it("returns a user's effective permissions across their roles", async () => {
 		const member = await createMember()
-		await service.grantPermission({ userId: member.id, permission: "agents:manage", grantedBy: member.id })
-		await service.assignRoles(member.id, [(await createRole(["users:read"])).id])
+		await service.assignRoles(member.id, [
+			(await createRole(["users:read"])).id,
+			(await createRole(["agents:manage"])).id,
+		])
 
 		expect(await service.permissionsOfUser({ params: { userId: member.id } })).toEqual([
 			"users:read",
@@ -775,7 +739,7 @@ describe("user management routes", () => {
 		expect((await call(manager.cookie, "DELETE", `/users/${target.userId}`)).status).toBe(204)
 	})
 
-	it("refuses resetting or deleting the admin or a user with a grant the manager lacks", async () => {
+	it("refuses resetting or deleting the admin or a user with a role the manager lacks", async () => {
 		const manager = await memberWith(["users:manage"])
 		const { userId: adminId } = await createAdminSession()
 		const granted = await memberWith(["ai_provider:manage"])

@@ -1,6 +1,6 @@
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
-import { index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { check, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const invitation = pgTable(
 	"invitation",
@@ -24,7 +24,7 @@ export const permissionGrant = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		// Free text, not a DB enum: each module with mutating routes owns its own permission strings.
+		// Only the admin grant remains; every other permission comes from roles.
 		permission: text("permission").notNull(),
 		// Legacy: grants are global now, and authorization ignores rows where this is set.
 		agentId: text("agent_id"),
@@ -39,6 +39,7 @@ export const permissionGrant = pgTable(
 		uniqueIndex("permission_grant_admin_unique_idx")
 			.on(table.permission)
 			.where(sql`${table.permission} = 'admin' AND ${table.agentId} IS NULL`),
+		check("permission_grant_admin_only", sql`${table.permission} = 'admin'`),
 	],
 )
 

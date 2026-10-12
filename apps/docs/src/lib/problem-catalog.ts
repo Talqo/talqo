@@ -10,13 +10,6 @@ export type ProblemDefinition = {
 
 export const PROBLEMS = [
 	{
-		code: "admin-access-required",
-		title: "Admin access required",
-		status: "403",
-		meaning: "The operation requires an administrator.",
-		guidance: "Use an administrator account.",
-	},
-	{
 		code: "admin-already-exists",
 		title: "Admin already exists",
 		status: "409",

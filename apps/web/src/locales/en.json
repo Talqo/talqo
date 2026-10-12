@@ -445,7 +445,6 @@
 		"accessDeniedTitle": "Access restricted"
 	},
 	"problems": {
-		"admin-access-required": "Admin access is required.",
 		"admin-already-exists": "An admin account already exists.",
 		"agent-file-invalid": "The agent file is invalid.",
 		"agent-file-name-taken": "An agent file with this name already exists.",

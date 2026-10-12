@@ -56,15 +56,22 @@ describe("auth flow", () => {
 		const beforeGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
 		expect(beforeGrant.status).toBe(403)
 
-		// 4. Admin grants the member `agents:read`.
-		const grantResponse = await app.request("/api/permission-grants", {
+		// 4. Admin creates a role with `agents:read` and assigns it to the member.
+		const roleResponse = await app.request("/api/roles", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ userId: member.id, permission: "agents:read" }),
+			body: JSON.stringify({ name: `Readers ${crypto.randomUUID()}`, permissions: ["agents:read"] }),
 		})
-		expect(grantResponse.status).toBe(201)
+		expect(roleResponse.status).toBe(201)
+		const { role } = (await roleResponse.json()) as { role: { id: string } }
+		const assignResponse = await app.request(`/api/users/${member.id}/roles`, {
+			method: "PUT",
+			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ roleIds: [role.id] }),
+		})
+		expect(assignResponse.status).toBe(200)
 
-		// 5. Member's access reflects exactly that grant: the granted action succeeds.
+		// 5. Member's access reflects the assigned role.
 		const afterGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
 		expect(afterGrant.status).toBe(200)
 

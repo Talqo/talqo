@@ -52,7 +52,6 @@ function managesRoles(roles: readonly PermissionHolder[]): boolean {
 }
 
 // True when the operator's roles give role management before a change and not after it.
-// A direct grant is invisible here, so the warning can appear when it is not needed; it never blocks.
 export function losesRoleManagement(input: {
 	heldPermissions: readonly string[]
 	rolesAfter: readonly PermissionHolder[]

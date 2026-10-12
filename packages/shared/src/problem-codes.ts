@@ -1,5 +1,4 @@
 export const PROBLEM_CODES = {
-	ADMIN_ACCESS_REQUIRED: "admin-access-required",
 	ADMIN_ALREADY_EXISTS: "admin-already-exists",
 	AGENT_FILE_INVALID: "agent-file-invalid",
 	AGENT_FILE_NAME_TAKEN: "agent-file-name-taken",

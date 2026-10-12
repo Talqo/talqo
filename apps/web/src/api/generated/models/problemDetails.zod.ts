@@ -8,10 +8,6 @@ import * as zod from "zod"
 
 export const ProblemDetails = zod.union([
 	zod.object({
-		code: zod.enum(["admin-access-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
-	}),
-	zod.object({
 		code: zod.enum(["admin-already-exists"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
 	}),

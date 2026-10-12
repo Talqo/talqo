@@ -16,8 +16,11 @@ CREATE TABLE "user_role" (
 	CONSTRAINT "user_role_user_id_role_id_pk" PRIMARY KEY("user_id","role_id")
 );
 --> statement-breakpoint
+ALTER TABLE "embed" ALTER COLUMN "theme_toggle_enabled" SET DEFAULT false;--> statement-breakpoint
 ALTER TABLE "role_permission" ADD CONSTRAINT "role_permission_role_id_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."role"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_role" ADD CONSTRAINT "user_role_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_role" ADD CONSTRAINT "user_role_role_id_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."role"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "role_name_unique_idx" ON "role" USING btree (lower("name"));--> statement-breakpoint
-CREATE INDEX "user_role_role_id_idx" ON "user_role" USING btree ("role_id");
+CREATE INDEX "user_role_role_id_idx" ON "user_role" USING btree ("role_id");--> statement-breakpoint
+DELETE FROM "permission_grant" WHERE "permission" <> 'admin';--> statement-breakpoint
+ALTER TABLE "permission_grant" ADD CONSTRAINT "permission_grant_admin_only" CHECK ("permission_grant"."permission" = 'admin');
