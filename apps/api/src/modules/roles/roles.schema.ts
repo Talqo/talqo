@@ -26,10 +26,6 @@ export const permissionGrant = pgTable(
 			.references(() => user.id, { onDelete: "cascade" }),
 		// Only the admin grant remains; every other permission comes from roles.
 		permission: text("permission").notNull(),
-		// Legacy: grants are global now, and authorization ignores rows where this is set.
-		agentId: text("agent_id"),
-		// Nullable + set null (not cascade): deleting the granting user's account must not
-		// silently revoke grants they made to other, unrelated users.
 		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
 		grantedAt: timestamp("granted_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
@@ -38,7 +34,7 @@ export const permissionGrant = pgTable(
 		// At most one global admin; the application also checks, but the constraint holds even when bypassed.
 		uniqueIndex("permission_grant_admin_unique_idx")
 			.on(table.permission)
-			.where(sql`${table.permission} = 'admin' AND ${table.agentId} IS NULL`),
+			.where(sql`${table.permission} = 'admin'`),
 		check("permission_grant_admin_only", sql`${table.permission} = 'admin'`),
 	],
 )
@@ -59,10 +55,13 @@ export const rolePermission = pgTable(
 		roleId: text("role_id")
 			.notNull()
 			.references(() => role.id, { onDelete: "cascade" }),
-		// Free text like grants; the API validates against the permission catalog.
+		// Free text; the API validates against the catalog, and only the admin grant may hold admin.
 		permission: text("permission").notNull(),
 	},
-	(table) => [primaryKey({ columns: [table.roleId, table.permission] })],
+	(table) => [
+		primaryKey({ columns: [table.roleId, table.permission] }),
+		check("role_permission_not_admin", sql`${table.permission} <> 'admin'`),
+	],
 )
 
 export const userRole = pgTable(

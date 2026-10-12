@@ -1,5 +1,5 @@
 {
-  "id": "a6a60258-fb34-4044-8a4f-72e72f06483a",
+  "id": "f80f494f-5544-4562-a0f8-a612f7cc422a",
   "prevId": "e2208e00-daba-4f58-92cb-fa6092b178c8",
   "version": "7",
   "dialect": "postgresql",
@@ -1631,12 +1631,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "granted_by": {
           "name": "granted_by",
           "type": "text",
@@ -1678,7 +1672,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"permission_grant\".\"permission\" = 'admin' AND \"permission_grant\".\"agent_id\" IS NULL",
+          "where": "\"permission_grant\".\"permission\" = 'admin'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1815,7 +1809,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "role_permission_not_admin": {
+          "name": "role_permission_not_admin",
+          "value": "\"role_permission\".\"permission\" <> 'admin'"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.user_role": {

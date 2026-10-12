@@ -52,12 +52,11 @@ function expandPermissions(granted: Permission[]): Permission[] {
 	return PERMISSIONS.filter((permission) => effective.has(permission))
 }
 
-type AuthorizationGrant = { agentId?: string | null; permission: string }
+// One permission from the admin grant or from an assigned role.
+type PermissionSource = { permission: string }
 
-export function effectivePermissions(grants: AuthorizationGrant[]): Permission[] {
-	return expandPermissions(
-		grants.filter((grant) => grant.agentId == null).map((grant) => grant.permission as Permission),
-	)
+export function effectivePermissions(sources: PermissionSource[]): Permission[] {
+	return expandPermissions(sources.map((source) => source.permission as Permission))
 }
 
 class AdminAlreadyExistsError extends ApiError {
@@ -138,7 +137,7 @@ export async function authorize(userId: string, permission: Permission): Promise
 }
 
 // The only source of a user's permissions: the admin grant plus every assigned role's permissions.
-// Fetched fresh on every call, never cached, so a revoked grant or role denies the next request (ADR-0008/0009).
+// Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
 	const [grants, rolePermissions] = await Promise.all([
 		repo.findGrantsForUser(userId),

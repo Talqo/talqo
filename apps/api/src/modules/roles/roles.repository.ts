@@ -14,7 +14,7 @@ export async function adminGrantExists(): Promise<boolean> {
 	const [row] = await db
 		.select({ id: permissionGrant.id })
 		.from(permissionGrant)
-		.where(and(eq(permissionGrant.permission, "admin"), isNull(permissionGrant.agentId)))
+		.where(eq(permissionGrant.permission, "admin"))
 		.limit(1)
 	return row !== undefined
 }

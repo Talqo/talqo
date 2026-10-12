@@ -19,7 +19,7 @@ async function login(username: string, password: string): Promise<string> {
 
 describe("auth flow", () => {
 	it("bootstraps an admin, invites and grants a member, then revokes access via password reset", async () => {
-		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 
 		// 1. Bootstrap the sole admin.
 		const adminUsername = uniqueUsername()

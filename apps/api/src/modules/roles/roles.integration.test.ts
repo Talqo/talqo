@@ -8,6 +8,9 @@ import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 import * as repo from "./roles.repository.ts"
 import * as service from "./roles.service.ts"
 
+// Postgres check_violation (https://www.postgresql.org/docs/current/errcodes-appendix.html).
+const CHECK_VIOLATION = "23514"
+
 async function loginResponse(username: string, password: string): Promise<Response> {
 	return app.request("/api/auth/login", {
 		method: "POST",
@@ -37,7 +40,7 @@ async function expectUsableSession(response: Response, username: string): Promis
 }
 
 async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+	await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 	const username = uniqueUsername()
 	const admin = await service.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
@@ -79,7 +82,7 @@ async function createMemberSession(): Promise<string> {
 
 describe("roles", () => {
 	it("reports that setup is needed before any admin exists", async () => {
-		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 
 		const response = await app.request("/api/setup")
 
@@ -88,7 +91,7 @@ describe("roles", () => {
 	})
 
 	it("bootstraps the admin account and then reports setup as complete", async () => {
-		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 		const username = uniqueUsername()
 
 		const response = await app.request("/api/setup", {
@@ -110,7 +113,7 @@ describe("roles", () => {
 	})
 
 	it("rejects a second attempt to bootstrap an admin", async () => {
-		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 		const seedAdmin = await identity.createAccount({ username: uniqueUsername(), password: "seed-admin-password" })
 		await repo.insertPermissionGrant({
 			id: crypto.randomUUID(),
@@ -144,7 +147,7 @@ describe("roles", () => {
 	})
 
 	it("enforces at most one admin grant at the database level, not just in application code", async () => {
-		await sql`DELETE FROM permission_grant WHERE permission = 'admin' AND agent_id IS NULL`
+		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
 		const userB = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-2" })
 
@@ -276,14 +279,26 @@ describe("admin grant", () => {
 	it("refuses any direct grant other than admin at the database level", async () => {
 		const member = await createMember()
 
-		await expect(
-			repo.insertPermissionGrant({
+		const refused = await repo
+			.insertPermissionGrant({
 				id: crypto.randomUUID(),
 				userId: member.id,
 				permission: "agents:read",
 				grantedBy: member.id,
-			}),
-		).rejects.toThrow()
+			})
+			.catch((error: unknown) => error)
+
+		expect(refused).toMatchObject({ cause: { code: CHECK_VIOLATION, constraint_name: "permission_grant_admin_only" } })
+	})
+
+	it("refuses admin in a role at the database level, not just in the API", async () => {
+		const role = await createRole([])
+
+		const refused = await sql`INSERT INTO role_permission (role_id, permission) VALUES (${role.id}, 'admin')`.catch(
+			(error: unknown) => error,
+		)
+
+		expect(refused).toMatchObject({ code: CHECK_VIOLATION, constraint_name: "role_permission_not_admin" })
 	})
 
 	it("no longer offers the direct grant routes", async () => {

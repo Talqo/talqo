@@ -298,7 +298,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 	}
 
 	if (usersQuery.isError) {
-		// A grant revoked while the page is open still lands here.
+		// A role removed while the page is open still lands here.
 		if (errorStatus === FORBIDDEN_STATUS) return <AccessDenied />
 		return (
 			<Card>
