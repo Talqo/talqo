@@ -71,19 +71,20 @@ function requireSession(options: SessionOptions) {
 				return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN)
 			}
 
-			if (options.permission && !(await roles.authorize(session.user.id, options.permission))) {
-				return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-			}
+			if (options.permission) {
+				// Loaded once: both the gate and the target check compare against the same permissions.
+				const held = await roles.listEffectivePermissions(session.user.id)
+				if (!held.includes(options.permission)) {
+					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+				}
 
-			if (options.resolveTarget) {
-				const [targeted, held] = await Promise.all([
-					options.resolveTarget(c),
-					roles.listEffectivePermissions(session.user.id),
-				])
-				// Fails closed: an unreadable body is rejected, never treated as "no target".
-				if (!targeted) return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
-				if (targeted.some((permission) => !held.includes(permission))) {
-					return problemResponse(c, PROBLEM_CODES.PERMISSION_EXCEEDS_OWN, HTTP_STATUS.FORBIDDEN)
+				if (options.resolveTarget) {
+					const targeted = await options.resolveTarget(c)
+					// Fails closed: an unreadable body is rejected, never treated as "no target".
+					if (!targeted) return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+					if (targeted.some((permission) => !held.includes(permission))) {
+						return problemResponse(c, PROBLEM_CODES.PERMISSION_EXCEEDS_OWN, HTTP_STATUS.FORBIDDEN)
+					}
 				}
 			}
 
