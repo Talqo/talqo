@@ -312,7 +312,7 @@
 		"createEmbed": "New embed",
 		"createError": "Could not create the embed. Try again.",
 		"creating": "Creating…",
-		"dangerDescription": "Rotating the token breaks every installed snippet until it carries the new token. Deleting the embed permanently disables its installed widget snippet and cannot be undone.",
+		"dangerDescription": "Deleting the embed permanently disables its installed widget snippet and cannot be undone.",
 		"dangerZone": "Danger zone",
 		"defaultName": "AI Assistant",
 		"deleteConfirm": "Delete permanently",

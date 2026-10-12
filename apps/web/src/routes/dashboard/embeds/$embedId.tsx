@@ -251,7 +251,7 @@ function EmbedDetailPage() {
 					<CardTitle>{t("embedSetup.embedCode")}</CardTitle>
 					<CardDescription>{t("embedSetup.embedDescription")}</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="space-y-3">
 					<div className="relative">
 						<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
 						<Button
@@ -264,16 +264,6 @@ function EmbedDetailPage() {
 							{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
 						</Button>
 					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("embedSetup.embedToken")}</CardTitle>
-					<CardDescription>{t("embedSetup.embedTokenDescription")}</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<Input value={embed.embedToken} readOnly className="font-mono" aria-label={t("embedSetup.embedToken")} />
 					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 				</CardContent>
 			</Card>
@@ -489,7 +479,14 @@ function EmbedDetailPage() {
 						<CardDescription>{t("embedSetup.dangerDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent className="flex flex-col items-start gap-3">
-						<RotateEmbedTokenDialog embedId={embedId} />
+						<div className="w-full space-y-2">
+							<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
+							<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
+							<div className="flex items-center gap-2">
+								<Input id="embed-token" value={embed.embedToken} readOnly className="font-mono" />
+								<RotateEmbedTokenDialog embedId={embedId} />
+							</div>
+						</div>
 						<DeleteEmbedDialog embed={embed} />
 					</CardContent>
 				</Card>
