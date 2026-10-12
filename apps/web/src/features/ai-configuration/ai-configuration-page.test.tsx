@@ -4,7 +4,8 @@ import type { Root } from "react-dom/client"
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
-GlobalRegistrator.register({ url: "http://localhost/" })
+// Component test files share one process, so only the first one registers the DOM.
+if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

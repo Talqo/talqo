@@ -6,14 +6,20 @@ import { accessGate, useRequiredPermission } from "@/features/permissions/requir
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
+import { Bot, LayoutDashboard, LogOut, Menu, Settings2, ShieldCheck, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "admin" | "agentRead" | "providerManage"
+type NavRequirement = "admin" | "agentRead" | "providerManage" | "rolesManage"
 
 type NavItem = {
-	to: "/dashboard" | "/dashboard/agents" | "/dashboard/users" | "/dashboard/ai-configuration" | "/dashboard/account"
+	to:
+		| "/dashboard"
+		| "/dashboard/agents"
+		| "/dashboard/users"
+		| "/dashboard/roles"
+		| "/dashboard/ai-configuration"
+		| "/dashboard/account"
 	icon: typeof LayoutDashboard
 	requires?: NavRequirement
 }
@@ -22,6 +28,7 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard, requires: "agentRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/users", icon: Users, requires: "admin" },
+	{ to: "/dashboard/roles", icon: ShieldCheck, requires: "rolesManage" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
 ]
@@ -30,6 +37,7 @@ const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
 	"/dashboard/users": "nav.users",
+	"/dashboard/roles": "nav.roles",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>
@@ -38,10 +46,12 @@ function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] 
 	const canReadAgents = permissions?.includes("agents:read") ?? false
 	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
 	const isAdmin = permissions?.includes("admin") ?? false
+	const canManageRoles = permissions?.includes("roles:manage") ?? false
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
 		if (item.requires === "providerManage") return canManageProvider
 		if (item.requires === "admin") return isAdmin
+		if (item.requires === "rolesManage") return canManageRoles
 		return true
 	})
 }

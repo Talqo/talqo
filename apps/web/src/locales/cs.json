@@ -437,6 +437,7 @@
 		"agents": "Agenti",
 		"aiConfiguration": "Konfigurace AI",
 		"dashboard": "Přehled",
+		"roles": "Role",
 		"users": "Uživatelé"
 	},
 	"permissions": {
@@ -483,6 +484,54 @@
 		"self-password-reset-not-allowed": "Vlastní heslo změňte v nastavení účtu.",
 		"user-not-found": "Uživatel nebyl nalezen.",
 		"username-taken": "Toto uživatelské jméno se již používá."
+	},
+	"roles": {
+		"cancel": "Zrušit",
+		"cannotChange": "Tuto roli nemůžete změnit, protože obsahuje přístup, který sami nemáte.",
+		"create": "Vytvořit roli",
+		"createTitle": "Vytvořit roli",
+		"delete": "Smazat",
+		"deleteConfirm": "Smazat roli",
+		"deleteDescription": "Všichni s touto rolí ({{people}}) přijdou o přístup, který jim dává, pokud jim ho nedává i jiná role.",
+		"deleteDescriptionUnused": "Tuto roli nikdo nemá, takže nikdo nepřijde o přístup.",
+		"deleteRecovery": "Pro vrácení roli vytvořte znovu a přidělte ji stejným lidem.",
+		"deleteRecoveryUnused": "Pro vrácení roli vytvořte znovu.",
+		"deleteTitle": "Smazat „{{name}}“?",
+		"deleting": "Mazání…",
+		"dialogDescription": "Pojmenujte roli a vyberte, co lidé s ní mohou dělat.",
+		"edit": "Upravit",
+		"editTitle": "Upravit „{{name}}“",
+		"empty": "Zatím žádné role. Vytvořte jednu a dejte lidem přístup.",
+		"heading": "Role",
+		"includedWith": "Součást oprávnění „{{permission}}“.",
+		"loading": "Načítání rolí…",
+		"lockoutWarningDelete": "Tuto roli máte a žádná jiná role vám nedovoluje spravovat role. Po jejím smazání tuto stránku neotevřete.",
+		"lockoutWarningEdit": "Tuto roli máte a žádná jiná role vám nedovoluje spravovat role. Po uložení tuto stránku neotevřete.",
+		"members": "Lidé s touto rolí: {{people}}",
+		"name": "Název",
+		"nameError": "Zadejte název o délce nejvýše {{max}} znaků.",
+		"noAccess": "Zatím bez přístupu",
+		"notYours": "Můžete dát jen přístup, který sami máte.",
+		"permissionDescriptions": {
+			"agentsManage": "Vytvářet, měnit a mazat agenty, jejich znalosti, připojení a vložení na web.",
+			"agentsRead": "Prohlížet agenty, jejich znalosti, připojení a vložení na web.",
+			"aiProviderManage": "Vybrat poskytovatele AI a modely, které agenti používají.",
+			"rolesManage": "Vytvářet role a určovat, kdo je má.",
+			"usersManage": "Zvát uživatele, obnovovat jejich hesla a odebírat je.",
+			"usersRead": "Vidět všechny, kdo se mohou přihlásit do tohoto panelu."
+		},
+		"permissionLabels": {
+			"agentsManage": "Spravovat agenty",
+			"agentsRead": "Vidět agenty",
+			"aiProviderManage": "Nastavit AI",
+			"rolesManage": "Spravovat role",
+			"usersManage": "Spravovat uživatele",
+			"usersRead": "Vidět uživatele"
+		},
+		"permissionsLegend": "Co mohou lidé s touto rolí dělat",
+		"save": "Uložit roli",
+		"saving": "Ukládání…",
+		"subheading": "Seskupte přístup do rolí a pak role přidělte lidem."
 	},
 	"users": {
 		"cancel": "Zrušit",

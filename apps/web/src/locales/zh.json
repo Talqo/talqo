@@ -435,6 +435,7 @@
 		"agents": "智能体",
 		"aiConfiguration": "AI 配置",
 		"dashboard": "仪表盘",
+		"roles": "角色",
 		"users": "用户"
 	},
 	"permissions": {
@@ -481,6 +482,54 @@
 		"self-password-reset-not-allowed": "请在账户设置中修改自己的密码。",
 		"user-not-found": "未找到该用户。",
 		"username-taken": "该用户名已被使用。"
+	},
+	"roles": {
+		"cancel": "取消",
+		"cannotChange": "此角色包含你自己没有的访问权限，因此你无法更改它。",
+		"create": "创建角色",
+		"createTitle": "创建角色",
+		"delete": "删除",
+		"deleteConfirm": "删除角色",
+		"deleteDescription": "拥有此角色的所有人（{{people}}）将失去它提供的访问权限，除非其他角色也提供该权限。",
+		"deleteDescriptionUnused": "没有人拥有此角色，因此没有人会失去访问权限。",
+		"deleteRecovery": "如需撤销，请重新创建该角色并分配给相同的人。",
+		"deleteRecoveryUnused": "如需撤销，请重新创建该角色。",
+		"deleteTitle": "删除“{{name}}”？",
+		"deleting": "正在删除…",
+		"dialogDescription": "为角色命名，并选择拥有它的人可以做什么。",
+		"edit": "编辑",
+		"editTitle": "编辑“{{name}}”",
+		"empty": "还没有角色。创建一个角色来为他人提供访问权限。",
+		"heading": "角色",
+		"includedWith": "包含在“{{permission}}”中。",
+		"loading": "正在加载角色…",
+		"lockoutWarningDelete": "你拥有此角色，且没有其他角色允许你管理角色。删除后，你将无法打开此页面。",
+		"lockoutWarningEdit": "你拥有此角色，且没有其他角色允许你管理角色。保存后，你将无法打开此页面。",
+		"members": "拥有此角色的人：{{people}}",
+		"name": "名称",
+		"nameError": "请输入不超过 {{max}} 个字符的名称。",
+		"noAccess": "暂无访问权限",
+		"notYours": "你只能授予自己拥有的访问权限。",
+		"permissionDescriptions": {
+			"agentsManage": "创建、更改和删除智能体及其知识、连接和网站嵌入。",
+			"agentsRead": "查看智能体及其知识、连接和网站嵌入。",
+			"aiProviderManage": "选择智能体使用的 AI 提供商和模型。",
+			"rolesManage": "创建角色并决定谁拥有它们。",
+			"usersManage": "邀请用户、重置他们的密码并移除他们。",
+			"usersRead": "查看所有可以登录此控制台的人。"
+		},
+		"permissionLabels": {
+			"agentsManage": "管理智能体",
+			"agentsRead": "查看智能体",
+			"aiProviderManage": "配置 AI",
+			"rolesManage": "管理角色",
+			"usersManage": "管理用户",
+			"usersRead": "查看用户"
+		},
+		"permissionsLegend": "拥有此角色的人可以做什么",
+		"save": "保存角色",
+		"saving": "正在保存…",
+		"subheading": "将访问权限归入角色，然后把角色分配给他人。"
 	},
 	"users": {
 		"cancel": "取消",
