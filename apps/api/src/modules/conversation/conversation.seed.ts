@@ -170,7 +170,11 @@ export async function seed(): Promise<SeededAttempt[]> {
 	const [marker] = await sql`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
 	if (marker) return []
 	const rows = planRows(new Date())
-	await db.insert(conversation).values(rows.conversations)
+	await db.transaction(async (tx) => {
+		await tx.insert(conversation).values(rows.conversations)
+		await tx.insert(generationAttempt).values(rows.attempts)
+		await tx.insert(message).values(rows.messages)
+	})
 	await db.insert(generationAttempt).values(rows.attempts)
 	await db.insert(message).values(rows.messages)
 	return rows.usages
