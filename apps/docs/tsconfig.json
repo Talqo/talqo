@@ -2,10 +2,9 @@
 	"extends": "@talqo/typescript-config/react-app.json",
 	"compilerOptions": {
 		"paths": {
-			"@/*": ["./src/*"],
-			"@content/*": ["./content/docs/*"],
-			"collections/*": ["./.source/*"]
-		}
+			"@/*": ["./src/*"]
+		},
+		"types": ["vite/client", "bun"]
 	},
-	"include": [".source/**/*.ts", "src/**/*.ts", "src/**/*.tsx", "source.config.ts", "vite.config.ts"]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }

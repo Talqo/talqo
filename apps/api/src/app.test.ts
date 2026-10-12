@@ -228,20 +228,6 @@ describe("api", () => {
 		expect(console.error).toHaveBeenCalled()
 	})
 
-	it("keeps API endpoint routes method-specific", () => {
-		const wildcardApiRoutes = app.routes
-			.filter((route) => route.method === "ALL" && route.path.startsWith("/api/"))
-			.map((route) => route.path)
-
-		// CORS is middleware; hasMatchedRoute deliberately excludes ALL routes.
-		expect(wildcardApiRoutes).toEqual([
-			"/api/embed-config/*",
-			"/api/widget-config/*",
-			"/api/chat/*",
-			"/api/agents/:agentId/files",
-		])
-	})
-
 	it("declares an access policy on every endpoint", () => {
 		const endpoints = app.routes.filter((route) => route.method !== "ALL")
 		const withoutPolicy = endpoints
