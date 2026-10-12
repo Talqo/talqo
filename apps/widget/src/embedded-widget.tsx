@@ -51,6 +51,8 @@ export type EmbeddedWidgetProps = {
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
 	unavailable?: boolean
+	/** Preview-only: mirrors the deployment's reply availability without an SDK client. */
+	isAvailable?: boolean
 }
 
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
@@ -157,6 +159,7 @@ type ChatPresentation = {
 	snapshot?: ChatSnapshot
 	client?: ChatClient
 	unavailable?: boolean
+	isAvailable?: boolean
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
@@ -173,6 +176,7 @@ function WidgetChat({
 	snapshot,
 	client,
 	unavailable,
+	isAvailable,
 }: {
 	title?: string
 	appearance: WidgetAppearance
@@ -202,7 +206,7 @@ function WidgetChat({
 	const resetting = snapshot?.reset === "resetting"
 	const activeGeneration = generation !== "idle"
 	const unusable = unavailable || initialization === "error"
-	const cannotReply = snapshot?.configuration?.isAvailable === false
+	const cannotReply = (snapshot?.configuration?.isAvailable ?? isAvailable) === false
 	const disabled = unusable || cannotReply || initialization !== "ready" || resetting || activeGeneration || submitting
 	// A missing provider is setup state, not a visitor error, so it replaces any older error.
 	const visibleError: ChatError | undefined = unavailable
@@ -585,7 +589,14 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavailable }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({
+	title,
+	appearance,
+	hidden,
+	forcedScheme,
+	unavailable,
+	isAvailable,
+}: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -601,6 +612,7 @@ export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavai
 				hidden={hidden}
 				forcedScheme={forcedScheme}
 				unavailable={unavailable}
+				isAvailable={isAvailable}
 			/>
 		</I18nextProvider>
 	)

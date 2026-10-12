@@ -359,6 +359,18 @@ async function createReaderSession(): Promise<string> {
 	return login(username, DEFAULT_PASSWORD)
 }
 
+describe("embed detail route", () => {
+	it("tells the dashboard whether visitors can get replies", async () => {
+		const cookie = await createManagerSession()
+		const created = await createEmbed(await createAgent())
+
+		const response = await app.request(`/api/embeds/${created.id}`, { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({ embed: { id: created.id }, isAvailable: false })
+	})
+})
+
 describe("embed disable and enable routes", () => {
 	it("disables and enables an embed with agents:manage", async () => {
 		const cookie = await createManagerSession()

@@ -151,6 +151,11 @@ async function setDisabled(id: string, isDisabled: boolean): Promise<Embed> {
 	return toEmbed(row)
 }
 
+export async function getEmbedDetail(id: string): Promise<{ embed: Embed; isAvailable: boolean }> {
+	const embed = await getEmbed(id)
+	return { embed, isAvailable: await aiProvider.canGenerateText() }
+}
+
 export async function deleteEmbed(id: string): Promise<void> {
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)

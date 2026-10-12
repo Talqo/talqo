@@ -37,5 +37,12 @@ export function PreviewWidget({ parentOrigin: configuredParentOrigin }: { parent
 		return () => window.removeEventListener("message", onMessage)
 	}, [parentOrigin])
 
-	return <EmbeddedWidget title={config.title} appearance={config.appearance} forcedScheme={config.forcedScheme} />
+	return (
+		<EmbeddedWidget
+			title={config.title}
+			appearance={config.appearance}
+			forcedScheme={config.forcedScheme}
+			isAvailable={config.isAvailable}
+		/>
+	)
 }

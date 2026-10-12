@@ -13,6 +13,7 @@ import {
 	embedListResponseSchema,
 	enableEmbedRoute,
 	getEmbedConfigRoute,
+	getEmbedResponseSchema,
 	getEmbedRoute,
 	listEmbedsRoute,
 	rotateEmbedTokenRoute,
@@ -69,8 +70,8 @@ export const embedRoutes = new OpenAPIHono()
 	})
 	.openapi(getEmbedRoute, async (c) => {
 		try {
-			const embed = await service.getEmbed(c.req.valid("param").embedId)
-			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
+			const detail = await service.getEmbedDetail(c.req.valid("param").embedId)
+			return c.json(getEmbedResponseSchema.parse(detail), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)
 			if (mapped) return problemResponse(c, mapped.code, mapped.status)
