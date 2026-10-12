@@ -230,12 +230,26 @@ describe("agent knowledge files", () => {
 		await expectProblem(response, 404, "agent-not-found")
 	})
 
-	it("denies file operations to a member with only agents:read", async () => {
+	it("lets a member with only agents:read list and download files", async () => {
+		const { cookie, userId } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Perm")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+		const reader = await createReaderSession(userId)
+
+		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
+		const downloaded = await app.request(`/api/agents/${agentId}/files/a.md`, { headers: { Cookie: reader } })
+
+		expect(listed.status).toBe(200)
+		expect(downloaded.status).toBe(200)
+		expect(await downloaded.text()).toBe("hello")
+	})
+
+	it("denies file changes to a member with only agents:read", async () => {
 		const { cookie, userId } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Perm")
 		const reader = await createReaderSession(userId)
-		const response = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
-		await expectProblem(response, 403, "permission-denied")
+
+		await expectProblem(await upload(reader, agentId), 403, "permission-denied")
 	})
 
 	it("removes the upload directory when the agent is deleted", async () => {

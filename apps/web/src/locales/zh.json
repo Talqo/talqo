@@ -74,6 +74,7 @@
 		"downloadFailed": "无法下载文件。请重试。",
 		"dropzone": "将文件拖到此处,或点击浏览",
 		"dropzoneHint": "还没有知识文件。上传智能体应参考的文档。",
+		"empty": "暂无知识文件。",
 		"error": {
 			"conversionFailed": "无法处理文档。请重试；如果仍然失败，请检查文件。",
 			"emptyDocument": "无法提取文本。请检查文件后重试。",

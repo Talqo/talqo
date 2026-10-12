@@ -112,6 +112,11 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
 
+		// Knowledge files are readable but not editable.
+		await page.getByRole("tab", { name: "Context" }).click()
+		await expect(page.getByText("No knowledge files yet.", { exact: true })).toBeVisible()
+		await expect(page.getByText("Drag files here, or click to browse")).toHaveCount(0)
+
 		// Embeds ride on the same permission, so their controls must disappear too.
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)

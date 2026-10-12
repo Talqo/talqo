@@ -74,6 +74,7 @@
 		"downloadFailed": "The file could not be downloaded. Try again.",
 		"dropzone": "Drag files here, or click to browse",
 		"dropzoneHint": "No knowledge files yet. Upload the sources the agent should answer from.",
+		"empty": "No knowledge files yet.",
 		"error": {
 			"conversionFailed": "Document could not be processed. Retry, or check the file if it keeps failing.",
 			"emptyDocument": "No text could be extracted. Check the file and retry.",

@@ -99,11 +99,9 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 	const { language } = useLanguage()
 	const queryClient = useQueryClient()
 
-	// List requires agents:manage; read-only members skip the query instead of landing on a 403.
 	const filesQuery = useListAgentFiles(agentId, {
 		query: {
 			...getListAgentFilesQueryOptions(agentId),
-			enabled: canManage,
 			refetchInterval: (query) =>
 				query.state.data?.data.files.some(
 					(file) => file.embeddingStatus === "pending" || file.embeddingStatus === "processing",
@@ -301,7 +299,12 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
 				) : filesQuery.isError ? (
 					<p className="text-destructive text-sm">{t("agentFiles.loadFailed")}</p>
-				) : !canManage || files.length === 0 ? null : (
+				) : files.length === 0 ? (
+					// The dropzone already invites managers to upload; readers need to know the list is empty.
+					canManage ? null : (
+						<p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
+					)
+				) : (
 					<ul className="divide-border divide-y rounded-md border">
 						{files.map((file) => (
 							<li key={file.name} className="flex items-center gap-3 px-3 py-2">
@@ -313,77 +316,79 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 									</p>
 									<EmbeddingStatusLine file={file} t={t} />
 								</div>
-								{canManage && (
-									<TooltipProvider>
-										{file.embeddingStatus === "failed" && (
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												disabled={retryingName === file.name}
-												onClick={() => void onRetry(file)}
-												aria-label={t("agentFiles.retry", { name: file.name })}
-											>
-												{retryingName === file.name ? (
-													<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
-												) : (
-													<RotateCcw className="size-4" />
-												)}
-												{t("agentFiles.retryAction")}
-											</Button>
-										)}
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={downloadingName === file.name}
-														onClick={() => void onDownload(file)}
-														aria-label={t("agentFiles.download", { name: file.name })}
-													/>
-												}
-											>
-												<Download className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
-										</Tooltip>
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														onClick={() => openRename(file)}
-														aria-label={t("agentFiles.rename", { name: file.name })}
-													/>
-												}
-											>
-												<Pencil className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
-										</Tooltip>
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={deleteFile.isPending}
-														onClick={() => openDelete(file)}
-														aria-label={t("agentFiles.delete", { name: file.name })}
-													/>
-												}
-											>
-												<Trash2 className="size-4" />
-											</TooltipTrigger>
-											<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-								)}
+								<TooltipProvider>
+									{canManage && file.embeddingStatus === "failed" && (
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={retryingName === file.name}
+											onClick={() => void onRetry(file)}
+											aria-label={t("agentFiles.retry", { name: file.name })}
+										>
+											{retryingName === file.name ? (
+												<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+											) : (
+												<RotateCcw className="size-4" />
+											)}
+											{t("agentFiles.retryAction")}
+										</Button>
+									)}
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													disabled={downloadingName === file.name}
+													onClick={() => void onDownload(file)}
+													aria-label={t("agentFiles.download", { name: file.name })}
+												/>
+											}
+										>
+											<Download className="size-4" />
+										</TooltipTrigger>
+										<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
+									</Tooltip>
+									{canManage && (
+										<>
+											<Tooltip>
+												<TooltipTrigger
+													render={
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={() => openRename(file)}
+															aria-label={t("agentFiles.rename", { name: file.name })}
+														/>
+													}
+												>
+													<Pencil className="size-4" />
+												</TooltipTrigger>
+												<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
+											</Tooltip>
+											<Tooltip>
+												<TooltipTrigger
+													render={
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															disabled={deleteFile.isPending}
+															onClick={() => openDelete(file)}
+															aria-label={t("agentFiles.delete", { name: file.name })}
+														/>
+													}
+												>
+													<Trash2 className="size-4" />
+												</TooltipTrigger>
+												<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
+											</Tooltip>
+										</>
+									)}
+								</TooltipProvider>
 							</li>
 						))}
 					</ul>

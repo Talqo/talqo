@@ -74,6 +74,7 @@
 		"downloadFailed": "Soubor se nepodařilo stáhnout. Zkuste to znovu.",
 		"dropzone": "Přetáhněte soubory sem, nebo klikněte pro výběr",
 		"dropzoneHint": "Zatím žádné znalostní soubory. Nahrajte zdroje, ze kterých má agent odpovídat.",
+		"empty": "Zatím žádné znalostní soubory.",
 		"error": {
 			"conversionFailed": "Dokument se nepodařilo zpracovat. Zkuste to znovu; pokud problém přetrvá, zkontrolujte soubor.",
 			"emptyDocument": "Nepodařilo se získat text. Zkontrolujte soubor a zkuste to znovu.",
