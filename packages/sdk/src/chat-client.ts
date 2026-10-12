@@ -66,16 +66,12 @@ function transportError(error: unknown): ChatError {
 	}
 }
 
-// The API rejects with provider-error only before acceptance; later provider failures arrive as stream events.
-const PRE_ACCEPTANCE_SERVER_CODES = new Set<ChatError["code"]>(["provider-error"])
-
 function isDefiniteRejection(error: unknown): error is ChatTransportError {
 	if (!(error instanceof ChatTransportError)) return false
 	const status = error.detail.status
 	if (status === undefined) return false
-	return (
-		(status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR) || PRE_ACCEPTANCE_SERVER_CODES.has(error.detail.code)
-	)
+	// The API rejects with provider-error only before acceptance; later provider failures arrive as stream events.
+	return (status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR) || error.detail.code === "provider-error"
 }
 
 export function createChatClient(options: ChatClientOptions): ChatClient {

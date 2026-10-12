@@ -1,6 +1,7 @@
 import { useGetAiProviderConfiguration } from "@/api/generated/ai-providers/ai-providers.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { Button } from "@talqo/ui/components/button"
+import { cn } from "@talqo/ui/lib/utils"
 import { Link } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
@@ -15,7 +16,13 @@ export function ProviderNoticeBanner() {
 	return (
 		<div
 			role="status"
-			className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface p-surface-padding flex flex-wrap items-center justify-between gap-3 border text-sm"
+			className={cn(
+				"rounded-surface p-surface-padding flex flex-wrap items-center justify-between gap-3 border text-sm",
+				// Missing setup is onboarding; only a failed check is an error.
+				notice === "missing"
+					? "border-border bg-muted/40 text-foreground"
+					: "border-destructive/30 bg-destructive/10 text-destructive",
+			)}
 		>
 			<p>{t(notice === "missing" ? "dashboard.aiProviderMissing" : "dashboard.aiProviderCheckFailed")}</p>
 			<Button render={<Link to="/dashboard/ai-configuration" />} nativeButton={false} size="sm">

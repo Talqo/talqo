@@ -204,9 +204,12 @@ function WidgetChat({
 	const unusable = unavailable || initialization === "error"
 	const cannotReply = snapshot?.configuration?.isAvailable === false
 	const disabled = unusable || cannotReply || initialization !== "ready" || resetting || activeGeneration || submitting
+	// A missing provider is setup state, not a visitor error, so it replaces any older error.
 	const visibleError: ChatError | undefined = unavailable
 		? { code: "embed-not-found" }
-		: (snapshot?.error ?? (cannotReply ? { code: "chat-unavailable" } : undefined))
+		: cannotReply
+			? undefined
+			: snapshot?.error
 	const hasStreamingAssistant = messages.some(
 		(message) => message.role === "assistant" && message.outcome === "streaming",
 	)
@@ -442,6 +445,13 @@ function WidgetChat({
 									</BubbleContent>
 								</Bubble>
 							)}
+							{cannotReply && !unavailable && (
+								<Bubble align="start">
+									<BubbleContent role="status" variant="muted" className="tw:text-muted-foreground">
+										{t("chatUnavailable")}
+									</BubbleContent>
+								</Bubble>
+							)}
 							{messages.map((message) => (
 								<TranscriptBubble key={message.id} message={message} />
 							))}
@@ -563,7 +573,11 @@ function WidgetChat({
 				aria-label={open ? t("closeChat") : t("openChat")}
 				aria-expanded={open}
 				aria-haspopup="dialog"
-				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
+				title={cannotReply ? t("chatUnavailable") : undefined}
+				className={cn(
+					"tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:shadow-lg tw:transition-transform tw:hover:scale-105",
+					cannotReply ? "tw:bg-muted tw:text-muted-foreground" : "tw:bg-primary tw:text-primary-foreground",
+				)}
 			>
 				<ChatIcon aria-hidden="true" />
 			</button>
