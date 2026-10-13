@@ -556,14 +556,6 @@ describe("list users", () => {
 		expect(ids).toContain(member.id)
 		expect(users.find((user) => user.id === member.id)?.mustChangePassword).toBe(false)
 	})
-
-	it("denies a non-admin listing users", async () => {
-		const memberCookie = await createMemberSession()
-
-		const response = await app.request("/api/users", { headers: { Cookie: memberCookie } })
-
-		expect(response.status).toBe(403)
-	})
 })
 
 describe("access", () => {

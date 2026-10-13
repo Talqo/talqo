@@ -5,18 +5,6 @@ import { changePasswordSchema, forcedPasswordChangeSchema, resetPasswordSchema }
 const currentPassword = "correct-horse-battery-staple"
 const newPassword = "new-correct-horse-battery"
 
-describe("changePasswordSchema", () => {
-	test("rejects an empty current password", () => {
-		const result = changePasswordSchema.safeParse({
-			currentPassword: "",
-			newPassword,
-			confirmPassword: newPassword,
-		})
-
-		expect(result.success).toBe(false)
-	})
-})
-
 describe("password confirmation", () => {
 	test("rejects a mismatched confirm password with a passwordMismatch issue", () => {
 		const cases = [

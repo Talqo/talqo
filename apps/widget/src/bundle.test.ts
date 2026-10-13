@@ -9,7 +9,7 @@ describe("built embed bundle", () => {
 		document.querySelector("#talqo-widget")?.remove()
 		document.querySelectorAll("style").forEach((style) => style.remove())
 	})
-	test("boots without a process global and auto-mounts", () => {
+	test("boots and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
 		expect(() => new Function(code)()).not.toThrow()

@@ -46,8 +46,6 @@ describe("api", () => {
 				})
 				return response
 			},
-			newResponse: (body: ConstructorParameters<typeof Response>[0], source: Response) =>
-				new Response(body, { headers: source.headers, status: source.status }),
 		}
 
 		await handleError(new Error("boom"), context as unknown as Context)

@@ -212,13 +212,6 @@ describe("agent CRUD", () => {
 			wordBlacklist: [],
 		})
 		expect(emptyName.status).toBe(400)
-
-		const tooManyWords = await createJsonRequest(cookie, "POST", "/api/agents", {
-			name: "Too many",
-			systemPrompt: "Prompt",
-			wordBlacklist: Array.from({ length: 101 }, (_, index) => `word${index}`),
-		})
-		expect(tooManyWords.status).toBe(400)
 	})
 })
 

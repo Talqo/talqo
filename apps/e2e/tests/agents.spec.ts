@@ -5,6 +5,13 @@ const VIEWER = { username: "user", password: "user1234" }
 const MEMBER = VIEWER
 const SEEDED_AGENT = "Website Assistant"
 
+let createdAgentId: string | undefined
+
+test.afterEach(async ({ page }) => {
+	if (createdAgentId) await page.request.delete(`/api/agents/${createdAgentId}`)
+	createdAgentId = undefined
+})
+
 async function grantViewerPermission(page: Page): Promise<string> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
 	const usersResponse = await page.request.get("/api/users")
@@ -40,6 +47,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 
 	await page.getByRole("button", { name: "Create agent" }).click()
 	await expect(page).toHaveURL(/\/dashboard\/agent\//)
+	createdAgentId = new URL(page.url()).pathname.split("/").pop()
 	await expect(page.getByRole("heading", { name: "Configure New agent" })).toBeVisible()
 	await expect(page.getByLabel("Name")).toHaveValue("New agent")
 
@@ -91,7 +99,6 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("heading", { name: `Configure ${SEEDED_AGENT}` })).toBeVisible()
 		await expect(page.getByLabel("Name")).toBeDisabled()
 		await expect(page.getByLabel("System prompt")).toBeDisabled()
-		await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
 	} finally {

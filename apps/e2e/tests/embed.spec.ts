@@ -242,6 +242,7 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	}
 
 	await send("Give me the first answer")
+	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
 	await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 
@@ -300,6 +301,7 @@ test("widget enforces daily chat allowance across new chats", async ({ page, req
 
 	// The suite caps the allowance at three messages, so these three exhaust it.
 	await send("Give me the first answer")
+	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
 	await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 

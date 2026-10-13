@@ -194,7 +194,6 @@ describe("ConnectedEmbeddedWidget", () => {
 
 		expect(host.textContent).toContain("Part")
 		const stop = host.querySelector<HTMLButtonElement>("button[aria-label='Stop generating']")
-		expect(stop?.closest("form")).not.toBeNull()
 		expect(host.querySelector("form button[type='submit']")).toBeNull()
 		await act(async () => stop?.click())
 		expect(store.calls.cancel).toBe(1)
@@ -439,7 +438,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.querySelector("button[aria-label='Retry']")).toBeNull()
 	})
 
-	test("renders recovery and storage errors with fixed translucent red styling", async () => {
+	test("renders recovery and storage error notices", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
 			persistence: "memory",

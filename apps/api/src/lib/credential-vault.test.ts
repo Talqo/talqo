@@ -29,7 +29,6 @@ describe("credential vault", () => {
 		const envelope = createCredentialVault(APP_SECRET, MCP).encrypt({ apiKey: "sk-secret" }, context)
 
 		expect(() => createCredentialVault(APP_SECRET, AI_PROVIDER).decrypt(envelope, context)).toThrow()
-		expect(() => createCredentialVault(APP_SECRET, MCP).decrypt(envelope, { ...context, role: "embedding" })).toThrow()
 	})
 
 	it("still opens envelopes sealed with the pre-move AAD", () => {

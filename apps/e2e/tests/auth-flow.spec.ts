@@ -2,6 +2,20 @@ import { expect, test, type Page } from "@playwright/test"
 
 const ADMIN = { username: "admin", password: "admin123" }
 
+const createdMembers: string[] = []
+
+test.afterEach(async ({ request }) => {
+	if (createdMembers.length === 0) return
+	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+	const { users } = (await (await request.get("/api/users")).json()) as { users: { id: string; username: string }[] }
+	await Promise.all(
+		createdMembers.splice(0).map(async (username) => {
+			const user = users.find((candidate) => candidate.username === username)
+			if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
+		}),
+	)
+})
+
 async function logIn(page: Page, account: { password: string; username: string }) {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(account.username)
@@ -52,6 +66,7 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
+	createdMembers.push(memberUsername)
 
 	await page.goto(`/accept-invite?token=${token}`)
 	await page.getByLabel("Username").fill(memberUsername)
@@ -74,6 +89,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	const originalPassword = "member-original-password"
 	const adminResetPassword = "admin-reset-password-000"
 	const memberFinalPassword = "member-final-chosen-password"
+	createdMembers.push(memberUsername)
 
 	await inviteMember(page, memberUsername, originalPassword)
 

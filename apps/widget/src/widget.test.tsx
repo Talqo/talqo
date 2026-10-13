@@ -41,7 +41,7 @@ describe("widget mount", () => {
 	})
 
 	test("warns instead of throwing for an invalid selector target", () => {
-		expect(() => mount("foo")).not.toThrow()
+		expect(() => mount("#")).not.toThrow()
 		expect(document.querySelector("#talqo-widget")).toBeNull()
 	})
 
