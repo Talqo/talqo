@@ -11,6 +11,7 @@ Add image publishing commands, automatic dev deployment, and tag-triggered produ
 - Production uses explicit versioned images. Both image `latest` aliases move after successful prod deployment.
 - Before 1.0, breaking public changes require a minor bump; patch releases remain backward-compatible.
 - Build for `linux/amd64` initially. Images record source, revision, and version in OCI labels.
+- Weekly GHCR cleanup removes untagged images older than seven days while preserving tagged images and their referenced manifests. Manual cleanup defaults to a dry run.
 
 ## Workflow boundaries
 
