@@ -3,3 +3,7 @@ paths:
     ignore:
       # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
       - '^specifying action "\$/\.github/actions/setup-bun" in invalid format because ref is missing\.'
+  .github/workflows/release.yml:
+    ignore:
+      # Remove when actionlint supports native queuing: https://github.com/rhysd/actionlint/issues/657
+      - '^unexpected key "queue" for "concurrency" section\.'
