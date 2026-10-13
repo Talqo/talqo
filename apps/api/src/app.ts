@@ -7,6 +7,7 @@ import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
 import { PROBLEM_CODES, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
 import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, wideEvents } from "@/http/wide-event.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
 import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
@@ -45,6 +46,8 @@ app.openAPIRegistry.registerComponent("securitySchemes", "ChatBearer", {
 app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
+// After /health so liveness probes stay out of the request log.
+app.use("*", wideEvents)
 app.use("*", rejectOversizedBody)
 app.use("*", rejectMalformedJson)
 // Ahead of route access policies, so preflights and 401s carry CORS headers. Scoped to the public
@@ -106,6 +109,7 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 		}
 	}
 
+	annotate(context, { "error.type": error.constructor.name })
 	if (APICallError.isInstance(error)) {
 		console.error("provider.call.failed", {
 			message: error.message,

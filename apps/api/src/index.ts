@@ -1,6 +1,7 @@
 import { app } from "./app.ts"
 import { parseEnv } from "./config/env.ts"
 import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
+import { stdoutWideEventLog } from "./http/wide-event-stdout.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
 // Misconfiguration must fail the process at boot, not during the first request.
@@ -22,6 +23,15 @@ const server = Bun.serve({
 })
 
 console.log(`API listening on http://localhost:${server.port}`)
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+	process.once(signal, () => {
+		try {
+			stdoutWideEventLog.flush()
+		} finally {
+			process.exit(0)
+		}
+	})
+}
 void (async () => {
 	/* eslint-disable no-await-in-loop -- only one worker may run per process */
 	while (true) {

@@ -511,7 +511,7 @@ export function createConversationService(dependencies: Dependencies) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
-			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
+			return { ...acceptedEvent, agentId, duplicate: accepted.duplicate, done, embedId: currentEmbed.id }
 		},
 
 		async getSession(credential: string) {
