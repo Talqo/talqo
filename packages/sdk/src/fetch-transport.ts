@@ -6,12 +6,12 @@ import type {
 	GetChatSession200MessagesItem,
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
-} from "./generated/contracts"
-import type { ChatError, ChatEvent, ChatTransport } from "./types"
+} from "./generated/contracts.ts"
+import type { ChatError, ChatEvent, ChatTransport } from "./types.ts"
 
-import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts"
-import { parseSseStream } from "./sse"
-import { isChatErrorCode } from "./types"
+import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts.ts"
+import { parseSseStream } from "./sse.ts"
+import { isChatErrorCode } from "./types.ts"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 

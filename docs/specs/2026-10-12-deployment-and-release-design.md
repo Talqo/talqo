@@ -25,19 +25,19 @@ version tag -> Release -> CI with E2E -> publish images/SDK
 
 Main CD passes its exact commit SHA to the shared publication and deployment workflows. Avoid workflow-run event chaining, duplicate main checks, and privileged checkout of PR code. PR/main checks exclude browser E2E; release and manual checks include it.
 
-Use GitHub-hosted runners, read-only default permissions, pinned actions/toolchains, and per-job publication permissions. Dev/prod credentials belong to their GitHub environments. Serialize CD and releases without cancelling active deployment operations.
+Use GitHub-hosted runners, read-only default permissions, pinned actions/toolchains, and per-job publication permissions. Dev/prod credentials belong to their GitHub environments. Serialize CD and releases without cancelling active deployment operations. Release runs use native multi-run queuing so later tags do not replace pending releases.
 
 ## Commands and reuse
 
 Root package commands invoke small shell wrappers for image publishing, release tags, and SDK packing. They share release guards and use Git, Docker, jq, Bun, and gh directly. Validate shell syntax with ShellCheck; do not introduce a scripts package, scripts-only TypeScript configuration, or custom script test suites.
 
-Publishing and deployment workflows are reused by main CD and releases. Docker owns registry authentication, including credential helpers. Stable images already published for a release are reused only when their source/revision/version labels match; do not overwrite them on retry. Publication and deployment recheck freshness in the actual attempted job so failed-job reruns cannot reuse stale decisions.
+Publishing and deployment workflows are reused by main CD and releases. Docker owns registry authentication, including credential helpers. Stable images already published for a release are reused only when their source/revision/version labels match; do not overwrite them on retry. Publication and deployment recheck freshness against completed releases in the actual attempted job, not against newer queued tags, so failed-job reruns cannot reuse stale decisions.
 
 The release command creates and pushes only the annotated tag. It requires a clean checkout at current remote main, a stable version, no existing tag, and increasing version order. CI independently validates the tag and main ancestry before privileged operations.
 
 ## SDK publication
 
-The SDK remains authored in TypeScript with the existing extensionless import convention. Bun bundles ESM JavaScript, and the existing SDK TypeScript config emits declarations. The widget uses workspace source; npm consumers use the built distribution. Consumer documentation belongs in `apps/docs`.
+The SDK remains authored in TypeScript. Bun bundles ESM JavaScript, and the existing SDK TypeScript config emits declarations usable by ESM consumers. The widget uses workspace source; npm consumers use the built distribution. Consumer documentation belongs in `apps/docs`.
 
 `pack:sdk` uses Bun to build and pack a staged public manifest without modifying source package versions. The release job publishes that exact tarball using npm trusted publishing and automatic provenance. npm/Node are confined to that job because Bun does not support this authentication flow. There is no separate SDK consumer or custom registry/signature verification stage.
 

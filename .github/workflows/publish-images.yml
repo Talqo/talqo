@@ -44,6 +44,7 @@ jobs:
       - name: Build and publish
         id: publish
         env:
+          GH_TOKEN: ${{ github.token }}
           IMAGE_VERSION: ${{ inputs.version }}
         run: bash scripts/push-images.sh all "$IMAGE_VERSION"
       - name: Log out of GHCR

@@ -38,6 +38,7 @@ jobs:
           persist-credentials: false
       - name: Request deployment
         env:
+          GH_TOKEN: ${{ github.token }}
           DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
           IMAGE_VERSION: ${{ inputs.version }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}

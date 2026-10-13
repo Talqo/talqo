@@ -32,7 +32,13 @@ current_main() {
 }
 
 check_version_order() {
-	local tag candidate newest
+	local tag candidate newest tags
+
+	if [[ $# == 1 ]]; then
+		tags=$(git tag --list 'v*')
+	else
+		tags=$2
+	fi
 
 	while IFS= read -r tag; do
 		candidate=${tag#v}
@@ -42,7 +48,7 @@ check_version_order() {
 				fail "A newer release tag already exists: $tag"
 			fi
 		fi
-	done < <(git tag --list 'v*')
+	done <<< "$tags"
 }
 
 validate_release() {
@@ -57,7 +63,10 @@ validate_release() {
 	fi
 
 	git merge-base --is-ancestor HEAD origin/main
-	check_version_order "$1"
+	local published_tags
+	published_tags=$(gh api --paginate 'repos/Talqo/talqo/releases?per_page=100' \
+		--jq '.[] | select(.draft == false and .prerelease == false) | .tag_name')
+	check_version_order "$1" "$published_tags"
 }
 
 inspect_manifest() {
