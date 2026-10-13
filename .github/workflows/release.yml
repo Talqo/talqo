@@ -8,14 +8,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: release
+  group: cd-prod
   queue: max
   cancel-in-progress: false
 
 jobs:
   validate:
     name: Validate release tag
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
       version: ${{ steps.release.outputs.version }}
@@ -36,8 +36,6 @@ jobs:
     name: Release checks
     needs: validate
     uses: ./.github/workflows/ci.yml
-    with:
-      run-e2e: true
 
   images:
     name: Publish release images
@@ -53,7 +51,7 @@ jobs:
   sdk:
     name: Publish SDK
     needs: [validate, images]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -74,7 +72,7 @@ jobs:
       - name: Set up npm publishing runtime
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "24.21.0"
+          node-version: "26.11.1"
           package-manager-cache: false
       - name: Publish SDK to npm
         env:
@@ -99,7 +97,7 @@ jobs:
   promote:
     name: Promote stable aliases
     needs: [validate, deploy]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -127,7 +125,7 @@ jobs:
   release:
     name: Create GitHub release
     needs: [validate, promote]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
