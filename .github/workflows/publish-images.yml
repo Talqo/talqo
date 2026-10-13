@@ -1,0 +1,51 @@
+name: Publish images
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+    outputs:
+      talqo-digest:
+        value: ${{ jobs.publish.outputs.talqo-digest }}
+      docs-digest:
+        value: ${{ jobs.publish.outputs.docs-digest }}
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      talqo-digest: ${{ steps.publish.outputs.talqo-digest }}
+      docs-digest: ${{ steps.publish.outputs.docs-digest }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: ${{ inputs.version == 'dev' && '1' || '0' }}
+          persist-credentials: false
+      - name: Log in to GHCR
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+      - name: Build and publish
+        id: publish
+        env:
+          IMAGE_VERSION: ${{ inputs.version }}
+        run: bash scripts/push-images.sh all "$IMAGE_VERSION"
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io

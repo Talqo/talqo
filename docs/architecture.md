@@ -56,7 +56,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the workspace-private, framework-independent browser chat SDK; the widget consumes it.
+- `packages/sdk` is the framework-independent browser chat SDK; the widget consumes its workspace source and stable releases publish its ESM JavaScript and declarations to npm as `@talqo/sdk`.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -232,6 +232,10 @@ apps/e2e/
 - Prefer user-visible role, accessible name, and label selectors. Never synchronize with fixed sleeps.
 - Capture a trace on first retry and a screenshot on failure.
 - `bun run e2e` runs the noncached Chromium suite.
+
+## Publication and deployment automation
+
+CI and CD are separate workflows. CI owns checks and runs on PRs or manual requests; main-push CD and tag releases call it before publishing. CD checks out the same commit that CI tested. Deployment implementations, production Compose configuration, server provisioning, and application/database secrets stay outside this repository. The external `deploy <version>` command selects its environment through the SSH key and returns success only when both Talqo and docs are ready.
 
 ## Naming And Exceptions
 
