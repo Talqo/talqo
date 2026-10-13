@@ -55,7 +55,6 @@ for component in "${components[@]}"; do
 	else
 		if [[ -z $manifest ]]; then
 			docker buildx build --platform linux/amd64 --push --file "$dockerfile" --tag "$reference" \
-				--label "org.opencontainers.image.source=$SOURCE" \
 				--label "org.opencontainers.image.revision=$revision" \
 				--label "org.opencontainers.image.version=$version" .
 			manifest=$(inspect_manifest "$reference")
