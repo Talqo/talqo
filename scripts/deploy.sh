@@ -22,10 +22,6 @@ esac
 host=${DEPLOY_HOST:?Missing DEPLOY_HOST}
 port=${DEPLOY_PORT:?Missing DEPLOY_PORT}
 account=${DEPLOY_ACCOUNT:?Missing DEPLOY_ACCOUNT}
-[[ $host =~ ^[a-zA-Z0-9][a-zA-Z0-9.:-]*$ && $account =~ ^[a-z_][a-z0-9_-]*$ ]] || fail 'Invalid SSH host or account'
-[[ $port =~ ^[0-9]{1,5}$ ]] || fail 'Invalid SSH port'
-(( 10#$port > 0 && 10#$port <= 65535 )) || fail 'Invalid SSH port'
-port=$((10#$port))
 [[ -n ${DEPLOY_SSH_KEY:-} && -n ${DEPLOY_HOST_KEY:-} ]] || fail 'Missing SSH keys'
 [[ $DEPLOY_HOST_KEY != *$'\n'* && $DEPLOY_HOST_KEY != *$'\r'* ]] || fail 'Host key must be one line'
 

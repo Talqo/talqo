@@ -233,10 +233,6 @@ apps/e2e/
 - Capture a trace on first retry and a screenshot on failure.
 - `bun run e2e` runs the noncached Chromium suite.
 
-## Publication and deployment automation
-
-CI and CD are separate workflows. CI owns checks and runs on PRs or manual requests; main-push CD and tag releases call it before publishing. CD checks out the same commit that CI tested. Deployment implementations, production Compose configuration, server provisioning, and application/database secrets stay outside this repository. The external `deploy <version>` command selects its environment through the SSH key and returns success only when both Talqo and docs are ready.
-
 ## Naming And Exceptions
 
 - Module directories and module file stems are singular lower-kebab-case: `<module>/<module>.service.ts`. HTTP resource paths may be plural.

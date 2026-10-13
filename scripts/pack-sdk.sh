@@ -14,31 +14,12 @@ bun run --cwd packages/sdk build
 mkdir -p "$staging"
 cp -R packages/sdk/dist "$staging/dist"
 cp LICENSE.md "$staging/"
-jq --arg version "$version" --arg revision "$(git rev-parse HEAD)" --arg source "$SOURCE" '{
-	name,
-	version: $version,
-	description: "Framework-independent browser chat SDK for Talqo",
-	type: "module",
-	license: "SEE LICENSE IN LICENSE.md",
-	repository: {
-		type: "git",
-		url: ($source + ".git"),
-		directory: "packages/sdk"
-	},
-	gitHead: $revision,
-	exports: {
-		".": {
-			types: "./dist/index.d.ts",
-			import: "./dist/index.js"
-		}
-	},
-	files: ["dist", "LICENSE.md"],
-	dependencies,
-	publishConfig: {
-		access: "public",
-		registry: "https://registry.npmjs.org/"
-	}
-}' packages/sdk/package.json > "$staging/package.json"
+jq --arg version "$version" --arg revision "$(git rev-parse HEAD)" '
+	.version = $version |
+	.gitHead = $revision |
+	.exports = {".": {types: .types, import: "./dist/index.js"}} |
+	del(.private, .scripts, .devDependencies)
+' packages/sdk/package.json > "$staging/package.json"
 (
 	cd "$staging"
 	bun pm pack --filename "$archive" --ignore-scripts --quiet
