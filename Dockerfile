@@ -24,6 +24,8 @@ RUN bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo
 
 FROM oven/bun:1.4.3-slim AS runtime
 
+LABEL org.opencontainers.image.source="https://github.com/Talqo/talqo"
+
 WORKDIR /app
 
 ENV NODE_ENV=production \
