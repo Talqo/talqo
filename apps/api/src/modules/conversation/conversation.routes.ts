@@ -4,7 +4,7 @@ import { env } from "@/config/env.ts"
 import { hashClientNetwork, resolveClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { annotate, deferWideEvent } from "@/http/wide-event.ts"
+import { annotate, annotator, deferWideEvent } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { ChatEvent } from "./conversation.service.ts"
@@ -57,10 +57,16 @@ export function createConversationRoutes(
 		const pending: Uint8Array[] = []
 		let controller: ReadableStreamDefaultController<Uint8Array> | undefined
 		let toolCalls = 0
+		let toolFailures = 0
 		const emit = (event: ChatEvent) => {
 			if (event.type === "accepted") annotate(c, { "generation.id": event.generationId })
-			else if (event.type === "terminal" || event.type === "error") annotate(c, { "chat.outcome": event.outcome })
+			else if (event.type === "terminal") annotate(c, { "chat.outcome": event.outcome })
+			// The stream already answered 200, so the failure code lives only here.
+			else if (event.type === "error") annotate(c, { "chat.outcome": event.outcome, "error.code": event.error.code })
 			else if (event.type === "tool-start") annotate(c, { "chat.tool_calls": (toolCalls += 1) })
+			else if (event.type === "tool-end" && event.outcome === "failed") {
+				annotate(c, { "chat.tool_failures": (toolFailures += 1) })
+			}
 			const bytes = sse(event)
 			if (controller) {
 				try {
@@ -81,6 +87,7 @@ export function createConversationRoutes(
 				networkHash: hashClientNetwork(normalized, env.APP_SECRET),
 			},
 			emit,
+			annotator(c),
 		)
 		annotate(c, { "agent.id": result.agentId, "chat.duplicate": result.duplicate, "embed.id": result.embedId })
 		deferWideEvent(c, result.done)

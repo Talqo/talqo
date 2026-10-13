@@ -1,4 +1,5 @@
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -22,10 +23,19 @@ export const aiProviderRoutes = new OpenAPIHono()
 		return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 	})
 	.openapi(saveAiProviderConfigurationRoute, async (c) => {
-		const configuration = await service.saveConfiguration(c.req.valid("json"))
+		const input = c.req.valid("json")
+		annotate(c, {
+			"ai.text.provider": input.text.providerId,
+			"ai.text.model": input.text.modelId,
+			"ai.embedding.provider": input.embedding.providerId,
+			"ai.embedding.model": input.embedding.modelId,
+		})
+		const configuration = await service.saveConfiguration(input, annotator(c))
 		return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 	})
 	.openapi(discoverAiProviderModelsRoute, async (c) => {
-		const models = await service.discoverModels(c.req.valid("json"))
+		const input = c.req.valid("json")
+		annotate(c, { "gen_ai.provider.name": input.providerId })
+		const models = await service.discoverModels(input)
 		return c.json(modelDiscoveryResponseSchema.parse({ models }), HTTP_STATUS.OK)
 	})

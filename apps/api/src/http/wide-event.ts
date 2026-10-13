@@ -1,3 +1,7 @@
+import type { ProblemCode } from "@/http/problem.ts"
+import type { AiProviderId } from "@/modules/ai-provider/ai-provider.registry.ts"
+import type { GenerationAttemptOutcome } from "@/modules/conversation/conversation.schema.ts"
+import type { AllowedExtension } from "@/modules/knowledge-base/knowledge-base.service.ts"
 import type { Context, MiddlewareHandler } from "hono"
 
 import { matchedRoutePath } from "@/http/route-match.ts"
@@ -14,21 +18,52 @@ export type WideEvent = {
 	duration_ms: number
 	"auth.kind"?: "chat_bearer" | "public" | "session"
 	"user.id"?: string
+	// The user an admin action targets; `user.id` is the actor.
+	"target.user.id"?: string
 	"agent.id"?: string
 	"embed.id"?: string
-	"error.code"?: string
+	"error.code"?: ProblemCode
 	// Exception class only; messages may carry user data.
 	"error.type"?: string
 	"generation.id"?: string
-	"chat.outcome"?: string
+	"chat.request_id"?: string
+	"chat.new_conversation"?: boolean
+	// Code points after history and knowledge base context; compare with TALQO_CHAT_MAX_INPUT_CHARACTERS.
+	"chat.prompt_characters"?: number
+	"chat.outcome"?: GenerationAttemptOutcome
 	"chat.duplicate"?: boolean
 	"chat.tool_calls"?: number
+	"chat.tool_failures"?: number
+	"rag.chunks"?: number
+	// Retrieval failed, so the answer ran without knowledge base context.
+	"rag.degraded"?: boolean
+	"gen_ai.provider.name"?: AiProviderId
+	"gen_ai.response.model"?: string
+	"gen_ai.usage.input_tokens"?: number
+	"gen_ai.usage.output_tokens"?: number
+	"ai.text.provider"?: AiProviderId
+	"ai.text.model"?: string
+	"ai.embedding.provider"?: AiProviderId
+	"ai.embedding.model"?: string
+	// The ingestion worker re-embeds every knowledge base file after this change.
+	"ai.embedding.changed"?: boolean
+	"mcp.server.id"?: string
+	"mcp.transport"?: "http" | "stdio"
+	// 0 means the connection offered no tools; the operator sees it as not working.
+	"mcp.tools_discovered"?: number
+	// A changed endpoint discards the operator's tool selection.
+	"mcp.endpoint_changed"?: boolean
+	"mcp.servers_degraded"?: number
+	"file.extension"?: AllowedExtension | "other"
+	"file.size"?: number
 }
 
-type Annotation = Omit<
+export type Annotation = Omit<
 	WideEvent,
 	"duration_ms" | "http.request.method" | "http.response.status_code" | "http.route" | "request.id"
 >
+// Lets services report fields without depending on the HTTP context.
+export type Annotate = (fields: Annotation) => void
 type RequestState = { deferred?: Promise<unknown>; fields: Annotation }
 
 export const REQUEST_ID_HEADER = "X-Request-Id"
@@ -42,6 +77,10 @@ export function annotate(context: Context, fields: Annotation): void {
 	if (state) Object.assign(state.fields, fields)
 }
 
+export function annotator(context: Context): Annotate {
+	return (fields) => annotate(context, fields)
+}
+
 // Streaming handlers return before their work ends; the event is written once `work` settles.
 export function deferWideEvent(context: Context, work: Promise<unknown>): void {
 	const state = requests.get(context)
@@ -51,7 +90,14 @@ export function deferWideEvent(context: Context, work: Promise<unknown>): void {
 function routeIds(context: Context): Annotation {
 	const agentId = context.req.param("agentId")
 	const embedId = context.req.param("embedId")
-	return { ...(agentId && { "agent.id": agentId }), ...(embedId && { "embed.id": embedId }) }
+	const serverId = context.req.param("serverId")
+	const userId = context.req.param("userId")
+	return {
+		...(agentId && { "agent.id": agentId }),
+		...(embedId && { "embed.id": embedId }),
+		...(serverId && { "mcp.server.id": serverId }),
+		...(userId && { "target.user.id": userId }),
+	}
 }
 
 export function createWideEvents(write: (event: WideEvent) => void): MiddlewareHandler {

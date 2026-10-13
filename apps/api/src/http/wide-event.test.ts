@@ -45,6 +45,24 @@ describe("wide events", () => {
 		expect(JSON.stringify(logged)).not.toContain("visitor@example.com")
 	})
 
+	it("records MCP server and target user IDs from route parameters", async () => {
+		const logged: WideEvent[] = []
+		const app = new OpenAPIHono()
+		app.use(
+			"*",
+			createWideEvents((event) => logged.push(event)),
+		)
+		app.get("/agents/:agentId/mcp-servers/:serverId", (c) => c.body(null))
+		app.get("/users/:userId", (c) => c.body(null))
+		await app.request("/agents/agent-1/mcp-servers/server-1")
+		await app.request("/users/user-2")
+
+		expect(logged).toEqual([
+			expect.objectContaining({ "agent.id": "agent-1", "mcp.server.id": "server-1" }),
+			expect.objectContaining({ "target.user.id": "user-2" }),
+		])
+	})
+
 	it("keeps a safe inbound request ID and replaces an unsafe one", async () => {
 		const { app, logged } = probe()
 		await app.request("/agents/a", { headers: { [REQUEST_ID_HEADER]: "edge-123" } })

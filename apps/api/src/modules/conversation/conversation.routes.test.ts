@@ -1,5 +1,5 @@
 import { handleError } from "@/app.ts"
-import { createWideEvents, type WideEvent } from "@/http/wide-event.ts"
+import { type Annotate, createWideEvents, type WideEvent } from "@/http/wide-event.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
@@ -21,8 +21,9 @@ function parseEvents(body: string) {
 function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
-		send: async (input: unknown, emit: (event: unknown) => void) => {
+		send: async (input: unknown, emit: (event: unknown) => void, annotate?: Annotate) => {
 			calls.push(input)
+			annotate?.({ "rag.chunks": 2 })
 			if (failure === "embed") throw new EmbedNotFoundError()
 			if (failure === "disabled") throw new EmbedDisabledError()
 			if (failure === "pre-accept") throw new ProviderUnavailableError()
@@ -35,7 +36,7 @@ function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") 
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			})
 			emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
-			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "completed" })
+			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
 			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
 			emit({ version: 1, type: "terminal", outcome: "completed" })
 			return {
@@ -111,6 +112,8 @@ describe("public conversation routes", () => {
 				"chat.outcome": "completed",
 				"chat.duplicate": false,
 				"chat.tool_calls": 1,
+				"chat.tool_failures": 1,
+				"rag.chunks": 2,
 			}),
 		])
 		expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
