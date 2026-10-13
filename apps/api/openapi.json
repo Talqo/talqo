@@ -3046,7 +3046,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "All users with their roles and effective permissions",
+						"description": "Users with their roles and available management actions",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3055,38 +3055,31 @@
 										"users": {
 											"type": "array",
 											"items": {
-												"allOf": [
-													{
-														"$ref": "#/components/schemas/RoleUser"
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
 													},
-													{
-														"type": "object",
-														"properties": {
-															"roles": {
-																"type": "array",
-																"items": {
-																	"$ref": "#/components/schemas/RoleSummary"
-																}
-															},
-															"permissions": {
-																"type": "array",
-																"items": {
-																	"type": "string",
-																	"enum": [
-																		"admin",
-																		"users:read",
-																		"users:manage",
-																		"roles:manage",
-																		"ai_provider:manage",
-																		"agents:read",
-																		"agents:manage"
-																	]
-																}
-															}
-														},
-														"required": ["roles", "permissions"]
+													"username": {
+														"type": "string"
+													},
+													"isAdmin": {
+														"type": "boolean"
+													},
+													"canManage": {
+														"type": "boolean"
+													},
+													"mustChangePassword": {
+														"type": ["boolean", "null"]
+													},
+													"roles": {
+														"type": "array",
+														"items": {
+															"$ref": "#/components/schemas/RoleSummary"
+														}
 													}
-												]
+												},
+												"required": ["id", "username", "isAdmin", "canManage", "mustChangePassword", "roles"]
 											}
 										}
 									},
@@ -3166,7 +3159,6 @@
 														"items": {
 															"type": "string",
 															"enum": [
-																"admin",
 																"users:read",
 																"users:manage",
 																"roles:manage",

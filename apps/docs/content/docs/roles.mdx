@@ -20,15 +20,15 @@ The first account, created during setup, is the **admin**. It can do everything,
 | **See agents**    | View agents, their knowledge, connections and website embeds.         |
 | **Manage agents** | Create, change and delete agents and everything that belongs to them. |
 
-Some choices include others. **Manage agents** includes **See agents**, and **Manage users** and **Manage roles** both include **See users**. When you tick one, the included one is ticked for you.
+Some choices include others. **Manage agents** includes **See agents**, and **Manage users** and **Manage roles** both include **See users**. Turning one on also turns on the included choice.
 
 ## Create a role
 
 1. Open **Roles** and click **Create role**.
 2. Give it a name people will recognize, such as "Support".
-3. Tick what people with the role can do, then click **Save role**.
+3. Turn on what people with the role can do, then click **Save role**.
 
-To change a role later, click **Edit** on its card. A change applies the next time anyone with the role opens a page; nobody needs to sign in again.
+To change a role later, click **Edit** next to it. A change applies to the person's next request; nobody needs to sign in again.
 
 ## Give roles to people
 
@@ -36,14 +36,20 @@ To change a role later, click **Edit** on its card. A change applies the next ti
 2. Tick the roles they should have and untick the ones they should lose.
 3. Click **Save roles**.
 
-A person can have any number of roles. To take all access away, untick every role.
+A person can have several roles. To take all access away, untick every role.
 
 ## You can only give what you have
 
 You can create, change, delete, give or take away only roles whose access you have yourself. Choices you don't have are greyed out with the reason next to them. In the same way, you can reset or delete only people who have no access beyond yours, so nobody can take over an account more powerful than their own. Only the admin can reset or delete the admin.
 
+You may assign ordinary roles to the admin, but they do not change its full access.
+
 If you are about to remove your own last way to manage roles, Talqo warns you first. Someone else with **Manage roles** can give it back.
 
 ## Delete a role
 
-Click **Delete** on the role's card. Everyone who had it loses the access it gave them, unless another of their roles gives the same access. To undo, create the role again and give it to the same people.
+Click **Delete** next to the role. Everyone who had it loses the access it gave them, unless another of their roles gives the same access. To undo, create the role again and give it to the same people.
+
+## Upgrading an existing deployment
+
+Existing direct permissions become an assigned role named **Migrated access: username** for each person. Rename or reorganize these roles as needed; their existing access is preserved.

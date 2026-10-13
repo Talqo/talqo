@@ -7,26 +7,17 @@
 import * as zod from "zod"
 
 import { RoleSummary } from "../roleSummary.zod"
-import { RoleUser } from "../roleUser.zod"
 
 export const ListUsers200 = zod.object({
 	users: zod.array(
-		RoleUser.and(
-			zod.object({
-				roles: zod.array(RoleSummary),
-				permissions: zod.array(
-					zod.enum([
-						"admin",
-						"users:read",
-						"users:manage",
-						"roles:manage",
-						"ai_provider:manage",
-						"agents:read",
-						"agents:manage",
-					]),
-				),
-			}),
-		),
+		zod.object({
+			id: zod.string(),
+			username: zod.string(),
+			isAdmin: zod.boolean(),
+			canManage: zod.boolean(),
+			mustChangePassword: zod.boolean().nullable(),
+			roles: zod.array(RoleSummary),
+		}),
 	),
 })
 

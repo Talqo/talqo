@@ -112,7 +112,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 - `<module>.contract.ts` owns Zod transport schemas and route/OpenAPI metadata for that module. Domain rules remain in services.
 - Every route declares its access in its contract by spreading one `access.*` entry from `src/http/access.ts`; that sets both OpenAPI `security` and enforcement. The global gate answers 500 for a route without one.
-- `access.permission(P, { target })` adds the escalation guard: a Context-free service resolver returns the permissions the request touches, and the gate answers 403 `permission-exceeds-own` unless the caller holds them all. The gate parses the JSON body itself only when `target.body` is declared, because route middleware runs before validators, and refuses any other content type with 400 so it never buffers a body the JSON size limit does not cover.
+- `access.permission(P)` gates a route. The roles service rechecks access-management writes under a deployment-wide advisory lock, requiring the caller to hold every permission they give or remove. It holds the lock through account reset/deletion calls to identity. One lock avoids cross-module transactions and a per-resource locking protocol, at the cost of serializing management writes. Local queuing prevents lock waiters from exhausting the database pool. Ordinary resource routes keep request-time permission checks.
 - A schema shared only between one route and its service is not automatically an HTTP contract; keep transport and domain types distinct where their semantics differ.
 - Route registration is composed centrally in `app.ts`; modules do not create independent servers.
 - HTTP paths may use plural resources even though module directory and file stems are singular.
@@ -123,7 +123,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
-- The `roles` module owns the admin grant, roles, role permissions and role assignments. `roles.listEffectivePermissions` is the only computation of a user's permissions (the admin grant plus role permissions); the access gate and the escalation guard both use it.
+- The `roles` module owns the admin grant, roles, role permissions and role assignments. `roles.listEffectivePermissions` computes a user's permissions from the admin grant and assigned roles; the route gate and guarded management operations both use it.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.
 - Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.

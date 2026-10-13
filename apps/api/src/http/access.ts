@@ -1,6 +1,4 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
-import type { z } from "@hono/zod-openapi"
-import type { Context } from "hono"
 import type { BlankEnv, Env, MiddlewareHandler } from "hono/types"
 
 import { chatBearerSecurity, sessionSecurity } from "@/http/openapi.ts"
@@ -28,33 +26,9 @@ export function isAccessPolicy(handler: unknown): boolean {
 
 const allowPublic = policy(createMiddleware<BlankEnv>(async (_c, next) => next()))
 
-type BodyTarget<B> = {
-	body: z.ZodType<B>
-	resolve: (request: { body: B; params: Record<string, string> }) => Promise<roles.Permission[]>
-}
-// A body is read only when declared, so multipart routes stay untouched.
-type ParamsTarget = {
-	body?: never
-	resolve: (request: { params: Record<string, string> }) => Promise<roles.Permission[]>
-}
-type AccessTarget<B> = BodyTarget<B> | ParamsTarget
-
-// Resolves to undefined when the body fails the declared schema.
-function targetResolver<B>(target: AccessTarget<B>): (c: Context) => Promise<roles.Permission[] | undefined> {
-	return async (c) => {
-		const params = c.req.param()
-		if (!target.body) return target.resolve({ params })
-		// The global body size limit covers only JSON, so never buffer anything else here.
-		if (!c.req.header("Content-Type")?.startsWith("application/json")) return undefined
-		const body = target.body.safeParse(await c.req.json().catch(() => undefined))
-		return body.success ? target.resolve({ body: body.data, params }) : undefined
-	}
-}
-
 type SessionOptions = {
 	allowPendingPasswordChange?: boolean
 	permission?: roles.Permission
-	resolveTarget?: ReturnType<typeof targetResolver>
 }
 
 function requireSession(options: SessionOptions) {
@@ -72,19 +46,9 @@ function requireSession(options: SessionOptions) {
 			}
 
 			if (options.permission) {
-				// Loaded once: both the gate and the target check compare against the same permissions.
 				const held = await roles.listEffectivePermissions(session.user.id)
 				if (!held.includes(options.permission)) {
 					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-				}
-
-				if (options.resolveTarget) {
-					const targeted = await options.resolveTarget(c)
-					// Fails closed: an unreadable body is rejected, never treated as "no target".
-					if (!targeted) return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
-					if (targeted.some((permission) => !held.includes(permission))) {
-						return problemResponse(c, PROBLEM_CODES.PERMISSION_EXCEEDS_OWN, HTTP_STATUS.FORBIDDEN)
-					}
 				}
 			}
 
@@ -96,16 +60,10 @@ function requireSession(options: SessionOptions) {
 
 type SessionAccess = { middleware: ReturnType<typeof requireSession>; security: typeof sessionSecurity }
 
-// Overloads, not one union-typed option: TypeScript cannot contextually type `resolve` across a union.
-function permissionAccess<B>(permission: roles.Permission, options?: { target: BodyTarget<B> }): SessionAccess
-function permissionAccess(permission: roles.Permission, options?: { target: ParamsTarget }): SessionAccess
-function permissionAccess<B>(permission: roles.Permission, options: { target?: AccessTarget<B> } = {}): SessionAccess {
+function permissionAccess(permission: roles.Permission): SessionAccess {
 	return {
 		security: sessionSecurity,
-		middleware: requireSession({
-			permission,
-			resolveTarget: options.target ? targetResolver(options.target) : undefined,
-		}),
+		middleware: requireSession({ permission }),
 	}
 }
 

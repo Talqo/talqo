@@ -6,7 +6,7 @@ Accepted (2026-10-12)
 
 ## Context
 
-Operators need named roles holding several permissions, with several roles per account. Keeping per-user grants beside roles means access can come from a source the dashboard can neither show nor revoke. Turning the single admin into a system role instead would need a data migration and a system-role special case in every role route, for one read-only row.
+Combining roles with direct per-user grants leaves two mechanisms to inspect and revoke. A protected Admin role would unify permission storage, but require changes to bootstrap and exceptions to role management. Retaining the bootstrap admin grant preserves the existing ownership model.
 
 ## Decision
 
@@ -14,4 +14,4 @@ Roles are the only way to give non-admin permissions; the admin stays a direct g
 
 ## Consequences
 
-One mechanism to show and revoke in the dashboard, and setup, seed and the one-admin index stay unchanged. Roles can never hold `admin`. Migration `0010` deletes existing non-admin grants, so deployments that used the removed `/permission-grants` API must recreate that access as roles.
+Ordinary access has one management path. Admin access remains a separate, non-delegable privilege, and roles cannot hold `admin`. Existing global non-admin grants must become assigned roles on upgrade.

@@ -11,6 +11,8 @@ await import("@/lib/i18n")
 
 const { RolesPage } = await import("./roles-page")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { createRouter, createRootRoute, createMemoryHistory, RouterContextProvider } =
+	await import("@tanstack/react-router")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
@@ -31,10 +33,13 @@ let myPermissions: string[]
 let myRoleIds: string[]
 let roles: Role[]
 let createFailure: Response | undefined
+let usersResponse: Promise<Response> | undefined
+let rolesFailure: Response | undefined
 let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
+let router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
 
 function json(body: unknown, status = 200): Response {
 	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
@@ -47,11 +52,12 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: ME })
 	if (url === "/api/users") {
+		if (usersResponse) return usersResponse
 		const ownRoles = roles.filter(({ id }) => myRoleIds.includes(id)).map(({ id, name }) => ({ id, name }))
-		return json({ users: [{ ...ME, roles: ownRoles, permissions: myPermissions }] })
+		return json({ users: [{ ...ME, roles: ownRoles, isAdmin: myPermissions.includes("admin"), canManage: true }] })
 	}
 	if (url === "/api/permissions") return json({ permissions: GRANTABLE })
-	if (url === "/api/roles" && method === "GET") return json({ roles })
+	if (url === "/api/roles" && method === "GET") return rolesFailure ?? json({ roles })
 	if (url === "/api/roles" && method === "POST") {
 		if (createFailure) return createFailure
 		const body = JSON.parse(String(init?.body)) as Pick<Role, "name" | "permissions">
@@ -74,9 +80,11 @@ async function settle() {
 async function renderPage() {
 	await act(async () =>
 		root.render(
-			<QueryClientProvider client={queryClient}>
-				<RolesPage />
-			</QueryClientProvider>,
+			<RouterContextProvider router={router}>
+				<QueryClientProvider client={queryClient}>
+					<RolesPage />
+				</QueryClientProvider>
+			</RouterContextProvider>,
 		),
 	)
 	await settle()
@@ -97,10 +105,10 @@ async function click(element: HTMLElement) {
 	await settle()
 }
 
-function checkbox(label: string): HTMLInputElement {
+function permissionSwitch(label: string): HTMLButtonElement {
 	const labelElement = [...document.querySelectorAll("label")].find((element) => element.textContent?.trim() === label)
 	const input = labelElement ? document.getElementById(labelElement.htmlFor) : null
-	if (!(input instanceof HTMLInputElement)) throw new Error(`checkbox "${label}" not rendered`)
+	if (!(input instanceof HTMLButtonElement)) throw new Error(`switch "${label}" not rendered`)
 	return input
 }
 
@@ -123,9 +131,12 @@ beforeEach(() => {
 	myRoleIds = []
 	roles = []
 	createFailure = undefined
+	usersResponse = undefined
+	rolesFailure = undefined
 	requests = []
 	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
 	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
 	host = document.createElement("div")
 	document.body.append(host)
 	root = createRoot(host)
@@ -139,14 +150,41 @@ afterEach(async () => {
 })
 
 describe("RolesPage", () => {
+	test("waits for the operator's roles before allowing changes that may lock them out", async () => {
+		myPermissions = ["roles:manage", "users:read"]
+		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
+		const deferred = Promise.withResolvers<Response>()
+		usersResponse = deferred.promise
+		await renderPage()
+		expect(queryButton(t("roles.create"), host)).toBeUndefined()
+		expect(queryButton(t("roles.delete"), host)).toBeUndefined()
+
+		await act(async () =>
+			deferred.resolve(
+				json({ users: [{ ...ME, roles: [{ id: "managers", name: "Managers" }], isAdmin: false, canManage: false }] }),
+			),
+		)
+		await settle()
+		await click(button(t("roles.delete"), host))
+		expect(dialog().textContent).toContain(t("roles.lockoutWarningDelete"))
+	})
+
+	test("shows access restricted and refreshes permissions when the roles request is forbidden", async () => {
+		rolesFailure = json({ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" }, 403)
+		await renderPage()
+		await settle()
+		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
+		expect(queryButton(t("roles.create"), host)).toBeUndefined()
+		expect(requests.filter(({ url }) => url === "/api/me/permissions").length).toBeGreaterThan(1)
+	})
 	test("shows a permission included with a checked one as checked and unavailable", async () => {
 		await renderPage()
 		await click(button(t("roles.create")))
 
-		await click(checkbox(t("roles.permissionLabels.agentsManage")))
+		await click(permissionSwitch(t("roles.permissionLabels.agentsManage")))
 
-		const included = checkbox(t("roles.permissionLabels.agentsRead"))
-		expect(included.checked).toBe(true)
+		const included = permissionSwitch(t("roles.permissionLabels.agentsRead"))
+		expect(included.getAttribute("aria-checked")).toBe("true")
 		expect(included.disabled).toBe(true)
 		expect(dialog().textContent).toContain(
 			t("roles.includedWith", { permission: t("roles.permissionLabels.agentsManage") }),
@@ -158,18 +196,18 @@ describe("RolesPage", () => {
 		await renderPage()
 		await click(button(t("roles.create")))
 
-		expect(checkbox(t("roles.permissionLabels.aiProviderManage")).disabled).toBe(true)
-		expect(checkbox(t("roles.permissionLabels.agentsRead")).disabled).toBe(false)
+		expect(permissionSwitch(t("roles.permissionLabels.aiProviderManage")).disabled).toBe(true)
+		expect(permissionSwitch(t("roles.permissionLabels.agentsRead")).disabled).toBe(false)
 		expect(dialog().textContent).toContain(t("roles.notYours"))
 	})
 
-	test("creates a role with the chosen permissions and leaves out included ones", async () => {
+	test("saves the selected permissions and lets the server normalize them", async () => {
 		await renderPage()
 		await click(button(t("roles.create")))
 
 		await type(dialog().querySelector<HTMLInputElement>("input[type='text']") as HTMLInputElement, "Support")
-		await click(checkbox(t("roles.permissionLabels.agentsRead")))
-		await click(checkbox(t("roles.permissionLabels.agentsManage")))
+		await click(permissionSwitch(t("roles.permissionLabels.agentsRead")))
+		await click(permissionSwitch(t("roles.permissionLabels.agentsManage")))
 		await act(async () =>
 			dialog()
 				.querySelector("form")
@@ -179,7 +217,7 @@ describe("RolesPage", () => {
 
 		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/roles")?.body).toEqual({
 			name: "Support",
-			permissions: ["agents:manage"],
+			permissions: ["agents:read", "agents:manage"],
 		})
 	})
 
@@ -220,7 +258,7 @@ describe("RolesPage", () => {
 		await click(button(t("roles.edit"), host))
 
 		expect(dialog().querySelector<HTMLInputElement>("input[type='text']")?.value).toBe("Helpdesk")
-		expect(checkbox(t("roles.permissionLabels.agentsManage")).checked).toBe(true)
+		expect(permissionSwitch(t("roles.permissionLabels.agentsManage")).getAttribute("aria-checked")).toBe("true")
 		await act(async () =>
 			dialog()
 				.querySelector("form")
@@ -261,7 +299,7 @@ describe("RolesPage", () => {
 
 		await click(button(t("roles.edit"), host))
 		expect(dialog().textContent).not.toContain(t("roles.lockoutWarningEdit"))
-		await click(checkbox(t("roles.permissionLabels.rolesManage")))
+		await click(permissionSwitch(t("roles.permissionLabels.rolesManage")))
 		expect(dialog().textContent).toContain(t("roles.lockoutWarningEdit"))
 	})
 })

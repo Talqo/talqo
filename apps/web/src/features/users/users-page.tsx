@@ -5,7 +5,6 @@ import {
 	useCreateInvitation,
 	useDeleteUser,
 	useGetMyPermissions,
-	useListGrantablePermissions,
 	useListRoles,
 	useListUsers,
 	useResetUserPassword,
@@ -15,7 +14,7 @@ import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/au
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
-import { holdsAll } from "@/features/roles/role-form"
+import { useAccessError } from "@/features/permissions/use-access-error"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -35,19 +34,16 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
 import { Check, Copy, UserPlus } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { EditUserRolesDialog } from "./edit-user-roles-dialog"
 
-const FORBIDDEN_STATUS = 403
 const NOT_FOUND_STATUS = 404
-const UNAUTHORIZED_STATUS = 401
 
-type ListedUser = { id: string; mustChangePassword: boolean; username: string }
+type ListedUser = { id: string; username: string }
 
 function ResetPasswordDialog({
 	disabled,
@@ -111,7 +107,7 @@ function ResetPasswordDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" disabled={disabled} />} nativeButton={false}>
+			<DialogTrigger render={<Button variant="outline" disabled={disabled} />}>
 				{t("users.resetPassword")}
 			</DialogTrigger>
 			<DialogContent>
@@ -223,9 +219,7 @@ function DeleteUserDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />} nativeButton={false}>
-				{t("users.delete")}
-			</DialogTrigger>
+			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />}>{t("users.delete")}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
@@ -268,21 +262,15 @@ function DeleteUserDialog({
 
 function UsersList({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const session = useGetSession()
 	const usersQuery = useListUsers()
 	const canManageUsers = held.includes("users:manage")
 	const canManageRoles = held.includes("roles:manage")
 	const rolesQuery = useListRoles({ query: { enabled: canManageRoles } })
-	const catalogQuery = useListGrantablePermissions({ query: { enabled: canManageRoles } })
 	const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
 
-	const errorStatus = (usersQuery.error as { status?: number } | null)?.status
-
-	useEffect(() => {
-		if (errorStatus === UNAUTHORIZED_STATUS) void navigate({ to: "/login" })
-	}, [errorStatus, navigate])
+	const forbidden = useAccessError(usersQuery.error, session.error, rolesQuery.error)
 
 	function handleReset(userId: string) {
 		setConfirmedUserId(userId)
@@ -299,7 +287,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 
 	if (usersQuery.isError) {
 		// A role removed while the page is open still lands here.
-		if (errorStatus === FORBIDDEN_STATUS) return <AccessDenied />
+		if (forbidden) return <AccessDenied />
 		return (
 			<Card>
 				<CardContent>
@@ -311,20 +299,19 @@ function UsersList({ held }: { held: readonly string[] }) {
 	const currentUserId = session.data?.data.user?.id
 	const users = usersQuery.data.data.users
 	const roles = rolesQuery.data?.data.roles
-	const catalog = catalogQuery.data?.data.permissions
 	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id) ?? [])
 	const ownRoles = roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
 
 	return (
 		<div className="space-y-3">
 			{users.map((user) => {
-				const exceedsOperator = !holdsAll(held, user.permissions)
+				const exceedsOperator = !user.canManage
 				return (
 					<Card key={user.id} data-user-id={user.id}>
 						<CardContent className="flex flex-wrap items-center justify-between gap-4">
 							<div className="flex min-w-0 flex-wrap items-center gap-2">
 								<span className="font-medium break-all">{user.username}</span>
-								{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+								{user.isAdmin && <Badge>{t("users.adminBadge")}</Badge>}
 								{user.roles.map((role) => (
 									<Badge key={role.id} variant="outline">
 										{role.name}
@@ -338,12 +325,11 @@ function UsersList({ held }: { held: readonly string[] }) {
 										{t("users.resetSuccess")}
 									</span>
 								)}
-								{canManageRoles && (rolesQuery.isError || catalogQuery.isError) ? (
+								{canManageRoles && rolesQuery.isError ? (
 									<p className="text-muted-foreground text-xs">{t("auth.errorFallback")}</p>
 								) : null}
-								{canManageRoles && roles && catalog ? (
+								{canManageRoles && roles ? (
 									<EditUserRolesDialog
-										catalog={catalog}
 										heldPermissions={held}
 										isSelf={user.id === currentUserId}
 										ownRoles={ownRoles}
@@ -417,7 +403,7 @@ function InviteMemberDialog() {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button />} nativeButton={false}>
+			<DialogTrigger render={<Button />}>
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>

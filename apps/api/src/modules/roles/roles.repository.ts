@@ -1,4 +1,4 @@
-import { db } from "@/db/client.ts"
+import { db, sql as client } from "@/db/client.ts"
 import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm"
 
 import { invitation, permissionGrant, role, rolePermission, userRole } from "./roles.schema.ts"
@@ -9,6 +9,30 @@ export type PermissionGrant = typeof permissionGrant.$inferSelect
 export type NewPermissionGrant = typeof permissionGrant.$inferInsert
 export type Role = typeof role.$inferSelect
 export type RolePermission = typeof rolePermission.$inferSelect
+
+let accessChanges = Promise.resolve()
+
+// Queue locally so waiting for the deployment-wide lock cannot exhaust the main connection pool.
+export function withAccessLock<T>(change: () => Promise<T>): Promise<T> {
+	const pending = accessChanges.then(async () => {
+		const connection = await client.reserve()
+		try {
+			await connection`SELECT pg_advisory_lock(hashtextextended('talqo:access-management', 0))`
+			try {
+				return await change()
+			} finally {
+				await connection`SELECT pg_advisory_unlock(hashtextextended('talqo:access-management', 0))`
+			}
+		} finally {
+			connection.release()
+		}
+	})
+	accessChanges = pending.then(
+		() => undefined,
+		() => undefined,
+	)
+	return pending
+}
 
 export async function adminGrantExists(): Promise<boolean> {
 	const [row] = await db
@@ -133,11 +157,7 @@ export async function replaceUserRoles(userId: string, roleIds: string[]): Promi
 	await db.transaction(async (tx) => {
 		await tx.delete(userRole).where(eq(userRole.userId, userId))
 		if (roleIds.length > 0) {
-			// A simultaneous replace for the same user may already have written these rows.
-			await tx
-				.insert(userRole)
-				.values(roleIds.map((roleId) => ({ userId, roleId })))
-				.onConflictDoNothing()
+			await tx.insert(userRole).values(roleIds.map((roleId) => ({ userId, roleId })))
 		}
 	})
 }

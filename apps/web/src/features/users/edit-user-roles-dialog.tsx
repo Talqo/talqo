@@ -7,7 +7,7 @@ import {
 	useAssignUserRoles,
 } from "@/api/generated/roles/roles.ts"
 import { PERMISSION_COPY } from "@/features/roles/permission-labels"
-import { explicitPermissions, holdsAll, losesRoleManagement, type PermissionCatalog } from "@/features/roles/role-form"
+import { holdsAll, losesRoleManagement } from "@/features/roles/role-form"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { Button } from "@talqo/ui/components/button"
 import {
@@ -27,14 +27,12 @@ import { useTranslation } from "react-i18next"
 type TargetUser = { id: string; roles: { id: string }[]; username: string }
 
 export function EditUserRolesDialog({
-	catalog,
 	heldPermissions,
 	isSelf,
 	ownRoles,
 	roles,
 	targetUser,
 }: {
-	catalog: PermissionCatalog
 	heldPermissions: readonly string[]
 	isSelf: boolean
 	ownRoles: readonly Role[]
@@ -99,9 +97,7 @@ export function EditUserRolesDialog({
 						<legend className="sr-only">{t("users.editRolesTitle", { username: targetUser.username })}</legend>
 						{roles.map((role) => {
 							const notHeld = !holdsAll(heldPermissions, role.permissions)
-							const summary = explicitPermissions(role.permissions, catalog)
-								.map((permission) => PERMISSION_COPY[permission].label(t))
-								.join(", ")
+							const summary = role.permissions.map((permission) => PERMISSION_COPY[permission].label(t)).join(", ")
 							const id = `user-${targetUser.id}-role-${role.id}`
 							return (
 								<div key={role.id} className="flex items-start gap-3">

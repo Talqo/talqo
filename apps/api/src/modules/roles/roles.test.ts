@@ -14,6 +14,8 @@ describe("effectivePermissions", () => {
 	})
 
 	it("drops unknown grant strings", () => {
-		expect(effectivePermissions([{ permission: "systems:aws" }])).toEqual([])
+		expect(
+			effectivePermissions([{ permission: "systems:aws" }, { permission: "constructor" }, { permission: "__proto__" }]),
+		).toEqual([])
 	})
 })

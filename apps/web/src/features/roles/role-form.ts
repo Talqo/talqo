@@ -22,22 +22,10 @@ export function includedPermissions(
 	for (const { permission, implies } of catalog) {
 		if (!selected.includes(permission)) continue
 		for (const implied of implies) {
-			const grantable = catalog.find((entry) => entry.permission === implied)?.permission
-			if (grantable && !included.has(grantable)) included.set(grantable, permission)
+			if (!included.has(implied)) included.set(implied, permission)
 		}
 	}
 	return included
-}
-
-// Catalog order, without permissions another selected one already includes.
-export function explicitPermissions(
-	selected: readonly GrantablePermission[],
-	catalog: PermissionCatalog,
-): GrantablePermission[] {
-	const included = includedPermissions(selected, catalog)
-	return catalog
-		.map(({ permission }) => permission)
-		.filter((permission) => selected.includes(permission) && !included.has(permission))
 }
 
 type PermissionHolder = Pick<Role, "permissions">

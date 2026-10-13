@@ -18,15 +18,7 @@ export const ListGrantablePermissions200 = zod.object({
 				"agents:manage",
 			]),
 			implies: zod.array(
-				zod.enum([
-					"admin",
-					"users:read",
-					"users:manage",
-					"roles:manage",
-					"ai_provider:manage",
-					"agents:read",
-					"agents:manage",
-				]),
+				zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage", "agents:read", "agents:manage"]),
 			),
 		}),
 	),

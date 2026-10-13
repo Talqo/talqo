@@ -12,14 +12,17 @@ await import("@/lib/i18n")
 const { UsersPage } = await import("./users-page")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { createRouter, createRootRoute, createMemoryHistory, RouterContextProvider } =
+	await import("@tanstack/react-router")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
 
 type ListedUser = {
 	id: string
-	mustChangePassword: boolean
-	permissions: string[]
+	mustChangePassword: boolean | null
+	isAdmin: boolean
+	canManage: boolean
 	roles: { id: string; name: string }[]
 	username: string
 }
@@ -43,9 +46,10 @@ let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
+let router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
 
 function user(username: string, overrides: Partial<ListedUser> = {}): ListedUser {
-	return { id: username, username, mustChangePassword: false, permissions: [], roles: [], ...overrides }
+	return { id: username, username, mustChangePassword: false, isAdmin: false, canManage: true, roles: [], ...overrides }
 }
 
 function json(body: unknown, status = 200): Response {
@@ -89,11 +93,13 @@ async function settle() {
 async function renderPage() {
 	await act(async () =>
 		root.render(
-			<QueryClientProvider client={queryClient}>
-				<LanguageProvider>
-					<UsersPage />
-				</LanguageProvider>
-			</QueryClientProvider>,
+			<RouterContextProvider router={router}>
+				<QueryClientProvider client={queryClient}>
+					<LanguageProvider>
+						<UsersPage />
+					</LanguageProvider>
+				</QueryClientProvider>
+			</RouterContextProvider>,
 		),
 	)
 	// Roles load only after permissions resolve, so give the dependent queries a second turn.
@@ -152,6 +158,7 @@ beforeEach(() => {
 	requests = []
 	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
 	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
 	host = document.createElement("div")
 	document.body.append(host)
 	root = createRoot(host)
@@ -168,8 +175,8 @@ describe("UsersPage", () => {
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
 		users = [
-			user("owner", { permissions: EVERYTHING }),
-			user("helper", { roles: [{ id: "support", name: "Support" }], permissions: ["agents:read"] }),
+			user("owner", { isAdmin: true, canManage: false, mustChangePassword: null }),
+			user("helper", { roles: [{ id: "support", name: "Support" }], mustChangePassword: null }),
 		]
 		await renderPage()
 
@@ -180,7 +187,7 @@ describe("UsersPage", () => {
 
 	test("offers user actions only for users whose access the operator holds", async () => {
 		myPermissions = ["users:read", "users:manage", "agents:read"]
-		users = [user("reader", { permissions: ["agents:read"] }), user("editor", { permissions: ["agents:manage"] })]
+		users = [user("reader"), user("editor", { canManage: false })]
 		await renderPage()
 
 		expect(buttonNames(host)).toContain(t("auth.invitations.heading"))
@@ -215,7 +222,7 @@ describe("UsersPage", () => {
 	test("warns before an operator removes their own only way to manage roles", async () => {
 		myPermissions = ["users:read", "roles:manage"]
 		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
-		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], permissions: ["users:read", "roles:manage"] })]
+		users = [user("me", { roles: [{ id: "managers", name: "Managers" }] })]
 		await renderPage()
 
 		await click(button(t("users.editRoles"), card("me")))
@@ -227,7 +234,7 @@ describe("UsersPage", () => {
 
 	test("shows the admin to a non-admin manager with a note instead of reset and delete", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
-		users = [user("owner", { permissions: EVERYTHING })]
+		users = [user("owner", { isAdmin: true, canManage: false })]
 		await renderPage()
 
 		expect(card("owner").textContent).toContain(t("users.adminBadge"))
@@ -237,7 +244,7 @@ describe("UsersPage", () => {
 
 	test("keeps the operator's own reset and delete unavailable but offers role editing", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
-		users = [user("me", { permissions: myPermissions })]
+		users = [user("me")]
 		await renderPage()
 
 		expect(buttonNames(card("me"))).toEqual([t("users.editRoles"), t("users.resetPassword"), t("users.delete")])
@@ -260,7 +267,7 @@ describe("UsersPage", () => {
 		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
-		users = [user("helper", { roles: [{ id: "readers", name: "Readers" }], permissions: ["agents:read"] })]
+		users = [user("helper", { roles: [{ id: "readers", name: "Readers" }] })]
 		await act(() => queryClient.refetchQueries())
 		await settle()
 
@@ -303,7 +310,7 @@ describe("UsersPage", () => {
 
 	test("does not warn the admin or an operator editing someone else", async () => {
 		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
-		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], permissions: EVERYTHING })]
+		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], isAdmin: true })]
 		await renderPage()
 		await click(button(t("users.editRoles"), card("me")))
 		await click(checkbox("Managers"))
@@ -311,9 +318,7 @@ describe("UsersPage", () => {
 		await click(button(t("users.cancel"), dialog()))
 
 		myPermissions = ["users:read", "roles:manage"]
-		users = [
-			user("helper", { roles: [{ id: "managers", name: "Managers" }], permissions: ["users:read", "roles:manage"] }),
-		]
+		users = [user("helper", { roles: [{ id: "managers", name: "Managers" }] })]
 		await act(() => queryClient.refetchQueries())
 		await settle()
 		await click(button(t("users.editRoles"), card("helper")))

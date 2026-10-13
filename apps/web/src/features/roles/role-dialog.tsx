@@ -22,6 +22,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
@@ -29,7 +30,6 @@ import { useTranslation } from "react-i18next"
 
 import { type GrantablePermission, PERMISSION_COPY } from "./permission-labels"
 import {
-	explicitPermissions,
 	includedPermissions,
 	losesRoleManagement,
 	type PermissionCatalog,
@@ -94,7 +94,7 @@ export function RoleDialog({
 
 	async function onValid(values: RoleFormValues) {
 		setError(null)
-		const data = { name: values.name, permissions: explicitPermissions(values.permissions, catalog) }
+		const data = { name: values.name, permissions: values.permissions }
 		try {
 			if (role) await updateRole.mutateAsync({ roleId: role.id, data })
 			else await createRole.mutateAsync({ data })
@@ -134,7 +134,7 @@ export function RoleDialog({
 							</p>
 						)}
 					</div>
-					<fieldset className="space-y-3">
+					<fieldset className="divide-y">
 						<legend className="text-sm font-medium">{t("roles.permissionsLegend")}</legend>
 						{catalog.map(({ permission }) => {
 							const includedBy = included.get(permission)
@@ -145,16 +145,7 @@ export function RoleDialog({
 							if (includedBy) hint = t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
 							else if (notHeld) hint = t("roles.notYours")
 							return (
-								<div key={permission} className="flex items-start gap-3">
-									<input
-										id={id}
-										type="checkbox"
-										className="accent-primary mt-0.5 size-4 shrink-0"
-										checked={selected.includes(permission) || includedBy !== undefined}
-										disabled={notHeld || includedBy !== undefined}
-										aria-describedby={`${id}-description`}
-										onChange={() => toggle(permission)}
-									/>
+								<div key={permission} className="flex items-start justify-between gap-6 py-3">
 									<div className="space-y-0.5">
 										<Label htmlFor={id}>{copy.label(t)}</Label>
 										<p id={`${id}-description`} className="text-muted-foreground text-xs">
@@ -162,6 +153,16 @@ export function RoleDialog({
 											{hint ? <span className="block">{hint}</span> : null}
 										</p>
 									</div>
+									<Switch
+										render={<button type="button" />}
+										nativeButton
+										id={id}
+										className="mt-0.5"
+										checked={selected.includes(permission) || includedBy !== undefined}
+										disabled={notHeld || includedBy !== undefined}
+										aria-describedby={`${id}-description`}
+										onCheckedChange={() => toggle(permission)}
+									/>
 								</div>
 							)
 						})}

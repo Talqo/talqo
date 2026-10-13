@@ -11,18 +11,7 @@ import {
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
-import {
-	GRANTABLE_PERMISSIONS,
-	PERMISSIONS,
-	Permission,
-	permissionsInRoleAssignment,
-	permissionsInRoleRequest,
-	permissionsInRoleUpdate,
-	permissionsOfRole,
-	permissionsOfUser,
-	ROLE_IDS_MAX,
-	ROLE_NAME_MAX_LENGTH,
-} from "./roles.service.ts"
+import { GRANTABLE_PERMISSIONS, PERMISSIONS, Permission, ROLE_IDS_MAX, ROLE_NAME_MAX_LENGTH } from "./roles.service.ts"
 
 const usernameSchema = z
 	.string()
@@ -108,7 +97,9 @@ const assignRolesRequestSchema = z
 	.strict()
 
 export const grantablePermissionsResponseSchema = z.object({
-	permissions: z.array(z.object({ permission: z.enum(GRANTABLE_PERMISSIONS), implies: z.array(z.enum(PERMISSIONS)) })),
+	permissions: z.array(
+		z.object({ permission: z.enum(GRANTABLE_PERMISSIONS), implies: z.array(z.enum(GRANTABLE_PERMISSIONS)) }),
+	),
 })
 
 export const roleListResponseSchema = z.object({ roles: z.array(roleSchema) })
@@ -151,7 +142,14 @@ const resetPasswordRequestSchema = z.object({
 
 export const userListResponseSchema = z.object({
 	users: z.array(
-		userResponseSchema.extend({ roles: z.array(roleSummarySchema), permissions: z.array(z.enum(PERMISSIONS)) }),
+		z.object({
+			id: z.string(),
+			username: z.string(),
+			isAdmin: z.boolean(),
+			canManage: z.boolean(),
+			mustChangePassword: z.boolean().nullable(),
+			roles: z.array(roleSummarySchema),
+		}),
 	),
 })
 
@@ -264,7 +262,7 @@ export const getUsersRoute = createRoute({
 	responses: {
 		200: {
 			content: { "application/json": { schema: userListResponseSchema } },
-			description: "All users with their roles and effective permissions",
+			description: "Users with their roles and available management actions",
 		},
 		401: authRequired,
 		403: permissionForbidden,
@@ -277,7 +275,7 @@ export const deleteUserRoute = createRoute({
 	path: "/{userId}",
 	operationId: "deleteUser",
 	tags: ["Roles"],
-	...access.permission(Permission.UsersManage, { target: { resolve: permissionsOfUser } }),
+	...access.permission(Permission.UsersManage),
 	request: { params: userParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -294,7 +292,7 @@ export const resetUserPasswordRoute = createRoute({
 	path: "/{userId}/password",
 	operationId: "resetUserPassword",
 	tags: ["Roles"],
-	...access.permission(Permission.UsersManage, { target: { resolve: permissionsOfUser } }),
+	...access.permission(Permission.UsersManage),
 	request: {
 		params: userParamsSchema,
 		body: { content: { "application/json": { schema: resetPasswordRequestSchema } }, required: true },
@@ -350,9 +348,7 @@ export const createRoleRoute = createRoute({
 	path: "/roles",
 	operationId: "createRole",
 	tags: ["Roles"],
-	...access.permission(Permission.RolesManage, {
-		target: { body: roleRequestSchema, resolve: permissionsInRoleRequest },
-	}),
+	...access.permission(Permission.RolesManage),
 	request: {
 		body: { content: { "application/json": { schema: roleRequestSchema } }, required: true },
 	},
@@ -372,9 +368,7 @@ export const updateRoleRoute = createRoute({
 	path: "/roles/{roleId}",
 	operationId: "updateRole",
 	tags: ["Roles"],
-	...access.permission(Permission.RolesManage, {
-		target: { body: roleRequestSchema, resolve: permissionsInRoleUpdate },
-	}),
+	...access.permission(Permission.RolesManage),
 	request: {
 		params: roleParamsSchema,
 		body: { content: { "application/json": { schema: roleRequestSchema } }, required: true },
@@ -396,7 +390,7 @@ export const deleteRoleRoute = createRoute({
 	path: "/roles/{roleId}",
 	operationId: "deleteRole",
 	tags: ["Roles"],
-	...access.permission(Permission.RolesManage, { target: { resolve: permissionsOfRole } }),
+	...access.permission(Permission.RolesManage),
 	request: { params: roleParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -412,9 +406,7 @@ export const assignUserRolesRoute = createRoute({
 	path: "/users/{userId}/roles",
 	operationId: "assignUserRoles",
 	tags: ["Roles"],
-	...access.permission(Permission.RolesManage, {
-		target: { body: assignRolesRequestSchema, resolve: permissionsInRoleAssignment },
-	}),
+	...access.permission(Permission.RolesManage),
 	request: {
 		params: userParamsSchema,
 		body: { content: { "application/json": { schema: assignRolesRequestSchema } }, required: true },

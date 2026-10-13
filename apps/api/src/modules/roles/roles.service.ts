@@ -56,7 +56,8 @@ function expandPermissions(granted: Permission[]): Permission[] {
 type PermissionSource = { permission: string }
 
 export function effectivePermissions(sources: PermissionSource[]): Permission[] {
-	return expandPermissions(sources.map((source) => source.permission as Permission))
+	const granted = new Set(sources.map(({ permission }) => permission))
+	return expandPermissions(PERMISSIONS.filter((permission) => granted.has(permission)))
 }
 
 class AdminAlreadyExistsError extends ApiError {
@@ -132,10 +133,6 @@ export async function getAccess(userId: string): Promise<{ permissions: Permissi
 	return { permissions: await listEffectivePermissions(userId) }
 }
 
-export async function authorize(userId: string, permission: Permission): Promise<boolean> {
-	return (await listEffectivePermissions(userId)).includes(permission)
-}
-
 // The only source of a user's permissions: the admin grant plus every assigned role's permissions.
 // Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
@@ -147,6 +144,7 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 }
 
 export const ROLE_NAME_MAX_LENGTH = 64
+// Bounds a replacement request's database work; deployments may create more roles.
 export const ROLE_IDS_MAX = 100
 
 export class InvalidRoleInputError extends ApiError {
@@ -162,6 +160,36 @@ export class RoleNotFoundError extends ApiError {
 export class DuplicateRoleNameError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.ROLE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class PermissionDeniedError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
+	}
+}
+export class PermissionExceedsOwnError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PERMISSION_EXCEEDS_OWN, HTTP_STATUS.FORBIDDEN, message, undefined, options)
+	}
+}
+export class PasswordChangeRequiredError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
+	}
+}
+
+async function managementPermissions(actorId: string, permission: Permission): Promise<Permission[]> {
+	const held = await listEffectivePermissions(actorId)
+	if (!held.includes(permission)) throw new PermissionDeniedError(`Missing ${permission}`)
+	if ((await identity.getUser(actorId)).mustChangePassword) {
+		throw new PasswordChangeRequiredError("Password change required")
+	}
+	return held
+}
+
+function requireHeld(held: readonly Permission[], targeted: readonly Permission[]): void {
+	if (targeted.some((permission) => !held.includes(permission))) {
+		throw new PermissionExceedsOwnError("Cannot manage access beyond own permissions")
 	}
 }
 
@@ -194,7 +222,12 @@ function normalizeRoleInput(input: RoleInput): { name: string; permissions: Gran
 	if (permissions.length !== input.permissions.length) {
 		throw new InvalidRoleInputError("Roles may hold only grantable permissions")
 	}
-	return { name, permissions }
+	return {
+		name,
+		permissions: permissions.filter(
+			(permission) => !permissions.some((other) => IMPLIED_BY[other]?.includes(permission)),
+		),
+	}
 }
 
 async function toRoles(rows: repo.Role[]): Promise<Role[]> {
@@ -214,83 +247,112 @@ async function toRoles(rows: repo.Role[]): Promise<Role[]> {
 async function getRole(id: string): Promise<Role> {
 	const row = await repo.findRoleById(id)
 	if (!row) throw new RoleNotFoundError(`getRole: role ${id} not found`)
-	const [found] = await toRoles([row])
-	if (!found) throw new Error(`getRole: could not assemble role ${id}`)
-	return found
+	const [permissions, counts] = await Promise.all([permissionsOfRoles([id]), repo.countMembersByRole([id])])
+	return { id: row.id, name: row.name, permissions, memberCount: counts[0]?.memberCount ?? 0 }
 }
 
 export async function listRoles(): Promise<Role[]> {
 	return toRoles(await repo.findRoles())
 }
 
-export async function createRole(input: RoleInput): Promise<Role> {
+export async function createRole(input: RoleInput, actorId: string): Promise<Role> {
 	const value = normalizeRoleInput(input)
-	const id = crypto.randomUUID()
-	try {
-		await repo.insertRoleWithPermissions({ id, name: value.name }, value.permissions)
-	} catch (error) {
-		if (isUniqueViolation(error)) throw new DuplicateRoleNameError("A role with this name already exists")
-		throw error
-	}
-	return getRole(id)
-}
-
-export async function updateRole(id: string, input: RoleInput): Promise<Role> {
-	const value = normalizeRoleInput(input)
-	try {
-		if (!(await repo.updateRoleWithPermissions(id, value.name, value.permissions))) {
-			throw new RoleNotFoundError(`updateRole: role ${id} not found`)
+	return repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.RolesManage)
+		requireHeld(held, value.permissions)
+		const id = crypto.randomUUID()
+		try {
+			await repo.insertRoleWithPermissions({ id, name: value.name }, value.permissions)
+		} catch (error) {
+			if (isUniqueViolation(error)) throw new DuplicateRoleNameError("A role with this name already exists")
+			throw error
 		}
-	} catch (error) {
-		if (isUniqueViolation(error)) throw new DuplicateRoleNameError("A role with this name already exists")
-		throw error
-	}
-	return getRole(id)
+		return getRole(id)
+	})
 }
 
-export async function deleteRole(id: string): Promise<void> {
-	if (!(await repo.deleteRoleById(id))) throw new RoleNotFoundError(`deleteRole: role ${id} not found`)
+export async function updateRole(id: string, input: RoleInput, actorId: string): Promise<Role> {
+	const value = normalizeRoleInput(input)
+	return repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.RolesManage)
+		const current = await getRole(id)
+		requireHeld(held, [...current.permissions, ...value.permissions])
+		try {
+			await repo.updateRoleWithPermissions(id, value.name, value.permissions)
+		} catch (error) {
+			if (isUniqueViolation(error)) throw new DuplicateRoleNameError("A role with this name already exists")
+			throw error
+		}
+		return getRole(id)
+	})
 }
 
-// Replaces every role of the user atomically.
-export async function assignRoles(userId: string, roleIds: string[]): Promise<RoleSummary[]> {
+export async function deleteRole(id: string, actorId: string): Promise<void> {
+	await repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.RolesManage)
+		const current = await getRole(id)
+		requireHeld(held, current.permissions)
+		await repo.deleteRoleById(id)
+	})
+}
+
+export async function assignRoles(userId: string, roleIds: string[], actorId: string): Promise<RoleSummary[]> {
 	assertUnique(roleIds, "Role ids")
 	if (roleIds.length > ROLE_IDS_MAX) throw new InvalidRoleInputError(`At most ${ROLE_IDS_MAX} roles per user`)
-	await identity.getUser(userId)
-	if ((await repo.findRolesByIds(roleIds)).length !== roleIds.length) {
-		throw new RoleNotFoundError(`assignRoles: unknown role for user ${userId}`)
-	}
-	try {
-		await repo.replaceUserRoles(userId, roleIds)
-	} catch (error) {
-		if (!isForeignKeyViolation(error)) throw error
-		// The user or a role was deleted after the checks above; report which one, not a 500.
+	return repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.RolesManage)
 		await identity.getUser(userId)
-		throw new RoleNotFoundError(`assignRoles: a role was deleted while assigning user ${userId}`)
-	}
-	return repo.findRolesOfUser(userId)
+		if ((await repo.findRolesByIds(roleIds)).length !== roleIds.length) {
+			throw new RoleNotFoundError(`assignRoles: unknown role for user ${userId}`)
+		}
+		const current = (await repo.findRolesOfUser(userId)).map(({ id }) => id)
+		const changed = [...current.filter((id) => !roleIds.includes(id)), ...roleIds.filter((id) => !current.includes(id))]
+		requireHeld(held, await permissionsOfRoles(changed))
+		try {
+			await repo.replaceUserRoles(userId, roleIds)
+		} catch (error) {
+			if (!isForeignKeyViolation(error)) throw error
+			await identity.getUser(userId)
+			throw new RoleNotFoundError(`assignRoles: a role was deleted while assigning user ${userId}`)
+		}
+		return repo.findRolesOfUser(userId)
+	})
 }
 
-export type UserWithAccess = PublicUser & { permissions: Permission[]; roles: RoleSummary[] }
+export type UserWithAccess = {
+	id: string
+	username: string
+	isAdmin: boolean
+	canManage: boolean
+	mustChangePassword: boolean | null
+	roles: RoleSummary[]
+}
 
-export async function listUsersWithAccess(): Promise<UserWithAccess[]> {
+export async function listUsersWithAccess(actorId: string): Promise<UserWithAccess[]> {
+	const held = await listEffectivePermissions(actorId)
+	const managesUsers = held.includes(Permission.UsersManage)
 	const users = await identity.listUsers()
 	return Promise.all(
 		users.map(async (user) => {
 			const [roles, permissions] = await Promise.all([repo.findRolesOfUser(user.id), listEffectivePermissions(user.id)])
-			return { id: user.id, username: user.username, mustChangePassword: user.mustChangePassword, roles, permissions }
+			return {
+				id: user.id,
+				username: user.username,
+				isAdmin: permissions.includes(Permission.Admin),
+				canManage: managesUsers && permissions.every((permission) => held.includes(permission)),
+				mustChangePassword: managesUsers ? user.mustChangePassword : null,
+				roles,
+			}
 		}),
 	)
 }
 
-export function listGrantablePermissions(): { implies: Permission[]; permission: GrantablePermission }[] {
-	return GRANTABLE_PERMISSIONS.map((permission) => ({ permission, implies: IMPLIED_BY[permission] ?? [] }))
+export function listGrantablePermissions(): { implies: GrantablePermission[]; permission: GrantablePermission }[] {
+	return GRANTABLE_PERMISSIONS.map((permission) => ({
+		permission,
+		implies: (IMPLIED_BY[permission] ?? []).filter(isGrantable),
+	}))
 }
-
-// Target resolvers for access.permission(P, { target }): each returns the permissions a request touches.
-// A missing role or user resolves to none, so the route answers 404 instead of 403.
-
-type PathParams = { params: Record<string, string> }
 
 async function permissionsOfRoles(roleIds: string[]): Promise<GrantablePermission[]> {
 	const rows = await repo.findPermissionsOfRoles(roleIds)
@@ -300,32 +362,20 @@ async function permissionsOfRoles(roleIds: string[]): Promise<GrantablePermissio
 	)
 }
 
-export async function permissionsInRoleRequest(request: { body: RoleInput }): Promise<Permission[]> {
-	return inCatalogOrder(request.body.permissions, PERMISSIONS)
+export async function resetUserPassword(userId: string, newPassword: string, actorId: string): Promise<void> {
+	await repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.UsersManage)
+		await identity.getUser(userId)
+		requireHeld(held, await listEffectivePermissions(userId))
+		await identity.setPassword(userId, newPassword)
+	})
 }
 
-export async function permissionsInRoleUpdate(request: PathParams & { body: RoleInput }): Promise<Permission[]> {
-	const current = await permissionsOfRoles([request.params.roleId ?? ""])
-	return inCatalogOrder([...current, ...request.body.permissions], PERMISSIONS)
-}
-
-export async function permissionsOfRole(request: PathParams): Promise<Permission[]> {
-	return permissionsOfRoles([request.params.roleId ?? ""])
-}
-
-// Delta only: roles kept on both sides are neither given nor removed.
-export async function permissionsInRoleAssignment(
-	request: PathParams & { body: { roleIds: string[] } },
-): Promise<Permission[]> {
-	const current = (await repo.findRolesOfUser(request.params.userId ?? "")).map(({ id }) => id)
-	const requested = new Set(request.body.roleIds)
-	const changed = [
-		...current.filter((id) => !requested.has(id)),
-		...[...requested].filter((id) => !current.includes(id)),
-	]
-	return permissionsOfRoles(changed)
-}
-
-export async function permissionsOfUser(request: PathParams): Promise<Permission[]> {
-	return listEffectivePermissions(request.params.userId ?? "")
+export async function deleteUser(userId: string, actorId: string): Promise<void> {
+	await repo.withAccessLock(async () => {
+		const held = await managementPermissions(actorId, Permission.UsersManage)
+		await identity.getUser(userId)
+		requireHeld(held, await listEffectivePermissions(userId))
+		await identity.deleteAccount(userId)
+	})
 }
