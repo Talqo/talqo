@@ -18,6 +18,7 @@ const READY_SNAPSHOT: ChatSnapshot = {
 			light: { primary: "#123456", background: "#fefefe" },
 		},
 		isDisabled: false,
+		isAvailable: true,
 	},
 	messages: [],
 	initialization: "ready",
@@ -410,12 +411,41 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("a disabled embed renders nothing and never sends", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			configuration: { title: "SDK support", appearance: {}, isDisabled: true },
+			configuration: { title: "SDK support", appearance: {}, isDisabled: true, isAvailable: true },
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 
 		expect(host.textContent).toBe("")
 		expect(store.calls.sends).toEqual([])
+	})
+
+	test("an embed that cannot reply greys out the launcher, explains it calmly, and blocks the composer", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			configuration: { title: "SDK support", appearance: {}, isDisabled: false, isAvailable: false },
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+
+		expect(host.querySelector("button[aria-haspopup=dialog]")?.className).toContain("tw:bg-muted")
+		await openChat()
+
+		expect(host.querySelector("[role='status']")?.textContent).toContain("isn't available right now")
+		expect(host.querySelector("[role='alert']")).toBeNull()
+		expect(host.textContent).not.toContain("How can I help")
+		expect(input().disabled).toBe(true)
+	})
+
+	test("an embed that cannot reply shows the setup state instead of an older error", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			configuration: { title: "SDK support", appearance: {}, isDisabled: false, isAvailable: false },
+			error: error("provider-error"),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).toContain("isn't available right now")
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("offers an explicit retry only for a retriable failed turn", async () => {

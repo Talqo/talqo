@@ -38,10 +38,14 @@ describe("preview channel", () => {
 			appearance: completeAppearance,
 			title: undefined,
 			forcedScheme: undefined,
+			isAvailable: undefined,
 		})
-		expect(configMessage(completeAppearance, { title: "Marketing site", forcedScheme: "dark" })).toMatchObject({
+		expect(
+			configMessage(completeAppearance, { title: "Marketing site", forcedScheme: "dark", isAvailable: false }),
+		).toMatchObject({
 			title: "Marketing site",
 			forcedScheme: "dark",
+			isAvailable: false,
 		})
 	})
 
@@ -70,13 +74,16 @@ describe("preview channel", () => {
 			appearance: partialAppearance,
 			title: undefined,
 			forcedScheme: undefined,
+			isAvailable: undefined,
 		})
-		expect(configFromMessage(message({ title: "Marketing site", forcedScheme: "dark" }))).toEqual({
+		expect(configFromMessage(message({ title: "Marketing site", forcedScheme: "dark", isAvailable: false }))).toEqual({
 			appearance: partialAppearance,
 			title: "Marketing site",
 			forcedScheme: "dark",
+			isAvailable: false,
 		})
 		expect(configFromMessage(message({ forcedScheme: "sepia" }))?.forcedScheme).toBeUndefined()
+		expect(configFromMessage(message({ isAvailable: "no" }))?.isAvailable).toBeUndefined()
 	})
 
 	test("rejects foreign, stale, and malformed config messages", () => {

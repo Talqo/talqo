@@ -265,6 +265,10 @@
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
+		"aiProviderCheckFailed": "无法确认您的智能体是否能回复访客。请打开 AI 配置进行检查。",
+		"aiProviderCheckFailedAction": "检查 AI 配置",
+		"aiProviderMissing": "您的智能体还无法回复访客。请完成 AI 配置以开启回复。",
+		"aiProviderMissingAction": "打开 AI 配置",
 		"cards": {
 			"account": {
 				"description": "更新您的个人资料和偏好设置。",
