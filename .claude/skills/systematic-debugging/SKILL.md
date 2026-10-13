@@ -137,12 +137,12 @@ Follow the phases in order, returning to investigation when evidence contradicts
 
 **Fix the root cause, not the symptom:**
 
-1. **Create Failing Test Case**
+1. **Establish Reproduction and Regression Coverage**
    - Simplest possible reproduction
    - Automated test if possible
    - One-off test script if no framework
    - Observe the relevant failure before fixing when feasible. If reproduction is unavailable or the implementation already exists, preserve valid work, state the limitation, and use the strongest feasible verification.
-   - Use the `test-driven-development` skill for writing proper failing tests
+   - Use the `writing-tests` skill to select meaningful regression coverage; no test-first implementation sequence is required.
 
 2. **Implement Single Fix**
    - Address the root cause identified
@@ -188,7 +188,7 @@ Return to evidence gathering when a proposed fix rests on an unverified assumpti
 | **1. Root Cause** | Read errors, reproduce, check changes, gather evidence | Understand WHAT and WHY |
 | **2. Pattern** | Find working examples, compare | Identify differences |
 | **3. Hypothesis** | Form theory, test minimally | Confirmed or new hypothesis |
-| **4. Implementation** | Create test, fix, verify | Bug resolved, tests pass |
+| **4. Implementation** | Fix root cause, protect against regression, verify | Bug resolved, tests pass |
 
 ## When Process Reveals "No Root Cause"
 
