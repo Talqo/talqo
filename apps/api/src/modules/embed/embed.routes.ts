@@ -2,6 +2,7 @@ import type { Context } from "hono"
 
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -36,7 +37,7 @@ function mapDomainError(error: unknown) {
 
 function serveEmbedConfig(c: Context) {
 	return service
-		.getConfigByToken(c.req.param("embedToken")!)
+		.getConfigByToken(c.req.param("embedToken")!, annotator(c))
 		.then((config) => {
 			const etag = `W/"${config.updatedAt.getTime()}"`
 			if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
@@ -59,6 +60,7 @@ export const embedRoutes = new OpenAPIHono()
 	.openapi(createEmbedRoute, async (c) => {
 		try {
 			const embed = await service.createEmbed(c.req.valid("json"))
+			annotate(c, { "embed.id": embed.id, "agent.id": embed.agentId })
 			return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)

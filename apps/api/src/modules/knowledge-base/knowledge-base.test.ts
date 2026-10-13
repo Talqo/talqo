@@ -6,9 +6,18 @@ import {
 	MAX_FILE_SIZE_MB,
 	BYTES_PER_MB,
 	resolveRenameTarget,
+	uploadExtension,
 	validateName,
 	validateUpload,
 } from "./knowledge-base.service.ts"
+
+describe("uploadExtension", () => {
+	it("reports allowed extensions in lower case and everything else as other", () => {
+		expect(uploadExtension("Guide.PDF")).toBe(".pdf")
+		expect(uploadExtension("john-doe-contract.exe")).toBe("other")
+		expect(uploadExtension("noext")).toBe("other")
+	})
+})
 
 describe("validateUpload", () => {
 	it("accepts an allowed type within the size limit", () => {

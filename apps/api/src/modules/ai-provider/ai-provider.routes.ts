@@ -1,5 +1,6 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -24,8 +25,15 @@ export const aiProviderRoutes = new OpenAPIHono()
 		return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 	})
 	.openapi(saveAiProviderConfigurationRoute, async (c) => {
+		const input = c.req.valid("json")
+		annotate(c, {
+			"ai.text.provider": input.text.providerId,
+			"ai.text.model": input.text.modelId,
+			"ai.embedding.provider": input.embedding.providerId,
+			"ai.embedding.model": input.embedding.modelId,
+		})
 		try {
-			const configuration = await service.saveConfiguration(c.req.valid("json"))
+			const configuration = await service.saveConfiguration(input, annotator(c))
 			return c.json(configurationResponseSchema.parse(configuration), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.RevisionConflictError) {
@@ -38,8 +46,10 @@ export const aiProviderRoutes = new OpenAPIHono()
 		}
 	})
 	.openapi(discoverAiProviderModelsRoute, async (c) => {
+		const input = c.req.valid("json")
+		annotate(c, { "gen_ai.provider.name": input.providerId })
 		try {
-			const models = await service.discoverModels(c.req.valid("json"))
+			const models = await service.discoverModels(input)
 			return c.json(modelDiscoveryResponseSchema.parse({ models }), HTTP_STATUS.OK)
 		} catch (error) {
 			if (error instanceof service.InvalidConfigurationError) {

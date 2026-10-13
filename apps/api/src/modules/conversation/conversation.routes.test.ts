@@ -1,4 +1,4 @@
-import { createWideEvents, type WideEvent } from "@/http/wide-event.ts"
+import { type Annotate, createWideEvents, type WideEvent } from "@/http/wide-event.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
@@ -20,8 +20,9 @@ function parseEvents(body: string) {
 function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
-		send: async (input: unknown, emit: (event: unknown) => void) => {
+		send: async (input: unknown, emit: (event: unknown) => void, annotate?: Annotate) => {
 			calls.push(input)
+			annotate?.({ "rag.chunks": 2 })
 			if (failure === "embed") throw new EmbedNotFoundError()
 			if (failure === "disabled") throw new EmbedDisabledError()
 			if (failure === "pre-accept") throw new ProviderUnavailableError()
@@ -46,7 +47,7 @@ function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-ac
 				})
 			} else {
 				emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
-				emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "completed" })
+				emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
 				emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
 				emit({ version: 1, type: "terminal", outcome: "completed" })
 			}
@@ -121,6 +122,8 @@ describe("public conversation routes", () => {
 				"chat.outcome": "completed",
 				"chat.duplicate": false,
 				"chat.tool_calls": 1,
+				"chat.tool_failures": 1,
+				"rag.chunks": 2,
 			}),
 		])
 		expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
@@ -194,7 +197,7 @@ describe("public conversation routes", () => {
 	})
 
 	it("emits a schema-valid error event after acceptance", async () => {
-		const { app } = routes("post-accept")
+		const { app, logged } = routes("post-accept")
 		const response = await app.request("/chat/embed/messages", {
 			method: "POST",
 			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
@@ -203,6 +206,7 @@ describe("public conversation routes", () => {
 
 		expect(response.status).toBe(200)
 		expect(parseEvents(await response.text()).map((event) => event.type)).toEqual(["accepted", "error"])
+		expect(logged).toEqual([expect.objectContaining({ "chat.outcome": "failed", "error.code": "provider-error" })])
 	})
 
 	it("returns an RFC problem when provider preparation fails before acceptance", async () => {

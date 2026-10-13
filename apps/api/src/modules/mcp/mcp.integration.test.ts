@@ -1,10 +1,12 @@
+import type { Annotation } from "@/http/wide-event.ts"
+
 import { app } from "@/app.ts"
 import { db, sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
-import { beforeEach, describe, expect, it } from "bun:test"
+import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 import { eq } from "drizzle-orm"
 
 import { mcpServer } from "./mcp.schema.ts"
@@ -327,9 +329,59 @@ describe("mcp server lifecycle", () => {
 
 		const disabled = await service.openTools(agentId, controller.signal)
 		expect(disabled.tools).toEqual({})
+		expect(disabled.degradedServers).toBe(0)
 		await disabled.close()
 		// Reaching here at all proves the server was never contacted while disabled.
 		await service.setServerDisabled(agentId, created.id, false)
+	})
+
+	it("counts an enabled connection that fails to open as degraded", async () => {
+		const agentId = await createAgent()
+		const created = await service.createServer(agentId, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "none",
+		})
+		await db
+			.update(mcpServer)
+			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
+			.where(eq(mcpServer.id, created.id))
+		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+
+		try {
+			const connection = await service.openTools(agentId, new AbortController().signal)
+			expect(connection.degradedServers).toBe(1)
+			await connection.close()
+		} finally {
+			logged.mockRestore()
+		}
+	})
+
+	it("reports discovered tools and whether an update changed the endpoint", async () => {
+		const agentId = await createAgent()
+		const fields: Annotation = {}
+		const report = (annotation: Annotation) => Object.assign(fields, annotation)
+		const body = { transport: "http" as const, url: UNREACHABLE_URL, authMode: "none" as const }
+
+		const created = await service.createServer(agentId, { ...body, name: "Stock" }, report)
+		expect(fields).toEqual({ "mcp.server.id": created.id, "mcp.tools_discovered": 0 })
+
+		const renamed = await service.updateServer(
+			agentId,
+			created.id,
+			{ ...body, name: "Renamed", expectedRevision: created.revision },
+			report,
+		)
+		expect(fields["mcp.endpoint_changed"]).toBe(false)
+
+		await service.updateServer(
+			agentId,
+			created.id,
+			{ ...body, url: `${UNREACHABLE_URL}/other`, name: "Renamed", expectedRevision: renamed.revision },
+			report,
+		)
+		expect(fields["mcp.endpoint_changed"]).toBe(true)
 	})
 
 	it("deletes a connection's secrets with the agent", async () => {

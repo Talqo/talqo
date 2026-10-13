@@ -1,3 +1,4 @@
+import type { Annotate } from "@/http/wide-event.ts"
 import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
@@ -155,9 +156,10 @@ export async function deleteEmbed(id: string): Promise<void> {
 	await repo.deleteEmbed(id)
 }
 
-export async function getConfigByToken(embedToken: string): Promise<EmbedConfig> {
+export async function getConfigByToken(embedToken: string, annotate: Annotate = () => {}): Promise<EmbedConfig> {
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
+	annotate({ "embed.id": row.id, "agent.id": row.agentId })
 	const { name, appearance, isDisabled } = toEmbed(row)
 	return { version: WIDGET_CONFIG_VERSION, name, appearance, isDisabled, updatedAt: row.updatedAt }
 }

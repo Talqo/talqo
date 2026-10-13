@@ -1,5 +1,6 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import type { McpCreateBody, McpUpdateBody } from "./mcp.contract.ts"
@@ -50,7 +51,8 @@ export const mcpServerRoutes = new OpenAPIHono()
 		try {
 			const { agentId } = c.req.valid("param")
 			const { name, server } = c.req.valid("json") as McpCreateBody
-			const created = await service.createServer(agentId, { name, ...server })
+			annotate(c, { "mcp.transport": server.transport })
+			const created = await service.createServer(agentId, { name, ...server }, annotator(c))
 			return c.json(serverDetailSchema.parse({ server: created }), HTTP_STATUS.CREATED)
 		} catch (error) {
 			const mapped = mapDomainError(error)
@@ -73,12 +75,13 @@ export const mcpServerRoutes = new OpenAPIHono()
 		try {
 			const { agentId, serverId } = c.req.valid("param")
 			const { name, server, expectedRevision, tools } = c.req.valid("json") as McpUpdateBody
-			const updated = await service.updateServer(agentId, serverId, {
-				name,
-				...server,
-				expectedRevision,
-				tools,
-			})
+			annotate(c, { "mcp.transport": server.transport })
+			const updated = await service.updateServer(
+				agentId,
+				serverId,
+				{ name, ...server, expectedRevision, tools },
+				annotator(c),
+			)
 			return c.json(serverDetailSchema.parse({ server: updated }), HTTP_STATUS.OK)
 		} catch (error) {
 			const mapped = mapDomainError(error)

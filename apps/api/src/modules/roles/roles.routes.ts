@@ -1,6 +1,7 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -40,6 +41,7 @@ export const rolesRoutes = new OpenAPIHono()
 	.openapi(bootstrapAdminRoute, async (c) => {
 		try {
 			const user = await service.bootstrapAdmin(c.req.valid("json"))
+			annotate(c, { "user.id": user.id })
 			// Set the session now: the setup page lands signed in without a second login round-trip.
 			const { token, expiresAt } = await identity.createSession(user.id)
 			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
@@ -65,6 +67,7 @@ const invitationRoutes = new OpenAPIHono()
 	.openapi(redeemInvitationRoute, async (c) => {
 		try {
 			const user = await service.redeemInvitation(c.req.valid("json"))
+			annotate(c, { "user.id": user.id })
 			// Set the session now: accepting an invitation lands the member signed in.
 			const { token, expiresAt } = await identity.createSession(user.id)
 			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
@@ -83,6 +86,7 @@ const permissionGrantRoutes = new OpenAPIHono()
 		const user = c.get("user")
 		try {
 			const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
+			annotate(c, { "target.user.id": grant.userId })
 			return c.json(
 				grantResponseSchema.parse({ grant: { ...grant, grantedAt: grant.grantedAt.toISOString() } }),
 				HTTP_STATUS.CREATED,
