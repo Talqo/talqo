@@ -24,7 +24,7 @@ export function isAccessPolicy(handler: unknown): boolean {
 	return typeof handler === "function" && policies.has(handler as MiddlewareHandler)
 }
 
-export const allowPublic = policy(createMiddleware<BlankEnv>(async (_c, next) => next()))
+const allowPublic = policy(createMiddleware<BlankEnv>(async (_c, next) => next()))
 
 type SessionOptions = { allowPendingPasswordChange?: boolean; permission?: roles.Permission }
 
