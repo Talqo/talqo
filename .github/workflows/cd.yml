@@ -1,0 +1,39 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-dev
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish development images
+    needs: ci
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
+    with:
+      ref: ${{ github.sha }}
+      version: dev
+
+  deploy:
+    name: Deploy development
+    needs: publish
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ github.sha }}
+      environment: dev
+      version: dev
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}

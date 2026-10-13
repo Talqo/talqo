@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": "./src/index.ts",
 	"scripts": {
+		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc --emitDeclarationOnly --noEmit false",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},

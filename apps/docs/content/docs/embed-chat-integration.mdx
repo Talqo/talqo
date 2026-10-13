@@ -24,6 +24,33 @@ Keep `async`, so the widget never delays the host page's own content. Omit `data
 
 Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
 
+## Custom chat UI
+
+Stable releases publish the framework-independent `@talqo/sdk` package to npm. Once a release is available, install it in your frontend:
+
+```sh
+bun add @talqo/sdk
+```
+
+```ts
+import { createChatClient } from "@talqo/sdk"
+
+const chat = createChatClient({
+	apiUrl: "https://your-talqo-api",
+	embedToken: "your-public-embed-token",
+})
+
+const unsubscribe = chat.subscribe(() => renderChat(chat.getSnapshot()))
+await chat.initialize()
+await chat.sendMessage("What are your delivery options?")
+```
+
+Your UI implements `renderChat`. The snapshot contains messages, initialization/generation state, errors, tool activity, and persistence status. Use `retryLastMessage()`, `cancelResponse()`, and `startNewChat()` for recovery, cancellation, and reset. Call `unsubscribe()` and `chat.dispose()` when removing the UI.
+
+The SDK manages private visitor credentials, storage fallback, and POST/SSE streaming. Consumers use the same embed token and API enforcement as the widget. It requires an ES2022-capable browser with native fetch, ReadableStream, AbortController, TextDecoder, and crypto.randomUUID in a secure context. The package ships ESM JavaScript and TypeScript declarations.
+
+The SDK and API share release versions. Compatible API upgrades support existing SDK consumers. Review release notes before crossing a major version, or a pre-1.0 minor version that changes public behavior.
+
 ## Chat behavior
 
 Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge or create embeddings. If an agent has tools connections enabled, chat calls them and the widget shows the activity; see [connecting an MCP server](/mcp-connections). Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.

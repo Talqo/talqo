@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag and source
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: bash scripts/release.sh validate "${RELEASE_TAG#v}"
+
+  checks:
+    name: Release checks
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      run-e2e: true
+
+  images:
+    name: Publish release images
+    needs: [validate, checks]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
+    with:
+      ref: ${{ github.sha }}
+      version: ${{ needs.validate.outputs.version }}
+
+  sdk:
+    name: Publish SDK
+    needs: [validate, images]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Bun dependencies
+        uses: ./.github/actions/setup-bun
+      - name: Pack release SDK
+        id: pack
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: bun run pack:sdk "$RELEASE_VERSION"
+      - name: Set up npm publishing runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.21.0"
+          package-manager-cache: false
+      - name: Publish SDK to npm
+        env:
+          SDK_TARBALL: ${{ steps.pack.outputs.tarball }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          npm publish "$SDK_TARBALL" --ignore-scripts --access public
+
+  deploy:
+    name: Deploy production
+    needs: [validate, sdk]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ github.sha }}
+      environment: prod
+      version: ${{ needs.validate.outputs.version }}
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+
+  promote:
+    name: Promote stable aliases
+    needs: [validate, deploy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Log in to GHCR
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+      - name: Promote verified images to latest
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: bash scripts/push-images.sh promote "$RELEASE_VERSION"
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io
+
+  release:
+    name: Create GitHub release
+    needs: [validate, promote]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          gh release create "v$RELEASE_VERSION" --repo Talqo/talqo --verify-tag --generate-notes --title "Talqo $RELEASE_VERSION"
