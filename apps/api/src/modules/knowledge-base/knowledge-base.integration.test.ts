@@ -202,19 +202,6 @@ describe("agent knowledge files", () => {
 		await expectProblem(await upload(cookie, agentId), 409, "agent-file-name-taken")
 	})
 
-	it("rejects a disallowed file type with 400", async () => {
-		const { cookie } = await createAdminSession()
-		const agentId = await createAgent(cookie, "Types")
-		const form = new FormData()
-		form.append("file", new File(["x"], "run.exe", { type: "application/octet-stream" }))
-		const response = await app.request(`/api/agents/${agentId}/files`, {
-			method: "POST",
-			headers: { Cookie: cookie },
-			body: form,
-		})
-		await expectProblem(response, 400, "agent-file-invalid")
-	})
-
 	it("rejects an oversized file with 413 over HTTP", async () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Oversize")

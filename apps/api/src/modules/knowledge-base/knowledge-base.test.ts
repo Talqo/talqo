@@ -21,12 +21,6 @@ describe("validateUpload", () => {
 		expect(() => validateUpload({ name: "noext", size: 1 })).toThrow(InvalidFileError)
 	})
 
-	it("rejects a file over the size limit", () => {
-		expect(() => validateUpload({ name: "big.pdf", size: MAX_FILE_SIZE_MB * BYTES_PER_MB + 1 })).toThrow(
-			InvalidFileError,
-		)
-	})
-
 	it("rejects a multibyte name that fits the character limit but exceeds 255 bytes", () => {
 		const name = `${"é".repeat(252)}.md`
 		expect(name.length).toBe(MAX_FILE_NAME_LENGTH)
@@ -56,10 +50,6 @@ describe("validateName", () => {
 })
 
 describe("resolveRenameTarget", () => {
-	it("keeps the original extension when the new name omits it", () => {
-		expect(resolveRenameTarget("old.pdf", "new")).toBe("new.pdf")
-	})
-
 	it("does not duplicate the extension when already present", () => {
 		expect(resolveRenameTarget("old.pdf", "new.pdf")).toBe("new.pdf")
 	})

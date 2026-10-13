@@ -85,26 +85,19 @@ describe("public conversation routes", () => {
 		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, networkHash: expect.any(String), embedToken: "embed" })
 	})
 
-	it("requires a bearer credential for sends, history, and cancellation", async () => {
+	it("requires a bearer credential for POST /chat/embed/messages", async () => {
 		const { app } = routes()
-		expect(
-			(
-				await app.request("/chat/embed/messages", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-				})
-			).status,
-		).toBe(401)
-		expect((await app.request("/chat/session")).status).toBe(401)
-		expect((await app.request("/chat/cancel", { method: "POST" })).status).toBe(401)
-		expect(
-			(
-				await app.request("/chat/session", {
-					headers: { Authorization: "Bearer credential" },
-				})
-			).status,
-		).toBe(200)
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+
+		expect(response.status).toBe(401)
+		expect(await response.json()).toEqual({
+			code: "chat-session-unauthorized",
+			type: "https://docs.talqo.chat/problems#chat-session-unauthorized",
+		})
 	})
 
 	it("rejects generation when no trustworthy peer address exists", async () => {

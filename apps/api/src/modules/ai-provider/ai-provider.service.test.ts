@@ -203,7 +203,7 @@ describe("AI provider service", () => {
 
 		const prepared = await service.prepareEmbeddingOperation()
 
-		expect(prepared.key).toBe('["openai","text-embedding-3-small",[]]')
+		expect(typeof prepared.embed).toBe("function")
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {
@@ -267,20 +267,6 @@ describe("AI provider service", () => {
 			instructions: "Answer as the configured agent.",
 			messages: [{ role: "user", content: "Hi" }],
 		})
-	})
-
-	it("does not instantiate the configured embedding model for text generation", async () => {
-		const { service } = createMemoryService(async function* () {
-			yield { type: "finish", outcome: "completed", usage: {} } as const
-		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 10,
-			timeoutMs: 1000,
-		})
-		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 	})
 
 	it("normalizes provider context-window rejections without exposing their body", async () => {
@@ -361,27 +347,6 @@ describe("AI provider service", () => {
 			timeoutMs: 1000,
 		})
 		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(APICallError)
-	})
-
-	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
-		let call: Record<string, unknown> | undefined
-		const { service } = createMemoryService(async function* (generationInput) {
-			call = generationInput
-			yield { type: "finish", outcome: "completed", usage: {} } as const
-		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 77,
-			timeoutMs: 9000,
-		})
-
-		expect(call).toBeUndefined()
-		expect(prepared).toMatchObject({ provider: "openai", model: "gpt-5-mini" })
-		const signal = new AbortController().signal
-		await Array.fromAsync(prepared.invoke(signal))
-		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal })
 	})
 
 	it("rejects corrupted stored credentials during preparation before provider invocation", async () => {

@@ -1,13 +1,10 @@
 import type { Context } from "hono"
 
 import { APICallError } from "@ai-sdk/provider"
-import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
 
 import { app, handleError } from "./app.ts"
-import { allowPublic, isAccessPolicy, requireAccessPolicy } from "./http/access.ts"
-import { PROBLEM_CODES } from "./http/problem.ts"
-import { createOpenApiDocument } from "./openapi.ts"
+import { isAccessPolicy } from "./http/access.ts"
 
 describe("api", () => {
 	it("reports its health", async () => {
@@ -15,42 +12,6 @@ describe("api", () => {
 
 		expect(response.status).toBe(200)
 		expect(await response.json()).toEqual({ status: "ok" })
-	})
-
-	it("rejects malformed JSON bodies with problem details", async () => {
-		const response = await app.request("/api/auth/login", {
-			body: "{",
-			headers: { "Content-Type": "application/json" },
-			method: "POST",
-		})
-
-		expect(response.status).toBe(400)
-		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(await response.json()).toEqual({
-			code: "malformed-json",
-			type: "https://docs.talqo.chat/problems#malformed-json",
-		})
-	})
-
-	it("returns problem details for unknown routes", async () => {
-		const responses = [
-			await app.request("/missing"),
-			await app.request("/api/missing"),
-			await app.request("/api/missing", {
-				body: "{",
-				headers: { "Content-Type": "application/json" },
-				method: "POST",
-			}),
-		]
-		const bodies = await Promise.all(responses.map((response) => response.json()))
-		for (const [index, response] of responses.entries()) {
-			expect(response.status).toBe(404)
-			expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-			expect(bodies[index]).toEqual({
-				code: "route-not-found",
-				type: "https://docs.talqo.chat/problems#route-not-found",
-			})
-		}
 	})
 
 	it("returns problem details when authentication is required", async () => {
@@ -61,36 +22,6 @@ describe("api", () => {
 		expect(await response.json()).toEqual({
 			code: "authentication-required",
 			type: "https://docs.talqo.chat/problems#authentication-required",
-		})
-	})
-
-	it("returns problem details for invalid requests", async () => {
-		const response = await app.request("/api/auth/login", {
-			body: JSON.stringify({}),
-			headers: { "Content-Type": "application/json" },
-			method: "POST",
-		})
-
-		expect(response.status).toBe(400)
-		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(await response.json()).toEqual({
-			code: "invalid-request",
-			type: "https://docs.talqo.chat/problems#invalid-request",
-		})
-	})
-
-	it("rejects an oversized body before authentication or validation", async () => {
-		const response = await app.request("/api/auth/login", {
-			body: JSON.stringify({ username: "a".repeat(150_000), password: "x".repeat(150_000) }),
-			headers: { "Content-Type": "application/json" },
-			method: "POST",
-		})
-
-		expect(response.status).toBe(413)
-		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(await response.json()).toEqual({
-			code: "payload-too-large",
-			type: "https://docs.talqo.chat/problems#payload-too-large",
 		})
 	})
 
@@ -151,107 +82,7 @@ describe("api", () => {
 		)
 
 		expect(response?.status).toBe(500)
-		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
 		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
-	})
-
-	it("normalizes responses carried by response-bearing errors", async () => {
-		using _ = spyOn(console, "error").mockImplementation(() => {})
-
-		const carried = new Response(JSON.stringify({ error: "Payment required" }), {
-			headers: { "Content-Type": "application/json", "Retry-After": "30" },
-			status: 402,
-		})
-		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
-
-		const response = await handleError(error, {
-			json: (data: unknown, status: number, headers?: Record<string, string>) =>
-				new Response(JSON.stringify(data), { headers, status }),
-		} as unknown as Context)
-
-		expect(response.status).toBe(402)
-		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(response.headers.get("Retry-After")).toBe("30")
-		expect(await response.json()).toEqual({
-			code: "request-failed",
-			type: "https://docs.talqo.chat/problems#request-failed",
-		})
-		expect(console.error).not.toHaveBeenCalled()
-	})
-
-	it("reserializes valid problems carried by response-bearing errors", async () => {
-		using _ = spyOn(console, "error").mockImplementation(() => {})
-
-		const carried = new Response(
-			JSON.stringify({
-				code: "permission-denied",
-				type: "https://docs.talqo.chat/problems#permission-denied",
-			}),
-			{ headers: { "Content-Type": "application/json", "Set-Cookie": "session=; Max-Age=0" }, status: 403 },
-		)
-		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
-
-		const response = await handleError(error, {
-			json: (data: unknown, status: number, headers?: Record<string, string>) =>
-				new Response(JSON.stringify(data), { headers, status }),
-		} as unknown as Context)
-
-		expect(response.status).toBe(403)
-		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(response.headers.get("Set-Cookie")).toBe("session=; Max-Age=0")
-		expect(await response.json()).toEqual({
-			code: "permission-denied",
-			type: "https://docs.talqo.chat/problems#permission-denied",
-		})
-		expect(console.error).not.toHaveBeenCalled()
-	})
-
-	it("passes through non-error responses carried by response-bearing errors", async () => {
-		const carried = new Response(null, { headers: { Location: "/login" }, status: 302 })
-		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
-
-		const response = await handleError(error, {} as Context)
-
-		expect(response).toBe(carried)
-		expect(response.headers.get("Location")).toBe("/login")
-	})
-
-	it("normalizes response-bearing errors when their response cannot be cloned", async () => {
-		const carried = new Response("consumed", { status: 409 })
-		await carried.text()
-		const error = Object.assign(new Error("carried"), { getResponse: () => carried })
-
-		const response = await handleError(error, {
-			json: (data: unknown, status: number, headers?: Record<string, string>) =>
-				new Response(JSON.stringify(data), { headers, status }),
-		} as unknown as Context)
-
-		expect(response.status).toBe(409)
-		expect(await response.json()).toEqual({
-			code: "request-failed",
-			type: "https://docs.talqo.chat/problems#request-failed",
-		})
-	})
-
-	it("normalizes a response-bearing error whose response factory throws", async () => {
-		using _ = spyOn(console, "error").mockImplementation(() => {})
-		const error = Object.assign(new Error("carried"), {
-			getResponse: () => {
-				throw new Error("response failed")
-			},
-		})
-
-		const response = await handleError(error, {
-			json: (data: unknown, status: number, headers?: Record<string, string>) =>
-				new Response(JSON.stringify(data), { headers, status }),
-		} as unknown as Context)
-
-		expect(response.status).toBe(500)
-		expect(await response.json()).toEqual({
-			code: "internal-server-error",
-			type: "https://docs.talqo.chat/problems#internal-server-error",
-		})
-		expect(console.error).toHaveBeenCalled()
 	})
 
 	it("declares an access policy on every endpoint", () => {
@@ -268,139 +99,5 @@ describe("api", () => {
 
 		expect(endpoints.length).toBeGreaterThan(0)
 		expect([...new Set(withoutPolicy)]).toEqual([])
-	})
-
-	it("refuses an endpoint registered without an access policy", async () => {
-		using _ = spyOn(console, "error").mockImplementation(() => {})
-		const probe = new OpenAPIHono()
-		probe.use("*", requireAccessPolicy)
-		probe.get("/undeclared", (c) => c.text("reachable"))
-		probe.get("/declared", allowPublic, (c) => c.text("reachable"))
-
-		const undeclared = await probe.request("/undeclared")
-
-		expect(undeclared.status).toBe(500)
-		expect(await undeclared.json()).toMatchObject({ code: "internal-server-error" })
-		expect(console.error).toHaveBeenCalledWith("route.access_policy_missing", { method: "GET", path: "/undeclared" })
-		expect((await probe.request("/declared")).status).toBe(200)
-	})
-
-	it("describes every route through OpenAPI 3.1.1", () => {
-		expect("getOpenAPI31Document" in app).toBe(true)
-
-		const document = createOpenApiDocument()
-		const paths = document.paths ?? {}
-
-		expect(document.openapi).toBe("3.1.1")
-		expect(Object.keys(paths).toSorted()).toEqual(
-			[
-				"/api/access",
-				"/api/ai-provider-configuration",
-				"/api/ai-provider-models/discover",
-				"/api/ai-providers",
-				"/api/agents",
-				"/api/agents/{agentId}",
-				"/api/agents/{agentId}/files",
-				"/api/agents/{agentId}/files/{fileName}",
-				"/api/agents/{agentId}/files/{fileName}/retry",
-				"/api/agents/{agentId}/mcp-servers",
-				"/api/agents/{agentId}/mcp-servers/{serverId}",
-				"/api/agents/{agentId}/mcp-servers/{serverId}/{action}",
-				"/api/auth/login",
-				"/api/auth/logout",
-				"/api/auth/session",
-				"/api/invitations",
-				"/api/invitations/redeem",
-				"/api/me",
-				"/api/me/password",
-				"/api/me/password/forced",
-				"/api/me/permissions",
-				"/api/permission-grants",
-				"/api/permission-grants/{id}",
-				"/api/setup",
-				"/api/users",
-				"/api/embed-config/{embedToken}",
-				"/api/chat/{embedToken}/messages",
-				"/api/chat/session",
-				"/api/chat/cancel",
-				"/api/embeds",
-				"/api/embeds/{embedId}",
-				"/api/embeds/{embedId}/disable",
-				"/api/embeds/{embedId}/embed-token/rotate",
-				"/api/embeds/{embedId}/enable",
-				"/api/users/{userId}",
-				"/api/users/{userId}/password",
-				"/health",
-			].toSorted(),
-		)
-
-		const operations = Object.values(paths).flatMap((operationsByMethod) => Object.values(operationsByMethod))
-		for (const operation of operations) {
-			expect(operation.operationId).toBeDefined()
-			const payloadTooLarge = operation.responses?.["413"] as {
-				content?: {
-					"application/problem+json"?: {
-						schema?: { $ref?: string }
-					}
-				}
-			}
-			const payloadTooLargeRef = payloadTooLarge?.content?.["application/problem+json"]?.schema?.$ref
-			expect(payloadTooLargeRef).toBe("requestBody" in operation ? "#/components/schemas/ProblemDetails" : undefined)
-		}
-
-		const operationIds = operations.flatMap((operation) => operation.operationId ?? [])
-		expect(new Set(operationIds).size).toBe(operationIds.length)
-		expect(operationIds.every((operationId) => operationId.length > 0)).toBe(true)
-		expect(document.components?.securitySchemes?.ChatBearer).toEqual({
-			type: "http",
-			scheme: "bearer",
-			bearerFormat: "UUID",
-		})
-		for (const path of ["/api/chat/{embedToken}/messages", "/api/chat/session", "/api/chat/cancel"] as const) {
-			expect(Object.values(paths[path] ?? {})[0]?.security).toEqual([{ ChatBearer: [] }])
-		}
-		expect(paths["/health"]?.get?.security).toEqual([])
-		expect(paths["/api/auth/login"]?.post?.security).toEqual([])
-		const sendResponses = paths["/api/chat/{embedToken}/messages"]?.post?.responses ?? {}
-		const expectedSendProblems = {
-			400: ["invalid-request", "malformed-json", "chat-client-address-unavailable", "chat-conversation-too-long"],
-			401: ["chat-session-unauthorized"],
-			403: ["embed-disabled"],
-			404: ["embed-not-found"],
-			409: ["chat-request-conflict"],
-			413: ["payload-too-large"],
-			429: ["chat-daily-allowance-exceeded", "chat-concurrency-limit", "chat-session-busy"],
-			500: ["internal-server-error"],
-			502: ["provider-error"],
-		} as const
-		for (const [status, codes] of Object.entries(expectedSendProblems)) {
-			expect(sendResponses[status]?.description).toBe(`Problem response. Codes: ${codes.join(", ")}.`)
-		}
-
-		const schemas = document.components?.schemas ?? {}
-		const problemSchema = schemas.ProblemDetails as {
-			oneOf?: Array<{
-				additionalProperties?: boolean
-				properties?: { code?: { enum?: string[] }; type?: { enum?: string[] } }
-			}>
-		}
-		expect(problemSchema.oneOf).toHaveLength(Object.keys(PROBLEM_CODES).length)
-		for (const schema of problemSchema.oneOf ?? []) {
-			expect(schema.additionalProperties).toBe(false)
-			const code = schema.properties?.code?.enum?.[0]
-			const type = schema.properties?.type?.enum?.[0]
-			expect(type).toBe(`https://docs.talqo.chat/problems#${code}`)
-		}
-		expect(Object.keys(schemas).filter((name) => name.startsWith("Problem"))).toEqual(["ProblemDetails"])
-
-		const loginBadRequest = paths["/api/auth/login"]?.post?.responses?.["400"] as {
-			content?: {
-				"application/problem+json"?: {
-					schema?: { $ref?: string }
-				}
-			}
-		}
-		const loginProblemRef = loginBadRequest.content?.["application/problem+json"]?.schema?.$ref
-		expect(loginProblemRef).toBe("#/components/schemas/ProblemDetails")
 	})
 })

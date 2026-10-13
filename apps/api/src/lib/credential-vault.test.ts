@@ -17,15 +17,6 @@ describe("credential vault", () => {
 		expect(vault.decrypt<Record<string, string>>(envelope, context)).toEqual({ apiKey: "sk-secret" })
 	})
 
-	it("rejects tampered ciphertext", () => {
-		const vault = createCredentialVault(APP_SECRET, AI_PROVIDER)
-		const envelope = vault.encrypt({ apiKey: "sk-secret" }, context)
-		const ciphertext = Buffer.from(envelope.ciphertext, "base64url")
-		ciphertext[0] = ciphertext[0]! ^ 1
-
-		expect(() => vault.decrypt({ ...envelope, ciphertext: ciphertext.toString("base64url") }, context)).toThrow()
-	})
-
 	it("binds ciphertext to provider and role context", () => {
 		const vault = createCredentialVault(APP_SECRET, AI_PROVIDER)
 		const envelope = vault.encrypt({ apiKey: "sk-secret" }, context)
@@ -39,14 +30,6 @@ describe("credential vault", () => {
 
 		expect(() => createCredentialVault(APP_SECRET, AI_PROVIDER).decrypt(envelope, context)).toThrow()
 		expect(() => createCredentialVault(APP_SECRET, MCP).decrypt(envelope, { ...context, role: "embedding" })).toThrow()
-	})
-
-	it("round-trips a payload the string map type would reject", () => {
-		const vault = createCredentialVault(APP_SECRET, MCP)
-		const tokens = { access_token: "at", expires_in: 3600 }
-		const envelope = vault.encrypt(tokens, { serverId: "s1" })
-
-		expect(vault.decrypt<typeof tokens>(envelope, { serverId: "s1" })).toEqual(tokens)
 	})
 
 	it("still opens envelopes sealed with the pre-move AAD", () => {

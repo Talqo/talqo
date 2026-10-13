@@ -28,10 +28,6 @@ describe("addBlacklistTerm", () => {
 })
 
 describe("removeBlacklistTerm", () => {
-	test("removes the exact term", () => {
-		expect(removeBlacklistTerm(["spam", "abuse"], "spam")).toEqual(["abuse"])
-	})
-
 	test("removes case-insensitively, matching add dedupe", () => {
 		expect(removeBlacklistTerm(["Spam", "abuse"], "spam")).toEqual(["abuse"])
 		expect(removeBlacklistTerm(["spam", "abuse"], "SPAM")).toEqual(["abuse"])

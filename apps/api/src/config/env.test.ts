@@ -102,22 +102,12 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
-	it("rejects a missing APP_SECRET because provider credentials and network hashes require it", () => {
+	it.each(["test", "production"] as const)("rejects a missing APP_SECRET in %s", (nodeEnv) => {
 		expect(() =>
 			parseEnv({
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "test",
-			}),
-		).toThrow(/APP_SECRET/)
-	})
-
-	it("rejects a missing APP_SECRET in production", () => {
-		expect(() =>
-			parseEnv({
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "production",
+				NODE_ENV: nodeEnv,
 			}),
 		).toThrow(/APP_SECRET/)
 	})

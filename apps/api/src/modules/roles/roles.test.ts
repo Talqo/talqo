@@ -37,7 +37,7 @@ describe("effectivePermissions", () => {
 		expect(effectivePermissions([{ permission: "admin" }])).toEqual([...PERMISSIONS])
 	})
 
-	it("denies a grant for a different permission", () => {
+	it("returns the single granted permission", () => {
 		expect(effectivePermissions([{ permission: "ai_provider:manage" }])).toEqual(["ai_provider:manage"])
 	})
 

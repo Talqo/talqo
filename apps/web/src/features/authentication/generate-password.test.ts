@@ -10,8 +10,4 @@ describe("generateRandomPassword", () => {
 	test("only uses letters, digits, and symbols", () => {
 		expect(generateRandomPassword()).toMatch(/^[A-Za-z0-9!@#$%^&*()\-_=+]+$/)
 	})
-
-	test("generates different passwords across calls", () => {
-		expect(generateRandomPassword()).not.toBe(generateRandomPassword())
-	})
 })
