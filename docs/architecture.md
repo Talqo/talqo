@@ -131,9 +131,8 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Tests And Data
 
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
-- `*.routes.test.ts` is reserved for wiring only visible through the composed app (cookie and CORS headers, SSE framing, middleware-owned error mapping). HTTP status, validation, and service behavior default to integration tests — do not re-test framework defaults.
+- `*.routes.test.ts` is reserved for wiring only visible through the composed app (cookie and CORS headers, SSE framing, middleware-owned error mapping). HTTP status, validation, and service behavior default to integration tests.
 - `<module>.integration.test.ts` exercises the module through its service interface against an isolated test database.
-- A test earns its place by catching a failure nothing else catches. It must not rehearse framework guarantees, mirror the implementation as its own oracle, pin symbol lists or internals (change detectors), duplicate a case a stronger layer covers, or assert what nobody can observe. Where a degraded path's only signal is a log event, assert the event; where a race has two real orderings, keep both table rows.
 - Module seeds contribute deterministic records to the centralized, non-destructive development seed. Development and E2E share the same production-plausible baseline; optional external-provider values come from an all-or-none seed environment tuple.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).
 - Keep test setup closest to its owner. Do not create global `test-data`, `support`, `helpers`, or `utils` buckets.
