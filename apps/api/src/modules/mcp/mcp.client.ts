@@ -20,7 +20,7 @@ import {
 
 type Vault = ReturnType<typeof createCredentialVault>
 
-const TOOL_NAME_MAX_LENGTH = 64
+export const TOOL_NAME_MAX_LENGTH = 64
 const HASH_HEX_LENGTH = 6
 
 /** Provider tool-name grammars reject `shopify.get_product`, so names are sanitized and namespaced. */

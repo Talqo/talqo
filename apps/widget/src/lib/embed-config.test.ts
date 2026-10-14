@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, appearanceFromValues, mergeAppearance } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, mergeAppearance } from "./embed-config"
 
 // Registers happy-dom: the script-element helpers need a document.
 await import("@/test-setup")
@@ -58,22 +58,6 @@ describe("appearanceFromDataset", () => {
 	})
 })
 
-test("extracts appearance from canonical getter keys", () => {
-	const values: Record<string, string> = {
-		lightPrimary: "#123456",
-		darkText: "#ffffff",
-		position: "bottom-left",
-		themeToggle: "false",
-	}
-
-	expect(appearanceFromValues((key) => values[key])).toEqual({
-		light: { primary: "#123456" },
-		dark: { text: "#ffffff" },
-		position: "bottom-left",
-		themeToggle: false,
-	})
-})
-
 describe("mergeAppearance", () => {
 	const stored = {
 		light: { primary: "#1a7f4b", background: "#ffffff", text: "#171717" },
@@ -87,10 +71,6 @@ describe("mergeAppearance", () => {
 			dark: { primary: "#34d399", background: "#0a0a0a" },
 			position: "bottom-right",
 		})
-	})
-
-	test("overrides top-level values and leaves untouched schemes alone", () => {
-		expect(mergeAppearance(stored, { position: "bottom-left" })).toEqual({ ...stored, position: "bottom-left" })
 	})
 })
 

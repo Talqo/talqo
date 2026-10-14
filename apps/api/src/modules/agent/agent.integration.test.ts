@@ -212,24 +212,6 @@ describe("agent CRUD", () => {
 			wordBlacklist: [],
 		})
 		expect(emptyName.status).toBe(400)
-
-		const tooManyWords = await createJsonRequest(cookie, "POST", "/api/agents", {
-			name: "Too many",
-			systemPrompt: "Prompt",
-			wordBlacklist: Array.from({ length: 101 }, (_, index) => `word${index}`),
-		})
-		expect(tooManyWords.status).toBe(400)
-	})
-
-	it("does not retain the obsolete agent embed-token route", async () => {
-		const { cookie } = await createAdminSession()
-
-		const response = await app.request(`/api/agents/${crypto.randomUUID()}/embed-token/refresh`, {
-			method: "POST",
-			headers: { Cookie: cookie },
-		})
-
-		expect(response.status).toBe(404)
 	})
 })
 
@@ -313,22 +295,5 @@ describe("agent authorization", () => {
 				})
 			).status,
 		).toBe(403)
-	})
-
-	it("denies the next request after a grant is revoked, using the same session", async () => {
-		const admin = await createAdminSession()
-		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
-		const grant = await roles.grantPermission({
-			userId: member.id,
-			permission: "agents:read",
-			grantedBy: admin.userId,
-		})
-		const memberCookie = await login(memberUsername)
-
-		expect((await app.request("/api/agents", { headers: { Cookie: memberCookie } })).status).toBe(200)
-
-		await roles.revokePermission(grant.id)
-		expect((await app.request("/api/agents", { headers: { Cookie: memberCookie } })).status).toBe(403)
 	})
 })

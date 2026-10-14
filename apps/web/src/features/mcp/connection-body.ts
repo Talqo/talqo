@@ -40,7 +40,7 @@ export function toggledBody(server: McpServer, name: string, enabled: boolean): 
 	)
 }
 
-export function toggleTool(tools: McpServer["tools"], name: string, enabled: boolean): McpServer["tools"] {
+function toggleTool(tools: McpServer["tools"], name: string, enabled: boolean): McpServer["tools"] {
 	return tools.map((tool) => (tool.name === name ? { ...tool, enabled } : tool))
 }
 

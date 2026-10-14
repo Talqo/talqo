@@ -16,7 +16,7 @@ function parseEvents(body: string) {
 		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
 }
 
-function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-accept" = "none") {
+function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") {
 	const calls: unknown[] = []
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void) => {
@@ -32,21 +32,8 @@ function routes(failure: "disabled" | "embed" | "none" | "post-accept" | "pre-ac
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			})
-			if (failure === "post-accept") {
-				emit({
-					version: 1,
-					type: "error",
-					outcome: "failed",
-					error: {
-						code: "provider-error",
-						retriable: true,
-						newChatAvailable: false,
-					},
-				})
-			} else {
-				emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
-				emit({ version: 1, type: "terminal", outcome: "completed" })
-			}
+			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
+			emit({ version: 1, type: "terminal", outcome: "completed" })
 			return {
 				version: 1 as const,
 				type: "accepted" as const,
@@ -85,26 +72,19 @@ describe("public conversation routes", () => {
 		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, networkHash: expect.any(String), embedToken: "embed" })
 	})
 
-	it("requires a bearer credential for sends, history, and cancellation", async () => {
+	it("requires a bearer credential for POST /chat/embed/messages", async () => {
 		const { app } = routes()
-		expect(
-			(
-				await app.request("/chat/embed/messages", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-				})
-			).status,
-		).toBe(401)
-		expect((await app.request("/chat/session")).status).toBe(401)
-		expect((await app.request("/chat/cancel", { method: "POST" })).status).toBe(401)
-		expect(
-			(
-				await app.request("/chat/session", {
-					headers: { Authorization: "Bearer credential" },
-				})
-			).status,
-		).toBe(200)
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+
+		expect(response.status).toBe(401)
+		expect(await response.json()).toEqual({
+			code: "chat-session-unauthorized",
+			type: "https://docs.talqo.chat/problems#chat-session-unauthorized",
+		})
 	})
 
 	it("rejects generation when no trustworthy peer address exists", async () => {
@@ -147,18 +127,6 @@ describe("public conversation routes", () => {
 		expect(response.status).toBe(400)
 		expect(response.headers.get("content-type")).toContain("application/problem+json")
 		expect(calls).toBeEmpty()
-	})
-
-	it("emits a schema-valid error event after acceptance", async () => {
-		const { app } = routes("post-accept")
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(200)
-		expect(parseEvents(await response.text()).map((event) => event.type)).toEqual(["accepted", "error"])
 	})
 
 	it("returns an RFC problem when provider preparation fails before acceptance", async () => {

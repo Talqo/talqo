@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test"
 import { buildSaveInput, configurationToFormValues } from "./ai-configuration-form.ts"
 
 describe("AI configuration form mapping", () => {
-	it("maps an unconfigured deployment to required empty roles", () => {
+	it("maps an unconfigured deployment to empty roles that share text credentials", () => {
 		const values = configurationToFormValues({
 			revision: 0,
 			health: "unconfigured",
@@ -11,7 +11,8 @@ describe("AI configuration form mapping", () => {
 			embedding: null,
 		})
 
-		expect(values.text.providerId).toBe("openai")
+		expect(values.text.modelId).toBe("")
+		expect(values.embedding.modelId).toBe("")
 		expect(values.embedding.credentialSource).toBe("text")
 	})
 

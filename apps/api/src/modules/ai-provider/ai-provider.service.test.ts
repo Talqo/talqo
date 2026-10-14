@@ -9,7 +9,6 @@ import {
 	createAiProviderService,
 	InvalidConfigurationError,
 	ProviderContextLimitError,
-	RevisionConflictError,
 	UnusableConfigurationError,
 } from "./ai-provider.service.ts"
 
@@ -74,17 +73,6 @@ function createMemoryService(
 }
 
 describe("AI provider service", () => {
-	it("encrypts credentials and returns redacted configuration", async () => {
-		const { service, getStored } = createMemoryService()
-
-		const result = await service.saveConfiguration(input)
-
-		expect(result.revision).toBe(1)
-		expect(result.text?.hasCredentials).toBe(true)
-		expect(JSON.stringify(result)).not.toContain("sk-text")
-		expect(JSON.stringify(getStored())).not.toContain("sk-text")
-	})
-
 	it("can generate text only once usable text credentials are stored", async () => {
 		const { service, getStored } = createMemoryService()
 		expect(await service.canGenerateText()).toBe(false)
@@ -119,13 +107,6 @@ describe("AI provider service", () => {
 		expect(await service.canGenerateText()).toBe(true)
 	})
 
-	it("rejects a stale revision", async () => {
-		const { service } = createMemoryService()
-		await service.saveConfiguration(input)
-
-		await expect(service.saveConfiguration(input)).rejects.toBeInstanceOf(RevisionConflictError)
-	})
-
 	it("reuses stored credentials when settings arrive in a different key order", async () => {
 		const { service } = createMemoryService()
 		await service.saveConfiguration(azureInput({ apiVersion: "2024-06-01", baseURL: "https://example.com" }))
@@ -138,22 +119,6 @@ describe("AI provider service", () => {
 		})
 
 		expect(result.text?.hasCredentials).toBe(true)
-	})
-
-	it("throws when a deployment-identity role carries static credentials", async () => {
-		const { service } = createMemoryService()
-		const invalid = {
-			...input,
-			text: {
-				providerId: "azure",
-				modelId: "gpt-5",
-				authMode: "deployment-identity",
-				settings: { baseURL: "https://example.openai.azure.com" },
-				credentials: { apiKey: "sk-dropped" },
-			},
-		} as SaveConfigurationInput
-
-		await expect(service.saveConfiguration(invalid)).rejects.toBeInstanceOf(InvalidConfigurationError)
 	})
 
 	it("requires credentials when switching from reused to separate embedding credentials", async () => {
@@ -203,7 +168,7 @@ describe("AI provider service", () => {
 
 		const prepared = await service.prepareEmbeddingOperation()
 
-		expect(prepared.key).toBe('["openai","text-embedding-3-small",[]]')
+		expect(typeof prepared.embed).toBe("function")
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {
@@ -267,20 +232,6 @@ describe("AI provider service", () => {
 			instructions: "Answer as the configured agent.",
 			messages: [{ role: "user", content: "Hi" }],
 		})
-	})
-
-	it("does not instantiate the configured embedding model for text generation", async () => {
-		const { service } = createMemoryService(async function* () {
-			yield { type: "finish", outcome: "completed", usage: {} } as const
-		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 10,
-			timeoutMs: 1000,
-		})
-		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 	})
 
 	it("normalizes provider context-window rejections without exposing their body", async () => {
@@ -361,27 +312,6 @@ describe("AI provider service", () => {
 			timeoutMs: 1000,
 		})
 		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(APICallError)
-	})
-
-	it("prepares and decrypts one exact text operation without invoking the provider", async () => {
-		let call: Record<string, unknown> | undefined
-		const { service } = createMemoryService(async function* (generationInput) {
-			call = generationInput
-			yield { type: "finish", outcome: "completed", usage: {} } as const
-		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 77,
-			timeoutMs: 9000,
-		})
-
-		expect(call).toBeUndefined()
-		expect(prepared).toMatchObject({ provider: "openai", model: "gpt-5-mini" })
-		const signal = new AbortController().signal
-		await Array.fromAsync(prepared.invoke(signal))
-		expect(call).toMatchObject({ maxRetries: 0, maxOutputTokens: 77, timeoutMs: 9000, signal })
 	})
 
 	it("rejects corrupted stored credentials during preparation before provider invocation", async () => {

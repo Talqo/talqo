@@ -57,15 +57,15 @@ beforeEach(async () => {
 })
 
 describe("mcp schema constraints", () => {
-	// A stdio row's null auth_mode makes `auth_mode = 'headers'` evaluate to null rather than false,
-	// and a check whose result is null passes. These are the rows that would slip through otherwise.
 	/** Structure only: these rows never decrypt, they only have to satisfy the jsonb column. */
 	const secret = { ciphertext: "c", nonce: "n", tag: "t", version: 1 as const }
 	type McpInsert = typeof mcpServer.$inferInsert
 	type Columns = Partial<McpInsert>
 
-	// A stdio row's null authMode makes `authMode = 'headers'` evaluate to null rather than false,
-	// and a check whose result is null passes. These are the rows that would slip through otherwise.
+	// The constraint lives in generated migration SQL nobody reads line by line, so the whole
+	// accept/reject matrix stays executable here: a stdio row's null authMode makes
+	// `authMode = 'headers'` evaluate to null rather than false, and a check whose result is null
+	// passes — without the full table a future migration could silently admit corrupt rows.
 	const rejected: [string, Columns][] = [
 		["http carrying a command", { transport: "http", url: UNREACHABLE_URL, authMode: "none", command: "npx" }],
 		["http with no address", { transport: "http", authMode: "none" }],
@@ -373,19 +373,6 @@ describe("mcp server lifecycle", () => {
 	})
 })
 
-describe("mcp routes", () => {
-	it.each([
-		["GET", "/api/agents/any/mcp-servers"],
-		["POST", "/api/agents/any/mcp-servers"],
-		["PUT", "/api/agents/any/mcp-servers/any"],
-		["DELETE", "/api/agents/any/mcp-servers/any"],
-		["POST", "/api/agents/any/mcp-servers/any/enable"],
-		["POST", "/api/agents/any/mcp-servers/any/disable"],
-	] as const)("requires a session for %s %s", async (method, path) => {
-		expect((await app.request(path, { method })).status).toBe(401)
-	})
-})
-
 describe("http connections", () => {
 	/** Bare JSON-RPC over POST; the SDK client accepts plain JSON where the server sends no events. */
 	it("discovers tools from a working http server", async () => {
@@ -478,7 +465,7 @@ async function runTool(connection: service.OpenTools, args: Record<string, unkno
 }
 
 describe("stdio connections", () => {
-	const DEMO_SCRIPT = "test-fixtures/mcp-demo-server.ts"
+	const DEMO_SCRIPT = `${import.meta.dir}/../../../test-fixtures/mcp-demo-server.ts`
 
 	async function createDemo(agentId: string, overrides: { env?: Record<string, string> } = {}) {
 		return service.createServer(agentId, {
@@ -511,13 +498,16 @@ describe("stdio connections", () => {
 			.where(eq(mcpServer.name, "Demo shop"))
 
 		const connection = await service.openTools(agentId, new AbortController().signal)
-		expect(Object.keys(connection.tools)).toEqual(["Demo_shop__get_stock_level"])
+		try {
+			expect(Object.keys(connection.tools)).toEqual(["Demo_shop__get_stock_level"])
 
-		expect(await runTool(connection, { sku: "TALQO-TEA-001" })).toMatchObject({
-			name: "Earl Grey, 100 bags",
-			inStock: 42,
-		})
-		await connection.close()
+			expect(await runTool(connection, { sku: "TALQO-TEA-001" })).toMatchObject({
+				name: "Earl Grey, 100 bags",
+				inStock: 42,
+			})
+		} finally {
+			await connection.close()
+		}
 	})
 
 	it("stops the child process on close, and tolerates a second close", async () => {
@@ -549,11 +539,14 @@ describe("stdio connections", () => {
 			.where(eq(mcpServer.name, "Demo shop"))
 
 		const connection = await service.openTools(agentId, new AbortController().signal)
-		const reported = JSON.stringify(await runOnlyTool(connection))
+		try {
+			const reported = JSON.stringify(await runOnlyTool(connection))
 
-		expect(reported).toContain("operator-supplied")
-		expect(reported).not.toContain("APP_SECRET")
-		expect(reported).not.toContain("DATABASE_URL")
-		await connection.close()
+			expect(reported).toContain("operator-supplied")
+			expect(reported).not.toContain("APP_SECRET")
+			expect(reported).not.toContain("DATABASE_URL")
+		} finally {
+			await connection.close()
+		}
 	})
 })

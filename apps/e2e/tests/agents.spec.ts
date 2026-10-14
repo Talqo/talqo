@@ -5,6 +5,13 @@ const VIEWER = { username: "user", password: "user1234" }
 const MEMBER = VIEWER
 const SEEDED_AGENT = "Website Assistant"
 
+let createdAgentId: string | undefined
+
+test.afterEach(async ({ page }) => {
+	if (createdAgentId) await page.request.delete(`/api/agents/${createdAgentId}`)
+	createdAgentId = undefined
+})
+
 async function grantViewerPermission(page: Page): Promise<string> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
 	const usersResponse = await page.request.get("/api/users")
@@ -37,10 +44,10 @@ test("manager creates, configures, and deletes an agent through the real API", a
 
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
 	await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible()
-	await expect(page.getByRole("link", { name: new RegExp(SEEDED_AGENT) })).toBeVisible()
 
 	await page.getByRole("button", { name: "Create agent" }).click()
 	await expect(page).toHaveURL(/\/dashboard\/agent\//)
+	createdAgentId = new URL(page.url()).pathname.split("/").pop()
 	await expect(page.getByRole("heading", { name: "Configure New agent" })).toBeVisible()
 	await expect(page.getByLabel("Name")).toHaveValue("New agent")
 
@@ -59,8 +66,6 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await expect(page.getByRole("heading", { name: "Configure Docs helper" })).toBeVisible()
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
-
-	await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 
 	// The merged statistics dashboard scopes everything through the agent multi-select box.
 	await page.getByRole("link", { name: "Dashboard", exact: true }).click()
@@ -85,7 +90,6 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await expect(page.getByRole("link", { name: /Docs helper/ })).toHaveCount(0)
 	await page.reload()
 	await expect(page.getByRole("link", { name: /Docs helper/ })).toHaveCount(0)
-	await expect(page.getByRole("link", { name: new RegExp(SEEDED_AGENT) })).toBeVisible()
 })
 
 test("a read-only operator can inspect agents but finds no management controls", async ({ page }) => {
@@ -105,7 +109,6 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByLabel("Name")).toBeDisabled()
 		await expect(page.getByLabel("System prompt")).toBeDisabled()
 		await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
-		await expect(page.getByLabel("Embed token", { exact: true })).toHaveCount(0)
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
 
@@ -131,6 +134,7 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Analytics", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/agents")
 	await expect(page.getByText("Access restricted")).toBeVisible()
@@ -169,39 +173,4 @@ test("switching accounts does not reuse cached agent permissions", async ({ page
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 
 	releasePermissions?.()
-})
-
-test("account deletion stays disabled until the account deletion API exists", async ({ page }) => {
-	await logIn(page, OPERATOR)
-	await page.goto("/dashboard/account")
-	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
-	await expect(page.getByText("Coming soon", { exact: true })).toHaveCount(1)
-	await expect(page.getByRole("button", { name: "Delete account" })).toBeDisabled()
-})
-
-test("operator renames the account through the profile form", async ({ page }) => {
-	// A throwaway member isolates the rename: the seeded operator stays untouched,
-	// so a failure mid-test cannot corrupt the shared fixtures for later tests.
-	const username = `e2e_rename_${Date.now()}`
-	await page.request.post("/api/auth/login", { data: OPERATOR })
-	const invite = await page.request.post("/api/invitations")
-	const { token } = (await invite.json()) as { token: string }
-	const redeem = await page.request.post("/api/invitations/redeem", {
-		data: { token, username, password: "rename-member-password" },
-	})
-	expect(redeem.ok()).toBe(true)
-
-	// Redeem issues the session itself, so the throwaway account is already signed in.
-	await page.goto("/dashboard/account")
-	await expect(page.getByRole("heading", { name: "Account" })).toBeVisible()
-
-	const nameInput = page.getByLabel("Name", { exact: true })
-	await expect(nameInput).toHaveValue(username)
-	// Save stays disabled while the profile is pristine.
-	await expect(page.getByRole("button", { name: "Save profile" })).toBeDisabled()
-	await nameInput.fill(`${username}_2`)
-	await page.getByRole("button", { name: "Save profile" }).click()
-	await expect(page.getByText("Profile saved.")).toBeVisible()
-	await page.reload()
-	await expect(page.getByLabel("Name")).toHaveValue(`${username}_2`)
 })

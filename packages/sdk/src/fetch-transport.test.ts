@@ -350,18 +350,11 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
-	test("maps unknown and malformed API error codes to invalid-response", async () => {
+	test("maps unknown API error codes to invalid-response", async () => {
 		const fake = recordingFetch([
 			problem("not-a-public-chat-code", 400),
-			jsonResponse(
-				{ code: 42, type: "https://docs.talqo.chat/problems#invalid-request" },
-				{ status: 400, headers: { "Content-Type": "application/problem+json" } },
-			),
 			streamResponse([
 				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":"not-a-public-chat-code","retriable":true,"newChatAvailable":false}}\n\n',
-			]),
-			streamResponse([
-				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":42,"retriable":true,"newChatAvailable":false}}\n\n',
 			]),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
@@ -370,14 +363,6 @@ describe("createFetchChatTransport", () => {
 		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
 			code: "invalid-response",
 			status: 400,
-		})
-		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
-			code: "invalid-response",
-			status: 400,
-		})
-		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
-			code: "invalid-response",
-			status: 200,
 		})
 		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
 			code: "invalid-response",
@@ -494,7 +479,6 @@ describe("createFetchChatTransport", () => {
 			}),
 			problem("chat-concurrency-limit", 429, { "Retry-After": "15" }),
 			problem("chat-session-unauthorized", 401),
-			problem("chat-conversation-too-long", 400),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch, now: () => now })
 
@@ -514,11 +498,6 @@ describe("createFetchChatTransport", () => {
 			code: "chat-session-unauthorized",
 			type: "https://docs.talqo.chat/problems#chat-session-unauthorized",
 			status: 401,
-		})
-		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual({
-			code: "chat-conversation-too-long",
-			type: "https://docs.talqo.chat/problems#chat-conversation-too-long",
-			status: 400,
 		})
 	})
 

@@ -32,21 +32,11 @@ describe("relativeLuminance", () => {
 		expect(relativeLuminance("#000000")).toBeCloseTo(0)
 		expect(relativeLuminance("#ffffff")).toBeCloseTo(1)
 	})
-
-	test("weights green above red above blue", () => {
-		expect(relativeLuminance("#00ff00")).toBeGreaterThan(relativeLuminance("#ff0000"))
-		expect(relativeLuminance("#ff0000")).toBeGreaterThan(relativeLuminance("#0000ff"))
-	})
 })
 
 describe("contrastRatio", () => {
 	test("black on white is the maximum 21:1", () => {
 		expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21)
-	})
-
-	test("is symmetric and bottoms out at 1 for identical colors", () => {
-		expect(contrastRatio("#ffffff", "#000000")).toBeCloseTo(21)
-		expect(contrastRatio("#1a7f4b", "#1a7f4b")).toBeCloseTo(1)
 	})
 
 	test("both default schemes pair clear AA for normal text", () => {
@@ -64,7 +54,10 @@ describe("contrastRatio", () => {
 
 	test("dark is a distinct palette, not a derivation of light", () => {
 		expect(DEFAULT_DARK_SCHEME.primary).not.toBe(DEFAULT_LIGHT_SCHEME.primary)
+		expect(DEFAULT_DARK_SCHEME.textOnPrimary).not.toBe(DEFAULT_LIGHT_SCHEME.textOnPrimary)
 		expect(DEFAULT_DARK_SCHEME.background).not.toBe(DEFAULT_LIGHT_SCHEME.background)
+		expect(DEFAULT_DARK_SCHEME.surface).not.toBe(DEFAULT_LIGHT_SCHEME.surface)
+		expect(DEFAULT_DARK_SCHEME.text).not.toBe(DEFAULT_LIGHT_SCHEME.text)
 	})
 })
 

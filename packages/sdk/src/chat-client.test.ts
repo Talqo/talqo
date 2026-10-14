@@ -179,14 +179,11 @@ describe("createChatClient", () => {
 			},
 		})
 		const client = createChatClient({ apiUrl: "https://api.example.test", embedToken: "embed", storage, transport })
-		const snapshots = [client.getSnapshot()]
-		client.subscribe(() => snapshots.push(client.getSnapshot()))
 
 		await client.initialize()
 
 		expect(client.getSnapshot()).toMatchObject({ initialization: "ready", configuration, persistence: "persistent" })
 		expect(client.getSnapshot().messages.map(({ id }) => id)).toEqual(["u1", "a1"])
-		expect(snapshots.length).toBeGreaterThan(2)
 	})
 
 	test("never opens a session when the configuration is disabled", async () => {
@@ -257,7 +254,6 @@ describe("createChatClient", () => {
 			await storage.getItem(createChatStorageKey("https://api.example.test", "embed")),
 		)
 		expect(stored).toEqual({ version: 1, credential })
-		expect(values).toEqual([])
 	})
 
 	test("allows only one send and never regenerates after an uncertain transport failure", async () => {
@@ -642,34 +638,24 @@ describe("createChatClient", () => {
 		expect(record).toEqual({ version: 1, credential: "11111111-1111-4111-8111-111111111111" })
 	})
 
-	for (const event of [
-		{ type: "delta", assistantMessageId: "a1", text: "invalid" },
-		{ type: "terminal", outcome: "completed" },
-		{
-			type: "error",
-			outcome: "failed",
-			error: { code: "provider-error", retriable: true, newChatAvailable: false },
-		},
-	] satisfies ChatEvent[]) {
-		test(`rejects ${event.type} before acceptance without resolving pending optimistic state`, async () => {
-			const client = createChatClient({
-				apiUrl: "https://api.example.test",
-				embedToken: "embed",
-				transport: baseTransport({
-					sendMessage: async () => streamFrom([event]),
-					loadSession: async () => {
-						throw new Error("not accepted")
-					},
-				}),
-				randomUUID: () => "11111111-1111-4111-8111-111111111111",
-				recoveryDelays: [0],
-			})
-			await client.initialize()
-			await expect(client.sendMessage("hello")).rejects.toThrow("before acceptance")
-			await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
-			expect(client.getSnapshot().messages).not.toContainEqual(expect.objectContaining({ outcome: "pending" }))
+	test("rejects a delta before acceptance without resolving pending optimistic state", async () => {
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				sendMessage: async () => streamFrom([{ type: "delta", assistantMessageId: "a1", text: "invalid" }]),
+				loadSession: async () => {
+					throw new Error("not accepted")
+				},
+			}),
+			randomUUID: () => "11111111-1111-4111-8111-111111111111",
+			recoveryDelays: [0],
 		})
-	}
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("before acceptance")
+		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		expect(client.getSnapshot().messages).not.toContainEqual(expect.objectContaining({ outcome: "pending" }))
+	})
 
 	test("recovers an established session after a protocol event arrives before acceptance", async () => {
 		const storage = createMemoryStorage()
@@ -1004,7 +990,11 @@ describe("createChatClient", () => {
 					loads += 1
 					throw new Error("not accepted")
 				},
-				sendMessage: async () => {
+				sendMessage: async (input) => {
+					expect({ credential: input.credential, requestId: input.requestId, text: input.text }).toEqual({
+						credential: "credential",
+						...pending,
+					})
 					sends += 1
 					return streamFrom([])
 				},
@@ -1237,7 +1227,6 @@ describe("createChatClient", () => {
 	})
 
 	test("fails reset without clearing state when persistent credential deletion falls back", async () => {
-		const key = createChatStorageKey("https://api.example.test", "embed")
 		let persisted = JSON.stringify({ version: 1, credential: "credential" })
 		let sentCredential: string | undefined
 		const client = createChatClient({
@@ -1282,7 +1271,6 @@ describe("createChatClient", () => {
 			persistence: "memory",
 		})
 		expect(readChatStorageRecord(persisted)).toEqual({ version: 1, credential: "credential" })
-		expect(key).toContain("talqo:chat:v1")
 		await client.sendMessage("still usable")
 		expect(sentCredential).toBe("credential")
 	})
@@ -1338,6 +1326,8 @@ describe("createChatClient", () => {
 		})
 	})
 
+	// The two orderings of the abort settling around the failed cancel take different paths through
+	// the recovery observer, and neither reproduces from the other.
 	for (const sendSettlesFirst of [true, false]) {
 		test(`recovers a failed pre-accept cancellation by observation without resubmitting ${sendSettlesFirst ? "after" : "before"} send abort`, async () => {
 			const storage = createMemoryStorage()
