@@ -1,6 +1,6 @@
 import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
-import { and, asc, count, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { and, asc, count, countDistinct, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -550,4 +550,49 @@ export async function recoverExpiredGenerationAttempts(): Promise<void> {
 		await interruptExpiredGenerationAttempts(tx)
 		await tx.delete(conversationDailyCounter).where(lt(conversationDailyCounter.day, DATABASE_DAY))
 	})
+}
+
+export type AgentDailyCount = {
+	agentId: string
+	count: number
+	date: string
+}
+
+const conversationDay = sql<string>`to_char(${conversation.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
+const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
+
+// Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
+export async function getDailyConversationCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
+	return db
+		.select({ agentId: conversation.agentId, date: conversationDay, count: count() })
+		.from(conversation)
+		.where(gte(conversation.createdAt, since))
+		.groupBy(conversation.agentId, conversationDay)
+		.orderBy(conversation.agentId, conversationDay)
+}
+
+export async function getDailyMessageCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
+	return db
+		.select({ agentId: conversation.agentId, date: messageDay, count: count() })
+		.from(message)
+		.innerJoin(conversation, eq(message.conversationId, conversation.id))
+		.where(gte(message.createdAt, since))
+		.groupBy(conversation.agentId, messageDay)
+		.orderBy(conversation.agentId, messageDay)
+}
+
+export type AgentConversationCount = {
+	agentId: string
+	count: number
+}
+
+// Conversations touched by any message since the cutoff, counted per owning agent.
+export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<AgentConversationCount[]> {
+	return db
+		.select({ agentId: conversation.agentId, count: countDistinct(message.conversationId) })
+		.from(message)
+		.innerJoin(conversation, eq(message.conversationId, conversation.id))
+		.where(gte(message.createdAt, cutoff))
+		.groupBy(conversation.agentId)
+		.orderBy(conversation.agentId)
 }

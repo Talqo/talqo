@@ -67,6 +67,15 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
 
+	// The merged statistics dashboard scopes everything through the agent multi-select box.
+	await page.getByRole("link", { name: "Dashboard", exact: true }).click()
+	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
+	await page.getByRole("combobox", { name: "Agents", exact: true }).click()
+	await page.getByRole("button", { name: "Deselect all", exact: true }).click()
+	await page.getByRole("option", { name: "Docs helper", exact: true }).click()
+	await page.keyboard.press("Escape")
+	await expect(page.getByRole("row", { name: /^Docs helper/ })).toBeVisible()
+
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
 	await page.getByRole("link", { name: /Docs helper/ }).click()
 	await page.getByRole("button", { name: "Delete agent" }).click()
@@ -89,7 +98,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await logIn(page, VIEWER)
 
 		await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-		await expect(page.getByRole("link", { name: "Analytics", exact: true })).toBeVisible()
+		await expect(page.getByRole("link", { name: "Analytics", exact: true })).toHaveCount(0)
 		await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()

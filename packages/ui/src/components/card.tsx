@@ -28,9 +28,18 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 	)
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
+
+// Card titles are real headings so card-heavy pages keep a heading outline; `level` lets a
+// page place a card title at the top of its document hierarchy (e.g. an auth card's h1).
+function CardTitle({
+	className,
+	level = 3,
+	...props
+}: Omit<React.ComponentProps<"h3">, "ref"> & { level?: HeadingLevel }) {
+	const Heading = `h${level}` as "h3"
 	return (
-		<div
+		<Heading
 			data-slot="card-title"
 			className={cn("text-base leading-snug font-medium group-data-[size=sm]/card:text-sm", className)}
 			{...props}

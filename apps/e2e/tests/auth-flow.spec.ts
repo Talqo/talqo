@@ -74,9 +74,10 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	// An invited member is signed in right after accepting, no login round-trip.
+	// An invited member is signed in right after accepting, no login round-trip. Without
+	// agents:read the statistics dashboard is access-restricted, but the session itself works.
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
@@ -129,9 +130,10 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()
 
-	// The forced change keeps the session, landing straight on the dashboard.
+	// The forced change keeps the session, landing signed in on the dashboard. Without
+	// agents:read the member sees the access-restricted card instead of statistics.
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
 })
 
 test("an admin deletes a member, who can no longer log in", async ({ page }) => {
