@@ -49,3 +49,5 @@ export const PROBLEM_CODES = {
 	USER_NOT_FOUND: "user-not-found",
 	USERNAME_TAKEN: "username-taken",
 } as const
+
+export type ProblemCode = (typeof PROBLEM_CODES)[keyof typeof PROBLEM_CODES]

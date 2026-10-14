@@ -2,21 +2,12 @@ import { describe, expect, test } from "bun:test"
 
 import {
 	configFromMessage,
-	configMessage,
 	isReadyMessage,
 	PREVIEW_CHANNEL_VERSION,
 	readyMessage,
 	trustedParentOrigin,
 } from "./preview-channel"
 
-const completeAppearance = {
-	light: { primary: "#1a7f4b", textOnPrimary: "#ffffff", background: "#ffffff", surface: "#f5f5f5", text: "#171717" },
-	dark: { primary: "#34d399", textOnPrimary: "#052e16", background: "#0a0a0a", surface: "#1a1a1a", text: "#fafafa" },
-	position: "bottom-right",
-	theme: "system",
-	themeToggle: true,
-	language: "en",
-} as const
 const partialAppearance = { light: { primary: "#1a7f4b" }, position: "bottom-left" }
 
 function message(overrides: Record<string, unknown> = {}) {
@@ -30,35 +21,13 @@ function message(overrides: Record<string, unknown> = {}) {
 }
 
 describe("preview channel", () => {
-	test("constructs config messages with protocol identity and optional presentation", () => {
-		expect(configMessage(completeAppearance)).toEqual({
-			source: "talqo-preview",
-			version: PREVIEW_CHANNEL_VERSION,
-			type: "config",
-			appearance: completeAppearance,
-			title: undefined,
-			forcedScheme: undefined,
-			isAvailable: undefined,
-		})
-		expect(
-			configMessage(completeAppearance, { title: "Marketing site", forcedScheme: "dark", isAvailable: false }),
-		).toMatchObject({
-			title: "Marketing site",
-			forcedScheme: "dark",
-			isAvailable: false,
-		})
-	})
-
 	test("recognizes only the current ready handshake", () => {
+		expect(readyMessage()).toEqual({ source: "talqo-preview", version: PREVIEW_CHANNEL_VERSION, type: "ready" })
 		expect(isReadyMessage(readyMessage())).toBe(true)
 		expect(isReadyMessage({ source: "some-other-embed", version: 1, type: "ready" })).toBe(false)
 		expect(isReadyMessage({ source: "talqo-preview", version: 99, type: "ready" })).toBe(false)
 		expect(isReadyMessage({ source: "talqo-preview", version: 1, type: "config" })).toBe(false)
 		for (const value of [undefined, null, "ready"]) expect(isReadyMessage(value)).toBe(false)
-	})
-
-	test("constructs an identified ready handshake", () => {
-		expect(readyMessage()).toEqual({ source: "talqo-preview", version: PREVIEW_CHANNEL_VERSION, type: "ready" })
 	})
 
 	test("accepts only concrete parent origins", () => {

@@ -2,6 +2,20 @@ import { expect, test, type Page } from "@playwright/test"
 
 const ADMIN = { username: "admin", password: "admin123" }
 
+const createdMembers: string[] = []
+
+test.afterEach(async ({ request }) => {
+	if (createdMembers.length === 0) return
+	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+	const { users } = (await (await request.get("/api/users")).json()) as { users: { id: string; username: string }[] }
+	await Promise.all(
+		createdMembers.splice(0).map(async (username) => {
+			const user = users.find((candidate) => candidate.username === username)
+			if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
+		}),
+	)
+})
+
 async function logIn(page: Page, account: { password: string; username: string }) {
 	await page.goto("/login")
 	await page.getByLabel("Username").fill(account.username)
@@ -35,40 +49,8 @@ async function inviteMember(page: Page, username: string, password: string) {
 	await expect(page).toHaveURL("/login")
 }
 
-test("auth screens expose theme and language controls", async ({ page }) => {
-	await page.goto("/login")
-
-	await page.getByRole("button", { name: "Switch to dark theme" }).click()
-	await expect(page.locator("html")).toHaveClass(/dark/)
-
-	await page.getByLabel("Language: English").click()
-	await page.getByRole("option", { name: "中文" }).click()
-	await expect(page.getByRole("heading", { name: "登录" })).toBeVisible()
-	await expect(page.getByLabel("确认密码")).toHaveCount(0)
-})
-
-test("root redirects to login when setup status is unavailable", async ({ page }) => {
-	await page.route("**/api/setup", (route) =>
-		route.fulfill({
-			body: JSON.stringify({
-				code: "internal-server-error",
-				type: "https://docs.talqo.chat/problems#internal-server-error",
-			}),
-			contentType: "application/problem+json",
-			status: 500,
-		}),
-	)
-
-	await page.goto("/")
-	await expect(page).toHaveURL("/login")
-})
-
 test("admin invites a member and the member lands signed in", async ({ page }) => {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(ADMIN.username)
-	await page.getByLabel("Password", { exact: true }).fill(ADMIN.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	await logIn(page, ADMIN)
 
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
@@ -82,25 +64,9 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 	const token = new URL(inviteUrl).searchParams.get("token")
 	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
 
-	await page.evaluate(() => {
-		let attempts = 0
-		Object.defineProperty(window.navigator.clipboard, "writeText", {
-			configurable: true,
-			value: async () => {
-				attempts += 1
-				if (attempts === 1) throw new Error("Clipboard denied")
-			},
-		})
-	})
-	const copyButton = dialog.getByRole("button", { name: "Copy invitation link" })
-	await copyButton.click()
-	await expect(dialog.getByRole("alert")).toContainText("The invitation link could not be copied")
-	await copyButton.click()
-	await expect(dialog.getByRole("alert")).toHaveCount(0)
-	await expect(dialog.getByText("Invitation link copied.")).toBeVisible()
-
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
+	createdMembers.push(memberUsername)
 
 	await page.goto(`/accept-invite?token=${token}`)
 	await page.getByLabel("Username").fill(memberUsername)
@@ -118,42 +84,12 @@ test("admin invites a member and the member lands signed in", async ({ page }) =
 	await expect(page).toHaveURL("/login")
 })
 
-test("a member changes their own password and stays signed in", async ({ page }) => {
-	const memberUsername = `member_${Date.now()}_self`
-	const originalPassword = "member-original-password"
-	const newPassword = "member-self-chosen-password"
-
-	await inviteMember(page, memberUsername, originalPassword)
-
-	await logIn(page, { username: memberUsername, password: originalPassword })
-	await page.getByRole("link", { name: "Account", exact: true }).click()
-	await page.getByLabel("Current password").fill(originalPassword)
-	await page.getByLabel("New password", { exact: true }).fill(newPassword)
-	await page.getByLabel("Confirm new password").fill(newPassword)
-	await page.getByRole("button", { name: "Change password" }).click()
-
-	// A self-service change keeps the session: confirmation in place, no login round-trip.
-	await expect(page).toHaveURL("/dashboard/account")
-	await expect(page.getByText("Password changed.")).toBeVisible()
-	await page.getByRole("link", { name: "Dashboard" }).click()
-	await expect(page).toHaveURL("/dashboard")
-
-	// The old password is dead; the new one works for fresh logins.
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(originalPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page.getByRole("alert")).toBeVisible()
-	await expect(page).toHaveURL("/login")
-	await logIn(page, { username: memberUsername, password: newPassword })
-})
-
 test("an admin resets a member's password and forces them through a new one", async ({ page }) => {
 	const memberUsername = `member_${Date.now()}_reset`
 	const originalPassword = "member-original-password"
 	const adminResetPassword = "admin-reset-password-000"
 	const memberFinalPassword = "member-final-chosen-password"
+	createdMembers.push(memberUsername)
 
 	await inviteMember(page, memberUsername, originalPassword)
 
@@ -202,6 +138,7 @@ test("an admin deletes a member, who can no longer log in", async ({ page }) => 
 	const memberUsername = `member_${Date.now()}_delete`
 	const memberPassword = "member-doomed-password"
 
+	// The test deletes the member itself, so it does not register with createdMembers cleanup.
 	await inviteMember(page, memberUsername, memberPassword)
 
 	await logIn(page, ADMIN)

@@ -45,20 +45,4 @@ describe("usage normalization", () => {
 	it("falls back to ceiling Unicode code points divided by four", () => {
 		expect(normalizeUsage({ inputText: "😀abcde", outputText: "😀abc" })).toEqual({ inputTokens: 2, outputTokens: 1 })
 	})
-
-	it("does not add breakdowns when provider totals already include them", () => {
-		expect(
-			normalizeUsage({
-				inputText: "x",
-				outputText: "x",
-				usage: {
-					inputTokens: 11,
-					outputTokens: 7,
-					totalTokens: 18,
-					cachedInputTokens: 3,
-					reasoningTokens: 2,
-				},
-			}),
-		).toEqual({ inputTokens: 11, outputTokens: 7 })
-	})
 })

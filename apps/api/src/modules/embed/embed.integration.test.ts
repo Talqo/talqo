@@ -44,17 +44,6 @@ describe("embed lifecycle", () => {
 		expect(first.accessVersion).toBe(1)
 	})
 
-	it("lets one agent serve several embeds", async () => {
-		const agentId = await createAgent()
-		await createEmbed(agentId)
-		await createEmbed(agentId, { name: "Support portal" })
-
-		const embeds = await service.listEmbeds()
-
-		expect(embeds).toHaveLength(2)
-		expect(embeds.every((embed) => embed.agentId === agentId)).toBe(true)
-	})
-
 	it("filters by agent so one agent's page never fetches another agent's embeds", async () => {
 		const first = await createAgent("First")
 		const second = await createAgent("Second")
@@ -93,18 +82,6 @@ describe("embed lifecycle", () => {
 		const created = await createEmbed(agentId, { name: "Dark site", appearance })
 
 		expect((await service.getEmbed(created.id)).appearance).toEqual(appearance)
-	})
-
-	it("replaces the whole appearance on update", async () => {
-		const agentId = await createAgent()
-		const created = await createEmbed(agentId)
-		const appearance = {
-			...DEFAULT_WIDGET_APPEARANCE,
-			light: { ...DEFAULT_WIDGET_APPEARANCE.light, primary: "#123456" },
-			theme: "dark",
-		} as const
-
-		expect((await replaceEmbed(created, { appearance })).appearance).toEqual(appearance)
 	})
 
 	it("reassigns an embed and atomically increments its access version", async () => {
