@@ -1,6 +1,7 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetStatsOverview } from "@/api/generated/stats/stats.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { parseAgentsParam } from "@/features/statistics/agents-search"
@@ -193,6 +194,8 @@ function DashboardIndexPage() {
 	return (
 		<div className="mx-auto max-w-5xl space-y-6">
 			<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
+
+			<ProviderNoticeBanner />
 
 			{isLoading || agentsQuery.isLoading || !overview || !stats ? (
 				<p className="text-muted-foreground">{t("dashboard.loading")}</p>

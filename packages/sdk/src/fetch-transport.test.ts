@@ -85,7 +85,7 @@ async function rejectedDetail(action: Promise<unknown>) {
 describe("createFetchChatTransport", () => {
 	test("loads canonical embed configuration and maps name to title", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true }),
+			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true, isAvailable: false }),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
@@ -93,6 +93,7 @@ describe("createFetchChatTransport", () => {
 			title: "Support",
 			appearance: APPEARANCE,
 			isDisabled: true,
+			isAvailable: false,
 		})
 		expect(fake.calls).toEqual([
 			{
@@ -408,7 +409,13 @@ describe("createFetchChatTransport", () => {
 
 	test("accepts additive JSON fields and rejects malformed consumed fields without exposing raw bodies", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: { ...APPEARANCE, extra: true }, isDisabled: false }),
+			jsonResponse({
+				version: 1,
+				name: "Support",
+				appearance: { ...APPEARANCE, extra: true },
+				isDisabled: false,
+				isAvailable: true,
+			}),
 			jsonResponse(
 				{
 					code: "embed-not-found",
@@ -448,6 +455,7 @@ describe("createFetchChatTransport", () => {
 			title: "Support",
 			appearance: { ...APPEARANCE, extra: true },
 			isDisabled: false,
+			isAvailable: true,
 		})
 		const problemError = await rejectedDetail(transport.loadConfiguration(context()))
 		expect(problemError).toEqual({

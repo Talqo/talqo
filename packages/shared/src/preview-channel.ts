@@ -13,6 +13,7 @@ export type PreviewConfigMessage = {
 	appearance: WidgetAppearance
 	title?: string
 	forcedScheme?: "light" | "dark"
+	isAvailable?: boolean
 	source: typeof PREVIEW_CHANNEL_SOURCE
 	type: "config"
 	version: number
@@ -22,11 +23,12 @@ export type PreviewConfig = {
 	appearance: WidgetAppearanceInput
 	title?: string
 	forcedScheme?: "light" | "dark"
+	isAvailable?: boolean
 }
 
 export function configMessage(
 	appearance: WidgetAppearance,
-	options: { title?: string; forcedScheme?: "light" | "dark" } = {},
+	options: { title?: string; forcedScheme?: "light" | "dark"; isAvailable?: boolean } = {},
 ): PreviewConfigMessage {
 	return {
 		source: PREVIEW_CHANNEL_SOURCE,
@@ -35,6 +37,7 @@ export function configMessage(
 		appearance,
 		title: options.title,
 		forcedScheme: options.forcedScheme,
+		isAvailable: options.isAvailable,
 	}
 }
 
@@ -64,6 +67,7 @@ export function configFromMessage(data: unknown): PreviewConfig | undefined {
 	const message = data as {
 		appearance?: unknown
 		forcedScheme?: unknown
+		isAvailable?: unknown
 		source?: unknown
 		title?: unknown
 		type?: unknown
@@ -84,5 +88,6 @@ export function configFromMessage(data: unknown): PreviewConfig | undefined {
 		title: typeof message.title === "string" ? message.title : undefined,
 		forcedScheme:
 			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,
+		isAvailable: typeof message.isAvailable === "boolean" ? message.isAvailable : undefined,
 	}
 }

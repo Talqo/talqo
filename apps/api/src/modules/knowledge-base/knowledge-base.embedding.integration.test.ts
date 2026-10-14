@@ -1,8 +1,10 @@
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import { expect, it } from "bun:test"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
+import { expect, it, spyOn } from "bun:test"
 
 import * as repository from "./knowledge-base.repository.ts"
+import { searchKnowledge } from "./knowledge-base.service.ts"
 
 it("stores vectors atomically, retains failed state, and requeues when the model changes", async () => {
 	const owner = await agent.createAgent({
@@ -82,5 +84,22 @@ it("searches ready chunks by similarity within the agent and model key", async (
 	} finally {
 		await agent.deleteAgent(owner.id)
 		await agent.deleteAgent(other.id)
+	}
+})
+
+it("skips the embedding provider when the agent has no ready files", async () => {
+	const owner = await agent.createAgent({
+		name: `Empty ${crypto.randomUUID()}`,
+		systemPrompt: "Answer",
+		wordBlacklist: [],
+	})
+	const prepare = spyOn(aiProvider, "prepareEmbeddingOperation")
+	try {
+		await repository.enqueue(owner.id, "pending.md")
+		expect(await searchKnowledge(owner.id, "question")).toEqual([])
+		expect(prepare).not.toHaveBeenCalled()
+	} finally {
+		prepare.mockRestore()
+		await agent.deleteAgent(owner.id)
 	}
 })

@@ -51,6 +51,8 @@ export type EmbeddedWidgetProps = {
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
 	unavailable?: boolean
+	/** Preview-only: mirrors the deployment's reply availability without an SDK client. */
+	isAvailable?: boolean
 }
 
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
@@ -157,6 +159,7 @@ type ChatPresentation = {
 	snapshot?: ChatSnapshot
 	client?: ChatClient
 	unavailable?: boolean
+	isAvailable?: boolean
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
@@ -173,6 +176,7 @@ function WidgetChat({
 	snapshot,
 	client,
 	unavailable,
+	isAvailable,
 }: {
 	title?: string
 	appearance: WidgetAppearance
@@ -202,8 +206,14 @@ function WidgetChat({
 	const resetting = snapshot?.reset === "resetting"
 	const activeGeneration = generation !== "idle"
 	const unusable = unavailable || initialization === "error"
-	const disabled = unusable || initialization !== "ready" || resetting || activeGeneration || submitting
-	const visibleError = unavailable ? ({ code: "embed-not-found" } satisfies ChatError) : snapshot?.error
+	const cannotReply = (snapshot?.configuration?.isAvailable ?? isAvailable) === false
+	const disabled = unusable || cannotReply || initialization !== "ready" || resetting || activeGeneration || submitting
+	// A missing provider is setup state, not a visitor error, so it replaces any older error.
+	const visibleError: ChatError | undefined = unavailable
+		? { code: "embed-not-found" }
+		: cannotReply
+			? undefined
+			: snapshot?.error
 	const hasStreamingAssistant = messages.some(
 		(message) => message.role === "assistant" && message.outcome === "streaming",
 	)
@@ -432,10 +442,17 @@ function WidgetChat({
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
 						<BubbleGroup>
-							{messages.length === 0 && initialization === "ready" && !unusable && (
+							{messages.length === 0 && initialization === "ready" && !unusable && !cannotReply && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
 										{t("greeting")}
+									</BubbleContent>
+								</Bubble>
+							)}
+							{cannotReply && !unavailable && (
+								<Bubble align="start">
+									<BubbleContent role="status" variant="muted" className="tw:text-muted-foreground">
+										{t("chatUnavailable")}
 									</BubbleContent>
 								</Bubble>
 							)}
@@ -528,7 +545,7 @@ function WidgetChat({
 							aria-label={t("messageLabel")}
 							autoFocus
 							disabled={disabled}
-							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50"
+							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:disabled:opacity-50"
 						/>
 						{activeGeneration ? (
 							<button
@@ -560,7 +577,11 @@ function WidgetChat({
 				aria-label={open ? t("closeChat") : t("openChat")}
 				aria-expanded={open}
 				aria-haspopup="dialog"
-				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
+				title={cannotReply ? t("chatUnavailable") : undefined}
+				className={cn(
+					"tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:shadow-lg tw:transition-transform tw:hover:scale-105",
+					cannotReply ? "tw:bg-muted tw:text-muted-foreground" : "tw:bg-primary tw:text-primary-foreground",
+				)}
 			>
 				<ChatIcon aria-hidden="true" />
 			</button>
@@ -568,7 +589,14 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavailable }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({
+	title,
+	appearance,
+	hidden,
+	forcedScheme,
+	unavailable,
+	isAvailable,
+}: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -584,6 +612,7 @@ export function EmbeddedWidget({ title, appearance, hidden, forcedScheme, unavai
 				hidden={hidden}
 				forcedScheme={forcedScheme}
 				unavailable={unavailable}
+				isAvailable={isAvailable}
 			/>
 		</I18nextProvider>
 	)
