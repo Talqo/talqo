@@ -39,7 +39,7 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 
 - When creating a PR, follow template inside `.github/pull_request_template.md`.
 - Follow [the architecture guide](docs/architecture.md) and the nearest `AGENTS.md`.
-- Write an ADR in [`docs/adr`](docs/adr) when a decision had credible alternatives with real tradeoffs; follow [its rules](docs/adr/AGENTS.md).
+- Default to no ADR. Write one in [`docs/adr`](docs/adr) only for a decision with credible alternatives and real tradeoffs a future contributor would reopen, and never for implementation details. Follow [its rules](docs/adr/AGENTS.md).
 - Before adding a paragraph to any doc, ask what a maintainer would get wrong without it. If the code answers the question, leave it out.
 - Never hand-edit generated artifacts.
 - If a rule here blocks the task in front of you, say so and get a human decision before breaking it.
