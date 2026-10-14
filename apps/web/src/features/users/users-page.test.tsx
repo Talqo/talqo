@@ -42,6 +42,7 @@ let users: ListedUser[]
 let roles: Role[]
 let assignFailure: Response | undefined
 let rolesFailure: Response | undefined
+let rolesResponse: Promise<Response> | undefined
 let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
@@ -63,7 +64,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
-	if (url === "/api/roles") return rolesFailure ?? json({ roles })
+	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles })
 	if (url === "/api/permissions") {
 		return json({
 			permissions: [
@@ -157,6 +158,7 @@ beforeEach(() => {
 	roles = []
 	assignFailure = undefined
 	rolesFailure = undefined
+	rolesResponse = undefined
 	requests = []
 	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
 	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -258,11 +260,26 @@ describe("UsersPage", () => {
 	test("says so when roles cannot be loaded instead of silently hiding role editing", async () => {
 		myPermissions = ["users:read", "roles:manage"]
 		rolesFailure = problem("internal-server-error", 500)
-		users = [user("helper")]
+		users = [user("helper"), user("other")]
 		await renderPage()
 
-		expect(buttonNames(card("helper"))).toEqual([])
-		expect(card("helper").textContent).toContain(t("auth.errorFallback"))
+		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
+		expect(host.querySelectorAll("[role='alert']")).toHaveLength(1)
+		rolesFailure = undefined
+		await click(button(t("common.retry"), host))
+		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
+	})
+
+	test("keeps role editing visible but unavailable while roles load", async () => {
+		myPermissions = ["users:read", "roles:manage"]
+		users = [user("helper")]
+		const deferred = Promise.withResolvers<Response>()
+		rolesResponse = deferred.promise
+		await renderPage()
+		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
+		await act(async () => deferred.resolve(json({ roles: [] })))
+		await settle()
+		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
 	test("starts from the user's current roles every time the dialog opens", async () => {

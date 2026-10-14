@@ -254,6 +254,16 @@ describe("role management", () => {
 		expect(dialog().textContent).toContain(t("roles.lockoutWarningDelete"))
 	})
 
+	test("retries a failed roles load without reloading the page", async () => {
+		rolesFailure = json({ code: "internal-server-error" }, 500)
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage()
+		expect(host.querySelector("[data-role-id='support']")).toBeNull()
+		rolesFailure = undefined
+		await click(button(t("common.retry"), host))
+		expect(host.querySelector("[data-role-id='support']")).not.toBeNull()
+	})
+
 	test("shows included switches and explains permissions the operator lacks", async () => {
 		myPermissions = ["roles:manage", "users:read", "agents:read", "agents:manage"]
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]

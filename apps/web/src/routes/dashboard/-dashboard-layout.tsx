@@ -1,6 +1,7 @@
 import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
+import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
@@ -13,12 +14,7 @@ import { useTranslation } from "react-i18next"
 type NavRequirement = "agentRead" | "providerManage" | "usersRead"
 
 type NavItem = {
-	to:
-		| "/dashboard"
-		| "/dashboard/agents"
-		| "/dashboard/users"
-		| "/dashboard/ai-configuration"
-		| "/dashboard/account"
+	to: "/dashboard" | "/dashboard/agents" | "/dashboard/users" | "/dashboard/ai-configuration" | "/dashboard/account"
 	icon: typeof LayoutDashboard
 	requires?: NavRequirement
 }
@@ -39,10 +35,10 @@ const navLabels = {
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>
 
-function allowedNavItems(permissions: string[] | undefined): readonly NavItem[] {
-	const canReadAgents = permissions?.includes("agents:read") ?? false
-	const canManageProvider = permissions?.includes("ai_provider:manage") ?? false
-	const canReadUsers = permissions?.includes("users:read") ?? false
+function allowedNavItems(permissions: string[]): readonly NavItem[] {
+	const canReadAgents = permissions.includes("agents:read")
+	const canManageProvider = permissions.includes("ai_provider:manage")
+	const canReadUsers = permissions.includes("users:read")
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
 		if (item.requires === "providerManage") return canManageProvider
@@ -74,21 +70,22 @@ function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavi
 	)
 }
 
-function NavList({
-	className,
-	onNavigate,
-	permissions,
-}: {
-	className: string
-	onNavigate: () => void
-	permissions: string[] | undefined
-}) {
-	const items = allowedNavItems(permissions)
+function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
+	const { t } = useTranslation()
+	const query = useGetMyPermissions()
 	return (
 		<nav className={className}>
-			{items.map((item) => (
-				<NavLink key={item.to} item={item} onNavigate={onNavigate} />
-			))}
+			{query.isPending ? (
+				<p role="status" className="text-muted-foreground px-3 text-sm">
+					{t("auth.loading")}
+				</p>
+			) : query.isError ? (
+				<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
+			) : (
+				allowedNavItems(query.data.data.permissions).map((item) => (
+					<NavLink key={item.to} item={item} onNavigate={onNavigate} />
+				))
+			)}
 		</nav>
 	)
 }
@@ -119,7 +116,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const closeMobile = () => setMobileOpen(false)
 	const accountName = useGetSession().data?.data.user?.username ?? "…"
 	const permissionsQuery = useGetMyPermissions()
-	const permissions = permissionsQuery.data?.data.permissions
 	// Children stay unmounted until the gate opens, so a denied caller fires no queries.
 	const gate = accessGate(useRequiredPermission(), permissionsQuery)
 
@@ -127,7 +123,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
 				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
-				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} permissions={permissions} />
+				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
 			<div className="flex min-h-screen min-w-0 flex-1 flex-col">
@@ -154,14 +150,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					<NavList
 						className="border-border bg-sidebar flex flex-col gap-1 border-b p-4 md:hidden"
 						onNavigate={closeMobile}
-						permissions={permissions}
 					/>
 				)}
 
 				<main className="flex-1 p-6">
 					{gate === "open" && children}
 					{gate === "pending" && <p className="text-muted-foreground">{t("auth.loading")}</p>}
-					{gate === "error" && <p className="text-muted-foreground">{t("auth.errorFallback")}</p>}
+					{gate === "error" && (
+						<ProblemAlert error={permissionsQuery.error} onRetry={() => void permissionsQuery.refetch()} />
+					)}
 					{gate === "denied" && <AccessDenied />}
 				</main>
 			</div>

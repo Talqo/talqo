@@ -10,6 +10,7 @@ import {
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
@@ -34,7 +35,8 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
-import { Check, Copy, Trash2, UserPlus } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { Check, Copy, Pencil, Trash2, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -265,15 +267,17 @@ function UsersList({ held }: { held: readonly string[] }) {
 		return <p className="text-muted-foreground">{t("users.loading")}</p>
 	}
 
-	if (usersQuery.isError) {
+	if (usersQuery.isError || session.isError) {
 		// A role removed while the page is open still lands here.
 		if (forbidden) return <AccessDenied />
 		return (
-			<Card>
-				<CardContent>
-					<p className="text-muted-foreground text-sm">{t("auth.errorFallback")}</p>
-				</CardContent>
-			</Card>
+			<ProblemAlert
+				error={usersQuery.error ?? session.error}
+				onRetry={() => {
+					void usersQuery.refetch()
+					void session.refetch()
+				}}
+			/>
 		)
 	}
 	const currentUserId = session.data?.data.user?.id
@@ -284,6 +288,12 @@ function UsersList({ held }: { held: readonly string[] }) {
 
 	return (
 		<div className="space-y-3">
+			{canManageRoles && rolesQuery.isPending ? (
+				<p role="status" className="text-muted-foreground text-sm">
+					{t("roles.loading")}
+				</p>
+			) : null}
+			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
 			{users.map((user) => {
 				const exceedsOperator = !user.canManage
 				return (
@@ -307,10 +317,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 										{t("users.resetSuccess")}
 									</span>
 								)}
-								{canManageRoles && rolesQuery.isError ? (
-									<p className="text-muted-foreground text-xs">{t("auth.errorFallback")}</p>
-								) : null}
-								{canManageRoles && roles ? (
+								{canManageRoles && roles && !rolesQuery.isError ? (
 									<EditUserRolesDialog
 										heldPermissions={held}
 										isSelf={user.id === currentUserId}
@@ -318,6 +325,11 @@ function UsersList({ held }: { held: readonly string[] }) {
 										roles={roles}
 										targetUser={user}
 									/>
+								) : canManageRoles ? (
+									<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
+										<Pencil className="size-4" />
+										{t("users.editRoles")}
+									</Button>
 								) : null}
 								{canManageUsers && exceedsOperator ? (
 									<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
@@ -333,6 +345,14 @@ function UsersList({ held }: { held: readonly string[] }) {
 									</>
 								) : null}
 							</div>
+							{canManageUsers && user.id === currentUserId ? (
+								<p className="text-muted-foreground text-xs">
+									{t("users.ownAccountHint")}{" "}
+									<Link to="/dashboard/account" className="underline">
+										{t("nav.account")}
+									</Link>
+								</p>
+							) : null}
 						</CardContent>
 					</Card>
 				)

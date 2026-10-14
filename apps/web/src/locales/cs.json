@@ -78,10 +78,9 @@
 		"error": {
 			"conversionFailed": "Dokument se nepodařilo zpracovat. Zkuste to znovu; pokud problém přetrvá, zkontrolujte soubor.",
 			"emptyDocument": "Nepodařilo se získat text. Zkontrolujte soubor a zkuste to znovu.",
-			"providerError": "Poskytovatel embeddingů dokument odmítl. Zkontrolujte konfiguraci a zkuste to znovu.",
-			"unknown": "Embedding se nezdařil. Zkontrolujte protokoly služby a zkuste to znovu."
+			"providerError": "AI služba nemohla připravit tento soubor. Požádejte správce o kontrolu nastavení AI.",
+			"unknown": "Soubor se nepodařilo připravit. Zkuste to znovu nebo požádejte správce o pomoc."
 		},
-		"loadFailed": "Znalostní soubory se nepodařilo načíst.",
 		"loading": "Načítání souborů…",
 		"rename": "Přejmenovat {{name}}",
 		"renameAction": "Přejmenovat soubor",
@@ -91,14 +90,14 @@
 		"renameLabel": "Název souboru",
 		"renameSave": "Přejmenovat",
 		"renameTitle": "Přejmenovat soubor",
-		"retry": "Znovu vytvořit embedding pro {{name}}",
-		"retryAction": "Zkusit embedding znovu",
-		"retryFailed": "Embedding se nepodařilo znovu spustit. Zkuste to znovu.",
+		"retry": "Znovu zpracovat {{name}}",
+		"retryAction": "Zkusit znovu",
+		"retryFailed": "Soubor se nepodařilo znovu zpracovat. Zkuste to znovu.",
 		"status": {
-			"failed": "Embedding se nezdařil",
-			"pending": "Čeká na embedding",
-			"processing": "Vytváření embeddingu…",
-			"ready": "Embedding dokončen"
+			"failed": "Soubor se nepodařilo připravit",
+			"pending": "Čeká na zpracování",
+			"processing": "Příprava souboru…",
+			"ready": "Připraveno"
 		},
 		"tooLarge": "Každý soubor může mít maximálně {{maxSizeMB}} MB.",
 		"uploadFailed": "Nahrávání se nezdařilo. Zkuste to znovu.",
@@ -249,6 +248,7 @@
 		"appName": "Talqo",
 		"cancel": "Zrušit",
 		"hidePassword": "Skrýt heslo",
+		"retry": "Zkusit znovu",
 		"showPassword": "Zobrazit heslo"
 	},
 	"dashboard": {
@@ -505,8 +505,8 @@
 		"includedWith": "Součást oprávnění „{{permission}}“.",
 		"leavePrompt": "Opustit tuto roli a zahodit neuložené změny?",
 		"loading": "Načítání rolí…",
-		"lockoutWarningDelete": "Tuto roli máte a žádná jiná role vám nedovoluje spravovat role. Po jejím smazání tuto stránku neotevřete.",
-		"lockoutWarningEdit": "Tuto roli máte a žádná jiná role vám nedovoluje spravovat role. Po uložení tuto stránku neotevřete.",
+		"lockoutWarningDelete": "Po smazání této role nebudete moci spravovat role. Pokud budete přístup znovu potřebovat, požádejte správce.",
+		"lockoutWarningEdit": "Po uložení nebudete moci spravovat role. Pokud budete přístup znovu potřebovat, požádejte správce.",
 		"members": "Lidé s touto rolí: {{people}}",
 		"name": "Název",
 		"nameError": "Zadejte název o délce nejvýše {{max}} znaků.",
@@ -552,8 +552,9 @@
 		"generate": "Vygenerovat",
 		"heading": "Uživatelé",
 		"loading": "Načítání uživatelů…",
-		"lockoutWarning": "Žádná jiná role, kterou si ponecháte, vám nedovoluje spravovat role. Po uložení nebudete moci spravovat role ani otevřít tuto stránku.",
+		"lockoutWarning": "Po uložení nebudete moci spravovat role. Pokud budete přístup znovu potřebovat, požádejte správce.",
 		"noRoles": "Zatím žádné role neexistují. Nejprve jednu vytvořte na stránce Role.",
+		"ownAccountHint": "Svůj účet tu nemůžete smazat. Heslo si změníte na stránce",
 		"pendingChange": "Čeká na změnu hesla",
 		"resetDialogDescription": "Nastavte nové heslo pro tento účet.",
 		"resetDialogTitle": "Resetovat heslo pro {{username}}",

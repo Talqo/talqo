@@ -988,6 +988,34 @@ describe("admin user deletion", () => {
 })
 
 describe("list users", () => {
+	it("loads access with a fixed query budget as the user list grows", async () => {
+		const adminId = await testAdminId()
+		const members = await Promise.all(Array.from({ length: 12 }, () => createMember()))
+		await service.listUsersWithAccess(adminId)
+		const previousDebug = sql.options.debug
+		let queries = 0
+		sql.options.debug = (_connection, query) => {
+			if (/\bselect\b/i.test(query)) queries += 1
+		}
+		try {
+			const users = await service.listUsersWithAccess(adminId)
+			for (const member of members) {
+				expect(users).toContainEqual({
+					id: member.id,
+					username: member.username,
+					isAdmin: false,
+					canManage: true,
+					mustChangePassword: false,
+					roles: [],
+				})
+			}
+			expect(queries).toBeGreaterThan(0)
+			expect(queries).toBeLessThanOrEqual(4)
+		} finally {
+			sql.options.debug = previousDebug
+		}
+	})
+
 	it("lets an admin list all users", async () => {
 		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
 		const memberUsername = uniqueUsername()

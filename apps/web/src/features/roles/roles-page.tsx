@@ -60,9 +60,7 @@ export function RolesPage() {
 			) : rolesQuery.isPending ? (
 				<p className="text-muted-foreground">{t("roles.loading")}</p>
 			) : rolesQuery.isError || !roles ? (
-				<p role="alert" className="text-destructive text-sm">
-					{t("auth.errorFallback")}
-				</p>
+				<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
 			) : roles.length === 0 ? (
 				<p className="text-muted-foreground">{t("roles.empty")}</p>
 			) : (

@@ -6,6 +6,7 @@ import {
 	useListUsers,
 } from "@/api/generated/roles/roles"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
 import { buttonVariants } from "@talqo/ui/components/button"
@@ -47,9 +48,12 @@ export function RolePage({ roleId }: { roleId: string }) {
 			) : queries.some(({ isPending }) => isPending) ? (
 				<p className="text-muted-foreground">{t("roles.loading")}</p>
 			) : queries.some(({ isError }) => isError) || !roles || !catalog || !held ? (
-				<p role="alert" className="text-destructive text-sm">
-					{t("auth.errorFallback")}
-				</p>
+				<ProblemAlert
+					error={queries.find(({ isError }) => isError)?.error}
+					onRetry={() => {
+						for (const query of queries) if (query.isError) void query.refetch()
+					}}
+				/>
 			) : !role ? (
 				<p role="alert" className="text-muted-foreground">
 					{t("problems.role-not-found")}

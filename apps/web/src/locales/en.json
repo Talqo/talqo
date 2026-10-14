@@ -78,10 +78,9 @@
 		"error": {
 			"conversionFailed": "Document could not be processed. Retry, or check the file if it keeps failing.",
 			"emptyDocument": "No text could be extracted. Check the file and retry.",
-			"providerError": "The embedding provider rejected this document. Check its configuration and retry.",
-			"unknown": "Embedding failed. Check service logs and retry."
+			"providerError": "The AI service couldn't prepare this file. Ask an admin to check the AI settings.",
+			"unknown": "This file couldn't be prepared. Try again, or ask an admin for help."
 		},
-		"loadFailed": "Could not load the knowledge files.",
 		"loading": "Loading files…",
 		"rename": "Rename {{name}}",
 		"renameAction": "Rename file",
@@ -91,14 +90,14 @@
 		"renameLabel": "File name",
 		"renameSave": "Rename",
 		"renameTitle": "Rename file",
-		"retry": "Retry embedding {{name}}",
-		"retryAction": "Retry embedding",
-		"retryFailed": "Could not retry embedding. Try again.",
+		"retry": "Retry processing {{name}}",
+		"retryAction": "Try again",
+		"retryFailed": "The file could not be processed again. Try again.",
 		"status": {
-			"failed": "Embedding failed",
-			"pending": "Waiting to embed",
-			"processing": "Embedding…",
-			"ready": "Embedded"
+			"failed": "Could not prepare file",
+			"pending": "Waiting to process",
+			"processing": "Preparing file…",
+			"ready": "Ready"
 		},
 		"tooLarge": "Each file must be {{maxSizeMB}} MB or smaller.",
 		"uploadFailed": "Upload failed. Try again.",
@@ -249,6 +248,7 @@
 		"appName": "Talqo",
 		"cancel": "Cancel",
 		"hidePassword": "Hide password",
+		"retry": "Try again",
 		"showPassword": "Show password"
 	},
 	"dashboard": {
@@ -503,8 +503,8 @@
 		"includedWith": "Included with “{{permission}}”.",
 		"leavePrompt": "Leave this role and discard your unsaved changes?",
 		"loading": "Loading roles…",
-		"lockoutWarningDelete": "You have this role and no other role lets you manage roles. After deleting it, you won't be able to open this page.",
-		"lockoutWarningEdit": "You have this role and no other role lets you manage roles. After saving, you won't be able to open this page.",
+		"lockoutWarningDelete": "After deleting this role, you won't be able to manage roles. Ask an admin if you need access again.",
+		"lockoutWarningEdit": "After saving, you won't be able to manage roles. Ask an admin if you need access again.",
 		"members": "People with this role: {{people}}",
 		"name": "Name",
 		"nameError": "Enter a name of up to {{max}} characters.",
@@ -550,8 +550,9 @@
 		"generate": "Generate",
 		"heading": "Users",
 		"loading": "Loading users…",
-		"lockoutWarning": "No other role you keep lets you manage roles. After saving, you won't be able to manage roles or open this page.",
+		"lockoutWarning": "After saving, you won't be able to manage roles. Ask an admin if you need access again.",
 		"noRoles": "There are no roles yet. Create one on the Roles page first.",
+		"ownAccountHint": "You can't delete yourself here. To change your password, open",
 		"pendingChange": "Pending password change",
 		"resetDialogDescription": "Set a new password for this account.",
 		"resetDialogTitle": "Reset password for {{username}}",

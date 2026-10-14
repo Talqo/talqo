@@ -78,10 +78,9 @@
 		"error": {
 			"conversionFailed": "无法处理文档。请重试；如果仍然失败，请检查文件。",
 			"emptyDocument": "无法提取文本。请检查文件后重试。",
-			"providerError": "嵌入提供商拒绝了此文档。请检查配置后重试。",
-			"unknown": "嵌入失败。请查看服务日志后重试。"
+			"providerError": "AI 服务无法处理此文件。请联系管理员检查 AI 设置。",
+			"unknown": "无法处理此文件。请重试，或联系管理员寻求帮助。"
 		},
-		"loadFailed": "无法加载知识文件。",
 		"loading": "正在加载文件…",
 		"rename": "重命名 {{name}}",
 		"renameAction": "重命名文件",
@@ -91,14 +90,14 @@
 		"renameLabel": "文件名",
 		"renameSave": "重命名",
 		"renameTitle": "重命名文件",
-		"retry": "重新嵌入 {{name}}",
-		"retryAction": "重试嵌入",
-		"retryFailed": "无法重新尝试嵌入。请重试。",
+		"retry": "重新处理 {{name}}",
+		"retryAction": "重试",
+		"retryFailed": "无法重新处理文件。请重试。",
 		"status": {
-			"failed": "嵌入失败",
-			"pending": "等待嵌入",
-			"processing": "正在嵌入…",
-			"ready": "嵌入完成"
+			"failed": "无法处理文件",
+			"pending": "等待处理",
+			"processing": "正在处理文件…",
+			"ready": "已就绪"
 		},
 		"tooLarge": "每个文件不得超过 {{maxSizeMB}} MB。",
 		"uploadFailed": "上传失败。请重试。",
@@ -249,6 +248,7 @@
 		"appName": "Talqo",
 		"cancel": "取消",
 		"hidePassword": "隐藏密码",
+		"retry": "重试",
 		"showPassword": "显示密码"
 	},
 	"dashboard": {
@@ -503,8 +503,8 @@
 		"includedWith": "包含在“{{permission}}”中。",
 		"leavePrompt": "离开此角色并放弃未保存的更改？",
 		"loading": "正在加载角色…",
-		"lockoutWarningDelete": "你拥有此角色，且没有其他角色允许你管理角色。删除后，你将无法打开此页面。",
-		"lockoutWarningEdit": "你拥有此角色，且没有其他角色允许你管理角色。保存后，你将无法打开此页面。",
+		"lockoutWarningDelete": "删除此角色后，你将无法管理角色。如需再次获得访问权限，请联系管理员。",
+		"lockoutWarningEdit": "保存后，你将无法管理角色。如需再次获得访问权限，请联系管理员。",
 		"members": "拥有此角色的人：{{people}}",
 		"name": "名称",
 		"nameError": "请输入不超过 {{max}} 个字符的名称。",
@@ -550,8 +550,9 @@
 		"generate": "生成",
 		"heading": "用户",
 		"loading": "正在加载用户…",
-		"lockoutWarning": "你保留的其他角色都不允许你管理角色。保存后，你将无法管理角色，也无法打开此页面。",
+		"lockoutWarning": "保存后，你将无法管理角色。如需再次获得访问权限，请联系管理员。",
 		"noRoles": "还没有角色。请先在“角色”页面创建一个。",
+		"ownAccountHint": "不能在这里删除自己的账户。要修改密码，请打开",
 		"pendingChange": "待修改密码",
 		"resetDialogDescription": "为该账户设置新密码。",
 		"resetDialogTitle": "重置 {{username}} 的密码",

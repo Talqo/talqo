@@ -120,7 +120,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("button", { name: "Download faq.md" })).toBeVisible()
 		await expect(page.getByRole("button", { name: "Rename faq.md" })).toHaveCount(0)
 		await expect(page.getByRole("button", { name: "Delete faq.md" })).toHaveCount(0)
-		await expect(page.getByRole("button", { name: "Retry embedding faq.md" })).toHaveCount(0)
+		await expect(page.getByRole("button", { name: "Retry processing faq.md" })).toHaveCount(0)
 		await expect(page.getByText("Drag files here, or click to browse")).toHaveCount(0)
 
 		// Embeds ride on the same permission, so their controls must disappear too.

@@ -1,5 +1,6 @@
 import { db, sql as client } from "@/db/client.ts"
 import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm"
+import { union } from "drizzle-orm/pg-core"
 
 import { invitation, permissionGrant, role, rolePermission, userRole } from "./roles.schema.ts"
 
@@ -71,16 +72,19 @@ export async function insertPermissionGrant(values: NewPermissionGrant): Promise
 	return row
 }
 
-export async function findGrantsForUser(userId: string): Promise<PermissionGrant[]> {
-	return db.select().from(permissionGrant).where(eq(permissionGrant.userId, userId))
-}
-
-export async function findRolePermissionsForUser(userId: string): Promise<{ permission: string }[]> {
-	return db
-		.selectDistinct({ permission: rolePermission.permission })
-		.from(userRole)
-		.innerJoin(rolePermission, eq(rolePermission.roleId, userRole.roleId))
-		.where(eq(userRole.userId, userId))
+export async function findPermissionsForUsers(userIds: string[]): Promise<{ userId: string; permission: string }[]> {
+	if (userIds.length === 0) return []
+	return union(
+		db
+			.select({ userId: permissionGrant.userId, permission: permissionGrant.permission })
+			.from(permissionGrant)
+			.where(inArray(permissionGrant.userId, userIds)),
+		db
+			.select({ userId: userRole.userId, permission: rolePermission.permission })
+			.from(userRole)
+			.innerJoin(rolePermission, eq(rolePermission.roleId, userRole.roleId))
+			.where(inArray(userRole.userId, userIds)),
+	)
 }
 
 export async function findRoles(): Promise<Role[]> {
@@ -115,11 +119,16 @@ export async function countMembersByRole(roleIds: string[]): Promise<{ memberCou
 }
 
 export async function findRolesOfUser(userId: string): Promise<Pick<Role, "id" | "name">[]> {
+	return (await findRolesOfUsers([userId])).map(({ id, name }) => ({ id, name }))
+}
+
+export async function findRolesOfUsers(userIds: string[]): Promise<{ userId: string; id: string; name: string }[]> {
+	if (userIds.length === 0) return []
 	return db
-		.select({ id: role.id, name: role.name })
+		.select({ userId: userRole.userId, id: role.id, name: role.name })
 		.from(userRole)
 		.innerJoin(role, eq(role.id, userRole.roleId))
-		.where(eq(userRole.userId, userId))
+		.where(inArray(userRole.userId, userIds))
 		.orderBy(sql`lower(${role.name})`)
 }
 

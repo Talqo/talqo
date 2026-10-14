@@ -136,11 +136,7 @@ export async function getAccess(userId: string): Promise<{ permissions: Permissi
 // The only source of a user's permissions: the admin grant plus every assigned role's permissions.
 // Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
-	const [grants, rolePermissions] = await Promise.all([
-		repo.findGrantsForUser(userId),
-		repo.findRolePermissionsForUser(userId),
-	])
-	return effectivePermissions([...grants, ...rolePermissions])
+	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
 }
 
 export const ROLE_NAME_MAX_LENGTH = 64
@@ -329,22 +325,27 @@ export type UserWithAccess = {
 }
 
 export async function listUsersWithAccess(actorId: string): Promise<UserWithAccess[]> {
-	const held = await listEffectivePermissions(actorId)
-	const managesUsers = held.includes(Permission.UsersManage)
 	const users = await identity.listUsers()
-	return Promise.all(
-		users.map(async (user) => {
-			const [roles, permissions] = await Promise.all([repo.findRolesOfUser(user.id), listEffectivePermissions(user.id)])
-			return {
-				id: user.id,
-				username: user.username,
-				isAdmin: permissions.includes(Permission.Admin),
-				canManage: managesUsers && permissions.every((permission) => held.includes(permission)),
-				mustChangePassword: managesUsers ? user.mustChangePassword : null,
-				roles,
-			}
-		}),
-	)
+	const userIds = users.map(({ id }) => id)
+	const [roles, sources] = await Promise.all([
+		repo.findRolesOfUsers(userIds),
+		repo.findPermissionsForUsers([...new Set([...userIds, actorId])]),
+	])
+	const rolesByUser = Map.groupBy(roles, ({ userId }) => userId)
+	const sourcesByUser = Map.groupBy(sources, ({ userId }) => userId)
+	const held = effectivePermissions(sourcesByUser.get(actorId) ?? [])
+	const managesUsers = held.includes(Permission.UsersManage)
+	return users.map((user) => {
+		const permissions = effectivePermissions(sourcesByUser.get(user.id) ?? [])
+		return {
+			id: user.id,
+			username: user.username,
+			isAdmin: permissions.includes(Permission.Admin),
+			canManage: managesUsers && permissions.every((permission) => held.includes(permission)),
+			mustChangePassword: managesUsers ? user.mustChangePassword : null,
+			roles: (rolesByUser.get(user.id) ?? []).map(({ id, name }) => ({ id, name })),
+		}
+	})
 }
 
 export function listGrantablePermissions(): { implies: GrantablePermission[]; permission: GrantablePermission }[] {

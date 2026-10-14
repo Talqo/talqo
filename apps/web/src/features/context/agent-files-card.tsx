@@ -10,6 +10,7 @@ import {
 	useRetryAgentFile,
 	useUploadAgentFile,
 } from "@/api/generated/agent/agent.ts"
+import { ProblemAlert } from "@/components/problem-alert"
 import { formatBytes, formatFileDate, splitExtension } from "@/features/context/format"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
@@ -298,7 +299,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 				{filesQuery.isLoading ? (
 					<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
 				) : filesQuery.isError ? (
-					<p className="text-destructive text-sm">{t("agentFiles.loadFailed")}</p>
+					<ProblemAlert error={filesQuery.error} onRetry={() => void filesQuery.refetch()} />
 				) : files.length === 0 ? (
 					// The dropzone already invites managers to upload; readers need to know the list is empty.
 					canManage ? null : (
