@@ -3,7 +3,19 @@ set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT"
-SOURCE=https://github.com/Talqo/talqo
+REPOSITORY=${GITHUB_REPOSITORY:-}
+if [[ -z $REPOSITORY ]]; then
+	origin=$(git remote get-url origin)
+	case "$origin" in
+		git@github.com:*) REPOSITORY=${origin#git@github.com:} ;;
+		https://github.com/*) REPOSITORY=${origin#https://github.com/} ;;
+		ssh://git@github.com/*) REPOSITORY=${origin#ssh://git@github.com/} ;;
+		*) printf 'Expected a GitHub origin remote\n' >&2; exit 1 ;;
+	esac
+	REPOSITORY=${REPOSITORY%.git}
+fi
+REGISTRY_OWNER=${REPOSITORY%%/*}
+REGISTRY_OWNER=${REGISTRY_OWNER,,}
 VERSION_PATTERN='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
 fail() {
@@ -64,30 +76,7 @@ validate_release() {
 
 	git merge-base --is-ancestor HEAD origin/main
 	local published_tags
-	published_tags=$(gh api --paginate 'repos/Talqo/talqo/releases?per_page=100' \
+	published_tags=$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" \
 		--jq '.[] | select(.draft == false and .prerelease == false) | .tag_name')
 	check_version_order "$1" "$published_tags"
-}
-
-inspect_manifest() {
-	local result
-
-	if result=$(docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' 2>&1); then
-		printf '%s\n' "$result"
-	elif [[ $result == *"$1: not found"* || $result == *"$1"*'manifest unknown'* ]]; then
-		return 1
-	else
-		printf '%s\n' "$result" >&2
-		return 2
-	fi
-}
-
-check_image_identity() {
-	docker buildx imagetools inspect "$1" --format '{{json .Image}}' |
-		jq -e --arg source "$SOURCE" --arg revision "$(git rev-parse HEAD)" --arg version "$2" '
-			(."linux/amd64" // .).config.Labels |
-			.["org.opencontainers.image.source"] == $source and
-			.["org.opencontainers.image.revision"] == $revision and
-			.["org.opencontainers.image.version"] == $version
-		' > /dev/null || fail "Conflicting release image: $1"
 }

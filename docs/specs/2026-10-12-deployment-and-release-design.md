@@ -8,7 +8,7 @@ Add image publishing commands, automatic dev deployment, and tag-triggered produ
 
 - Stable annotated `vX.Y.Z` tags define one version for Talqo, docs, and the SDK.
 - Local container pushes use mutable `dev` tags. Manual pushes and CI share those tags, so the last writer wins.
-- Production uses explicit versioned images. Both image `latest` aliases move after successful prod deployment.
+- Automated deployments use the exact digests returned by image publication. Mutable `dev` tags are convenience aliases and cannot change what a CD run deploys. Both image `latest` aliases move after successful prod deployment and SDK publication.
 - Before 1.0, breaking public changes require a minor bump; patch releases remain backward-compatible.
 - Build for `linux/amd64` initially. Images record source, revision, and version in OCI labels.
 - Weekly GHCR cleanup removes untagged images older than seven days while preserving tagged images and their referenced manifests. Manual cleanup defaults to a dry run.
@@ -18,8 +18,8 @@ Add image publishing commands, automatic dev deployment, and tag-triggered produ
 ```text
 PR/manual -> CI
 main push -> CD -> CI -> publish dev images -> deploy dev
-version tag -> Release -> CI with E2E -> publish images/SDK
-                       -> deploy prod -> promote latest -> GitHub release
+version tag -> Release -> CI with E2E -> publish images
+                       -> deploy prod -> publish SDK -> promote latest -> GitHub release
 ```
 
 `ci.yml` owns checks, tests, and validation builds. `cd.yml` handles main pushes and calls CI directly before publication. `release.yml` calls the same CI workflow with E2E enabled. CI also runs independently for PRs and manual requests.
@@ -32,7 +32,7 @@ Use GitHub-hosted runners, read-only default permissions, pinned actions/toolcha
 
 Root package commands invoke small shell wrappers for image publishing, release tags, and SDK packing. They share release guards and use Git, Docker, jq, Bun, and gh directly. Validate shell syntax with ShellCheck; do not introduce a scripts package, scripts-only TypeScript configuration, or custom script test suites.
 
-Publishing and deployment workflows are reused by main CD and releases. Docker owns registry authentication, including credential helpers. Stable images already published for a release are reused only when their source/revision/version labels match; do not overwrite them on retry. Publication and deployment recheck freshness against completed releases in the actual attempted job, not against newer queued tags, so failed-job reruns cannot reuse stale decisions.
+Publishing and deployment workflows are reused by main CD and releases. CI uses Docker's login, metadata, and build-push actions with separate GitHub Actions layer caches for the two images. Manual dev pushes retain native Docker commands. Registry namespaces come from the GitHub repository owner or the local origin remote. Release side effects recheck version order against completed releases, not newer queued tags, so older failed-job retries cannot promote a superseded release.
 
 The release command creates and pushes only the annotated tag. It requires a clean checkout at current remote main, a stable version, no existing tag, and increasing version order. CI independently validates the tag and main ancestry before privileged operations.
 
@@ -44,7 +44,7 @@ The SDK remains authored in TypeScript. Bun bundles ESM JavaScript, and the exis
 
 ## Deployment boundary
 
-The reusable deployment workflow invokes only `deploy <version>` through an environment-specific restricted SSH key. The key selects dev or prod externally. The supplied command must deploy both image versions, report success only when both are ready, support same-version retries, and reject routine production downgrades.
+The reusable deployment workflow invokes only `deploy <version> <talqo-digest> <docs-digest>` through an environment-specific restricted SSH key. The key selects dev or prod externally. The supplied command must deploy both exact digests, report success only when both are ready, support same-version retries, and reject routine production downgrades.
 
 CI does not upload shell programs, Compose files, or application secrets to the server. Use pinned SSH host identity, noninteractive authentication, no forwarding, and a bounded timeout. A lost connection can leave the remote outcome uncertain. Database migration recovery remains the deployment owner's responsibility.
 
@@ -52,7 +52,7 @@ CI does not upload shell programs, Compose files, or application secrets to the 
 
 Publication, deployment, alias updates, and GitHub release creation are separate operations. Failed steps stop the pipeline and leave earlier successful operations intact. GitHub releases are created last through gh with generated notes; no custom release-record asset or draft-upload state machine is needed.
 
-npm handles version collisions and publication errors. Docker registry lookup errors fail rather than masquerading as absent images. Image aliases never move before prod succeeds, and freshness guards prevent older retries from promoting a superseded release.
+npm handles version collisions and publication errors. If SDK publication already succeeded, rerun only the failed downstream jobs rather than publishing the same version again. Rebuilding images can produce new digests; deployment always uses outputs from the successful build jobs. npm publication and image aliases never move before prod succeeds, and version-order guards prevent older retries from promoting a superseded release.
 
 ## Activation prerequisites
 

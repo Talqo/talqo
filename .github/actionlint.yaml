@@ -13,3 +13,8 @@ paths:
       - '^label "ubuntu-26\.04" is unknown\.'
       # Remove when actionlint supports native queuing: https://github.com/rhysd/actionlint/issues/657
       - '^unexpected key "queue" for "concurrency" section\.'
+  .github/workflows/cd.yml:
+    ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
+      # Remove when actionlint supports native queuing: https://github.com/rhysd/actionlint/issues/657
+      - '^unexpected key "queue" for "concurrency" section\.'
