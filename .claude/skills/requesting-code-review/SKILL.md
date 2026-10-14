@@ -5,7 +5,7 @@ description: Review a PR by number or URL, or review local branch and uncommitte
 
 # Requesting code review
 
-Invoking this skill with a PR number or URL starts a review. PRs are the default use case. Review is read-only. Find mistakes. Do not propose fixes, suggestion blocks, or replacement code. Do not edit files or change git state.
+Invoking this skill with a PR number or URL starts a review. PRs are the default use case. Review is read-only. Challenge the implementer's assumptions and choices against the project's quality standards. Do not propose fixes, suggestion blocks, or replacement code. Do not edit files or change git state.
 
 ## Resolve the scope
 
@@ -23,7 +23,7 @@ Invoking this skill with a PR number or URL starts a review. PRs are the default
 - When delegating, assign focused passes and run independent passes in parallel. Select relevant roles rather than launching every role for every change:
   - Bugs and regressions. Check changed behavior, edge cases, compatibility, error handling, and meaningful test coverage.
   - Security. Check trust boundaries, authorization, injection, data exposure, and other concrete security risks. Load `security-review` when available.
-  - Maintainability. Assign one reviewer, preferably the `simplicity` agent, the `unslop` checklist and `code-reviewer.md` requirements. Do not equate fewer lines with simpler code. Other reviewers should not repeat this pass.
+  - Maintainability. Assign one reviewer, preferably the `simplicity` agent, the `unslop` checklist and `code-reviewer.md` requirements. Assess the approach before individual lines, using existing module boundaries and comparable implementations. Do not equate fewer lines with simpler code. Other reviewers should not repeat this pass.
 - For a direct review, use the relevant checks in `code-reviewer.md` and load `unslop` for a read-only pass.
 - Check changes against applicable codebase standards. Read `AGENTS.md`, contribution and style guides, relevant language or framework skills, lint and formatting configuration, and established nearby conventions. Give reviewers the relevant standards and require each to check compliance within their assigned scope. Flag concrete violations, including nonblocking ones. Cite the rule or established pattern when it is not obvious. Project-specific standards take precedence over generic preferences and `unslop` heuristics. Do not invent rules or flag unrelated pre-existing violations.
 - Use [code-reviewer.md](code-reviewer.md) for each reviewer and supply its required context. Reviewers may report incidental issues outside their focus but should not duplicate another pass.
