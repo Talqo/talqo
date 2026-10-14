@@ -465,8 +465,9 @@ export function createConversationService(dependencies: Dependencies) {
 						maxOutputTokens: dependencies.maxOutputTokens,
 						timeoutMs: dependencies.timeoutMs,
 					})
-				} catch {
-					throw new ProviderUnavailableError("The configured text provider is unavailable")
+				} catch (error) {
+					console.error("conversation.provider.unavailable", { agentId, error })
+					throw new ProviderUnavailableError("The configured text provider is unavailable", { cause: error })
 				}
 				await dependencies.beforeAccept?.(attempt)
 				try {
@@ -530,6 +531,12 @@ export function createConversationService(dependencies: Dependencies) {
 		},
 	}
 }
+
+export {
+	getActiveConversationCountsByAgent,
+	getDailyConversationCountsByAgent,
+	getDailyMessageCountsByAgent,
+} from "./conversation.repository.ts"
 
 let defaultService: ReturnType<typeof createConversationService> | undefined
 

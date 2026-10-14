@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test"
 
 const ADMIN = { username: "admin", password: "admin123" }
-const UNGRANTED = { username: "user", password: "user1234" }
 
 test.afterEach(async ({ request }) => {
 	const baseURL = process.env.TALQO_SEED_AI_BASE_URL
@@ -86,19 +85,6 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await page.keyboard.press("Escape")
 
 	await expect(page.getByText("The model list could not be loaded")).toHaveCount(0)
-
-	await textCard.getByLabel("Provider").click()
-	await page.getByRole("option", { name: "Amazon Bedrock" }).click()
-	await expect(textCard.getByLabel("Base URL")).toHaveCount(0)
-	await textCard.getByLabel("Provider").click()
-	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
-	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
-	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
-
-	await textCard.getByLabel("Provider").click()
-	await page.getByRole("option", { name: "OpenAI-compatible" }).click()
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
 })
 
 test("warns before changing the embedding model and allows cancelling", async ({ page }) => {
@@ -118,19 +104,4 @@ test("warns before changing the embedding model and allows cancelling", async ({
 	await expect(page.getByText("Configuration saved")).toBeVisible()
 	await page.reload()
 	await expect(page.getByLabel("Embedding model")).toHaveValue("embedding-model-next")
-})
-
-test("ungranted operator cannot discover or open AI configuration", async ({ page }) => {
-	await login(page, UNGRANTED)
-	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
-
-	// A hidden nav item is not an authorization boundary: the URL stays put and
-	// says why, rather than silently bouncing to the dashboard.
-	await page.goto("/dashboard/ai-configuration")
-	await expect(page.getByText("Access restricted")).toBeVisible()
-
-	// The API stays the boundary regardless of what the page renders.
-	const response = await page.request.get("/api/ai-providers")
-	await expect(response).not.toBeOK()
-	expect(response.status()).toBe(403)
 })

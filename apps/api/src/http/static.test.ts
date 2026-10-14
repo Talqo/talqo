@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
+import { afterEach, describe, expect, it } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -7,8 +7,11 @@ import { createStaticResponder, resolveStaticDirs } from "./static.ts"
 
 const ORIGIN = "http://app.example.com"
 
+const tempRoots: string[] = []
+
 function fixtureDirs() {
 	const root = mkdtempSync(join(tmpdir(), "talqo-static-"))
+	tempRoots.push(root)
 	const webDist = join(root, "web")
 	const widgetDist = join(root, "widget")
 	mkdirSync(join(webDist, "assets"), { recursive: true })
@@ -41,6 +44,10 @@ describe("resolveStaticDirs", () => {
 })
 
 describe("createStaticResponder", () => {
+	afterEach(() => {
+		for (const root of tempRoots.splice(0)) rmSync(root, { recursive: true })
+	})
+
 	it("serves the widget bundle and caches only versioned URLs immutably", async () => {
 		const serve = createStaticResponder(fixtureDirs())
 
@@ -96,6 +103,7 @@ describe("createStaticResponder", () => {
 
 	it("answers nothing when the dists hold no built files", async () => {
 		const root = mkdtempSync(join(tmpdir(), "talqo-static-empty-"))
+		tempRoots.push(root)
 		const serve = createStaticResponder({ webDist: join(root, "web"), widgetDist: join(root, "widget") })
 
 		expect(await serve(request("/widget.js"))).toBeNull()

@@ -14,23 +14,12 @@ const [firstProblemCode, ...remainingProblemCodes] = Object.values(PROBLEM_CODES
 if (!firstProblemCode) throw new Error("At least one problem code is required")
 const PROBLEM_CODE_VALUES = [firstProblemCode, ...remainingProblemCodes] satisfies ProblemCodeSet
 
-export type ProblemDetails = {
-	readonly code: ProblemCode
-	readonly type: `${typeof PROBLEM_TYPE_BASE}${ProblemCode}`
-}
-
-export function problemDetails<C extends ProblemCode>(code: C) {
+function problemDetails<C extends ProblemCode>(code: C) {
 	return Object.freeze({
 		code,
 		type: `${PROBLEM_TYPE_BASE}${code}` as `${typeof PROBLEM_TYPE_BASE}${C}`,
 	})
 }
-
-export const PROBLEMS = Object.freeze(
-	Object.fromEntries(PROBLEM_CODE_VALUES.map((code) => [code, problemDetails(code)])) as Readonly<
-		Record<ProblemCode, ProblemDetails>
-	>,
-)
 
 const [firstProblemSchema, ...remainingProblemSchemas] = PROBLEM_CODE_VALUES.map((code) =>
 	z

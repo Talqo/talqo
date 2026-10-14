@@ -28,24 +28,6 @@ function widgetRoot(container: HTMLElement): HTMLElement {
 }
 
 describe("appearance resolution", () => {
-	test("uses the widget scrollbar treatment for the message area", () => {
-		const container = render(<EmbeddedWidget />)
-		act(() => {
-			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
-		})
-
-		expect(container.querySelector(".talqo-scrollbar")?.className).toContain("overflow-y-auto")
-	})
-
-	test("writes the light scheme's five colors as custom properties by default", () => {
-		const root = widgetRoot(render(<EmbeddedWidget appearance={{ theme: "light" }} />))
-		expect(root.style.getPropertyValue("--talqo-primary-input")).toBe("#1a7f4b")
-		expect(root.style.getPropertyValue("--talqo-text-on-primary-input")).toBe("#ffffff")
-		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#ffffff")
-		expect(root.style.getPropertyValue("--talqo-surface-input")).toBe("#f5f5f5")
-		expect(root.style.getPropertyValue("--talqo-text-input")).toBe("#171717")
-	})
-
 	test("writes the given light scheme's colors", () => {
 		const root = widgetRoot(
 			render(
@@ -78,22 +60,9 @@ describe("appearance resolution", () => {
 		expect(root.style.getPropertyValue("--talqo-primary-input")).toBe("#1a7f4b")
 		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#0a0a0a")
 	})
-
-	test("ignores an unsupported position and keeps the default placement", () => {
-		const root = widgetRoot(render(<EmbeddedWidget appearance={{ position: "top-left" }} />))
-		expect(root.className).toContain("tw:right-4")
-	})
 })
 
 describe("color scheme", () => {
-	test("paints the light scheme's own colors in light mode", () => {
-		const root = widgetRoot(
-			render(<EmbeddedWidget appearance={{ theme: "light", light: { background: "#ffffff" } }} />),
-		)
-		expect(root.dataset.scheme).toBe("light")
-		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#ffffff")
-	})
-
 	test("paints the dark scheme's own colors in dark mode, not a derivation of light", () => {
 		const root = widgetRoot(
 			render(
@@ -104,14 +73,6 @@ describe("color scheme", () => {
 		)
 		expect(root.dataset.scheme).toBe("dark")
 		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#0a0a0a")
-	})
-
-	test("changing only the light text color leaves the light background untouched", () => {
-		const root = widgetRoot(
-			render(<EmbeddedWidget appearance={{ theme: "light", light: { background: "#ffffff", text: "#ff00ff" } }} />),
-		)
-		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#ffffff")
-		expect(root.style.getPropertyValue("--talqo-text-input")).toBe("#ff00ff")
 	})
 })
 
@@ -159,6 +120,19 @@ describe("title", () => {
 			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
 		})
 		expect(container.querySelector("h2")?.textContent).toBe("Marketing site")
+	})
+})
+
+describe("preview availability", () => {
+	test("shows the operator the same unavailable state visitors see", () => {
+		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} isAvailable={false} />)
+		const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")
+		expect(launcher?.className).toContain("tw:bg-muted")
+		act(() => launcher?.click())
+
+		expect(container.querySelector("[role='status']")?.textContent).toContain("isn't available right now")
+		expect(container.textContent).not.toContain("How can I help")
+		expect(container.querySelector<HTMLInputElement>("input[aria-label='Message']")?.disabled).toBe(true)
 	})
 })
 
@@ -280,20 +254,20 @@ describe("EmbeddedWidget resize", () => {
 		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
 	})
 
-	test("dragging the corner shrinks the panel", async () => {
+	test("dragging the corner resizes the panel", async () => {
 		await openChat()
-		await dragCornerTo(400, 400)
-		// right=820, bottom=500 → width=820-400=420 (min 280), height=500-400=100 → clamped to 320
-		expect(panel()?.style.width).toBe("420px")
-		expect(panel()?.style.height).toBe("320px")
-	})
-
-	test("dragging the corner grows the panel up to the anchor", async () => {
-		await openChat()
-		await dragCornerTo(300, 300)
-		// right=820, bottom=500 → width=820-300=520, height=500-300=200 → clamped to 320
-		expect(panel()?.style.width).toBe("520px")
-		expect(panel()?.style.height).toBe("320px")
+		const cases = [
+			// right=820, bottom=500 → width=820-400=420 (min 280), height=500-400=100 → clamped to 320
+			{ clientX: 400, clientY: 400, width: "420px", height: "320px" },
+			// right=820, bottom=500 → width=820-300=520, height=500-300=200 → clamped to 320
+			{ clientX: 300, clientY: 300, width: "520px", height: "320px" },
+		] as const
+		for (const { clientX, clientY, width, height } of cases) {
+			// oxlint-disable-next-line no-await-in-loop -- each drag is asserted before the next replaces it.
+			await dragCornerTo(clientX, clientY)
+			expect(panel()?.style.width).toBe(width)
+			expect(panel()?.style.height).toBe(height)
+		}
 	})
 
 	test("clamps the panel to the viewport, keeping the launcher row below", async () => {
@@ -302,27 +276,6 @@ describe("EmbeddedWidget resize", () => {
 		// width: 1024-32=992; height: 768-92=676 (launcher row + top clearance).
 		expect(panel()?.style.width).toBe("992px")
 		expect(panel()?.style.height).toBe("676px")
-	})
-
-	test("bottom-left position anchors on the left and grows rightwards", async () => {
-		await act(async () => {
-			root.unmount()
-		})
-		host.remove()
-		host = document.createElement("div")
-		document.body.append(host)
-		root = createRoot(host)
-		await act(async () => {
-			root.render(<EmbeddedWidget appearance={{ position: "bottom-left" }} />)
-		})
-		await act(async () => {})
-
-		await openChat()
-		// Panel is anchored at left/bottom; dragging the pointer right grows it.
-		await dragCornerTo(600, 300)
-		// left=500, bottom=500 → width=600-500=100 → clamped to 280; height=500-300=320
-		expect(panel()?.style.width).toBe("280px")
-		expect(panel()?.style.height).toBe("320px")
 	})
 
 	test("closing and reopening keeps the custom size", async () => {

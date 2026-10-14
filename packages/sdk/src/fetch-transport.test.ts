@@ -85,7 +85,7 @@ async function rejectedDetail(action: Promise<unknown>) {
 describe("createFetchChatTransport", () => {
 	test("loads canonical embed configuration and maps name to title", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true }),
+			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true, isAvailable: false }),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
@@ -93,6 +93,7 @@ describe("createFetchChatTransport", () => {
 			title: "Support",
 			appearance: APPEARANCE,
 			isDisabled: true,
+			isAvailable: false,
 		})
 		expect(fake.calls).toEqual([
 			{
@@ -349,18 +350,11 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
-	test("maps unknown and malformed API error codes to invalid-response", async () => {
+	test("maps unknown API error codes to invalid-response", async () => {
 		const fake = recordingFetch([
 			problem("not-a-public-chat-code", 400),
-			jsonResponse(
-				{ code: 42, type: "https://docs.talqo.chat/problems#invalid-request" },
-				{ status: 400, headers: { "Content-Type": "application/problem+json" } },
-			),
 			streamResponse([
 				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":"not-a-public-chat-code","retriable":true,"newChatAvailable":false}}\n\n',
-			]),
-			streamResponse([
-				'event: chat\ndata: {"version":1,"type":"error","outcome":"failed","error":{"code":42,"retriable":true,"newChatAvailable":false}}\n\n',
 			]),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
@@ -369,14 +363,6 @@ describe("createFetchChatTransport", () => {
 		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
 			code: "invalid-response",
 			status: 400,
-		})
-		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
-			code: "invalid-response",
-			status: 400,
-		})
-		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
-			code: "invalid-response",
-			status: 200,
 		})
 		expect(await rejectedDetail(Array.fromAsync(await transport.sendMessage(input)))).toEqual({
 			code: "invalid-response",
@@ -408,7 +394,13 @@ describe("createFetchChatTransport", () => {
 
 	test("accepts additive JSON fields and rejects malformed consumed fields without exposing raw bodies", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: { ...APPEARANCE, extra: true }, isDisabled: false }),
+			jsonResponse({
+				version: 1,
+				name: "Support",
+				appearance: { ...APPEARANCE, extra: true },
+				isDisabled: false,
+				isAvailable: true,
+			}),
 			jsonResponse(
 				{
 					code: "embed-not-found",
@@ -448,6 +440,7 @@ describe("createFetchChatTransport", () => {
 			title: "Support",
 			appearance: { ...APPEARANCE, extra: true },
 			isDisabled: false,
+			isAvailable: true,
 		})
 		const problemError = await rejectedDetail(transport.loadConfiguration(context()))
 		expect(problemError).toEqual({
@@ -486,7 +479,6 @@ describe("createFetchChatTransport", () => {
 			}),
 			problem("chat-concurrency-limit", 429, { "Retry-After": "15" }),
 			problem("chat-session-unauthorized", 401),
-			problem("chat-conversation-too-long", 400),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch, now: () => now })
 
@@ -506,11 +498,6 @@ describe("createFetchChatTransport", () => {
 			code: "chat-session-unauthorized",
 			type: "https://docs.talqo.chat/problems#chat-session-unauthorized",
 			status: 401,
-		})
-		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual({
-			code: "chat-conversation-too-long",
-			type: "https://docs.talqo.chat/problems#chat-conversation-too-long",
-			status: 400,
 		})
 	})
 

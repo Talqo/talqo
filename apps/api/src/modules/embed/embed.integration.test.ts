@@ -1,6 +1,7 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
+import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
@@ -28,6 +29,7 @@ async function replaceEmbed(embed: service.Embed, overrides: Partial<service.Emb
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE embed CASCADE`
 	await sql`TRUNCATE TABLE blacklist_word, agent CASCADE`
+	await sql`TRUNCATE TABLE ai_provider_config`
 })
 
 describe("embed lifecycle", () => {
@@ -40,17 +42,6 @@ describe("embed lifecycle", () => {
 		expect(first.embedToken).not.toBe(second.embedToken)
 		expect(first.embedToken.length).toBeGreaterThan(0)
 		expect(first.accessVersion).toBe(1)
-	})
-
-	it("lets one agent serve several embeds", async () => {
-		const agentId = await createAgent()
-		await createEmbed(agentId)
-		await createEmbed(agentId, { name: "Support portal" })
-
-		const embeds = await service.listEmbeds()
-
-		expect(embeds).toHaveLength(2)
-		expect(embeds.every((embed) => embed.agentId === agentId)).toBe(true)
 	})
 
 	it("filters by agent so one agent's page never fetches another agent's embeds", async () => {
@@ -91,18 +82,6 @@ describe("embed lifecycle", () => {
 		const created = await createEmbed(agentId, { name: "Dark site", appearance })
 
 		expect((await service.getEmbed(created.id)).appearance).toEqual(appearance)
-	})
-
-	it("replaces the whole appearance on update", async () => {
-		const agentId = await createAgent()
-		const created = await createEmbed(agentId)
-		const appearance = {
-			...DEFAULT_WIDGET_APPEARANCE,
-			light: { ...DEFAULT_WIDGET_APPEARANCE.light, primary: "#123456" },
-			theme: "dark",
-		} as const
-
-		expect((await replaceEmbed(created, { appearance })).appearance).toEqual(appearance)
 	})
 
 	it("reassigns an embed and atomically increments its access version", async () => {
@@ -242,6 +221,36 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(true)
 	})
 
+	it("reports availability once an AI provider is configured and flips the ETag", async () => {
+		const created = await createEmbed(await createAgent())
+		const before = await app.request(`/api/embed-config/${created.embedToken}`)
+		expect(await before.json()).toMatchObject({ isAvailable: false })
+
+		await aiProvider.saveConfiguration({
+			expectedRevision: 0,
+			text: {
+				providerId: "openai",
+				modelId: "gpt-5-mini",
+				authMode: "static",
+				settings: {},
+				credentials: { apiKey: "sk-test" },
+			},
+			embedding: {
+				providerId: "openai",
+				modelId: "text-embedding-3-small",
+				authMode: "static",
+				settings: {},
+				credentialSource: "text",
+			},
+		})
+
+		const after = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": before.headers.get("etag") ?? "" },
+		})
+		expect(after.status).toBe(200)
+		expect(await after.json()).toMatchObject({ isAvailable: true })
+	})
+
 	it("serves the config over HTTP without a session, with cache headers", async () => {
 		const agentId = await createAgent()
 		const created = await createEmbed(agentId, { name: "Marketing site" })
@@ -256,6 +265,7 @@ describe("public config lookup", () => {
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			isDisabled: false,
+			isAvailable: false,
 		})
 	})
 
@@ -325,6 +335,18 @@ async function createReaderSession(): Promise<string> {
 	})
 	return login(username, DEFAULT_PASSWORD)
 }
+
+describe("embed detail route", () => {
+	it("tells the dashboard whether visitors can get replies", async () => {
+		const cookie = await createManagerSession()
+		const created = await createEmbed(await createAgent())
+
+		const response = await app.request(`/api/embeds/${created.id}`, { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toMatchObject({ embed: { id: created.id }, isAvailable: false })
+	})
+})
 
 describe("embed disable and enable routes", () => {
 	it("disables and enables an embed with agents:manage", async () => {

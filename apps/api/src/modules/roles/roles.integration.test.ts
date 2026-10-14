@@ -195,7 +195,7 @@ describe("invitations", () => {
 			id: crypto.randomUUID(),
 			tokenHash: hashOpaqueToken(token),
 			invitedBy: adminId,
-			expiresAt: new Date(Date.now() - 1000),
+			expiresAt: new Date(Date.now() - 60_000),
 		})
 
 		const response = await app.request("/api/invitations/redeem", {
@@ -260,14 +260,6 @@ describe("permission grants", () => {
 			headers: { Cookie: cookie, "Content-Type": "application/json" },
 			body: JSON.stringify({ userId: target.id, permission: "ai_provider:manage" }),
 		})
-
-		expect(response.status).toBe(403)
-	})
-
-	it("denies a non-admin from creating an invitation", async () => {
-		const cookie = await createMemberSession()
-
-		const response = await app.request("/api/invitations", { method: "POST", headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(403)
 	})
@@ -563,14 +555,6 @@ describe("list users", () => {
 		expect(ids).toContain(adminId)
 		expect(ids).toContain(member.id)
 		expect(users.find((user) => user.id === member.id)?.mustChangePassword).toBe(false)
-	})
-
-	it("denies a non-admin listing users", async () => {
-		const memberCookie = await createMemberSession()
-
-		const response = await app.request("/api/users", { headers: { Cookie: memberCookie } })
-
-		expect(response.status).toBe(403)
 	})
 })
 

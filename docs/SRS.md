@@ -98,6 +98,8 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (embedding-provider precondition pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
+| FR-2.9b | While no usable text provider is configured, the widget, the dashboard preview, and custom SDK UIs show that chat is unavailable and block sending | High | Done |
+| FR-2.9c | Operators who can manage the provider see a setup prompt on the dashboard home and Agents pages while the AI provider configuration is missing or unusable, and an error prompt when it cannot be checked | High | Done |
 
 #### 3.2.3 Agent configuration (FR-2c)
 
@@ -135,8 +137,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | In progress (mock statistics) |
-| FR-2.26 | Dashboard displays the total number of end-user questions over time | Medium | In progress (mock statistics; charts total messages) |
+| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | Done |
+| FR-2.26 | Dashboard displays the total number of end-user messages over time | Medium | Done |
 | FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |

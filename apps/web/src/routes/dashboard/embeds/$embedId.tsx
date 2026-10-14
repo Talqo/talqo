@@ -474,7 +474,13 @@ function EmbedDetailPage() {
 										<div className="bg-muted/30 h-24 rounded-md border" />
 									</div>
 								</div>
-								<WidgetPreview appearance={appearance} title={name} activeScheme={colorTab} previewKey={embedId} />
+								<WidgetPreview
+									appearance={appearance}
+									title={name}
+									activeScheme={colorTab}
+									previewKey={embedId}
+									isAvailable={embedResponse?.data.isAvailable}
+								/>
 							</div>
 						</div>
 					</CardContent>

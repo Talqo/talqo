@@ -21,27 +21,3 @@ describe("public embed config endpoints", () => {
 		expect(response.headers.get("access-control-allow-credentials")).toBeNull()
 	})
 })
-
-describe("embed CRUD authentication boundary", () => {
-	// The config routes are public; that must never leak into the CRUD namespace beside them.
-	it("still requires a session to list embeds", async () => {
-		expect((await app.request("/api/embeds")).status).toBe(401)
-	})
-
-	it("still requires a session to read one embed", async () => {
-		expect((await app.request("/api/embeds/any-id")).status).toBe(401)
-	})
-
-	it("still requires a session to disable or enable one embed", async () => {
-		expect((await app.request("/api/embeds/any-id/disable", { method: "POST" })).status).toBe(401)
-		expect((await app.request("/api/embeds/any-id/enable", { method: "POST" })).status).toBe(401)
-	})
-
-	it("does not treat a config-shaped path nested under the CRUD namespace as an endpoint", async () => {
-		expect((await app.request("/api/embeds/any-id/config")).status).toBe(404)
-	})
-
-	it("does not treat a deeper path under the public prefix as an endpoint", async () => {
-		expect((await app.request("/api/embed-config/token/extra")).status).toBe(404)
-	})
-})

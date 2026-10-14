@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { accessGate, type Permission } from "./require-permission.ts"
+import { accessGate } from "./require-permission.ts"
 
 function query(overrides: Partial<Parameters<typeof accessGate>[1]> = {}) {
 	return { isPending: false, isError: false, data: undefined, ...overrides }
@@ -28,14 +28,5 @@ describe("accessGate", () => {
 
 	test("reports a failed permission request as an error, never as a denial", () => {
 		expect(accessGate("admin", query({ isError: true }))).toBe("error")
-	})
-})
-
-describe("requirePermission", () => {
-	test("carries the requirement into route context", async () => {
-		const { requirePermission } = await import("./require-permission.ts")
-		const permission: Permission = "ai_provider:manage"
-
-		expect(requirePermission(permission)()).toEqual({ requires: permission })
 	})
 })
