@@ -19,16 +19,19 @@ Invoking this skill with a PR number or URL starts a review. PRs are the default
 
 ## Review and delegate
 
-- Encourage review-capable subagents when the change is large, spans independent areas, has specialist risks, or benefits from an independent pass. Review directly when delegation would add little value.
-- When delegating, assign focused passes and run independent passes in parallel. Select relevant roles rather than launching every role for every change:
-  - Bugs and regressions. Check changed behavior, edge cases, compatibility, error handling, and meaningful test coverage.
+- Select passes from the requirements and affected behavior, interfaces, and dependencies. Check for coverage gaps before assigning reviewers. The roles below are examples, not an exhaustive list. Every review covers correctness, reliability, and maintainability; select other passes where the change warrants them.
+- Delegate when the change is large, spans independent areas, has specialist risks, or benefits from an independent pass. User-facing workflow or interaction changes require a separate UX specialist. Otherwise, review directly when delegation would add little value.
+- Assign focused passes and run independent delegated passes in parallel:
+  - Correctness and reliability. Check changed behavior, edge cases, state consistency, cleanup, error handling, and meaningful test coverage. Include compatibility, migrations, deployment, and failure diagnostics where affected.
   - Security. Check trust boundaries, authorization, injection, data exposure, and other concrete security risks. Load `security-review` when available.
   - Maintainability. Assign one reviewer, preferably the `simplicity` agent, the `unslop` checklist and `code-reviewer.md` requirements. Assess the approach before individual lines, using existing module boundaries and comparable implementations. Do not equate fewer lines with simpler code. Other reviewers should not repeat this pass.
+  - UX. Assign a separate specialist subagent and require it to load `ui-ux` as a read-only checklist. Assess complete user tasks, wording, accessibility, responsive behavior, feedback, and recovery, including loading, empty, and failure states. Check equivalent workflows across affected entry points.
+  - Performance. When queries, rendering, network calls, background work, payloads, or resource use change, check concrete costs against expected usage. Look for repeated queries or requests, unbounded work, unnecessary rendering, and resource leaks.
 - For a direct review, use the relevant checks in `code-reviewer.md` and load `unslop` for a read-only pass.
 - Check changes against applicable codebase standards. Read `AGENTS.md`, contribution and style guides, relevant language or framework skills, lint and formatting configuration, and established nearby conventions. Give reviewers the relevant standards and require each to check compliance within their assigned scope. Flag concrete violations, including nonblocking ones. Cite the rule or established pattern when it is not obvious. Project-specific standards take precedence over generic preferences and `unslop` heuristics. Do not invent rules or flag unrelated pre-existing violations.
 - Use [code-reviewer.md](code-reviewer.md) for each reviewer and supply its required context. Reviewers may report incidental issues outside their focus but should not duplicate another pass.
 - Review changed code and problems introduced or exposed by the changes. Read full affected files and relevant callers before flagging an issue. Investigate uncertain candidates with code search or authoritative documentation. Describe realistic triggering conditions instead of hypothetical problems.
-- Keep context focused on contracts and evidence, not the implementer's reasoning history. The coordinating agent owns validation, deduplication, the final findings list, and publication.
+- Keep context focused on contracts and evidence, not the implementer's reasoning history. The coordinating agent owns coverage, validation, deduplication, the final findings list, and publication. Before collecting findings, check for affected concerns no pass examined and review them or assign another pass.
 
 ## Collect findings and ask
 
