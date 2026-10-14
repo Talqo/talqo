@@ -436,7 +436,6 @@
 		"agents": "Agents",
 		"aiConfiguration": "AI configuration",
 		"dashboard": "Dashboard",
-		"roles": "Roles",
 		"users": "Users"
 	},
 	"permissions": {
@@ -484,10 +483,12 @@
 		"username-taken": "This username is already in use."
 	},
 	"roles": {
+		"back": "Back to roles",
 		"cancel": "Cancel",
 		"cannotChange": "You can't change this role because it includes access you don't have yourself.",
 		"create": "Create role",
-		"createTitle": "Create role",
+		"creating": "Creating...",
+		"defaultName": "New role",
 		"delete": "Delete",
 		"deleteConfirm": "Delete role",
 		"deleteDescription": "Everyone with this role ({{people}}) loses the access it gives them, unless another role also gives it.",
@@ -496,19 +497,17 @@
 		"deleteRecoveryUnused": "To undo, create the role again.",
 		"deleteTitle": "Delete “{{name}}”?",
 		"deleting": "Deleting…",
-		"dialogDescription": "Name the role and choose what people with it can do.",
-		"edit": "Edit",
-		"editTitle": "Edit “{{name}}”",
+		"discard": "Discard changes",
 		"empty": "No roles yet. Create one to give people access.",
 		"heading": "Roles",
 		"includedWith": "Included with “{{permission}}”.",
+		"leavePrompt": "Leave this role and discard your unsaved changes?",
 		"loading": "Loading roles…",
 		"lockoutWarningDelete": "You have this role and no other role lets you manage roles. After deleting it, you won't be able to open this page.",
 		"lockoutWarningEdit": "You have this role and no other role lets you manage roles. After saving, you won't be able to open this page.",
 		"members": "People with this role: {{people}}",
 		"name": "Name",
 		"nameError": "Enter a name of up to {{max}} characters.",
-		"noAccess": "No access yet",
 		"notYours": "You can only give access you have yourself.",
 		"permissionDescriptions": {
 			"agentsManage": "Create, change and delete agents, their knowledge, connections and website embeds.",
@@ -527,9 +526,12 @@
 			"usersRead": "See users"
 		},
 		"permissionsLegend": "What people with this role can do",
-		"save": "Save role",
+		"save": "Save changes",
+		"saved": "Changes saved.",
 		"saving": "Saving…",
-		"subheading": "Group access into roles, then give roles to people."
+		"settingsDescription": "Choose what people with this role can do.",
+		"subheading": "Group access into roles, then give roles to people.",
+		"unsaved": "You have unsaved changes."
 	},
 	"users": {
 		"adminBadge": "Admin",

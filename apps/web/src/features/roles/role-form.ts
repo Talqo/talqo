@@ -13,6 +13,10 @@ export const roleFormSchema = CreateRoleBody.safeExtend({ name: z.string().trim(
 
 export type RoleFormValues = z.infer<typeof roleFormSchema>
 
+export function toRoleFormValues({ name, permissions }: Role): RoleFormValues {
+	return { name, permissions }
+}
+
 // Each permission included by another selected one, mapped to the first selected permission that includes it.
 export function includedPermissions(
 	selected: readonly GrantablePermission[],

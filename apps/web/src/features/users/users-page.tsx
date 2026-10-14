@@ -308,13 +308,15 @@ function UsersList({ held }: { held: readonly string[] }) {
 				const exceedsOperator = !user.canManage
 				return (
 					<Card key={user.id} data-user-id={user.id}>
-						<CardContent className="flex flex-wrap items-center justify-between gap-4">
+						<CardContent className="space-y-4">
 							<div className="flex min-w-0 flex-wrap items-center gap-2">
-								<span className="font-medium break-all">{user.username}</span>
+								<span className="max-w-full truncate font-medium" title={user.username}>
+									{user.username}
+								</span>
 								{user.isAdmin && <Badge>{t("users.adminBadge")}</Badge>}
 								{user.roles.map((role) => (
-									<Badge key={role.id} variant="outline">
-										{role.name}
+									<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+										<span className="max-w-48 truncate">{role.name}</span>
 									</Badge>
 								))}
 								{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}

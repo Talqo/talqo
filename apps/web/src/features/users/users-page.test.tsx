@@ -136,10 +136,12 @@ async function click(element: HTMLElement) {
 	await settle()
 }
 
-function checkbox(label: string): HTMLInputElement {
+function checkbox(label: string): HTMLElement {
 	const labelElement = [...document.querySelectorAll("label")].find((element) => element.textContent?.trim() === label)
-	const input = labelElement ? document.getElementById(labelElement.htmlFor) : null
-	if (!(input instanceof HTMLInputElement)) throw new Error(`checkbox "${label}" not rendered`)
+	const input = labelElement
+		? document.querySelector<HTMLElement>(`[role='checkbox'][aria-labelledby='${labelElement.id}']`)
+		: null
+	if (!input) throw new Error(`checkbox "${label}" not rendered`)
 	return input
 }
 
@@ -207,7 +209,7 @@ describe("UsersPage", () => {
 		expect(buttonNames(card("helper"))).toEqual([t("users.editRoles")])
 
 		await click(button(t("users.editRoles"), card("helper")))
-		expect(checkbox("AI team").disabled).toBe(true)
+		expect(checkbox("AI team").getAttribute("aria-disabled")).toBe("true")
 		expect(dialog().textContent).toContain(t("users.roleNotYours"))
 		await click(checkbox("Readers"))
 		await click(button(t("users.saveRoles"), dialog()))
@@ -272,12 +274,12 @@ describe("UsersPage", () => {
 		await settle()
 
 		await click(button(t("users.editRoles"), card("helper")))
-		expect(checkbox("Readers").checked).toBe(true)
+		expect(checkbox("Readers").getAttribute("aria-checked")).toBe("true")
 		await click(checkbox("Readers"))
 		await click(button(t("users.cancel"), dialog()))
 		await click(button(t("users.editRoles"), card("helper")))
 
-		expect(checkbox("Readers").checked).toBe(true)
+		expect(checkbox("Readers").getAttribute("aria-checked")).toBe("true")
 	})
 
 	test("closes and refreshes users and the operator's own access after saving", async () => {

@@ -6,6 +6,7 @@ import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
 import * as repo from "./roles.repository.ts"
+import * as seed from "./roles.seed.ts"
 import * as service from "./roles.service.ts"
 
 // Postgres check_violation (https://www.postgresql.org/docs/current/errcodes-appendix.html).
@@ -418,6 +419,31 @@ describe("effective permissions", () => {
 describe("role management", () => {
 	beforeEach(async () => {
 		await sql`DELETE FROM role`
+	})
+
+	it("seeds reusable roles without granting access or overwriting edits on rerun", async () => {
+		await seed.seed()
+		const roles = await service.listRoles()
+		expect(roles.map(({ name, permissions }) => ({ name, permissions }))).toEqual([
+			{ name: "Agent editors", permissions: ["agents:manage"] },
+			{ name: "Support", permissions: ["agents:read"] },
+			{ name: "Team managers", permissions: ["users:manage", "roles:manage"] },
+		])
+		const member = await createMember()
+		expect(await service.listEffectivePermissions(member.id)).toEqual([])
+		const support = roles.find(({ name }) => name === "Support")
+		if (!support) throw new Error("Support role was not seeded")
+		await assignRoles(member.id, [support.id])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+		await updateRole(support.id, { name: "Helpdesk", permissions: [] })
+		await seed.seed()
+		expect(await service.listRoles()).toHaveLength(3)
+		expect((await service.listRoles()).find(({ id }) => id === support.id)).toMatchObject({
+			name: "Helpdesk",
+			permissions: [],
+			memberCount: 1,
+		})
+		expect(await service.listEffectivePermissions(member.id)).toEqual([])
 	})
 
 	it("creates, lists, updates and deletes a role", async () => {
