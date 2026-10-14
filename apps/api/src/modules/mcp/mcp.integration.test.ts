@@ -60,39 +60,47 @@ describe("mcp schema constraints", () => {
 	/** Structure only: these rows never decrypt, they only have to satisfy the jsonb column. */
 	const secret = { ciphertext: "c", nonce: "n", tag: "t", version: 1 as const }
 	type McpInsert = typeof mcpServer.$inferInsert
+	type Columns = Partial<McpInsert>
 
-	// A stdio row's null authMode makes `authMode = 'headers'` evaluate to null rather than false,
-	// and a check whose result is null passes. A stdio row smuggling headers is the case that would
-	// slip through otherwise, so it is the one reject kept.
-	it("rejects a stdio row smuggling headers past the null auth-mode check", async () => {
-		const agentId = await createAgent()
-		await expectCheckViolation(
-			db.insert(mcpServer).values({
-				id: "probe",
-				agentId,
-				name: "probe",
-				transport: "stdio",
-				command: "npx",
-				headers: { a: secret },
-			} as McpInsert),
-		)
-	})
+	// The constraint lives in generated migration SQL nobody reads line by line, so the whole
+	// accept/reject matrix stays executable here: a stdio row's null authMode makes
+	// `authMode = 'headers'` evaluate to null rather than false, and a check whose result is null
+	// passes — without the full table a future migration could silently admit corrupt rows.
+	const rejected: [string, Columns][] = [
+		["http carrying a command", { transport: "http", url: UNREACHABLE_URL, authMode: "none", command: "npx" }],
+		["http with no address", { transport: "http", authMode: "none" }],
+		["http carrying arguments", { transport: "http", url: UNREACHABLE_URL, authMode: "none", args: ["x"] }],
+		["stdio with an auth mode", { transport: "stdio", command: "npx", authMode: "none" }],
+		["stdio with headers", { transport: "stdio", command: "npx", headers: { a: secret } }],
+		["stdio with no command", { transport: "stdio" }],
+		["none carrying headers", { transport: "http", url: UNREACHABLE_URL, authMode: "none", headers: { a: secret } }],
+		["headers with no headers", { transport: "http", url: UNREACHABLE_URL, authMode: "headers" }],
+	]
 
-	it("accepts a plain http row with no headers", async () => {
-		const agentId = await createAgent()
-		await db.insert(mcpServer).values({
-			id: "probe",
-			agentId,
-			name: "probe",
-			transport: "http",
-			url: UNREACHABLE_URL,
-			authMode: "none",
-		} as McpInsert)
+	for (const [label, columns] of rejected) {
+		it(`rejects ${label}`, async () => {
+			const agentId = await createAgent()
+			await expectCheckViolation(
+				db.insert(mcpServer).values({ id: "probe", agentId, name: "probe", ...columns } as McpInsert),
+			)
+		})
+	}
 
-		expect(await db.select({ id: mcpServer.id }).from(mcpServer).where(eq(mcpServer.id, "probe"))).toEqual([
-			{ id: "probe" },
-		])
-	})
+	const accepted: [string, Columns][] = [
+		["http with no headers", { transport: "http", url: UNREACHABLE_URL, authMode: "none" }],
+		["stdio with a command and arguments", { transport: "stdio", command: "npx", args: ["-y", "srv"] }],
+	]
+
+	for (const [label, columns] of accepted) {
+		it(`accepts ${label}`, async () => {
+			const agentId = await createAgent()
+			await db.insert(mcpServer).values({ id: "probe", agentId, name: "probe", ...columns } as McpInsert)
+
+			expect(await db.select({ id: mcpServer.id }).from(mcpServer).where(eq(mcpServer.id, "probe"))).toEqual([
+				{ id: "probe" },
+			])
+		})
+	}
 })
 
 describe("mcp server lifecycle", () => {

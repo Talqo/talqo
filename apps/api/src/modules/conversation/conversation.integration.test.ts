@@ -517,6 +517,7 @@ describe("conversation lifecycle", () => {
 			await sent.done
 			expect(attempts).toBeGreaterThanOrEqual(2)
 			expect((await owner.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("cancelled")
+			expect(logged.mock.calls.filter(([event]) => event === "conversation.poll.failed")).toHaveLength(1)
 		} finally {
 			poll.mockRestore()
 			logged.mockRestore()
@@ -1320,6 +1321,7 @@ describe("chat retrieval", () => {
 				"hello",
 				"answer",
 			])
+			expect(logged).toHaveBeenCalledWith("knowledge-base.retrieval.degraded", expect.anything())
 		} finally {
 			search.mockRestore()
 			logged.mockRestore()

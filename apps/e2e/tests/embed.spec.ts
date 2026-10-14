@@ -294,31 +294,25 @@ test("widget enforces daily chat allowance across new chats", async ({ page, req
 	await page.getByRole("button", { name: "Open chat" }).click()
 	const dialog = page.getByRole("dialog")
 	const messageInput = dialog.getByRole("textbox", { name: "Message" })
-	const send = async (text: string) => {
-		await messageInput.fill(text)
+	const sendUntilAnswered = async () => {
+		await messageInput.fill("Give me the first answer")
 		await dialog.getByRole("button", { name: "Send" }).click()
+		await expect(dialog.getByText("First", { exact: true }).last()).toBeVisible()
+		await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
 	}
 
-	// The suite caps the allowance at three messages, so these three exhaust it.
-	await send("Give me the first answer")
-	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
-	await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
-	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
-
-	await send("Prove you received the earlier turn")
-	await expect(
-		dialog.getByText("History verified: system prompt, first question, and first answer.", { exact: true }),
-	).toBeVisible()
-
-	await send("Stream until I cancel")
-	await expect(dialog.getByText("Cancellation partial output remains", { exact: true })).toBeVisible()
-	await dialog.getByRole("button", { name: "Stop generating" }).click()
-	await expect(dialog.getByText("Response cancelled", { exact: true })).toBeVisible()
+	// The suite caps the allowance at three messages (TALQO_CHAT_DAILY_MESSAGE_LIMIT in
+	// scripts/test-e2e.ts); three plain sends exhaust it — the journey steps have their own specs.
+	await sendUntilAnswered()
+	await sendUntilAnswered()
+	await sendUntilAnswered()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toHaveCount(3)
 
 	// Starting over does not top the allowance back up.
 	await dialog.getByRole("button", { name: "New chat" }).click()
 	await expect(dialog.getByText("Hi there! How can I help you today?", { exact: true })).toBeVisible()
 
-	await send("The allowance must not reset")
+	await messageInput.fill("The allowance must not reset")
+	await dialog.getByRole("button", { name: "Send" }).click()
 	await expect(dialog.getByRole("alert")).toContainText("daily message allowance has been reached")
 })

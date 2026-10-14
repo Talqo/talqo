@@ -196,6 +196,40 @@ test("operator disables the embed from the embeds overview and the public config
 	}
 })
 
+test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
+	const viewer = { username: "user", password: "user1234" }
+
+	// Grant through the API boundary, then switch accounts and inspect the same page.
+	const { users } = (await (await page.request.get("/api/users")).json()) as {
+		users: { id: string; username: string }[]
+	}
+	const user = users.find(({ username }) => username === viewer.username)
+	if (!user) throw new Error("Seed user is missing")
+	const grantResponse = await page.request.post("/api/permission-grants", {
+		data: { userId: user.id, permission: "agents:read" },
+	})
+	await expect(grantResponse).toBeOK()
+	const grantId = ((await grantResponse.json()) as { grant: { id: string } }).grant.id
+
+	try {
+		await page.getByRole("button", { name: "Log out" }).click()
+		await expect(page).toHaveURL("/login")
+		await page.getByLabel("Username").fill(viewer.username)
+		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
+		await page.getByRole("button", { name: "Log in" }).click()
+		await expect(page).toHaveURL("/dashboard")
+
+		await page.getByRole("link", { name: "Agents", exact: true }).click()
+		await page.getByRole("link", { name: /Website Assistant/ }).click()
+		await page.getByRole("tab", { name: "Embeds" }).click()
+		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
+	} finally {
+		await page.request.post("/api/auth/login", { data: operator })
+		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+	}
+})
+
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
 	const source = seeded.find(({ name }) => name === "Website")
 	if (!source) throw new Error("Shared seed Website embed is missing")
