@@ -94,7 +94,7 @@ type RedactedConfiguration = {
 	embedding: (RedactedRole & { credentialSource: StoredEmbeddingConfiguration["credentialSource"] }) | null
 }
 
-export class RevisionConflictError extends ApiError {
+class RevisionConflictError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.CONFIGURATION_CONFLICT, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
