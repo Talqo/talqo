@@ -41,7 +41,7 @@ Back up `APP_SECRET` too. It encrypts the provider credentials you enter under *
 
 ## Updating
 
-The application image is `ghcr.io/talqo/talqo`; the separate documentation image is `ghcr.io/talqo/talqo-docs`. Both publish matching stable `X.Y.Z` tags for `linux/amd64`. `latest` follows successful production deployment and SDK publication. `dev` is a mutable development build.
+The application image is `ghcr.io/talqo/talqo`; the separate documentation image is `ghcr.io/talqo/talqo-docs`. Both publish matching stable `X.Y.Z` tags for `linux/amd64`. `latest` follows successful production deployment and SDK publication. Main-branch CD publishes and deploys only the application's mutable `dev` build. Docs are published and deployed on releases.
 
 To pull a specific release, replace `X.Y.Z` with its version:
 

@@ -17,12 +17,14 @@ Add image publishing commands, automatic dev deployment, and tag-triggered produ
 
 ```text
 PR/manual -> CI
-main push -> CD -> CI -> publish dev images -> deploy dev
+main push -> CD -> CI -> publish Talqo dev image -> deploy Talqo dev
 version tag -> Release -> CI with E2E -> publish images
                        -> deploy prod -> publish SDK -> promote latest -> GitHub release
 ```
 
 `ci.yml` owns checks, tests, and validation builds. `cd.yml` handles main pushes and calls CI directly before publication. `release.yml` calls the same CI workflow with E2E enabled. CI also runs independently for PRs and manual requests.
+
+Docs have one production deployment, updated only by versioned releases. Main CD does not publish or deploy docs. Manual local docs pushes remain available for image testing.
 
 Main CD passes its exact commit SHA to the shared publication and deployment workflows. Avoid workflow-run event chaining, duplicate main checks, and privileged checkout of PR code. PR/main checks exclude browser E2E; release and manual checks include it.
 
@@ -44,7 +46,7 @@ The SDK remains authored in TypeScript. Bun bundles ESM JavaScript, and the exis
 
 ## Deployment boundary
 
-The reusable deployment workflow invokes only `deploy <version> <talqo-digest> <docs-digest>` through an environment-specific restricted SSH key. The key selects dev or prod externally. The supplied command must deploy both exact digests, report success only when both are ready, support same-version retries, and reject routine production downgrades.
+The reusable deployment workflow invokes `deploy dev <talqo-digest>` for dev and `deploy <version> <talqo-digest> <docs-digest>` for production through environment-specific restricted SSH keys. The key selects dev or prod externally. Production must deploy both exact digests and report success only when both are ready. The command must support same-version retries and reject routine production downgrades.
 
 CI does not upload shell programs, Compose files, or application secrets to the server. Use pinned SSH host identity, noninteractive authentication, no forwarding, and a bounded timeout. A lost connection can leave the remote outcome uncertain. Database migration recovery remains the deployment owner's responsibility.
 

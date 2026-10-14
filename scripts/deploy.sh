@@ -25,11 +25,14 @@ account=${DEPLOY_ACCOUNT:?Missing DEPLOY_ACCOUNT}
 [[ -n ${DEPLOY_SSH_KEY:-} && -n ${DEPLOY_HOST_KEY:-} ]] || fail 'Missing SSH keys'
 [[ $DEPLOY_HOST_KEY != *$'\n'* && $DEPLOY_HOST_KEY != *$'\r'* ]] || fail 'Host key must be one line'
 talqo=${TALQO_DIGEST:?Missing TALQO_DIGEST}
-docs=${DOCS_DIGEST:?Missing DOCS_DIGEST}
-[[ $talqo =~ ^sha256:[a-f0-9]{64}$ && $docs =~ ^sha256:[a-f0-9]{64}$ ]] || fail 'Invalid image digest'
+[[ $talqo =~ ^sha256:[a-f0-9]{64}$ ]] || fail 'Invalid Talqo image digest'
+command="deploy $version $talqo"
 
 if [[ $environment == prod ]]; then
+	docs=${DOCS_DIGEST:?Missing DOCS_DIGEST}
+	[[ $docs =~ ^sha256:[a-f0-9]{64}$ ]] || fail 'Invalid docs image digest'
 	validate_release "$version"
+	command+=" $docs"
 fi
 
 umask 077
@@ -48,4 +51,4 @@ timeout --kill-after=30s 15m ssh -F /dev/null -T -a -x -p "$port" -i "$directory
 	-o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
 	-o "UserKnownHostsFile=$directory/known_hosts" -o GlobalKnownHostsFile=/dev/null \
 	-o ClearAllForwardings=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
-	-- "$account@$host" "deploy $version $talqo $docs"
+	-- "$account@$host" "$command"

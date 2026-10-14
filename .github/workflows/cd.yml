@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
 
   publish:
-    name: Publish development images
+    name: Publish development image
     needs: ci
     permissions:
       contents: read
@@ -37,6 +37,5 @@ jobs:
       environment: dev
       version: dev
       talqo-digest: ${{ needs.publish.outputs.talqo-digest }}
-      docs-digest: ${{ needs.publish.outputs.docs-digest }}
     secrets:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
