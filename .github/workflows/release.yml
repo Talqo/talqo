@@ -36,6 +36,8 @@ jobs:
     name: Release checks
     needs: validate
     uses: ./.github/workflows/ci.yml
+    with:
+      e2e: true
 
   images:
     name: Publish release images
@@ -50,7 +52,7 @@ jobs:
 
   sdk:
     name: Publish SDK
-    needs: [validate, images]
+    needs: [validate, deploy]
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
@@ -85,18 +87,20 @@ jobs:
 
   deploy:
     name: Deploy production
-    needs: [validate, sdk]
+    needs: [validate, images]
     uses: ./.github/workflows/deploy.yml
     with:
       ref: ${{ github.sha }}
       environment: prod
       version: ${{ needs.validate.outputs.version }}
+      talqo-digest: ${{ needs.images.outputs.talqo-digest }}
+      docs-digest: ${{ needs.images.outputs.docs-digest }}
     secrets:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
 
   promote:
     name: Promote stable aliases
-    needs: [validate, deploy]
+    needs: [validate, sdk, images]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
@@ -109,18 +113,27 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Log in to GHCR
-        env:
-          REGISTRY_USER: ${{ github.actor }}
-          REGISTRY_TOKEN: ${{ github.token }}
-        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Promote verified images to latest
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
-        run: bash scripts/push-images.sh promote "$RELEASE_VERSION"
-      - name: Log out of GHCR
-        if: always()
-        run: docker logout ghcr.io
+          TALQO_DIGEST: ${{ needs.images.outputs.talqo-digest }}
+          DOCS_DIGEST: ${{ needs.images.outputs.docs-digest }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          owner=${GITHUB_REPOSITORY%%/*}
+          owner=${owner,,}
+          docker buildx imagetools create --prefer-index=false \
+            --tag "ghcr.io/$owner/talqo:latest" "ghcr.io/$owner/talqo@$TALQO_DIGEST"
+          docker buildx imagetools create --prefer-index=false \
+            --tag "ghcr.io/$owner/talqo-docs:latest" "ghcr.io/$owner/talqo-docs@$DOCS_DIGEST"
 
   release:
     name: Create GitHub release
@@ -141,4 +154,4 @@ jobs:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: |
           bash scripts/release.sh validate "$RELEASE_VERSION"
-          gh release create "v$RELEASE_VERSION" --repo Talqo/talqo --verify-tag --generate-notes --title "Talqo $RELEASE_VERSION"
+          gh release create "v$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "Talqo $RELEASE_VERSION"

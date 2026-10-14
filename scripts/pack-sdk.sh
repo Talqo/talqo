@@ -14,6 +14,7 @@ bun run --cwd packages/sdk build
 mkdir -p "$staging"
 cp -R packages/sdk/dist "$staging/dist"
 cp LICENSE.md "$staging/"
+cp packages/sdk/README.md "$staging/"
 jq --arg version "$version" --arg revision "$(git rev-parse HEAD)" '
 	.version = $version |
 	.gitHead = $revision |
@@ -24,4 +25,4 @@ jq --arg version "$version" --arg revision "$(git rev-parse HEAD)" '
 	cd "$staging"
 	bun pm pack --filename "$archive" --ignore-scripts --quiet
 )
-output tarball "dist/talqo-sdk-$version.tgz"
+output tarball "./dist/talqo-sdk-$version.tgz"

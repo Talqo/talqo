@@ -1,0 +1,52 @@
+---
+title: Chat SDK
+description: Build a custom browser chat interface with the Talqo SDK.
+---
+
+The SDK connects your own chat interface to Talqo. It uses the same embed token, agent configuration, and server-side limits as the [pre-built widget](/embed-chat-integration).
+
+## Install
+
+```sh
+npm install @talqo/sdk
+```
+
+The package includes browser ESM JavaScript and TypeScript declarations. Use it from a browser application with a bundler. Install the SDK version matching your Talqo server release.
+
+## Connect your interface
+
+Create an embed in the dashboard and copy its public token. Use your Talqo origin as `apiUrl`; do not include `/api`.
+
+```ts
+import { createChatClient } from "@talqo/sdk"
+
+const chat = createChatClient({
+	apiUrl: "https://talqo.example.com",
+	embedToken: "YOUR_EMBED_TOKEN",
+})
+
+const unsubscribe = chat.subscribe(() => {
+	const state = chat.getSnapshot()
+	// Render state.messages and state.generation in your interface.
+	console.log(state)
+})
+
+await chat.initialize()
+await chat.sendMessage("What delivery options do you offer?")
+
+// When your interface unmounts:
+unsubscribe()
+chat.dispose()
+```
+
+`initialize()` loads the embed configuration and restores the conversation. Subscribe before initializing so your interface observes loading and recovery states. `sendMessage()` streams updates through the subscription and resolves when sending completes. Catch rejected operations and render `getSnapshot().error` when present.
+
+## State and controls
+
+`getSnapshot()` returns the messages, embed configuration, initialization and generation states, active tool calls, recovery status, and any error. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
+
+Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry a failed send, and `startNewChat()` to clear the current conversation and begin another. Disable sending while initialization, generation, recovery, or reset is active. If `retryAt` is present, wait until that time before retrying.
+
+The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. `persistence: "memory"` means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
+
+The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.

@@ -9,6 +9,7 @@ permissions:
 
 concurrency:
   group: cd-dev
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -35,5 +36,7 @@ jobs:
       ref: ${{ github.sha }}
       environment: dev
       version: dev
+      talqo-digest: ${{ needs.publish.outputs.talqo-digest }}
+      docs-digest: ${{ needs.publish.outputs.docs-digest }}
     secrets:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
