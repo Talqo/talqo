@@ -6,11 +6,7 @@ Read this reference when writing tests, assertions, fixtures, or test doubles.
 
 Use [testing-strategy.md](testing-strategy.md) to decide whether a test adds distinct protection and which layer should own it. This reference covers how to write that test.
 
-Tests can be written before or after implementation. Derive their expectations from the intended contract, not the current output. Use doubles at boundaries to control external, slow, or nondeterministic dependencies.
-
-## Identify the defect
-
-Before writing a test, name the defect it catches and why existing coverage misses it. An intentional change to incidental wording or private structure is not a defect.
+## Derive expectations
 
 **Derive expectations independently.** Use literals and hand-checked fixtures; table-driven tests with literal `want` values are the preferred shape. Sharing production logic can reproduce the same defect on both sides. This example calls the same query builder for actual and expected values:
 
@@ -27,9 +23,7 @@ expect(buildSearchQuery({ tag: 'urgent' })).toBe('tag:"urgent"');
 
 Do not freeze incidental UI copy. A test that only asserts a static header's current wording adds no protection unless that wording is a requirement. Prefer the user outcome, such as a saved item being available after reload. Text assertions are useful for required content, dynamic data, validation feedback, and accessible names; do not remove them merely because they use text.
 
-**Match verification to the artifact.** Run scripts against controlled inputs and assert outputs, side effects, or exit codes. For config and docs changes, use applicable schema validation, static checks, and manual review rather than dummy tests that assert prose or source lines exist. Check runtime behavior when a config change affects it; use consumer behavior checks for agent instructions when risk warrants them.
-
-**Your code, not the framework.** Test the contract your code makes at its boundaries, such as the query you emit or the payload you produce. Do not test a router's documented dispatch mechanics; test your route's response or side effects. When upstream behavior genuinely surprised you, write one narrow characterization test naming the assumption. The same boundary applies inside your code: constructors, getters, constants, and trivial forwarding earn tests only when they validate, normalize, default, derive, enforce, or cause side effects. Otherwise add no standalone test. Test a consumer outcome only when it needs protection that existing coverage does not provide.
+**Your code, not the framework.** Test the contract your code makes at its boundaries, such as the query you emit or the payload you produce. Do not test a router's documented dispatch mechanics; test your route's response or side effects. When upstream behavior genuinely surprised you, write one narrow characterization test naming the assumption.
 
 ## Exercise real behavior
 
@@ -48,10 +42,6 @@ For example, if duplicate detection reads a generated config, replacing the meth
 **Keep test-only helpers out of production classes.** Test setup and cleanup belong in test utilities. A class that owns a resource may still need a production lifecycle method even if tests are its first caller; decide by ownership and contract, not caller count alone.
 
 **Prefer real components over complex mocks.** When mock setup outgrows the test logic, mocks miss methods the real components have, or tests break when the mock changes, switch to an integration test with real components where practical.
-
-## Completion
-
-Ship the tests the behavior needs, not one test per function. Add or improve coverage for changed contracts and feasible bug regressions, including in previously untested code. Refactors can rely on existing coverage; config and docs changes use artifact-appropriate checks. Preserve valid implementation work and report verification gaps. Test order is not a completion criterion.
 
 ## Check test effectiveness
 

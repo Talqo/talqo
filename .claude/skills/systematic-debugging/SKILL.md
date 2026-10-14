@@ -142,7 +142,7 @@ Follow the phases in order, returning to investigation when evidence contradicts
    - Automated test if possible
    - One-off test script if no framework
    - Observe the relevant failure before fixing when feasible. If reproduction is unavailable or the implementation already exists, preserve valid work, state the limitation, and use the strongest feasible verification.
-   - Use the `writing-tests` skill to select meaningful regression coverage; no test-first implementation sequence is required.
+   - Use the `writing-tests` skill for regression coverage.
 
 2. **Implement Single Fix**
    - Address the root cause identified

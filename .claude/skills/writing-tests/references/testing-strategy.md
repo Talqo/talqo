@@ -12,7 +12,9 @@ Before writing a test, identify:
 
 Reuse an adequate existing test. Update it when its contract changes, or extend it when a related case is missing. Add a separate test for a distinct scenario when that gives clearer setup or failure diagnosis. Do not weaken valid assertions to accommodate a regression.
 
-Do not add tests solely because a function, file, or line changed. Covered behavior-preserving refactors need existing tests, not duplicate coverage. Trivial getters, constants, forwarding, and framework mechanics need no standalone test unless they enforce a meaningful contract. Docs and non-runtime config changes use appropriate static, schema, or manual checks instead.
+Do not add tests solely because a function, file, or line changed. Covered behavior-preserving refactors need existing tests, not duplicate coverage. Trivial getters, constants, forwarding, and framework mechanics need no standalone test unless they enforce a meaningful contract.
+
+Run scripts against controlled inputs and assert outputs, side effects, or exit codes. Docs and non-runtime config changes use appropriate static, schema, or manual checks instead of tests that assert prose or source lines exist. Check runtime behavior when configuration affects it; use consumer behavior checks for agent instructions when risk warrants them.
 
 ## Choose the layer
 
@@ -72,4 +74,4 @@ These are alternative placements. Add coverage at another layer only for a disti
 
 Stop when the changed contract and its important failure modes have meaningful protection and no concrete unprotected risk remains in scope. Another input with the same behavior, another internal function, or another layer is not a reason to continue. Multiple assertions can describe one coherent outcome; do not split them merely to achieve one assertion per test.
 
-Review new tests for distinct value before finishing. Remove or consolidate redundancy introduced by the current work, but do not prune unrelated existing tests. Report material verification gaps and skipped checks without inventing tests to make the change look complete. Do not skip a feasible bug regression test merely because the repository previously had no tests.
+Review new tests for distinct value before finishing. Remove or consolidate redundancy introduced by the current work, but do not prune unrelated existing tests. Report material verification gaps and skipped checks without inventing tests to make the change look complete.

@@ -9,7 +9,7 @@ Remove AI patterns from code and its documentation.
 
 ## Process
 
-- Scan for the patterns below.
+- Scan the requested change for the patterns below.
 - Rewrite. Preserve behavior, public contracts, and intended tone.
 
 ## Patterns to detect and fix
