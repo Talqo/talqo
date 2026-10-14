@@ -15,6 +15,7 @@ import { useEffect, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
+import { DeleteRoleDialog } from "./delete-role-dialog"
 import { type GrantablePermission, PERMISSION_COPY } from "./permission-labels"
 import {
 	includedPermissions,
@@ -151,40 +152,53 @@ export function UpdateRoleForm({
 							)
 						})}
 					</fieldset>
+					{locksOut ? (
+						<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
+							{t("roles.lockoutWarningEdit")}
+						</p>
+					) : null}
+					<ProblemAlert error={updateRole.error} />
+					{!disabled ? (
+						<>
+							{isDirty || saved ? (
+								<p className="text-muted-foreground text-sm" role="status">
+									{isDirty ? t("roles.unsaved") : t("roles.saved")}
+								</p>
+							) : null}
+							<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+								<DeleteRoleDialog
+									role={role}
+									disabled={isSaving}
+									locksOut={losesRoleManagement({
+										heldPermissions,
+										rolesBefore: ownRoles,
+										rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
+									})}
+								/>
+								<div className="ml-auto flex flex-wrap gap-2">
+									{isDirty ? (
+										<Button
+											type="button"
+											variant="outline"
+											disabled={isSaving}
+											onClick={() => {
+												reset(toRoleFormValues(role))
+												updateRole.reset()
+												setSaved(false)
+											}}
+										>
+											{t("roles.discard")}
+										</Button>
+									) : null}
+									<Button type="submit" disabled={isSaving || !isDirty}>
+										{isSaving ? t("roles.saving") : t("roles.save")}
+									</Button>
+								</div>
+							</div>
+						</>
+					) : null}
 				</CardContent>
 			</Card>
-			{locksOut ? (
-				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
-					{t("roles.lockoutWarningEdit")}
-				</p>
-			) : null}
-			<ProblemAlert error={updateRole.error} />
-			{!disabled ? (
-				<div className="bg-background rounded-surface sticky bottom-4 flex flex-wrap items-center justify-between gap-3 border p-4 shadow-sm">
-					<p className="text-muted-foreground text-sm" role="status">
-						{isDirty ? t("roles.unsaved") : saved ? t("roles.saved") : null}
-					</p>
-					<div className="flex gap-2">
-						{isDirty ? (
-							<Button
-								type="button"
-								variant="outline"
-								disabled={isSaving}
-								onClick={() => {
-									reset(toRoleFormValues(role))
-									updateRole.reset()
-									setSaved(false)
-								}}
-							>
-								{t("roles.discard")}
-							</Button>
-						) : null}
-						<Button type="submit" disabled={isSaving || !isDirty}>
-							{isSaving ? t("roles.saving") : t("roles.save")}
-						</Button>
-					</div>
-				</div>
-			) : null}
 		</form>
 	)
 }

@@ -34,7 +34,7 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
-import { Check, Copy, UserPlus } from "lucide-react"
+import { Check, Copy, Trash2, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -187,17 +187,13 @@ function DeleteUserDialog({
 	const { t } = useTranslation()
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
-	const [confirmation, setConfirmation] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const isDeleting = deleteUser.isPending
 
 	function handleOpenChange(next: boolean) {
 		if (isDeleting) return
 		setOpen(next)
-		if (!next) {
-			setConfirmation("")
-			setError(null)
-		}
+		if (!next) setError(null)
 	}
 
 	async function onConfirm() {
@@ -215,11 +211,12 @@ function DeleteUserDialog({
 		onDeleted()
 	}
 
-	const confirmationId = `delete-user-confirmation-${targetUser.id}`
-
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />}>{t("users.delete")}</DialogTrigger>
+			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />}>
+				<Trash2 className="size-4" />
+				{t("users.delete")}
+			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
@@ -230,28 +227,11 @@ function DeleteUserDialog({
 						{error}
 					</p>
 				)}
-				<div className="space-y-2">
-					<Label htmlFor={confirmationId}>
-						<span className="sr-only">{t("users.confirmLabel", { username: targetUser.username })}</span>
-					</Label>
-					<Input
-						id={confirmationId}
-						value={confirmation}
-						onChange={(event) => setConfirmation(event.target.value)}
-						placeholder={targetUser.username}
-						autoComplete="off"
-					/>
-					<p className="text-muted-foreground text-xs">{t("users.confirmHelp", { username: targetUser.username })}</p>
-				</div>
 				<DialogFooter>
 					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
 						{t("users.cancel")}
 					</Button>
-					<Button
-						variant="destructive"
-						disabled={confirmation !== targetUser.username || isDeleting}
-						onClick={onConfirm}
-					>
+					<Button variant="destructive" disabled={isDeleting} onClick={onConfirm}>
 						{isDeleting ? t("users.deleting") : t("users.deleteConfirm")}
 					</Button>
 				</DialogFooter>

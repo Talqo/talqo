@@ -13,6 +13,7 @@ import {
 	DialogTrigger,
 } from "@talqo/ui/components/dialog"
 import { useNavigate } from "@tanstack/react-router"
+import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -20,7 +21,7 @@ import { useRefreshAccess } from "./use-refresh-access"
 
 const NOT_FOUND_STATUS = 404
 
-export function DeleteRoleDialog({ locksOut, role }: { locksOut: boolean; role: Role }) {
+export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boolean; locksOut: boolean; role: Role }) {
 	const { t } = useTranslation()
 	const refreshAccess = useRefreshAccess()
 	const navigate = useNavigate()
@@ -50,7 +51,10 @@ export function DeleteRoleDialog({ locksOut, role }: { locksOut: boolean; role: 
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" />}>{t("roles.delete")}</DialogTrigger>
+			<DialogTrigger render={<Button type="button" variant="destructive" disabled={disabled || isDeleting} />}>
+				<Trash2 className="size-4" />
+				{t("roles.delete")}
+			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("roles.deleteTitle", { name: role.name })}</DialogTitle>

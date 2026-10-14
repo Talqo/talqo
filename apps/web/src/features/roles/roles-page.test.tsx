@@ -307,6 +307,7 @@ describe("role management", () => {
 		await save()
 		expect(nameInput().disabled).toBe(true)
 		expect(button(t("roles.saving"), host).disabled).toBe(true)
+		expect(button(t("roles.delete"), host).disabled).toBe(true)
 		await act(async () =>
 			deferred.resolve(json({ roles: [{ id: "support", name: "Helpdesk", permissions: [], memberCount: 0 }] })),
 		)
@@ -349,12 +350,14 @@ describe("role management", () => {
 	test("confirms deletion with recovery instructions and returns to the role list", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 3 }]
 		await renderPage("support")
+		await type(nameInput(), "Unsaved name")
 		await click(button(t("roles.delete"), host))
 		expect(dialog().textContent).toContain(t("roles.deleteDescription", { people: 3 }))
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))
 		await click(button(t("roles.deleteConfirm"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 		expect(host.querySelector("[data-role-id='support']")).toBeNull()
+		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 
 	test("preserves the draft and displays the server reason when saving fails", async () => {

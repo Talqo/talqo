@@ -13,8 +13,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-import { DeleteRoleDialog } from "./delete-role-dialog"
-import { holdsAll, losesRoleManagement } from "./role-form"
+import { holdsAll } from "./role-form"
 import { UpdateRoleForm } from "./update-role-form"
 
 export function RolePage({ roleId }: { roleId: string }) {
@@ -39,7 +38,7 @@ export function RolePage({ roleId }: { roleId: string }) {
 
 	return (
 		<div className="space-y-6">
-			<Link to="/dashboard/users/roles" className={buttonVariants({ variant: "ghost" })}>
+			<Link to="/dashboard/users/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
 				<ArrowLeft className="size-4" />
 				{t("roles.back")}
 			</Link>
@@ -66,18 +65,6 @@ export function RolePage({ roleId }: { roleId: string }) {
 						ownRoles={ownRoles}
 						disabled={!changeable}
 					/>
-					{changeable ? (
-						<div className="border-t pt-6">
-							<DeleteRoleDialog
-								role={role}
-								locksOut={losesRoleManagement({
-									heldPermissions: held,
-									rolesBefore: ownRoles,
-									rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
-								})}
-							/>
-						</div>
-					) : null}
 				</>
 			)}
 		</div>

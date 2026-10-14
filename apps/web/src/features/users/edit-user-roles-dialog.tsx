@@ -16,6 +16,7 @@ import {
 	DialogTrigger,
 } from "@talqo/ui/components/dialog"
 import { Label } from "@talqo/ui/components/label"
+import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -71,7 +72,10 @@ export function EditUserRolesDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" />}>{t("users.editRoles")}</DialogTrigger>
+			<DialogTrigger render={<Button variant="outline" />}>
+				<Pencil className="size-4" />
+				{t("users.editRoles")}
+			</DialogTrigger>
 			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("users.editRolesTitle", { username: targetUser.username })}</DialogTitle>
