@@ -57,6 +57,7 @@ jobs:
 
   docs:
     name: Publish docs
+    if: inputs.version != 'dev'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -69,10 +70,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
-          fetch-depth: ${{ inputs.version == 'dev' && '1' || '0' }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Recheck release order
-        if: inputs.version != 'dev'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.version }}

@@ -16,7 +16,9 @@ on:
         required: true
         type: string
       docs-digest:
-        required: true
+        description: Required for production; docs are deployed only on releases
+        required: false
+        default: ""
         type: string
     secrets:
       DEPLOY_SSH_KEY:
