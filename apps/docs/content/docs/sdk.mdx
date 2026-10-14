@@ -45,7 +45,7 @@ chat.dispose()
 
 `getSnapshot()` returns the messages, embed configuration, initialization and generation states, active tool calls, recovery status, and any error. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
 
-Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry a failed send, and `startNewChat()` to clear the current conversation and begin another. Disable sending while initialization, generation, recovery, or reset is active. If `retryAt` is present, wait until that time before retrying.
+Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a failed response, and `startNewChat()` to clear the current conversation and begin another.
 
 The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. `persistence: "memory"` means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
 
