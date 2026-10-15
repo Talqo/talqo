@@ -476,18 +476,23 @@ function EmbedDetailPage() {
 				<Card className="ring-destructive">
 					<CardHeader>
 						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
-						<CardDescription>{t("embedSetup.dangerDescription")}</CardDescription>
 					</CardHeader>
-					<CardContent className="flex flex-col items-start gap-3">
-						<div className="w-full space-y-2">
-							<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
-							<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
-							<div className="flex items-center gap-2">
-								<Input id="embed-token" value={embed.embedToken} readOnly className="font-mono" />
-								<RotateEmbedTokenDialog embedId={embedId} />
+					<CardContent className="divide-y">
+						<div className="flex flex-wrap items-center gap-3 pb-4">
+							<div className="min-w-60 flex-1 space-y-1">
+								<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
+								<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
+								<Input id="embed-token" value={embed.embedToken} readOnly className="mt-2 font-mono" />
 							</div>
+							<RotateEmbedTokenDialog embedId={embedId} />
 						</div>
-						<DeleteEmbedDialog embed={embed} />
+						<div className="flex flex-wrap items-center gap-3 pt-4">
+							<div className="min-w-60 flex-1 space-y-1">
+								<p className="text-sm font-medium">{t("embedSetup.deleteEmbed")}</p>
+								<p className="text-muted-foreground text-sm">{t("embedSetup.dangerDescription")}</p>
+							</div>
+							<DeleteEmbedDialog embed={embed} />
+						</div>
 					</CardContent>
 				</Card>
 			)}
