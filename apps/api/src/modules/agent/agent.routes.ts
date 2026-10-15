@@ -1,4 +1,3 @@
-import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
@@ -26,58 +25,18 @@ export const agentRoutes = new OpenAPIHono()
 		)
 	})
 	.openapi(createAgentRoute, async (c) => {
-		try {
-			const agent = await service.createAgent(c.req.valid("json"))
-			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
-		} catch (error) {
-			if (error instanceof service.InvalidAgentInputError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof service.DuplicateAgentNameError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		const agent = await service.createAgent(c.req.valid("json"))
+		return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getAgentRoute, async (c) => {
-		try {
-			const agent = await service.getAgent(c.req.valid("param").agentId)
-			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
-		} catch (error) {
-			if (error instanceof service.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			throw error
-		}
+		const agent = await service.getAgent(c.req.valid("param").agentId)
+		return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 	})
 	.openapi(updateAgentRoute, async (c) => {
-		try {
-			const agent = await service.updateAgent(c.req.valid("param").agentId, c.req.valid("json"))
-			return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
-		} catch (error) {
-			if (error instanceof service.InvalidAgentInputError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_INVALID, HTTP_STATUS.BAD_REQUEST)
-			}
-			if (error instanceof service.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof service.DuplicateAgentNameError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		const agent = await service.updateAgent(c.req.valid("param").agentId, c.req.valid("json"))
+		return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.OK)
 	})
 	.openapi(deleteAgentRoute, async (c) => {
-		try {
-			await service.deleteAgent(c.req.valid("param").agentId)
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof service.AgentNotFoundError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			}
-			if (error instanceof service.AgentInUseError) {
-				return problemResponse(c, PROBLEM_CODES.AGENT_IN_USE, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		await service.deleteAgent(c.req.valid("param").agentId)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})

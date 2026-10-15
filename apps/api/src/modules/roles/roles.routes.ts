@@ -1,7 +1,6 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
@@ -38,19 +37,11 @@ export const rolesRoutes = new OpenAPIHono()
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
 	})
 	.openapi(bootstrapAdminRoute, async (c) => {
-		try {
-			const user = await service.bootstrapAdmin(c.req.valid("json"))
-			// Set the session now: the setup page lands signed in without a second login round-trip.
-			const { token, expiresAt } = await identity.createSession(user.id)
-			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
-			return c.json(bootstrapAdminResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
-		} catch (error) {
-			if (error instanceof service.AdminAlreadyExistsError) {
-				return problemResponse(c, PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT)
-			}
-			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
-			throw error
-		}
+		const user = await service.bootstrapAdmin(c.req.valid("json"))
+		// Set the session now: the setup page lands signed in without a second login round-trip.
+		const { token, expiresAt } = await identity.createSession(user.id)
+		setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
+		return c.json(bootstrapAdminResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 	})
 
 const invitationRoutes = new OpenAPIHono()
@@ -63,37 +54,21 @@ const invitationRoutes = new OpenAPIHono()
 		)
 	})
 	.openapi(redeemInvitationRoute, async (c) => {
-		try {
-			const user = await service.redeemInvitation(c.req.valid("json"))
-			// Set the session now: accepting an invitation lands the member signed in.
-			const { token, expiresAt } = await identity.createSession(user.id)
-			setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
-			return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
-		} catch (error) {
-			if (error instanceof service.InvalidInvitationError) {
-				return problemResponse(c, PROBLEM_CODES.INVALID_INVITATION, HTTP_STATUS.CONFLICT)
-			}
-			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
-			throw error
-		}
+		const user = await service.redeemInvitation(c.req.valid("json"))
+		// Set the session now: accepting an invitation lands the member signed in.
+		const { token, expiresAt } = await identity.createSession(user.id)
+		setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
+		return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 	})
 
 const permissionGrantRoutes = new OpenAPIHono()
 	.openapi(createPermissionGrantRoute, async (c) => {
 		const user = c.get("user")
-		try {
-			const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
-			return c.json(
-				grantResponseSchema.parse({ grant: { ...grant, grantedAt: grant.grantedAt.toISOString() } }),
-				HTTP_STATUS.CREATED,
-			)
-		} catch (error) {
-			if (isForeignKeyViolation(error)) return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-			if (isUniqueViolation(error)) {
-				return problemResponse(c, PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
+		return c.json(
+			grantResponseSchema.parse({ grant: { ...grant, grantedAt: grant.grantedAt.toISOString() } }),
+			HTTP_STATUS.CREATED,
+		)
 	})
 	.openapi(revokePermissionGrantRoute, async (c) => {
 		await service.revokePermission(c.req.valid("param").id)
@@ -108,43 +83,30 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 	return c.json(myPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
 })
 
-rolesRoutes.openapi(getUsersRoute, async (c) => {
-	const users = await identity.listUsers()
-	return c.json(userListResponseSchema.parse({ users }), HTTP_STATUS.OK)
-})
+const userRoutes = new OpenAPIHono()
+	.openapi(getUsersRoute, async (c) => {
+		const users = await identity.listUsers()
+		return c.json(userListResponseSchema.parse({ users }), HTTP_STATUS.OK)
+	})
+	.openapi(resetUserPasswordRoute, async (c) => {
+		const user = c.get("user")
+		const targetUserId = c.req.valid("param").userId
+		if (targetUserId === user.id) {
+			return problemResponse(c, PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
+		}
 
-rolesRoutes.openapi(resetUserPasswordRoute, async (c) => {
-	const user = c.get("user")
-	const targetUserId = c.req.valid("param").userId
-	if (targetUserId === user.id) {
-		return problemResponse(c, PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
-	}
-
-	try {
 		await identity.setPassword(targetUserId, c.req.valid("json").newPassword)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
-	} catch (error) {
-		if (error instanceof identity.UserNotFoundError) {
-			return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+	})
+	.openapi(deleteUserRoute, async (c) => {
+		const user = c.get("user")
+		const targetUserId = c.req.valid("param").userId
+		if (targetUserId === user.id) {
+			return problemResponse(c, PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
 		}
-		throw error
-	}
-})
 
-rolesRoutes.openapi(deleteUserRoute, async (c) => {
-	const user = c.get("user")
-	const targetUserId = c.req.valid("param").userId
-	if (targetUserId === user.id) {
-		return problemResponse(c, PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
-	}
-
-	try {
 		await identity.deleteAccount(targetUserId)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
-	} catch (error) {
-		if (error instanceof identity.UserNotFoundError) {
-			return problemResponse(c, PROBLEM_CODES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-		}
-		throw error
-	}
-})
+	})
+
+rolesRoutes.route("/users", userRoutes)
