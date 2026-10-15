@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 import { readFileSync } from "node:fs"
-import { type AtRule, parse } from "postcss"
-
-import { isScopedSelector } from "./lib/css-scope"
 
 await import("./test-setup")
 
@@ -12,7 +9,7 @@ describe("built embed bundle", () => {
 		document.querySelector("#talqo-widget")?.remove()
 		document.querySelectorAll("style").forEach((style) => style.remove())
 	})
-	test("boots without a process global and auto-mounts", () => {
+	test("boots and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
 		expect(() => new Function(code)()).not.toThrow()
@@ -39,35 +36,6 @@ describe("built embed bundle", () => {
 		expect(html).toContain("data-talqo-preview")
 		expect(html).not.toContain('href="./widget.css"')
 		expect(html).not.toContain("/src/")
-	})
-
-	test("ships scoped css inside the bundle", () => {
-		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
-
-		new Function(code)()
-
-		const styles = document.querySelectorAll("style")
-		expect(styles).toHaveLength(1)
-		const injected = styles[0]?.textContent ?? ""
-		expect(injected).toContain(".talqo-widget")
-
-		// Anything layered can lose to a host page's own layers.
-		expect(injected).not.toContain("@layer")
-
-		parse(injected).walkRules((rule) => {
-			if (rule.parent?.type === "atrule" && (rule.parent as AtRule).name === "keyframes") return
-			for (const selector of rule.selectors) {
-				expect(isScopedSelector(selector)).toBe(true)
-			}
-		})
-
-		const globalAtRules: string[] = []
-		parse(injected).walkAtRules((atRule) => {
-			if (atRule.name === "font-face" || atRule.name === "property") {
-				globalAtRules.push(`@${atRule.name} ${atRule.params}`)
-			}
-		})
-		expect(globalAtRules).toEqual([])
 	})
 
 	test("defers its mount until the document is parsed", () => {

@@ -9,6 +9,9 @@ const openAiFetcher: ModelDiscoveryFetch = async () =>
 const googleFetcher: ModelDiscoveryFetch = async () =>
 	new Response(JSON.stringify({ models: [{ name: "models/gemini-2.5-flash" }] }))
 const unauthorizedFetcher: ModelDiscoveryFetch = async () => new Response("secret provider body", { status: 401 })
+const unreachableFetch: ModelDiscoveryFetch = async () => {
+	throw new Error("fetch must not be called for unsupported discovery")
+}
 
 describe("discoverModels", () => {
 	it("returns OpenAI model identifiers without classifying them", async () => {
@@ -99,17 +102,15 @@ describe("discoverModels", () => {
 	})
 
 	it("returns a stable unauthorized error without provider response details", async () => {
-		try {
-			await discoverModels(
-				{ providerId: "openai", authMode: "static", settings: {}, credentials: { apiKey: "sk-test" } },
-				unauthorizedFetcher,
-			)
-			expect.unreachable()
-		} catch (error) {
-			expect(error).toBeInstanceOf(ModelDiscoveryError)
-			expect((error as ModelDiscoveryError).code).toBe("unauthorized")
-			expect((error as Error).message).not.toContain("secret provider body")
-		}
+		const pending = discoverModels(
+			{ providerId: "openai", authMode: "static", settings: {}, credentials: { apiKey: "sk-test" } },
+			unauthorizedFetcher,
+		)
+
+		await expect(pending).rejects.toBeInstanceOf(ModelDiscoveryError)
+		const error = await pending.catch((cause: unknown) => cause)
+		expect((error as ModelDiscoveryError).code).toBe("unauthorized")
+		expect((error as Error).message).not.toContain("secret provider body")
 	})
 
 	it("reports unsupported discovery for Azure", async () => {
@@ -121,7 +122,7 @@ describe("discoverModels", () => {
 					settings: { baseURL: "https://example.openai.azure.com" },
 					credentials: { apiKey: "key" },
 				},
-				fetch,
+				unreachableFetch,
 			),
 		).rejects.toMatchObject({ code: "unsupported" })
 	})

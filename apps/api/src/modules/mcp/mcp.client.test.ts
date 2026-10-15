@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test"
 
-import { namespaceToolName, truncateResult } from "./mcp.client.ts"
-
-const PROVIDER_TOOL_NAME_MAX_LENGTH = 64
+import { namespaceToolName, TOOL_NAME_MAX_LENGTH, truncateResult } from "./mcp.client.ts"
+import { MAX_TOOL_RESULT_CHARACTERS } from "./mcp.types.ts"
 
 describe("namespaceToolName", () => {
 	it("keeps two servers offering the same tool name apart", () => {
@@ -17,7 +16,7 @@ describe("namespaceToolName", () => {
 	it("keeps the whole name within the provider limit, hash included", () => {
 		const name = namespaceToolName("s".repeat(40), "t".repeat(40))
 
-		expect(name.length).toBeLessThanOrEqual(PROVIDER_TOOL_NAME_MAX_LENGTH)
+		expect(name.length).toBeLessThanOrEqual(TOOL_NAME_MAX_LENGTH)
 		expect(name).toContain("_")
 	})
 
@@ -53,16 +52,18 @@ describe("truncateResult", () => {
 	})
 
 	it("marks truncation once across several over-budget text parts", () => {
+		// Every part shares one prod budget (MAX_TOOL_RESULT_CHARACTERS=8000 in mcp.types.ts).
+		const overBudget = MAX_TOOL_RESULT_CHARACTERS + 1_000
 		const out = truncateResult({
 			content: [
-				{ type: "text", text: "a".repeat(9_000) },
-				{ type: "text", text: "b".repeat(9_000) },
+				{ type: "text", text: "a".repeat(overBudget) },
+				{ type: "text", text: "b".repeat(overBudget) },
 			],
 		}) as {
 			content: { text: string }[]
 		}
 		const markers = out.content.filter((part) => part.text.includes("truncated")).length
 		expect(markers).toBe(1)
-		expect(JSON.stringify(out).length).toBeLessThan(8_200)
+		expect(JSON.stringify(out).length).toBeLessThan(MAX_TOOL_RESULT_CHARACTERS + 200)
 	})
 })

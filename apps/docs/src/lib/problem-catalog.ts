@@ -1,5 +1,7 @@
+import type { ProblemCode } from "@talqo/shared/problem-codes"
+
 export type ProblemDefinition = {
-	code: string
+	code: ProblemCode
 	guidance: string
 	meaning: string
 	status: string
@@ -352,3 +354,10 @@ export const PROBLEMS = [
 		guidance: "Choose a unique username.",
 	},
 ] satisfies readonly ProblemDefinition[]
+
+type UndocumentedCode = Exclude<ProblemCode, (typeof PROBLEMS)[number]["code"]>
+
+// Every problem code the API can emit needs a docs entry. This fails typecheck
+// (instead of a test) when a code is added without documenting it.
+const allCodesDocumented: Record<UndocumentedCode, never> = {}
+void allCodesDocumented

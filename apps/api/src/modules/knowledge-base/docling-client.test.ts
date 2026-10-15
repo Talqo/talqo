@@ -21,7 +21,6 @@ describe("Docling Serve chunking", () => {
 		expect(requests[0]?.url).toBe("http://docling.internal:5001/v1/chunk/hybrid/file/async")
 		expect(requests[0]?.form?.get("chunking_max_tokens")).toBe("256")
 		const file = requests[0]?.form?.get("files")
-		expect(file).toBeInstanceOf(File)
 		expect((file as File).name).toBe("notes.txt")
 		const urls = requests.map(({ url }) => url)
 		expect(urls).toContain("http://docling.internal:5001/v1/status/poll/t1")

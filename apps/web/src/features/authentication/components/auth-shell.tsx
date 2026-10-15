@@ -26,8 +26,8 @@ export function AuthShell({ children, description, title }: AuthShellProps) {
 				</div>
 				<Card className="shadow-sm">
 					<CardHeader className="text-center">
-						<CardTitle>
-							<h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+						<CardTitle level={1} className="text-2xl font-semibold tracking-tight">
+							{title}
 						</CardTitle>
 						{description ? <CardDescription>{description}</CardDescription> : null}
 					</CardHeader>

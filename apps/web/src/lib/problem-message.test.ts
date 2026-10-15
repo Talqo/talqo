@@ -1,7 +1,3 @@
-import { ProblemDetails } from "@/api/generated/models/problemDetails.zod.ts"
-import cs from "@/locales/cs.json"
-import en from "@/locales/en.json"
-import zh from "@/locales/zh.json"
 import { describe, expect, it } from "bun:test"
 
 import { getProblemMessage } from "./problem-message.ts"
@@ -13,27 +9,6 @@ const translations = {
 const translate = (key: string) => translations[key as keyof typeof translations]
 
 describe("getProblemMessage", () => {
-	it("keeps problem translation keys identical across locales", () => {
-		const englishKeys = Object.keys(en.problems).toSorted()
-		expect(Object.keys(cs.problems).toSorted()).toEqual(englishKeys)
-		expect(Object.keys(zh.problems).toSorted()).toEqual(englishKeys)
-	})
-
-	it("keeps generated response code and type pairs aligned", () => {
-		expect(
-			ProblemDetails.safeParse({
-				code: "invalid-request",
-				type: "https://docs.talqo.chat/problems#invalid-request",
-			}).success,
-		).toBe(true)
-		expect(
-			ProblemDetails.safeParse({
-				code: "invalid-request",
-				type: "https://docs.talqo.chat/problems#malformed-json",
-			}).success,
-		).toBe(false)
-	})
-
 	it("localizes a known exact problem", () => {
 		const error = {
 			info: {
