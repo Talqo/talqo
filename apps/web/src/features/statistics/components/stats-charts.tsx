@@ -134,7 +134,12 @@ function MetricChart({
 					width={48}
 				/>
 				<Tooltip
-					labelFormatter={(axisLabel) => formatHistoryDate(language, String(axisLabel))}
+					labelFormatter={(axisLabel) =>
+						formatHistoryDate(
+							language,
+							typeof axisLabel === "string" ? axisLabel : typeof axisLabel === "number" ? String(axisLabel) : "",
+						)
+					}
 					// The aggregated total always leads the tooltip, above the per-agent entries.
 					itemSorter={(item) => (item.dataKey === "total" ? 0 : 1)}
 					contentStyle={{

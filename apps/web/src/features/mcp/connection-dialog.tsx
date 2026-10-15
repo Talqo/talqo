@@ -150,9 +150,12 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="mcp-transport">{t("mcp.kind")}</Label>
-						<Select
+						<Select<ConnectionDraft["transport"]>
 							value={draft.transport}
-							onValueChange={(value) => set({ transport: value as ConnectionDraft["transport"] })}
+							onValueChange={(value) => {
+								if (value === null) return
+								set({ transport: value })
+							}}
 						>
 							<SelectTrigger id="mcp-transport" className="w-full">
 								<SelectValue />
@@ -178,13 +181,16 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							</div>
 							<div className="space-y-2">
 								<Label htmlFor="mcp-auth">{t("mcp.authMethod")}</Label>
-								<Select
+								<Select<ConnectionDraft["authMode"]>
 									value={draft.authMode}
 									items={{
 										none: t("mcp.authNone"),
 										headers: t("mcp.authHeaders"),
 									}}
-									onValueChange={(value) => set({ authMode: value as ConnectionDraft["authMode"] })}
+									onValueChange={(value) => {
+										if (value === null) return
+										set({ authMode: value })
+									}}
 								>
 									<SelectTrigger id="mcp-auth" className="w-full">
 										<SelectValue />

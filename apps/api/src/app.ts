@@ -30,6 +30,7 @@ export const app = new OpenAPIHono<{ Bindings: ChatBindings }>({
 		if (!result.success) {
 			return problemResponse(context, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
 		}
+		return undefined
 	},
 })
 
@@ -90,7 +91,7 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 	if ("getResponse" in error && typeof error.getResponse === "function") {
 		let response: unknown
 		try {
-			response = error.getResponse()
+			response = (error.getResponse as () => unknown)()
 		} catch (responseError) {
 			console.error(responseError)
 			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)

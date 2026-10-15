@@ -601,7 +601,7 @@ export function EmbeddedWidget({
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
 	useEffect(() => {
-		i18n.changeLanguage(resolved.language)
+		void i18n.changeLanguage(resolved.language)
 	}, [i18n, resolved.language])
 
 	return (
@@ -665,7 +665,7 @@ function ConnectedWidgetContent({
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
 	useEffect(() => {
-		i18n.changeLanguage(resolved.language)
+		void i18n.changeLanguage(resolved.language)
 	}, [i18n, resolved.language])
 
 	return (

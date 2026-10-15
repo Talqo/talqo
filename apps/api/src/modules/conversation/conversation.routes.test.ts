@@ -71,7 +71,8 @@ describe("public conversation routes", () => {
 		const body = await response.text()
 		expect(body).toContain("event: chat")
 		expect(parseEvents(body).map((event) => event.type)).toEqual(["accepted", "delta", "terminal"])
-		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, networkHash: expect.any(String), embedToken: "embed" })
+		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, embedToken: "embed" })
+		expect(typeof (calls[0] as { networkHash?: unknown } | undefined)?.networkHash).toBe("string")
 	})
 
 	it("requires a bearer credential for POST /chat/embed/messages", async () => {

@@ -60,6 +60,12 @@ jobs:
           persist-credentials: false
       - name: Set up Bun dependencies
         uses: ./.github/actions/setup-bun
+      - name: Restore Knip cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/knip
+          key: knip-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}-${{ github.run_id }}
+          restore-keys: knip-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}-
       - name: Detect dead code
         run: bun run knip
 
