@@ -1,3 +1,4 @@
+import { handleError } from "@/app.ts"
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
@@ -52,6 +53,7 @@ function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") 
 		"/chat",
 		createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
 	)
+	app.onError(handleError)
 	return { app, calls }
 }
 

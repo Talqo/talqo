@@ -3,16 +3,34 @@ export const SYSTEM_PROMPT_MAX_LENGTH = 20_000
 export const BLACKLIST_WORD_MAX_LENGTH = 100
 export const BLACKLIST_MAX_WORDS = 100
 
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
 
-export class InvalidAgentInputError extends Error {}
-export class AgentNotFoundError extends Error {}
-export class DuplicateAgentNameError extends Error {}
-export class AgentInUseError extends Error {}
+export class InvalidAgentInputError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_INVALID, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+export class AgentNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+class DuplicateAgentNameError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class AgentInUseError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_IN_USE, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
 
 function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 	return {
