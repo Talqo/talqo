@@ -158,17 +158,17 @@ export class DuplicateRoleNameError extends ApiError {
 		super(PROBLEM_CODES.ROLE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
-export class PermissionDeniedError extends ApiError {
+class PermissionDeniedError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
 	}
 }
-export class PermissionExceedsOwnError extends ApiError {
+class PermissionExceedsOwnError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PERMISSION_EXCEEDS_OWN, HTTP_STATUS.FORBIDDEN, message, undefined, options)
 	}
 }
-export class PasswordChangeRequiredError extends ApiError {
+class PasswordChangeRequiredError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
 	}

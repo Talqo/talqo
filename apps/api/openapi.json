@@ -3121,6 +3121,186 @@
 				}
 			}
 		},
+		"/api/users/{userId}/password": {
+			"patch": {
+				"operationId": "resetUserPassword",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "userId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"newPassword": {
+										"type": "string",
+										"minLength": 8,
+										"maxLength": 128
+									}
+								},
+								"required": ["newPassword"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json, self-password-reset-not-allowed.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: user-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/users/{userId}": {
+			"delete": {
+				"operationId": "deleteUser",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "userId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"400": {
+						"description": "Problem response. Codes: self-delete-not-allowed.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: user-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/api/permissions": {
 			"get": {
 				"operationId": "listGrantablePermissions",
@@ -3705,186 +3885,6 @@
 					},
 					"413": {
 						"description": "Problem response. Codes: payload-too-large.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/users/{userId}/password": {
-			"patch": {
-				"operationId": "resetUserPassword",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "userId",
-						"in": "path"
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"newPassword": {
-										"type": "string",
-										"minLength": 8,
-										"maxLength": 128
-									}
-								},
-								"required": ["newPassword"]
-							}
-						}
-					}
-				},
-				"responses": {
-					"204": {
-						"description": "No content"
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json, self-password-reset-not-allowed.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: user-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Problem response. Codes: payload-too-large.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/users/{userId}": {
-			"delete": {
-				"operationId": "deleteUser",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "userId",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"204": {
-						"description": "No content"
-					},
-					"400": {
-						"description": "Problem response. Codes: self-delete-not-allowed.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: user-not-found.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
