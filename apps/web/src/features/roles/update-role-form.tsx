@@ -51,7 +51,7 @@ export function UpdateRoleForm({
 		handleSubmit,
 		reset,
 		setValue,
-		formState: { errors, isDirty },
+		formState: { errors, isDirty, isValid },
 	} = useForm<RoleFormValues>({
 		resolver: zodResolver(roleFormSchema),
 		defaultValues: toRoleFormValues(role),
@@ -190,7 +190,7 @@ export function UpdateRoleForm({
 											{t("roles.discard")}
 										</Button>
 									) : null}
-									<Button type="submit" disabled={isSaving || !isDirty}>
+									<Button type="submit" disabled={isSaving || !isDirty || !isValid}>
 										{isSaving ? t("roles.saving") : t("roles.save")}
 									</Button>
 								</div>

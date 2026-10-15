@@ -54,7 +54,7 @@ export function RolesPage() {
 					) : null
 				}
 			/>
-			<ProblemAlert error={createRole.error} />
+			{!forbidden ? <ProblemAlert error={createRole.error} /> : null}
 			{forbidden ? (
 				<AccessDenied />
 			) : rolesQuery.isPending ? (

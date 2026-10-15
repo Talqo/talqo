@@ -236,6 +236,18 @@ describe("role management", () => {
 		expect(queryButton(t("roles.create"), host)).toBeUndefined()
 	})
 
+	test("hides a lingering creation error once access is denied", async () => {
+		createFailure = json({ code: "role-name-taken", type: "https://docs.talqo.chat/problems#role-name-taken" }, 409)
+		await renderPage()
+		await click(button(t("roles.create")))
+		expect(host.textContent).toContain(t("problems.role-name-taken"))
+		rolesFailure = json({ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" }, 403)
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
+		expect(host.textContent).not.toContain(t("problems.role-name-taken"))
+	})
+
 	test("waits for the operator roles before offering changes that may lock them out", async () => {
 		myPermissions = ["roles:manage", "users:read"]
 		myRoleIds = ["managers"]
@@ -378,6 +390,15 @@ describe("role management", () => {
 		await save()
 		expect(nameInput().value).toBe("Draft")
 		expect(host.textContent).toContain(t("problems.role-name-taken"))
+	})
+
+	test("disables saving while the name is invalid", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+		await type(nameInput(), "")
+		await save()
+		expect(button(t("roles.save"), host).disabled).toBe(true)
+		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 
 	test("warns before an operator removes their only way to manage roles", async () => {
