@@ -311,7 +311,7 @@
 		"createEmbed": "New embed",
 		"createError": "Could not create the embed. Try again.",
 		"creating": "Creating…",
-		"dangerDescription": "Deleting an embed permanently disables its installed widget snippet and cannot be undone.",
+		"dangerDescription": "Deleting the embed permanently disables its installed widget snippet and cannot be undone.",
 		"dangerZone": "Danger zone",
 		"defaultName": "AI Assistant",
 		"deleteConfirm": "Delete permanently",

@@ -265,6 +265,41 @@ describe("mcp server lifecycle", () => {
 		expect(Object.keys(row?.headers ?? {})).toEqual(["X-API-Key"])
 	})
 
+	it("switches a connection from http to stdio and back", async () => {
+		const agentId = await createAgent()
+		const created = await service.createServer(agentId, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "none",
+		})
+
+		const switched = await service.updateServer(agentId, created.id, {
+			name: "Stock",
+			transport: "stdio",
+			command: "talqo-does-not-exist",
+			args: ["-la"],
+			expectedRevision: created.revision,
+		})
+
+		expect(switched.transport).toBe("stdio")
+		expect(switched.command).toBe("talqo-does-not-exist")
+		expect(switched.url).toBeNull()
+		expect(switched.authMode).toBeNull()
+
+		const restored = await service.updateServer(agentId, created.id, {
+			name: "Stock",
+			transport: "http",
+			url: UNREACHABLE_URL,
+			authMode: "none",
+			expectedRevision: switched.revision,
+		})
+
+		expect(restored.transport).toBe("http")
+		expect(restored.url).toBe(UNREACHABLE_URL)
+		expect(restored.command).toBeNull()
+	})
+
 	it("applies a tool toggle sent through the update route", async () => {
 		const agentId = await createAgent()
 		const manager = await memberSession(["agents:manage"])
