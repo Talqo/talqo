@@ -7,9 +7,9 @@ import type {
 	ChatMessage,
 	ChatSnapshot,
 	SessionState,
-} from "./types"
+} from "./types.ts"
 
-import { ChatTransportError, createFetchChatTransport } from "./fetch-transport"
+import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
@@ -17,7 +17,7 @@ import {
 	createResilientStorage,
 	readChatStorageRecord,
 	type ChatStorageRecord,
-} from "./storage"
+} from "./storage.ts"
 
 const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000

@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-prod
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release tag
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag and source
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: bash scripts/release.sh validate "${RELEASE_TAG#v}"
+
+  checks:
+    name: Release checks
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    with:
+      e2e: true
+
+  images:
+    name: Publish release images
+    needs: [validate, checks]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
+    with:
+      ref: ${{ github.sha }}
+      version: ${{ needs.validate.outputs.version }}
+
+  sdk:
+    name: Publish SDK
+    needs: [validate, deploy]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Bun dependencies
+        uses: ./.github/actions/setup-bun
+      - name: Pack release SDK
+        id: pack
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: bun run pack:sdk "$RELEASE_VERSION"
+      - name: Set up npm publishing runtime
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.11.1"
+          package-manager-cache: false
+      - name: Publish SDK to npm
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SDK_TARBALL: ${{ steps.pack.outputs.tarball }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          npm publish "$SDK_TARBALL" --ignore-scripts --access public
+
+  deploy:
+    name: Deploy production
+    needs: [validate, images]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ github.sha }}
+      environment: prod
+      version: ${{ needs.validate.outputs.version }}
+      talqo-digest: ${{ needs.images.outputs.talqo-digest }}
+      docs-digest: ${{ needs.images.outputs.docs-digest }}
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+
+  promote:
+    name: Promote stable aliases
+    needs: [validate, sdk, images]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Promote verified images to latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          TALQO_DIGEST: ${{ needs.images.outputs.talqo-digest }}
+          DOCS_DIGEST: ${{ needs.images.outputs.docs-digest }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          owner=${GITHUB_REPOSITORY%%/*}
+          owner=${owner,,}
+          docker buildx imagetools create --prefer-index=false \
+            --tag "ghcr.io/$owner/talqo:latest" "ghcr.io/$owner/talqo@$TALQO_DIGEST"
+          docker buildx imagetools create --prefer-index=false \
+            --tag "ghcr.io/$owner/talqo-docs:latest" "ghcr.io/$owner/talqo-docs@$DOCS_DIGEST"
+
+  release:
+    name: Create GitHub release
+    needs: [validate, promote]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          bash scripts/release.sh validate "$RELEASE_VERSION"
+          gh release create "v$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "Talqo $RELEASE_VERSION"

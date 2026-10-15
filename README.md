@@ -12,6 +12,7 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 | `apps/docs` | Public documentation application |
 | `apps/e2e` | Playwright cross-system browser tests |
 | `packages/ui` | Shared presentation components and styles |
+| `packages/sdk` | Headless browser chat SDK and npm distribution |
 | `packages/typescript-config` | Shared TypeScript configuration |
 
 ## Setup

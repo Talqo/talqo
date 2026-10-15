@@ -14,6 +14,8 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 
 FROM oven/bun:1.4.2-slim AS runtime
 
+LABEL org.opencontainers.image.source="https://github.com/Talqo/talqo"
+
 WORKDIR /app
 
 ENV NODE_ENV=production \
