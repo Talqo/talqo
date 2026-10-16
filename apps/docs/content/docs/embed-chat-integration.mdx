@@ -13,19 +13,22 @@ Create an embed in the dashboard and use the generated snippet. Its canonical sh
 
 ```html
 <script
+	async
 	src="https://your-widget-host/widget.js"
 	data-talqo-embed-token="your-embed-token"
 	data-talqo-api="https://your-talqo-api"
 ></script>
 ```
 
-Omit `data-talqo-api` when `widget.js` and the API share an origin. New integrations use `data-talqo-embed-token`. Existing `data-talqo-widget` snippets and `/api/widget-config/:token` configuration requests remain compatibility paths, but agent-level embed tokens are not supported.
+Keep `async`, so the widget never delays the host page's own content. Omit `data-talqo-api` when `widget.js` and the API share an origin.
 
 Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
 
 ## Chat behavior
 
-Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge or create embeddings. If an agent has tools connections enabled, chat calls them and the widget shows the activity; see [connecting an MCP server](/docs/mcp-connections). Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
+Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge or create embeddings. If an agent has tools connections enabled, chat calls them and the widget shows the activity; see [connecting an MCP server](/mcp-connections). Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
+
+While no text model is configured, the loaded configuration reports `isAvailable: false`. The widget greys out its launcher and disables the message box. A custom SDK UI should read `snapshot.configuration.isAvailable` to show the same state. `sendMessage` rejects with a `ChatClientError` whose code is `chat-unavailable` and does not set `snapshot.error`.
 
 Streaming uses versioned JSON events in SSE framing over a POST response consumed with fetch. It is not browser `EventSource`. Session history and subsequent sends require the private bearer credential; the public embed token alone cannot read a conversation.
 
@@ -33,7 +36,7 @@ Streaming uses versioned JSON events in SSE framing over a POST response consume
 
 The API enforces a daily accepted-question allowance and concurrent-generation cap independently for each agent and normalized client network. All embeds and sessions for that agent share the network allowance. This is not a billing quota, token allowance, deployment-wide pool, DDoS defense, or reliable count of people.
 
-Address normalization, trusted proxies, and IPv6 grouping trade-offs are documented in [Deployment](/docs/deployment).
+Address normalization, trusted proxies, and IPv6 grouping trade-offs are documented in [Deployment](/deployment).
 
 ## Rotation, retention, and deletion
 

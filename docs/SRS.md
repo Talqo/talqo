@@ -98,6 +98,8 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.9 | An authorized operator must configure text and embedding providers, required endpoints, authentication sources, and model identifiers before the agent can respond to end users | High | In progress (embedding-provider precondition pending) |
 | FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
+| FR-2.9b | While no usable text provider is configured, the widget, the dashboard preview, and custom SDK UIs show that chat is unavailable and block sending | High | Done |
+| FR-2.9c | Operators who can manage the provider see a setup prompt on the dashboard home and Agents pages while the AI provider configuration is missing or unusable, and an error prompt when it cannot be checked | High | Done |
 
 #### 3.2.3 Agent configuration (FR-2c)
 
@@ -135,8 +137,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | In progress (mock statistics) |
-| FR-2.26 | Dashboard displays the total number of end-user questions over time | Medium | In progress (mock statistics; charts total messages) |
+| FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | Done |
+| FR-2.26 | Dashboard displays the total number of end-user messages over time | Medium | Done |
 | FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |
@@ -162,7 +164,7 @@ Talqo is related to these repos:
 |----|-------------|-------|----------|------------|
 | NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | In progress (built widget.js self-mounts from a script tag) |
 | NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app uses Fumadocs | High | In progress (AI provider configuration reference added) |
-| NFR-1.3 | Each deployable component (API, dashboard, docs) ships a working Dockerfile producing a runnable container image | Deployment orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | Not started |
+| NFR-1.3 | API, dashboard, and widget ship in one container image; docs ships its own image | Orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | In progress |
 | NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
 | NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
 | NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection and `APP_SECRET` are supplied via environment variables at deploy time and validated at startup | High | In progress (AI provider configuration done) |

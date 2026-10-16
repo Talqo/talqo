@@ -16,7 +16,7 @@ export function buildEmbedSnippet(scriptUrl: string, config: EmbedConfig): strin
 		`data-talqo-embed-token="${escapeAttribute(config.embedToken)}"`,
 		config.apiOrigin ? `data-talqo-api="${escapeAttribute(config.apiOrigin)}"` : undefined,
 	].filter((attribute): attribute is string => typeof attribute === "string")
-	return ["<script", ...attributes.map((attribute) => `  ${attribute}`), "></script>"].join("\n")
+	return ["<script async", ...attributes.map((attribute) => `  ${attribute}`), "></script>"].join("\n")
 }
 
 /** The widget defaults to its own script origin, so the attribute is for split deployments only. */

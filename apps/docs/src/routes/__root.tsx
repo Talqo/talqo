@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
+import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router"
 import { RootProvider } from "fumadocs-ui/provider/tanstack"
 
 import "@/styles/app.css"
@@ -14,7 +14,23 @@ export const Route = createRootRoute({
 		],
 	}),
 	component: Root,
+	notFoundComponent: NotFound,
 })
+
+function NotFound() {
+	return (
+		<main className="mx-auto max-w-3xl px-6 py-12">
+			<h1 className="text-3xl font-semibold">Page not found</h1>
+			<p className="text-fd-muted-foreground mt-3">
+				That address does not exist. Start from the{" "}
+				<Link to="/$" params={{ _splat: "" }}>
+					documentation index
+				</Link>
+				.
+			</p>
+		</main>
+	)
+}
 
 function Root() {
 	return (

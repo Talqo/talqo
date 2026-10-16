@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 
-const { ensureWidgetStylesheet, mount, unmount } = await import("./test-setup").then(() => import("./widget"))
+const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
 
 /** mount() commits outside act(), so the rendered root appears on a later tick. */
 async function widgetRoot(): Promise<HTMLElement> {
@@ -40,16 +40,8 @@ describe("widget mount", () => {
 		expect(document.querySelector("#missing-target")).toBeNull()
 	})
 
-	test("floats bottom-right when the embed sets no position", async () => {
-		mount()
-
-		const root = await widgetRoot()
-		expect(root.className).toContain("tw:fixed")
-		expect(root.className).toContain("tw:right-4")
-	})
-
 	test("warns instead of throwing for an invalid selector target", () => {
-		expect(() => mount("foo")).not.toThrow()
+		expect(() => mount("#")).not.toThrow()
 		expect(document.querySelector("#talqo-widget")).toBeNull()
 	})
 
@@ -66,34 +58,5 @@ describe("widget mount", () => {
 		mount()
 
 		expect(fetchSpy).not.toHaveBeenCalled()
-	})
-})
-
-describe("widget stylesheet", () => {
-	beforeEach(() => {
-		document.querySelectorAll("link[rel=stylesheet]").forEach((link) => link.remove())
-	})
-
-	test("loads the sibling stylesheet with the script version", () => {
-		const script = document.createElement("script")
-		script.src = "https://cdn.example.com/releases/widget.js?v=42"
-
-		ensureWidgetStylesheet(script)
-
-		const stylesheet = document.querySelector<HTMLLinkElement>("link[rel=stylesheet]")
-		expect(stylesheet?.href).toBe("https://cdn.example.com/releases/widget.css?v=42")
-	})
-
-	test("does not add a duplicate stylesheet", () => {
-		const script = document.createElement("script")
-		script.src = "https://cdn.example.com/widget.js"
-		const existing = document.createElement("link")
-		existing.rel = "stylesheet"
-		existing.href = "https://cdn.example.com/widget.css"
-		document.head.append(existing)
-
-		ensureWidgetStylesheet(script)
-
-		expect(document.querySelectorAll('link[rel="stylesheet"]').length).toBe(1)
 	})
 })

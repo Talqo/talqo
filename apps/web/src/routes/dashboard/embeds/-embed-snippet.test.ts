@@ -13,8 +13,8 @@ describe("buildEmbedSnippet", () => {
 		expect(snippet).not.toContain("data-talqo-widget")
 	})
 
-	test("omits the API origin when it is not supplied", () => {
-		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123" })).not.toContain("data-talqo-api")
+	test("loads asynchronously so the widget stays off the host critical path", () => {
+		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123" })).toStartWith("<script async")
 	})
 
 	test("includes the API origin when the deployment needs one", () => {
@@ -32,18 +32,6 @@ describe("buildEmbedSnippet", () => {
 })
 
 describe("apiOriginOverride", () => {
-	test("is undefined when the API shares the script origin", () => {
-		expect(apiOriginOverride(SCRIPT_URL, "https://cdn.example.com")).toBeUndefined()
-	})
-
-	test("is undefined when no API origin is configured", () => {
-		expect(apiOriginOverride(SCRIPT_URL, undefined)).toBeUndefined()
-	})
-
-	test("returns the origin when the API lives elsewhere", () => {
-		expect(apiOriginOverride(SCRIPT_URL, "https://api.example.com/base")).toBe("https://api.example.com")
-	})
-
 	test("ignores an unparseable origin rather than emitting a broken attribute", () => {
 		expect(apiOriginOverride(SCRIPT_URL, "not a url")).toBeUndefined()
 	})

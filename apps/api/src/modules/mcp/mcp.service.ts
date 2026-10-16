@@ -1,6 +1,8 @@
 import type { CredentialSecretMap } from "@/lib/credential-vault.ts"
 
 import { env } from "@/config/env.ts"
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 
@@ -25,12 +27,36 @@ const KEY_CONTEXT = "talqo:mcp-credentials:v1"
 const RESERVED_HEADER_PREFIX = "mcp-"
 const URL_SCHEMES = new Set(["http:", "https:"])
 
-export class McpServerNotFoundError extends Error {}
-export class DuplicateMcpServerNameError extends Error {}
-export class UnknownAgentError extends Error {}
-export class RevisionConflictError extends Error {}
-export class InvalidMcpServerError extends Error {}
-export class InvalidMcpServerNameError extends Error {}
+class McpServerNotFoundError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.MCP_SERVER_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class DuplicateMcpServerNameError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.DUPLICATE_MCP_SERVER_NAME, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+class UnknownAgentError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
+	}
+}
+export class RevisionConflictError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.CONFIGURATION_CONFLICT, HTTP_STATUS.CONFLICT, message, undefined, options)
+	}
+}
+export class InvalidMcpServerError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_MCP_SERVER_URL, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
+export class InvalidMcpServerNameError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.INVALID_MCP_SERVER_NAME, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
+	}
+}
 
 /** The open connection that conversation holds for one generation. */
 export type OpenTools = OpenToolsResult

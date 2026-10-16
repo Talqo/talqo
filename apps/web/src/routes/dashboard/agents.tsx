@@ -3,6 +3,7 @@ import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { AgentCardSummary } from "@/features/agents/agent-card-summary"
 import { nextDefaultAgentName } from "@/features/agents/default-agent-name"
+import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
@@ -70,6 +71,8 @@ function AgentsPage() {
 					) : undefined
 				}
 			/>
+
+			<ProviderNoticeBanner />
 
 			{createError && (
 				<p role="alert" className="text-destructive text-sm">

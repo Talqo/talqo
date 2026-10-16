@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, it } from "bun:test"
 import { Hono } from "hono"
 
 import { rejectMalformedJson, rejectOversizedBody } from "./json-body.ts"
@@ -17,7 +17,7 @@ function app() {
 
 // JSON-legally escaped: two \uXXXX surrogates encode one astral code point in 12 bytes.
 function escapedChatBody(escapePairs: number) {
-	const body = `{"requestId":"${crypto.randomUUID()}","text":"${"\\ud83d\\ude00".repeat(escapePairs)}"}`
+	const body = `{"requestId":"123e4567-e89b-12d3-a456-426614174000","text":"${"\\ud83d\\ude00".repeat(escapePairs)}"}`
 	return {
 		body,
 		headers: { "Content-Type": "application/json", "Content-Length": String(body.length) },
@@ -26,32 +26,32 @@ function escapedChatBody(escapePairs: number) {
 }
 
 describe("rejectOversizedBody", () => {
-	test("accepts a fully escaped chat message at the advertised allowance", async () => {
+	it("accepts a fully escaped chat message at the advertised allowance", async () => {
 		const response = await app().fetch(
 			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS)),
 		)
 		expect(response.status).toBe(200)
 	})
 
-	test("rejects a chat body beyond the transport ceiling", async () => {
+	it("rejects a chat body beyond the transport ceiling", async () => {
 		const response = await app().fetch(
 			new Request("http://localhost/api/chat/embed/messages", escapedChatBody(CHAT_LIMIT_CODE_POINTS + 1_000)),
 		)
 		expect(response.status).toBe(413)
 	})
 
-	test("keeps the default body limit on non-chat routes", async () => {
-		for (const size of [1_024, DEFAULT_LIMIT]) {
-			const payload = JSON.stringify({ name: "a".repeat(size) })
-			// oxlint-disable-next-line no-await-in-loop -- statuses are asserted per size.
-			const response = await app().fetch(
-				new Request("http://localhost/api/agents", {
-					body: payload,
-					headers: { "Content-Type": "application/json", "Content-Length": String(payload.length) },
-					method: "POST",
-				}),
-			)
-			expect(response.status).toBe(size < DEFAULT_LIMIT ? 200 : 413)
-		}
+	it.each([
+		[1_024, 200],
+		[DEFAULT_LIMIT, 413],
+	])("keeps the default body limit on non-chat routes (%i bytes -> %i)", async (size, status) => {
+		const payload = JSON.stringify({ name: "a".repeat(size) })
+		const response = await app().fetch(
+			new Request("http://localhost/api/agents", {
+				body: payload,
+				headers: { "Content-Type": "application/json", "Content-Length": String(payload.length) },
+				method: "POST",
+			}),
+		)
+		expect(response.status).toBe(status)
 	})
 })

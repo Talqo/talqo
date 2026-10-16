@@ -1,5 +1,7 @@
+import type { ProblemCode } from "@talqo/shared/problem-codes"
+
 export type ProblemDefinition = {
-	code: string
+	code: ProblemCode
 	guidance: string
 	meaning: string
 	status: string
@@ -41,6 +43,13 @@ export const PROBLEMS = [
 		status: "404",
 		meaning: "The requested file does not exist for this agent.",
 		guidance: "Refresh the file list and use an existing name.",
+	},
+	{
+		code: "agent-file-not-retryable",
+		title: "Agent file cannot be retried",
+		status: "409",
+		meaning: "The file is not in a failed state, so there is nothing to retry.",
+		guidance: "Retry only files whose conversion failed.",
 	},
 	{
 		code: "agent-invalid",
@@ -190,18 +199,18 @@ export const PROBLEMS = [
 		guidance: "Pick a different name; names only need to be unique within one agent.",
 	},
 	{
+		code: "invalid-mcp-server-name",
+		title: "Connection name not accepted",
+		status: "400",
+		meaning: "The connection name is empty, too long, or contains characters outside printable ASCII.",
+		guidance: "Use a short name with printable ASCII characters.",
+	},
+	{
 		code: "invalid-mcp-server-url",
 		title: "Connection details not accepted",
 		status: "400",
 		meaning: "The address, command, or header name is not usable for the selected type.",
 		guidance: "Check the address starts with http or https, and that no reserved header is used.",
-	},
-	{
-		code: "mcp-authorization-server-changed",
-		title: "Sign-in server changed",
-		status: "400",
-		meaning: "The server now points at a different sign-in provider, so stored credentials were discarded.",
-		guidance: "Review the new provider, then start the connection's sign-in again.",
 	},
 	{
 		code: "mcp-server-not-found",
@@ -324,6 +333,13 @@ export const PROBLEMS = [
 		guidance: "Refresh the user list and use an existing ID.",
 	},
 	{
+		code: "embed-disabled",
+		title: "Embed disabled",
+		status: "403",
+		meaning: "The requested embed exists but is disabled.",
+		guidance: "Enable the embed before using it for chat.",
+	},
+	{
 		code: "embed-not-found",
 		title: "Embed not found",
 		status: "404",
@@ -338,3 +354,10 @@ export const PROBLEMS = [
 		guidance: "Choose a unique username.",
 	},
 ] satisfies readonly ProblemDefinition[]
+
+type UndocumentedCode = Exclude<ProblemCode, (typeof PROBLEMS)[number]["code"]>
+
+// Every problem code the API can emit needs a docs entry. This fails typecheck
+// (instead of a test) when a code is added without documenting it.
+const allCodesDocumented: Record<UndocumentedCode, never> = {}
+void allCodesDocumented

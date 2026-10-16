@@ -29,16 +29,15 @@ describe("assertValidUsername", () => {
 })
 
 describe("credential request schemas", () => {
-	it("rejects credentials longer than the maximum before hashing", () => {
-		const oversized = "x".repeat(CREDENTIAL_MAX_LENGTH + 1)
-
-		expect(loginRequestSchema.safeParse({ password: oversized, username: oversized }).success).toBe(false)
-		expect(
-			changePasswordRequestSchema.safeParse({
-				currentPassword: oversized,
-				newPassword: "valid-password",
-			}).success,
-		).toBe(false)
+	it.each([
+		["login", (oversized: string) => loginRequestSchema.safeParse({ password: oversized, username: oversized })],
+		[
+			"password change",
+			(oversized: string) =>
+				changePasswordRequestSchema.safeParse({ currentPassword: oversized, newPassword: "valid-password" }),
+		],
+	])("rejects %s credentials longer than the maximum before hashing", (_label, parse) => {
+		expect(parse("x".repeat(CREDENTIAL_MAX_LENGTH + 1)).success).toBe(false)
 	})
 })
 

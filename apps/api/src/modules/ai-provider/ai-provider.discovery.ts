@@ -1,3 +1,4 @@
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { z } from "zod"
 
@@ -19,12 +20,29 @@ export type ModelDiscoveryFetch = (input: string | URL | Request, init?: Request
 
 export type ModelDiscoveryErrorCode = "unauthorized" | "unreachable" | "rate-limited" | "unsupported" | "provider-error"
 
-export class ModelDiscoveryError extends Error {
-	constructor(
-		readonly code: ModelDiscoveryErrorCode,
-		message: string,
-	) {
-		super(message)
+export class ModelDiscoveryError extends ApiError {
+	readonly code: ModelDiscoveryErrorCode
+	constructor(code: ModelDiscoveryErrorCode, message: string, options?: ErrorOptions) {
+		super(discoveryProblem(code).problemCode, discoveryProblem(code).status, message, undefined, options)
+		this.code = code
+	}
+}
+
+function discoveryProblem(code: ModelDiscoveryErrorCode) {
+	switch (code) {
+		case "unauthorized":
+			return { problemCode: PROBLEM_CODES.PROVIDER_CREDENTIALS_REJECTED, status: HTTP_STATUS.BAD_REQUEST } as const
+		case "rate-limited":
+			return { problemCode: PROBLEM_CODES.PROVIDER_RATE_LIMITED, status: HTTP_STATUS.TOO_MANY_REQUESTS } as const
+		case "unreachable":
+			return { problemCode: PROBLEM_CODES.PROVIDER_UNREACHABLE, status: HTTP_STATUS.BAD_GATEWAY } as const
+		case "unsupported":
+			return {
+				problemCode: PROBLEM_CODES.MODEL_DISCOVERY_UNSUPPORTED,
+				status: HTTP_STATUS.BAD_GATEWAY,
+			} as const
+		case "provider-error":
+			return { problemCode: PROBLEM_CODES.PROVIDER_ERROR, status: HTTP_STATUS.BAD_GATEWAY } as const
 	}
 }
 

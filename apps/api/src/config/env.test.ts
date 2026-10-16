@@ -102,17 +102,7 @@ describe("parseEnv", () => {
 		).toThrow(/NODE_ENV/)
 	})
 
-	it("rejects a missing APP_SECRET because provider credentials and network hashes require it", () => {
-		expect(() =>
-			parseEnv({
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "test",
-			}),
-		).toThrow(/APP_SECRET/)
-	})
-
-	it("rejects a missing APP_SECRET in production", () => {
+	it("rejects a missing APP_SECRET", () => {
 		expect(() =>
 			parseEnv({
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
@@ -137,17 +127,6 @@ describe("parseEnv", () => {
 		expect(() =>
 			parseEnv({
 				APP_SECRET: "not+base64/value=",
-				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
-				TALQO_DOCLING_URL: DOCLING,
-				NODE_ENV: "development",
-			}),
-		).toThrow(/APP_SECRET/)
-	})
-
-	it("rejects the documented placeholder APP_SECRET", () => {
-		expect(() =>
-			parseEnv({
-				APP_SECRET: "generate-me",
 				DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "development",

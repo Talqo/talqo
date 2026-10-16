@@ -1,12 +1,12 @@
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
-import { readdir, readFile, writeFile } from "node:fs/promises"
-import path from "node:path"
 import { parse, type AtRule, type Root } from "postcss"
 import { defineConfig, type Plugin } from "vite"
+import cssInjectedByJs from "vite-plugin-css-injected-by-js"
 import svgr from "vite-plugin-svgr"
 
-const SCOPE = ".talqo-widget"
+import { isScopedSelector, WIDGET_SCOPE } from "./src/lib/css-scope"
+
 const DEFAULT_WIDGET_PORT = 5174
 const MAX_LEAKED_SELECTORS = 5
 
@@ -16,7 +16,9 @@ function scopeWidgetCss(css: string): string {
 	root.walkAtRules("layer", (atRule) => {
 		if (atRule.params === "base") {
 			atRule.remove()
+			return
 		}
+		atRule.replaceWith(...(atRule.nodes ?? []))
 	})
 	root.walkAtRules("property", (atRule) => {
 		atRule.remove()
@@ -33,17 +35,17 @@ function scopeWidgetCss(css: string): string {
 			switch (selector) {
 				case ":root":
 				case ":host":
-					return SCOPE
+					return WIDGET_SCOPE
 				case "*":
-					return `${SCOPE} *`
+					return `${WIDGET_SCOPE} *`
 				case "::before":
 				case ":before":
-					return `${SCOPE} *::before`
+					return `${WIDGET_SCOPE} *::before`
 				case "::after":
 				case ":after":
-					return `${SCOPE} *::after`
+					return `${WIDGET_SCOPE} *::after`
 				case "::backdrop":
-					return `${SCOPE} ::backdrop`
+					return `${WIDGET_SCOPE} ::backdrop`
 				default:
 					return selector
 			}
@@ -68,9 +70,7 @@ function assertNoGlobalRules(root: Root): void {
 			return
 		}
 		for (const selector of rule.selectors) {
-			const scoped =
-				selector.startsWith(SCOPE) || selector.startsWith(`:where(${SCOPE})`) || selector.includes(".tw\\:")
-			if (!scoped) {
+			if (!isScopedSelector(selector)) {
 				leaked.push(selector)
 			}
 		}
@@ -80,25 +80,22 @@ function assertNoGlobalRules(root: Root): void {
 	}
 }
 
+/**
+ * Tailwind expands CSS after any transform hook, so scoping must run on the emitted asset.
+ * Our CSS is left unlayered: cascade layers resolve before specificity, so a host's `@layer
+ * base` preflight would otherwise outrank everything we ship.
+ */
 function widgetCssPlugin(): Plugin {
-	let outDir = "dist"
 	return {
 		name: "talqo-widget-css",
 		apply: "build",
-		configResolved: (config) => {
-			outDir = path.resolve(config.root, config.build.outDir)
-		},
-		closeBundle: async () => {
-			const assets = (await readdir(outDir)).filter((asset) => asset.endsWith(".css"))
-			if (assets.length === 0) {
-				throw new Error("widgetCss: no CSS asset emitted to scope")
+		enforce: "post",
+		generateBundle(_options, bundle) {
+			for (const asset of Object.values(bundle)) {
+				if (asset.type === "asset" && asset.fileName.endsWith(".css")) {
+					asset.source = scopeWidgetCss(String(asset.source))
+				}
 			}
-			await Promise.all(
-				assets.map(async (asset) => {
-					const file = path.join(outDir, asset)
-					await writeFile(file, scopeWidgetCss(await readFile(file, "utf8")))
-				}),
-			)
 		},
 	}
 }
@@ -120,7 +117,7 @@ export default defineConfig({
 			},
 		},
 	},
-	plugins: [react(), svgr(), tailwindcss(), widgetCssPlugin()],
+	plugins: [react(), svgr(), tailwindcss(), widgetCssPlugin(), cssInjectedByJs()],
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src`,

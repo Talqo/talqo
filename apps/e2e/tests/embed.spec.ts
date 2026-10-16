@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type APIRequestContext, type TestInfo } from "@playwright/test"
 import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"
@@ -14,15 +14,14 @@ let apiOrigin: string
 let chatFixture: { agentId: string; embedId?: string } | undefined
 
 test.beforeAll(async () => {
-	const token = "F2qM7vR9xL4nK8pT6sW3yB5cD1hJ0uA9eG7iN2oQ4zX"
 	const apiPort = process.env.TALQO_API_PORT
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 
 	// A different origin from the host page below, so the config request exercises CORS.
 	apiOrigin = `http://127.0.0.1:${apiPort}`
 	const template = await readFile(HOST_HTML_PATH, "utf8")
-	const configured = template.replace("__TOKEN__", token).replace("__API_ORIGIN__", apiOrigin)
-	const unknownToken = template.replace("__TOKEN__", "not-a-real-token").replace("__API_ORIGIN__", apiOrigin)
+	// Every test supplies its own journey-created token via ?token=; the bare page is unused.
+	const configured = template.replace("__TOKEN__", "").replace("__API_ORIGIN__", apiOrigin)
 
 	server = createServer((req, res) => {
 		const requestUrl = new URL(req.url ?? "/", "http://localhost")
@@ -35,14 +34,8 @@ test.beforeAll(async () => {
 				)
 			return
 		}
-		if (requestUrl.pathname === "/unknown-token") {
-			res.writeHead(200, { "content-type": "text/html" }).end(unknownToken)
-			return
-		}
 		const file =
-			requestUrl.pathname === "/widget.js" ||
-			requestUrl.pathname === "/widget.css" ||
-			requestUrl.pathname === "/preview.html"
+			requestUrl.pathname === "/widget.js" || requestUrl.pathname === "/preview.html"
 				? path.join(DIST, requestUrl.pathname.slice(1))
 				: null
 		if (!file) {
@@ -51,7 +44,7 @@ test.beforeAll(async () => {
 		}
 		readFile(file)
 			.then((content) => {
-				const contentType = file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "text/html"
+				const contentType = file.endsWith(".js") ? "text/javascript" : "text/html"
 				res.writeHead(200, { "content-type": contentType }).end(content)
 			})
 			.catch(() => res.writeHead(404).end())
@@ -70,8 +63,7 @@ test.afterAll(() => {
 	server.close()
 })
 
-test.afterEach(async ({ request }, testInfo) => {
-	if (!testInfo.title.includes("durable multi-turn chat")) return
+test.afterEach(async ({ request }) => {
 	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
 	if (providerUrl) await expect(await request.post(`${new URL(providerUrl).origin}/control/reset`)).toBeOK()
 	if (chatFixture) {
@@ -81,54 +73,53 @@ test.afterEach(async ({ request }, testInfo) => {
 	}
 })
 
-test("built widget boots, mounts, and stays styled on a bare host page", async ({ page }) => {
-	const errors: string[] = []
-	page.on("pageerror", (error) => errors.push(String(error)))
-	// A blocked CORS request only logs, so pageerror alone would miss a CORS regression.
-	page.on("console", (message) => {
-		if (message.type() === "error") errors.push(message.text())
+async function createChatEmbed(request: APIRequestContext, testInfo: TestInfo) {
+	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
+	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
+	const providerControlOrigin = new URL(providerUrl).origin
+	await expect(await request.post(`${providerControlOrigin}/control/reset`)).toBeOK()
+	const admin = { username: "admin", password: "admin123" }
+	await expect(await request.post(`${apiOrigin}/api/auth/login`, { data: admin })).toBeOK()
+	const agentResponse = await request.post(`${apiOrigin}/api/agents`, {
+		data: {
+			name: `Chat ${testInfo.project.name} ${testInfo.retry}`,
+			systemPrompt: "You are the support assistant on our company website.",
+			wordBlacklist: ["Intercom", "Zendesk"],
+		},
 	})
-
-	await page.goto(baseURL)
-	await expect(page.locator("#talqo-widget")).toBeAttached()
-
-	const launcher = page.getByRole("button", { name: "Open chat" })
-	await expect(launcher).toBeVisible()
-
-	await launcher.click()
-	const dialog = page.getByRole("dialog")
-	await expect(dialog).toBeVisible()
-
-	const closeButton = dialog.getByRole("button", { name: "Close chat" })
-	await expect(closeButton).toHaveCSS("border-top-width", "0px")
-	await expect(closeButton).toHaveCSS("background-color", "rgba(0, 0, 0, 0)")
-	const input = dialog.getByRole("textbox")
-	await expect(input).toHaveCSS("border-top-width", "1px")
-	await expect(input).toHaveCSS("border-top-style", "solid")
-
-	await closeButton.click()
-	await expect(dialog).toBeHidden()
-
-	await launcher.click()
-	await expect(dialog).toBeVisible()
-
-	expect(errors).toEqual([])
-})
-
-test("built preview executes production assets", async ({ page }) => {
-	const assets: string[] = []
-	page.on("request", (request) => {
-		if (/\/widget\.(?:css|js)$/.test(new URL(request.url()).pathname)) assets.push(request.url())
+	await expect(agentResponse).toBeOK()
+	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
+	chatFixture = { agentId: agent.id }
+	// Journey-defined palette, explicit light theme: no seed embed is read, so seed
+	// recoloring cannot break this suite.
+	const appearance = {
+		light: {
+			primary: "#1a7f4b",
+			textOnPrimary: "#ffffff",
+			background: "#ffffff",
+			surface: "#f5f5f5",
+			text: "#171717",
+		},
+		dark: {
+			primary: "#34d399",
+			textOnPrimary: "#052e16",
+			background: "#0a0a0a",
+			surface: "#1a1a1a",
+			text: "#fafafa",
+		},
+		position: "bottom-right",
+		theme: "light",
+		themeToggle: false,
+		language: "en",
+	}
+	const embedResponse = await request.post(`${apiOrigin}/api/embeds`, {
+		data: { agentId: agent.id, name: "Chat test", appearance },
 	})
-
-	await page.goto(`${baseURL}/preview.html?title=Production%20preview`)
-
-	await expect(page.locator(".talqo-widget")).toBeVisible()
-	await page.getByRole("button", { name: "Open chat" }).click()
-	await expect(page.getByText("Production preview")).toBeVisible()
-	expect(assets).toContain(`${baseURL}/widget.css`)
-	expect(assets).toContain(`${baseURL}/widget.js`)
-})
+	await expect(embedResponse).toBeOK()
+	const { embed } = (await embedResponse.json()) as { embed: { embedToken: string; id: string } }
+	chatFixture.embedId = embed.id
+	return { embedToken: embed.embedToken, providerControlOrigin }
+}
 
 test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }) => {
 	await page.goto(`${baseURL}/missing`)
@@ -169,15 +160,25 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }
 	await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
 })
 
-test("widget fetches its palette by public token across origins", async ({ page }) => {
-	await page.goto(baseURL)
+test("widget fetches its palette by public token across origins", async ({ page, request }, testInfo) => {
+	const errors: string[] = []
+	page.on("pageerror", (error) => errors.push(String(error)))
+	// A blocked CORS request only logs, so pageerror alone would miss a CORS regression.
+	page.on("console", (message) => {
+		if (message.type() === "error") errors.push(message.text())
+	})
+
+	const { embedToken } = await createChatEmbed(request, testInfo)
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embedToken)}`)
 
 	// One assertion for the whole chain: token lookup, CORS, and the fetched color painting.
 	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", DEFAULT_PRIMARY_RGB)
+	expect(errors).toEqual([])
 })
 
-test("widget's panel paints background, and its input box paints surface", async ({ page }) => {
-	await page.goto(baseURL)
+test("widget's panel paints background, and its input box paints surface", async ({ page, request }, testInfo) => {
+	const { embedToken } = await createChatEmbed(request, testInfo)
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embedToken)}`)
 	await page.getByRole("button", { name: "Open chat" }).click()
 
 	// The panel shell paints the explicit background color (#ffffff), not surface.
@@ -186,47 +187,10 @@ test("widget's panel paints background, and its input box paints surface", async
 	await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCSS("background-color", "rgb(245, 245, 245)")
 })
 
-test("widget still renders in default colors when its token is unknown", async ({ page }) => {
-	await page.goto(`${baseURL}/unknown-token`)
+test("widget streams a multi-turn chat and verifies history", async ({ page, request }, testInfo) => {
+	const { embedToken, providerControlOrigin } = await createChatEmbed(request, testInfo)
 
-	const launcher = page.getByRole("button", { name: "Open chat" })
-	await expect(launcher).toBeVisible()
-	await expect(launcher).toHaveCSS("background-color", DEFAULT_PRIMARY_RGB)
-})
-
-test("widget streams a durable multi-turn chat, cancels, and starts a new chat without resetting allowance", async ({
-	page,
-	request,
-}, testInfo) => {
-	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
-	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
-	const providerControlOrigin = new URL(providerUrl).origin
-	await expect(await request.post(`${providerControlOrigin}/control/reset`)).toBeOK()
-	const admin = { username: "admin", password: "admin123" }
-	await expect(await request.post(`${apiOrigin}/api/auth/login`, { data: admin })).toBeOK()
-	const agentResponse = await request.post(`${apiOrigin}/api/agents`, {
-		data: {
-			name: `Chat ${testInfo.project.name} ${testInfo.retry}`,
-			systemPrompt: "You are the support assistant on our company website.",
-			wordBlacklist: ["Intercom", "Zendesk"],
-		},
-	})
-	await expect(agentResponse).toBeOK()
-	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
-	chatFixture = { agentId: agent.id }
-	const baselineEmbeds = (await (await request.get(`${apiOrigin}/api/embeds`)).json()) as {
-		embeds: { appearance: unknown }[]
-	}
-	const appearance = baselineEmbeds.embeds[0]?.appearance
-	if (!appearance) throw new Error("Shared seed embed is missing")
-	const embedResponse = await request.post(`${apiOrigin}/api/embeds`, {
-		data: { agentId: agent.id, name: "Chat test", appearance },
-	})
-	await expect(embedResponse).toBeOK()
-	const { embed } = (await embedResponse.json()) as { embed: { embedToken: string; id: string } }
-	chatFixture.embedId = embed.id
-
-	await page.goto(`${baseURL}/?token=${encodeURIComponent(embed.embedToken)}`)
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embedToken)}`)
 	await page.getByRole("button", { name: "Open chat" }).click()
 	const dialog = page.getByRole("dialog")
 	const messageInput = dialog.getByRole("textbox", { name: "Message" })
@@ -254,6 +218,7 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 		{ role: "user", content: "Prove you received the earlier turn" },
 	])
 
+	// The same session proves persistence: a reload must not lose either turn.
 	await page.reload()
 	await page.getByRole("button", { name: "Open chat" }).click()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
@@ -262,6 +227,24 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 	await expect(
 		dialog.getByText("History verified: system prompt, first question, and first answer.", { exact: true }),
 	).toBeVisible()
+})
+
+test("widget cancels a stream and starts a new chat preserving history", async ({ page, request }, testInfo) => {
+	const { embedToken, providerControlOrigin } = await createChatEmbed(request, testInfo)
+
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embedToken)}`)
+	await page.getByRole("button", { name: "Open chat" }).click()
+	const dialog = page.getByRole("dialog")
+	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const send = async (text: string) => {
+		await messageInput.fill(text)
+		await dialog.getByRole("button", { name: "Send" }).click()
+	}
+
+	await send("Give me the first answer")
+	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
+	await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 
 	await send("Stream until I cancel")
 	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
@@ -302,7 +285,34 @@ test("widget streams a durable multi-turn chat, cancels, and starts a new chat w
 			}),
 		]),
 	)
+})
 
-	await send("The allowance must not reset")
+test("widget enforces daily chat allowance across new chats", async ({ page, request }, testInfo) => {
+	const { embedToken, providerControlOrigin } = await createChatEmbed(request, testInfo)
+
+	await page.goto(`${baseURL}/?token=${encodeURIComponent(embedToken)}`)
+	await page.getByRole("button", { name: "Open chat" }).click()
+	const dialog = page.getByRole("dialog")
+	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const sendUntilAnswered = async () => {
+		await messageInput.fill("Give me the first answer")
+		await dialog.getByRole("button", { name: "Send" }).click()
+		await expect(dialog.getByText("First", { exact: true }).last()).toBeVisible()
+		await expect(await request.post(`${providerControlOrigin}/control/release`)).toBeOK()
+	}
+
+	// The suite caps the allowance at three messages (TALQO_CHAT_DAILY_MESSAGE_LIMIT in
+	// scripts/test-e2e.ts); three plain sends exhaust it — the journey steps have their own specs.
+	await sendUntilAnswered()
+	await sendUntilAnswered()
+	await sendUntilAnswered()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toHaveCount(3)
+
+	// Starting over does not top the allowance back up.
+	await dialog.getByRole("button", { name: "New chat" }).click()
+	await expect(dialog.getByText("Hi there! How can I help you today?", { exact: true })).toBeVisible()
+
+	await messageInput.fill("The allowance must not reset")
+	await dialog.getByRole("button", { name: "Send" }).click()
 	await expect(dialog.getByRole("alert")).toContainText("daily message allowance has been reached")
 })

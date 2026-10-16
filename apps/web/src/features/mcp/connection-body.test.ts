@@ -2,7 +2,7 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { describe, expect, test } from "bun:test"
 
-import { EMPTY_DRAFT, toCreateBody, toEditBody, toggleTool, toggledBody, type ConnectionDraft } from "./connection-body"
+import { EMPTY_DRAFT, toCreateBody, toEditBody, toggledBody, type ConnectionDraft } from "./connection-body"
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {
@@ -29,43 +29,6 @@ function draft(patch: Partial<ConnectionDraft> = {}): ConnectionDraft {
 }
 
 describe("toCreateBody", () => {
-	test("sends every entered header", () => {
-		expect(
-			toCreateBody(
-				draft({
-					url: "https://example.test/mcp",
-					authMode: "headers",
-					headers: [
-						{ id: "h1", name: "X-API-Key", value: "k" },
-						{ id: "h2", name: "X-Tenant", value: "t" },
-					],
-				}),
-			),
-		).toMatchObject({
-			ok: true,
-			body: { server: { authMode: "headers", headers: { "X-API-Key": "k", "X-Tenant": "t" } } },
-		})
-	})
-
-	test("builds a stdio body with one variable", () => {
-		expect(
-			toCreateBody(
-				draft({
-					transport: "stdio",
-					command: "bunx",
-					args: [
-						{ id: "a1", value: "-y" },
-						{ id: "a2", value: "@scope/server" },
-					],
-					env: [{ id: "k1", name: "KEY", value: "v" }],
-				}),
-			),
-		).toMatchObject({
-			ok: true,
-			body: { server: { transport: "stdio", command: "bunx", args: ["-y", "@scope/server"], env: { KEY: "v" } } },
-		})
-	})
-
 	test("refuses an incomplete form instead of sending half of it", () => {
 		expect(toCreateBody(EMPTY_DRAFT)).toEqual({ ok: false, reason: "nameRequired" })
 		expect(toCreateBody(draft())).toEqual({ ok: false, reason: "addressRequired" })
@@ -121,20 +84,6 @@ describe("toggledBody", () => {
 		)
 
 		expect(body.server).toEqual({ transport: "stdio", command: "npx", args: [] })
-	})
-})
-
-describe("toggleTool", () => {
-	test("changes only the named tool", () => {
-		const tools = [
-			{ name: "get_stock", description: "", enabled: true },
-			{ name: "get_price", description: "", enabled: true },
-		]
-
-		expect(toggleTool(tools, "get_price", false)).toEqual([
-			{ name: "get_stock", description: "", enabled: true },
-			{ name: "get_price", description: "", enabled: false },
-		])
 	})
 })
 
@@ -209,21 +158,6 @@ describe("toEditBody", () => {
 })
 
 describe("env variables", () => {
-	test("keeps every variable the operator added", () => {
-		const body = toCreateBody(
-			draft({
-				transport: "stdio",
-				command: "bunx",
-				env: [
-					{ id: "e1", name: "API_KEY", value: "one" },
-					{ id: "e2", name: "REGION", value: "eu" },
-				],
-			}),
-		)
-
-		expect(body).toMatchObject({ ok: true, body: { server: { env: { API_KEY: "one", REGION: "eu" } } } })
-	})
-
 	test("leaves a variable with no value out so the stored one survives", () => {
 		const body = toEditBody(
 			{

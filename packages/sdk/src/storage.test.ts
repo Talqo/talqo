@@ -27,29 +27,38 @@ describe("chat storage", () => {
 		expect(storage.isFallback()).toBe(true)
 	})
 
-	test("uses an origin-and-token key and rejects malformed or future records", () => {
+	test("builds an origin-and-token storage key", () => {
 		expect(createChatStorageKey("https://api.example.test/", "embed token")).toBe(
 			"talqo:chat:v1:https%3A%2F%2Fapi.example.test:embed%20token",
 		)
-		expect(readChatStorageRecord(JSON.stringify({ version: CHAT_STORAGE_VERSION, credential: "secret" }))).toEqual({
-			version: CHAT_STORAGE_VERSION,
-			credential: "secret",
-		})
-		expect(
-			readChatStorageRecord(
-				JSON.stringify({
-					version: CHAT_STORAGE_VERSION,
-					credential: "secret",
-					pending: { requestId: "request", text: "hello" },
-				}),
-			),
-		).toEqual({
+	})
+
+	test("parses valid records and rejects malformed or future records", () => {
+		const valid = JSON.stringify({ version: CHAT_STORAGE_VERSION, credential: "secret" })
+		const withPending = JSON.stringify({
 			version: CHAT_STORAGE_VERSION,
 			credential: "secret",
 			pending: { requestId: "request", text: "hello" },
 		})
-		expect(readChatStorageRecord('{"version":2,"credential":"secret"}')).toBeNull()
-		expect(readChatStorageRecord('{"version":1,"pending":{"requestId":"id","text":"hello"}}')).toBeNull()
-		expect(readChatStorageRecord("not-json")).toBeNull()
+		const cases = [
+			{
+				serialized: valid,
+				expected: { version: CHAT_STORAGE_VERSION, credential: "secret" },
+			},
+			{
+				serialized: withPending,
+				expected: {
+					version: CHAT_STORAGE_VERSION,
+					credential: "secret",
+					pending: { requestId: "request", text: "hello" },
+				},
+			},
+			{ serialized: '{"version":2,"credential":"secret"}', expected: null },
+			{ serialized: '{"version":1,"pending":{"requestId":"id","text":"hello"}}', expected: null },
+			{ serialized: "not-json", expected: null },
+		] as const
+		for (const { serialized, expected } of cases) {
+			expect(readChatStorageRecord(serialized)).toEqual(expected)
+		}
 	})
 })

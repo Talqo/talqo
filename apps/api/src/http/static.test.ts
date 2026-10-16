@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
+import { afterEach, describe, expect, it } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -7,8 +7,11 @@ import { createStaticResponder, resolveStaticDirs } from "./static.ts"
 
 const ORIGIN = "http://app.example.com"
 
+const tempRoots: string[] = []
+
 function fixtureDirs() {
 	const root = mkdtempSync(join(tmpdir(), "talqo-static-"))
+	tempRoots.push(root)
 	const webDist = join(root, "web")
 	const widgetDist = join(root, "widget")
 	mkdirSync(join(webDist, "assets"), { recursive: true })
@@ -17,7 +20,6 @@ function fixtureDirs() {
 	writeFileSync(join(webDist, "index.html"), "<html>app</html>")
 	writeFileSync(join(webDist, "assets", "app-abc123.js"), "console.log(1)")
 	writeFileSync(join(widgetDist, "widget.js"), "console.log(2)")
-	writeFileSync(join(widgetDist, "widget.css"), ".x{}")
 	writeFileSync(join(widgetDist, "preview.html"), "<html>preview</html>")
 	return { webDist, widgetDist }
 }
@@ -42,6 +44,10 @@ describe("resolveStaticDirs", () => {
 })
 
 describe("createStaticResponder", () => {
+	afterEach(() => {
+		for (const root of tempRoots.splice(0)) rmSync(root, { recursive: true })
+	})
+
 	it("serves the widget bundle and caches only versioned URLs immutably", async () => {
 		const serve = createStaticResponder(fixtureDirs())
 
@@ -53,10 +59,6 @@ describe("createStaticResponder", () => {
 
 		const versioned = await serve(request("/widget.js?v=42"))
 		expect(versioned?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
-
-		const css = await serve(request("/widget.css?v=42"))
-		expect(css?.status).toBe(200)
-		expect(css?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
 
 		const preview = await serve(request("/preview.html"))
 		expect(preview?.status).toBe(200)
@@ -101,6 +103,7 @@ describe("createStaticResponder", () => {
 
 	it("answers nothing when the dists hold no built files", async () => {
 		const root = mkdtempSync(join(tmpdir(), "talqo-static-empty-"))
+		tempRoots.push(root)
 		const serve = createStaticResponder({ webDist: join(root, "web"), widgetDist: join(root, "widget") })
 
 		expect(await serve(request("/widget.js"))).toBeNull()

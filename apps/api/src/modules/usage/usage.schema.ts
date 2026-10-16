@@ -24,5 +24,7 @@ export const usageRecord = pgTable(
 	(table) => [
 		index("usage_record_agent_id_idx").on(table.agentId),
 		index("usage_record_conversation_id_idx").on(table.conversationId),
+		// Backs the per-agent-day token aggregation filtered by the rolling window.
+		index("usage_record_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 	],
 )

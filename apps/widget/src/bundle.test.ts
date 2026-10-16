@@ -1,10 +1,15 @@
-import { describe, expect, spyOn, test } from "bun:test"
+import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 import { readFileSync } from "node:fs"
 
 await import("./test-setup")
 
 describe("built embed bundle", () => {
-	test("boots without a process global and auto-mounts", () => {
+	beforeEach(() => {
+		;(window as { TalqoWidget?: { unmount: () => void } }).TalqoWidget?.unmount()
+		document.querySelector("#talqo-widget")?.remove()
+		document.querySelectorAll("style").forEach((style) => style.remove())
+	})
+	test("boots and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
 		expect(() => new Function(code)()).not.toThrow()
@@ -31,5 +36,23 @@ describe("built embed bundle", () => {
 		expect(html).toContain("data-talqo-preview")
 		expect(html).not.toContain('href="./widget.css"')
 		expect(html).not.toContain("/src/")
+	})
+
+	test("defers its mount until the document is parsed", () => {
+		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
+
+		const hadOwnReadyState = Object.hasOwn(document, "readyState")
+		const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")
+		Object.defineProperty(document, "readyState", { value: "loading", configurable: true })
+		try {
+			new Function(code)()
+			expect(document.querySelector("#talqo-widget")).toBeNull()
+
+			document.dispatchEvent(new Event("DOMContentLoaded"))
+			expect(document.querySelector("#talqo-widget")).not.toBeNull()
+		} finally {
+			if (hadOwnReadyState && ownReadyState) Object.defineProperty(document, "readyState", ownReadyState)
+			else Reflect.deleteProperty(document, "readyState")
+		}
 	})
 })

@@ -1,7 +1,5 @@
-import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { isUniqueViolation } from "@/lib/pg-error.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 
@@ -21,16 +19,9 @@ const { SESSION_COOKIE } = service
 
 const authRoutes = new OpenAPIHono()
 	.openapi(loginRoute, async (c) => {
-		try {
-			const { token, expiresAt, user } = await service.login(c.req.valid("json"))
-			setCookie(c, SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
-			return c.json({ user }, HTTP_STATUS.OK)
-		} catch (error) {
-			if (error instanceof service.InvalidCredentialsError) {
-				return problemResponse(c, PROBLEM_CODES.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED)
-			}
-			throw error
-		}
+		const { token, expiresAt, user } = await service.login(c.req.valid("json"))
+		setCookie(c, SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
+		return c.json({ user }, HTTP_STATUS.OK)
 	})
 	.openapi(logoutRoute, async (c) => {
 		const token = getCookie(c, SESSION_COOKIE)
@@ -46,44 +37,20 @@ const authRoutes = new OpenAPIHono()
 
 const accountRoutes = new OpenAPIHono()
 	.openapi(updateAccountRoute, async (c) => {
-		try {
-			const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
-			return c.json({ user }, HTTP_STATUS.OK)
-		} catch (error) {
-			if (isUniqueViolation(error)) return problemResponse(c, PROBLEM_CODES.USERNAME_TAKEN, HTTP_STATUS.CONFLICT)
-			throw error
-		}
+		const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
+		return c.json({ user }, HTTP_STATUS.OK)
 	})
 	.openapi(changePasswordRoute, async (c) => {
 		const body = c.req.valid("json")
-		try {
-			// changePassword invalidates every other session but keeps this one, so the user stays signed in.
-			await service.changePassword(
-				c.get("user").id,
-				body.currentPassword,
-				body.newPassword,
-				getCookie(c, SESSION_COOKIE),
-			)
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof service.InvalidPasswordError) {
-				return problemResponse(c, PROBLEM_CODES.CURRENT_PASSWORD_INCORRECT, HTTP_STATUS.BAD_REQUEST)
-			}
-			throw error
-		}
+		// changePassword invalidates every other session but keeps this one, so the user stays signed in.
+		await service.changePassword(c.get("user").id, body.currentPassword, body.newPassword, getCookie(c, SESSION_COOKIE))
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(completeForcedPasswordChangeRoute, async (c) => {
 		const body = c.req.valid("json")
-		try {
-			// completeForcedPasswordChange invalidates every other session but keeps this one, so the user stays signed in.
-			await service.completeForcedPasswordChange(c.get("user").id, body.newPassword, getCookie(c, SESSION_COOKIE))
-			return c.body(null, HTTP_STATUS.NO_CONTENT)
-		} catch (error) {
-			if (error instanceof service.PasswordChangeNotRequiredError) {
-				return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_NOT_REQUIRED, HTTP_STATUS.CONFLICT)
-			}
-			throw error
-		}
+		// completeForcedPasswordChange invalidates every other session but keeps this one, so the user stays signed in.
+		await service.completeForcedPasswordChange(c.get("user").id, body.newPassword, getCookie(c, SESSION_COOKIE))
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(deleteAccountRoute, async (c) => {
 		await service.deleteAccount(c.get("user").id)

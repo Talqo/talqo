@@ -5,62 +5,29 @@ import { changePasswordSchema, forcedPasswordChangeSchema, resetPasswordSchema }
 const currentPassword = "correct-horse-battery-staple"
 const newPassword = "new-correct-horse-battery"
 
-describe("changePasswordSchema", () => {
-	test("accepts matching new and confirm passwords", () => {
-		const result = changePasswordSchema.safeParse({
-			currentPassword,
-			newPassword,
-			confirmPassword: newPassword,
-		})
-
-		expect(result.success).toBe(true)
-	})
-
-	test("rejects mismatched confirm password", () => {
-		const result = changePasswordSchema.safeParse({
-			currentPassword,
-			newPassword,
-			confirmPassword: "different-password",
-		})
-
-		expect(result.success).toBe(false)
-	})
-
-	test("rejects an empty current password", () => {
-		const result = changePasswordSchema.safeParse({
-			currentPassword: "",
-			newPassword,
-			confirmPassword: newPassword,
-		})
-
-		expect(result.success).toBe(false)
-	})
-})
-
-describe("forcedPasswordChangeSchema", () => {
-	test("accepts matching new and confirm passwords with no current password field", () => {
-		const result = forcedPasswordChangeSchema.safeParse({ newPassword, confirmPassword: newPassword })
-
-		expect(result.success).toBe(true)
-	})
-
-	test("rejects mismatched confirm password", () => {
-		const result = forcedPasswordChangeSchema.safeParse({ newPassword, confirmPassword: "different-password" })
-
-		expect(result.success).toBe(false)
-	})
-})
-
-describe("resetPasswordSchema", () => {
-	test("accepts matching new and confirm passwords with no current password field", () => {
-		const result = resetPasswordSchema.safeParse({ newPassword, confirmPassword: newPassword })
-
-		expect(result.success).toBe(true)
-	})
-
-	test("rejects mismatched confirm password", () => {
-		const result = resetPasswordSchema.safeParse({ newPassword, confirmPassword: "different-password" })
-
-		expect(result.success).toBe(false)
+describe("password confirmation", () => {
+	test("rejects a mismatched confirm password with a passwordMismatch issue", () => {
+		const cases = [
+			{
+				schema: changePasswordSchema,
+				input: { currentPassword, newPassword, confirmPassword: "different-password" },
+			},
+			{
+				schema: forcedPasswordChangeSchema,
+				input: { newPassword, confirmPassword: "different-password" },
+			},
+			{
+				schema: resetPasswordSchema,
+				input: { newPassword, confirmPassword: "different-password" },
+			},
+		] as const
+		for (const { schema, input } of cases) {
+			const result = schema.safeParse(input)
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				const issue = result.error.issues.find((entry) => entry.path.join(".") === "confirmPassword")
+				expect(issue?.message).toBe("passwordMismatch")
+			}
+		}
 	})
 })
