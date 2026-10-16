@@ -6,10 +6,29 @@
  */
 import * as zod from "zod"
 
-import { RoleUser } from "../roleUser.zod"
+import { RoleSummary } from "../roleSummary.zod"
 
 export const ListUsers200 = zod.object({
-	users: zod.array(RoleUser),
+	users: zod.array(
+		zod.object({
+			id: zod.string(),
+			username: zod.string(),
+			mustChangePassword: zod.boolean().nullable(),
+			permissions: zod.array(
+				zod.enum([
+					"admin",
+					"users:read",
+					"users:manage",
+					"roles:manage",
+					"ai_provider:manage",
+					"agents:read",
+					"agents:manage",
+				]),
+			),
+			canManage: zod.boolean(),
+			roles: zod.array(RoleSummary),
+		}),
+	),
 })
 
 export type ListUsers200 = zod.input<typeof ListUsers200>

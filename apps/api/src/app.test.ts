@@ -24,7 +24,7 @@ describe("api", () => {
 	})
 
 	it("returns problem details when authentication is required", async () => {
-		const response = await app.request("/api/access")
+		const response = await app.request("/api/me/permissions")
 
 		expect(response.status).toBe(401)
 		expect(response.headers.get("Content-Type")).toBe("application/problem+json")

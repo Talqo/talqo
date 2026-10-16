@@ -175,6 +175,5 @@ export async function seed(): Promise<SeededAttempt[]> {
 		await tx.insert(generationAttempt).values(rows.attempts)
 		await tx.insert(message).values(rows.messages)
 	})
-	await db.insert(message).values(rows.messages)
 	return rows.usages
 }

@@ -6,32 +6,34 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 
 import {
-	accessResponseSchema,
+	assignUserRolesRoute,
 	bootstrapAdminRoute,
 	bootstrapAdminResponseSchema,
 	createInvitationRoute,
 	createInvitationResponseSchema,
-	createPermissionGrantRoute,
+	createRoleRoute,
+	deleteRoleRoute,
 	deleteUserRoute,
-	getAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
-	grantResponseSchema,
+	grantablePermissionsResponseSchema,
+	listGrantablePermissionsRoute,
+	listRolesRoute,
 	myPermissionsRoute,
 	myPermissionsResponseSchema,
 	redeemInvitationRoute,
 	redeemInvitationResponseSchema,
 	resetUserPasswordRoute,
-	revokePermissionGrantRoute,
+	roleListResponseSchema,
+	roleResponseSchema,
 	setupStatusResponseSchema,
+	updateRoleRoute,
 	userListResponseSchema,
+	userRolesResponseSchema,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
-	.openapi(getAccessRoute, async (c) => {
-		return c.json(accessResponseSchema.parse(await service.getAccess(c.get("user").id)), HTTP_STATUS.OK)
-	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
@@ -61,22 +63,7 @@ const invitationRoutes = new OpenAPIHono()
 		return c.json(redeemInvitationResponseSchema.parse({ user }), HTTP_STATUS.CREATED)
 	})
 
-const permissionGrantRoutes = new OpenAPIHono()
-	.openapi(createPermissionGrantRoute, async (c) => {
-		const user = c.get("user")
-		const grant = await service.grantPermission({ ...c.req.valid("json"), grantedBy: user.id })
-		return c.json(
-			grantResponseSchema.parse({ grant: { ...grant, grantedAt: grant.grantedAt.toISOString() } }),
-			HTTP_STATUS.CREATED,
-		)
-	})
-	.openapi(revokePermissionGrantRoute, async (c) => {
-		await service.revokePermission(c.req.valid("param").id)
-		return c.body(null, HTTP_STATUS.NO_CONTENT)
-	})
-
 rolesRoutes.route("/invitations", invitationRoutes)
-rolesRoutes.route("/permission-grants", permissionGrantRoutes)
 // Dashboard reads this to hide routes and controls the caller cannot use.
 rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 	const permissions = await service.listEffectivePermissions(c.get("user").id)
@@ -85,7 +72,7 @@ rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 
 const userRoutes = new OpenAPIHono()
 	.openapi(getUsersRoute, async (c) => {
-		const users = await identity.listUsers()
+		const users = await service.listUsersWithAccess(c.get("user").id)
 		return c.json(userListResponseSchema.parse({ users }), HTTP_STATUS.OK)
 	})
 	.openapi(resetUserPasswordRoute, async (c) => {
@@ -95,7 +82,7 @@ const userRoutes = new OpenAPIHono()
 			return problemResponse(c, PROBLEM_CODES.SELF_PASSWORD_RESET_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
 		}
 
-		await identity.setPassword(targetUserId, c.req.valid("json").newPassword)
+		await service.resetUserPassword(targetUserId, c.req.valid("json").newPassword, user.id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(deleteUserRoute, async (c) => {
@@ -105,8 +92,37 @@ const userRoutes = new OpenAPIHono()
 			return problemResponse(c, PROBLEM_CODES.SELF_DELETE_NOT_ALLOWED, HTTP_STATUS.BAD_REQUEST)
 		}
 
-		await identity.deleteAccount(targetUserId)
+		await service.deleteUser(targetUserId, user.id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 
 rolesRoutes.route("/users", userRoutes)
+
+rolesRoutes.openapi(listGrantablePermissionsRoute, (c) => {
+	const permissions = service.listGrantablePermissions()
+	return c.json(grantablePermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
+})
+
+rolesRoutes.openapi(listRolesRoute, async (c) => {
+	return c.json(roleListResponseSchema.parse({ roles: await service.listRoles() }), HTTP_STATUS.OK)
+})
+
+rolesRoutes.openapi(createRoleRoute, async (c) => {
+	const role = await service.createRole(c.req.valid("json"), c.get("user").id)
+	return c.json(roleResponseSchema.parse({ role }), HTTP_STATUS.CREATED)
+})
+
+rolesRoutes.openapi(updateRoleRoute, async (c) => {
+	const role = await service.updateRole(c.req.valid("param").roleId, c.req.valid("json"), c.get("user").id)
+	return c.json(roleResponseSchema.parse({ role }), HTTP_STATUS.OK)
+})
+
+rolesRoutes.openapi(deleteRoleRoute, async (c) => {
+	await service.deleteRole(c.req.valid("param").roleId, c.get("user").id)
+	return c.body(null, HTTP_STATUS.NO_CONTENT)
+})
+
+rolesRoutes.openapi(assignUserRolesRoute, async (c) => {
+	const roles = await service.assignRoles(c.req.valid("param").userId, c.req.valid("json").roleIds, c.get("user").id)
+	return c.json(userRolesResponseSchema.parse({ roles }), HTTP_STATUS.OK)
+})

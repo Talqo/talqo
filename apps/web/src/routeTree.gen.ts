@@ -20,9 +20,13 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAiConfigurationRouteImport } from './routes/dashboard/ai-configuration'
-import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
+import { Route as DashboardUsersRouteRouteImport } from './routes/dashboard/users/route'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 import { Route as DashboardEmbedsEmbedIdRouteImport } from './routes/dashboard/embeds/$embedId'
+import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index'
+import { Route as DashboardUsersRolesRouteRouteImport } from './routes/dashboard/users/roles/route'
+import { Route as DashboardUsersRolesIndexRouteImport } from './routes/dashboard/users/roles/index'
+import { Route as DashboardUsersRolesRoleIdRouteImport } from './routes/dashboard/users/roles/$roleId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -80,7 +84,7 @@ const DashboardAiConfigurationRoute =
     path: '/ai-configuration',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
-const DashboardUsersRoute = DashboardUsersRouteImport.update({
+const DashboardUsersRouteRoute = DashboardUsersRouteRouteImport.update({
   id: '/users',
   path: '/users',
   getParentRoute: () => DashboardRouteRoute,
@@ -95,6 +99,29 @@ const DashboardEmbedsEmbedIdRoute = DashboardEmbedsEmbedIdRouteImport.update({
   path: '/embeds/$embedId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardUsersRouteRoute,
+} as any)
+const DashboardUsersRolesRouteRoute =
+  DashboardUsersRolesRouteRouteImport.update({
+    id: '/roles',
+    path: '/roles',
+    getParentRoute: () => DashboardUsersRouteRoute,
+  } as any)
+const DashboardUsersRolesIndexRoute =
+  DashboardUsersRolesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardUsersRolesRouteRoute,
+  } as any)
+const DashboardUsersRolesRoleIdRoute =
+  DashboardUsersRolesRoleIdRouteImport.update({
+    id: '/$roleId',
+    path: '/$roleId',
+    getParentRoute: () => DashboardUsersRolesRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -104,13 +131,17 @@ export interface FileRoutesByFullPath {
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
+  '/dashboard/users': typeof DashboardUsersRouteRouteWithChildren
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/users/': typeof DashboardUsersIndexRoute
+  '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
+  '/dashboard/users/roles/': typeof DashboardUsersRolesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,10 +153,12 @@ export interface FileRoutesByTo {
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/users': typeof DashboardUsersIndexRoute
+  '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
+  '/dashboard/users/roles': typeof DashboardUsersRolesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -136,13 +169,17 @@ export interface FileRoutesById {
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
+  '/dashboard/users': typeof DashboardUsersRouteRouteWithChildren
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/users/': typeof DashboardUsersIndexRoute
+  '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
+  '/dashboard/users/roles/': typeof DashboardUsersRolesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -154,13 +191,17 @@ export interface FileRouteTypes {
     | '/force-password-change'
     | '/login'
     | '/setup'
+    | '/dashboard/users'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/users'
     | '/dashboard/'
+    | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/users/'
+    | '/dashboard/users/roles/$roleId'
+    | '/dashboard/users/roles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,10 +213,12 @@ export interface FileRouteTypes {
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/users'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/users'
+    | '/dashboard/users/roles/$roleId'
+    | '/dashboard/users/roles'
   id:
     | '__root__'
     | '/'
@@ -185,13 +228,17 @@ export interface FileRouteTypes {
     | '/force-password-change'
     | '/login'
     | '/setup'
+    | '/dashboard/users'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/users'
     | '/dashboard/'
+    | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/users/'
+    | '/dashboard/users/roles/$roleId'
+    | '/dashboard/users/roles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -287,7 +334,7 @@ declare module '@tanstack/react-router' {
       id: '/dashboard/users'
       path: '/users'
       fullPath: '/dashboard/users'
-      preLoaderRoute: typeof DashboardUsersRouteImport
+      preLoaderRoute: typeof DashboardUsersRouteRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/agent/$agentId': {
@@ -304,24 +351,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardEmbedsEmbedIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/users/': {
+      id: '/dashboard/users/'
+      path: '/'
+      fullPath: '/dashboard/users/'
+      preLoaderRoute: typeof DashboardUsersIndexRouteImport
+      parentRoute: typeof DashboardUsersRouteRoute
+    }
+    '/dashboard/users/roles': {
+      id: '/dashboard/users/roles'
+      path: '/roles'
+      fullPath: '/dashboard/users/roles'
+      preLoaderRoute: typeof DashboardUsersRolesRouteRouteImport
+      parentRoute: typeof DashboardUsersRouteRoute
+    }
+    '/dashboard/users/roles/': {
+      id: '/dashboard/users/roles/'
+      path: '/'
+      fullPath: '/dashboard/users/roles/'
+      preLoaderRoute: typeof DashboardUsersRolesIndexRouteImport
+      parentRoute: typeof DashboardUsersRolesRouteRoute
+    }
+    '/dashboard/users/roles/$roleId': {
+      id: '/dashboard/users/roles/$roleId'
+      path: '/$roleId'
+      fullPath: '/dashboard/users/roles/$roleId'
+      preLoaderRoute: typeof DashboardUsersRolesRoleIdRouteImport
+      parentRoute: typeof DashboardUsersRolesRouteRoute
+    }
   }
 }
 
+interface DashboardUsersRolesRouteRouteChildren {
+  DashboardUsersRolesRoleIdRoute: typeof DashboardUsersRolesRoleIdRoute
+  DashboardUsersRolesIndexRoute: typeof DashboardUsersRolesIndexRoute
+}
+
+const DashboardUsersRolesRouteRouteChildren: DashboardUsersRolesRouteRouteChildren =
+  {
+    DashboardUsersRolesRoleIdRoute: DashboardUsersRolesRoleIdRoute,
+    DashboardUsersRolesIndexRoute: DashboardUsersRolesIndexRoute,
+  }
+
+const DashboardUsersRolesRouteRouteWithChildren =
+  DashboardUsersRolesRouteRoute._addFileChildren(
+    DashboardUsersRolesRouteRouteChildren,
+  )
+
+interface DashboardUsersRouteRouteChildren {
+  DashboardUsersRolesRouteRoute: typeof DashboardUsersRolesRouteRouteWithChildren
+  DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute
+}
+
+const DashboardUsersRouteRouteChildren: DashboardUsersRouteRouteChildren = {
+  DashboardUsersRolesRouteRoute: DashboardUsersRolesRouteRouteWithChildren,
+  DashboardUsersIndexRoute: DashboardUsersIndexRoute,
+}
+
+const DashboardUsersRouteRouteWithChildren =
+  DashboardUsersRouteRoute._addFileChildren(DashboardUsersRouteRouteChildren)
+
 interface DashboardRouteRouteChildren {
+  DashboardUsersRouteRoute: typeof DashboardUsersRouteRouteWithChildren
   DashboardAccountRoute: typeof DashboardAccountRoute
   DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAiConfigurationRoute: typeof DashboardAiConfigurationRoute
-  DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
   DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardUsersRouteRoute: DashboardUsersRouteRouteWithChildren,
   DashboardAccountRoute: DashboardAccountRoute,
   DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAiConfigurationRoute: DashboardAiConfigurationRoute,
-  DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
   DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,

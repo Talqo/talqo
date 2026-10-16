@@ -46,10 +46,6 @@ export interface EmbedConfig {
 
 export type ProblemDetails =
 	| {
-			code: "admin-access-required"
-			type: "https://docs.talqo.chat/problems#admin-access-required"
-	  }
-	| {
 			code: "admin-already-exists"
 			type: "https://docs.talqo.chat/problems#admin-already-exists"
 	  }
@@ -202,6 +198,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#permission-denied"
 	  }
 	| {
+			code: "permission-exceeds-own"
+			type: "https://docs.talqo.chat/problems#permission-exceeds-own"
+	  }
+	| {
 			code: "provider-credentials-rejected"
 			type: "https://docs.talqo.chat/problems#provider-credentials-rejected"
 	  }
@@ -220,6 +220,14 @@ export type ProblemDetails =
 	| {
 			code: "request-failed"
 			type: "https://docs.talqo.chat/problems#request-failed"
+	  }
+	| {
+			code: "role-name-taken"
+			type: "https://docs.talqo.chat/problems#role-name-taken"
+	  }
+	| {
+			code: "role-not-found"
+			type: "https://docs.talqo.chat/problems#role-not-found"
 	  }
 	| {
 			code: "route-not-found"

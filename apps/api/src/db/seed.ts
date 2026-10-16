@@ -24,6 +24,7 @@ export async function seed(): Promise<void> {
 		await roles.seedAdmin(adminId)
 	}
 	await identity.seedUser()
+	await roles.seed()
 	await agent.seed()
 	await embed.seed()
 	await mcp.seed()

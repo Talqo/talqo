@@ -26,7 +26,10 @@ export function isAccessPolicy(handler: unknown): boolean {
 
 const allowPublic = policy(createMiddleware<BlankEnv>(async (_c, next) => next()))
 
-type SessionOptions = { allowPendingPasswordChange?: boolean; permission?: roles.Permission }
+type SessionOptions = {
+	allowPendingPasswordChange?: boolean
+	permission?: roles.Permission
+}
 
 function requireSession(options: SessionOptions) {
 	return policy(
@@ -42,18 +45,26 @@ function requireSession(options: SessionOptions) {
 				return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN)
 			}
 
-			if (options.permission && !(await roles.authorize(session.user.id, options.permission))) {
-				const code =
-					options.permission === roles.Permission.Admin
-						? PROBLEM_CODES.ADMIN_ACCESS_REQUIRED
-						: PROBLEM_CODES.PERMISSION_DENIED
-				return problemResponse(c, code, HTTP_STATUS.FORBIDDEN)
+			if (options.permission) {
+				const held = await roles.listEffectivePermissions(session.user.id)
+				if (!held.includes(options.permission)) {
+					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+				}
 			}
 
 			c.set("user", session.user)
 			return next()
 		}),
 	)
+}
+
+type SessionAccess = { middleware: ReturnType<typeof requireSession>; security: typeof sessionSecurity }
+
+function permissionAccess(permission: roles.Permission): SessionAccess {
+	return {
+		security: sessionSecurity,
+		middleware: requireSession({ permission }),
+	}
 }
 
 // Only extracts the credential; the conversation service decides whether it is valid.
@@ -75,10 +86,7 @@ export const access = {
 		security: sessionSecurity,
 		middleware: requireSession(options),
 	}),
-	permission: (permission: roles.Permission) => ({
-		security: sessionSecurity,
-		middleware: requireSession({ permission }),
-	}),
+	permission: permissionAccess,
 	chatBearer: { security: chatBearerSecurity, middleware: requireChatBearer },
 }
 

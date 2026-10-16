@@ -18,7 +18,7 @@ import * as repo from "./identity.repository.ts"
 // eslint-disable-next-line no-magic-numbers
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
-// Real argon2id hash with no account, checked on unknown usernames so timing doesn't leak existence.
+// Check unknown usernames against a real hash so timing does not reveal whether a user exists.
 const DUMMY_PASSWORD_HASH =
 	"$argon2id$v=19$m=65536,t=2,p=1$w3rYKVUc1fpKckt77EcQqRf6du84Qh6GiLBmosTOV8M$SSJe6OCOtUC+ZpVOYRQ0/3VJER6dG7vPZxSEIXWyTAs"
 
@@ -79,7 +79,7 @@ export function assertValidPassword(password: string): void {
 	}
 }
 
-export async function createAccount(input: { password: string; username: string }): Promise<PublicUser> {
+export async function createUser(input: { password: string; username: string }): Promise<PublicUser> {
 	assertValidUsername(input.username)
 	assertValidPassword(input.password)
 	const passwordHash = await Bun.password.hash(input.password)
@@ -206,16 +206,22 @@ export async function setPassword(userId: string, newPassword: string): Promise<
 	await rotatePassword(userId, newPassword, true)
 }
 
+export async function getUser(userId: string): Promise<PublicUser> {
+	const user = await repo.findUserById(userId)
+	if (!user) throw new UserNotFoundError(`getUser: user ${userId} not found`)
+	return toPublicUser(user)
+}
+
 export async function listUsers(): Promise<PublicUser[]> {
 	const users = await repo.listUsers()
 	return users.map(toPublicUser)
 }
 
-export async function updateAccount(userId: string, input: { username: string }): Promise<PublicUser> {
+export async function updateUser(userId: string, input: { username: string }): Promise<PublicUser> {
 	assertValidUsername(input.username)
 	try {
 		const user = await repo.updateUser(userId, input)
-		if (!user) throw new UserNotFoundError(`updateAccount: user ${userId} not found`)
+		if (!user) throw new UserNotFoundError(`updateUser: user ${userId} not found`)
 		return toPublicUser(user)
 	} catch (error) {
 		if (error instanceof UserNotFoundError) throw error
@@ -224,6 +230,6 @@ export async function updateAccount(userId: string, input: { username: string })
 	}
 }
 
-export async function deleteAccount(userId: string): Promise<void> {
-	if (!(await repo.deleteUser(userId))) throw new UserNotFoundError(`deleteAccount: user ${userId} not found`)
+export async function deleteUser(userId: string): Promise<void> {
+	if (!(await repo.deleteUser(userId))) throw new UserNotFoundError(`deleteUser: user ${userId} not found`)
 }

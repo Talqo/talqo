@@ -6,10 +6,10 @@
  */
 import * as zod from "zod"
 
-import { RoleUser } from "../roleUser.zod"
+import { User } from "../user.zod"
 
 export const RedeemInvitation201 = zod.object({
-	user: RoleUser,
+	user: User,
 })
 
 export type RedeemInvitation201 = zod.input<typeof RedeemInvitation201>

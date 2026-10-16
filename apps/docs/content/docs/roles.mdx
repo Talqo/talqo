@@ -1,0 +1,51 @@
+---
+title: Roles and access
+description: Decide what each person can see and change in the dashboard.
+---
+
+## What this does
+
+A **role** is a named set of things people may do, such as "Support" that can see agents, or "Editors" that can change them. Give a person one or more roles, and they can do everything those roles allow together.
+
+The first person to sign up during setup is the **admin**. They can do everything and are marked **Admin** on the Users page. Everyone else starts with no access until you give them a role.
+
+## What a role can allow
+
+| In the dashboard  | Lets people                                                           |
+| ----------------- | --------------------------------------------------------------------- |
+| **See users**     | View everyone who can sign in to the dashboard.                       |
+| **Manage users**  | Invite people, reset their passwords and remove them.                 |
+| **Manage roles**  | Create roles and choose who has them.                                 |
+| **Configure AI**  | Choose the AI provider and models that agents use.                    |
+| **See agents**    | View agents, their knowledge, connections and website embeds.         |
+| **Manage agents** | Create, change and delete agents and everything that belongs to them. |
+
+Some choices include others. **Manage agents** includes **See agents**, and **Manage users** and **Manage roles** both include **See users**. Turning one on also turns on the included choice.
+
+## Create a role
+
+1. Open **Users**, select **Roles**, and click **Create role**. A blank role opens on its own page.
+2. Replace "New role" with a name people will recognize, such as "Support".
+3. Turn on what people with the role can do, then click **Save changes**.
+
+To change a role later, click its name in the list. Changes take effect when saved. Nobody needs to sign in again, but they may need to reload an open page to see their new access.
+
+## Give roles to people
+
+1. Open **Users** and click **Edit roles** next to the person.
+2. Tick the roles they should have and untick the ones they should lose.
+3. Click **Save roles**.
+
+A person can have several roles. To take all access away, untick every role.
+
+## You can only give what you have
+
+You can create, change, delete, give or take away only roles whose access you have yourself. Choices you don't have are greyed out with the reason next to them. You can reset someone's password or remove them only if you have all the access they have. Only the admin can reset or remove the admin.
+
+You may give roles to the admin, but they already have full access.
+
+If you are about to remove your own last way to manage roles, Talqo warns you first. Someone else with **Manage roles** can give it back.
+
+## Delete a role
+
+Open the role and click **Delete role** below its settings. Everyone who had it loses the access it gave them, unless another of their roles gives the same access. Deletion is permanent. If you need that access later, create a new role and assign it to the people who need it.

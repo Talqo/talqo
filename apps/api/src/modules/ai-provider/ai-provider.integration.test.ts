@@ -13,7 +13,7 @@ async function adminCookie(): Promise<string> {
 
 async function memberCookie(): Promise<string> {
 	const username = uniqueUsername()
-	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	return sessionCookie(username)
 }
 

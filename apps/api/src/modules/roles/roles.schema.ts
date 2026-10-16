@@ -1,6 +1,6 @@
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
-import { index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
+import { check, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
 export const invitation = pgTable(
 	"invitation",
@@ -24,12 +24,8 @@ export const permissionGrant = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
-		// Free text, not a DB enum: each module with mutating routes owns its own permission strings.
+		// Only the admin grant remains; every other permission comes from roles.
 		permission: text("permission").notNull(),
-		// Legacy: grants are global now, and authorization ignores rows where this is set.
-		agentId: text("agent_id"),
-		// Nullable + set null (not cascade): deleting the granting user's account must not
-		// silently revoke grants they made to other, unrelated users.
 		grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
 		grantedAt: timestamp("granted_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
@@ -38,6 +34,45 @@ export const permissionGrant = pgTable(
 		// At most one global admin; the application also checks, but the constraint holds even when bypassed.
 		uniqueIndex("permission_grant_admin_unique_idx")
 			.on(table.permission)
-			.where(sql`${table.permission} = 'admin' AND ${table.agentId} IS NULL`),
+			.where(sql`${table.permission} = 'admin'`),
+		check("permission_grant_admin_only", sql`${table.permission} = 'admin'`),
 	],
+)
+
+export const role = pgTable(
+	"role",
+	{
+		id: text("id").primaryKey(),
+		name: text("name").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+	},
+	(table) => [uniqueIndex("role_name_unique_idx").on(sql`lower(${table.name})`)],
+)
+
+export const rolePermission = pgTable(
+	"role_permission",
+	{
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+		// Free text; the API validates against the catalog, and only the admin grant may hold admin.
+		permission: text("permission").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.roleId, table.permission] }),
+		check("role_permission_not_admin", sql`${table.permission} <> 'admin'`),
+	],
+)
+
+export const userRole = pgTable(
+	"user_role",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+	},
+	(table) => [primaryKey({ columns: [table.userId, table.roleId] }), index("user_role_role_id_idx").on(table.roleId)],
 )

@@ -2,7 +2,7 @@ import {
 	getGetSessionQueryKey,
 	useChangePassword,
 	useGetSession,
-	useUpdateAccount,
+	useUpdateCurrentUser,
 } from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
@@ -34,7 +34,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>
 function ProfileCard({ name }: { name: string }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
-	const updateAccount = useUpdateAccount()
+	const updateUser = useUpdateCurrentUser()
 	const [serverError, setServerError] = useState<string | null>(null)
 	const [saved, setSaved] = useState(false)
 
@@ -57,7 +57,7 @@ function ProfileCard({ name }: { name: string }) {
 		setServerError(null)
 		setSaved(false)
 		try {
-			const result = await updateAccount.mutateAsync({ data: { username: input.name } })
+			const result = await updateUser.mutateAsync({ data: { username: input.name } })
 			// Point the session cache at the renamed user without a refetch; the card stays
 			// mounted so the confirmation state below survives.
 			queryClient.setQueryData(getGetSessionQueryKey(), (old?: { data: { user: unknown } }) => ({
@@ -98,7 +98,7 @@ function ProfileCard({ name }: { name: string }) {
 						</p>
 					)}
 					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
-					<Button type="submit" disabled={updateAccount.isPending || !isDirty}>
+					<Button type="submit" disabled={updateUser.isPending || !isDirty}>
 						{t("account.saveProfile")}
 					</Button>
 				</CardContent>

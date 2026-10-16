@@ -199,17 +199,18 @@ test("operator disables the embed from the embeds overview and the public config
 test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
 	const viewer = { username: "user", password: "user1234" }
 
-	// Grant through the API boundary, then switch accounts and inspect the same page.
+	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
 		users: { id: string; username: string }[]
 	}
 	const user = users.find(({ username }) => username === viewer.username)
 	if (!user) throw new Error("Seed user is missing")
-	const grantResponse = await page.request.post("/api/permission-grants", {
-		data: { userId: user.id, permission: "agents:read" },
+	const roleResponse = await page.request.post("/api/roles", {
+		data: { name: `Embed viewers ${Date.now()}`, permissions: ["agents:read"] },
 	})
-	await expect(grantResponse).toBeOK()
-	const grantId = ((await grantResponse.json()) as { grant: { id: string } }).grant.id
+	await expect(roleResponse).toBeOK()
+	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
+	await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 
 	try {
 		await page.getByRole("button", { name: "Log out" }).click()
@@ -226,7 +227,8 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
 	} finally {
 		await page.request.post("/api/auth/login", { data: operator })
-		await expect(await page.request.delete(`/api/permission-grants/${grantId}`)).toBeOK()
+		// Deleting the role also removes the assignment.
+		await expect(await page.request.delete(`/api/roles/${roleId}`)).toBeOK()
 	}
 })
 
