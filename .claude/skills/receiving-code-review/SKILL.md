@@ -13,6 +13,8 @@ Code review requires technical evaluation, not emotional performance.
 
 ## The Response Pattern
 
+Use feedback supplied in the conversation. Otherwise, run `scripts/fetch-pr-feedback.sh` to fetch unresolved inline threads, regular comments, and review summaries for the current branch's PR. Only pass a PR number or URL when targeting a different PR.
+
 ```
 WHEN receiving code review feedback:
 
