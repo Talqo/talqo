@@ -69,7 +69,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/users") {
 		if (usersResponse) return usersResponse
 		const ownRoles = roles.filter(({ id }) => myRoleIds.includes(id)).map(({ id, name }) => ({ id, name }))
-		return json({ users: [{ ...ME, roles: ownRoles, isAdmin: myPermissions.includes("admin"), canManage: true }] })
+		return json({ users: [{ ...ME, roles: ownRoles, permissions: myPermissions, canManage: true }] })
 	}
 	if (url === "/api/permissions") return json({ permissions: GRANTABLE })
 	if (url === "/api/roles" && method === "GET") return refreshedRolesResponse ?? rolesFailure ?? json({ roles })
@@ -258,7 +258,11 @@ describe("role management", () => {
 		expect(queryButton(t("roles.delete"), host)).toBeUndefined()
 		await act(async () =>
 			deferred.resolve(
-				json({ users: [{ ...ME, roles: [{ id: "managers", name: "Managers" }], isAdmin: false, canManage: false }] }),
+				json({
+					users: [
+						{ ...ME, roles: [{ id: "managers", name: "Managers" }], permissions: myPermissions, canManage: false },
+					],
+				}),
 			),
 		)
 		await settle()

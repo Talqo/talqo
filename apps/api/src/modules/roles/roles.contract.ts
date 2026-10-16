@@ -1,6 +1,7 @@
 import { access } from "@/http/access.ts"
 import { noContentResponse, payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import { userResponseSchema } from "@/modules/identity/identity.contract.ts"
 import {
 	PASSWORD_MAX_LENGTH,
 	PASSWORD_MIN_LENGTH,
@@ -20,15 +21,6 @@ const usernameSchema = z
 	.regex(USERNAME_PATTERN, "Username may only contain letters, numbers, underscores, and hyphens")
 
 const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH)
-
-// Mirrors identity.contract.ts: modules cross-import through service.ts only.
-const userResponseSchema = z
-	.object({
-		id: z.string(),
-		username: z.string(),
-		mustChangePassword: z.boolean(),
-	})
-	.openapi("RoleUser")
 
 export const setupStatusResponseSchema = z.object({
 	needsSetup: z.boolean(),
@@ -143,18 +135,13 @@ const resetPasswordRequestSchema = z.object({
 export const userListResponseSchema = z.object({
 	users: z.array(
 		z.object({
-			id: z.string(),
-			username: z.string(),
-			isAdmin: z.boolean(),
+			...userResponseSchema.shape,
+			permissions: z.array(z.enum(PERMISSIONS)),
 			canManage: z.boolean(),
-			mustChangePassword: z.boolean().nullable(),
+			mustChangePassword: userResponseSchema.shape.mustChangePassword.nullable(),
 			roles: z.array(roleSummarySchema),
 		}),
 	),
-})
-
-export const accessResponseSchema = z.object({
-	permissions: z.array(z.enum(PERMISSIONS)),
 })
 
 const userParamsSchema = z.object({
@@ -163,23 +150,6 @@ const userParamsSchema = z.object({
 
 const roleParamsSchema = z.object({
 	roleId: z.string().openapi({ param: { name: "roleId", in: "path" } }),
-})
-
-export const getAccessRoute = createRoute({
-	method: "get",
-	path: "/access",
-	operationId: "getAccess",
-	tags: ["Roles"],
-	...access.session(),
-	responses: {
-		200: {
-			content: { "application/json": { schema: accessResponseSchema } },
-			description: "Effective access for the current user",
-		},
-		401: authRequired,
-		403: passwordRequired,
-		500: serverError,
-	},
 })
 
 export const getSetupStatusRoute = createRoute({

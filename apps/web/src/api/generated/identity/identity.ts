@@ -26,8 +26,8 @@ import type { CompleteForcedPasswordChangeBody } from "../models/identity/comple
 import type { GetSession200 } from "../models/identity/getSession200.zod"
 import type { Login200 } from "../models/identity/login200.zod"
 import type { LoginBody } from "../models/identity/loginBody.zod"
-import type { UpdateAccount200 } from "../models/identity/updateAccount200.zod"
-import type { UpdateAccountBody } from "../models/identity/updateAccountBody.zod"
+import type { UpdateCurrentUser200 } from "../models/identity/updateCurrentUser200.zod"
+import type { UpdateCurrentUserBody } from "../models/identity/updateCurrentUserBody.zod"
 import type { ProblemDetails } from "../models/problemDetails.zod"
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
@@ -365,63 +365,63 @@ export function useGetSession<
 	return withQueryKey(query, queryOptions.queryKey)
 }
 
-export type updateAccountResponse200 = {
-	data: UpdateAccount200
+export type updateCurrentUserResponse200 = {
+	data: UpdateCurrentUser200
 	status: 200
 }
 
-export type updateAccountResponse400 = {
+export type updateCurrentUserResponse400 = {
 	data: ProblemDetails
 	status: 400
 }
 
-export type updateAccountResponse401 = {
+export type updateCurrentUserResponse401 = {
 	data: ProblemDetails
 	status: 401
 }
 
-export type updateAccountResponse403 = {
+export type updateCurrentUserResponse403 = {
 	data: ProblemDetails
 	status: 403
 }
 
-export type updateAccountResponse409 = {
+export type updateCurrentUserResponse409 = {
 	data: ProblemDetails
 	status: 409
 }
 
-export type updateAccountResponse413 = {
+export type updateCurrentUserResponse413 = {
 	data: ProblemDetails
 	status: 413
 }
 
-export type updateAccountResponse500 = {
+export type updateCurrentUserResponse500 = {
 	data: ProblemDetails
 	status: 500
 }
 
-export type updateAccountResponseSuccess = updateAccountResponse200 & {
+export type updateCurrentUserResponseSuccess = updateCurrentUserResponse200 & {
 	headers: Headers
 }
-export type updateAccountResponseError = (
-	| updateAccountResponse400
-	| updateAccountResponse401
-	| updateAccountResponse403
-	| updateAccountResponse409
-	| updateAccountResponse413
-	| updateAccountResponse500
+export type updateCurrentUserResponseError = (
+	| updateCurrentUserResponse400
+	| updateCurrentUserResponse401
+	| updateCurrentUserResponse403
+	| updateCurrentUserResponse409
+	| updateCurrentUserResponse413
+	| updateCurrentUserResponse500
 ) & {
 	headers: Headers
 }
 
-export const getUpdateAccountUrl = () => {
+export const getUpdateCurrentUserUrl = () => {
 	return `/api/me`
 }
 
-export const updateAccount = async (
-	updateAccountBody: UpdateAccountBody,
+export const updateCurrentUser = async (
+	updateCurrentUserBody: UpdateCurrentUserBody,
 	options?: RequestInit,
-): Promise<updateAccountResponseSuccess> => {
+): Promise<updateCurrentUserResponseSuccess> => {
 	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
 		if (!h) return {}
 		if (h instanceof Headers) return Object.fromEntries(h.entries())
@@ -436,118 +436,129 @@ export const updateAccount = async (
 		}
 		return headers
 	}
-	const res = await fetch(getUpdateAccountUrl(), {
+	const res = await fetch(getUpdateCurrentUserUrl(), {
 		credentials: "include",
 		...options,
 		method: "PATCH",
 		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
-		body: JSON.stringify(updateAccountBody),
+		body: JSON.stringify(updateCurrentUserBody),
 	})
 
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
-		const err: globalThis.Error & { info?: updateAccountResponseError["data"]; status?: number } =
+		const err: globalThis.Error & { info?: updateCurrentUserResponseError["data"]; status?: number } =
 			new globalThis.Error()
-		const data: updateAccountResponseError["data"] = body ? JSON.parse(body) : {}
+		const data: updateCurrentUserResponseError["data"] = body ? JSON.parse(body) : {}
 		err.info = data
 		err.status = res.status
 		throw err
 	}
-	const data: updateAccountResponseSuccess["data"] = body ? JSON.parse(body) : {}
-	return { data, status: res.status, headers: res.headers } as updateAccountResponseSuccess
+	const data: updateCurrentUserResponseSuccess["data"] = body ? JSON.parse(body) : {}
+	return { data, status: res.status, headers: res.headers } as updateCurrentUserResponseSuccess
 }
 
-export const getUpdateAccountMutationKey = () => ["updateAccount"] as const
+export const getUpdateCurrentUserMutationKey = () => ["updateCurrentUser"] as const
 
-export const getUpdateAccountMutationOptions = <
+export const getUpdateCurrentUserMutationOptions = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
 	mutation?: UseMutationOptions<
-		Awaited<ReturnType<typeof updateAccount>>,
+		Awaited<ReturnType<typeof updateCurrentUser>>,
 		TError,
-		UpdateAccountMutationVariables,
+		UpdateCurrentUserMutationVariables,
 		TContext
 	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
-	const mutationKey = getUpdateAccountMutationKey()
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof updateCurrentUser>>,
+	TError,
+	UpdateCurrentUserMutationVariables,
+	TContext
+> => {
+	const mutationKey = getUpdateCurrentUserMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAccount>>, UpdateAccountMutationVariables> = (
-		props,
-	) => {
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof updateCurrentUser>>,
+		UpdateCurrentUserMutationVariables
+	> = (props) => {
 		const { data } = props ?? {}
 
-		return updateAccount(data, fetchOptions)
+		return updateCurrentUser(data, fetchOptions)
 	}
 
 	return { mutationFn, ...mutationOptions }
 }
 
-export type UpdateAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateAccount>>>
-export type UpdateAccountMutationBody = UpdateAccountBody
-export type UpdateAccountMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
-export type UpdateAccountMutationVariables = { data: UpdateAccountBody }
+export type UpdateCurrentUserMutationResult = NonNullable<Awaited<ReturnType<typeof updateCurrentUser>>>
+export type UpdateCurrentUserMutationBody = UpdateCurrentUserBody
+export type UpdateCurrentUserMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type UpdateCurrentUserMutationVariables = { data: UpdateCurrentUserBody }
 
-export const useUpdateAccount = <
+export const useUpdateCurrentUser = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
 		mutation?: UseMutationOptions<
-			Awaited<ReturnType<typeof updateAccount>>,
+			Awaited<ReturnType<typeof updateCurrentUser>>,
 			TError,
-			UpdateAccountMutationVariables,
+			UpdateCurrentUserMutationVariables,
 			TContext
 		>
 		fetch?: RequestInit
 	},
 	queryClient?: QueryClient,
-): UseMutationResult<Awaited<ReturnType<typeof updateAccount>>, TError, UpdateAccountMutationVariables, TContext> => {
-	return useMutation(getUpdateAccountMutationOptions(options), queryClient)
+): UseMutationResult<
+	Awaited<ReturnType<typeof updateCurrentUser>>,
+	TError,
+	UpdateCurrentUserMutationVariables,
+	TContext
+> => {
+	return useMutation(getUpdateCurrentUserMutationOptions(options), queryClient)
 }
-export type deleteAccountResponse204 = {
+export type deleteCurrentUserResponse204 = {
 	data: void
 	status: 204
 }
 
-export type deleteAccountResponse401 = {
+export type deleteCurrentUserResponse401 = {
 	data: ProblemDetails
 	status: 401
 }
 
-export type deleteAccountResponse403 = {
+export type deleteCurrentUserResponse403 = {
 	data: ProblemDetails
 	status: 403
 }
 
-export type deleteAccountResponse500 = {
+export type deleteCurrentUserResponse500 = {
 	data: ProblemDetails
 	status: 500
 }
 
-export type deleteAccountResponseSuccess = deleteAccountResponse204 & {
+export type deleteCurrentUserResponseSuccess = deleteCurrentUserResponse204 & {
 	headers: Headers
 }
-export type deleteAccountResponseError = (
-	| deleteAccountResponse401
-	| deleteAccountResponse403
-	| deleteAccountResponse500
+export type deleteCurrentUserResponseError = (
+	| deleteCurrentUserResponse401
+	| deleteCurrentUserResponse403
+	| deleteCurrentUserResponse500
 ) & {
 	headers: Headers
 }
 
-export const getDeleteAccountUrl = () => {
+export const getDeleteCurrentUserUrl = () => {
 	return `/api/me`
 }
 
-export const deleteAccount = async (options?: RequestInit): Promise<deleteAccountResponseSuccess> => {
-	const res = await fetch(getDeleteAccountUrl(), {
+export const deleteCurrentUser = async (options?: RequestInit): Promise<deleteCurrentUserResponseSuccess> => {
+	const res = await fetch(getDeleteCurrentUserUrl(), {
 		credentials: "include",
 		...options,
 		method: "DELETE",
@@ -555,55 +566,55 @@ export const deleteAccount = async (options?: RequestInit): Promise<deleteAccoun
 
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
 	if (!res.ok) {
-		const err: globalThis.Error & { info?: deleteAccountResponseError["data"]; status?: number } =
+		const err: globalThis.Error & { info?: deleteCurrentUserResponseError["data"]; status?: number } =
 			new globalThis.Error()
-		const data: deleteAccountResponseError["data"] = body ? JSON.parse(body) : {}
+		const data: deleteCurrentUserResponseError["data"] = body ? JSON.parse(body) : {}
 		err.info = data
 		err.status = res.status
 		throw err
 	}
-	const data: deleteAccountResponseSuccess["data"] = body ? JSON.parse(body) : undefined
-	return { data, status: res.status, headers: res.headers } as deleteAccountResponseSuccess
+	const data: deleteCurrentUserResponseSuccess["data"] = body ? JSON.parse(body) : undefined
+	return { data, status: res.status, headers: res.headers } as deleteCurrentUserResponseSuccess
 }
 
-export const getDeleteAccountMutationKey = () => ["deleteAccount"] as const
+export const getDeleteCurrentUserMutationKey = () => ["deleteCurrentUser"] as const
 
-export const getDeleteAccountMutationOptions = <
+export const getDeleteCurrentUserMutationOptions = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
+	mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUser>>, TError, void, TContext>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext> => {
-	const mutationKey = getDeleteAccountMutationKey()
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUser>>, TError, void, TContext> => {
+	const mutationKey = getDeleteCurrentUserMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
 			? options
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAccount>>, void> = () => {
-		return deleteAccount(fetchOptions)
+	const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCurrentUser>>, void> = () => {
+		return deleteCurrentUser(fetchOptions)
 	}
 
 	return { mutationFn, ...mutationOptions }
 }
 
-export type DeleteAccountMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAccount>>>
+export type DeleteCurrentUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCurrentUser>>>
 
-export type DeleteAccountMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type DeleteCurrentUserMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
 
-export const useDeleteAccount = <
+export const useDeleteCurrentUser = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
-		mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext>
+		mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteCurrentUser>>, TError, void, TContext>
 		fetch?: RequestInit
 	},
 	queryClient?: QueryClient,
-): UseMutationResult<Awaited<ReturnType<typeof deleteAccount>>, TError, void, TContext> => {
-	return useMutation(getDeleteAccountMutationOptions(options), queryClient)
+): UseMutationResult<Awaited<ReturnType<typeof deleteCurrentUser>>, TError, void, TContext> => {
+	return useMutation(getDeleteCurrentUserMutationOptions(options), queryClient)
 }
 export type changePasswordResponse204 = {
 	data: void

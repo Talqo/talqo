@@ -303,7 +303,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 								<span className="max-w-full truncate font-medium" title={user.username}>
 									{user.username}
 								</span>
-								{user.isAdmin && <Badge>{t("users.adminBadge")}</Badge>}
+								{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
 								{user.roles.map((role) => (
 									<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
 										<span className="max-w-48 truncate">{role.name}</span>

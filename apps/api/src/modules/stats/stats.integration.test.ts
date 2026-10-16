@@ -254,7 +254,7 @@ describe("stats overview aggregation", () => {
 	it("serves admins and defaults to 30 days without a days parameter", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername)
 
 		const forbidden = await app.request("/api/stats", { headers: { Cookie: memberCookie } })

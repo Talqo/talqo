@@ -14,4 +14,4 @@ Roles are the only way to give non-admin permissions; the admin stays a direct g
 
 ## Consequences
 
-Ordinary access has one management path. Admin access remains a separate, non-delegable privilege, and roles cannot hold `admin`. Existing global non-admin grants must become assigned roles on upgrade.
+Ordinary access has one management path. Admin access remains a separate, non-delegable privilege, and roles cannot hold `admin`. There are no deployed installations to migrate from direct grants.

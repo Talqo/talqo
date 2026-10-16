@@ -64,7 +64,7 @@ async function deleteRole(id: string): Promise<void> {
 }
 
 async function createMember(): Promise<identity.PublicUser> {
-	return identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+	return identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 }
 
 async function memberWith(permissions: service.GrantablePermission[]): Promise<{ cookie: string; userId: string }> {
@@ -89,7 +89,7 @@ async function expectCode(response: Response, status: number, code: string): Pro
 
 async function createMemberSession(): Promise<string> {
 	const username = uniqueUsername()
-	await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	return login(username, DEFAULT_PASSWORD)
 }
 
@@ -103,7 +103,7 @@ describe("roles", () => {
 		expect(await response.json()).toEqual({ needsSetup: true })
 	})
 
-	it("bootstraps the admin account and then reports setup as complete", async () => {
+	it("creates the admin user and then reports setup as complete", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 		const username = uniqueUsername()
 
@@ -127,7 +127,7 @@ describe("roles", () => {
 
 	it("rejects a second attempt to bootstrap an admin", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
-		const seedAdmin = await identity.createAccount({ username: uniqueUsername(), password: "seed-admin-password" })
+		const seedAdmin = await identity.createUser({ username: uniqueUsername(), password: "seed-admin-password" })
 		await repo.insertPermissionGrant({
 			id: crypto.randomUUID(),
 			userId: seedAdmin.id,
@@ -145,7 +145,7 @@ describe("roles", () => {
 	})
 
 	it("reports a user with no admin grant as not authorized for admin", async () => {
-		const user = await identity.createAccount({ username: uniqueUsername(), password: "not-an-admin-password" })
+		const user = await identity.createUser({ username: uniqueUsername(), password: "not-an-admin-password" })
 
 		expect(await service.listEffectivePermissions(user.id)).not.toContain("admin")
 	})
@@ -161,8 +161,8 @@ describe("roles", () => {
 
 	it("enforces at most one admin grant at the database level, not just in application code", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
-		const userA = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-1" })
-		const userB = await identity.createAccount({ username: uniqueUsername(), password: "direct-insert-password-2" })
+		const userA = await identity.createUser({ username: uniqueUsername(), password: "direct-insert-password-1" })
+		const userB = await identity.createUser({ username: uniqueUsername(), password: "direct-insert-password-2" })
 
 		// Inserts directly via the repo, bypassing bootstrapAdmin's check, to prove the DB constraint itself rejects it.
 		await repo.insertPermissionGrant({
@@ -197,7 +197,7 @@ describe("invitations", () => {
 		expect(response.status).toBe(403)
 	})
 
-	it("redeems a valid invitation and creates the account", async () => {
+	it("redeems a valid invitation and creates the user", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const inviteResponse = await app.request("/api/invitations", { method: "POST", headers: { Cookie: adminCookie } })
 		const { token } = (await inviteResponse.json()) as { token: string }
@@ -262,7 +262,7 @@ describe("invitations", () => {
 		const { token } = (await inviteResponse.json()) as { token: string }
 
 		const takenUsername = uniqueUsername()
-		await identity.createAccount({ username: takenUsername, password: "already-taken-password" })
+		await identity.createUser({ username: takenUsername, password: "already-taken-password" })
 
 		const failedAttempt = await app.request("/api/invitations/redeem", {
 			method: "POST",
@@ -328,7 +328,7 @@ describe("admin grant", () => {
 	it("denies the very next request after a role is removed, without touching the member's session", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		await giveRole(member.id, ["agents:read"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
@@ -337,8 +337,7 @@ describe("admin grant", () => {
 
 		expect((await call(adminCookie, "PUT", `/users/${member.id}/roles`, { roleIds: [] })).status).toBe(200)
 
-		// Same cookie, no re-login: proves authorize() reads permissions fresh per request
-		// rather than relying on anything cached in the session.
+		// The same session must lose access without signing in again.
 		const afterRemoval = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
 		expect(afterRemoval.status).toBe(403)
 	})
@@ -356,7 +355,7 @@ describe("effective permissions", () => {
 
 	it("expands a member's agents:manage role to include agents:read", async () => {
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		await giveRole(member.id, ["agents:manage"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
@@ -367,7 +366,7 @@ describe("effective permissions", () => {
 
 	it("returns an empty list for a member without roles and reflects a new role immediately", async () => {
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
 		const beforeGrant = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
@@ -582,7 +581,7 @@ describe("role assignment", () => {
 		const role = await createRole([])
 		await assignRoles(member.id, [role.id])
 
-		await identity.deleteAccount(member.id)
+		await identity.deleteUser(member.id)
 
 		const listed = (await service.listRoles()).find(({ id }) => id === role.id)
 		expect(listed?.memberCount).toBe(0)
@@ -742,7 +741,7 @@ describe("role routes", () => {
 })
 
 describe("user management routes", () => {
-	it("lists roles without exposing effective permissions or password-change state to users:read", async () => {
+	it("lists roles and permissions without exposing password-change state to users:read", async () => {
 		const reader = await memberWith(["users:read"])
 		const member = await createMember()
 		const role = await createRole(["agents:manage"])
@@ -757,7 +756,7 @@ describe("user management routes", () => {
 			username: member.username,
 			mustChangePassword: null,
 			roles: [{ id: role.id, name: role.name }],
-			isAdmin: false,
+			permissions: ["agents:read", "agents:manage"],
 			canManage: false,
 		})
 	})
@@ -813,7 +812,7 @@ describe("admin password reset", () => {
 	it("lets an admin reset a member's password", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 
 		const response = await app.request(`/api/users/${member.id}/password`, {
 			method: "PATCH",
@@ -832,7 +831,7 @@ describe("admin password reset", () => {
 	it("lets the reset target complete a forced change without re-entering the admin-set password", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 
 		await app.request(`/api/users/${member.id}/password`, {
 			method: "PATCH",
@@ -858,7 +857,7 @@ describe("admin password reset", () => {
 	it("blocks every other session route until a pending password change is completed", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		await app.request(`/api/users/${member.id}/password`, {
 			method: "PATCH",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
@@ -866,16 +865,16 @@ describe("admin password reset", () => {
 		})
 		const memberCookie = await login(memberUsername, "admin-reset-password-456")
 
-		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
+		const response = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 
 		expect(response.status).toBe(403)
 		expect(await response.json()).toMatchObject({ code: "password-change-required" })
 	})
 
-	it("invalidates the target account's existing sessions once the reset happens", async () => {
+	it("invalidates the target user's existing sessions once the reset happens", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 		const memberSessionResponse = await app.request("/api/auth/session", { headers: { Cookie: memberCookie } })
 		const { user: member } = (await memberSessionResponse.json()) as { user: { id: string } }
@@ -890,9 +889,9 @@ describe("admin password reset", () => {
 		expect(await replayedSession.json()).toEqual({ user: null })
 	})
 
-	it("denies a non-admin attempting to reset another account's password", async () => {
+	it("denies a non-admin without users:manage attempting to reset another user's password", async () => {
 		const memberCookie = await createMemberSession()
-		const target = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		const target = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 
 		const response = await app.request(`/api/users/${target.id}/password`, {
 			method: "PATCH",
@@ -932,7 +931,7 @@ describe("admin user deletion", () => {
 	it("lets an admin delete a member, ending their sessions and login", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
 		const response = await app.request(`/api/users/${member.id}`, {
@@ -949,9 +948,9 @@ describe("admin user deletion", () => {
 		expect(users.map((user) => user.id)).not.toContain(member.id)
 	})
 
-	it("denies a non-admin deleting another account", async () => {
+	it("denies a non-admin without users:manage deleting another user", async () => {
 		const memberCookie = await createMemberSession()
-		const target = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		const target = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
 
 		const response = await app.request(`/api/users/${target.id}`, {
 			method: "DELETE",
@@ -973,7 +972,7 @@ describe("admin user deletion", () => {
 		expect(((await response.json()) as { code: string }).code).toBe("user-not-found")
 	})
 
-	it("rejects an admin deleting their own account through this endpoint", async () => {
+	it("rejects an admin deleting themselves through this endpoint", async () => {
 		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
 
 		const response = await app.request(`/api/users/${adminId}`, {
@@ -1003,7 +1002,7 @@ describe("list users", () => {
 				expect(users).toContainEqual({
 					id: member.id,
 					username: member.username,
-					isAdmin: false,
+					permissions: [],
 					canManage: true,
 					mustChangePassword: false,
 					roles: [],
@@ -1019,35 +1018,16 @@ describe("list users", () => {
 	it("lets an admin list all users", async () => {
 		const { cookie: adminCookie, userId: adminId } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 
 		const response = await app.request("/api/users", { headers: { Cookie: adminCookie } })
 
 		expect(response.status).toBe(200)
-		const { users } = (await response.json()) as { users: { id: string; mustChangePassword: boolean }[] }
+		const { users } = (await response.json()) as { users: service.UserWithAccess[] }
 		const ids = users.map((user) => user.id)
 		expect(ids).toContain(adminId)
 		expect(ids).toContain(member.id)
 		expect(users.find((user) => user.id === member.id)?.mustChangePassword).toBe(false)
-	})
-})
-
-describe("access", () => {
-	it("reports every registered permission for an admin", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-
-		const response = await app.request("/api/access", { headers: { Cookie: adminCookie } })
-
-		expect(response.status).toBe(200)
-		expect(await response.json()).toEqual({ permissions: [...service.PERMISSIONS] })
-	})
-
-	it("reports no permissions for an ungranted member", async () => {
-		const memberCookie = await createMemberSession()
-
-		const response = await app.request("/api/access", { headers: { Cookie: memberCookie } })
-
-		expect(response.status).toBe(200)
-		expect(await response.json()).toEqual({ permissions: [] })
+		expect(users.find((user) => user.id === adminId)?.permissions).toEqual([...service.PERMISSIONS])
 	})
 })

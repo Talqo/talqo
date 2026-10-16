@@ -20,7 +20,6 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAiConfigurationRouteImport } from './routes/dashboard/ai-configuration'
-import { Route as DashboardRolesRouteImport } from './routes/dashboard/roles'
 import { Route as DashboardUsersRouteRouteImport } from './routes/dashboard/users/route'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 import { Route as DashboardEmbedsEmbedIdRouteImport } from './routes/dashboard/embeds/$embedId'
@@ -85,11 +84,6 @@ const DashboardAiConfigurationRoute =
     path: '/ai-configuration',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
-const DashboardRolesRoute = DashboardRolesRouteImport.update({
-  id: '/roles',
-  path: '/roles',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardUsersRouteRoute = DashboardUsersRouteRouteImport.update({
   id: '/users',
   path: '/users',
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/roles': typeof DashboardRolesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -160,7 +153,6 @@ export interface FileRoutesByTo {
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/roles': typeof DashboardRolesRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
@@ -181,7 +173,6 @@ export interface FileRoutesById {
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
-  '/dashboard/roles': typeof DashboardRolesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
@@ -204,7 +195,6 @@ export interface FileRouteTypes {
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/roles'
     | '/dashboard/'
     | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
@@ -223,7 +213,6 @@ export interface FileRouteTypes {
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/roles'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
     | '/dashboard/embeds/$embedId'
@@ -243,7 +232,6 @@ export interface FileRouteTypes {
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
-    | '/dashboard/roles'
     | '/dashboard/'
     | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
@@ -342,13 +330,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAiConfigurationRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/roles': {
-      id: '/dashboard/roles'
-      path: '/roles'
-      fullPath: '/dashboard/roles'
-      preLoaderRoute: typeof DashboardRolesRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/users': {
       id: '/dashboard/users'
       path: '/users'
@@ -435,7 +416,6 @@ interface DashboardRouteRouteChildren {
   DashboardAccountRoute: typeof DashboardAccountRoute
   DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAiConfigurationRoute: typeof DashboardAiConfigurationRoute
-  DashboardRolesRoute: typeof DashboardRolesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
   DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
@@ -446,7 +426,6 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAccountRoute: DashboardAccountRoute,
   DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAiConfigurationRoute: DashboardAiConfigurationRoute,
-  DashboardRolesRoute: DashboardRolesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
   DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,

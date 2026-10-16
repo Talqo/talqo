@@ -77,10 +77,10 @@ export async function hasAdmin(): Promise<boolean> {
 
 export async function bootstrapAdmin(input: { password: string; username: string }): Promise<PublicUser> {
 	if (await repo.adminGrantExists()) {
-		throw new AdminAlreadyExistsError("An admin account already exists")
+		throw new AdminAlreadyExistsError("An admin user already exists")
 	}
 
-	const user = await identity.createAccount(input)
+	const user = await identity.createUser(input)
 	try {
 		await repo.insertPermissionGrant({
 			id: crypto.randomUUID(),
@@ -89,10 +89,9 @@ export async function bootstrapAdmin(input: { password: string; username: string
 			grantedBy: user.id,
 		})
 	} catch (error) {
-		// Undo the just-created account so a lost race for "first admin" doesn't leave a
-		// permanently orphaned, grant-less account occupying that username.
-		await identity.deleteAccount(user.id)
-		if (isUniqueViolation(error)) throw new AdminAlreadyExistsError("An admin account already exists")
+		// A lost bootstrap race must not leave a user with no access occupying the username.
+		await identity.deleteUser(user.id)
+		if (isUniqueViolation(error)) throw new AdminAlreadyExistsError("An admin user already exists")
 		throw error
 	}
 
@@ -120,17 +119,13 @@ export async function redeemInvitation(input: {
 	if (!claimed) throw new InvalidInvitationError("Invitation is invalid, expired, or already used")
 
 	try {
-		return await identity.createAccount({ username: input.username, password: input.password })
+		return await identity.createUser({ username: input.username, password: input.password })
 	} catch (error) {
 		// A recoverable failure (e.g. username taken) shouldn't burn a single-use invite --
 		// give the same link back its claim so the invitee can retry with a different username.
 		await repo.unclaimInvitation(claimed.id)
 		throw error
 	}
-}
-
-export async function getAccess(userId: string): Promise<{ permissions: Permission[] }> {
-	return { permissions: await listEffectivePermissions(userId) }
 }
 
 // The only source of a user's permissions: the admin grant plus every assigned role's permissions.
@@ -315,10 +310,8 @@ export async function assignRoles(userId: string, roleIds: string[], actorId: st
 	})
 }
 
-export type UserWithAccess = {
-	id: string
-	username: string
-	isAdmin: boolean
+export type UserWithAccess = Omit<PublicUser, "mustChangePassword"> & {
+	permissions: Permission[]
 	canManage: boolean
 	mustChangePassword: boolean | null
 	roles: RoleSummary[]
@@ -340,7 +333,7 @@ export async function listUsersWithAccess(actorId: string): Promise<UserWithAcce
 		return {
 			id: user.id,
 			username: user.username,
-			isAdmin: permissions.includes(Permission.Admin),
+			permissions,
 			canManage: managesUsers && permissions.every((permission) => held.includes(permission)),
 			mustChangePassword: managesUsers ? user.mustChangePassword : null,
 			roles: (rolesByUser.get(user.id) ?? []).map(({ id, name }) => ({ id, name })),
@@ -377,6 +370,6 @@ export async function deleteUser(userId: string, actorId: string): Promise<void>
 		const held = await managementPermissions(actorId, Permission.UsersManage)
 		await identity.getUser(userId)
 		requireHeld(held, await listEffectivePermissions(userId))
-		await identity.deleteAccount(userId)
+		await identity.deleteUser(userId)
 	})
 }

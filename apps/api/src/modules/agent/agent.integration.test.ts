@@ -42,7 +42,7 @@ async function createMemberSession(
 	permissions: ("agents:read" | "agents:manage")[] = [],
 ): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
 	return login(username)
 }

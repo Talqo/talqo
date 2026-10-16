@@ -316,15 +316,15 @@ async function login(username: string, password: string): Promise<string> {
 
 async function createManagerSession(): Promise<string> {
 	const username = uniqueUsername()
-	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await giveRole(account.id, [roles.Permission.AgentsManage])
+	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(user.id, [roles.Permission.AgentsManage])
 	return login(username, DEFAULT_PASSWORD)
 }
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
-	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await giveRole(account.id, [roles.Permission.AgentsRead])
+	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(user.id, [roles.Permission.AgentsRead])
 	return login(username, DEFAULT_PASSWORD)
 }
 

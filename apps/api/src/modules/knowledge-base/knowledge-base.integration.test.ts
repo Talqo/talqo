@@ -36,7 +36,7 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, ["agents:read"])
 	return login(username)
 }

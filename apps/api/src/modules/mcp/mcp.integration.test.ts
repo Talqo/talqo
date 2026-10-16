@@ -27,7 +27,7 @@ async function login(username: string): Promise<string> {
 /** Access is declared per route, so a read-only member gets a role with exactly one permission. */
 async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
 	return login(username)
 }

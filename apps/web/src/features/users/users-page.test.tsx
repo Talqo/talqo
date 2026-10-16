@@ -1,6 +1,7 @@
 import type { Role } from "@/api/generated/models/role.zod"
 import type { Root } from "react-dom/client"
 
+import { ListUsers200 } from "@/api/generated/models/roles/listUsers200.zod"
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
@@ -21,7 +22,7 @@ const { t } = await import("i18next")
 type ListedUser = {
 	id: string
 	mustChangePassword: boolean | null
-	isAdmin: boolean
+	permissions: string[]
 	canManage: boolean
 	roles: { id: string; name: string }[]
 	username: string
@@ -50,7 +51,15 @@ let queryClient: InstanceType<typeof QueryClient>
 let router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
 
 function user(username: string, overrides: Partial<ListedUser> = {}): ListedUser {
-	return { id: username, username, mustChangePassword: false, isAdmin: false, canManage: true, roles: [], ...overrides }
+	return {
+		id: username,
+		username,
+		mustChangePassword: false,
+		permissions: [],
+		canManage: true,
+		roles: [],
+		...overrides,
+	}
 }
 
 function json(body: unknown, status = 200): Response {
@@ -179,11 +188,12 @@ describe("UsersPage", () => {
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
 		users = [
-			user("owner", { isAdmin: true, canManage: false, mustChangePassword: null }),
+			user("owner", { permissions: EVERYTHING, canManage: false, mustChangePassword: null }),
 			user("helper", { roles: [{ id: "support", name: "Support" }], mustChangePassword: null }),
 		]
 		await renderPage()
 
+		expect(ListUsers200.safeParse({ users }).success).toBe(true)
 		expect(card("owner").textContent).toContain(t("users.adminBadge"))
 		expect(card("helper").textContent).toContain("Support")
 		expect(buttonNames(host)).toEqual([])
@@ -238,7 +248,7 @@ describe("UsersPage", () => {
 
 	test("shows the admin to a non-admin manager with a note instead of reset and delete", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
-		users = [user("owner", { isAdmin: true, canManage: false })]
+		users = [user("owner", { permissions: EVERYTHING, canManage: false })]
 		await renderPage()
 
 		expect(card("owner").textContent).toContain(t("users.adminBadge"))
@@ -329,7 +339,7 @@ describe("UsersPage", () => {
 
 	test("does not warn the admin or an operator editing someone else", async () => {
 		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
-		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], isAdmin: true })]
+		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], permissions: EVERYTHING })]
 		await renderPage()
 		await click(button(t("users.editRoles"), card("me")))
 		await click(checkbox("Managers"))

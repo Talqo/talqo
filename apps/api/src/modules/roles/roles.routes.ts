@@ -6,7 +6,6 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 
 import {
-	accessResponseSchema,
 	assignUserRolesRoute,
 	bootstrapAdminRoute,
 	bootstrapAdminResponseSchema,
@@ -15,7 +14,6 @@ import {
 	createRoleRoute,
 	deleteRoleRoute,
 	deleteUserRoute,
-	getAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
 	grantablePermissionsResponseSchema,
@@ -36,9 +34,6 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
-	.openapi(getAccessRoute, async (c) => {
-		return c.json(accessResponseSchema.parse(await service.getAccess(c.get("user").id)), HTTP_STATUS.OK)
-	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
