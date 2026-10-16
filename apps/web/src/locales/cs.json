@@ -115,13 +115,15 @@
 		"loadFailed": "Agenty se nepodařilo načíst.",
 		"loading": "Načítání agentů…",
 		"manageForbidden": "Váš účet nemá oprávnění spravovat agenty.",
-		"metricConversations": "Konverzace",
+		"metricConnections": "Připojení",
+		"metricEnabledEmbeds": "Zapnutá vložení",
 		"metricFiles": "Soubory",
-		"metricMcpTools": "MCP nástroje",
+		"metricUnavailable": "Nedostupné",
 		"nameConflict": "Agent s tímto názvem již existuje. Zvolte jedinečný název.",
 		"retry": "Zkusit znovu",
 		"saveFailed": "Agenta se nepodařilo uložit. Zkuste to znovu.",
 		"subheading": "Spravujte své agenty a jejich chování.",
+		"summaryLoadFailed": "Některé údaje se nepodařilo načíst. Obnovte stránku a zkuste to znovu.",
 		"updated": "Aktualizováno {{date}}"
 	},
 	"aiConfiguration": {

@@ -1,6 +1,7 @@
 import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { AgentCardSummary } from "@/features/agents/agent-card-summary"
 import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { nextDefaultName } from "@/lib/default-name"
@@ -8,7 +9,7 @@ import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { FileText, MessageSquare, Plus, Wrench } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -16,21 +17,6 @@ export const Route = createFileRoute("/dashboard/agents")({
 	beforeLoad: requirePermission("agents:read"),
 	component: AgentsPage,
 })
-
-// "—", never 0: zero would claim no usage before those modules exist.
-// TODO(usage-api): per-agent conversation totals once GET /api/agents/:id/usage-summary lands.
-// TODO(knowledge-api): file count once GET /api/agents/:id/files lands.
-// TODO(mcp-api): MCP server count once GET /api/agents/:id/mcp-servers lands.
-const PLACEHOLDER_VALUE = "—"
-
-function AgentCardMetric({ icon: Icon, label }: { icon: typeof MessageSquare; label: string }) {
-	return (
-		<span className="text-muted-foreground flex items-center gap-1 text-xs" title={label}>
-			<Icon className="size-3.5" aria-hidden />
-			{label}: {PLACEHOLDER_VALUE}
-		</span>
-	)
-}
 
 const FORBIDDEN_STATUS = 403
 const CONFLICT_STATUS = 409
@@ -131,11 +117,7 @@ function AgentsPage() {
 									</p>
 								</CardHeader>
 								<CardContent>
-									<div className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3">
-										<AgentCardMetric icon={MessageSquare} label={t("agents.metricConversations")} />
-										<AgentCardMetric icon={FileText} label={t("agents.metricFiles")} />
-										<AgentCardMetric icon={Wrench} label={t("agents.metricMcpTools")} />
-									</div>
+									<AgentCardSummary agentId={agent.id} canManage={canManage} />
 								</CardContent>
 							</Card>
 						</Link>
