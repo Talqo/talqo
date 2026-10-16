@@ -115,13 +115,15 @@
 		"loadFailed": "无法加载智能体。",
 		"loading": "正在加载智能体…",
 		"manageForbidden": "你的账户没有管理智能体的权限。",
-		"metricConversations": "对话",
+		"metricConnections": "连接",
+		"metricEnabledEmbeds": "已启用的嵌入",
 		"metricFiles": "文件",
-		"metricMcpTools": "MCP 工具",
+		"metricUnavailable": "暂不可用",
 		"nameConflict": "已存在同名智能体。请选择一个唯一名称。",
 		"retry": "重试",
 		"saveFailed": "无法保存智能体。请重试。",
 		"subheading": "管理你的智能体及其行为。",
+		"summaryLoadFailed": "部分详情无法加载。请刷新页面重试。",
 		"updated": "更新于 {{date}}"
 	},
 	"aiConfiguration": {
