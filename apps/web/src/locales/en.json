@@ -115,13 +115,15 @@
 		"loadFailed": "Agents could not be loaded.",
 		"loading": "Loading agents…",
 		"manageForbidden": "Your account does not have permission to manage agents.",
-		"metricConversations": "Conversations",
+		"metricConnections": "Connections",
+		"metricEnabledEmbeds": "Enabled embeds",
 		"metricFiles": "Files",
-		"metricMcpTools": "MCP tools",
+		"metricUnavailable": "Unavailable",
 		"nameConflict": "An agent with this name already exists. Choose a unique name.",
 		"retry": "Retry",
 		"saveFailed": "The agent could not be saved. Try again.",
 		"subheading": "Manage your agents and their behavior.",
+		"summaryLoadFailed": "Some details could not be loaded. Refresh the page to try again.",
 		"updated": "Updated {{date}}"
 	},
 	"aiConfiguration": {
