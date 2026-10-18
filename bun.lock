@@ -8,7 +8,7 @@
         "@commitlint/cli": "^21.2.3",
         "@commitlint/config-conventional": "^21.2.3",
         "@playwright/cli": "^0.1.22",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "husky": "^9.1.7",
         "knip": "6.41.0",
         "orval": "8.41.0",
@@ -43,7 +43,7 @@
       },
       "devDependencies": {
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "drizzle-kit": "0.31.11",
         "typescript": "7.0.2",
       },
@@ -63,7 +63,7 @@
       "devDependencies": {
         "@tailwindcss/vite": "4.3.3",
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "@types/mdx": "2.0.14",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
@@ -80,7 +80,7 @@
       "devDependencies": {
         "@playwright/test": "1.64.0",
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "typescript": "7.0.2",
       },
     },
@@ -108,7 +108,7 @@
         "@tailwindcss/vite": "4.3.3",
         "@talqo/typescript-config": "workspace:*",
         "@tanstack/router-plugin": "1.168.42",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
         "@vitejs/plugin-react": "6.1.1",
@@ -135,7 +135,7 @@
         "@happy-dom/global-registrator": "^20.14.5",
         "@tailwindcss/vite": "4.3.3",
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
         "@vitejs/plugin-react": "6.1.1",
@@ -156,7 +156,7 @@
       },
       "devDependencies": {
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "typescript": "7.0.2",
       },
     },
@@ -165,7 +165,7 @@
       "version": "0.0.0",
       "devDependencies": {
         "@talqo/typescript-config": "workspace:*",
-        "@types/bun": "1.4.2",
+        "@types/bun": "1.4.3",
         "typescript": "7.0.2",
       },
     },
@@ -1022,7 +1022,7 @@
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
-    "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
+    "@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@types/d3-array": ["@types/d3-array@3.2.2", "", {}, "sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw=="],
 
@@ -1208,7 +1208,7 @@
 
     "buffer-image-size": ["buffer-image-size@0.6.4", "", { "dependencies": { "@types/node": "*" } }, "sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ=="],
 
-    "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+    "bun-types": ["bun-types@1.4.3", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-tinRJNGOmUN+tEAsn2y2e942n9JHRHR42iUYzDH75NmhJqVBokGSQkkfSFdNWwsANIdrK6ACH9t01M452YyTwg=="],
 
     "bundle-name": ["bundle-name@4.1.1", "", { "dependencies": { "run-applescript": "^7.0.0" } }, "sha512-DdH81/zPLVS11EUgWq3tEu/xn+EzljlMYooDNdzWEnFha3R3NBMpMV1UqYIpjYHV/SgpFKMIX1Oh7o06SjM/oA=="],
 

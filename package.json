@@ -34,7 +34,7 @@
 		"@commitlint/cli": "^21.2.3",
 		"@commitlint/config-conventional": "^21.2.3",
 		"@playwright/cli": "^0.1.22",
-		"@types/bun": "1.4.2",
+		"@types/bun": "1.4.3",
 		"husky": "^9.1.7",
 		"knip": "6.41.0",
 		"orval": "8.41.0",
