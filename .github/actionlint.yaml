@@ -1,0 +1,5 @@
+paths:
+  .github/workflows/ci.yml:
+    ignore:
+      # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
+      - '^specifying action "\$/\.github/actions/setup-bun" in invalid format because ref is missing\.'
