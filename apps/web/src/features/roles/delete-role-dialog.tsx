@@ -2,6 +2,7 @@ import type { Role } from "@/api/generated/models/role.zod"
 
 import { useDeleteRole } from "@/api/generated/roles/roles.ts"
 import { ProblemAlert } from "@/components/problem-alert"
+import { DEFAULT_ROLE_ID } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import {
 	Dialog,
@@ -36,6 +37,7 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 	})
 	const [open, setOpen] = useState(false)
 	const isDeleting = deleteRole.isPending
+	const isDefault = role.id === DEFAULT_ROLE_ID
 
 	function handleOpenChange(next: boolean) {
 		if (isDeleting) return
@@ -51,10 +53,26 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button type="button" variant="destructive" disabled={disabled || isDeleting} />}>
-				<Trash2 className="size-4" />
-				{t("roles.delete")}
-			</DialogTrigger>
+			<div className="max-w-sm space-y-2">
+				<DialogTrigger
+					render={
+						<Button
+							type="button"
+							variant="destructive"
+							disabled={disabled || isDeleting || isDefault}
+							aria-describedby={isDefault ? `${role.id}-delete-description` : undefined}
+						/>
+					}
+				>
+					<Trash2 className="size-4" />
+					{t("roles.delete")}
+				</DialogTrigger>
+				{isDefault ? (
+					<p id={`${role.id}-delete-description`} className="text-muted-foreground text-sm">
+						{t("problems.default-role-delete-not-allowed")}
+					</p>
+				) : null}
+			</div>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("roles.deleteTitle", { name: role.name })}</DialogTitle>

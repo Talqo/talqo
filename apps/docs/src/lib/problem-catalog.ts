@@ -164,6 +164,13 @@ export const PROBLEMS = [
 		guidance: "Enter the current account password.",
 	},
 	{
+		code: "default-role-delete-not-allowed",
+		title: "Default role cannot be deleted",
+		status: "409",
+		meaning: "The role preselected for invitations cannot be deleted, even after renaming.",
+		guidance: "Edit its name or permissions, or deselect it when inviting a member.",
+	},
+	{
 		code: "internal-server-error",
 		title: "Internal server error",
 		status: "500",

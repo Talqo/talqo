@@ -584,6 +584,22 @@ describe("role management", () => {
 		await sql`DELETE FROM role`
 	})
 
+	it("keeps Default editable but refuses deletion by identity, including after renaming", async () => {
+		const { cookie } = await createAdminSession()
+		await repo.insertRoleWithPermissions({ id: "default", name: "Default" }, [])
+		await expectCode(await call(cookie, "DELETE", "/roles/default"), 409, "default-role-delete-not-allowed")
+		expect(
+			(await call(cookie, "PUT", "/roles/default", { name: "starting access", permissions: ["agents:read"] })).status,
+		).toBe(200)
+		await expectCode(await call(cookie, "DELETE", "/roles/default"), 409, "default-role-delete-not-allowed")
+		expect((await service.listRoles()).find(({ id }) => id === "default")).toMatchObject({
+			name: "starting access",
+			permissions: ["agents:read"],
+		})
+		const sameName = await createRole([], "Default")
+		expect((await call(cookie, "DELETE", `/roles/${sameName.id}`)).status).toBe(204)
+	})
+
 	it("seeds reusable roles without granting access or overwriting edits on rerun", async () => {
 		await seed.seed()
 		const roles = await service.listRoles()

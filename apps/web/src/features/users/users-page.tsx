@@ -22,7 +22,7 @@ import { formatDateTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
+import { DEFAULT_ROLE_ID, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
@@ -47,7 +47,6 @@ import { useTranslation } from "react-i18next"
 import { EditUserRolesDialog } from "./edit-user-roles-dialog"
 
 const NOT_FOUND_STATUS = 404
-const DEFAULT_ROLE_ID = "default"
 
 type ListedUser = { id: string; username: string }
 

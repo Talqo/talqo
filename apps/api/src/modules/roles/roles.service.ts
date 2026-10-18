@@ -5,6 +5,7 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
+import { DEFAULT_ROLE_ID } from "@talqo/shared"
 
 import * as repo from "./roles.repository.ts"
 
@@ -195,6 +196,15 @@ export class DuplicateRoleNameError extends ApiError {
 		super(PROBLEM_CODES.ROLE_NAME_TAKEN, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
+class DefaultRoleDeleteNotAllowedError extends ApiError {
+	constructor() {
+		super(
+			PROBLEM_CODES.DEFAULT_ROLE_DELETE_NOT_ALLOWED,
+			HTTP_STATUS.CONFLICT,
+			"The preselected invitation role cannot be deleted",
+		)
+	}
+}
 class PermissionDeniedError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
@@ -325,6 +335,7 @@ export async function deleteRole(id: string, actorId: string): Promise<void> {
 		const held = await managementPermissions(actorId, Permission.RolesManage)
 		const current = await getRole(id)
 		requireHeld(held, current.permissions)
+		if (id === DEFAULT_ROLE_ID) throw new DefaultRoleDeleteNotAllowedError()
 		await repo.deleteRoleById(id)
 	})
 }

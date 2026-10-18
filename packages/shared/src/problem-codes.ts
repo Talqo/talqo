@@ -21,6 +21,7 @@ export const PROBLEM_CODES = {
 	CONFIGURATION_CONFLICT: "configuration-conflict",
 	CONVERSATION_NOT_FOUND: "conversation-not-found",
 	CURRENT_PASSWORD_INCORRECT: "current-password-incorrect",
+	DEFAULT_ROLE_DELETE_NOT_ALLOWED: "default-role-delete-not-allowed",
 	DUPLICATE_MCP_SERVER_NAME: "duplicate-mcp-server-name",
 	EMBED_DISABLED: "embed-disabled",
 	EMBED_NOT_FOUND: "embed-not-found",

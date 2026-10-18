@@ -492,6 +492,7 @@
 		"configuration-conflict": "The configuration changed. Reload and try again.",
 		"conversation-not-found": "This conversation no longer exists.",
 		"current-password-incorrect": "The current password is incorrect.",
+		"default-role-delete-not-allowed": "The invitation's preselected role cannot be deleted. You can edit its name and permissions.",
 		"embed-not-found": "The embed was not found.",
 		"internal-server-error": "The server encountered an unexpected error.",
 		"invalid-ai-provider-configuration": "The AI provider configuration is invalid.",

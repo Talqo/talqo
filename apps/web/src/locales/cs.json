@@ -498,6 +498,7 @@
 		"configuration-conflict": "Konfigurace se změnila. Načtěte stránku znovu a akci opakujte.",
 		"conversation-not-found": "Tato konverzace už neexistuje.",
 		"current-password-incorrect": "Aktuální heslo není správné.",
+		"default-role-delete-not-allowed": "Předvybranou roli pro pozvánky nelze smazat. Můžete změnit její název a oprávnění.",
 		"embed-not-found": "Integrace nebyla nalezena.",
 		"internal-server-error": "Na serveru došlo k neočekávané chybě.",
 		"invalid-ai-provider-configuration": "Konfigurace poskytovatele AI je neplatná.",

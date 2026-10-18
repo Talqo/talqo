@@ -96,6 +96,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
 	}),
 	zod.object({
+		code: zod.enum(["default-role-delete-not-allowed"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#default-role-delete-not-allowed"]),
+	}),
+	zod.object({
 		code: zod.enum(["duplicate-mcp-server-name"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#duplicate-mcp-server-name"]),
 	}),

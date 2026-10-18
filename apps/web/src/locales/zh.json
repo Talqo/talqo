@@ -492,6 +492,7 @@
 		"configuration-conflict": "配置已更改，请重新加载后重试。",
 		"conversation-not-found": "此对话已不存在。",
 		"current-password-incorrect": "当前密码不正确。",
+		"default-role-delete-not-allowed": "邀请中预选的角色无法删除。您可以修改其名称和权限。",
 		"embed-not-found": "未找到该嵌入项。",
 		"internal-server-error": "服务器遇到意外错误。",
 		"invalid-ai-provider-configuration": "AI 提供商配置无效。",

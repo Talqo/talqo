@@ -1771,6 +1771,11 @@ export type deleteRoleResponse404 = {
 	status: 404
 }
 
+export type deleteRoleResponse409 = {
+	data: ProblemDetails
+	status: 409
+}
+
 export type deleteRoleResponse500 = {
 	data: ProblemDetails
 	status: 500
@@ -1783,6 +1788,7 @@ export type deleteRoleResponseError = (
 	| deleteRoleResponse401
 	| deleteRoleResponse403
 	| deleteRoleResponse404
+	| deleteRoleResponse409
 	| deleteRoleResponse500
 ) & {
 	headers: Headers

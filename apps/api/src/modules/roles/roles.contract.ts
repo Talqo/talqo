@@ -373,6 +373,7 @@ export const deleteRoleRoute = createRoute({
 		401: authRequired,
 		403: targetForbidden,
 		404: roleNotFound,
+		409: problemResponse([PROBLEM_CODES.DEFAULT_ROLE_DELETE_NOT_ALLOWED]),
 		500: serverError,
 	},
 })

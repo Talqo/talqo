@@ -133,6 +133,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#current-password-incorrect"
 	  }
 	| {
+			code: "default-role-delete-not-allowed"
+			type: "https://docs.talqo.chat/problems#default-role-delete-not-allowed"
+	  }
+	| {
 			code: "duplicate-mcp-server-name"
 			type: "https://docs.talqo.chat/problems#duplicate-mcp-server-name"
 	  }
