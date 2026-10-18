@@ -200,8 +200,11 @@ describe("UsersPage", () => {
 		await renderPage()
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Renamed default").getAttribute("aria-checked")).toBe("true")
+		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
 		await click(checkbox("Renamed default"))
+		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
 		await click(checkbox("Support"))
+		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
 		await click(button(t("auth.invitations.create"), dialog()))
 		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
 			roleIds: ["support"],

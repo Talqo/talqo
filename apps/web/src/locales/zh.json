@@ -216,12 +216,11 @@
 			"copy": "复制邀请链接",
 			"copyFailed": "无法复制邀请链接。请选中链接并手动复制。",
 			"create": "创建邀请",
-			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
 			"linkLabel": "邀请链接：",
-			"roles": "加入时分配的角色",
-			"rolesDescription": "新成员只会获得所选角色。不勾选任何角色则不授予访问权限。"
+			"noRoles": "未选择角色。该成员将没有访问权限。",
+			"roles": "角色"
 		},
 		"loading": "正在加载…",
 		"login": {

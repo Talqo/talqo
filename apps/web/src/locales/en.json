@@ -216,12 +216,11 @@
 			"copy": "Copy invitation link",
 			"copyFailed": "The invitation link could not be copied. Select it and copy it manually.",
 			"create": "Create invitation",
-			"description": "Create a secure, single-use link for a new member.",
 			"expiresLabel": "(expires {{date}})",
 			"heading": "Invite a member",
 			"linkLabel": "Invitation link:",
-			"roles": "Roles on joining",
-			"rolesDescription": "The new member receives only the selected roles. Leave all unchecked to give no access."
+			"noRoles": "No roles selected. This member will have no access.",
+			"roles": "Roles"
 		},
 		"loading": "Loading…",
 		"login": {

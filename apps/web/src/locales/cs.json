@@ -216,12 +216,11 @@
 			"copy": "Kopírovat odkaz na pozvánku",
 			"copyFailed": "Odkaz na pozvánku se nepodařilo zkopírovat. Vyberte jej a zkopírujte ručně.",
 			"create": "Vytvořit pozvánku",
-			"description": "Vytvořte bezpečný jednorázový odkaz pro nového člena.",
 			"expiresLabel": "(vyprší {{date}})",
 			"heading": "Pozvat člena",
 			"linkLabel": "Odkaz na pozvánku:",
-			"roles": "Role při přijetí pozvánky",
-			"rolesDescription": "Nový člen získá pouze vybrané role. Pokud nevyberete žádnou, nezíská žádná oprávnění."
+			"noRoles": "Nejsou vybrané žádné role. Tento člen nebude mít žádná oprávnění.",
+			"roles": "Role"
 		},
 		"loading": "Načítání…",
 		"login": {
