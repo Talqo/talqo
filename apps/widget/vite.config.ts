@@ -105,6 +105,7 @@ export default defineConfig({
 		"process.env.NODE_ENV": JSON.stringify("production"),
 	},
 	build: {
+		reportCompressedSize: false,
 		lib: {
 			entry: "src/widget.tsx",
 			fileName: () => "widget.js",

@@ -5,8 +5,8 @@ import { cn } from "@talqo/ui/lib/utils"
 import { type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL as string | undefined
-const configuredWidgetUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL
+const configuredWidgetUrl = import.meta.env.VITE_WIDGET_CDN_URL
 
 const FRAME_WIDTH = 336
 const FRAME_HEIGHT = 420
@@ -75,7 +75,7 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
 	useEffect(() => {
 		const frame = ref.current
 		if (!frame) {
-			return
+			return undefined
 		}
 		const observer = new ResizeObserver((entries) => {
 			for (const entry of entries) {
@@ -122,24 +122,21 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey, isA
 		latest.current = { appearance, title, activeScheme, isAvailable }
 	}, [appearance, title, activeScheme, isAvailable])
 
-	const targetOrigin = source?.targetOrigin
+	const targetOrigin = source.targetOrigin
 
 	useEffect(() => {
 		if (!targetOrigin) {
-			return
+			return undefined
 		}
 		const messageTargetOrigin = targetOrigin
 		function onMessage(event: MessageEvent) {
 			// Replying on `ready` rather than on iframe load makes reload, HMR, and bfcache
 			// restore self-healing without a retry timer.
-			if (
-				event.source !== iframeRef.current?.contentWindow ||
-				event.origin !== source?.expectedOrigin ||
-				!isReadyMessage(event.data)
-			) {
+			const childWindow = iframeRef.current?.contentWindow
+			if (event.source !== childWindow || event.origin !== source.expectedOrigin || !isReadyMessage(event.data)) {
 				return
 			}
-			iframeRef.current?.contentWindow?.postMessage(
+			childWindow?.postMessage(
 				configMessage(latest.current.appearance, {
 					title: latest.current.title,
 					forcedScheme: latest.current.activeScheme,
@@ -150,7 +147,7 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey, isA
 		}
 		window.addEventListener("message", onMessage)
 		return () => window.removeEventListener("message", onMessage)
-	}, [source?.expectedOrigin, targetOrigin])
+	}, [source.expectedOrigin, targetOrigin])
 
 	useEffect(() => {
 		if (!targetOrigin) {

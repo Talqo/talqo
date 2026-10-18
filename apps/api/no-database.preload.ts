@@ -16,7 +16,7 @@ const databaseStub: unknown = new Proxy(unreachable, {
 	apply: () => unreachable(),
 })
 
-mock.module("@/db/client.ts", () => ({
+await mock.module("@/db/client.ts", () => ({
 	db: databaseStub,
 	sql: databaseStub,
 }))

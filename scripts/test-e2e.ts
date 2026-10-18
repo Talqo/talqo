@@ -13,8 +13,8 @@ const reservations = Array.from({ length: RESERVED_PORT_COUNT }, () =>
 )
 const [apiPort, webPort, widgetPort, providerPort] = reservations.map(({ port }) => String(port))
 
-function releasePorts() {
-	for (const reservation of reservations.splice(0)) reservation.stop(true)
+async function releasePorts() {
+	await Promise.all(reservations.splice(0).map((reservation) => reservation.stop(true)))
 }
 
 if (!apiPort || !webPort || !widgetPort || !providerPort) throw new Error("Could not reserve E2E application ports")
@@ -37,11 +37,11 @@ await withTestDatabase(async (databaseEnv) => {
 	try {
 		await $`bun run db:migrate`.cwd(apiDirectory).env(env)
 		await $`bun run db:seed`.cwd(apiDirectory).env(env)
-		releasePorts()
+		await releasePorts()
 		await $`bunx playwright test --project=chromium ${playwrightArguments}`.cwd(e2eDirectory).env({
 			...env,
 		})
 	} finally {
-		releasePorts()
+		await releasePorts()
 	}
 })

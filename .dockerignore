@@ -1,6 +1,11 @@
 **/node_modules
 **/dist
 **/.turbo
-apps/e2e
+.cache/
+apps/e2e/
 *.log
 **/.env
+.git/
+.github/
+compose.yaml
+.devcontainer/

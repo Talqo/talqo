@@ -351,7 +351,7 @@ describe("AI provider service", () => {
 		await Array.fromAsync(prepared.invoke(new AbortController().signal))
 
 		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: never[] }) => boolean
-		expect(stopWhen({ steps: Array.from({ length: 4 }) as never[] })).toBe(false)
-		expect(stopWhen({ steps: Array.from({ length: 5 }) as never[] })).toBe(true)
+		expect(stopWhen({ steps: Array.from({ length: 4 }) })).toBe(false)
+		expect(stopWhen({ steps: Array.from({ length: 5 }) })).toBe(true)
 	})
 })

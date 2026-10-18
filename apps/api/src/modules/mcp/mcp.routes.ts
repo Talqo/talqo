@@ -1,8 +1,6 @@
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
-import type { McpCreateBody, McpUpdateBody } from "./mcp.contract.ts"
-
 import {
 	createMcpServerRoute,
 	deleteMcpServerRoute,
@@ -25,7 +23,7 @@ const serversRoutes = new OpenAPIHono()
 	})
 	.openapi(createMcpServerRoute, async (c) => {
 		const { agentId } = c.req.valid("param")
-		const { name, server } = c.req.valid("json") as McpCreateBody
+		const { name, server } = c.req.valid("json")
 		const created = await service.createServer(agentId, { name, ...server })
 		return c.json(serverDetailSchema.parse({ server: created }), HTTP_STATUS.CREATED)
 	})
@@ -36,7 +34,7 @@ const serversRoutes = new OpenAPIHono()
 	})
 	.openapi(updateMcpServerRoute, async (c) => {
 		const { agentId, serverId } = c.req.valid("param")
-		const { name, server, expectedRevision, tools } = c.req.valid("json") as McpUpdateBody
+		const { name, server, expectedRevision, tools } = c.req.valid("json")
 		const updated = await service.updateServer(agentId, serverId, {
 			name,
 			...server,

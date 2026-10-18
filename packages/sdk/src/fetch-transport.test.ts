@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test"
 
-import { ChatTransportError, createFetchChatTransport, type ChatEvent } from "./index"
+import {
+	ChatTransportError,
+	createFetchChatTransport,
+	type ChatEvent,
+	type ChatMessage,
+	type SessionState,
+} from "./index"
 
 const API_URL = "https://api.example.test/root/"
 const EMBED_TOKEN = "embed/token ?"
@@ -32,7 +38,7 @@ type FetchCall = { url: string; init: RequestInit | undefined }
 function recordingFetch(responses: Response[]) {
 	const calls: FetchCall[] = []
 	const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
-		calls.push({ url: String(input), init })
+		calls.push({ url: typeof input === "string" ? input : input instanceof URL ? input.href : input.url, init })
 		const response = responses.shift()
 		if (!response) throw new Error("unexpected fetch")
 		return response
@@ -41,17 +47,15 @@ function recordingFetch(responses: Response[]) {
 }
 
 function jsonResponse(value: unknown, init: ResponseInit = {}): Response {
-	return new Response(JSON.stringify(value), {
-		...init,
-		headers: { "Content-Type": "application/json", ...init.headers },
-	})
+	const headers = new Headers(init.headers)
+	if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+	return new Response(JSON.stringify(value), { ...init, headers })
 }
 
 function problem(code: string, status: number, headers: HeadersInit = {}): Response {
-	return jsonResponse(
-		{ code, type: `https://docs.talqo.chat/problems#${code}` },
-		{ status, headers: { "Content-Type": "application/problem+json", ...headers } },
-	)
+	const merged = new Headers(headers)
+	if (!merged.has("Content-Type")) merged.set("Content-Type", "application/problem+json")
+	return jsonResponse({ code, type: `https://docs.talqo.chat/problems#${code}` }, { status, headers: merged })
 }
 
 function streamResponse(chunks: string[]): Response {
@@ -95,16 +99,17 @@ describe("createFetchChatTransport", () => {
 			isDisabled: true,
 			isAvailable: false,
 		})
-		expect(fake.calls).toEqual([
+		expect(fake.calls).toMatchObject([
 			{
 				url: "https://api.example.test/api/embed-config/embed%2Ftoken%20%3F",
-				init: { method: "GET", signal: expect.any(AbortSignal), headers: { Accept: "application/json" } },
+				init: { method: "GET", headers: { Accept: "application/json" } },
 			},
 		])
+		expect(fake.calls[0]?.init?.signal).toBeInstanceOf(AbortSignal)
 	})
 
 	test("loads and validates bearer-authenticated history", async () => {
-		const history = {
+		const history: SessionState = {
 			messages: [
 				{
 					id: "message",
@@ -120,14 +125,14 @@ describe("createFetchChatTransport", () => {
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
 		expect(await transport.loadSession({ ...context(), credential: CREDENTIAL })).toEqual(history)
-		expect(fake.calls[0]).toEqual({
+		expect(fake.calls[0]).toMatchObject({
 			url: "https://api.example.test/api/chat/session",
 			init: {
 				method: "GET",
-				signal: expect.any(AbortSignal),
 				headers: { Accept: "application/json", Authorization: `Bearer ${CREDENTIAL}` },
 			},
 		})
+		expect(fake.calls[0]?.init?.signal).toBeInstanceOf(AbortSignal)
 	})
 
 	test("uses one bearer-authenticated send route without retries", async () => {
@@ -457,8 +462,9 @@ describe("createFetchChatTransport", () => {
 					createdAt: "2026-09-12T12:00:00Z",
 					outcome: "completed",
 					extra: true,
-				},
+				} as ChatMessage,
 			],
+			activeGeneration: undefined,
 		})
 		expect(await rejectedDetail(transport.loadConfiguration(context()))).toMatchObject({
 			code: "invalid-response",

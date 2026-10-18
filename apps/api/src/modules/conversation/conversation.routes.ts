@@ -36,6 +36,7 @@ export function createConversationRoutes(
 			if (!result.success) {
 				return problemResponse(context, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
 			}
+			return undefined
 		},
 	})
 

@@ -43,6 +43,10 @@ function discoveryProblem(code: ModelDiscoveryErrorCode) {
 			} as const
 		case "provider-error":
 			return { problemCode: PROBLEM_CODES.PROVIDER_ERROR, status: HTTP_STATUS.BAD_GATEWAY } as const
+		default: {
+			const exhausted: never = code
+			throw new Error(`Unsupported model discovery error code: ${String(exhausted)}`)
+		}
 	}
 }
 
@@ -80,7 +84,7 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	let bytes = 0
 	const chunks: Uint8Array[] = []
 	if (response.body) {
-		const reader = response.body.getReader()
+		const reader = response.body.getReader() as ReadableStreamDefaultReader<Uint8Array>
 		while (true) {
 			const { done, value } = await reader.read() // oxlint-disable-line no-await-in-loop -- sequential stream read requires await
 			if (done) break

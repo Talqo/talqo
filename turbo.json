@@ -43,14 +43,13 @@
 			"dependsOn": ["@talqo/widget#build"]
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
 		},
 		"test:integration": {
-			"cache": false,
-			"dependsOn": ["^build"]
+			"cache": false
 		},
 		"typecheck": {
-			"dependsOn": ["^typecheck"]
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
 		},
 		"i18n": {},
 		"i18n:fix": {},

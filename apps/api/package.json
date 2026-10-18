@@ -12,7 +12,7 @@
 		"openapi:generate": "bun --env-file .env.example --preload ./no-database.preload.ts src/openapi.ts",
 		"test": "bun test --env-file .env.example --preload ./no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts'",
 		"test:integration": "bun --env-file .env.example ../../scripts/test-integration.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "bun check"
 	},
 	"dependencies": {
 		"@ai-sdk/amazon-bedrock": "5.0.105",
@@ -36,7 +36,7 @@
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
-		"@types/bun": "1.4.2",
+		"@types/bun": "1.4.3",
 		"drizzle-kit": "0.31.11",
 		"typescript": "7.0.2"
 	}

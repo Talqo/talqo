@@ -83,13 +83,15 @@ async function renderPage() {
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = String(input)
+	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
 	if (url === "/api/ai-providers") return json({ providers: [PROVIDER] })
 	if (url === "/api/ai-provider-models/discover") return json({ models: [] })
 	if (url === "/api/ai-provider-configuration" && method === "PUT") {
 		// Mimics the server canonicalizing the base URL so the test can see the post-save reset.
-		const body = JSON.parse(String(init?.body)) as { text: { settings: { baseURL: string } } }
+		const body = JSON.parse(typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? null)) as {
+			text: { settings: { baseURL: string } }
+		}
 		server = configuration(server.revision + 1, body.text.settings.baseURL.replace(/\/$/, ""))
 		return json(server)
 	}

@@ -17,7 +17,7 @@ const PROBLEM_CODE_VALUES = [firstProblemCode, ...remainingProblemCodes] satisfi
 function problemDetails<C extends ProblemCode>(code: C) {
 	return Object.freeze({
 		code,
-		type: `${PROBLEM_TYPE_BASE}${code}` as `${typeof PROBLEM_TYPE_BASE}${C}`,
+		type: `${PROBLEM_TYPE_BASE}${code}`,
 	})
 }
 

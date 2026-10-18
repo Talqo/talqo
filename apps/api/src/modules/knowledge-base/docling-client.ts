@@ -7,13 +7,15 @@ const REQUEST_TIMEOUT_MS = 30_000
 const OVERALL_TIMEOUT_MS = 3_600_000
 const POLL_INTERVAL_MS = 2_000
 const responseSchema = z.object({ chunks: z.array(z.object({ text: z.string() })).max(MAX_CHUNKS) })
+const submitSchema = z.object({ task_id: z.string() })
+const pollSchema = z.object({ task_status: z.string() })
 type FetchDocling = (url: URL, init: RequestInit) => Promise<Response>
 
 export async function chunkFile(
 	name: string,
 	data: Uint8Array,
 	baseUrl: string,
-	fetcher: FetchDocling = (url, init) => fetch(url, init),
+	fetcher: FetchDocling = async (url, init) => fetch(url, init),
 ): Promise<string[]> {
 	const form = new FormData()
 	form.append("files", new File([new Uint8Array(data)], name, { type: "application/octet-stream" }))
@@ -24,7 +26,7 @@ export async function chunkFile(
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
 	if (!submit.ok) throw new Error(`Docling Serve rejected the file (${submit.status})`)
-	const { task_id: taskId } = (await submit.json()) as { task_id: string }
+	const { task_id: taskId } = submitSchema.parse(await submit.json())
 
 	const deadline = Date.now() + OVERALL_TIMEOUT_MS
 	/* eslint-disable no-await-in-loop -- task status polling is inherently sequential */
@@ -34,7 +36,7 @@ export async function chunkFile(
 			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 		})
 		if (!poll.ok) throw new Error(`Docling Serve lost the task (${poll.status})`)
-		const status = ((await poll.json()) as { task_status: string }).task_status
+		const status = pollSchema.parse(await poll.json()).task_status
 		if (status === "success") break
 		if (status === "failure") throw new Error("Docling Serve failed to convert the file")
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
@@ -45,7 +47,7 @@ export async function chunkFile(
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
 	})
 	if (!result.ok) throw new Error(`Docling Serve result fetch failed (${result.status})`)
-	const reader = result.body?.getReader()
+	const reader = result.body?.getReader() as ReadableStreamDefaultReader<Uint8Array> | undefined
 	if (!reader) throw new Error("Docling Serve returned no response")
 	const pieces: Uint8Array[] = []
 	let length = 0

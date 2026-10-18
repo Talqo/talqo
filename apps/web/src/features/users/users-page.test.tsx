@@ -67,9 +67,9 @@ function json(body: unknown, status = 200): Response {
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = String(input)
+	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
-	requests.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined })
+	requests.push({ url, method, body: init?.body ? parseJsonBody(init.body) : undefined })
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
@@ -88,10 +88,15 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	}
 	if (/^\/api\/users\/[^/]+\/roles$/.test(url) && method === "PUT") {
 		if (assignFailure) return assignFailure
-		const { roleIds } = JSON.parse(String(init?.body)) as { roleIds: string[] }
+		const { roleIds } = parseJsonBody(init?.body) as { roleIds: string[] }
 		return json({ roles: roles.filter(({ id }) => roleIds.includes(id)).map(({ id, name }) => ({ id, name })) })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
+}
+
+function parseJsonBody(body: BodyInit | null | undefined): unknown {
+	if (typeof body !== "string") throw new Error("Expected a JSON request body")
+	return JSON.parse(body)
 }
 
 async function settle() {

@@ -430,9 +430,9 @@ describe("conversation lifecycle", () => {
 		if (accepted?.status === "fulfilled") await accepted.value.done
 
 		expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1)
-		expect(results.find((result) => result.status === "rejected")).toMatchObject({
-			reason: expect.any(RequestConflictError),
-		})
+		const conflicted = results.find((result) => result.status === "rejected")
+		if (conflicted?.status !== "rejected") throw new Error("expected a rejected send")
+		expect(conflicted.reason as RequestConflictError).toBeInstanceOf(RequestConflictError)
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(1)
 	})
 
@@ -454,12 +454,12 @@ describe("conversation lifecycle", () => {
 			(await owner.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
 				?.outcome,
 		).toBe("cancelled")
-		expect((await sql`SELECT provider, model, input_tokens, output_tokens FROM usage_record`)[0]).toMatchObject({
-			provider: "fake",
-			model: "fake-model",
-			input_tokens: expect.any(Number),
-			output_tokens: expect.any(Number),
-		})
+		const usageRows = (await sql`SELECT provider, model, input_tokens, output_tokens FROM usage_record`) as [
+			{ provider: string; model: string; input_tokens: number; output_tokens: number },
+		]
+		expect(usageRows[0]).toMatchObject({ provider: "fake", model: "fake-model" })
+		expect(typeof usageRows[0]?.input_tokens).toBe("number")
+		expect(typeof usageRows[0]?.output_tokens).toBe("number")
 	})
 
 	it("checks locally owned generations together and observes cross-instance cancellation", async () => {
@@ -645,7 +645,8 @@ describe("conversation lifecycle", () => {
 		])
 		expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1)
 		const rejected = results.find((result) => result.status === "rejected")
-		expect(rejected).toMatchObject({ reason: expect.any(SessionBusyError) })
+		if (rejected?.status !== "rejected") throw new Error("expected a rejected send")
+		expect(rejected.reason as SessionBusyError).toBeInstanceOf(SessionBusyError)
 		gate.resolve()
 		const accepted = results.find((result) => result.status === "fulfilled")
 		if (accepted?.status === "fulfilled") await accepted.value.done
@@ -694,26 +695,33 @@ describe("conversation lifecycle", () => {
 			(await sql`SELECT count(*)::int AS count FROM usage_record WHERE generation_attempt_id = ${sent.generationId}`)[0]
 				?.count,
 		).toBe(1)
-		expect(
-			(
-				await sql`
-					SELECT ga.final_outcome, ga.usage_input_tokens, ga.usage_output_tokens,
-						ga.usage_recorded_at IS NOT NULL AS recorded, ur.outcome,
-						ur.input_tokens, ur.output_tokens
-					FROM generation_attempt ga
-					JOIN usage_record ur ON ur.generation_attempt_id = ga.id
-					WHERE ga.id = ${sent.generationId}
-				`
-			)[0],
-		).toMatchObject({
+		const usageRows = (await sql`
+			SELECT ga.final_outcome, ga.usage_input_tokens, ga.usage_output_tokens,
+				ga.usage_recorded_at IS NOT NULL AS recorded, ur.outcome,
+				ur.input_tokens, ur.output_tokens
+			FROM generation_attempt ga
+			JOIN usage_record ur ON ur.generation_attempt_id = ga.id
+			WHERE ga.id = ${sent.generationId}
+		`) as [
+			{
+				final_outcome: string
+				outcome: string
+				recorded: boolean
+				usage_input_tokens: number
+				usage_output_tokens: number
+				input_tokens: number
+				output_tokens: number
+			},
+		]
+		expect(usageRows[0]).toMatchObject({
 			final_outcome: "interrupted",
 			outcome: "interrupted",
 			recorded: true,
 			usage_input_tokens: estimatedInputTokens,
-			usage_output_tokens: expect.any(Number),
 			input_tokens: estimatedInputTokens,
-			output_tokens: expect.any(Number),
 		})
+		expect(typeof usageRows[0]?.usage_output_tokens).toBe("number")
+		expect(typeof usageRows[0]?.output_tokens).toBe("number")
 		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)
 		const next = await service().service.send({
 			embedToken: createdEmbed.embedToken,
@@ -1079,9 +1087,18 @@ describe("conversation lifecycle", () => {
 
 	it("rejects unusable provider configuration before acceptance without charging or creating data", async () => {
 		const { createdEmbed } = await fixture()
-		const [savedConfig] = await sql`
+		const [savedConfig] = (await sql`
 			SELECT id, revision, text_config, embedding_config, created_at, updated_at FROM ai_provider_config
-		`
+		`) as [
+			{
+				id: string
+				revision: number
+				text_config: unknown
+				embedding_config: unknown
+				created_at: Date
+				updated_at: Date
+			}?,
+		]
 		try {
 			await sql`DELETE FROM ai_provider_config`
 

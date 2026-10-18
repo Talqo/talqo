@@ -6,6 +6,9 @@ import { defineConfig } from "vite"
 
 export default defineConfig(({ command }) => ({
 	plugins: [fumadocsMdx(), tailwindcss(), tanstackStart(), react()],
+	build: {
+		reportCompressedSize: false,
+	},
 	resolve: {
 		tsconfigPaths: true,
 	},

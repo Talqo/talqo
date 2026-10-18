@@ -84,7 +84,7 @@ export function configFromMessage(data: unknown): PreviewConfig | undefined {
 		return undefined
 	}
 	return {
-		appearance: message.appearance as WidgetAppearanceInput,
+		appearance: message.appearance,
 		title: typeof message.title === "string" ? message.title : undefined,
 		forcedScheme:
 			message.forcedScheme === "light" || message.forcedScheme === "dark" ? message.forcedScheme : undefined,

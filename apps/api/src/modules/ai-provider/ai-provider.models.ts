@@ -93,7 +93,9 @@ export function createProviderModel(
 			return configuration.role === "text"
 				? provider(configuration.modelId)
 				: provider.embeddingModel(configuration.modelId)
-		default:
-			throw new Error(`Unsupported AI provider: ${configuration.providerId}`)
+		default: {
+			const exhausted: never = configuration.providerId
+			throw new Error(`Unsupported AI provider: ${String(exhausted)}`)
+		}
 	}
 }
