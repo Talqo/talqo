@@ -35,7 +35,7 @@ jobs:
   checks:
     name: Release checks
     needs: validate
-    uses: ./.github/workflows/ci.yml
+    uses: $/.github/workflows/ci.yml
     with:
       e2e: true
 
@@ -45,7 +45,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: ./.github/workflows/publish-images.yml
+    uses: $/.github/workflows/publish-images.yml
     with:
       ref: ${{ github.sha }}
       version: ${{ needs.validate.outputs.version }}
@@ -65,7 +65,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Pack release SDK
         id: pack
         env:
@@ -88,7 +88,7 @@ jobs:
   deploy:
     name: Deploy production
     needs: [validate, images]
-    uses: ./.github/workflows/deploy.yml
+    uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ github.sha }}
       environment: prod

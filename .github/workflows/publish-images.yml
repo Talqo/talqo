@@ -48,7 +48,7 @@ jobs:
         run: printf 'image=ghcr.io/%s/talqo\n' "${OWNER,,}" >> "$GITHUB_OUTPUT"
       - name: Publish
         id: publish
-        uses: ./.github/actions/publish-image
+        uses: $/.github/actions/publish-image
         with:
           image: ${{ steps.repository.outputs.image }}
           file: Dockerfile
@@ -84,7 +84,7 @@ jobs:
         run: printf 'image=ghcr.io/%s/talqo-docs\n' "${OWNER,,}" >> "$GITHUB_OUTPUT"
       - name: Publish
         id: publish
-        uses: ./.github/actions/publish-image
+        uses: $/.github/actions/publish-image
         with:
           image: ${{ steps.repository.outputs.image }}
           file: apps/docs/Dockerfile

@@ -168,7 +168,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Install Chromium
         working-directory: apps/e2e
         run: bunx playwright install --with-deps chromium
