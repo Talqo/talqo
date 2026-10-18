@@ -125,9 +125,10 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
 - The `roles` module owns the admin grant, roles, role permissions and role assignments. `roles.listEffectivePermissions` computes a user's permissions from the admin grant and assigned roles; the route gate and guarded management operations both use it.
+- Invitations select roles through `invitation_role`. Role deletion cascades to those selections, leaving invitations usable with their remaining roles. The dashboard preselects the ordinary Default role; the API has no default assignment rule. Acceptance rechecks the inviter's authority before creating the member.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.
-- Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.
+- Each PR adds at most one migration. Its SQL may include hand-written data changes before sharing; keep Drizzle metadata generated. Never edit an applied/shared migration. Correct it with a new migration.
 - Coordinate foreign keys and other changes spanning schema owners. The table owner approves destructive or compatibility-sensitive changes.
 - Generated files are reproducible artifacts and are never hand-edited.
 

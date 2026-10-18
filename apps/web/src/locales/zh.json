@@ -219,7 +219,9 @@
 			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
-			"linkLabel": "邀请链接："
+			"linkLabel": "邀请链接：",
+			"roles": "加入时分配的角色",
+			"rolesDescription": "新成员只会获得所选角色。不勾选任何角色则不授予访问权限。"
 		},
 		"loading": "正在加载…",
 		"login": {

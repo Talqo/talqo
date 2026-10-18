@@ -91,6 +91,7 @@ Talqo is related to these repos:
 | FR-2.6b | An operator with role-management permission can create, rename, change and delete roles, each a named set of permissions | Medium | Done |
 | FR-2.6c | An operator with role-management permission can assign several roles to an operator account; the account holds every permission of its roles | Medium | Done |
 | FR-2.6d | An operator can create, change, delete, assign or remove only roles whose permissions they hold, so no one can give access they do not have | High | Done |
+| FR-2.6e | Invitations assign exactly their selected roles. The dashboard preselects an ordinary, initially empty Default role, which can be deselected, edited or deleted | Medium | Done |
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
 | FR-2.8 | Operator can rotate an agent's public embed token, which orphans the old token for existing embed code | Medium | Done |
 | FR-2.8a | Operator can rotate a widget's public token to invalidate the embed code already pasted on customer sites | Medium | Done |

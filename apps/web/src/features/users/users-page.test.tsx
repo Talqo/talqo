@@ -74,6 +74,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
 	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles })
+	if (url === "/api/invitations" && method === "POST")
+		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
 		return json({
 			permissions: [
@@ -190,6 +192,40 @@ afterEach(async () => {
 })
 
 describe("UsersPage", () => {
+	test("preselects Default for invitations and submits exactly the edited selection", async () => {
+		roles = [
+			{ id: "default", name: "Renamed default", permissions: [], memberCount: 0 },
+			{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 0 },
+		]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Renamed default").getAttribute("aria-checked")).toBe("true")
+		await click(checkbox("Renamed default"))
+		await click(checkbox("Support"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: ["support"],
+		})
+	})
+
+	test("allows invitations with no selected roles when Default is absent", async () => {
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
+	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
+		myPermissions = ["users:read", "users:manage", "roles:manage"]
+		roles = [{ id: "default", name: "Default", permissions: ["agents:manage"], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+	})
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
 		users = [

@@ -191,13 +191,19 @@ export const createInvitationRoute = createRoute({
 	operationId: "createInvitation",
 	tags: ["Roles"],
 	...access.permission(Permission.UsersManage),
+	request: {
+		body: { content: { "application/json": { schema: assignRolesRequestSchema.optional() } }, required: false },
+	},
 	responses: {
 		201: {
 			content: { "application/json": { schema: createInvitationResponseSchema } },
 			description: "Invitation created",
 		},
 		401: authRequired,
-		403: permissionForbidden,
+		400: invalidRequest,
+		403: targetForbidden,
+		404: roleNotFound,
+		413: payloadTooLargeResponse,
 		500: serverError,
 	},
 })

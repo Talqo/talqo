@@ -101,16 +101,36 @@ export async function bootstrapAdmin(input: { password: string; username: string
 	return user
 }
 
-export async function createInvitation(invitedBy: string): Promise<{ expiresAt: Date; token: string }> {
-	const token = generateOpaqueToken()
-	const expiresAt = new Date(Date.now() + INVITATION_DURATION_MS)
-	await repo.insertInvitation({
-		id: crypto.randomUUID(),
-		tokenHash: hashOpaqueToken(token),
-		invitedBy,
-		expiresAt,
+export async function createInvitation(
+	invitedBy: string,
+	roleIds: string[] = [],
+): Promise<{ expiresAt: Date; token: string }> {
+	assertUnique(roleIds, "Role ids")
+	if (roleIds.length > ROLE_IDS_MAX) throw new InvalidRoleInputError(`At most ${ROLE_IDS_MAX} roles per user`)
+	return repo.withAccessLock(async () => {
+		await validateInvitationRoles(invitedBy, roleIds)
+		const token = generateOpaqueToken()
+		const expiresAt = new Date(Date.now() + INVITATION_DURATION_MS)
+		await repo.insertInvitation(
+			{
+				id: crypto.randomUUID(),
+				tokenHash: hashOpaqueToken(token),
+				invitedBy,
+				expiresAt,
+			},
+			roleIds,
+		)
+		return { token, expiresAt }
 	})
-	return { token, expiresAt }
+}
+
+async function validateInvitationRoles(invitedBy: string, roleIds: string[]): Promise<void> {
+	const held = await managementPermissions(invitedBy, Permission.UsersManage)
+	if (roleIds.length === 0) return
+	if (!held.includes(Permission.RolesManage)) throw new PermissionDeniedError(`Missing ${Permission.RolesManage}`)
+	if ((await repo.findRolesByIds(roleIds)).length !== roleIds.length)
+		throw new RoleNotFoundError("Invitation role no longer exists")
+	requireHeld(held, await permissionsOfRoles(roleIds))
 }
 
 export async function redeemInvitation(input: {
@@ -118,17 +138,36 @@ export async function redeemInvitation(input: {
 	token: string
 	username: string
 }): Promise<PublicUser> {
-	const claimed = await repo.claimInvitation(hashOpaqueToken(input.token))
-	if (!claimed) throw new InvalidInvitationError("Invitation is invalid, expired, or already used")
+	return repo.withAccessLock(async () => {
+		const claimed = await repo.claimInvitation(hashOpaqueToken(input.token))
+		if (!claimed) throw new InvalidInvitationError("Invitation is invalid, expired, or already used")
 
-	try {
-		return await identity.createUser({ username: input.username, password: input.password })
-	} catch (error) {
-		// A recoverable failure (e.g. username taken) shouldn't burn a single-use invite --
-		// give the same link back its claim so the invitee can retry with a different username.
-		await repo.unclaimInvitation(claimed.id)
-		throw error
-	}
+		try {
+			const roleIds = await repo.findInvitationRoleIds(claimed.id)
+			try {
+				await validateInvitationRoles(claimed.invitedBy, roleIds)
+			} catch (error) {
+				if (error instanceof ApiError)
+					throw new InvalidInvitationError("Invitation access is no longer available", { cause: error })
+				throw error
+			}
+			const user = await identity.createUser({ username: input.username, password: input.password })
+			try {
+				if (!(await repo.assignInvitationRoles(claimed.id, user.id))) {
+					throw new InvalidInvitationError("Invitation was deleted during acceptance")
+				}
+			} catch (error) {
+				await identity.deleteUser(user.id)
+				throw error
+			}
+			return user
+		} catch (error) {
+			// A recoverable failure (e.g. username taken) shouldn't burn a single-use invite --
+			// give the same link back its claim so the invitee can retry with a different username.
+			await repo.unclaimInvitation(claimed.id)
+			throw error
+		}
+	})
 }
 
 // The only source of a user's permissions: the admin grant plus every assigned role's permissions.

@@ -16,6 +16,7 @@ import { generateRandomPassword } from "@/features/authentication/generate-passw
 import { buildInvitationUrl } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
+import { holdsAll } from "@/features/roles/role-form"
 import { formatDateTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
@@ -24,6 +25,7 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
+import { Checkbox } from "@talqo/ui/components/checkbox"
 import {
 	Dialog,
 	DialogContent,
@@ -45,6 +47,7 @@ import { useTranslation } from "react-i18next"
 import { EditUserRolesDialog } from "./edit-user-roles-dialog"
 
 const NOT_FOUND_STATUS = 404
+const DEFAULT_ROLE_ID = "default"
 
 type ListedUser = { id: string; username: string }
 
@@ -362,15 +365,24 @@ function UsersList({ held }: { held: readonly string[] }) {
 	)
 }
 
-function InviteMemberDialog() {
+function InviteMemberDialog({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
 	const createInvitation = useCreateInvitation()
+	const canAssignRoles = held.includes("roles:manage")
+	const rolesQuery = useListRoles({ query: { enabled: canAssignRoles } })
+	const roles = rolesQuery.data?.data.roles ?? []
+	const [selected, setSelected] = useState<string[]>([])
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [copied, setCopied] = useState(false)
 
 	function handleOpenChange(next: boolean) {
+		if (createInvitation.isPending) return
+		if (next)
+			setSelected(
+				roles.filter((role) => role.id === DEFAULT_ROLE_ID && holdsAll(held, role.permissions)).map(({ id }) => id),
+			)
 		setOpen(next)
 		if (!next) {
 			// A generated link is a one-shot artifact; drop it so the next open starts clean.
@@ -384,7 +396,7 @@ function InviteMemberDialog() {
 		setError(null)
 		setCopied(false)
 		try {
-			await createInvitation.mutateAsync()
+			await createInvitation.mutateAsync({ data: { roleIds: selected } })
 		} catch (caught) {
 			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
@@ -406,15 +418,51 @@ function InviteMemberDialog() {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button />}>
+			<DialogTrigger render={<Button disabled={canAssignRoles && !rolesQuery.isSuccess} />}>
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
 					<DialogDescription>{t("auth.invitations.description")}</DialogDescription>
 				</DialogHeader>
+				{canAssignRoles ? (
+					<fieldset className="min-w-0 space-y-2">
+						<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
+						{roles.map((role) => {
+							const notHeld = !holdsAll(held, role.permissions)
+							const inputId = `invite-role-${role.id}`
+							return (
+								<div key={role.id} className="flex min-w-0 items-start gap-3">
+									<Checkbox
+										id={inputId}
+										className="mt-0.5"
+										checked={selected.includes(role.id)}
+										disabled={createInvitation.isPending || Boolean(inviteUrl) || notHeld}
+										aria-describedby={notHeld ? `${inputId}-description` : undefined}
+										onCheckedChange={() =>
+											setSelected((current) =>
+												current.includes(role.id) ? current.filter((id) => id !== role.id) : [...current, role.id],
+											)
+										}
+									/>
+									<div className="min-w-0 flex-1 space-y-1">
+										<Label htmlFor={inputId} className="block truncate leading-5" title={role.name}>
+											{role.name}
+										</Label>
+										{notHeld ? (
+											<p id={`${inputId}-description`} className="text-muted-foreground text-xs">
+												{t("users.roleNotYours")}
+											</p>
+										) : null}
+									</div>
+								</div>
+							)
+						})}
+						<p className="text-muted-foreground text-xs">{t("auth.invitations.rolesDescription")}</p>
+					</fieldset>
+				) : null}
 				{error ? (
 					<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
 						{error}
@@ -469,7 +517,7 @@ export function UsersPage() {
 			<PageHeader
 				title={t("users.heading")}
 				description={t("users.subheading")}
-				actions={held.includes("users:manage") ? <InviteMemberDialog /> : null}
+				actions={held.includes("users:manage") ? <InviteMemberDialog held={held} /> : null}
 			/>
 			<UsersList held={held} />
 		</div>

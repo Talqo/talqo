@@ -4,7 +4,7 @@
 - Runtime cross-module business calls target only `@/modules/<module>/<module>.service.ts`. Contracts may import another module's contract schemas; schema files may import another module's schema for foreign keys.
 - Keep Hono concerns in routes and business rules in services.
 - Declare each route's access in its contract with `access.*` from `src/http/access.ts`; handlers do not check permissions.
-- The roles service also checks the caller and targeted permissions inside `withAccessLock` for access-management writes, including user password reset and deletion. Every role mutation takes this lock so checks and writes cannot race. Do not nest locked operations.
+- The roles service also checks the caller and targeted permissions inside `withAccessLock` for access-management writes, including invitations, user password reset and deletion. Invitation acceptance rechecks the inviter's current authority. Every role mutation takes this lock so checks and writes cannot race. Do not nest locked operations.
 - A module accesses another module's data only through its service interface.
 - Reserve `.contract.ts` for HTTP/OpenAPI schemas and `.schema.ts` for Drizzle declarations.
 - The identity contract owns the shared user response schema; the roles contract reuses its fields for user listings.

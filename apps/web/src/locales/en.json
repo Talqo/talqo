@@ -219,7 +219,9 @@
 			"description": "Create a secure, single-use link for a new member.",
 			"expiresLabel": "(expires {{date}})",
 			"heading": "Invite a member",
-			"linkLabel": "Invitation link:"
+			"linkLabel": "Invitation link:",
+			"roles": "Roles on joining",
+			"rolesDescription": "The new member receives only the selected roles. Leave all unchecked to give no access."
 		},
 		"loading": "Loading…",
 		"login": {

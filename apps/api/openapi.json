@@ -2845,6 +2845,29 @@
 						"SessionCookie": []
 					}
 				],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"roleIds": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1,
+											"maxLength": 128
+										},
+										"maxItems": 100
+									}
+								},
+								"required": ["roleIds"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
 				"responses": {
 					"201": {
 						"description": "Invitation created",
@@ -2866,6 +2889,16 @@
 							}
 						}
 					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
 					"401": {
 						"description": "Problem response. Codes: authentication-required.",
 						"content": {
@@ -2877,7 +2910,27 @@
 						}
 					},
 					"403": {
-						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: role-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

@@ -1,5 +1,6 @@
 # Documentation App
 
+- Keep content purely user-facing. Put implementation details and architectural rationale under root `docs/`.
 - Never edit `src/routeTree.gen.ts`.
 - Render every content page by slug in `src/routes/$.tsx`; derive public URLs from `baseUrl` in `src/lib/source.ts`.
 - Keep `/problems` as a static sibling of the docs pages; static paths must outrank the splat.
