@@ -21,7 +21,7 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"scripts": {
-		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc --emitDeclarationOnly --noEmit false",
+		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},
