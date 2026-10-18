@@ -30,7 +30,7 @@ let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 
 async function respond(input: RequestInfo | URL): Promise<Response> {
-	const url = String(input)
+	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	if (url === "/api/agents/agent-1/files") {
 		return new Response(
 			JSON.stringify({ files, maxSizeBytes: 10_485_760, maxNameLength: 255, allowedExtensions: [".md"] }),
