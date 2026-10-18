@@ -8,7 +8,6 @@ const PROBLEM_PROPERTY_COUNT = 2
 
 // Deliberately not exhaustive: public-chat codes never surface in the dashboard and fall back.
 const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) => string>> = {
-	"admin-access-required": (t) => t("problems.admin-access-required"),
 	"admin-already-exists": (t) => t("problems.admin-already-exists"),
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
 	"agent-file-name-taken": (t) => t("problems.agent-file-name-taken"),
@@ -33,11 +32,14 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"password-change-required": (t) => t("problems.password-change-required"),
 	"payload-too-large": (t) => t("problems.payload-too-large"),
 	"permission-denied": (t) => t("problems.permission-denied"),
+	"permission-exceeds-own": (t) => t("problems.permission-exceeds-own"),
 	"provider-credentials-rejected": (t) => t("problems.provider-credentials-rejected"),
 	"provider-error": (t) => t("problems.provider-error"),
 	"provider-rate-limited": (t) => t("problems.provider-rate-limited"),
 	"provider-unreachable": (t) => t("problems.provider-unreachable"),
 	"request-failed": (t) => t("problems.request-failed"),
+	"role-name-taken": (t) => t("problems.role-name-taken"),
+	"role-not-found": (t) => t("problems.role-not-found"),
 	"route-not-found": (t) => t("problems.route-not-found"),
 	"self-delete-not-allowed": (t) => t("problems.self-delete-not-allowed"),
 	"self-password-reset-not-allowed": (t) => t("problems.self-password-reset-not-allowed"),

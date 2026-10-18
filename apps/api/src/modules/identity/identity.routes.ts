@@ -6,12 +6,12 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 import {
 	changePasswordRoute,
 	completeForcedPasswordChangeRoute,
-	deleteAccountRoute,
+	deleteCurrentUserRoute,
 	getSessionRoute,
 	loginRoute,
 	logoutRoute,
 	sessionResponseSchema,
-	updateAccountRoute,
+	updateCurrentUserRoute,
 } from "./identity.contract.ts"
 import * as service from "./identity.service.ts"
 
@@ -35,9 +35,9 @@ const authRoutes = new OpenAPIHono()
 		return c.json(sessionResponseSchema.parse({ user: result?.user ?? null }), HTTP_STATUS.OK)
 	})
 
-const accountRoutes = new OpenAPIHono()
-	.openapi(updateAccountRoute, async (c) => {
-		const user = await service.updateAccount(c.get("user").id, c.req.valid("json"))
+const currentUserRoutes = new OpenAPIHono()
+	.openapi(updateCurrentUserRoute, async (c) => {
+		const user = await service.updateUser(c.get("user").id, c.req.valid("json"))
 		return c.json({ user }, HTTP_STATUS.OK)
 	})
 	.openapi(changePasswordRoute, async (c) => {
@@ -52,12 +52,12 @@ const accountRoutes = new OpenAPIHono()
 		await service.completeForcedPasswordChange(c.get("user").id, body.newPassword, getCookie(c, SESSION_COOKIE))
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
-	.openapi(deleteAccountRoute, async (c) => {
-		await service.deleteAccount(c.get("user").id)
+	.openapi(deleteCurrentUserRoute, async (c) => {
+		await service.deleteUser(c.get("user").id)
 		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 
 export const identityRoutes = new OpenAPIHono()
 identityRoutes.route("/auth", authRoutes)
-identityRoutes.route("/me", accountRoutes)
+identityRoutes.route("/me", currentUserRoutes)

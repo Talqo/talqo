@@ -25,7 +25,7 @@ async function login(username: string, password: string) {
 
 async function createAndLogin(password = DEFAULT_PASSWORD) {
 	const username = uniqueUsername()
-	await service.createAccount({ username, password })
+	await service.createUser({ username, password })
 
 	const response = await login(username, password)
 	const cookie = extractSessionCookie(response)
@@ -46,7 +46,7 @@ describe("identity", () => {
 
 	it("rejects login with the wrong password", async () => {
 		const username = uniqueUsername()
-		await service.createAccount({ username, password: DEFAULT_PASSWORD })
+		await service.createUser({ username, password: DEFAULT_PASSWORD })
 
 		const response = await login(username, "wrong-password")
 
@@ -146,7 +146,7 @@ describe("identity", () => {
 		expect(response.status).toBe(409)
 	})
 
-	it("updates account info", async () => {
+	it("updates the user's profile", async () => {
 		const { cookie } = await createAndLogin()
 		const newUsername = uniqueUsername()
 
@@ -161,7 +161,7 @@ describe("identity", () => {
 		expect(user.username).toBe(newUsername)
 	})
 
-	it("rejects updating account username to one already in use", async () => {
+	it("rejects changing a user's username to one already in use", async () => {
 		const existing = await createAndLogin()
 		const { cookie } = await createAndLogin()
 
@@ -174,7 +174,7 @@ describe("identity", () => {
 		expect(response.status).toBe(409)
 	})
 
-	it("deletes the account and invalidates its session", async () => {
+	it("deletes the user and invalidates their session", async () => {
 		const { cookie, username, password } = await createAndLogin()
 
 		const deleteResponse = await app.request("/api/me", { method: "DELETE", headers: { Cookie: cookie } })
@@ -186,8 +186,8 @@ describe("identity", () => {
 		expect((await login(username, password)).status).toBe(401)
 	})
 
-	it("deleteAccount rejects an unknown user", async () => {
-		await expect(service.deleteAccount(crypto.randomUUID())).rejects.toBeInstanceOf(service.UserNotFoundError)
+	it("rejects deleting an unknown user", async () => {
+		await expect(service.deleteUser(crypto.randomUUID())).rejects.toBeInstanceOf(service.UserNotFoundError)
 	})
 
 	it("setPassword rotates the password, forces a change, and invalidates existing sessions", async () => {
@@ -207,7 +207,7 @@ describe("identity", () => {
 
 	it("purges an expired session from the database on read, not just rejecting it", async () => {
 		const username = uniqueUsername()
-		const user = await service.createAccount({ username, password: DEFAULT_PASSWORD })
+		const user = await service.createUser({ username, password: DEFAULT_PASSWORD })
 		const token = crypto.randomUUID()
 		const tokenHash = hashOpaqueToken(token)
 		await repo.insertSession({
@@ -221,10 +221,10 @@ describe("identity", () => {
 		expect(await repo.findSessionByTokenHash(tokenHash)).toBeUndefined()
 	})
 
-	it("rejects creating an account with a duplicate username", async () => {
+	it("rejects creating a user with a duplicate username", async () => {
 		const username = uniqueUsername()
-		await service.createAccount({ username, password: DEFAULT_PASSWORD })
+		await service.createUser({ username, password: DEFAULT_PASSWORD })
 
-		await expect(service.createAccount({ username, password: DEFAULT_PASSWORD })).rejects.toThrow()
+		await expect(service.createUser({ username, password: DEFAULT_PASSWORD })).rejects.toThrow()
 	})
 })

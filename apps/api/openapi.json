@@ -25,21 +25,6 @@
 						"properties": {
 							"code": {
 								"type": "string",
-								"enum": ["admin-access-required"]
-							},
-							"type": {
-								"type": "string",
-								"enum": ["https://docs.talqo.chat/problems#admin-access-required"]
-							}
-						},
-						"required": ["code", "type"],
-						"additionalProperties": false
-					},
-					{
-						"type": "object",
-						"properties": {
-							"code": {
-								"type": "string",
 								"enum": ["admin-already-exists"]
 							},
 							"type": {
@@ -610,6 +595,21 @@
 						"properties": {
 							"code": {
 								"type": "string",
+								"enum": ["permission-exceeds-own"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#permission-exceeds-own"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
 								"enum": ["provider-credentials-rejected"]
 							},
 							"type": {
@@ -675,6 +675,36 @@
 							"type": {
 								"type": "string",
 								"enum": ["https://docs.talqo.chat/problems#request-failed"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["role-name-taken"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#role-name-taken"]
+							}
+						},
+						"required": ["code", "type"],
+						"additionalProperties": false
+					},
+					{
+						"type": "object",
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": ["role-not-found"]
+							},
+							"type": {
+								"type": "string",
+								"enum": ["https://docs.talqo.chat/problems#role-not-found"]
 							}
 						},
 						"required": ["code", "type"],
@@ -782,20 +812,46 @@
 				},
 				"required": ["id", "username", "mustChangePassword"]
 			},
-			"RoleUser": {
+			"RoleSummary": {
 				"type": "object",
 				"properties": {
 					"id": {
 						"type": "string"
 					},
-					"username": {
+					"name": {
 						"type": "string"
-					},
-					"mustChangePassword": {
-						"type": "boolean"
 					}
 				},
-				"required": ["id", "username", "mustChangePassword"]
+				"required": ["id", "name"]
+			},
+			"Role": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"permissions": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"enum": [
+								"users:read",
+								"users:manage",
+								"roles:manage",
+								"ai_provider:manage",
+								"agents:read",
+								"agents:manage"
+							]
+						}
+					},
+					"memberCount": {
+						"type": "integer"
+					}
+				},
+				"required": ["id", "name", "permissions", "memberCount"]
 			},
 			"Agent": {
 				"type": "object",
@@ -2230,7 +2286,7 @@
 		},
 		"/api/me": {
 			"patch": {
-				"operationId": "updateAccount",
+				"operationId": "updateCurrentUser",
 				"tags": ["Identity"],
 				"security": [
 					{
@@ -2336,7 +2392,7 @@
 				}
 			},
 			"delete": {
-				"operationId": "deleteAccount",
+				"operationId": "deleteCurrentUser",
 				"tags": ["Identity"],
 				"security": [
 					{
@@ -2543,69 +2599,6 @@
 				}
 			}
 		},
-		"/api/access": {
-			"get": {
-				"operationId": "getAccess",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Effective access for the current user",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"permissions": {
-											"type": "array",
-											"items": {
-												"type": "string",
-												"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
-											}
-										}
-									},
-									"required": ["permissions"]
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: password-change-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/setup": {
 			"get": {
 				"operationId": "getSetupStatus",
@@ -2677,7 +2670,7 @@
 									"type": "object",
 									"properties": {
 										"user": {
-											"$ref": "#/components/schemas/RoleUser"
+											"$ref": "#/components/schemas/User"
 										}
 									},
 									"required": ["user"]
@@ -2834,7 +2827,7 @@
 									"type": "object",
 									"properties": {
 										"user": {
-											"$ref": "#/components/schemas/RoleUser"
+											"$ref": "#/components/schemas/User"
 										}
 									},
 									"required": ["user"]
@@ -2885,203 +2878,6 @@
 				}
 			}
 		},
-		"/api/permission-grants": {
-			"post": {
-				"operationId": "createPermissionGrant",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"type": "object",
-								"properties": {
-									"userId": {
-										"type": "string",
-										"minLength": 1,
-										"maxLength": 128
-									},
-									"permission": {
-										"type": "string",
-										"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
-									}
-								},
-								"required": ["userId", "permission"],
-								"additionalProperties": false
-							}
-						}
-					}
-				},
-				"responses": {
-					"201": {
-						"description": "Permission granted",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"grant": {
-											"type": "object",
-											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"userId": {
-													"type": "string"
-												},
-												"permission": {
-													"type": "string"
-												},
-												"grantedBy": {
-													"type": ["string", "null"]
-												},
-												"grantedAt": {
-													"type": "string",
-													"format": "date-time"
-												}
-											},
-											"required": ["id", "userId", "permission", "grantedBy", "grantedAt"]
-										}
-									},
-									"required": ["grant"]
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Problem response. Codes: invalid-request, malformed-json.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: user-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"409": {
-						"description": "Problem response. Codes: admin-already-exists.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "Problem response. Codes: payload-too-large.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/permission-grants/{id}": {
-			"delete": {
-				"operationId": "revokePermissionGrant",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"required": true,
-						"name": "id",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"204": {
-						"description": "No content"
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/me/permissions": {
 			"get": {
 				"operationId": "getMyPermissions",
@@ -3103,7 +2899,15 @@
 											"type": "array",
 											"items": {
 												"type": "string",
-												"enum": ["admin", "ai_provider:manage", "agents:read", "agents:manage"]
+												"enum": [
+													"admin",
+													"users:read",
+													"users:manage",
+													"roles:manage",
+													"ai_provider:manage",
+													"agents:read",
+													"agents:manage"
+												]
 											}
 										}
 									},
@@ -3156,7 +2960,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "All users",
+						"description": "Users with their roles and available management actions",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3165,7 +2969,43 @@
 										"users": {
 											"type": "array",
 											"items": {
-												"$ref": "#/components/schemas/RoleUser"
+												"type": "object",
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"username": {
+														"type": "string"
+													},
+													"mustChangePassword": {
+														"type": ["boolean", "null"]
+													},
+													"permissions": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"enum": [
+																"admin",
+																"users:read",
+																"users:manage",
+																"roles:manage",
+																"ai_provider:manage",
+																"agents:read",
+																"agents:manage"
+															]
+														}
+													},
+													"canManage": {
+														"type": "boolean"
+													},
+													"roles": {
+														"type": "array",
+														"items": {
+															"$ref": "#/components/schemas/RoleSummary"
+														}
+													}
+												},
+												"required": ["id", "username", "mustChangePassword", "permissions", "canManage", "roles"]
 											}
 										}
 									},
@@ -3185,7 +3025,7 @@
 						}
 					},
 					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3269,7 +3109,7 @@
 						}
 					},
 					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3355,7 +3195,7 @@
 						}
 					},
 					"403": {
-						"description": "Problem response. Codes: admin-access-required, password-change-required.",
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
 						"content": {
 							"application/problem+json": {
 								"schema": {
@@ -3366,6 +3206,611 @@
 					},
 					"404": {
 						"description": "Problem response. Codes: user-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/permissions": {
+			"get": {
+				"operationId": "listGrantablePermissions",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Permissions a role may hold, with what each implies",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"permissions": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"permission": {
+														"type": "string",
+														"enum": [
+															"users:read",
+															"users:manage",
+															"roles:manage",
+															"ai_provider:manage",
+															"agents:read",
+															"agents:manage"
+														]
+													},
+													"implies": {
+														"type": "array",
+														"items": {
+															"type": "string",
+															"enum": [
+																"users:read",
+																"users:manage",
+																"roles:manage",
+																"ai_provider:manage",
+																"agents:read",
+																"agents:manage"
+															]
+														}
+													}
+												},
+												"required": ["permission", "implies"]
+											}
+										}
+									},
+									"required": ["permissions"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/roles": {
+			"get": {
+				"operationId": "listRoles",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "All roles",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"roles": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/Role"
+											}
+										}
+									},
+									"required": ["roles"]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"operationId": "createRole",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 64
+									},
+									"permissions": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"enum": [
+												"users:read",
+												"users:manage",
+												"roles:manage",
+												"ai_provider:manage",
+												"agents:read",
+												"agents:manage"
+											]
+										},
+										"maxItems": 6
+									}
+								},
+								"required": ["name", "permissions"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "Role created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"role": {
+											"$ref": "#/components/schemas/Role"
+										}
+									},
+									"required": ["role"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: role-name-taken.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/roles/{roleId}": {
+			"put": {
+				"operationId": "updateRole",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "roleId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 64
+									},
+									"permissions": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"enum": [
+												"users:read",
+												"users:manage",
+												"roles:manage",
+												"ai_provider:manage",
+												"agents:read",
+												"agents:manage"
+											]
+										},
+										"maxItems": 6
+									}
+								},
+								"required": ["name", "permissions"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Role updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"role": {
+											"$ref": "#/components/schemas/Role"
+										}
+									},
+									"required": ["role"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: role-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Problem response. Codes: role-name-taken.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteRole",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "roleId",
+						"in": "path"
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "No content"
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: role-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Problem response. Codes: internal-server-error.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/users/{userId}/roles": {
+			"put": {
+				"operationId": "assignUserRoles",
+				"tags": ["Roles"],
+				"security": [
+					{
+						"SessionCookie": []
+					}
+				],
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"required": true,
+						"name": "userId",
+						"in": "path"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"roleIds": {
+										"type": "array",
+										"items": {
+											"type": "string",
+											"minLength": 1,
+											"maxLength": 128
+										},
+										"maxItems": 100
+									}
+								},
+								"required": ["roleIds"],
+								"additionalProperties": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The user's roles",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"roles": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/RoleSummary"
+											}
+										}
+									},
+									"required": ["roles"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Problem response. Codes: invalid-request, malformed-json.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Problem response. Codes: authentication-required.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Problem response. Codes: role-not-found, user-not-found.",
+						"content": {
+							"application/problem+json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProblemDetails"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Problem response. Codes: payload-too-large.",
 						"content": {
 							"application/problem+json": {
 								"schema": {

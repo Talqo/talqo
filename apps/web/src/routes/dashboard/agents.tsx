@@ -1,9 +1,9 @@
 import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
-import { nextDefaultAgentName } from "@/features/agents/default-agent-name"
 import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { nextDefaultName } from "@/lib/default-name"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -51,7 +51,7 @@ function AgentsPage() {
 		try {
 			const result = await createAgent.mutateAsync({
 				data: {
-					name: nextDefaultAgentName(agents?.map((agent) => agent.name) ?? [], t("agents.defaultName")),
+					name: nextDefaultName(agents?.map((agent) => agent.name) ?? [], t("agents.defaultName")),
 					systemPrompt: t("agents.defaultSystemPrompt"),
 					wordBlacklist: [],
 				},

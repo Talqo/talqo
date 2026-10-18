@@ -2,8 +2,7 @@ import { app } from "@/app.ts"
 import { db, sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 import { eq } from "drizzle-orm"
 
@@ -25,14 +24,11 @@ async function login(username: string): Promise<string> {
 	return cookiePair
 }
 
-/** Access is declared per route, so a read-only member is created by granting exactly one permission. */
+/** Access is declared per route, so a read-only member gets a role with exactly one permission. */
 async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	const grantor = await identity.createAccount({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-	await Promise.all(
-		permissions.map((permission) => roles.grantPermission({ userId: member.id, permission, grantedBy: grantor.id })),
-	)
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(member.id, permissions)
 	return login(username)
 }
 

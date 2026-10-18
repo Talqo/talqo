@@ -67,7 +67,7 @@ export const listAgentFilesRoute = createRoute({
 	path: "/",
 	operationId: "listAgentFiles",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.permission(roles.Permission.AgentsRead),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: {
@@ -111,7 +111,7 @@ export const downloadAgentFileRoute = createRoute({
 	path: "/{fileName}",
 	operationId: "downloadAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.permission(roles.Permission.AgentsRead),
 	request: { params: fileParamsSchema },
 	responses: {
 		200: {
