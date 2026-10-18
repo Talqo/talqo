@@ -478,13 +478,13 @@ function EmbedDetailPage() {
 						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
 					</CardHeader>
 					<CardContent className="divide-y">
-						<div className="flex flex-wrap items-center gap-3 pb-4">
-							<div className="min-w-60 flex-1 space-y-1">
-								<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
-								<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
-								<Input id="embed-token" value={embed.embedToken} readOnly className="mt-2 font-mono" />
+						<div className="space-y-1 pb-4">
+							<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
+							<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
+							<Input id="embed-token" value={embed.embedToken} readOnly className="mt-2 font-mono" />
+							<div className="flex justify-end pt-2">
+								<RotateEmbedTokenDialog embedId={embedId} />
 							</div>
-							<RotateEmbedTokenDialog embedId={embedId} />
 						</div>
 						<div className="flex flex-wrap items-center gap-3 pt-4">
 							<div className="min-w-60 flex-1 space-y-1">
