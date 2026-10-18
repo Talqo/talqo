@@ -6,6 +6,8 @@ This diagram models the desired entities and relationships. Implementation schem
 erDiagram
     USER
     SESSION
+    ROLE
+    ROLE_PERMISSION
     USER_ROLE
     INVITATION
     PERMISSION_GRANT
@@ -29,6 +31,8 @@ erDiagram
 
     USER ||--o{ SESSION : authenticates
     USER ||--o{ USER_ROLE : has
+    ROLE ||--o{ USER_ROLE : "assigned through"
+    ROLE ||--o{ ROLE_PERMISSION : includes
     USER ||--o{ INVITATION : sends
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs

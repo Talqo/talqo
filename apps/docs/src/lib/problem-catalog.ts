@@ -10,13 +10,6 @@ export type ProblemDefinition = {
 
 export const PROBLEMS = [
 	{
-		code: "admin-access-required",
-		title: "Admin access required",
-		status: "403",
-		meaning: "The operation requires an administrator.",
-		guidance: "Use an administrator account.",
-	},
-	{
 		code: "admin-already-exists",
 		title: "Admin already exists",
 		status: "409",
@@ -270,6 +263,13 @@ export const PROBLEMS = [
 		guidance: "Ask an administrator to grant access.",
 	},
 	{
+		code: "permission-exceeds-own",
+		title: "Permission not held",
+		status: "403",
+		meaning: "The operation would give, remove, or affect access that the account does not hold itself.",
+		guidance: "Ask an operator who holds that access to make the change.",
+	},
+	{
 		code: "provider-credentials-rejected",
 		title: "Provider credentials rejected",
 		status: "400",
@@ -305,6 +305,20 @@ export const PROBLEMS = [
 		guidance: "Use the HTTP status and retry or correct the request.",
 	},
 	{
+		code: "role-name-taken",
+		title: "Role name taken",
+		status: "409",
+		meaning: "Another role already uses this name, ignoring letter case.",
+		guidance: "Choose a different role name.",
+	},
+	{
+		code: "role-not-found",
+		title: "Role not found",
+		status: "404",
+		meaning: "The requested role does not exist.",
+		guidance: "Reload the role list and select an existing role.",
+	},
+	{
 		code: "route-not-found",
 		title: "Route not found",
 		status: "404",
@@ -315,14 +329,14 @@ export const PROBLEMS = [
 		code: "self-delete-not-allowed",
 		title: "Self delete not allowed",
 		status: "400",
-		meaning: "An administrator attempted to use the user-delete flow on their own account.",
+		meaning: "An operator attempted to use the user-delete flow on their own account.",
 		guidance: "Delete the current account through DELETE /api/me instead.",
 	},
 	{
 		code: "self-password-reset-not-allowed",
 		title: "Self password reset not allowed",
 		status: "400",
-		meaning: "An administrator attempted to use the user-reset flow on their own account.",
+		meaning: "An operator attempted to use the user-reset flow on their own account.",
 		guidance: "Use account settings to change the current account password.",
 	},
 	{

@@ -2,7 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as service from "./agent.service.ts"
@@ -42,10 +42,8 @@ async function createMemberSession(
 	permissions: ("agents:read" | "agents:manage")[] = [],
 ): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await Promise.all(
-		permissions.map((permission) => roles.grantPermission({ userId: member.id, permission, grantedBy })),
-	)
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(member.id, permissions)
 	return login(username)
 }
 

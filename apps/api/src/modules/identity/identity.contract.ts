@@ -18,7 +18,7 @@ const usernameSchema = z
 	.max(USERNAME_MAX_LENGTH)
 	.regex(USERNAME_PATTERN, "Username may only contain letters, numbers, underscores, and hyphens")
 
-const userResponseSchema = z
+export const userResponseSchema = z
 	.object({
 		id: z.string(),
 		username: z.string(),
@@ -35,7 +35,7 @@ export const sessionResponseSchema = z.object({
 	user: z.union([userResponseSchema, z.null()]),
 })
 
-const updateAccountRequestSchema = z.object({
+const updateCurrentUserRequestSchema = z.object({
 	username: usernameSchema,
 })
 
@@ -97,14 +97,14 @@ export const getSessionRoute = createRoute({
 	},
 })
 
-export const updateAccountRoute = createRoute({
+export const updateCurrentUserRoute = createRoute({
 	method: "patch",
 	path: "/",
-	operationId: "updateAccount",
+	operationId: "updateCurrentUser",
 	tags: ["Identity"],
 	...access.session(),
 	request: {
-		body: { content: { "application/json": { schema: updateAccountRequestSchema } }, required: true },
+		body: { content: { "application/json": { schema: updateCurrentUserRequestSchema } }, required: true },
 	},
 	responses: {
 		200: { content: { "application/json": { schema: userEnvelopeSchema } }, description: "Updated user" },
@@ -158,10 +158,10 @@ export const completeForcedPasswordChangeRoute = createRoute({
 	},
 })
 
-export const deleteAccountRoute = createRoute({
+export const deleteCurrentUserRoute = createRoute({
 	method: "delete",
 	path: "/",
-	operationId: "deleteAccount",
+	operationId: "deleteCurrentUser",
 	tags: ["Identity"],
 	...access.session(),
 	responses: {

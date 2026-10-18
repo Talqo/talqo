@@ -4,7 +4,7 @@ import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
 import { beforeEach, describe, expect, it } from "bun:test"
 
@@ -316,23 +316,15 @@ async function login(username: string, password: string): Promise<string> {
 
 async function createManagerSession(): Promise<string> {
 	const username = uniqueUsername()
-	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await roles.grantPermission({
-		userId: account.id,
-		permission: roles.Permission.AgentsManage,
-		grantedBy: account.id,
-	})
+	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(user.id, [roles.Permission.AgentsManage])
 	return login(username, DEFAULT_PASSWORD)
 }
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
-	const account = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await roles.grantPermission({
-		userId: account.id,
-		permission: roles.Permission.AgentsRead,
-		grantedBy: account.id,
-	})
+	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(user.id, [roles.Permission.AgentsRead])
 	return login(username, DEFAULT_PASSWORD)
 }
 

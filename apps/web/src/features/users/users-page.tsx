@@ -4,14 +4,18 @@ import {
 	getListUsersQueryKey,
 	useCreateInvitation,
 	useDeleteUser,
+	useGetMyPermissions,
+	useListRoles,
 	useListUsers,
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
+import { useAccessError } from "@/features/permissions/use-access-error"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -31,17 +35,17 @@ import {
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { Check, Copy, UserPlus } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Link } from "@tanstack/react-router"
+import { Check, Copy, Pencil, Trash2, UserPlus } from "lucide-react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-const FORBIDDEN_STATUS = 403
-const NOT_FOUND_STATUS = 404
-const UNAUTHORIZED_STATUS = 401
+import { EditUserRolesDialog } from "./edit-user-roles-dialog"
 
-type ListedUser = { id: string; mustChangePassword: boolean; username: string }
+const NOT_FOUND_STATUS = 404
+
+type ListedUser = { id: string; username: string }
 
 function ResetPasswordDialog({
 	disabled,
@@ -105,7 +109,7 @@ function ResetPasswordDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" disabled={disabled} />} nativeButton={false}>
+			<DialogTrigger render={<Button variant="outline" disabled={disabled} />}>
 				{t("users.resetPassword")}
 			</DialogTrigger>
 			<DialogContent>
@@ -185,17 +189,13 @@ function DeleteUserDialog({
 	const { t } = useTranslation()
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
-	const [confirmation, setConfirmation] = useState("")
 	const [error, setError] = useState<string | null>(null)
 	const isDeleting = deleteUser.isPending
 
 	function handleOpenChange(next: boolean) {
 		if (isDeleting) return
 		setOpen(next)
-		if (!next) {
-			setConfirmation("")
-			setError(null)
-		}
+		if (!next) setError(null)
 	}
 
 	async function onConfirm() {
@@ -213,11 +213,10 @@ function DeleteUserDialog({
 		onDeleted()
 	}
 
-	const confirmationId = `delete-user-confirmation-${targetUser.id}`
-
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />} nativeButton={false}>
+			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />}>
+				<Trash2 className="size-4" />
 				{t("users.delete")}
 			</DialogTrigger>
 			<DialogContent>
@@ -230,28 +229,11 @@ function DeleteUserDialog({
 						{error}
 					</p>
 				)}
-				<div className="space-y-2">
-					<Label htmlFor={confirmationId}>
-						<span className="sr-only">{t("users.confirmLabel", { username: targetUser.username })}</span>
-					</Label>
-					<Input
-						id={confirmationId}
-						value={confirmation}
-						onChange={(event) => setConfirmation(event.target.value)}
-						placeholder={targetUser.username}
-						autoComplete="off"
-					/>
-					<p className="text-muted-foreground text-xs">{t("users.confirmHelp", { username: targetUser.username })}</p>
-				</div>
 				<DialogFooter>
 					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
 						{t("users.cancel")}
 					</Button>
-					<Button
-						variant="destructive"
-						disabled={confirmation !== targetUser.username || isDeleting}
-						onClick={onConfirm}
-					>
+					<Button variant="destructive" disabled={isDeleting} onClick={onConfirm}>
 						{isDeleting ? t("users.deleting") : t("users.deleteConfirm")}
 					</Button>
 				</DialogFooter>
@@ -260,19 +242,17 @@ function DeleteUserDialog({
 	)
 }
 
-function UsersList() {
+function UsersList({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
-	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const session = useGetSession()
 	const usersQuery = useListUsers()
+	const canManageUsers = held.includes("users:manage")
+	const canManageRoles = held.includes("roles:manage")
+	const rolesQuery = useListRoles({ query: { enabled: canManageRoles } })
 	const [confirmedUserId, setConfirmedUserId] = useState<string | null>(null)
 
-	const errorStatus = (usersQuery.error as { status?: number } | null)?.status
-
-	useEffect(() => {
-		if (errorStatus === UNAUTHORIZED_STATUS) void navigate({ to: "/login" })
-	}, [errorStatus, navigate])
+	const forbidden = useAccessError(usersQuery.error, session.error, rolesQuery.error)
 
 	function handleReset(userId: string) {
 		setConfirmedUserId(userId)
@@ -287,41 +267,96 @@ function UsersList() {
 		return <p className="text-muted-foreground">{t("users.loading")}</p>
 	}
 
-	if (usersQuery.isError) {
-		// A grant revoked while the page is open still lands here.
-		if (errorStatus === FORBIDDEN_STATUS) return <AccessDenied />
+	if (usersQuery.isError || session.isError) {
+		// A role removed while the page is open still lands here.
+		if (forbidden) return <AccessDenied />
 		return (
-			<Card>
-				<CardContent>
-					<p className="text-muted-foreground text-sm">{t("auth.errorFallback")}</p>
-				</CardContent>
-			</Card>
+			<ProblemAlert
+				error={usersQuery.error ?? session.error}
+				onRetry={() => {
+					void usersQuery.refetch()
+					void session.refetch()
+				}}
+			/>
 		)
 	}
 	const currentUserId = session.data?.data.user?.id
 	const users = usersQuery.data.data.users
+	const roles = rolesQuery.data?.data.roles
+	const ownRoleIds = new Set(users.find(({ id }) => id === currentUserId)?.roles.map(({ id }) => id) ?? [])
+	const ownRoles = roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
 
 	return (
 		<div className="space-y-3">
-			{users.map((user) => (
-				<Card key={user.id}>
-					<CardContent className="flex items-center justify-between gap-4">
-						<div className="flex items-center gap-2">
-							<span className="font-medium">{user.username}</span>
-							{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
-						</div>
-						<div className="flex items-center gap-3">
-							{confirmedUserId === user.id && (
-								<span role="status" className="text-primary text-xs">
-									{t("users.resetSuccess")}
+			{canManageRoles && rolesQuery.isPending ? (
+				<p role="status" className="text-muted-foreground text-sm">
+					{t("roles.loading")}
+				</p>
+			) : null}
+			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
+			{users.map((user) => {
+				const exceedsOperator = !user.canManage
+				return (
+					<Card key={user.id} data-user-id={user.id}>
+						<CardContent className="space-y-4">
+							<div className="flex min-w-0 flex-wrap items-center gap-2">
+								<span className="max-w-full truncate font-medium" title={user.username}>
+									{user.username}
 								</span>
-							)}
-							<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
-							<DeleteUserDialog targetUser={user} disabled={user.id === currentUserId} onDeleted={handleDeleted} />
-						</div>
-					</CardContent>
-				</Card>
-			))}
+								{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+								{user.roles.map((role) => (
+									<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+										<span className="max-w-48 truncate">{role.name}</span>
+									</Badge>
+								))}
+								{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								{confirmedUserId === user.id && (
+									<span role="status" className="text-primary text-xs">
+										{t("users.resetSuccess")}
+									</span>
+								)}
+								{canManageRoles && roles && !rolesQuery.isError ? (
+									<EditUserRolesDialog
+										heldPermissions={held}
+										isSelf={user.id === currentUserId}
+										ownRoles={ownRoles}
+										roles={roles}
+										targetUser={user}
+									/>
+								) : canManageRoles ? (
+									<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
+										<Pencil className="size-4" />
+										{t("users.editRoles")}
+									</Button>
+								) : null}
+								{canManageUsers && exceedsOperator ? (
+									<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
+								) : null}
+								{canManageUsers && !exceedsOperator ? (
+									<>
+										<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
+										<DeleteUserDialog
+											targetUser={user}
+											disabled={user.id === currentUserId}
+											onDeleted={handleDeleted}
+										/>
+									</>
+								) : null}
+							</div>
+							{canManageUsers && user.id === currentUserId ? (
+								<p className="text-muted-foreground text-xs">
+									{t("users.ownAccountHint")}{" "}
+									<Link to="/dashboard/account" className="underline">
+										{t("nav.account")}
+									</Link>
+								</p>
+							) : null}
+						</CardContent>
+					</Card>
+				)
+			})}
 		</div>
 	)
 }
@@ -370,7 +405,7 @@ function InviteMemberDialog() {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button />} nativeButton={false}>
+			<DialogTrigger render={<Button />}>
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
@@ -426,11 +461,16 @@ function InviteMemberDialog() {
 
 export function UsersPage() {
 	const { t } = useTranslation()
+	const held = useGetMyPermissions().data?.data.permissions ?? []
 
 	return (
 		<div className="mx-auto max-w-3xl space-y-6">
-			<PageHeader title={t("users.heading")} description={t("users.subheading")} actions={<InviteMemberDialog />} />
-			<UsersList />
+			<PageHeader
+				title={t("users.heading")}
+				description={t("users.subheading")}
+				actions={held.includes("users:manage") ? <InviteMemberDialog /> : null}
+			/>
+			<UsersList held={held} />
 		</div>
 	)
 }

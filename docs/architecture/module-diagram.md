@@ -69,7 +69,7 @@ graph LR
 | Module | Owns (tables) | Responsibility |
 |---|---|---|
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
-| `roles` | `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | RBAC role assignment, invite flow, and deployment-global permission grants — owns "who can do what." |
+| `roles` | `ROLE`, `ROLE_PERMISSION`, `USER_ROLE`, `INVITATION`, `PERMISSION_GRANT` | Roles and their assignments, the single admin grant, and the invite flow — owns "who can do what." |
 | `agent` | `AGENT`, `BLACKLIST_WORD` | Deployment-owned agent branding, persona, and content policy. |
 | `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many embeds. |
 | `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |

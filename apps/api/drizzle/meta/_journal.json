@@ -78,6 +78,13 @@
 			"when": 1791661832728,
 			"tag": "0010_unique_paladin",
 			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1792016191938,
+			"tag": "0011_roles",
+			"breakpoints": true
 		}
 	]
 }

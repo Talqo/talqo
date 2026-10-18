@@ -3,7 +3,7 @@ import { sql } from "@/db/client.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import { getStatsOverview } from "./stats.service.ts"
@@ -252,9 +252,9 @@ describe("stats overview aggregation", () => {
 	})
 
 	it("serves admins and defaults to 30 days without a days parameter", async () => {
-		const { cookie: adminCookie, userId } = await createAdminSession()
+		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
-		const member = await identity.createAccount({ username: memberUsername, password: DEFAULT_PASSWORD })
+		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
 		const memberCookie = await login(memberUsername)
 
 		const forbidden = await app.request("/api/stats", { headers: { Cookie: memberCookie } })
@@ -273,8 +273,7 @@ describe("stats overview aggregation", () => {
 		expect(bareBody.overview.days).toBe(30)
 		expect(bareBody.overview.daily).toHaveLength(30)
 
-		// A member granted agents:read passes the gate.
-		await roles.grantPermission({ userId: member.id, permission: "agents:read", grantedBy: userId })
+		await giveRole(member.id, ["agents:read"])
 		const granted = await app.request("/api/stats", { headers: { Cookie: memberCookie } })
 		expect(granted.status).toBe(200)
 	})

@@ -8,10 +8,6 @@ import * as zod from "zod"
 
 export const ProblemDetails = zod.union([
 	zod.object({
-		code: zod.enum(["admin-access-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#admin-access-required"]),
-	}),
-	zod.object({
 		code: zod.enum(["admin-already-exists"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
 	}),
@@ -164,6 +160,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
 	}),
 	zod.object({
+		code: zod.enum(["permission-exceeds-own"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#permission-exceeds-own"]),
+	}),
+	zod.object({
 		code: zod.enum(["provider-credentials-rejected"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
 	}),
@@ -182,6 +182,14 @@ export const ProblemDetails = zod.union([
 	zod.object({
 		code: zod.enum(["request-failed"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
+	}),
+	zod.object({
+		code: zod.enum(["role-name-taken"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#role-name-taken"]),
+	}),
+	zod.object({
+		code: zod.enum(["role-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#role-not-found"]),
 	}),
 	zod.object({
 		code: zod.enum(["route-not-found"]),

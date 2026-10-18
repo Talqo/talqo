@@ -2,7 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { afterAll, beforeEach, describe, expect, it } from "bun:test"
 import { readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
@@ -34,10 +34,10 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username), userId: admin.id }
 }
 
-async function createReaderSession(grantedBy: string): Promise<string> {
+async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
-	const member = await identity.createAccount({ username, password: DEFAULT_PASSWORD })
-	await roles.grantPermission({ userId: member.id, permission: "agents:read", grantedBy })
+	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	await giveRole(member.id, ["agents:read"])
 	return login(username)
 }
 
@@ -230,12 +230,26 @@ describe("agent knowledge files", () => {
 		await expectProblem(response, 404, "agent-not-found")
 	})
 
-	it("denies file operations to a member with only agents:read", async () => {
-		const { cookie, userId } = await createAdminSession()
+	it("lets a member with only agents:read list and download files", async () => {
+		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Perm")
-		const reader = await createReaderSession(userId)
-		const response = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
-		await expectProblem(response, 403, "permission-denied")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+		const reader = await createReaderSession()
+
+		const listed = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: reader } })
+		const downloaded = await app.request(`/api/agents/${agentId}/files/a.md`, { headers: { Cookie: reader } })
+
+		expect(listed.status).toBe(200)
+		expect(downloaded.status).toBe(200)
+		expect(await downloaded.text()).toBe("hello")
+	})
+
+	it("denies file changes to a member with only agents:read", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Perm")
+		const reader = await createReaderSession()
+
+		await expectProblem(await upload(reader, agentId), 403, "permission-denied")
 	})
 
 	it("removes the upload directory when the agent is deleted", async () => {
