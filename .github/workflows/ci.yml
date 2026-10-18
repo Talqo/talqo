@@ -28,12 +28,11 @@ jobs:
         with:
           version: 1.7.12
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
         with:
           advanced-security: false
           annotations: true
           online-audits: false
-          version: 1.27.0
 
   lint-and-format:
     name: Lint & Format
@@ -45,7 +44,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Run quality checks
         run: bun run quality
 
@@ -59,7 +58,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Restore Knip cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -79,7 +78,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Check generated API contracts
         run: bun run contracts:check
 
@@ -93,7 +92,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Run type checks
         run: bun run typecheck
 
@@ -107,7 +106,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Run tests
         run: bun run test
 
@@ -121,7 +120,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Check translations
         run: bun run i18n
 
@@ -135,7 +134,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Run integration tests
         run: bun run test:integration
 
@@ -149,6 +148,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Bun dependencies
-        uses: ./.github/actions/setup-bun
+        uses: $/.github/actions/setup-bun
       - name: Build applications
         run: bun run build
