@@ -55,7 +55,7 @@ check_version_order() {
 	while IFS= read -r tag; do
 		candidate=${tag#v}
 		if [[ $candidate =~ $VERSION_PATTERN && $candidate != "$1" ]]; then
-			newest=$(printf '%s\n%s\n' "$candidate" "$1" | sort -V | tail -n 1)
+			newest=$(printf '%s\n%s\n' "$candidate" "$1" | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
 			if [[ $newest != "$1" ]]; then
 				fail "A newer release tag already exists: $tag"
 			fi
@@ -67,14 +67,14 @@ validate_release() {
 	require_version "$1"
 	git fetch --quiet origin main --tags
 
-	if [[ $(git cat-file -t "refs/tags/v$1") != tag ]]; then
+	if [[ $(git cat-file -t "refs/tags/v$1" 2>/dev/null) != tag ]]; then
 		fail 'Release requires an annotated tag'
 	fi
 	if [[ $(git rev-parse "refs/tags/v$1^{}") != "$(git rev-parse HEAD)" ]]; then
 		fail 'Checkout does not match release tag'
 	fi
 
-	git merge-base --is-ancestor HEAD origin/main
+	git merge-base --is-ancestor HEAD origin/main || fail 'Release tag must be on main'
 	local published_tags
 	published_tags=$(gh api --paginate "repos/$REPOSITORY/releases?per_page=100" \
 		--jq '.[] | select(.draft == false and .prerelease == false) | .tag_name')
