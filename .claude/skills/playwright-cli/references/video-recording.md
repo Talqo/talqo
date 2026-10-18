@@ -2,6 +2,19 @@
 
 Capture browser automation sessions as video for debugging, documentation, or verification. Produces WebM (VP8/VP9 codec).
 
+## Feature walkthrough standard
+
+When the user or repository requests a demo video, follow the requested scenario or manual test steps. The repository decides when a video is required; this skill does not require a particular PR section. Use before/after screenshots for simple visual fixes only when allowed.
+
+- Record a walkthrough of the requested behavior, not an unrelated scenario or an unedited E2E test run. Use video when motion or a sequence of actions explains the change. For screenshot comparisons, use the same viewport and scenario and label before and after.
+- Prepare accounts and data before recording. Keep unrelated setup and cleanup out of the recording. Include login or invitation steps when they are part of the requested flow. Use real application behavior, not mocked feature responses.
+- Use readable demo names such as "Support" and "Alex". In a fresh isolated database, timestamps and random suffixes are unnecessary. Keep required unique identifiers out of visible labels where possible.
+- Make pointer actions visible with `video-show-actions`, target highlights or click ripples. Overlays must not intercept input or obscure the controls being demonstrated.
+- Type at a readable pace and pause on important states so viewers can read the result. Use assertions to wait for readiness. Keep viewing pauses in the demo script, not CI tests, and allow enough recording time for them.
+- Use short chapters or callouts when a transition or consequence needs explanation. Keep the recording focused rather than slowing every browser operation.
+- Watch the finished video before publishing. Check legibility, pacing, visible actions and the demonstrated result. Record it again if the viewer must pause or guess what happened.
+- Remove temporary demo scripts and configuration after capture. After publishing, verify that the destination has one playable recording, not local paths or duplicate clips.
+
 ## Basic Recording
 
 ```bash
