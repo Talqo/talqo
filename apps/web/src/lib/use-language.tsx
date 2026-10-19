@@ -24,7 +24,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 	const setLanguage = useCallback((next: DashboardLanguage) => {
 		setLanguageState(next)
 		window.localStorage.setItem(STORAGE_KEY, next)
-		changeLanguage(next)
+		void changeLanguage(next)
 	}, [])
 
 	const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage])

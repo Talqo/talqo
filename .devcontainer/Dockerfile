@@ -1,6 +1,6 @@
-FROM oven/bun:1.4.2 AS bun
+FROM oven/bun:1.4.3 AS bun
 FROM rhysd/actionlint:1.7.12 AS actionlint
-FROM ghcr.io/zizmorcore/zizmor:1.29.0 AS zizmor
+FROM ghcr.io/zizmorcore/zizmor:1.31.1 AS zizmor
 
 FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04
 

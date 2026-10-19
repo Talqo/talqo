@@ -10,5 +10,5 @@ export type SupportedLanguage = keyof typeof supportedLanguages
 export const SUPPORTED_LANGUAGES = Object.keys(supportedLanguages) as [SupportedLanguage, ...SupportedLanguage[]]
 
 export function isSupportedLanguage(value: unknown): value is SupportedLanguage {
-	return typeof value === "string" && Object.hasOwn(supportedLanguages, value as SupportedLanguage)
+	return typeof value === "string" && Object.hasOwn(supportedLanguages, value)
 }

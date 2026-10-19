@@ -1,18 +1,28 @@
 # Required runtime env: APP_SECRET, DATABASE_URL, TALQO_DOCLING_URL.
 
-FROM oven/bun:1.4.2 AS build
+FROM oven/bun:1.4.3 AS build
 
 WORKDIR /app
 
+# Dependency manifests first so source-only changes reuse the install layer.
 COPY package.json bun.lock bunfig.toml turbo.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/widget/package.json ./apps/widget/
+COPY packages/sdk/package.json ./packages/sdk/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/ui/package.json ./packages/ui/
+
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+	bun install --frozen-lockfile
+
 COPY apps ./apps
 COPY packages ./packages
 
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile && \
-	bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
+RUN bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
 
-FROM oven/bun:1.4.2-slim AS runtime
+FROM oven/bun:1.4.3-slim AS runtime
 
 WORKDIR /app
 

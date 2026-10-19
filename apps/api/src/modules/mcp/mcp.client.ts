@@ -98,19 +98,26 @@ async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<Li
 	return collected
 }
 
-function withListTimeout<T>(listing: Promise<T>, signal?: AbortSignal): Promise<T> {
+export async function withListTimeout<T>(listing: Promise<T>, signal?: AbortSignal): Promise<T> {
 	signal?.throwIfAborted()
 	return new Promise<T>((resolve, reject) => {
 		const timer = setTimeout(() => reject(new Error("MCP tool listing timed out")), TOOL_LIST_TIMEOUT_MS)
-		const onAbort = () => reject(signal?.reason ?? new Error("MCP tool listing aborted"))
+		let settled = false
+		const onAbort = () => {
+			queueMicrotask(() => {
+				if (!settled) reject(signal?.reason ?? new Error("MCP tool listing aborted"))
+			})
+		}
 		signal?.addEventListener("abort", onAbort, { once: true })
 		listing.then(
 			(value) => {
+				settled = true
 				clearTimeout(timer)
 				signal?.removeEventListener("abort", onAbort)
 				resolve(value)
 			},
 			(error: unknown) => {
+				settled = true
 				clearTimeout(timer)
 				signal?.removeEventListener("abort", onAbort)
 				reject(error instanceof Error ? error : new Error("MCP tool listing failed"))

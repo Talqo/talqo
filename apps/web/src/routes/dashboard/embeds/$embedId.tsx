@@ -184,7 +184,7 @@ function EmbedDetailPage() {
 	const themeOptions = WIDGET_THEMES.map((value) => ({ value, label: t(themeLabels[value]) }))
 	const languageOptions = Object.entries(supportedLanguages).map(([value, label]) => ({ value, label }))
 
-	const configuredScriptUrl = import.meta.env.VITE_WIDGET_CDN_URL as string | undefined
+	const configuredScriptUrl = import.meta.env.VITE_WIDGET_CDN_URL
 	const scriptUrl = embed ? (configuredScriptUrl ?? `${window.location.origin}/widget.js`) : undefined
 	const snippet =
 		scriptUrl && embed
@@ -414,7 +414,7 @@ function EmbedDetailPage() {
 										{updateEmbed.isPending ? t("embedSetup.saving") : t("embedSetup.save")}
 									</Button>
 									{/* `isSuccess` never clears on its own; the save resets the form, so a new edit drops it. */}
-									{updateEmbed.isSuccess && !updateEmbed.isPending && !formState.isDirty && (
+									{updateEmbed.isSuccess && !formState.isDirty && (
 										<span className="text-muted-foreground text-sm">{t("embedSetup.saved")}</span>
 									)}
 								</div>

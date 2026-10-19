@@ -13,22 +13,36 @@ const [apiPort, webPort, widgetPort] = reservations.map(({ port }) => String(por
 let composeUp: Promise<unknown> = Promise.resolve()
 let teardown: Promise<unknown> | undefined
 // Detached so a second Ctrl-C cannot kill the teardown client halfway.
-const stopContainers = () =>
-	(teardown ??= Bun.spawn(["docker", "compose", "down"], {
-		cwd: root,
-		detached: true,
-		stderr: "inherit",
-		stdin: "ignore",
-		stdout: "inherit",
-	}).exited)
+const stopContainers = async () => {
+	const stopping =
+		teardown ??
+		Bun.spawn(["docker", "compose", "down"], {
+			cwd: root,
+			detached: true,
+			stderr: "inherit",
+			stdin: "ignore",
+			stdout: "inherit",
+		}).exited
+	teardown = stopping
+	try {
+		await stopping
+	} catch (error) {
+		teardown = undefined
+		throw error
+	}
+}
 
 for (const [signal, code] of Object.entries(INTERRUPT_EXIT_CODES)) {
-	// Wait for startup to settle before sweeping, and let every press share one teardown.
-	process.on(signal, async () => {
-		await composeUp.catch(() => {})
-		await stopContainers()
-		process.exit(code)
+	process.on(signal, () => {
+		void handleSignal(code)
 	})
+}
+
+async function handleSignal(code: number): Promise<void> {
+	// Wait for startup to settle before sweeping, and let every press share one teardown.
+	await composeUp.catch(() => {})
+	await stopContainers().catch(() => {})
+	process.exit(code)
 }
 
 try {
@@ -51,7 +65,7 @@ try {
 		TALQO_ALLOW_INSECURE_SEED: "true",
 	}
 
-	for (const reservation of reservations) reservation.stop(true)
+	await Promise.all(reservations.map((reservation) => reservation.stop(true)))
 
 	await $`bun run db:migrate`.cwd(`${root}/apps/api`).env(devEnv)
 	await $`bun run db:seed`.cwd(`${root}/apps/api`).env(devEnv)

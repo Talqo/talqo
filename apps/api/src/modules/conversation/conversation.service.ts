@@ -457,7 +457,7 @@ export function createConversationService(dependencies: Dependencies) {
 				}
 				const messages = completedPrompt(systemPrompt, history.messages, question)
 				const promptContent = promptText(messages)
-				if ([...promptContent].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+				if (Array.from(promptContent).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation
 				try {
 					prepared = await dependencies.prepare({

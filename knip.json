@@ -1,7 +1,8 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"treatConfigHintsAsErrors": true,
-	"ignoreBinaries": ["actionlint", "zizmor"],
+	// "check" is Bun's builtin typechecker (bun check), not a dependency.
+	"ignoreBinaries": ["actionlint", "zizmor", "check"],
 	"ignoreDependencies": ["@playwright/cli"],
 	"workspaces": {
 		".": {
@@ -9,6 +10,7 @@
 			"project": ["*.ts", "scripts/**/*.ts"]
 		},
 		"apps/api": {
+			"entry": ["src/index.ts", "test-database.preload.ts"],
 			"project": ["src/**/*.ts", "*.ts"]
 		},
 		"apps/docs": {
@@ -19,7 +21,6 @@
 			}
 		},
 		"apps/e2e": {
-			"entry": ["tests/fake-provider.ts"],
 			"project": ["**/*.ts"]
 		},
 		"apps/web": {
