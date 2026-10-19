@@ -17,10 +17,10 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: .turbo
-        key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}-${{ github.run_id }}
+        key: turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('bun.lock') }}-${{ github.run_id }}
         restore-keys: |
-          turbo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}-
-          turbo-${{ runner.os }}-${{ runner.arch }}-
+          turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('bun.lock') }}-
+          turbo-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-
     - name: Install dependencies
       shell: bash
       run: bun ci --prefer-offline

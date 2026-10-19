@@ -1,24 +1,24 @@
-# Required runtime env: APP_SECRET, DATABASE_URL, TALQO_DOCLING_URL.
+FROM oven/bun:1.4.3 AS pruner
+
+WORKDIR /app
+
+COPY package.json ./
+RUN bun install --global "turbo@$(bun -p 'require("./package.json").devDependencies.turbo')"
+
+COPY . .
+RUN turbo prune @talqo/api @talqo/web @talqo/widget --docker
 
 FROM oven/bun:1.4.3 AS build
 
 WORKDIR /app
 
-# Dependency manifests first so source-only changes reuse the install layer.
-COPY package.json bun.lock bunfig.toml turbo.json ./
-COPY apps/api/package.json ./apps/api/
-COPY apps/web/package.json ./apps/web/
-COPY apps/widget/package.json ./apps/widget/
-COPY packages/sdk/package.json ./packages/sdk/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY packages/ui/package.json ./packages/ui/
+COPY --from=pruner /app/out/json/ ./
+COPY bunfig.toml ./
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
 	bun install --frozen-lockfile
 
-COPY apps ./apps
-COPY packages ./packages
+COPY --from=pruner /app/out/full/ ./
 
 RUN bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
 
