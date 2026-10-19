@@ -59,3 +59,5 @@ npm handles version collisions and publication errors. If SDK publication alread
 ## Activation prerequisites
 
 Configure container-package access/visibility, npm ownership and trusted publishing, and the dev/prod deployment endpoints and credentials. These are external settings, not repository-provisioned infrastructure. Live publication and deployment must be exercised after setup.
+
+Before the first release tag, verify the `@talqo/sdk` trusted publisher in npm package settings matches owner `Talqo`, repository `talqo`, workflow `release.yml`, and no environment, with direct `npm publish` allowed. New publisher configurations expire unless their first publish succeeds within two days. A dry-run publish does not verify authorization. Dispatch CI manually to exercise browser E2E before releasing. A failed SDK publish leaves production deployed; rerun the failed jobs after fixing npm configuration.
