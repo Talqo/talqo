@@ -585,7 +585,7 @@ export const CONVERSATION_PAGE_MAX = 10_000
 export const CONVERSATION_AGENT_FILTER_MAX = 100
 const CONVERSATION_PREVIEW_LENGTH = 160
 
-export type ConversationSummary = {
+type ConversationSummary = {
 	agentId: string
 	id: string
 	messageCount: number
