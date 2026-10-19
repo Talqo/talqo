@@ -26,7 +26,7 @@ export function Transcript({ messages }: { messages: Message[] }) {
 		<ol className="space-y-4">
 			{messages.map((message) => {
 				const fromVisitor = message.role === "user"
-				const key = message.role === "assistant" ? outcomeKey(message.outcome) : undefined
+				const outcomeLabel = message.role === "assistant" ? outcomeKey(message.outcome) : undefined
 				return (
 					<li key={message.id} className={cn("flex flex-col gap-1", fromVisitor ? "items-end" : "items-start")}>
 						<span className="text-muted-foreground px-1 text-xs">
@@ -42,7 +42,7 @@ export function Transcript({ messages }: { messages: Message[] }) {
 								{fromVisitor ? message.text : <Markdown className={MARKDOWN_CLASS}>{message.text}</Markdown>}
 							</div>
 						)}
-						{key && <span className="text-muted-foreground px-1 text-xs">{t(key)}</span>}
+						{outcomeLabel && <span className="text-muted-foreground px-1 text-xs">{t(outcomeLabel)}</span>}
 					</li>
 				)
 			})}

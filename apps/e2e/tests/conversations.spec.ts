@@ -1,30 +1,28 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test } from "@playwright/test"
+
+import { logIn } from "./log-in"
 
 const OPERATOR = { username: "admin", password: "admin123" }
 const QUESTION = "Where is my order?"
 
 let fixture: { agentId: string; embedId?: string } | undefined
 
-async function logIn(page: Page) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(OPERATOR.username)
-	await page.getByLabel("Password", { exact: true }).fill(OPERATOR.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
-}
-
 test.afterEach(async ({ page }) => {
 	if (!fixture) return
-	if (fixture.embedId) await expect(await page.request.delete(`/api/embeds/${fixture.embedId}`)).toBeOK()
-	await expect(await page.request.delete(`/api/agents/${fixture.agentId}`)).toBeOK()
+	const { agentId, embedId } = fixture
 	fixture = undefined
+	// The agent goes even when the embed cleanup fails, so no fixture leaks into later specs.
+	const embedDeleted = embedId ? await page.request.delete(`/api/embeds/${embedId}`) : undefined
+	await expect(await page.request.delete(`/api/agents/${agentId}`)).toBeOK()
+	if (embedDeleted) await expect(embedDeleted).toBeOK()
 })
 
-test("operator reads a visitor conversation from the agent page", async ({ page }, testInfo) => {
+test("operator finds a visitor conversation from the sidebar and reads it", async ({ page }, testInfo) => {
+	const agentName = `Conversations ${testInfo.project.name} ${testInfo.retry}`
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
 	const agentResponse = await page.request.post("/api/agents", {
 		data: {
-			name: `Conversations ${testInfo.project.name} ${testInfo.retry}`,
+			name: agentName,
 			systemPrompt: "You are the support assistant on our company website.",
 			wordBlacklist: [],
 		},
@@ -48,14 +46,18 @@ test("operator reads a visitor conversation from the agent page", async ({ page 
 	await expect(chat).toBeOK()
 	expect(await chat.text()).toContain('"outcome":"completed"')
 
-	await logIn(page)
-	await page.goto(`/dashboard/agent/${agent.id}?tab=conversations`)
-	await page.getByRole("link", { name: QUESTION }).click()
+	await logIn(page, OPERATOR)
+	await page.getByRole("link", { name: "Conversations" }).click()
+	const row = page.getByRole("link", { name: QUESTION })
+	await expect(row).toContainText(agentName)
+	await row.click()
 
-	await expect(page.getByRole("heading", { name: "Conversation" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Conversation", exact: true })).toBeVisible()
 	await expect(page.getByText(QUESTION, { exact: true })).toBeVisible()
+	// fake-provider.ts answers this question with "It ships **tomorrow**.".
 	await expect(page.locator("strong", { hasText: "tomorrow" })).toBeVisible()
 
 	await page.getByRole("button", { name: "Back to conversations" }).click()
-	await expect(page).toHaveURL(new RegExp(`/dashboard/agent/${agent.id}\\?tab=conversations`))
+	await expect(page).toHaveURL("/dashboard/conversations")
+	await expect(page.getByRole("link", { name: QUESTION })).toBeVisible()
 })

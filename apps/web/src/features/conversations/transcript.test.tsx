@@ -31,3 +31,26 @@ describe("Transcript", () => {
 		expect(html).toContain(t("conversations.outcomeBlocked"))
 	})
 })
+
+describe("Transcript outcomes", () => {
+	test("labels every unfinished answer and drops empty bubbles", () => {
+		const outcomes = ["streaming", "failed", "cancelled", "interrupted"] as const
+		const html = renderToStaticMarkup(
+			<Transcript
+				messages={outcomes.map((outcome, index) => ({
+					id: `${index}`,
+					role: "assistant" as const,
+					text: "",
+					outcome,
+					createdAt: CREATED_AT,
+				}))}
+			/>,
+		)
+
+		expect(html).toContain(t("conversations.outcomeStreaming"))
+		expect(html).toContain(t("conversations.outcomeFailed"))
+		expect(html).toContain(t("conversations.outcomeCancelled"))
+		expect(html).toContain(t("conversations.outcomeInterrupted"))
+		expect(html).not.toContain('data-slot="markdown"')
+	})
+})

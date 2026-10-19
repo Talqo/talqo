@@ -7,14 +7,20 @@ import { accessGate, useRequiredPermission } from "@/features/permissions/requir
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Bot, LayoutDashboard, LogOut, Menu, Settings2, User, Users, X } from "lucide-react"
+import { Bot, LayoutDashboard, LogOut, Menu, MessagesSquare, Settings2, User, Users, X } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "agentRead" | "providerManage" | "usersRead"
+type NavRequirement = "agentRead" | "conversationsRead" | "providerManage" | "usersRead"
 
 type NavItem = {
-	to: "/dashboard" | "/dashboard/agents" | "/dashboard/users" | "/dashboard/ai-configuration" | "/dashboard/account"
+	to:
+		| "/dashboard"
+		| "/dashboard/agents"
+		| "/dashboard/conversations"
+		| "/dashboard/users"
+		| "/dashboard/ai-configuration"
+		| "/dashboard/account"
 	icon: typeof LayoutDashboard
 	requires?: NavRequirement
 }
@@ -22,6 +28,7 @@ type NavItem = {
 const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard, requires: "agentRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
+	{ to: "/dashboard/conversations", icon: MessagesSquare, requires: "conversationsRead" },
 	{ to: "/dashboard/users", icon: Users, requires: "usersRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
@@ -30,6 +37,7 @@ const navItems: readonly NavItem[] = [
 const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
+	"/dashboard/conversations": "nav.conversations",
 	"/dashboard/users": "nav.users",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
 	"/dashboard/account": "nav.account",
@@ -37,10 +45,12 @@ const navLabels = {
 
 function allowedNavItems(permissions: string[]): readonly NavItem[] {
 	const canReadAgents = permissions.includes("agents:read")
+	const canReadConversations = permissions.includes("conversations:read")
 	const canManageProvider = permissions.includes("ai_provider:manage")
 	const canReadUsers = permissions.includes("users:read")
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
+		if (item.requires === "conversationsRead") return canReadConversations
 		if (item.requires === "providerManage") return canManageProvider
 		if (item.requires === "usersRead") return canReadUsers
 		return true

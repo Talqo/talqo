@@ -22,12 +22,13 @@ import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAiConfigurationRouteImport } from './routes/dashboard/ai-configuration'
 import { Route as DashboardUsersRouteRouteImport } from './routes/dashboard/users/route'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
+import { Route as DashboardConversationsIndexRouteImport } from './routes/dashboard/conversations/index'
+import { Route as DashboardConversationsConversationIdRouteImport } from './routes/dashboard/conversations/$conversationId'
 import { Route as DashboardEmbedsEmbedIdRouteImport } from './routes/dashboard/embeds/$embedId'
 import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index'
 import { Route as DashboardUsersRolesRouteRouteImport } from './routes/dashboard/users/roles/route'
 import { Route as DashboardUsersRolesIndexRouteImport } from './routes/dashboard/users/roles/index'
 import { Route as DashboardUsersRolesRoleIdRouteImport } from './routes/dashboard/users/roles/$roleId'
-import { Route as DashboardAgentAgentIdConversationsConversationIdRouteImport } from './routes/dashboard/agent.$agentId_.conversations.$conversationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +96,18 @@ const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
   path: '/agent/$agentId',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
+const DashboardConversationsIndexRoute =
+  DashboardConversationsIndexRouteImport.update({
+    id: '/conversations/',
+    path: '/conversations/',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
+const DashboardConversationsConversationIdRoute =
+  DashboardConversationsConversationIdRouteImport.update({
+    id: '/conversations/$conversationId',
+    path: '/conversations/$conversationId',
+    getParentRoute: () => DashboardRouteRoute,
+  } as any)
 const DashboardEmbedsEmbedIdRoute = DashboardEmbedsEmbedIdRouteImport.update({
   id: '/embeds/$embedId',
   path: '/embeds/$embedId',
@@ -123,12 +136,6 @@ const DashboardUsersRolesRoleIdRoute =
     path: '/$roleId',
     getParentRoute: () => DashboardUsersRolesRouteRoute,
   } as any)
-const DashboardAgentAgentIdConversationsConversationIdRoute =
-  DashboardAgentAgentIdConversationsConversationIdRouteImport.update({
-    id: '/agent/$agentId_/conversations/$conversationId',
-    path: '/agent/$agentId/conversations/$conversationId',
-    getParentRoute: () => DashboardRouteRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,11 +152,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
+  '/dashboard/conversations/$conversationId': typeof DashboardConversationsConversationIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/conversations/': typeof DashboardConversationsIndexRoute
   '/dashboard/users/': typeof DashboardUsersIndexRoute
   '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
   '/dashboard/users/roles/': typeof DashboardUsersRolesIndexRoute
-  '/dashboard/agent/$agentId/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -163,11 +171,12 @@ export interface FileRoutesByTo {
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
+  '/dashboard/conversations/$conversationId': typeof DashboardConversationsConversationIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/conversations': typeof DashboardConversationsIndexRoute
   '/dashboard/users': typeof DashboardUsersIndexRoute
   '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
   '/dashboard/users/roles': typeof DashboardUsersRolesIndexRoute
-  '/dashboard/agent/$agentId/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -185,11 +194,12 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/users/roles': typeof DashboardUsersRolesRouteRouteWithChildren
   '/dashboard/agent/$agentId': typeof DashboardAgentAgentIdRoute
+  '/dashboard/conversations/$conversationId': typeof DashboardConversationsConversationIdRoute
   '/dashboard/embeds/$embedId': typeof DashboardEmbedsEmbedIdRoute
+  '/dashboard/conversations/': typeof DashboardConversationsIndexRoute
   '/dashboard/users/': typeof DashboardUsersIndexRoute
   '/dashboard/users/roles/$roleId': typeof DashboardUsersRolesRoleIdRoute
   '/dashboard/users/roles/': typeof DashboardUsersRolesIndexRoute
-  '/dashboard/agent/$agentId_/conversations/$conversationId': typeof DashboardAgentAgentIdConversationsConversationIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -208,11 +218,12 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
+    | '/dashboard/conversations/$conversationId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/conversations/'
     | '/dashboard/users/'
     | '/dashboard/users/roles/$roleId'
     | '/dashboard/users/roles/'
-    | '/dashboard/agent/$agentId/conversations/$conversationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,11 +237,12 @@ export interface FileRouteTypes {
     | '/dashboard/ai-configuration'
     | '/dashboard'
     | '/dashboard/agent/$agentId'
+    | '/dashboard/conversations/$conversationId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/conversations'
     | '/dashboard/users'
     | '/dashboard/users/roles/$roleId'
     | '/dashboard/users/roles'
-    | '/dashboard/agent/$agentId/conversations/$conversationId'
   id:
     | '__root__'
     | '/'
@@ -247,11 +259,12 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/dashboard/users/roles'
     | '/dashboard/agent/$agentId'
+    | '/dashboard/conversations/$conversationId'
     | '/dashboard/embeds/$embedId'
+    | '/dashboard/conversations/'
     | '/dashboard/users/'
     | '/dashboard/users/roles/$roleId'
     | '/dashboard/users/roles/'
-    | '/dashboard/agent/$agentId_/conversations/$conversationId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -357,6 +370,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAgentAgentIdRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/conversations/': {
+      id: '/dashboard/conversations/'
+      path: '/conversations'
+      fullPath: '/dashboard/conversations/'
+      preLoaderRoute: typeof DashboardConversationsIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/conversations/$conversationId': {
+      id: '/dashboard/conversations/$conversationId'
+      path: '/conversations/$conversationId'
+      fullPath: '/dashboard/conversations/$conversationId'
+      preLoaderRoute: typeof DashboardConversationsConversationIdRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/embeds/$embedId': {
       id: '/dashboard/embeds/$embedId'
       path: '/embeds/$embedId'
@@ -391,13 +418,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/users/roles/$roleId'
       preLoaderRoute: typeof DashboardUsersRolesRoleIdRouteImport
       parentRoute: typeof DashboardUsersRolesRouteRoute
-    }
-    '/dashboard/agent/$agentId_/conversations/$conversationId': {
-      id: '/dashboard/agent/$agentId_/conversations/$conversationId'
-      path: '/agent/$agentId/conversations/$conversationId'
-      fullPath: '/dashboard/agent/$agentId/conversations/$conversationId'
-      preLoaderRoute: typeof DashboardAgentAgentIdConversationsConversationIdRouteImport
-      parentRoute: typeof DashboardRouteRoute
     }
   }
 }
@@ -438,8 +458,9 @@ interface DashboardRouteRouteChildren {
   DashboardAiConfigurationRoute: typeof DashboardAiConfigurationRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
+  DashboardConversationsConversationIdRoute: typeof DashboardConversationsConversationIdRoute
   DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
-  DashboardAgentAgentIdConversationsConversationIdRoute: typeof DashboardAgentAgentIdConversationsConversationIdRoute
+  DashboardConversationsIndexRoute: typeof DashboardConversationsIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
@@ -449,9 +470,10 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAiConfigurationRoute: DashboardAiConfigurationRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
+  DashboardConversationsConversationIdRoute:
+    DashboardConversationsConversationIdRoute,
   DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,
-  DashboardAgentAgentIdConversationsConversationIdRoute:
-    DashboardAgentAgentIdConversationsConversationIdRoute,
+  DashboardConversationsIndexRoute: DashboardConversationsIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
