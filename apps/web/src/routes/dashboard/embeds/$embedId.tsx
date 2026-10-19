@@ -251,7 +251,7 @@ function EmbedDetailPage() {
 					<CardTitle>{t("embedSetup.embedCode")}</CardTitle>
 					<CardDescription>{t("embedSetup.embedDescription")}</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="space-y-3">
 					<div className="relative">
 						<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
 						<Button
@@ -264,21 +264,6 @@ function EmbedDetailPage() {
 							{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
 						</Button>
 					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>{t("embedSetup.embedToken")}</CardTitle>
-					<CardDescription>{t("embedSetup.embedTokenDescription")}</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<Input value={embed.embedToken} readOnly className="font-mono" aria-label={t("embedSetup.embedToken")} />
-					{canManage && (
-						<div className="flex flex-wrap items-center gap-3">
-							<RotateEmbedTokenDialog embedId={embedId} />
-						</div>
-					)}
 					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 				</CardContent>
 			</Card>
@@ -491,10 +476,23 @@ function EmbedDetailPage() {
 				<Card className="ring-destructive">
 					<CardHeader>
 						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
-						<CardDescription>{t("embedSetup.dangerDescription")}</CardDescription>
 					</CardHeader>
-					<CardContent>
-						<DeleteEmbedDialog embed={embed} />
+					<CardContent className="divide-y">
+						<div className="space-y-1 pb-4">
+							<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
+							<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
+							<Input id="embed-token" value={embed.embedToken} readOnly className="mt-2 font-mono" />
+							<div className="flex justify-end pt-2">
+								<RotateEmbedTokenDialog embedId={embedId} />
+							</div>
+						</div>
+						<div className="flex flex-wrap items-center gap-3 pt-4">
+							<div className="min-w-60 flex-1 space-y-1">
+								<p className="text-sm font-medium">{t("embedSetup.deleteEmbed")}</p>
+								<p className="text-muted-foreground text-sm">{t("embedSetup.dangerDescription")}</p>
+							</div>
+							<DeleteEmbedDialog embed={embed} />
+						</div>
 					</CardContent>
 				</Card>
 			)}
