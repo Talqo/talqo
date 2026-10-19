@@ -1,0 +1,59 @@
+name: Deploy
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      talqo-digest:
+        required: true
+        type: string
+      docs-digest:
+        description: Required for production; docs are deployed only on releases
+        required: false
+        default: ""
+        type: string
+    secrets:
+      DEPLOY_SSH_KEY:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy environment
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.environment }}
+    concurrency:
+      group: deployment-${{ inputs.environment }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: ${{ inputs.environment == 'prod' && '0' || '1' }}
+          persist-credentials: false
+      - name: Request deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_VERSION: ${{ inputs.version }}
+          TALQO_DIGEST: ${{ inputs.talqo-digest }}
+          DOCS_DIGEST: ${{ inputs.docs-digest }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_ACCOUNT: ${{ vars.DEPLOY_ACCOUNT }}
+          DEPLOY_HOST_KEY: ${{ vars.DEPLOY_HOST_KEY }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: bash scripts/deploy.sh "$DEPLOY_ENVIRONMENT" "$IMAGE_VERSION"

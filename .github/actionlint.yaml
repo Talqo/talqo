@@ -1,5 +1,30 @@
 paths:
   .github/workflows/ci.yml:
     ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
       # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
       - '^specifying action "\$/\.github/actions/setup-bun" in invalid format because ref is missing\.'
+  .github/workflows/*.yml:
+    ignore:
+      # Remove when actionlint knows the GA runner: https://github.com/rhysd/actionlint/issues/682
+      - '^label "ubuntu-26\.04" is unknown\.'
+  .github/workflows/release.yml:
+    ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
+      # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
+      - '^specifying action "\$/\.github/actions/setup-bun" in invalid format because ref is missing\.'
+      - '^reusable workflow call "\$/\.github/workflows/(ci|publish-images|deploy)\.yml" at "uses" is not following the format '
+      # Remove when actionlint supports native queuing: https://github.com/rhysd/actionlint/issues/657
+      - '^unexpected key "queue" for "concurrency" section\.'
+  .github/workflows/cd.yml:
+    ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
+      # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
+      - '^reusable workflow call "\$/\.github/workflows/(ci|publish-images|deploy)\.yml" at "uses" is not following the format '
+      # Remove when actionlint supports native queuing: https://github.com/rhysd/actionlint/issues/657
+      - '^unexpected key "queue" for "concurrency" section\.'
+  .github/workflows/publish-images.yml:
+    ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
+      # Remove once https://github.com/rhysd/actionlint/issues/711 is released.
+      - '^specifying action "\$/\.github/actions/publish-image" in invalid format because ref is missing\.'

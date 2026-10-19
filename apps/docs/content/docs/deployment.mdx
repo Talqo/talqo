@@ -41,6 +41,17 @@ Back up `APP_SECRET` too. It encrypts the provider credentials you enter under *
 
 ## Updating
 
+The application image is `ghcr.io/talqo/talqo`; the separate documentation image is `ghcr.io/talqo/talqo-docs`. Both publish matching stable `X.Y.Z` tags for `linux/amd64`. `latest` follows successful production deployment and SDK publication. Main-branch CD publishes and deploys only the application's mutable `dev` build. Docs are published and deployed on releases.
+
+To pull a specific release, replace `X.Y.Z` with its version:
+
+```sh
+docker pull ghcr.io/talqo/talqo:X.Y.Z
+docker pull ghcr.io/talqo/talqo-docs:X.Y.Z
+```
+
+Set `TALQO_VERSION` to that version in your Compose `.env` before updating. If GHCR requires authentication, sign in with `docker login ghcr.io` using an account with package read access.
+
 ```sh
 docker compose pull
 docker compose up -d
