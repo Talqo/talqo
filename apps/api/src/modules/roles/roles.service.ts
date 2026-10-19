@@ -19,6 +19,7 @@ export const GRANTABLE_PERMISSIONS = [
 	"ai_provider:manage",
 	"agents:read",
 	"agents:manage",
+	"conversations:read",
 ] as const
 export const PERMISSIONS = ["admin", ...GRANTABLE_PERMISSIONS] as const
 export type Permission = (typeof PERMISSIONS)[number]
@@ -33,6 +34,7 @@ export const Permission = {
 	AiProviderManage: "ai_provider:manage",
 	AgentsRead: "agents:read",
 	AgentsManage: "agents:manage",
+	ConversationsRead: "conversations:read",
 } as const satisfies Record<string, Permission>
 
 // "admin" is the first entry only for display stability; it implies every other permission.
@@ -40,6 +42,8 @@ const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
 	admin: PERMISSIONS.filter((permission) => permission !== "admin"),
 	// Mutating grants imply read access to the same capability; keep this a DAG, never a cycle.
 	"agents:manage": ["agents:read"],
+	// Reading conversations means knowing which agent answered them.
+	"conversations:read": ["agents:read"],
 	"users:manage": ["users:read"],
 	"roles:manage": ["users:read"],
 }

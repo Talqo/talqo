@@ -542,7 +542,8 @@
 			"aiProviderManage": "Vybrat poskytovatele AI a modely, které agenti používají.",
 			"rolesManage": "Vytvářet role a určovat, kdo je má.",
 			"usersManage": "Zvát uživatele, obnovovat jejich hesla a odebírat je.",
-			"usersRead": "Vidět všechny, kdo se mohou přihlásit do tohoto panelu."
+			"usersRead": "Vidět všechny, kdo se mohou přihlásit do tohoto panelu.",
+			"conversationsRead": "Číst, na co se návštěvníci ptali agentů a jak agenti odpověděli."
 		},
 		"permissionLabels": {
 			"agentsManage": "Spravovat agenty",
@@ -550,7 +551,8 @@
 			"aiProviderManage": "Nastavit AI",
 			"rolesManage": "Spravovat role",
 			"usersManage": "Spravovat uživatele",
-			"usersRead": "Vidět uživatele"
+			"usersRead": "Vidět uživatele",
+			"conversationsRead": "Vidět konverzace"
 		},
 		"permissionsLegend": "Co mohou lidé s touto rolí dělat",
 		"save": "Uložit změny",

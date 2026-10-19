@@ -540,7 +540,8 @@
 			"aiProviderManage": "Choose the AI provider and models that agents use.",
 			"rolesManage": "Create roles and choose who has them.",
 			"usersManage": "Invite users, reset their passwords and remove them.",
-			"usersRead": "View everyone who can sign in to this dashboard."
+			"usersRead": "View everyone who can sign in to this dashboard.",
+			"conversationsRead": "Read what visitors asked agents and how the agents answered."
 		},
 		"permissionLabels": {
 			"agentsManage": "Manage agents",
@@ -548,7 +549,8 @@
 			"aiProviderManage": "Configure AI",
 			"rolesManage": "Manage roles",
 			"usersManage": "Manage users",
-			"usersRead": "See users"
+			"usersRead": "See users",
+			"conversationsRead": "See conversations"
 		},
 		"permissionsLegend": "What people with this role can do",
 		"save": "Save changes",

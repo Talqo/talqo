@@ -23,6 +23,7 @@ export const ListUsers200 = zod.object({
 					"ai_provider:manage",
 					"agents:read",
 					"agents:manage",
+					"conversations:read",
 				]),
 			),
 			canManage: zod.boolean(),

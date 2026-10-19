@@ -16,6 +16,7 @@ export const GetMyPermissions200 = zod.object({
 			"ai_provider:manage",
 			"agents:read",
 			"agents:manage",
+			"conversations:read",
 		]),
 	),
 })

@@ -425,7 +425,7 @@ describe("role management", () => {
 		const roles = await service.listRoles()
 		expect(roles.map(({ name, permissions }) => ({ name, permissions }))).toEqual([
 			{ name: "Agent editors", permissions: ["agents:manage"] },
-			{ name: "Support", permissions: ["agents:read"] },
+			{ name: "Support", permissions: ["agents:read", "conversations:read"] },
 			{ name: "Team managers", permissions: ["users:manage", "roles:manage"] },
 		])
 		const member = await createMember()
@@ -433,7 +433,7 @@ describe("role management", () => {
 		const support = roles.find(({ name }) => name === "Support")
 		if (!support) throw new Error("Support role was not seeded")
 		await assignRoles(member.id, [support.id])
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "conversations:read"])
 		await updateRole(support.id, { name: "Helpdesk", permissions: [] })
 		await seed.seed()
 		expect(await service.listRoles()).toHaveLength(3)
@@ -512,6 +512,7 @@ describe("role management", () => {
 			{ permission: "ai_provider:manage", implies: [] },
 			{ permission: "agents:read", implies: [] },
 			{ permission: "agents:manage", implies: ["agents:read"] },
+			{ permission: "conversations:read", implies: ["agents:read"] },
 		])
 	})
 })

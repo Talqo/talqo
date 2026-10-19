@@ -540,7 +540,8 @@
 			"aiProviderManage": "选择智能体使用的 AI 提供商和模型。",
 			"rolesManage": "创建角色并决定谁拥有它们。",
 			"usersManage": "邀请用户、重置他们的密码并移除他们。",
-			"usersRead": "查看所有可以登录此控制台的人。"
+			"usersRead": "查看所有可以登录此控制台的人。",
+			"conversationsRead": "阅读访客向智能体提出的问题以及智能体的回答。"
 		},
 		"permissionLabels": {
 			"agentsManage": "管理智能体",
@@ -548,7 +549,8 @@
 			"aiProviderManage": "配置 AI",
 			"rolesManage": "管理角色",
 			"usersManage": "管理用户",
-			"usersRead": "查看用户"
+			"usersRead": "查看用户",
+			"conversationsRead": "查看对话"
 		},
 		"permissionsLegend": "拥有此角色的人可以做什么",
 		"save": "保存更改",

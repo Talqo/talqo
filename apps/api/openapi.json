@@ -858,7 +858,8 @@
 								"roles:manage",
 								"ai_provider:manage",
 								"agents:read",
-								"agents:manage"
+								"agents:manage",
+								"conversations:read"
 							]
 						}
 					},
@@ -3011,7 +3012,8 @@
 													"roles:manage",
 													"ai_provider:manage",
 													"agents:read",
-													"agents:manage"
+													"agents:manage",
+													"conversations:read"
 												]
 											}
 										}
@@ -3096,7 +3098,8 @@
 																"roles:manage",
 																"ai_provider:manage",
 																"agents:read",
-																"agents:manage"
+																"agents:manage",
+																"conversations:read"
 															]
 														}
 													},
@@ -3362,7 +3365,8 @@
 															"roles:manage",
 															"ai_provider:manage",
 															"agents:read",
-															"agents:manage"
+															"agents:manage",
+															"conversations:read"
 														]
 													},
 													"implies": {
@@ -3375,7 +3379,8 @@
 																"roles:manage",
 																"ai_provider:manage",
 																"agents:read",
-																"agents:manage"
+																"agents:manage",
+																"conversations:read"
 															]
 														}
 													}
@@ -3513,10 +3518,11 @@
 												"roles:manage",
 												"ai_provider:manage",
 												"agents:read",
-												"agents:manage"
+												"agents:manage",
+												"conversations:read"
 											]
 										},
-										"maxItems": 6
+										"maxItems": 7
 									}
 								},
 								"required": ["name", "permissions"],
@@ -3646,10 +3652,11 @@
 												"roles:manage",
 												"ai_provider:manage",
 												"agents:read",
-												"agents:manage"
+												"agents:manage",
+												"conversations:read"
 											]
 										},
-										"maxItems": 6
+										"maxItems": 7
 									}
 								},
 								"required": ["name", "permissions"],
