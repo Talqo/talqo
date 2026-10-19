@@ -18,39 +18,45 @@ function parseEvents(body: string) {
 		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
 }
 
-function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") {
+// "late-error" holds the stream open until `release`, like a generation still running after the 200.
+function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" = "none") {
 	const calls: unknown[] = []
+	const gate = Promise.withResolvers<void>()
 	const service = {
 		send: async (input: unknown, emit: (event: unknown) => void, annotate?: Annotate) => {
 			calls.push(input)
-			annotate?.({ "rag.chunks": 2 })
+			annotate?.({ "agent.id": "agent", "embed.id": "embed-id", "rag.chunks": 2 })
 			if (failure === "embed") throw new EmbedNotFoundError()
 			if (failure === "disabled") throw new EmbedDisabledError()
 			if (failure === "pre-accept") throw new ProviderUnavailableError()
-			emit({
-				version: 1,
-				type: "accepted",
-				requestId: REQUEST_ID,
-				generationId: "generation",
-				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
-				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
-			})
-			emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
-			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
-			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
-			emit({ version: 1, type: "terminal", outcome: "completed" })
-			return {
+			annotate?.({ "chat.duplicate": false })
+			const accepted = {
 				version: 1 as const,
 				type: "accepted" as const,
 				requestId: REQUEST_ID,
 				generationId: "generation",
 				userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
-				agentId: "agent",
-				duplicate: false,
-				embedId: "embed-id",
-				done: Promise.resolve(),
 			}
+			emit(accepted)
+			if (failure === "late-error") {
+				const done = (async () => {
+					await gate.promise
+					emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
+					emit({
+						version: 1,
+						type: "error",
+						outcome: "failed",
+						error: { code: "provider-error", retriable: true, newChatAvailable: false },
+					})
+				})()
+				return { ...accepted, duplicate: false, done }
+			}
+			emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
+			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
+			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
+			emit({ version: 1, type: "terminal", outcome: "completed" })
+			return { ...accepted, duplicate: false, done: Promise.resolve() }
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
@@ -66,7 +72,7 @@ function routes(failure: "disabled" | "embed" | "none" | "pre-accept" = "none") 
 			createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
 		)
 	app.onError(handleError)
-	return { app, calls, logged }
+	return { app, calls, logged, release: () => gate.resolve() }
 }
 
 describe("public conversation routes", () => {
@@ -102,22 +108,42 @@ describe("public conversation routes", () => {
 		})
 		await response.text()
 
-		expect(logged).toEqual([
-			expect.objectContaining({
-				"http.route": "/chat/:embedToken/messages",
-				"http.response.status_code": 200,
-				"agent.id": "agent",
-				"embed.id": "embed-id",
-				"generation.id": "generation",
-				"chat.outcome": "completed",
-				"chat.duplicate": false,
-				"chat.tool_calls": 1,
-				"chat.tool_failures": 1,
-				"rag.chunks": 2,
-			}),
-		])
+		expect(logged).toHaveLength(1)
+		expect(logged[0]).toMatchObject({
+			"http.route": "/chat/:embedToken/messages",
+			"http.response.status_code": 200,
+			"agent.id": "agent",
+			"embed.id": "embed-id",
+			"generation.id": "generation",
+			"chat.outcome": "completed",
+			"chat.duplicate": false,
+			"chat.tool_calls": 1,
+			"chat.tool_failures": 1,
+			"rag.chunks": 2,
+		})
 		expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
 		expect(JSON.stringify(logged)).not.toContain('"hi"')
+	})
+
+	it("logs fields from events emitted after the response starts streaming", async () => {
+		const { app, logged, release } = routes("late-error")
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+
+		expect(response.status).toBe(200)
+		expect(logged).toBeEmpty()
+		release()
+		expect(parseEvents(await response.text()).map((event) => event.type)).toEqual(["accepted", "tool-start", "error"])
+		expect(logged).toHaveLength(1)
+		expect(logged[0]).toMatchObject({
+			"chat.outcome": "failed",
+			"chat.tool_calls": 1,
+			"error.code": "provider-error",
+			"http.response.status_code": 200,
+		})
 	})
 
 	it("requires a bearer credential for POST /chat/embed/messages", async () => {
@@ -147,9 +173,7 @@ describe("public conversation routes", () => {
 						generationId: "generation",
 						userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
 						assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
-						agentId: "agent",
 						duplicate: false,
-						embedId: "embed-id",
 						done: Promise.resolve(),
 					}),
 					getSession: async () => ({ messages: [], activeGeneration: undefined }),

@@ -205,7 +205,6 @@ export async function createServer(
 			name: input.name.trim(),
 			...(input.transport === "http" ? httpColumns(id, input) : stdioColumns(id, input)),
 		})
-		annotate({ "mcp.server.id": id })
 		return toView(await withDiscoveredTools(row, annotate))
 	} catch (error) {
 		if (isUniqueViolation(error)) throw new DuplicateMcpServerNameError(`Already named ${input.name}`)

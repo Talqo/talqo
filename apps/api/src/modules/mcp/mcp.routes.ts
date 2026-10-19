@@ -27,6 +27,7 @@ const serversRoutes = new OpenAPIHono()
 		const { name, server } = c.req.valid("json")
 		annotate(c, { "mcp.transport": server.transport })
 		const created = await service.createServer(agentId, { name, ...server }, annotator(c))
+		annotate(c, { "mcp.server.id": created.id })
 		return c.json(serverDetailSchema.parse({ server: created }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getMcpServerRoute, async (c) => {

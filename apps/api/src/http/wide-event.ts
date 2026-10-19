@@ -1,6 +1,6 @@
 import type { ProblemCode } from "@/http/problem.ts"
-import type { AiProviderId } from "@/modules/ai-provider/ai-provider.registry.ts"
-import type { GenerationAttemptOutcome } from "@/modules/conversation/conversation.schema.ts"
+import type { AiProviderId } from "@/modules/ai-provider/ai-provider.service.ts"
+import type { GenerationAttemptOutcome } from "@/modules/conversation/conversation.service.ts"
 import type { AllowedExtension } from "@/modules/knowledge-base/knowledge-base.service.ts"
 import type { Context, MiddlewareHandler } from "hono"
 
@@ -22,6 +22,7 @@ export type WideEvent = {
 	"target.user.id"?: string
 	"agent.id"?: string
 	"embed.id"?: string
+	"role.id"?: string
 	"error.code"?: ProblemCode
 	// Exception class only; messages may carry user data.
 	"error.type"?: string
@@ -32,6 +33,8 @@ export type WideEvent = {
 	"chat.prompt_characters"?: number
 	"chat.outcome"?: GenerationAttemptOutcome
 	"chat.duplicate"?: boolean
+	// The generation lost its lease, so the stream ends without a terminal event.
+	"chat.lease_lost"?: boolean
 	"chat.tool_calls"?: number
 	"chat.tool_failures"?: number
 	"rag.chunks"?: number
@@ -45,7 +48,7 @@ export type WideEvent = {
 	"ai.text.model"?: string
 	"ai.embedding.provider"?: AiProviderId
 	"ai.embedding.model"?: string
-	// The ingestion worker re-embeds every knowledge base file after this change.
+	// The saved embedding provider, model, or settings differ, so the ingestion worker re-embeds every file.
 	"ai.embedding.changed"?: boolean
 	"mcp.server.id"?: string
 	"mcp.transport"?: "http" | "stdio"
@@ -70,8 +73,20 @@ export const REQUEST_ID_HEADER = "X-Request-Id"
 // Bounded and log-safe, so a caller-supplied ID can correlate across proxies without injecting content.
 const INBOUND_REQUEST_ID = /^[A-Za-z0-9._:-]{1,128}$/
 
+// Every ID-bearing route param must be listed here, or its requests log no ID.
+const ROUTE_ID_FIELDS = {
+	agentId: "agent.id",
+	embedId: "embed.id",
+	roleId: "role.id",
+	serverId: "mcp.server.id",
+	userId: "target.user.id",
+} as const satisfies Record<string, keyof Annotation>
+// IDs are UUIDs. Path params reach the logger before auth, so anything else is caller-controlled content.
+const ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 const requests = new WeakMap<Context, RequestState>()
 
+// A no-op outside createWideEvents, so handlers also work in apps mounted without it, such as unit tests.
 export function annotate(context: Context, fields: Annotation): void {
 	const state = requests.get(context)
 	if (state) Object.assign(state.fields, fields)
@@ -88,16 +103,12 @@ export function deferWideEvent(context: Context, work: Promise<unknown>): void {
 }
 
 function routeIds(context: Context): Annotation {
-	const agentId = context.req.param("agentId")
-	const embedId = context.req.param("embedId")
-	const serverId = context.req.param("serverId")
-	const userId = context.req.param("userId")
-	return {
-		...(agentId && { "agent.id": agentId }),
-		...(embedId && { "embed.id": embedId }),
-		...(serverId && { "mcp.server.id": serverId }),
-		...(userId && { "target.user.id": userId }),
+	const ids: Annotation = {}
+	for (const [param, field] of Object.entries(ROUTE_ID_FIELDS)) {
+		const value = context.req.param(param)
+		if (value && ID_PATTERN.test(value)) ids[field] = value
 	}
+	return ids
 }
 
 export function createWideEvents(write: (event: WideEvent) => void): MiddlewareHandler {

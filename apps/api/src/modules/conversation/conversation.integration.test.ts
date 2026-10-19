@@ -1349,7 +1349,7 @@ describe("conversation lifecycle", () => {
 
 describe("chat retrieval", () => {
 	it("injects retrieved chunks into the user message", async () => {
-		const { createdEmbed } = await fixture()
+		const { createdAgent, createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["refund policy: 30 days"])
 		const fields: Annotation = {}
@@ -1366,10 +1366,14 @@ describe("chat retrieval", () => {
 				(annotation) => Object.assign(fields, annotation),
 			)
 			await sent.done
-			expect(fields).toEqual({
+			const { "chat.prompt_characters": promptCharacters, ...rest } = fields
+			expect(promptCharacters).toBeGreaterThan(0)
+			expect(rest).toEqual({
+				"agent.id": createdAgent.id,
+				"embed.id": createdEmbed.id,
+				"chat.duplicate": false,
 				"chat.request_id": REQUEST_1,
 				"chat.new_conversation": true,
-				"chat.prompt_characters": expect.any(Number),
 				"rag.chunks": 1,
 				"rag.degraded": false,
 				"mcp.servers_degraded": 0,

@@ -144,11 +144,11 @@ Every role file and support directory is capability-triggered. Do not create emp
 
 - `src/http/wide-event.ts` writes one JSON `http.request` event per API request to stdout. The `WideEvent` type is the field schema.
 - `/health` and static files are not logged.
-- Code adds fields with `annotate(c, ...)`. Streaming routes call `deferWideEvent(c, work)` so the event covers the whole stream.
+- Code adds fields with `annotate(c, ...)`. ID route params become fields only through `ROUTE_ID_FIELDS` and only when they are UUIDs, because they are logged before auth. Streaming routes call `deferWideEvent(c, work)` so the event covers the whole stream.
 - Services never see the Hono context. When only a service knows a value, it takes an optional `Annotate` callback and the route passes `annotator(c)`.
-- Field names follow OpenTelemetry semantic conventions as flat dotted keys, such as `http.response.status_code`.
+- Fields are flat dotted keys. Use the OpenTelemetry semantic convention name when one exists, such as `http.response.status_code`; otherwise use a Talqo namespace such as `chat.*` or `mcp.*`.
 - Type a field with a finite set of values as a union, such as `AiProviderId` or `ProblemCode`.
-- Never log query strings, raw paths, headers, cookies, bodies, error messages, usernames, IP addresses, or the chat bearer credential. The chat bearer credential is the conversation ID. Log what the code derives from a body instead: IDs, counts, and enums.
+- Wide events never carry query strings, raw paths, headers, cookies, bodies, error messages, usernames, IP addresses, or the chat bearer credential. Other `console.error` diagnostics on the same stdout may include error messages. The chat bearer credential is the conversation ID. Log what the code derives from a body instead: IDs, counts, and enums.
 - Writes are async and capped. When the buffer is full, lines are dropped and `log.dropped` on the next line reports how many.
 
 Before adding a field:
@@ -158,6 +158,7 @@ Before adding a field:
 3. Does the name follow the convention and avoid clashing with existing fields?
 4. Is its type stable, never a string in one place and a number in another?
 5. Is it declared in `WideEvent`?
+6. Is it a new ID route param? Add it to `ROUTE_ID_FIELDS`.
 
 ## Shared Code Decisions
 

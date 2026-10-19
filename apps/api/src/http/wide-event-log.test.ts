@@ -40,12 +40,9 @@ describe("wide event log", () => {
 		log.write({ ...EVENT, "http.response.status_code": 404 })
 		log.write({ ...EVENT, "http.response.status_code": 503 })
 
-		expect(lines).toEqual([
-			expect.objectContaining({ ...EVENT, event: "http.request", level: "info", "service.name": "talqo-api" }),
-			expect.objectContaining({ level: "warn" }),
-			expect.objectContaining({ level: "error" }),
-		])
-		expect(lines[0]?.["time"]).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/))
+		expect(lines.map((line) => line["level"])).toEqual(["info", "warn", "error"])
+		expect(lines[0]).toMatchObject({ ...EVENT, event: "http.request", "service.name": "talqo-api" })
+		expect(String(lines[0]?.["time"])).toMatch(/^\d{4}-\d{2}-\d{2}T/)
 	})
 
 	it("reports dropped lines on the next line that is written", () => {

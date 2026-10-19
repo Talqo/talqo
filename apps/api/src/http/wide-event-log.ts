@@ -41,7 +41,8 @@ export function createWideEventLog(
 			const unreported = dropped
 			const fields = unreported ? { ...event, "log.dropped": unreported } : event
 			logger[levelFor(event["http.response.status_code"])](fields, "http.request")
-			if (dropped === unreported) dropped -= unreported
+			// The destination emits `drop` synchronously for this line only, so a change means the report itself was lost.
+			if (dropped === unreported) dropped = 0
 		},
 		flush() {
 			destination.flushSync?.()

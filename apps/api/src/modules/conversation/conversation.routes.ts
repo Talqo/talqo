@@ -89,7 +89,6 @@ export function createConversationRoutes(
 			emit,
 			annotator(c),
 		)
-		annotate(c, { "agent.id": result.agentId, "chat.duplicate": result.duplicate, "embed.id": result.embedId })
 		deferWideEvent(c, result.done)
 		const stream = new ReadableStream<Uint8Array>({
 			start(value) {

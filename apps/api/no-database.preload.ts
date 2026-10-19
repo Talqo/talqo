@@ -22,6 +22,6 @@ await mock.module("@/db/client.ts", () => ({
 }))
 
 // Keeps request logs out of test output; wide-event tests inject their own sink.
-mock.module("@/http/wide-event-stdout.ts", () => ({
+await mock.module("@/http/wide-event-stdout.ts", () => ({
 	stdoutWideEventLog: { write: () => undefined, flush: () => undefined },
 }))

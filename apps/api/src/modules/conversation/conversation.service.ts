@@ -26,6 +26,8 @@ import {
 	type GenerationAttemptStatus,
 } from "./conversation.schema.ts"
 
+export type { GenerationAttemptOutcome } from "./conversation.schema.ts"
+
 const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
@@ -239,7 +241,10 @@ export function createConversationService(dependencies: Dependencies) {
 		annotate: Annotate,
 	): Promise<void> {
 		const { generationAttempt, assistantMessage } = accepted
-		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) return
+		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) {
+			annotate({ "chat.lease_lost": true })
+			return
+		}
 		const controller = new AbortController()
 		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
@@ -314,6 +319,7 @@ export function createConversationService(dependencies: Dependencies) {
 			if (
 				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
 			) {
+				annotate({ "chat.lease_lost": true })
 				return
 			}
 			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
@@ -420,6 +426,8 @@ export function createConversationService(dependencies: Dependencies) {
 				} else {
 					emit({ version: 1, type: "terminal", outcome })
 				}
+			} else {
+				annotate({ "chat.lease_lost": true })
 			}
 		} catch (error) {
 			console.error("conversation.finalization.failed", {
@@ -450,6 +458,7 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 			annotate({ "chat.new_conversation": !session })
 			const agentId = currentEmbed.agentId
+			annotate({ "agent.id": agentId, "embed.id": currentEmbed.id })
 			const agent = await agentService.getAgent(agentId)
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedGenerationAttempt
@@ -524,12 +533,13 @@ export function createConversationService(dependencies: Dependencies) {
 					createdAt: accepted.assistantMessage.createdAt.toISOString(),
 				},
 			}
+			annotate({ "chat.duplicate": accepted.duplicate })
 			emit(acceptedEvent)
 			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
 			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
-			return { ...acceptedEvent, agentId, duplicate: accepted.duplicate, done, embedId: currentEmbed.id }
+			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 
 		async getSession(credential: string) {

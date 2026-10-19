@@ -398,7 +398,7 @@ describe("mcp server lifecycle", () => {
 		const body = { transport: "http" as const, url: UNREACHABLE_URL, authMode: "none" as const }
 
 		const created = await service.createServer(agentId, { ...body, name: "Stock" }, report)
-		expect(fields).toEqual({ "mcp.server.id": created.id, "mcp.tools_discovered": 0 })
+		expect(fields).toEqual({ "mcp.tools_discovered": 0 })
 
 		const renamed = await service.updateServer(
 			agentId,
