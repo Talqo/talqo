@@ -8,9 +8,17 @@ import * as zod from "zod"
 
 import { ConversationSummary } from "./conversationSummary.zod"
 
+export const conversationListPageExclusiveMin = 0
+
+export const conversationListPageSizeExclusiveMin = 0
+
+export const conversationListTotalMin = 0
+
 export const ConversationList = zod.object({
 	conversations: zod.array(ConversationSummary),
-	nextCursor: zod.string().nullable(),
+	page: zod.int().gt(conversationListPageExclusiveMin),
+	pageSize: zod.int().gt(conversationListPageSizeExclusiveMin),
+	total: zod.int().min(conversationListTotalMin),
 })
 
 export type ConversationList = zod.input<typeof ConversationList>

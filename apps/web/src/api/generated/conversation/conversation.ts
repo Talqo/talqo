@@ -1,15 +1,11 @@
 import type {
 	DataTag,
 	DefinedInitialDataOptions,
-	DefinedUseInfiniteQueryResult,
 	DefinedUseQueryResult,
-	InfiniteData,
 	QueryClient,
 	QueryFunction,
 	QueryKey,
 	UndefinedInitialDataOptions,
-	UseInfiniteQueryOptions,
-	UseInfiniteQueryResult,
 	UseQueryOptions,
 	UseQueryResult,
 } from "@tanstack/react-query"
@@ -20,7 +16,7 @@ import type {
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 
 import type { ListConversationsParams } from "../models/conversation/listConversationsParams.zod"
 import type { ConversationList } from "../models/conversationList.zod"
@@ -79,10 +75,19 @@ export type listConversationsResponseError = (
 	headers: Headers
 }
 
-export const getListConversationsUrl = (agentId: string, params?: ListConversationsParams) => {
+export const getListConversationsUrl = (params?: ListConversationsParams) => {
 	const normalizedParams = new URLSearchParams()
 
 	Object.entries(params || {}).forEach(([key, value]) => {
+		const explodeParameters = ["agentId"]
+
+		if (Array.isArray(value) && explodeParameters.includes(key)) {
+			value.forEach((v) => {
+				normalizedParams.append(key, v === null ? "null" : String(v))
+			})
+			return
+		}
+
 		if (value !== undefined) {
 			normalizedParams.append(key, value === null ? "null" : String(value))
 		}
@@ -90,17 +95,14 @@ export const getListConversationsUrl = (agentId: string, params?: ListConversati
 
 	const stringifiedParams = normalizedParams.toString()
 
-	return stringifiedParams.length > 0
-		? `/api/agents/${agentId}/conversations?${stringifiedParams}`
-		: `/api/agents/${agentId}/conversations`
+	return stringifiedParams.length > 0 ? `/api/conversations?${stringifiedParams}` : `/api/conversations`
 }
 
 export const listConversations = async (
-	agentId: string,
 	params?: ListConversationsParams,
 	options?: RequestInit,
 ): Promise<listConversationsResponseSuccess> => {
-	const res = await fetch(getListConversationsUrl(agentId, params), {
+	const res = await fetch(getListConversationsUrl(params), {
 		credentials: "include",
 		...options,
 		method: "GET",
@@ -119,174 +121,14 @@ export const listConversations = async (
 	return { data, status: res.status, headers: res.headers } as listConversationsResponseSuccess
 }
 
-export const getListConversationsInfiniteQueryKey = (agentId: string, params?: ListConversationsParams) => {
-	return ["infinite", `/api/agents/${agentId}/conversations`, ...(params ? [params] : [])] as const
-}
-
-export const getListConversationsQueryKey = (agentId: string, params?: ListConversationsParams) => {
-	return [`/api/agents/${agentId}/conversations`, ...(params ? [params] : [])] as const
-}
-
-export const getListConversationsInfiniteQueryOptions = <
-	TData = InfiniteData<Awaited<ReturnType<typeof listConversations>>, ListConversationsParams["before"]>,
-	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
->(
-	agentId: string,
-	params?: ListConversationsParams,
-	options?: {
-		query?: Partial<
-			UseInfiniteQueryOptions<
-				Awaited<ReturnType<typeof listConversations>>,
-				TError,
-				TData,
-				QueryKey,
-				ListConversationsParams["before"]
-			>
-		>
-		fetch?: RequestInit
-	},
-) => {
-	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
-
-	const queryKey = queryOptions?.queryKey ?? getListConversationsInfiniteQueryKey(agentId, params)
-
-	const queryFn: QueryFunction<
-		Awaited<ReturnType<typeof listConversations>>,
-		QueryKey,
-		ListConversationsParams["before"]
-	> = ({ signal, pageParam }) =>
-		listConversations(agentId, { ...params, before: pageParam ?? params?.["before"] }, { signal, ...fetchOptions })
-
-	return {
-		queryKey,
-		queryFn,
-		enabled: agentId !== null && agentId !== undefined,
-		...queryOptions,
-	} as UseInfiniteQueryOptions<
-		Awaited<ReturnType<typeof listConversations>>,
-		TError,
-		TData,
-		QueryKey,
-		ListConversationsParams["before"]
-	> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListConversationsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof listConversations>>>
-export type ListConversationsInfiniteQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
-
-export function useListConversationsInfinite<
-	TData = InfiniteData<Awaited<ReturnType<typeof listConversations>>, ListConversationsParams["before"]>,
-	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
->(
-	agentId: string,
-	params: undefined | ListConversationsParams,
-	options: {
-		query: Partial<
-			UseInfiniteQueryOptions<
-				Awaited<ReturnType<typeof listConversations>>,
-				TError,
-				TData,
-				QueryKey,
-				ListConversationsParams["before"]
-			>
-		> &
-			Pick<
-				DefinedInitialDataOptions<
-					Awaited<ReturnType<typeof listConversations>>,
-					TError,
-					Awaited<ReturnType<typeof listConversations>>,
-					QueryKey
-				>,
-				"initialData"
-			>
-		fetch?: RequestInit
-	},
-	queryClient?: QueryClient,
-): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListConversationsInfinite<
-	TData = InfiniteData<Awaited<ReturnType<typeof listConversations>>, ListConversationsParams["before"]>,
-	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
->(
-	agentId: string,
-	params?: ListConversationsParams,
-	options?: {
-		query?: Partial<
-			UseInfiniteQueryOptions<
-				Awaited<ReturnType<typeof listConversations>>,
-				TError,
-				TData,
-				QueryKey,
-				ListConversationsParams["before"]
-			>
-		> &
-			Pick<
-				UndefinedInitialDataOptions<
-					Awaited<ReturnType<typeof listConversations>>,
-					TError,
-					Awaited<ReturnType<typeof listConversations>>,
-					QueryKey
-				>,
-				"initialData"
-			>
-		fetch?: RequestInit
-	},
-	queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListConversationsInfinite<
-	TData = InfiniteData<Awaited<ReturnType<typeof listConversations>>, ListConversationsParams["before"]>,
-	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
->(
-	agentId: string,
-	params?: ListConversationsParams,
-	options?: {
-		query?: Partial<
-			UseInfiniteQueryOptions<
-				Awaited<ReturnType<typeof listConversations>>,
-				TError,
-				TData,
-				QueryKey,
-				ListConversationsParams["before"]
-			>
-		>
-		fetch?: RequestInit
-	},
-	queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useListConversationsInfinite<
-	TData = InfiniteData<Awaited<ReturnType<typeof listConversations>>, ListConversationsParams["before"]>,
-	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
->(
-	agentId: string,
-	params?: ListConversationsParams,
-	options?: {
-		query?: Partial<
-			UseInfiniteQueryOptions<
-				Awaited<ReturnType<typeof listConversations>>,
-				TError,
-				TData,
-				QueryKey,
-				ListConversationsParams["before"]
-			>
-		>
-		fetch?: RequestInit
-	},
-	queryClient?: QueryClient,
-): UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-	const queryOptions = getListConversationsInfiniteQueryOptions(agentId, params, options)
-
-	const query = useInfiniteQuery(queryOptions, queryClient) as UseInfiniteQueryResult<TData, TError> & {
-		queryKey: DataTag<QueryKey, TData, TError>
-	}
-
-	return withQueryKey(query, queryOptions.queryKey)
+export const getListConversationsQueryKey = (params?: ListConversationsParams) => {
+	return [`/api/conversations`, ...(params ? [params] : [])] as const
 }
 
 export const getListConversationsQueryOptions = <
 	TData = Awaited<ReturnType<typeof listConversations>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	params?: ListConversationsParams,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>>
@@ -295,12 +137,12 @@ export const getListConversationsQueryOptions = <
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
-	const queryKey = queryOptions?.queryKey ?? getListConversationsQueryKey(agentId, params)
+	const queryKey = queryOptions?.queryKey ?? getListConversationsQueryKey(params)
 
 	const queryFn: QueryFunction<Awaited<ReturnType<typeof listConversations>>> = ({ signal }) =>
-		listConversations(agentId, params, { signal, ...fetchOptions })
+		listConversations(params, { signal, ...fetchOptions })
 
-	return { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions } as UseQueryOptions<
+	return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
 		Awaited<ReturnType<typeof listConversations>>,
 		TError,
 		TData
@@ -314,7 +156,6 @@ export function useListConversations<
 	TData = Awaited<ReturnType<typeof listConversations>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	params: undefined | ListConversationsParams,
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>> &
@@ -334,7 +175,6 @@ export function useListConversations<
 	TData = Awaited<ReturnType<typeof listConversations>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	params?: ListConversationsParams,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>> &
@@ -354,7 +194,6 @@ export function useListConversations<
 	TData = Awaited<ReturnType<typeof listConversations>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	params?: ListConversationsParams,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>>
@@ -367,7 +206,6 @@ export function useListConversations<
 	TData = Awaited<ReturnType<typeof listConversations>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	params?: ListConversationsParams,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>>
@@ -375,7 +213,7 @@ export function useListConversations<
 	},
 	queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-	const queryOptions = getListConversationsQueryOptions(agentId, params, options)
+	const queryOptions = getListConversationsQueryOptions(params, options)
 
 	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
 		queryKey: DataTag<QueryKey, TData, TError>
@@ -427,16 +265,15 @@ export type getConversationResponseError = (
 	headers: Headers
 }
 
-export const getGetConversationUrl = (agentId: string, conversationId: string) => {
-	return `/api/agents/${agentId}/conversations/${conversationId}`
+export const getGetConversationUrl = (conversationId: string) => {
+	return `/api/conversations/${conversationId}`
 }
 
 export const getConversation = async (
-	agentId: string,
 	conversationId: string,
 	options?: RequestInit,
 ): Promise<getConversationResponseSuccess> => {
-	const res = await fetch(getGetConversationUrl(agentId, conversationId), {
+	const res = await fetch(getGetConversationUrl(conversationId), {
 		credentials: "include",
 		...options,
 		method: "GET",
@@ -455,15 +292,14 @@ export const getConversation = async (
 	return { data, status: res.status, headers: res.headers } as getConversationResponseSuccess
 }
 
-export const getGetConversationQueryKey = (agentId: string, conversationId: string) => {
-	return [`/api/agents/${agentId}/conversations/${conversationId}`] as const
+export const getGetConversationQueryKey = (conversationId: string) => {
+	return [`/api/conversations/${conversationId}`] as const
 }
 
 export const getGetConversationQueryOptions = <
 	TData = Awaited<ReturnType<typeof getConversation>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	conversationId: string,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>>
@@ -472,15 +308,15 @@ export const getGetConversationQueryOptions = <
 ) => {
 	const { query: queryOptions, fetch: fetchOptions } = options ?? {}
 
-	const queryKey = queryOptions?.queryKey ?? getGetConversationQueryKey(agentId, conversationId)
+	const queryKey = queryOptions?.queryKey ?? getGetConversationQueryKey(conversationId)
 
 	const queryFn: QueryFunction<Awaited<ReturnType<typeof getConversation>>> = ({ signal }) =>
-		getConversation(agentId, conversationId, { signal, ...fetchOptions })
+		getConversation(conversationId, { signal, ...fetchOptions })
 
 	return {
 		queryKey,
 		queryFn,
-		enabled: agentId !== null && agentId !== undefined && conversationId !== null && conversationId !== undefined,
+		enabled: conversationId !== null && conversationId !== undefined,
 		...queryOptions,
 	} as UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData> & {
 		queryKey: DataTag<QueryKey, TData, TError>
@@ -494,7 +330,6 @@ export function useGetConversation<
 	TData = Awaited<ReturnType<typeof getConversation>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	conversationId: string,
 	options: {
 		query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>> &
@@ -514,7 +349,6 @@ export function useGetConversation<
 	TData = Awaited<ReturnType<typeof getConversation>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	conversationId: string,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>> &
@@ -534,7 +368,6 @@ export function useGetConversation<
 	TData = Awaited<ReturnType<typeof getConversation>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	conversationId: string,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>>
@@ -547,7 +380,6 @@ export function useGetConversation<
 	TData = Awaited<ReturnType<typeof getConversation>>,
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 >(
-	agentId: string,
 	conversationId: string,
 	options?: {
 		query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>>
@@ -555,7 +387,7 @@ export function useGetConversation<
 	},
 	queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-	const queryOptions = getGetConversationQueryOptions(agentId, conversationId, options)
+	const queryOptions = getGetConversationQueryOptions(conversationId, options)
 
 	const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
 		queryKey: DataTag<QueryKey, TData, TError>

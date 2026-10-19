@@ -24,7 +24,6 @@ import {
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
 	EmbedDisabledError,
-	InvalidConversationCursorError,
 	ProviderUnavailableError,
 	RequestConflictError,
 	SessionBusyError,
@@ -35,7 +34,8 @@ import {
 	createConversationService,
 	getConversationService,
 	getConversationTranscript,
-	listAgentConversations,
+	CONVERSATION_PAGE_SIZE,
+	listConversations,
 } from "./conversation.service.ts"
 
 const REQUEST_1 = "11111111-1111-4111-8111-111111111111"
@@ -1489,103 +1489,155 @@ async function operatorSession(permission?: roles.GrantablePermission): Promise<
 	return cookie
 }
 
+async function* failedGeneration() {
+	yield { type: "start", provider: "fake", model: "fake-model" } as const
+	yield {
+		type: "finish",
+		outcome: "failed",
+		provider: "fake",
+		model: "fake-model",
+		usage: { inputTokens: 1, outputTokens: 0 },
+	} as const
+}
+
+function pageOfTwo(offset: number) {
+	return repository.listConversations({
+		agentIds: undefined,
+		needsAttention: false,
+		limit: 2,
+		offset,
+		previewLength: 10,
+	})
+}
+
 describe("operator conversation reads", () => {
-	it("lists an agent's conversations newest first with previews and counts", async () => {
-		const { createdAgent, createdEmbed } = await fixture()
-		const other = await fixture()
-		await chat(createdEmbed.embedToken, CREDENTIAL_1, "first visitor")
-		await chat(createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
-		await chat(createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
-		await chat(other.createdEmbed.embedToken, crypto.randomUUID(), "other agent")
+	it("lists conversations across agents newest first with previews, counts and owners", async () => {
+		const first = await fixture()
+		const second = await fixture()
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "first visitor")
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
+		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
 
-		const page = await listAgentConversations(createdAgent.id, { limit: 20 })
+		const page = await listConversations({ needsAttention: false, page: 1 })
 
-		expect(page.nextCursor).toBeNull()
-		expect(page.conversations.map((item) => [item.messageCount, item.preview?.length])).toEqual([
-			[2, 160],
-			[4, "first visitor".length],
+		expect(page).toMatchObject({ page: 1, pageSize: CONVERSATION_PAGE_SIZE, total: 2 })
+		expect(page.conversations.map((item) => [item.agentId, item.messageCount, item.preview?.length])).toEqual([
+			[second.createdAgent.id, 2, 160],
+			[first.createdAgent.id, 4, "first visitor".length],
 		])
-		expect(page.conversations[1]?.preview).toBe("first visitor")
 		expect(page.conversations.map((item) => item.id)).not.toContain(CREDENTIAL_1)
 	})
 
-	it("pages with a cursor without skipping or repeating conversations", async () => {
-		const { createdAgent, createdEmbed } = await fixture()
+	it("filters by agent", async () => {
+		const first = await fixture()
+		const second = await fixture()
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "mine")
+		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "theirs")
+
+		const page = await listConversations({ agentId: [first.createdAgent.id], needsAttention: false, page: 1 })
+
+		expect(page.total).toBe(1)
+		expect(page.conversations.map((item) => item.preview)).toEqual(["mine"])
+	})
+
+	it("flags and filters conversations with a reply the visitor never got", async () => {
+		const { createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "answered")
+		const failing = await customService(failedGeneration).send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_2,
+			requestId: REQUEST_1,
+			text: "unanswered",
+			networkHash: "network-a",
+		})
+		await failing.done
+
+		const all = await listConversations({ needsAttention: false, page: 1 })
+		const flagged = await listConversations({ needsAttention: true, page: 1 })
+
+		expect(all.conversations.map((item) => [item.preview, item.needsAttention])).toEqual([
+			["unanswered", true],
+			["answered", false],
+		])
+		expect(flagged.total).toBe(1)
+		expect(flagged.conversations.map((item) => item.preview)).toEqual(["unanswered"])
+	})
+
+	it("pages by offset without skipping or repeating conversations", async () => {
+		const { createdEmbed } = await fixture()
 		for (const text of ["one", "two", "three"]) {
 			// oxlint-disable-next-line no-await-in-loop -- start order defines the expected page order.
 			await chat(createdEmbed.embedToken, crypto.randomUUID(), text)
 		}
 
-		const first = await listAgentConversations(createdAgent.id, { limit: 2 })
-		if (!first.nextCursor) throw new Error("Expected a next page")
-		const second = await listAgentConversations(createdAgent.id, { limit: 2, before: first.nextCursor })
+		const [firstPage, secondPage] = await Promise.all([pageOfTwo(0), pageOfTwo(2)])
 
-		expect([...first.conversations, ...second.conversations].map((item) => item.preview)).toEqual([
-			"three",
-			"two",
-			"one",
-		])
-		expect(second.nextCursor).toBeNull()
+		expect([...firstPage.rows, ...secondPage.rows].map((row) => row.preview)).toEqual(["three", "two", "one"])
+		expect([firstPage.total, secondPage.total]).toEqual([3, 3])
 	})
 
-	it("rejects a cursor from another agent", async () => {
+	it("returns a transcript and shows an abandoned reply as interrupted", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
-		const other = await fixture()
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
-		const [own] = (await listAgentConversations(createdAgent.id, { limit: 1 })).conversations
-		if (!own) throw new Error("Expected a conversation")
-
-		await expect(listAgentConversations(other.createdAgent.id, { limit: 1, before: own.id })).rejects.toBeInstanceOf(
-			InvalidConversationCursorError,
-		)
-	})
-
-	it("returns the transcript only for the owning agent", async () => {
-		const { createdAgent, createdEmbed } = await fixture()
-		const other = await fixture()
-		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
-		const [summary] = (await listAgentConversations(createdAgent.id, { limit: 1 })).conversations
+		const gate = deferred()
+		const abandoned = await customService(async function* () {
+			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			await gate.promise
+		}).send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_2,
+			text: "still there?",
+			networkHash: "network-a",
+		})
+		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${abandoned.generationId}`
+		const [summary] = (await listConversations({ needsAttention: false, page: 1 })).conversations
 		if (!summary) throw new Error("Expected a conversation")
 
-		const transcript = await getConversationTranscript(createdAgent.id, summary.id)
+		const transcript = await getConversationTranscript(summary.id)
+		gate.resolve()
+		await abandoned.done
 
+		expect(transcript.agentId).toBe(createdAgent.id)
 		expect(transcript.messages.map((item) => [item.role, item.text, item.outcome])).toEqual([
 			["user", "hello", "completed"],
 			["assistant", "answer", "completed"],
+			["user", "still there?", "completed"],
+			["assistant", "", "interrupted"],
 		])
-		await expect(getConversationTranscript(other.createdAgent.id, summary.id)).rejects.toBeInstanceOf(
-			ConversationNotFoundError,
-		)
+		await expect(getConversationTranscript(crypto.randomUUID())).rejects.toBeInstanceOf(ConversationNotFoundError)
 	})
 
-	it("serves conversations over HTTP to agents:read without exposing the visitor credential", async () => {
+	it("serves conversations over HTTP to conversations:read without exposing the visitor credential", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
-		const cookie = await operatorSession(roles.Permission.AgentsRead)
-		const base = `/api/agents/${createdAgent.id}/conversations`
+		const cookie = await operatorSession(roles.Permission.ConversationsRead)
+		const get = (path: string) => app.request(`/api/conversations${path}`, { headers: { Cookie: cookie } })
 
-		const list = await app.request(base, { headers: { Cookie: cookie } })
+		const list = await get(`?agentId=${createdAgent.id}&needsAttention=false`)
 		const listBody = await list.text()
 		const id = (JSON.parse(listBody) as { conversations: { id: string }[] }).conversations[0]?.id
-		const transcript = await app.request(`${base}/${id}`, { headers: { Cookie: cookie } })
-		const missing = await app.request(`${base}/${crypto.randomUUID()}`, { headers: { Cookie: cookie } })
-		const invalid = await app.request(`${base}?limit=500`, { headers: { Cookie: cookie } })
+		const transcript = await get(`/${id}`)
+		const missing = await get(`/${crypto.randomUUID()}`)
+		const otherAgents = await get(`?agentId=${crypto.randomUUID()}&agentId=${crypto.randomUUID()}`)
+		const invalid = await get("?page=0")
 
 		expect(list.status).toBe(200)
 		expect(listBody).not.toContain(CREDENTIAL_1)
+		expect(JSON.parse(listBody)).toMatchObject({ total: 1, page: 1 })
 		expect(transcript.status).toBe(200)
 		expect(await transcript.text()).not.toContain(CREDENTIAL_1)
 		expect(missing.status).toBe(404)
 		expect(await missing.json()).toMatchObject({ code: "conversation-not-found" })
+		expect(await otherAgents.json()).toMatchObject({ conversations: [], total: 0 })
 		expect(invalid.status).toBe(400)
 		expect(await invalid.json()).toMatchObject({ code: "invalid-request" })
 	})
 
-	it("denies operators without agents:read", async () => {
-		const { createdAgent } = await fixture()
-		const cookie = await operatorSession()
+	it("denies operators who can see agents but not conversations", async () => {
+		const cookie = await operatorSession(roles.Permission.AgentsRead)
 
-		const response = await app.request(`/api/agents/${createdAgent.id}/conversations`, { headers: { Cookie: cookie } })
+		const response = await app.request("/api/conversations", { headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(403)
 		expect(await response.json()).toMatchObject({ code: "permission-denied" })

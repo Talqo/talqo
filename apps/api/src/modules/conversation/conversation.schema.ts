@@ -38,9 +38,11 @@ export const conversation = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
 	(table) => [
-		index("conversation_agent_created_idx").on(table.agentId, table.createdAt, table.referenceId),
+		index("conversation_agent_id_idx").on(table.agentId),
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
+		// The operator list pages newest first across agents.
+		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
 	],
 )
 

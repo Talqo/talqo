@@ -70,8 +70,3 @@ export class ConversationNotFoundError extends ApiError {
 		super(PROBLEM_CODES.CONVERSATION_NOT_FOUND, HTTP_STATUS.NOT_FOUND, message, undefined, options)
 	}
 }
-export class InvalidConversationCursorError extends ApiError {
-	constructor(message?: string, options?: ErrorOptions) {
-		super(PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
-	}
-}

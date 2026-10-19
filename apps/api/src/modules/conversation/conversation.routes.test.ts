@@ -244,7 +244,7 @@ describe("public conversation routes", () => {
 
 describe("operator conversation authentication boundary", () => {
 	it("requires a session to list or read conversations, even with a chat bearer", async () => {
-		const base = `/api/agents/${REQUEST_ID}/conversations`
+		const base = "/api/conversations"
 		const bearer = { headers: { Authorization: `Bearer ${CREDENTIAL}` } }
 
 		expect((await apiApp.request(base)).status).toBe(401)

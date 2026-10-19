@@ -46,11 +46,6 @@ export default defineConfig({
 					shouldExportKeys: true,
 					signal: true,
 				},
-				operations: {
-					listConversations: {
-						query: { useInfinite: true, useInfiniteQueryParam: "before" },
-					},
-				},
 				zod: {
 					generateReusableSchemas: true,
 					variant: "classic",

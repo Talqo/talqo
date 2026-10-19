@@ -83,7 +83,7 @@ api.route("/chat", createConversationRoutes())
 api.route("/stats", statsRoutes)
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
-api.route("/agents", conversationOperatorRoutes)
+api.route("/conversations", conversationOperatorRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,

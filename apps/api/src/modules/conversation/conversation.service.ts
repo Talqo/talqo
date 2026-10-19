@@ -15,7 +15,6 @@ import {
 	ConversationNotFoundError,
 	ConversationTooLongError,
 	InvalidChatInputError,
-	InvalidConversationCursorError,
 	ProviderUnavailableError,
 	SessionBusyError,
 	SessionUnauthorizedError,
@@ -581,15 +580,25 @@ export function getConversationService() {
 	}))
 }
 
-export const CONVERSATION_PAGE_DEFAULT = 20
-export const CONVERSATION_PAGE_MAX = 50
+export const CONVERSATION_PAGE_SIZE = 25
+export const CONVERSATION_PAGE_MAX = 10_000
+export const CONVERSATION_AGENT_FILTER_MAX = 100
 const CONVERSATION_PREVIEW_LENGTH = 160
 
 export type ConversationSummary = {
+	agentId: string
 	id: string
 	messageCount: number
+	needsAttention: boolean
 	preview: string | null
 	startedAt: string
+}
+
+export type ConversationPage = {
+	conversations: ConversationSummary[]
+	page: number
+	pageSize: number
+	total: number
 }
 
 export type ConversationTranscript = {
@@ -599,37 +608,42 @@ export type ConversationTranscript = {
 	startedAt: string
 }
 
-export async function listAgentConversations(
-	agentId: string,
-	page: { before?: string; limit: number },
-): Promise<{ conversations: ConversationSummary[]; nextCursor: string | null }> {
-	if (page.before && !(await repository.conversationExists(agentId, page.before))) {
-		throw new InvalidConversationCursorError()
-	}
-	const rows = await repository.listAgentConversations({
-		agentId,
-		before: page.before,
-		limit: page.limit + 1,
+export async function listConversations(filter: {
+	agentId?: string[]
+	needsAttention: boolean
+	page: number
+}): Promise<ConversationPage> {
+	// Reads must not show an abandoned reply as still streaming.
+	await repository.recoverExpiredGenerationAttempts()
+	const { rows, total } = await repository.listConversations({
+		agentIds: filter.agentId,
+		needsAttention: filter.needsAttention,
+		limit: CONVERSATION_PAGE_SIZE,
+		offset: (filter.page - 1) * CONVERSATION_PAGE_SIZE,
 		previewLength: CONVERSATION_PREVIEW_LENGTH,
 	})
-	const conversations = rows.slice(0, page.limit).map((row) => ({
-		id: row.referenceId,
-		messageCount: row.messageCount,
-		preview: row.preview,
-		startedAt: row.createdAt.toISOString(),
-	}))
 	return {
-		conversations,
-		nextCursor: rows.length > page.limit ? (conversations.at(-1)?.id ?? null) : null,
+		conversations: rows.map((row) => ({
+			id: row.referenceId,
+			agentId: row.agentId,
+			messageCount: row.messageCount,
+			needsAttention: row.needsAttention,
+			preview: row.preview,
+			startedAt: row.createdAt.toISOString(),
+		})),
+		page: filter.page,
+		pageSize: CONVERSATION_PAGE_SIZE,
+		total,
 	}
 }
 
-export async function getConversationTranscript(agentId: string, id: string): Promise<ConversationTranscript> {
-	const found = await repository.findAgentConversation(agentId, id)
+export async function getConversationTranscript(referenceId: string): Promise<ConversationTranscript> {
+	await repository.recoverExpiredGenerationAttempts()
+	const found = await repository.findConversationByReference(referenceId)
 	if (!found) throw new ConversationNotFoundError()
 	return {
 		id: found.referenceId,
-		agentId,
+		agentId: found.agentId,
 		startedAt: found.createdAt.toISOString(),
 		messages: (await repository.listMessages(found.id)).map(publicMessage),
 	}

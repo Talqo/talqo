@@ -20,7 +20,7 @@ import {
 	sessionStateSchema,
 } from "./conversation.contract.ts"
 import { InvalidChatInputError } from "./conversation.errors.ts"
-import { getConversationService, getConversationTranscript, listAgentConversations } from "./conversation.service.ts"
+import { getConversationService, getConversationTranscript, listConversations } from "./conversation.service.ts"
 
 type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
 export type ChatBindings = { peerAddress?: string }
@@ -139,11 +139,10 @@ export function createConversationRoutes(
 
 export const conversationOperatorRoutes = new OpenAPIHono()
 	.openapi(listConversationsRoute, async (c) => {
-		const page = await listAgentConversations(c.req.valid("param").agentId, c.req.valid("query"))
+		const page = await listConversations(c.req.valid("query"))
 		return c.json(conversationListResponseSchema.parse(page), HTTP_STATUS.OK)
 	})
 	.openapi(getConversationRoute, async (c) => {
-		const { agentId, conversationId } = c.req.valid("param")
-		const conversation = await getConversationTranscript(agentId, conversationId)
+		const conversation = await getConversationTranscript(c.req.valid("param").conversationId)
 		return c.json(conversationTranscriptResponseSchema.parse({ conversation }), HTTP_STATUS.OK)
 	})

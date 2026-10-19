@@ -1,5 +1,5 @@
 {
-	"id": "19812cdc-33e1-475f-a9f9-09b0c67b21c0",
+	"id": "e39c0fac-6c1e-4620-a187-94d04e733ead",
 	"prevId": "a8244f02-1d45-4a9b-9831-8eb60e99fbc6",
 	"version": "7",
 	"dialect": "postgresql",
@@ -263,23 +263,11 @@
 				}
 			},
 			"indexes": {
-				"conversation_agent_created_idx": {
-					"name": "conversation_agent_created_idx",
+				"conversation_agent_id_idx": {
+					"name": "conversation_agent_id_idx",
 					"columns": [
 						{
 							"expression": "agent_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						},
-						{
-							"expression": "created_at",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						},
-						{
-							"expression": "reference_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"
@@ -316,6 +304,27 @@
 						},
 						{
 							"expression": "created_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"conversation_created_at_idx": {
+					"name": "conversation_created_at_idx",
+					"columns": [
+						{
+							"expression": "created_at",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "reference_id",
 							"isExpression": false,
 							"asc": true,
 							"nulls": "last"

@@ -1307,16 +1307,28 @@
 							"$ref": "#/components/schemas/ConversationSummary"
 						}
 					},
-					"nextCursor": {
-						"type": ["string", "null"]
+					"page": {
+						"type": "integer",
+						"exclusiveMinimum": 0
+					},
+					"pageSize": {
+						"type": "integer",
+						"exclusiveMinimum": 0
+					},
+					"total": {
+						"type": "integer",
+						"minimum": 0
 					}
 				},
-				"required": ["conversations", "nextCursor"]
+				"required": ["conversations", "page", "pageSize", "total"]
 			},
 			"ConversationSummary": {
 				"type": "object",
 				"properties": {
 					"id": {
+						"type": "string"
+					},
+					"agentId": {
 						"type": "string"
 					},
 					"startedAt": {
@@ -1329,9 +1341,12 @@
 					},
 					"preview": {
 						"type": ["string", "null"]
+					},
+					"needsAttention": {
+						"type": "boolean"
 					}
 				},
-				"required": ["id", "startedAt", "messageCount", "preview"]
+				"required": ["id", "agentId", "startedAt", "messageCount", "preview", "needsAttention"]
 			},
 			"ConversationTranscriptResponse": {
 				"type": "object",
@@ -7264,7 +7279,7 @@
 				}
 			}
 		},
-		"/api/agents/{agentId}/conversations": {
+		"/api/conversations": {
 			"get": {
 				"operationId": "listConversations",
 				"tags": ["Conversation"],
@@ -7276,37 +7291,43 @@
 				"parameters": [
 					{
 						"schema": {
-							"type": "string",
-							"format": "uuid"
+							"type": "array",
+							"items": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"maxItems": 100
 						},
-						"required": true,
+						"required": false,
 						"name": "agentId",
-						"in": "path"
+						"in": "query",
+						"style": "form",
+						"explode": true
 					},
 					{
 						"schema": {
 							"type": "string",
-							"format": "uuid"
+							"enum": ["true", "false"]
 						},
 						"required": false,
-						"name": "before",
+						"name": "needsAttention",
 						"in": "query"
 					},
 					{
 						"schema": {
 							"type": "integer",
 							"minimum": 1,
-							"maximum": 50,
-							"default": 20
+							"maximum": 10000,
+							"default": 1
 						},
 						"required": false,
-						"name": "limit",
+						"name": "page",
 						"in": "query"
 					}
 				],
 				"responses": {
 					"200": {
-						"description": "The agent's conversations, newest first",
+						"description": "One page of conversations across agents, newest first",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7358,7 +7379,7 @@
 				}
 			}
 		},
-		"/api/agents/{agentId}/conversations/{conversationId}": {
+		"/api/conversations/{conversationId}": {
 			"get": {
 				"operationId": "getConversation",
 				"tags": ["Conversation"],
@@ -7368,15 +7389,6 @@
 					}
 				],
 				"parameters": [
-					{
-						"schema": {
-							"type": "string",
-							"format": "uuid"
-						},
-						"required": true,
-						"name": "agentId",
-						"in": "path"
-					},
 					{
 						"schema": {
 							"type": "string",

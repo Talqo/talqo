@@ -6,12 +6,15 @@
  */
 import * as zod from "zod"
 
-export const listConversationsParamsLimitDefault = 20
-export const listConversationsParamsLimitMax = 50
+export const listConversationsParamsAgentIdMax = 100
+
+export const listConversationsParamsPageDefault = 1
+export const listConversationsParamsPageMax = 10000
 
 export const ListConversationsParams = zod.object({
-	before: zod.uuid().optional(),
-	limit: zod.int().min(1).max(listConversationsParamsLimitMax).default(listConversationsParamsLimitDefault),
+	agentId: zod.array(zod.uuid()).max(listConversationsParamsAgentIdMax).optional(),
+	needsAttention: zod.enum(["true", "false"]).optional(),
+	page: zod.int().min(1).max(listConversationsParamsPageMax).default(listConversationsParamsPageDefault),
 })
 
 export type ListConversationsParams = zod.input<typeof ListConversationsParams>

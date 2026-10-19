@@ -598,55 +598,64 @@ export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<
 }
 
 export type ConversationSummaryRow = {
+	agentId: string
 	createdAt: Date
 	messageCount: number
+	needsAttention: boolean
 	preview: string | null
 	referenceId: string
 }
 
-export async function conversationExists(agentId: string, referenceId: string): Promise<boolean> {
-	const [row] = await db
-		.select({ referenceId: conversation.referenceId })
-		.from(conversation)
-		.where(and(eq(conversation.agentId, agentId), eq(conversation.referenceId, referenceId)))
-		.limit(1)
-	return row !== undefined
+// Drizzle renders select-list columns unqualified in single-table queries, so a subquery would
+// rebind them to its own table; the correlated subqueries name both tables explicitly instead.
+// Needs attention: a reply the visitor never got. Cancelling is the visitor's own choice.
+const needsAttention = sql<boolean>`EXISTS (SELECT 1 FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'assistant' AND m.outcome IN ('failed', 'blocked', 'interrupted'))`
+
+export async function listConversations(input: {
+	agentIds: string[] | undefined
+	limit: number
+	needsAttention: boolean
+	offset: number
+	previewLength: number
+}): Promise<{ rows: ConversationSummaryRow[]; total: number }> {
+	const where = and(
+		input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined,
+		input.needsAttention ? needsAttention : undefined,
+	)
+	const [rows, [counted]] = await Promise.all([
+		db
+			.select({
+				referenceId: conversation.referenceId,
+				agentId: conversation.agentId,
+				createdAt: conversation.createdAt,
+				messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
+				needsAttention,
+				preview: sql<
+					string | null
+				>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
+			})
+			.from(conversation)
+			.where(where)
+			.orderBy(desc(conversation.createdAt), desc(conversation.referenceId))
+			.limit(input.limit)
+			.offset(input.offset),
+		db.select({ total: count() }).from(conversation).where(where),
+	])
+	return { rows, total: counted?.total ?? 0 }
 }
 
-export async function listAgentConversations(input: {
-	agentId: string
-	before: string | undefined
-	limit: number
-	previewLength: number
-}): Promise<ConversationSummaryRow[]> {
-	// Compare against the cursor row in SQL: JS Dates drop the microseconds Postgres stores.
-	const afterCursor = input.before
-		? sql`(conversation.created_at, conversation.reference_id) < (SELECT c.created_at, c.reference_id FROM conversation c WHERE c.reference_id = ${input.before})`
-		: undefined
-	return db
+export async function findConversationByReference(
+	referenceId: string,
+): Promise<{ agentId: string; createdAt: Date; id: string; referenceId: string } | undefined> {
+	const [row] = await db
 		.select({
+			id: conversation.id,
+			agentId: conversation.agentId,
 			referenceId: conversation.referenceId,
 			createdAt: conversation.createdAt,
-			// Explicit aliases: Drizzle renders single-table columns unqualified, which subqueries would rebind.
-			messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
-			preview: sql<
-				string | null
-			>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
 		})
 		.from(conversation)
-		.where(and(eq(conversation.agentId, input.agentId), afterCursor))
-		.orderBy(desc(conversation.createdAt), desc(conversation.referenceId))
-		.limit(input.limit)
-}
-
-export async function findAgentConversation(
-	agentId: string,
-	referenceId: string,
-): Promise<{ createdAt: Date; id: string; referenceId: string } | undefined> {
-	const [row] = await db
-		.select({ id: conversation.id, referenceId: conversation.referenceId, createdAt: conversation.createdAt })
-		.from(conversation)
-		.where(and(eq(conversation.agentId, agentId), eq(conversation.referenceId, referenceId)))
+		.where(eq(conversation.referenceId, referenceId))
 		.limit(1)
 	return row
 }

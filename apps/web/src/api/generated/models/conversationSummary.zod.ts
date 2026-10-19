@@ -10,9 +10,11 @@ export const conversationSummaryMessageCountMin = 0
 
 export const ConversationSummary = zod.object({
 	id: zod.string(),
+	agentId: zod.string(),
 	startedAt: zod.iso.datetime({ offset: true }),
 	messageCount: zod.int().min(conversationSummaryMessageCountMin),
 	preview: zod.string().nullable(),
+	needsAttention: zod.boolean(),
 })
 
 export type ConversationSummary = zod.input<typeof ConversationSummary>

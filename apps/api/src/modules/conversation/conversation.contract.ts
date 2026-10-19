@@ -5,7 +5,7 @@ import { PROBLEM_CODES } from "@/http/problem.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
-import { CONVERSATION_PAGE_DEFAULT, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
+import { CONVERSATION_AGENT_FILTER_MAX, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
 
 const requestIdSchema = z.uuid({ version: "v4" })
 
@@ -155,13 +155,17 @@ export const conversationListResponseSchema = z
 			z
 				.object({
 					id: z.string(),
+					agentId: z.string(),
 					startedAt: z.iso.datetime(),
 					messageCount: z.number().int().nonnegative(),
 					preview: z.string().nullable(),
+					needsAttention: z.boolean(),
 				})
 				.openapi("ConversationSummary"),
 		),
-		nextCursor: z.string().nullable(),
+		page: z.number().int().positive(),
+		pageSize: z.number().int().positive(),
+		total: z.number().int().nonnegative(),
 	})
 	.openapi("ConversationList")
 export const conversationTranscriptResponseSchema = z
@@ -177,24 +181,29 @@ export const conversationTranscriptResponseSchema = z
 	})
 	.openapi("ConversationTranscriptResponse")
 
-const agentParams = z.object({
-	agentId: z.uuid().openapi({ param: { name: "agentId", in: "path" } }),
-})
-const transcriptParams = agentParams.extend({
-	conversationId: z.uuid().openapi({ param: { name: "conversationId", in: "path" } }),
-})
 const listConversationsQuery = z.object({
-	before: z
-		.uuid()
+	// Hono passes a repeated query key as an array and a single one as a string.
+	agentId: z
+		.preprocess(
+			(value) => (value === undefined || Array.isArray(value) ? value : [value]),
+			z.array(z.uuid()).max(CONVERSATION_AGENT_FILTER_MAX).optional(),
+		)
+		.openapi({ param: { name: "agentId", in: "query", style: "form", explode: true } }),
+	needsAttention: z
+		.enum(["true", "false"])
 		.optional()
-		.openapi({ param: { name: "before", in: "query" } }),
-	limit: z.coerce
+		.transform((value) => value === "true")
+		.openapi({ param: { name: "needsAttention", in: "query" } }),
+	page: z.coerce
 		.number()
 		.int()
 		.min(1)
 		.max(CONVERSATION_PAGE_MAX)
-		.default(CONVERSATION_PAGE_DEFAULT)
-		.openapi({ param: { name: "limit", in: "query" } }),
+		.default(1)
+		.openapi({ param: { name: "page", in: "query" } }),
+})
+const transcriptParams = z.object({
+	conversationId: z.uuid().openapi({ param: { name: "conversationId", in: "path" } }),
 })
 const operatorAuthRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
 const operatorForbidden = problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.PERMISSION_DENIED])
@@ -202,15 +211,15 @@ const operatorServerError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR
 
 export const listConversationsRoute = createRoute({
 	method: "get",
-	path: "/{agentId}/conversations",
+	path: "/",
 	operationId: "listConversations",
 	tags: ["Conversation"],
-	...access.permission(roles.Permission.AgentsRead),
-	request: { params: agentParams, query: listConversationsQuery },
+	...access.permission(roles.Permission.ConversationsRead),
+	request: { query: listConversationsQuery },
 	responses: {
 		200: {
 			content: { "application/json": { schema: conversationListResponseSchema } },
-			description: "The agent's conversations, newest first",
+			description: "One page of conversations across agents, newest first",
 		},
 		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST]),
 		401: operatorAuthRequired,
@@ -221,10 +230,10 @@ export const listConversationsRoute = createRoute({
 
 export const getConversationRoute = createRoute({
 	method: "get",
-	path: "/{agentId}/conversations/{conversationId}",
+	path: "/{conversationId}",
 	operationId: "getConversation",
 	tags: ["Conversation"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.permission(roles.Permission.ConversationsRead),
 	request: { params: transcriptParams },
 	responses: {
 		200: {
