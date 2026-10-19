@@ -13,3 +13,5 @@
 - Service errors that map to HTTP extend `ApiError` with problem code and status; `app.onError` maps them centrally, never per-route.
 - Convert pg violations to domain errors in services; never map them in routes.
 - Declare a shared route prefix once with Hono `route()`.
+- Wide events (`src/http/wide-event.ts`) never carry raw paths, query strings, headers, bodies, error messages, usernames, IP addresses, or conversation IDs, which are the chat bearer credential. Log derived IDs, counts, and enums.
+- A new ID route param needs a `ROUTE_ID_FIELDS` entry to be logged. Streaming routes wrap their work in `deferWideEvent` so the event covers the whole stream.
