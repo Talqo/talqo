@@ -1,14 +1,8 @@
 import { expect, test, type Page } from "@playwright/test"
 
-const ADMIN = { username: "admin", password: "admin123" }
+import { logIn } from "./log-in"
 
-async function logIn(page: Page, account: { password: string; username: string }) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(account.username)
-	await page.getByLabel("Password", { exact: true }).fill(account.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
-}
+const ADMIN = { username: "admin", password: "admin123" }
 
 async function logOut(page: Page) {
 	await page.getByRole("button", { name: "Log out" }).click()
