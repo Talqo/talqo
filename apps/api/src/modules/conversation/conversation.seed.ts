@@ -1,5 +1,6 @@
-import { db, sql } from "@/db/client.ts"
+import { db, sql as postgres } from "@/db/client.ts"
 import { estimateTokens } from "@/modules/usage/usage.service.ts"
+import { sql } from "drizzle-orm"
 
 import { conversation, type GenerationAttemptOutcome, generationAttempt, message } from "./conversation.schema.ts"
 
@@ -167,7 +168,7 @@ function planRows(now: Date): PlannedRows {
 }
 
 async function seedTraffic(): Promise<SeededAttempt[]> {
-	const [marker] = await sql`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
+	const [marker] = await postgres`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
 	if (marker) return []
 	const rows = planRows(new Date())
 	await db.transaction(async (tx) => {
@@ -187,7 +188,7 @@ const MILLISECONDS_PER_HOUR = 3_600_000
 type TranscriptTurn = { answer: string; outcome: GenerationAttemptOutcome; question: string }
 type TranscriptConversation = { startedHoursAgo: number; turns: TranscriptTurn[] }
 
-// One conversation per outcome an operator should recognize in the transcript view.
+// Every reply outcome the transcript view labels, plus the Markdown answers can contain.
 const TRANSCRIPTS: TranscriptConversation[] = [
 	{
 		startedHoursAgo: 72,
@@ -217,6 +218,17 @@ const TRANSCRIPTS: TranscriptConversation[] = [
 		],
 	},
 	{
+		startedHoursAgo: 26,
+		turns: [
+			{
+				question: "How do I add the chat to my website?",
+				answer:
+					'Paste this snippet before the closing `</body>` tag:\n\n```html\n<script src="https://chat.example.com/widget.js" data-embed-token="YOUR_TOKEN" async></script>\n```\n\n| Platform | Where to paste |\n| --- | --- |\n| Shopify | Theme > Edit code > `theme.liquid` |\n| WordPress | Appearance > Theme file editor > `footer.php` |',
+				outcome: "completed",
+			},
+		],
+	},
+	{
 		startedHoursAgo: 20,
 		turns: [
 			{ question: "Do you integrate with Zendesk?", answer: "We do not integrate directly with", outcome: "blocked" },
@@ -225,6 +237,16 @@ const TRANSCRIPTS: TranscriptConversation[] = [
 	{
 		startedHoursAgo: 5,
 		turns: [{ question: "Is the product available in Czech?", answer: "", outcome: "failed" }],
+	},
+	{
+		startedHoursAgo: 2,
+		turns: [
+			{
+				question: "Can I return a sale item?",
+				answer: "Sale items can be returned within",
+				outcome: "interrupted",
+			},
+		],
 	},
 	{
 		startedHoursAgo: 0.5,
@@ -323,9 +345,42 @@ function transcriptRows(now: number) {
 async function seedTranscripts(): Promise<void> {
 	const rows = transcriptRows(Date.now())
 	await db.transaction(async (tx) => {
-		await tx.insert(conversation).values(rows.conversations).onConflictDoNothing()
-		await tx.insert(generationAttempt).values(rows.attempts).onConflictDoNothing()
-		await tx.insert(message).values(rows.messages).onConflictDoNothing()
+		// Upserts keep fixture edits visible on re-seed; usage fields stay untouched so metering never repeats.
+		await tx
+			.insert(conversation)
+			.values(rows.conversations)
+			.onConflictDoUpdate({
+				target: conversation.id,
+				set: {
+					revision: sql`excluded.revision`,
+					latestCompletedMessageId: sql`excluded.latest_completed_message_id`,
+					createdAt: sql`excluded.created_at`,
+				},
+			})
+		await tx
+			.insert(generationAttempt)
+			.values(rows.attempts)
+			.onConflictDoUpdate({
+				target: generationAttempt.id,
+				set: {
+					status: sql`excluded.status`,
+					finalOutcome: sql`excluded.final_outcome`,
+					createdAt: sql`excluded.created_at`,
+					updatedAt: sql`excluded.updated_at`,
+				},
+			})
+		await tx
+			.insert(message)
+			.values(rows.messages)
+			.onConflictDoUpdate({
+				target: message.id,
+				set: {
+					text: sql`excluded.text`,
+					outcome: sql`excluded.outcome`,
+					createdAt: sql`excluded.created_at`,
+					updatedAt: sql`excluded.updated_at`,
+				},
+			})
 	})
 }
 
