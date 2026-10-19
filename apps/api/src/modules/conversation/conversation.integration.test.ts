@@ -1,6 +1,12 @@
+import type { Annotation } from "@/http/wide-event.ts"
+
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import { ProviderContextLimitError, type TextMessage } from "@/modules/ai-provider/ai-provider.service.ts"
+import {
+	type AiProviderId,
+	ProviderContextLimitError,
+	type TextMessage,
+} from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
 import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.repository.ts"
 import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
@@ -53,7 +59,7 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 			maxOutputTokens: 100,
 			timeoutMs: 10_000,
 			prepare: async (input) => ({
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				invoke: async function* () {
 					prompts.push(input.messages)
@@ -62,7 +68,7 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 					yield {
 						type: "finish",
 						outcome: "completed",
-						provider: "fake",
+						provider: "openai-compatible",
 						model: "fake-model",
 						usage: { inputTokens: 8, outputTokens: 2 },
 					} as const
@@ -79,12 +85,12 @@ function customService(
 		signal: AbortSignal
 		timeoutMs: number
 	}) => AsyncIterable<
-		| { model: string; provider: string; type: "start" }
+		| { model: string; provider: AiProviderId; type: "start" }
 		| { text: string; type: "text" }
 		| {
 				model: string
 				outcome: "cancelled" | "completed" | "failed" | "interrupted"
-				provider: string
+				provider: AiProviderId
 				type: "finish"
 				usage: usage.ProviderUsage
 		  }
@@ -100,7 +106,7 @@ function customService(
 		timeoutMs: 10_000,
 		...(beforeAccept ? { beforeAccept } : {}),
 		prepare: async (input) => ({
-			provider: "fake",
+			provider: "openai-compatible",
 			model: "fake-model",
 			invoke: (signal) => generate({ ...input, signal }),
 		}),
@@ -120,7 +126,7 @@ async function* cancellationGeneration(input: { signal: AbortSignal }) {
 	yield {
 		type: "finish",
 		outcome: "cancelled",
-		provider: "fake",
+		provider: "openai-compatible",
 		model: "fake-model",
 		usage: {},
 	} as const
@@ -363,7 +369,7 @@ describe("conversation lifecycle", () => {
 			yield {
 				type: "finish",
 				outcome: "completed",
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				usage: {},
 			} as const
@@ -457,7 +463,7 @@ describe("conversation lifecycle", () => {
 		const usageRows = (await sql`SELECT provider, model, input_tokens, output_tokens FROM usage_record`) as [
 			{ provider: string; model: string; input_tokens: number; output_tokens: number },
 		]
-		expect(usageRows[0]).toMatchObject({ provider: "fake", model: "fake-model" })
+		expect(usageRows[0]).toMatchObject({ provider: "openai-compatible", model: "fake-model" })
 		expect(typeof usageRows[0]?.input_tokens).toBe("number")
 		expect(typeof usageRows[0]?.output_tokens).toBe("number")
 	})
@@ -578,7 +584,7 @@ describe("conversation lifecycle", () => {
 			yield {
 				type: "finish",
 				outcome: "cancelled",
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				usage: {},
 			} as const
@@ -613,7 +619,7 @@ describe("conversation lifecycle", () => {
 			yield {
 				type: "finish",
 				outcome: "completed",
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				usage: {},
 			} as const
@@ -658,13 +664,13 @@ describe("conversation lifecycle", () => {
 		const gate = deferred()
 		const owner = customService(async function* () {
 			started.resolve()
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			await gate.promise
 			yield { type: "text", text: "late" } as const
 			yield {
 				type: "finish",
 				outcome: "completed",
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				usage: { inputTokens: 9, outputTokens: 1 },
 			} as const
@@ -738,10 +744,16 @@ describe("conversation lifecycle", () => {
 		const started = deferred()
 		const gate = deferred()
 		const instance = customService(async function* () {
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			started.resolve()
 			await gate.promise
-			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
 		})
 		setSystemTime(new Date("2000-01-01T00:00:00.000Z"))
 		const sent = await instance.send({
@@ -791,7 +803,13 @@ describe("conversation lifecycle", () => {
 		const release = deferred()
 		const instance = customService(async function* () {
 			try {
-				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+				yield {
+					type: "finish",
+					outcome: "completed",
+					provider: "openai-compatible",
+					model: "fake-model",
+					usage: {},
+				} as const
 			} finally {
 				exiting.resolve()
 				await release.promise
@@ -825,9 +843,15 @@ describe("conversation lifecycle", () => {
 		const gate = deferred()
 		const instance = customService(async function* () {
 			started.resolve()
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			await gate.promise
-			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
@@ -867,7 +891,7 @@ describe("conversation lifecycle", () => {
 		const instance = customService(async function* () {
 			calls += 1
 			if (calls > 1) throw new ProviderContextLimitError()
-			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake", usage: {} } as const
+			yield { type: "finish", outcome: "completed", provider: "openai-compatible", model: "fake", usage: {} } as const
 		})
 		const first = await instance.send({
 			embedToken: createdEmbed.embedToken,
@@ -899,7 +923,7 @@ describe("conversation lifecycle", () => {
 		const gate = deferred()
 		const instance = customService(async function* () {
 			started.resolve()
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			await gate.promise
 		})
 		const sent = await instance.send({
@@ -943,9 +967,15 @@ describe("conversation lifecycle", () => {
 		const gate = deferred()
 		const owner = customService(async function* () {
 			started.resolve()
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			await gate.promise
-			yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
 		})
 		const expired = await owner.send({
 			embedToken: createdEmbed.embedToken,
@@ -974,7 +1004,7 @@ describe("conversation lifecycle", () => {
 	it("persists a short safe tail when generation fails", async () => {
 		const { createdEmbed } = await fixture()
 		const instance = customService(async function* () {
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			yield { type: "text", text: "tiny" } as const
 			throw new Error("failed")
 		})
@@ -1001,7 +1031,13 @@ describe("conversation lifecycle", () => {
 			const instance = customService(async function* () {
 				for (let index = 0; index < 40; index += 1) yield { type: "text", text: "x" } as const
 				yield { type: "text", text: "y".repeat(2_048) } as const
-				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+				yield {
+					type: "finish",
+					outcome: "completed",
+					provider: "openai-compatible",
+					model: "fake-model",
+					usage: {},
+				} as const
 			})
 			const events: { type: string; text?: string }[] = []
 			const sent = await instance.send(
@@ -1037,7 +1073,13 @@ describe("conversation lifecycle", () => {
 		const instance = customService(async function* ({ signal }) {
 			yield { type: "text", text: "hello" } as const
 			await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }))
-			yield { type: "finish", outcome: "cancelled", provider: "fake", model: "fake-model", usage: {} } as const
+			yield {
+				type: "finish",
+				outcome: "cancelled",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
 		})
 		const sent = await instance.send(
 			{
@@ -1061,11 +1103,17 @@ describe("conversation lifecycle", () => {
 		const { createdEmbed } = await fixture()
 		const started = deferred()
 		const instance = customService(async function* (input) {
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			yield { type: "text", text: "tiny" } as const
 			started.resolve()
 			await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }))
-			yield { type: "finish", outcome: "cancelled", provider: "fake", model: "fake-model", usage: {} } as const
+			yield {
+				type: "finish",
+				outcome: "cancelled",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,
@@ -1176,7 +1224,13 @@ describe("conversation lifecycle", () => {
 		const main = customService(
 			async function* (input) {
 				prompts.push(input.messages)
-				yield { type: "finish", outcome: "completed", provider: "fake", model: "fake-model", usage: {} } as const
+				yield {
+					type: "finish",
+					outcome: "completed",
+					provider: "openai-compatible",
+					model: "fake-model",
+					usage: {},
+				} as const
 			},
 			{},
 			async (attempt) => {
@@ -1220,9 +1274,14 @@ describe("conversation lifecycle", () => {
 		const first = await instance.service.send({ ...input, requestId: REQUEST_1, text: "hi" })
 		await first.done
 
+		const fields: Annotation = {}
 		await expect(
-			instance.service.send({ ...input, requestId: REQUEST_2, text: "x".repeat(400_000) }),
+			instance.service.send({ ...input, requestId: REQUEST_2, text: "x".repeat(400_000) }, undefined, (annotation) =>
+				Object.assign(fields, annotation),
+			),
 		).rejects.toBeInstanceOf(ConversationTooLongError)
+		expect(fields).toMatchObject({ "chat.new_conversation": false })
+		expect(fields["chat.prompt_characters"]).toBeGreaterThan(400_000)
 
 		// A daily limit of 2 makes a spuriously consumed allowance visible: the next valid send must pass.
 		const followUp = await instance.service.send({ ...input, requestId: REQUEST_2, text: "still fine" })
@@ -1259,7 +1318,7 @@ describe("conversation lifecycle", () => {
 			yield {
 				type: "finish",
 				outcome: "completed",
-				provider: "fake",
+				provider: "openai-compatible",
 				model: "fake-model",
 				usage: {},
 			} as const
@@ -1290,18 +1349,39 @@ describe("conversation lifecycle", () => {
 
 describe("chat retrieval", () => {
 	it("injects retrieved chunks into the user message", async () => {
-		const { createdEmbed } = await fixture()
+		const { createdAgent, createdEmbed } = await fixture()
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["refund policy: 30 days"])
+		const fields: Annotation = {}
 		try {
-			const sent = await instance.service.send({
-				embedToken: createdEmbed.embedToken,
-				credential: CREDENTIAL_1,
-				requestId: REQUEST_1,
-				text: "what is the refund policy",
-				networkHash: "network-a",
-			})
+			const sent = await instance.service.send(
+				{
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "what is the refund policy",
+					networkHash: "network-a",
+				},
+				undefined,
+				(annotation) => Object.assign(fields, annotation),
+			)
 			await sent.done
+			const { "chat.prompt_characters": promptCharacters, ...rest } = fields
+			expect(promptCharacters).toBeGreaterThan(0)
+			expect(rest).toEqual({
+				"agent.id": createdAgent.id,
+				"embed.id": createdEmbed.id,
+				"chat.duplicate": false,
+				"chat.request_id": REQUEST_1,
+				"chat.new_conversation": true,
+				"rag.chunks": 1,
+				"rag.degraded": false,
+				"mcp.servers_degraded": 0,
+				"gen_ai.provider.name": "openai-compatible",
+				"gen_ai.response.model": "fake-model",
+				"gen_ai.usage.input_tokens": 8,
+				"gen_ai.usage.output_tokens": 2,
+			})
 			const systemPrompt = instance.prompts[0]?.[0]
 			expect(systemPrompt).toMatchObject({ role: "system" })
 			expect(systemPrompt?.content).toMatch(/\S\nSystem$/)
@@ -1325,15 +1405,22 @@ describe("chat retrieval", () => {
 		const instance = service()
 		const search = spyOn(knowledge, "searchKnowledge").mockRejectedValue(new Error("embedding down"))
 		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+		const fields: Annotation = {}
 		try {
-			const sent = await instance.service.send({
-				embedToken: createdEmbed.embedToken,
-				credential: CREDENTIAL_1,
-				requestId: REQUEST_1,
-				text: "hello",
-				networkHash: "network-a",
-			})
+			const sent = await instance.service.send(
+				{
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "hello",
+					networkHash: "network-a",
+				},
+				undefined,
+				(annotation) => Object.assign(fields, annotation),
+			)
 			await sent.done
+			expect(fields).toMatchObject({ "rag.degraded": true })
+			expect(fields).not.toHaveProperty("rag.chunks")
 			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
 				"hello",
 				"answer",

@@ -1,4 +1,5 @@
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -26,6 +27,7 @@ export const agentRoutes = new OpenAPIHono()
 	})
 	.openapi(createAgentRoute, async (c) => {
 		const agent = await service.createAgent(c.req.valid("json"))
+		annotate(c, { "agent.id": agent.id })
 		return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getAgentRoute, async (c) => {

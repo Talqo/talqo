@@ -27,6 +27,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
+| pino | Request wide events on stdout | [ADR-0019](adr/0019-emit-wide-events-with-pino.md) |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
 | TanStack Router | Routing and URL state | None |

@@ -1,5 +1,6 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { bodyLimit } from "hono/body-limit"
@@ -57,6 +58,7 @@ const filesRoutes = new OpenAPIHono()
 		if (!(file instanceof File)) {
 			return problemResponse(c, PROBLEM_CODES.AGENT_FILE_INVALID, HTTP_STATUS.BAD_REQUEST)
 		}
+		annotate(c, { "file.extension": files.uploadExtension(file.name), "file.size": file.size })
 		await requireAgent(agentId)
 		files.validateUpload(file)
 		const stored = await files.upload(agentId, file.name, await file.arrayBuffer())

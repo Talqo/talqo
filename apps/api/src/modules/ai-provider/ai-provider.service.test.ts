@@ -86,6 +86,24 @@ describe("AI provider service", () => {
 		expect(await service.canGenerateText()).toBe(false)
 	})
 
+	it("reports whether a save changes the embedding index key", async () => {
+		const { service } = createMemoryService()
+		const changed: (boolean | undefined)[] = []
+		const report = (fields: { "ai.embedding.changed"?: boolean }) => changed.push(fields["ai.embedding.changed"])
+
+		await service.saveConfiguration(input, report)
+		await service.saveConfiguration(
+			{ ...input, expectedRevision: 1, text: { ...input.text, modelId: "gpt-5" } },
+			report,
+		)
+		await service.saveConfiguration(
+			{ ...input, expectedRevision: 2, embedding: { ...input.embedding, modelId: "text-embedding-3-large" } },
+			report,
+		)
+
+		expect(changed).toEqual([true, false, true])
+	})
+
 	it("can generate text while separate embedding credentials are unusable", async () => {
 		const { service, getStored } = createMemoryService()
 		await service.saveConfiguration({
