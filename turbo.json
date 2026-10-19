@@ -54,7 +54,8 @@
 			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
 		},
 		"transit": {
-			"dependsOn": ["^transit"]
+			"dependsOn": ["^transit"],
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
 		},
 		"i18n": {},
 		"i18n:fix": {},
