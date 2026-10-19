@@ -117,7 +117,7 @@ function AgentsPage() {
 									</p>
 								</CardHeader>
 								<CardContent>
-									<AgentCardSummary agentId={agent.id} canManage={canManage} />
+									<AgentCardSummary agentId={agent.id} />
 								</CardContent>
 							</Card>
 						</Link>

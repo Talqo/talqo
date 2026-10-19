@@ -1,6 +1,6 @@
-import { useListAgentFiles } from "@/api/generated/agent/agent"
-import { useListEmbeds } from "@/api/generated/embed/embed"
-import { useListMcpServers } from "@/api/generated/mcp/mcp"
+import { useListAgentFiles } from "@/api/generated/agent/agent.ts"
+import { useListEmbeds } from "@/api/generated/embed/embed.ts"
+import { useListMcpServers } from "@/api/generated/mcp/mcp.ts"
 import { FileText, Globe, type LucideIcon, Wrench } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -24,24 +24,22 @@ function Metric({
 	)
 }
 
-export function AgentCardSummary({ agentId, canManage }: { agentId: string; canManage: boolean }) {
+export function AgentCardSummary({ agentId }: { agentId: string }) {
 	const { t } = useTranslation()
-	const files = useListAgentFiles(agentId, { query: { enabled: canManage } })
+	const files = useListAgentFiles(agentId)
 	const connections = useListMcpServers(agentId)
 	const embeds = useListEmbeds({ agentId })
-	const isError = (canManage && files.isError) || connections.isError || embeds.isError
+	const isError = files.isError || connections.isError || embeds.isError
 
 	return (
 		<div className="space-y-2 border-t pt-3">
 			<div className="flex flex-wrap gap-x-4 gap-y-1">
-				{canManage && (
-					<Metric
-						icon={FileText}
-						label={t("agents.metricFiles")}
-						value={files.data?.data.files.length}
-						isError={files.isError}
-					/>
-				)}
+				<Metric
+					icon={FileText}
+					label={t("agents.metricFiles")}
+					value={files.data?.data.files.length}
+					isError={files.isError}
+				/>
 				<Metric
 					icon={Wrench}
 					label={t("agents.metricConnections")}
