@@ -23,7 +23,7 @@
 		"remark-gfm": "^4.0.1"
 	},
 	"devDependencies": {
-		"@happy-dom/global-registrator": "^20.14.5",
+		"@happy-dom/global-registrator": "^21.0.3",
 		"@tailwindcss/vite": "4.3.3",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.3",
