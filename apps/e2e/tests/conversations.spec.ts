@@ -11,7 +11,6 @@ test.afterEach(async ({ page }) => {
 	if (!fixture) return
 	const { agentId, embedId } = fixture
 	fixture = undefined
-	// The agent goes even when the embed cleanup fails, so no fixture leaks into later specs.
 	const embedDeleted = embedId ? await page.request.delete(`/api/embeds/${embedId}`) : undefined
 	await expect(await page.request.delete(`/api/agents/${agentId}`)).toBeOK()
 	if (embedDeleted) await expect(embedDeleted).toBeOK()
@@ -38,7 +37,6 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 	const { embed } = (await embedResponse.json()) as { embed: { embedToken: string; id: string } }
 	fixture.embedId = embed.id
 
-	// The visitor side is covered by embed.spec.ts; here a chat only needs to exist.
 	const chat = await page.request.post(`/api/chat/${embed.embedToken}/messages`, {
 		headers: { Authorization: `Bearer ${crypto.randomUUID()}` },
 		data: { requestId: crypto.randomUUID(), text: QUESTION },
@@ -54,7 +52,6 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 
 	await expect(page.getByRole("heading", { name: "Conversation", exact: true })).toBeVisible()
 	await expect(page.getByText(QUESTION, { exact: true })).toBeVisible()
-	// fake-provider.ts answers this question with "It ships **tomorrow**.".
 	await expect(page.locator("strong", { hasText: "tomorrow" })).toBeVisible()
 
 	await page.getByRole("button", { name: "Back to conversations" }).click()

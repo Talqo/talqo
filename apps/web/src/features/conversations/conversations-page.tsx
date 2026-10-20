@@ -6,10 +6,9 @@ import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AgentFilter } from "@/features/statistics/components/agent-filter"
 import { agentLineColor } from "@/features/statistics/components/stats-charts"
+import { formatDay, formatTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
-import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { keepPreviousData } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -17,8 +16,6 @@ import { useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { ConversationsSearch } from "./conversations-search"
-
-import { conversationDay, formatConversationTime } from "./conversation-dates"
 
 type Props = {
 	search: ConversationsSearch
@@ -30,7 +27,7 @@ type DayGroup = { day: string; conversations: ConversationSummary[] }
 function groupByDay(conversations: ConversationSummary[], language: string): DayGroup[] {
 	const groups: DayGroup[] = []
 	for (const conversation of conversations) {
-		const day = conversationDay(conversation.startedAt, language)
+		const day = formatDay(conversation.startedAt, language)
 		const last = groups.at(-1)
 		if (last?.day === day) last.conversations.push(conversation)
 		else groups.push({ day, conversations: [conversation] })
@@ -56,8 +53,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	const agentNames = new Map(agentLines.map((line) => [line.id, line.name]))
 	const noAgentSelected = search.agents?.length === 0
 	const conversationsQuery = useListConversations(
-		{ agentId: search.agents, needsAttention: search.attention ? "true" : undefined, page },
-		// The previous page stays on screen while the next one loads, so the pager never jumps.
+		{ agentId: search.agents, page },
 		{ query: { enabled: !noAgentSelected, placeholderData: keepPreviousData } },
 	)
 	const result = conversationsQuery.data?.data
@@ -86,25 +82,6 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 						}
 					/>
 				)}
-				<div className="flex items-center gap-2">
-					<span className="text-muted-foreground text-sm font-medium">{t("conversations.showLabel")}</span>
-					<Select
-						value={search.attention ? "attention" : "all"}
-						onValueChange={(value) =>
-							onSearchChange({ ...search, attention: value === "attention" ? true : undefined, page: undefined })
-						}
-					>
-						<SelectTrigger size="sm" aria-label={t("conversations.showLabel")} className="min-w-40">
-							<SelectValue>
-								{search.attention ? t("conversations.showAttention") : t("conversations.showAll")}
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="start">
-							<SelectItem value="all">{t("conversations.showAll")}</SelectItem>
-							<SelectItem value="attention">{t("conversations.showAttention")}</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
 			</div>
 
 			<section className="space-y-4" aria-busy={conversationsQuery.isFetching}>
@@ -133,7 +110,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 					</div>
 				) : result.conversations.length === 0 ? (
 					<p className="text-muted-foreground" role="status">
-						{search.attention || search.agents ? t("conversations.emptyFiltered") : t("conversations.empty")}
+						{search.agents ? t("conversations.emptyFiltered") : t("conversations.empty")}
 					</p>
 				) : (
 					<>
@@ -155,16 +132,13 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 														{conversation.preview ?? t("conversations.noPreview")}
 													</p>
 													<p className="text-muted-foreground text-xs">
-														{formatConversationTime(conversation.startedAt, language)}
+														{formatTime(conversation.startedAt, language)}
 														{" · "}
 														{agentNames.get(conversation.agentId) ?? t("conversations.unknownAgent")}
 														{" · "}
 														{t("conversations.messageCount", { count: conversation.messageCount })}
 													</p>
 												</div>
-												{conversation.needsAttention && (
-													<Badge variant="destructive">{t("conversations.needsAttention")}</Badge>
-												)}
 												<ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
 											</Link>
 										</li>

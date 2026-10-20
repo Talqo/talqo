@@ -159,7 +159,6 @@ export const conversationListResponseSchema = z
 					startedAt: z.iso.datetime(),
 					messageCount: z.number().int().nonnegative(),
 					preview: z.string().nullable(),
-					needsAttention: z.boolean(),
 				})
 				.openapi("ConversationSummary"),
 		),
@@ -182,18 +181,12 @@ export const conversationTranscriptResponseSchema = z
 	.openapi("ConversationTranscriptResponse")
 
 const listConversationsQuery = z.object({
-	// Hono passes a repeated query key as an array and a single one as a string.
 	agentId: z
 		.preprocess(
 			(value) => (value === undefined || Array.isArray(value) ? value : [value]),
 			z.array(z.uuid()).max(CONVERSATION_AGENT_FILTER_MAX).optional(),
 		)
 		.openapi({ param: { name: "agentId", in: "query", style: "form", explode: true } }),
-	needsAttention: z
-		.enum(["true", "false"])
-		.optional()
-		.transform((value) => value === "true")
-		.openapi({ param: { name: "needsAttention", in: "query" } }),
 	page: z.coerce
 		.number()
 		.int()

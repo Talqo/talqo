@@ -2,6 +2,7 @@ import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetConversation } from "@/api/generated/conversation/conversation.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
+import { formatDateTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Link } from "@tanstack/react-router"
@@ -10,7 +11,6 @@ import { useTranslation } from "react-i18next"
 
 import type { ConversationsSearch } from "./conversations-search"
 
-import { formatConversationDate } from "./conversation-dates"
 import { Transcript } from "./transcript"
 
 export function ConversationPage({
@@ -51,7 +51,7 @@ export function ConversationPage({
 					<PageHeader
 						title={t("conversations.heading")}
 						description={t("conversations.startedAt", {
-							date: formatConversationDate(conversation.startedAt, language),
+							date: formatDateTime(conversation.startedAt, language),
 							agent: agentName ?? t("conversations.unknownAgent"),
 						})}
 					/>

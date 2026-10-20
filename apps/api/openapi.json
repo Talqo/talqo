@@ -1341,12 +1341,9 @@
 					},
 					"preview": {
 						"type": ["string", "null"]
-					},
-					"needsAttention": {
-						"type": "boolean"
 					}
 				},
-				"required": ["id", "agentId", "startedAt", "messageCount", "preview", "needsAttention"]
+				"required": ["id", "agentId", "startedAt", "messageCount", "preview"]
 			},
 			"ConversationTranscriptResponse": {
 				"type": "object",
@@ -7303,15 +7300,6 @@
 						"in": "query",
 						"style": "form",
 						"explode": true
-					},
-					{
-						"schema": {
-							"type": "string",
-							"enum": ["true", "false"]
-						},
-						"required": false,
-						"name": "needsAttention",
-						"in": "query"
 					},
 					{
 						"schema": {

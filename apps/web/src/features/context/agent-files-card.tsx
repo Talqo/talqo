@@ -11,7 +11,8 @@ import {
 	useUploadAgentFile,
 } from "@/api/generated/agent/agent.ts"
 import { ProblemAlert } from "@/components/problem-alert"
-import { formatBytes, formatFileDate, splitExtension } from "@/features/context/format"
+import { formatBytes, splitExtension } from "@/features/context/format"
+import { formatDateTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
@@ -313,7 +314,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 								<div className="min-w-0 flex-1">
 									<p className="truncate text-sm">{file.name}</p>
 									<p className="text-muted-foreground text-xs">
-										{formatBytes(file.sizeBytes)} · {formatFileDate(file.createdAt, language)}
+										{formatBytes(file.sizeBytes)} · {formatDateTime(file.createdAt, language)}
 									</p>
 									<EmbeddingStatusLine file={file} t={t} />
 								</div>

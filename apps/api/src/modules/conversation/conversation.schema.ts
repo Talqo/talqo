@@ -23,7 +23,6 @@ export const conversation = pgTable(
 	"conversation",
 	{
 		id: text("id").primaryKey(),
-		// Operator-facing ID: `id` is the visitor's bearer credential and stays out of URLs (ADR-0014).
 		referenceId: text("reference_id")
 			.notNull()
 			.unique()
@@ -41,7 +40,6 @@ export const conversation = pgTable(
 		index("conversation_agent_id_idx").on(table.agentId),
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
-		// The operator list pages newest first across agents.
 		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
 	],
 )

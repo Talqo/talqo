@@ -589,7 +589,6 @@ type ConversationSummary = {
 	agentId: string
 	id: string
 	messageCount: number
-	needsAttention: boolean
 	preview: string | null
 	startedAt: string
 }
@@ -608,16 +607,9 @@ export type ConversationTranscript = {
 	startedAt: string
 }
 
-export async function listConversations(filter: {
-	agentId?: string[]
-	needsAttention: boolean
-	page: number
-}): Promise<ConversationPage> {
-	// Reads must not show an abandoned reply as still streaming.
-	await repository.recoverExpiredGenerationAttempts()
+export async function listConversations(filter: { agentId?: string[]; page: number }): Promise<ConversationPage> {
 	const { rows, total } = await repository.listConversations({
 		agentIds: filter.agentId,
-		needsAttention: filter.needsAttention,
 		limit: CONVERSATION_PAGE_SIZE,
 		offset: (filter.page - 1) * CONVERSATION_PAGE_SIZE,
 		previewLength: CONVERSATION_PREVIEW_LENGTH,
@@ -627,7 +619,6 @@ export async function listConversations(filter: {
 			id: row.referenceId,
 			agentId: row.agentId,
 			messageCount: row.messageCount,
-			needsAttention: row.needsAttention,
 			preview: row.preview,
 			startedAt: row.createdAt.toISOString(),
 		})),

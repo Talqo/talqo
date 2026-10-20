@@ -601,27 +601,17 @@ export type ConversationSummaryRow = {
 	agentId: string
 	createdAt: Date
 	messageCount: number
-	needsAttention: boolean
 	preview: string | null
 	referenceId: string
 }
 
-// Drizzle renders select-list columns unqualified in single-table queries, so a subquery would
-// rebind them to its own table; the correlated subqueries name both tables explicitly instead.
-// Needs attention: a reply the visitor never got. Cancelling is the visitor's own choice.
-const needsAttention = sql<boolean>`EXISTS (SELECT 1 FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'assistant' AND m.outcome IN ('failed', 'blocked', 'interrupted'))`
-
 export async function listConversations(input: {
 	agentIds: string[] | undefined
 	limit: number
-	needsAttention: boolean
 	offset: number
 	previewLength: number
 }): Promise<{ rows: ConversationSummaryRow[]; total: number }> {
-	const where = and(
-		input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined,
-		input.needsAttention ? needsAttention : undefined,
-	)
+	const where = input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined
 	const [rows, [counted]] = await Promise.all([
 		db
 			.select({
@@ -629,7 +619,6 @@ export async function listConversations(input: {
 				agentId: conversation.agentId,
 				createdAt: conversation.createdAt,
 				messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
-				needsAttention,
 				preview: sql<
 					string | null
 				>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,

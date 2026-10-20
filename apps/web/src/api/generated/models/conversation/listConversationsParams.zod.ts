@@ -13,7 +13,6 @@ export const listConversationsParamsPageMax = 10000
 
 export const ListConversationsParams = zod.object({
 	agentId: zod.array(zod.uuid()).max(listConversationsParamsAgentIdMax).optional(),
-	needsAttention: zod.enum(["true", "false"]).optional(),
 	page: zod.int().min(1).max(listConversationsParamsPageMax).default(listConversationsParamsPageDefault),
 })
 

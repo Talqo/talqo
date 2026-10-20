@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 
 import type { ConversationsSearch as Search } from "./conversations-search"
 
-// Component test files share one process, so only the first one registers the DOM.
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -28,7 +27,6 @@ function summary(id: string, startedAt: string, overrides: Record<string, unknow
 		startedAt,
 		messageCount: 2,
 		preview: `Question ${id}`,
-		needsAttention: false,
 		...overrides,
 	}
 }
@@ -112,10 +110,10 @@ describe("ConversationsPage", () => {
 		expect(host.querySelector("[role=status]")?.textContent).toBe(t("conversations.empty"))
 	})
 
-	test("groups conversations by day and shows their agent and whether they need attention", async () => {
+	test("groups conversations by day and shows their agent", async () => {
 		responses["/api/conversations?page=1"] = () =>
 			list([
-				summary("a", "2026-10-02T10:00:00.000Z", { needsAttention: true }),
+				summary("a", "2026-10-02T10:00:00.000Z"),
 				summary("b", "2026-10-01T10:00:00.000Z", { agentId: DOCS.id, messageCount: 1 }),
 			])
 
@@ -124,20 +122,18 @@ describe("ConversationsPage", () => {
 		expect([...host.querySelectorAll("h3")].map((heading) => heading.textContent)).toHaveLength(2)
 		const rows = [...host.querySelectorAll("li")]
 		expect(rows[0]?.textContent).toContain(SHOP.name)
-		expect(rows[0]?.textContent).toContain(t("conversations.needsAttention"))
 		expect(rows[1]?.textContent).toContain(DOCS.name)
 		expect(rows[1]?.textContent).toContain(t("conversations.messageCount", { count: 1 }))
-		expect(rows[1]?.textContent).not.toContain(t("conversations.needsAttention"))
 		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
 	})
 
 	test("pages through conversations and keeps the filters in each transcript link", async () => {
 		const first = Array.from({ length: 25 }, (_, index) => summary(`p1-${index}`, "2026-10-02T10:00:00.000Z"))
-		responses["/api/conversations?needsAttention=true&page=1"] = () => list(first, 30)
-		responses["/api/conversations?needsAttention=true&page=2"] = () =>
+		responses[`/api/conversations?agentId=${SHOP.id}&page=1`] = () => list(first, 30)
+		responses[`/api/conversations?agentId=${SHOP.id}&page=2`] = () =>
 			list([summary("p2-0", "2026-10-01T10:00:00.000Z")], 30, 2)
 
-		await renderPage({ attention: true })
+		await renderPage({ agents: [SHOP.id] })
 		expect(host.textContent).toContain(t("conversations.pageOf", { page: 1, pages: 2 }))
 		expect(button(t("conversations.previousPage")).disabled).toBe(true)
 
@@ -147,7 +143,9 @@ describe("ConversationsPage", () => {
 		expect(host.textContent).toContain(t("conversations.pageOf", { page: 2, pages: 2 }))
 		expect(host.querySelectorAll("li")).toHaveLength(1)
 		expect(document.activeElement?.tagName).toBe("H2")
-		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/p2-0?attention=true&page=2")
+		expect(host.querySelector("a")?.getAttribute("href")).toBe(
+			`/dashboard/conversations/p2-0?agents=${encodeURIComponent(JSON.stringify([SHOP.id]))}&page=2`,
+		)
 	})
 
 	test("asks for an agent instead of loading when every agent is deselected", async () => {

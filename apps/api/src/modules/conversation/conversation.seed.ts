@@ -188,7 +188,6 @@ const MILLISECONDS_PER_HOUR = 3_600_000
 type TranscriptTurn = { answer: string; outcome: GenerationAttemptOutcome; question: string }
 type TranscriptConversation = { startedHoursAgo: number; turns: TranscriptTurn[] }
 
-// Every reply outcome the transcript view labels, plus the Markdown answers can contain.
 const TRANSCRIPTS: TranscriptConversation[] = [
 	{
 		startedHoursAgo: 72,
@@ -285,7 +284,6 @@ function transcriptRows(now: number) {
 				latestCompletedMessageId = answerId
 				revision += 1
 			}
-			// Usage stays unrecorded: the usage module's recovery records it like any finished reply.
 			attempts.push({
 				id: attemptId,
 				conversationId,
@@ -322,7 +320,6 @@ function transcriptRows(now: number) {
 					role: "assistant",
 					text: turn.answer,
 					outcome: turn.outcome,
-					// Mirrors acceptance, which orders the reply 1 ms after the question.
 					createdAt: new Date(askedAt.getTime() + 1),
 					updatedAt: askedAt,
 				},
@@ -345,7 +342,6 @@ function transcriptRows(now: number) {
 async function seedTranscripts(): Promise<void> {
 	const rows = transcriptRows(Date.now())
 	await db.transaction(async (tx) => {
-		// Upserts keep fixture edits visible on re-seed; usage fields stay untouched so metering never repeats.
 		await tx
 			.insert(conversation)
 			.values(rows.conversations)

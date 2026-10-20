@@ -4,7 +4,6 @@ import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
 import { useTranslation } from "react-i18next"
 
-// The widget styles `.talqo-markdown` in its scoped CSS; the dashboard styles it with theme tokens here.
 const MARKDOWN_CLASS =
 	"space-y-2 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-background/60 [&_code]:px-1 [&_li+li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
 

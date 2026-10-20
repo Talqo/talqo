@@ -1489,21 +1489,9 @@ async function operatorSession(permission?: roles.GrantablePermission): Promise<
 	return cookie
 }
 
-async function* failedGeneration() {
-	yield { type: "start", provider: "fake", model: "fake-model" } as const
-	yield {
-		type: "finish",
-		outcome: "failed",
-		provider: "fake",
-		model: "fake-model",
-		usage: { inputTokens: 1, outputTokens: 0 },
-	} as const
-}
-
 function pageOfTwo(offset: number) {
 	return repository.listConversations({
 		agentIds: undefined,
-		needsAttention: false,
 		limit: 2,
 		offset,
 		previewLength: 10,
@@ -1518,7 +1506,7 @@ describe("operator conversation reads", () => {
 		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
 		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
 
-		const page = await listConversations({ needsAttention: false, page: 1 })
+		const page = await listConversations({ page: 1 })
 
 		expect(page).toMatchObject({ page: 1, pageSize: CONVERSATION_PAGE_SIZE, total: 2 })
 		expect(page.conversations.map((item) => [item.agentId, item.messageCount, item.preview?.length])).toEqual([
@@ -1534,33 +1522,10 @@ describe("operator conversation reads", () => {
 		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "mine")
 		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "theirs")
 
-		const page = await listConversations({ agentId: [first.createdAgent.id], needsAttention: false, page: 1 })
+		const page = await listConversations({ agentId: [first.createdAgent.id], page: 1 })
 
 		expect(page.total).toBe(1)
 		expect(page.conversations.map((item) => item.preview)).toEqual(["mine"])
-	})
-
-	it("flags and filters conversations with a reply the visitor never got", async () => {
-		const { createdEmbed } = await fixture()
-		await chat(createdEmbed.embedToken, CREDENTIAL_1, "answered")
-		const failing = await customService(failedGeneration).send({
-			embedToken: createdEmbed.embedToken,
-			credential: CREDENTIAL_2,
-			requestId: REQUEST_1,
-			text: "unanswered",
-			networkHash: "network-a",
-		})
-		await failing.done
-
-		const all = await listConversations({ needsAttention: false, page: 1 })
-		const flagged = await listConversations({ needsAttention: true, page: 1 })
-
-		expect(all.conversations.map((item) => [item.preview, item.needsAttention])).toEqual([
-			["unanswered", true],
-			["answered", false],
-		])
-		expect(flagged.total).toBe(1)
-		expect(flagged.conversations.map((item) => item.preview)).toEqual(["unanswered"])
 	})
 
 	it("pages by offset without skipping or repeating conversations", async () => {
@@ -1581,7 +1546,7 @@ describe("operator conversation reads", () => {
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
 		const gate = deferred()
 		const abandoned = await customService(async function* () {
-			yield { type: "start", provider: "fake", model: "fake-model" } as const
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			await gate.promise
 		}).send({
 			embedToken: createdEmbed.embedToken,
@@ -1591,7 +1556,7 @@ describe("operator conversation reads", () => {
 			networkHash: "network-a",
 		})
 		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${abandoned.generationId}`
-		const [summary] = (await listConversations({ needsAttention: false, page: 1 })).conversations
+		const [summary] = (await listConversations({ page: 1 })).conversations
 		if (!summary) throw new Error("Expected a conversation")
 
 		const transcript = await getConversationTranscript(summary.id)
@@ -1614,7 +1579,7 @@ describe("operator conversation reads", () => {
 		const cookie = await operatorSession(roles.Permission.ConversationsRead)
 		const get = (path: string) => app.request(`/api/conversations${path}`, { headers: { Cookie: cookie } })
 
-		const list = await get(`?agentId=${createdAgent.id}&needsAttention=false`)
+		const list = await get(`?agentId=${createdAgent.id}`)
 		const listBody = await list.text()
 		const id = (JSON.parse(listBody) as { conversations: { id: string }[] }).conversations[0]?.id
 		const transcript = await get(`/${id}`)

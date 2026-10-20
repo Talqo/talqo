@@ -42,7 +42,6 @@ const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
 	admin: PERMISSIONS.filter((permission) => permission !== "admin"),
 	// Mutating grants imply read access to the same capability; keep this a DAG, never a cycle.
 	"agents:manage": ["agents:read"],
-	// Reading conversations means knowing which agent answered them.
 	"conversations:read": ["agents:read"],
 	"users:manage": ["users:read"],
 	"roles:manage": ["users:read"],
