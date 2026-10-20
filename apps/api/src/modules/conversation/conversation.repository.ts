@@ -1,6 +1,6 @@
 import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
-import { and, asc, count, countDistinct, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import { and, asc, count, countDistinct, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -595,4 +595,56 @@ export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<
 		.where(gte(message.createdAt, cutoff))
 		.groupBy(conversation.agentId)
 		.orderBy(conversation.agentId)
+}
+
+export type ConversationSummaryRow = {
+	agentId: string
+	createdAt: Date
+	messageCount: number
+	preview: string | null
+	referenceId: string
+}
+
+export async function listConversations(input: {
+	agentIds: string[] | undefined
+	limit: number
+	offset: number
+	previewLength: number
+}): Promise<{ rows: ConversationSummaryRow[]; total: number }> {
+	const where = input.agentIds ? inArray(conversation.agentId, input.agentIds) : undefined
+	const [rows, [counted]] = await Promise.all([
+		db
+			.select({
+				referenceId: conversation.referenceId,
+				agentId: conversation.agentId,
+				createdAt: conversation.createdAt,
+				messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
+				preview: sql<
+					string | null
+				>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
+			})
+			.from(conversation)
+			.where(where)
+			.orderBy(desc(conversation.createdAt), desc(conversation.referenceId))
+			.limit(input.limit)
+			.offset(input.offset),
+		db.select({ total: count() }).from(conversation).where(where),
+	])
+	return { rows, total: counted?.total ?? 0 }
+}
+
+export async function findConversationByReference(
+	referenceId: string,
+): Promise<{ agentId: string; createdAt: Date; id: string; referenceId: string } | undefined> {
+	const [row] = await db
+		.select({
+			id: conversation.id,
+			agentId: conversation.agentId,
+			referenceId: conversation.referenceId,
+			createdAt: conversation.createdAt,
+		})
+		.from(conversation)
+		.where(eq(conversation.referenceId, referenceId))
+		.limit(1)
+	return row
 }

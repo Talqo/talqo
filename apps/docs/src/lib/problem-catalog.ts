@@ -150,6 +150,13 @@ export const PROBLEMS = [
 		guidance: "Reload the configuration and retry the change.",
 	},
 	{
+		code: "conversation-not-found",
+		title: "Conversation not found",
+		status: "404",
+		meaning: "The conversation does not exist, or its agent was deleted.",
+		guidance: "Go back to the conversation list and open one from there.",
+	},
+	{
 		code: "current-password-incorrect",
 		title: "Current password incorrect",
 		status: "400",

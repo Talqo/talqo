@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"
 
+import { logIn } from "./log-in"
+
 const DIST = path.resolve(import.meta.dirname, "../../widget/dist")
 const HOST_HTML_PATH = path.resolve(import.meta.dirname, "fixtures/host.html")
 const WEBSITE_ASSISTANT_ID = "11111111-1111-4111-8111-111111111111"
@@ -111,11 +113,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 		.toBeGreaterThanOrEqual(1)
 
 	// Log in through the real web app; the landing page must show the recorded statistics.
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(admin.username)
-	await page.getByLabel("Password", { exact: true }).fill(admin.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	await logIn(page, admin)
 	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
 	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
 	const agentRow = page.getByRole("row", { name: new RegExp(`^${agentName}`) })
@@ -132,11 +130,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 
 test("the agent filter and time range scope the dashboard and ride in the URL", async ({ page }) => {
 	const admin = { username: "admin", password: "admin123" }
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(admin.username)
-	await page.getByLabel("Password", { exact: true }).fill(admin.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	await logIn(page, admin)
 	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
 
 	const websiteAssistantRow = page.getByRole("row", { name: /^Website Assistant/ })

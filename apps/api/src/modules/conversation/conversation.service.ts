@@ -12,6 +12,7 @@ import { z } from "zod"
 
 import { createBlacklistFilter } from "./blacklist.ts"
 import {
+	ConversationNotFoundError,
 	ConversationTooLongError,
 	InvalidChatInputError,
 	ProviderUnavailableError,
@@ -577,4 +578,64 @@ export function getConversationService() {
 		timeoutMs: env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND,
 		prepare: (input) => aiProvider.prepareTextOperation(input),
 	}))
+}
+
+export const CONVERSATION_PAGE_SIZE = 25
+export const CONVERSATION_PAGE_MAX = 10_000
+export const CONVERSATION_AGENT_FILTER_MAX = 100
+const CONVERSATION_PREVIEW_LENGTH = 160
+
+type ConversationSummary = {
+	agentId: string
+	id: string
+	messageCount: number
+	preview: string | null
+	startedAt: string
+}
+
+export type ConversationPage = {
+	conversations: ConversationSummary[]
+	page: number
+	pageSize: number
+	total: number
+}
+
+export type ConversationTranscript = {
+	agentId: string
+	id: string
+	messages: ChatMessage[]
+	startedAt: string
+}
+
+export async function listConversations(filter: { agentId?: string[]; page: number }): Promise<ConversationPage> {
+	const { rows, total } = await repository.listConversations({
+		agentIds: filter.agentId,
+		limit: CONVERSATION_PAGE_SIZE,
+		offset: (filter.page - 1) * CONVERSATION_PAGE_SIZE,
+		previewLength: CONVERSATION_PREVIEW_LENGTH,
+	})
+	return {
+		conversations: rows.map((row) => ({
+			id: row.referenceId,
+			agentId: row.agentId,
+			messageCount: row.messageCount,
+			preview: row.preview,
+			startedAt: row.createdAt.toISOString(),
+		})),
+		page: filter.page,
+		pageSize: CONVERSATION_PAGE_SIZE,
+		total,
+	}
+}
+
+export async function getConversationTranscript(referenceId: string): Promise<ConversationTranscript> {
+	await repository.recoverExpiredGenerationAttempts()
+	const found = await repository.findConversationByReference(referenceId)
+	if (!found) throw new ConversationNotFoundError()
+	return {
+		id: found.referenceId,
+		agentId: found.agentId,
+		startedAt: found.createdAt.toISOString(),
+		messages: (await repository.listMessages(found.id)).map(publicMessage),
+	}
 }

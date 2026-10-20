@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test } from "@playwright/test"
+
+import { logIn } from "./log-in"
 
 const ADMIN = { username: "admin", password: "admin123" }
 
@@ -35,16 +37,8 @@ test.afterEach(async ({ request }) => {
 	).toBeOK()
 })
 
-async function login(page: Page, account: { password: string; username: string }) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(account.username)
-	await page.getByLabel("Password", { exact: true }).fill(account.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
-}
-
 test("granted operator configures text and embedding models", async ({ page }) => {
-	await login(page, ADMIN)
+	await logIn(page, ADMIN)
 	await page.getByRole("link", { name: "AI configuration" }).click()
 
 	const cards = page.locator("[data-slot=card]")
@@ -88,7 +82,7 @@ test("granted operator configures text and embedding models", async ({ page }) =
 })
 
 test("warns before changing the embedding model and allows cancelling", async ({ page }) => {
-	await login(page, ADMIN)
+	await logIn(page, ADMIN)
 	await page.getByRole("link", { name: "AI configuration" }).click()
 	const embeddingCard = page.locator("[data-slot=card]").filter({ has: page.getByText("Embeddings", { exact: true }) })
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()

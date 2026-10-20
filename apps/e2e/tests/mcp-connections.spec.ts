@@ -1,15 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
 
+import { logIn } from "./log-in"
+
 const OPERATOR = { username: "admin", password: "admin123" }
 const SEEDED_AGENT = "Website Assistant"
-
-async function logIn(page: Page) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(OPERATOR.username)
-	await page.getByLabel("Password", { exact: true }).fill(OPERATOR.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
-}
 
 async function seededAgentId(page: Page): Promise<string> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
@@ -45,7 +39,7 @@ async function deleteConnectionIfPresent(page: Page, agentId: string, name: stri
 
 test("operator adds an unreachable http connection, edits it, and removes it", async ({ page }) => {
 	const agentId = await seededAgentId(page)
-	await logIn(page)
+	await logIn(page, OPERATOR)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_http_${Date.now()}`
@@ -79,7 +73,7 @@ test("operator adds an unreachable http connection, edits it, and removes it", a
 
 test("operator adds a stdio connection with tools and the toggle survives reload", async ({ page }) => {
 	const agentId = await seededAgentId(page)
-	await logIn(page)
+	await logIn(page, OPERATOR)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_stdio_${Date.now()}`
@@ -118,7 +112,7 @@ test("operator adds a stdio connection with tools and the toggle survives reload
 
 test("a stored header survives an edit that leaves its value blank", async ({ page }) => {
 	const agentId = await seededAgentId(page)
-	await logIn(page)
+	await logIn(page, OPERATOR)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_secret_${Date.now()}`

@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
+import { logIn } from "./log-in"
+
 const OPERATOR = { username: "admin", password: "admin123" }
 const VIEWER = { username: "user", password: "user1234" }
 const MEMBER = VIEWER
@@ -32,14 +34,6 @@ async function giveViewerRole(page: Page): Promise<string> {
 async function removeViewerRole(page: Page, roleId: string): Promise<void> {
 	await expect(await page.request.post("/api/auth/login", { data: OPERATOR })).toBeOK()
 	await expect(await page.request.delete(`/api/roles/${roleId}`)).toBeOK()
-}
-
-async function logIn(page: Page, account: { password: string; username: string }) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(account.username)
-	await page.getByLabel("Password", { exact: true }).fill(account.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
 }
 
 test("manager creates, configures, and deletes an agent through the real API", async ({ page }) => {

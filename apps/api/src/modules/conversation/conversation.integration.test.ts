@@ -1,5 +1,6 @@
 import type { Annotation } from "@/http/wide-event.ts"
 
+import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import {
@@ -8,14 +9,18 @@ import {
 	type TextMessage,
 } from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
 import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.repository.ts"
 import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
+import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
 import {
 	ConcurrentGenerationLimitError,
+	ConversationNotFoundError,
 	ConversationTooLongError,
 	DailyAllowanceExceededError,
 	EmbedDisabledError,
@@ -25,7 +30,13 @@ import {
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
 import * as repository from "./conversation.repository.ts"
-import { createConversationService, getConversationService } from "./conversation.service.ts"
+import {
+	createConversationService,
+	getConversationService,
+	getConversationTranscript,
+	CONVERSATION_PAGE_SIZE,
+	listConversations,
+} from "./conversation.service.ts"
 
 const REQUEST_1 = "11111111-1111-4111-8111-111111111111"
 const REQUEST_2 = "22222222-2222-4222-8222-222222222222"
@@ -1450,5 +1461,150 @@ describe("chat retrieval", () => {
 		await sent.done
 
 		expect(events.map((event) => event.type)).toEqual(["accepted", "delta", "error"])
+	})
+})
+
+async function chat(embedToken: string, credential: string, text: string): Promise<void> {
+	const sent = await service().service.send({
+		embedToken,
+		credential,
+		requestId: crypto.randomUUID(),
+		text,
+		networkHash: "network-a",
+	})
+	await sent.done
+}
+
+async function operatorSession(permission?: roles.GrantablePermission): Promise<string> {
+	const username = uniqueUsername()
+	const account = await identity.createUser({ username, password: DEFAULT_PASSWORD })
+	if (permission) await giveRole(account.id, [permission])
+	const response = await app.request("/api/auth/login", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
+	})
+	const cookie = response.headers.get("set-cookie")?.split(";")[0]
+	if (!cookie) throw new Error("Expected a session cookie")
+	return cookie
+}
+
+function pageOfTwo(offset: number) {
+	return repository.listConversations({
+		agentIds: undefined,
+		limit: 2,
+		offset,
+		previewLength: 10,
+	})
+}
+
+describe("operator conversation reads", () => {
+	it("lists conversations across agents newest first with previews, counts and owners", async () => {
+		const first = await fixture()
+		const second = await fixture()
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "first visitor")
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
+		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
+
+		const page = await listConversations({ page: 1 })
+
+		expect(page).toMatchObject({ page: 1, pageSize: CONVERSATION_PAGE_SIZE, total: 2 })
+		expect(page.conversations.map((item) => [item.agentId, item.messageCount, item.preview?.length])).toEqual([
+			[second.createdAgent.id, 2, 160],
+			[first.createdAgent.id, 4, "first visitor".length],
+		])
+		expect(page.conversations.map((item) => item.id)).not.toContain(CREDENTIAL_1)
+	})
+
+	it("filters by agent", async () => {
+		const first = await fixture()
+		const second = await fixture()
+		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "mine")
+		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "theirs")
+
+		const page = await listConversations({ agentId: [first.createdAgent.id], page: 1 })
+
+		expect(page.total).toBe(1)
+		expect(page.conversations.map((item) => item.preview)).toEqual(["mine"])
+	})
+
+	it("pages by offset without skipping or repeating conversations", async () => {
+		const { createdEmbed } = await fixture()
+		for (const text of ["one", "two", "three"]) {
+			// oxlint-disable-next-line no-await-in-loop -- start order defines the expected page order.
+			await chat(createdEmbed.embedToken, crypto.randomUUID(), text)
+		}
+
+		const [firstPage, secondPage] = await Promise.all([pageOfTwo(0), pageOfTwo(2)])
+
+		expect([...firstPage.rows, ...secondPage.rows].map((row) => row.preview)).toEqual(["three", "two", "one"])
+		expect([firstPage.total, secondPage.total]).toEqual([3, 3])
+	})
+
+	it("returns a transcript and shows an abandoned reply as interrupted", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
+		const gate = deferred()
+		const abandoned = await customService(async function* () {
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
+			await gate.promise
+		}).send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_2,
+			text: "still there?",
+			networkHash: "network-a",
+		})
+		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${abandoned.generationId}`
+		const [summary] = (await listConversations({ page: 1 })).conversations
+		if (!summary) throw new Error("Expected a conversation")
+
+		const transcript = await getConversationTranscript(summary.id)
+		gate.resolve()
+		await abandoned.done
+
+		expect(transcript.agentId).toBe(createdAgent.id)
+		expect(transcript.messages.map((item) => [item.role, item.text, item.outcome])).toEqual([
+			["user", "hello", "completed"],
+			["assistant", "answer", "completed"],
+			["user", "still there?", "completed"],
+			["assistant", "", "interrupted"],
+		])
+		await expect(getConversationTranscript(crypto.randomUUID())).rejects.toBeInstanceOf(ConversationNotFoundError)
+	})
+
+	it("serves conversations over HTTP to conversations:read without exposing the visitor credential", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
+		const cookie = await operatorSession(roles.Permission.ConversationsRead)
+		const get = (path: string) => app.request(`/api/conversations${path}`, { headers: { Cookie: cookie } })
+
+		const list = await get(`?agentId=${createdAgent.id}`)
+		const listBody = await list.text()
+		const id = (JSON.parse(listBody) as { conversations: { id: string }[] }).conversations[0]?.id
+		const transcript = await get(`/${id}`)
+		const missing = await get(`/${crypto.randomUUID()}`)
+		const otherAgents = await get(`?agentId=${crypto.randomUUID()}&agentId=${crypto.randomUUID()}`)
+		const invalid = await get("?page=0")
+
+		expect(list.status).toBe(200)
+		expect(listBody).not.toContain(CREDENTIAL_1)
+		expect(JSON.parse(listBody)).toMatchObject({ total: 1, page: 1 })
+		expect(transcript.status).toBe(200)
+		expect(await transcript.text()).not.toContain(CREDENTIAL_1)
+		expect(missing.status).toBe(404)
+		expect(await missing.json()).toMatchObject({ code: "conversation-not-found" })
+		expect(await otherAgents.json()).toMatchObject({ conversations: [], total: 0 })
+		expect(invalid.status).toBe(400)
+		expect(await invalid.json()).toMatchObject({ code: "invalid-request" })
+	})
+
+	it("denies operators who can see agents but not conversations", async () => {
+		const cookie = await operatorSession(roles.Permission.AgentsRead)
+
+		const response = await app.request("/api/conversations", { headers: { Cookie: cookie } })
+
+		expect(response.status).toBe(403)
+		expect(await response.json()).toMatchObject({ code: "permission-denied" })
 	})
 })
