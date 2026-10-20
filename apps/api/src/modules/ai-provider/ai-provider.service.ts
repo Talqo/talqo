@@ -1,3 +1,4 @@
+import type { Annotate } from "@/http/wide-event.ts"
 import type { CredentialEnvelope, createCredentialVault } from "@/lib/credential-vault.ts"
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
@@ -11,8 +12,9 @@ import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfi
 import { validateConfigurationInput } from "./ai-provider.configuration.ts"
 import { discoverModels as discoverProviderModels, type DiscoveryRequest } from "./ai-provider.discovery.ts"
 import { createProviderModel } from "./ai-provider.models.ts"
-import { PROVIDER_DEFINITIONS, getProviderDefinition } from "./ai-provider.registry.ts"
+import { type AiProviderId, PROVIDER_DEFINITIONS, getProviderDefinition } from "./ai-provider.registry.ts"
 
+export type { AiProviderId } from "./ai-provider.registry.ts"
 export type { StoredConfiguration } from "./ai-provider.types.ts"
 
 const CONFIG_ID = "singleton"
@@ -131,7 +133,7 @@ async function* invokePreparedOperation(
 		model: LanguageModelV4
 		modelId: string
 		onToolEvent?: (event: ToolEvent) => void
-		providerId: string
+		providerId: AiProviderId
 		signal: AbortSignal
 		toolNames?: Map<string, ToolIdentity>
 		tools?: Record<string, unknown>
@@ -241,6 +243,15 @@ function sameContext(
 	)
 }
 
+// Knowledge base chunks are indexed under this key; a new key makes the worker re-embed every file.
+function embeddingKey(embedding: Pick<StoredEmbeddingConfiguration, "modelId" | "providerId" | "settings">): string {
+	return JSON.stringify([
+		embedding.providerId,
+		embedding.modelId,
+		Object.entries(embedding.settings).toSorted(([a], [b]) => a.localeCompare(b)),
+	])
+}
+
 function requiredCredentialsPresent(providerId: string, credentials: Record<string, string>): boolean {
 	return getProviderDefinition(providerId).requiredCredentialFields.every((field) => credentials[field]?.trim())
 }
@@ -340,7 +351,10 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				return false
 			}
 		},
-		async saveConfiguration(input: SaveConfigurationInput): Promise<RedactedConfiguration> {
+		async saveConfiguration(
+			input: SaveConfigurationInput,
+			annotate: Annotate = () => {},
+		): Promise<RedactedConfiguration> {
 			const existing = await dependencies.repository.find()
 			try {
 				validateConfigurationInput(input, {
@@ -382,6 +396,9 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				input.expectedRevision,
 			)
 			if (!saved) throw new RevisionConflictError("AI provider configuration changed; reload and retry")
+			annotate({
+				"ai.embedding.changed": !existing || embeddingKey(existing.embedding) !== embeddingKey(embedding),
+			})
 			return redact(saved, dependencies.vault)
 		},
 		async discoverModels(input: DiscoverModelsInput): Promise<string[]> {
@@ -432,11 +449,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					credentials,
 				}) as EmbeddingModelV4
 				return {
-					key: JSON.stringify([
-						stored.embedding.providerId,
-						stored.embedding.modelId,
-						Object.entries(stored.embedding.settings).toSorted(([a], [b]) => a.localeCompare(b)),
-					]),
+					key: embeddingKey(stored.embedding),
 					async embed(text: string) {
 						return (await aiEmbed({ model, value: text, maxRetries: 0 })).embedding
 					},
@@ -516,8 +529,8 @@ export async function canGenerateText(): Promise<boolean> {
 	return (await getDefaultService()).canGenerateText()
 }
 
-export async function saveConfiguration(input: SaveConfigurationInput) {
-	return (await getDefaultService()).saveConfiguration(input)
+export async function saveConfiguration(input: SaveConfigurationInput, annotate?: Annotate) {
+	return (await getDefaultService()).saveConfiguration(input, annotate)
 }
 
 export async function discoverModels(input: DiscoverModelsInput) {

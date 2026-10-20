@@ -7,4 +7,8 @@ export function hasMatchedRoute(context: Context): boolean {
 	return matchedRoutes(context).some((route) => route.method !== "ALL")
 }
 
+export function matchedRoutePath(context: Context): string | null {
+	return matchedRoutes(context).findLast((route) => route.method !== "ALL")?.path ?? null
+}
+
 export const API_PREFIX = "/api"

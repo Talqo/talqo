@@ -1,6 +1,7 @@
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
@@ -40,6 +41,7 @@ export const rolesRoutes = new OpenAPIHono()
 	})
 	.openapi(bootstrapAdminRoute, async (c) => {
 		const user = await service.bootstrapAdmin(c.req.valid("json"))
+		annotate(c, { "user.id": user.id })
 		// Set the session now: the setup page lands signed in without a second login round-trip.
 		const { token, expiresAt } = await identity.createSession(user.id)
 		setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
@@ -57,6 +59,7 @@ const invitationRoutes = new OpenAPIHono()
 	})
 	.openapi(redeemInvitationRoute, async (c) => {
 		const user = await service.redeemInvitation(c.req.valid("json"))
+		annotate(c, { "user.id": user.id })
 		// Set the session now: accepting an invitation lands the member signed in.
 		const { token, expiresAt } = await identity.createSession(user.id)
 		setCookie(c, identity.SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })

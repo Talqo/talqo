@@ -1,6 +1,7 @@
 import type { Context } from "hono"
 
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 
 import {
@@ -25,7 +26,7 @@ import * as service from "./embed.service.ts"
 const CONFIG_MAX_AGE_SECONDS = 60
 
 function serveEmbedConfig(c: Context) {
-	return service.getConfigByToken(c.req.param("embedToken")!).then((config) => {
+	return service.getConfigByToken(c.req.param("embedToken")!, annotator(c)).then((config) => {
 		// Availability follows the AI provider, not the embed row, so it must vary the tag too.
 		const etag = `W/"${config.updatedAt.getTime()}-${config.isAvailable ? 1 : 0}"`
 		if (c.req.header("if-none-match") === etag) return c.body(null, HTTP_STATUS.NOT_MODIFIED)
@@ -42,6 +43,7 @@ export const embedRoutes = new OpenAPIHono()
 	})
 	.openapi(createEmbedRoute, async (c) => {
 		const embed = await service.createEmbed(c.req.valid("json"))
+		annotate(c, { "embed.id": embed.id, "agent.id": embed.agentId })
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getEmbedRoute, async (c) => {

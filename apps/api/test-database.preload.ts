@@ -1,4 +1,9 @@
-import { spyOn } from "bun:test"
+import { mock, spyOn } from "bun:test"
+
+// Keeps request logs out of test output; wide-event tests inject their own sink.
+await mock.module("@/http/wide-event-stdout.ts", () => ({
+	stdoutWideEventLog: { write: () => undefined, flush: () => undefined },
+}))
 
 const databaseUrls = (process.env.TALQO_TEST_DATABASE_URLS ?? "")
 	.split(",")
