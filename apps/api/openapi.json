@@ -4585,12 +4585,9 @@
 									"properties": {
 										"embed": {
 											"$ref": "#/components/schemas/Embed"
-										},
-										"isAvailable": {
-											"type": "boolean"
 										}
 									},
-									"required": ["embed", "isAvailable"]
+									"required": ["embed"]
 								}
 							}
 						}

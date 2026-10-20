@@ -42,12 +42,7 @@ function EmbedPreviewPage() {
 			{isLoading ? (
 				<p className="text-muted-foreground mt-4">{t("embedSetup.loading")}</p>
 			) : embed ? (
-				<WidgetPreview
-					appearance={toAppearance(toFormValues(embed))}
-					title={embed.name}
-					previewKey={embed.id}
-					isAvailable={embedResponse?.data.isAvailable}
-				/>
+				<WidgetPreview appearance={toAppearance(toFormValues(embed))} title={embed.name} previewKey={embed.id} />
 			) : (
 				<p className="text-muted-foreground mt-4">{t("embedSetup.notFound")}</p>
 			)}

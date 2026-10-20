@@ -201,7 +201,7 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).appearance.light.primary).toBe("#ff0000")
 	})
 
-	it("reports combined availability in public config and preview, invalidating cached config", async () => {
+	it("reports combined availability in public config, invalidating cached config", async () => {
 		const created = await createEmbed(await createAgent())
 		const before = await app.request(`/api/embed-config/${created.embedToken}`)
 		expect(await before.json()).toMatchObject({ isAvailable: false })
@@ -229,7 +229,6 @@ describe("public config lookup", () => {
 		})
 		expect(after.status).toBe(200)
 		expect(await after.json()).toMatchObject({ isAvailable: true })
-		expect((await service.getEmbedDetail(created.id)).isAvailable).toBe(true)
 
 		await service.disableEmbed(created.id)
 		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
@@ -237,7 +236,6 @@ describe("public config lookup", () => {
 		})
 		expect(disabled.status).toBe(200)
 		expect(await disabled.json()).toMatchObject({ isAvailable: false })
-		expect((await service.getEmbedDetail(created.id)).isAvailable).toBe(false)
 		await service.enableEmbed(created.id)
 		expect((await service.getConfigByToken(created.embedToken)).isAvailable).toBe(true)
 	})
@@ -326,7 +324,7 @@ describe("embed detail route", () => {
 		const response = await app.request(`/api/embeds/${created.id}`, { headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(200)
-		expect(await response.json()).toMatchObject({ embed: { id: created.id }, isAvailable: false })
+		expect(await response.json()).toMatchObject({ embed: { id: created.id } })
 	})
 })
 

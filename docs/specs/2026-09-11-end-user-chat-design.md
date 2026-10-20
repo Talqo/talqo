@@ -252,7 +252,7 @@ Provide a New chat button in the chat-panel header beside the existing theme/clo
 | Failed/cancelled/interrupted/blocked reply | Distinguish partial content from completed messages |
 | Storage unavailable | In-memory operation without promising reload recovery |
 
-Preserve the existing visual language, desktop/mobile behavior, and accessibility. Appearance previews must remain non-billable; do not create sessions or invoke a model merely to render a dashboard preview. If no valid embed exists, the widget cannot silently fall back to a working anonymous chat.
+Preserve the existing visual language, desktop/mobile behavior, and accessibility. Appearance previews stay visible even when the embed cannot reply and remain non-billable; do not create sessions or invoke a model merely to render a dashboard preview. If no valid embed exists, the visitor widget cannot silently fall back to a working anonymous chat.
 
 ## Configuration Policy
 

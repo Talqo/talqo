@@ -162,20 +162,6 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }
 	const preview = page.frameLocator("iframe")
 	await preview.getByRole("button", { name: "Open chat" }).click()
 	await expect(preview.getByRole("dialog")).toBeVisible()
-	await page.locator("iframe").evaluate((frame) =>
-		(frame as HTMLIFrameElement).contentWindow?.postMessage(
-			{
-				source: "talqo-preview",
-				version: 1,
-				type: "config",
-				appearance: {},
-				isAvailable: false,
-			},
-			"*",
-		),
-	)
-	await expect(preview.getByRole("button", { name: "Open chat" })).toHaveCount(0)
-	await expect(preview.getByRole("dialog")).toHaveCount(0)
 })
 
 test("widget fetches its palette by public token across origins", async ({ page, request }, testInfo) => {

@@ -33,8 +33,6 @@ type WidgetPreviewProps = {
 	activeScheme?: "light" | "dark"
 	/** Changing this remounts the frame; appearance edits never do. */
 	previewKey: string
-	/** False hides the widget, as on the visitor's website. */
-	isAvailable?: boolean
 }
 
 function schemeSearchParams(url: URL, prefix: "light" | "dark", scheme: WidgetScheme) {
@@ -94,7 +92,7 @@ function useFrameScale(ref: RefObject<HTMLDivElement | null>): number {
  * Frames the real widget bundle rather than a dashboard-side replica, so the preview
  * cannot drift from what customers see and the widget's scoped CSS stays isolated.
  */
-export function WidgetPreview({ appearance, title, activeScheme, previewKey, isAvailable }: WidgetPreviewProps) {
+export function WidgetPreview({ appearance, title, activeScheme, previewKey }: WidgetPreviewProps) {
 	const { t } = useTranslation()
 	const frameRef = useRef<HTMLDivElement>(null)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -116,11 +114,11 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey, isA
 		const origin = new URL(previewUrl).origin
 		return { expectedOrigin: origin, src, srcDoc: undefined, targetOrigin: origin }
 	})
-	const latest = useRef({ appearance, title, activeScheme, isAvailable })
+	const latest = useRef({ appearance, title, activeScheme })
 	// Out of the `ready` effect's deps to avoid a re-subscribe per keystroke.
 	useEffect(() => {
-		latest.current = { appearance, title, activeScheme, isAvailable }
-	}, [appearance, title, activeScheme, isAvailable])
+		latest.current = { appearance, title, activeScheme }
+	}, [appearance, title, activeScheme])
 
 	const targetOrigin = source.targetOrigin
 
@@ -140,7 +138,7 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey, isA
 				configMessage(latest.current.appearance, {
 					title: latest.current.title,
 					forcedScheme: latest.current.activeScheme,
-					isAvailable: latest.current.isAvailable,
+					isAvailable: true,
 				}),
 				messageTargetOrigin,
 			)
@@ -155,10 +153,10 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey, isA
 		}
 		// Dropped harmlessly if the child is not listening yet; its next `ready` re-syncs.
 		iframeRef.current?.contentWindow?.postMessage(
-			configMessage(appearance, { title, forcedScheme: activeScheme, isAvailable }),
+			configMessage(appearance, { title, forcedScheme: activeScheme, isAvailable: true }),
 			targetOrigin,
 		)
-	}, [appearance, title, activeScheme, isAvailable, targetOrigin])
+	}, [appearance, title, activeScheme, targetOrigin])
 
 	return (
 		<div

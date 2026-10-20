@@ -10,7 +10,6 @@ import { Embed } from "../embed.zod"
 
 export const GetEmbed200 = zod.object({
 	embed: Embed,
-	isAvailable: zod.boolean(),
 })
 
 export type GetEmbed200 = zod.input<typeof GetEmbed200>
