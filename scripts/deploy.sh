@@ -20,7 +20,6 @@ case "$environment" in
 esac
 
 host=${DEPLOY_HOST:?Missing DEPLOY_HOST}
-port=${DEPLOY_PORT:?Missing DEPLOY_PORT}
 account=${DEPLOY_ACCOUNT:?Missing DEPLOY_ACCOUNT}
 [[ -n ${DEPLOY_SSH_KEY:-} && -n ${DEPLOY_HOST_KEY:-} ]] || fail 'Missing SSH keys'
 [[ $DEPLOY_HOST_KEY != *$'\n'* && $DEPLOY_HOST_KEY != *$'\r'* ]] || fail 'Host key must be one line'
@@ -40,14 +39,10 @@ directory=$(mktemp -d)
 trap 'rm -rf "$directory"' EXIT
 
 printf '%s\n' "$DEPLOY_SSH_KEY" > "$directory/key"
-known_host=$host
-if [[ $port != 22 ]]; then
-	known_host="[$host]:$port"
-fi
-printf '%s %s\n' "$known_host" "$DEPLOY_HOST_KEY" > "$directory/known_hosts"
+printf '%s %s\n' "$host" "$DEPLOY_HOST_KEY" > "$directory/known_hosts"
 ssh-keygen -l -f "$directory/known_hosts" > /dev/null
 
-timeout --kill-after=30s 15m ssh -F /dev/null -T -a -x -p "$port" -i "$directory/key" \
+timeout --kill-after=30s 15m ssh -F /dev/null -T -a -x -i "$directory/key" \
 	-o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
 	-o "UserKnownHostsFile=$directory/known_hosts" -o GlobalKnownHostsFile=/dev/null \
 	-o ClearAllForwardings=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \

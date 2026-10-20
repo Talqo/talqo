@@ -1,17 +1,26 @@
-# Required runtime env: none. TALQO_DOCS_PORT defaults to 3002.
-# Build from the repository root: docker build -f apps/docs/Dockerfile .
+FROM oven/bun:1.4.3 AS pruner
+
+WORKDIR /app
+
+COPY package.json ./
+RUN bun install --global "turbo@$(bun -p 'require("./package.json").devDependencies.turbo')"
+
+COPY . .
+RUN turbo prune @talqo/docs --docker
 
 FROM oven/bun:1.4.3 AS build
 
 WORKDIR /app
 
-COPY package.json bun.lock bunfig.toml turbo.json ./
-COPY apps ./apps
-COPY packages ./packages
+COPY --from=pruner /app/out/json/ ./
+COPY bunfig.toml ./
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile && \
-	bunx turbo run build --filter=@talqo/docs
+	bun install --frozen-lockfile
+
+COPY --from=pruner /app/out/full/ ./
+
+RUN bunx turbo run build --filter=@talqo/docs
 
 FROM oven/bun:1.4.3-slim AS runtime
 
