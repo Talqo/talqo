@@ -52,7 +52,6 @@ jobs:
           TALQO_DIGEST: ${{ inputs.talqo-digest }}
           DOCS_DIGEST: ${{ inputs.docs-digest }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
           DEPLOY_ACCOUNT: ${{ vars.DEPLOY_ACCOUNT }}
           DEPLOY_HOST_KEY: ${{ vars.DEPLOY_HOST_KEY }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
