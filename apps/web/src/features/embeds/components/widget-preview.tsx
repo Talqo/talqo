@@ -33,7 +33,7 @@ type WidgetPreviewProps = {
 	activeScheme?: "light" | "dark"
 	/** Changing this remounts the frame; appearance edits never do. */
 	previewKey: string
-	/** False shows the same unavailable state visitors see. */
+	/** False hides the widget, as on the visitor's website. */
 	isAvailable?: boolean
 }
 

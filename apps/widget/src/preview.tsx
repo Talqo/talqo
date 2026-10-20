@@ -42,7 +42,7 @@ export function PreviewWidget({ parentOrigin: configuredParentOrigin }: { parent
 			title={config.title}
 			appearance={config.appearance}
 			forcedScheme={config.forcedScheme}
-			isAvailable={config.isAvailable}
+			isAvailable={config.isAvailable === true}
 		/>
 	)
 }

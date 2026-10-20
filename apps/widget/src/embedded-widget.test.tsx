@@ -123,19 +123,6 @@ describe("title", () => {
 	})
 })
 
-describe("preview availability", () => {
-	test("shows the operator the same unavailable state visitors see", () => {
-		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} isAvailable={false} />)
-		const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")
-		expect(launcher?.className).toContain("tw:bg-muted")
-		act(() => launcher?.click())
-
-		expect(container.querySelector("[role='status']")?.textContent).toContain("isn't available right now")
-		expect(container.textContent).not.toContain("How can I help")
-		expect(container.querySelector<HTMLInputElement>("input[aria-label='Message']")?.disabled).toBe(true)
-	})
-})
-
 const originalMatchMedia = window.matchMedia
 
 function stubMatchMedia(matches: boolean) {

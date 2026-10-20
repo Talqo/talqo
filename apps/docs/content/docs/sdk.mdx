@@ -27,7 +27,7 @@ const chat = createChatClient({
 
 const unsubscribe = chat.subscribe(() => {
 	const state = chat.getSnapshot()
-	// Render state.messages and state.generation in your interface.
+	// Render state.messages and state.activity in your interface.
 	console.log(state)
 })
 
@@ -43,10 +43,10 @@ chat.dispose()
 
 ## State and controls
 
-`getSnapshot()` returns the messages, embed configuration, initialization and generation states, active tool calls, recovery status, and any error. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
+`getSnapshot()` returns messages, configuration, activity, available actions, notices, active tool calls, and any error. Use `isAvailable` to hide an unavailable chat and `actions` to enable `send`, `stop`, `retry`, and `new-chat` controls. The SDK owns lifecycle and recovery decisions. `acceptedMessageId` identifies the latest accepted user message, so a UI can clear its submitted draft without inspecting transcript changes. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
 
 Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a failed response, and `startNewChat()` to clear the current conversation and begin another.
 
-The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. `persistence: "memory"` means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
+The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. A `storage-unavailable` error or notice means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
 
 The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.

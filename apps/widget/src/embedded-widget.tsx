@@ -1,4 +1,4 @@
-import type { ActiveTool, ChatClient, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ActiveTool, ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
 import {
 	DEFAULT_WIDGET_APPEARANCE,
@@ -34,7 +34,7 @@ import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
-import { errorAllowsNewChat, errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
+import { errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { Markdown } from "./components/ui/markdown"
 import { mergeAppearance } from "./lib/embed-config"
@@ -46,11 +46,8 @@ import "./index.css"
 export type EmbeddedWidgetProps = {
 	title?: string
 	appearance?: WidgetAppearanceInput
-	/** Held invisible (but laid out) until the fetched configuration settles. */
-	hidden?: boolean
 	/** Preview-only: pins the scheme to whichever tab the operator is editing. */
 	forcedScheme?: ColorScheme
-	unavailable?: boolean
 	/** Preview-only: mirrors the deployment's reply availability without an SDK client. */
 	isAvailable?: boolean
 }
@@ -155,44 +152,33 @@ function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement 
 	}
 }
 
-type ChatPresentation = {
-	snapshot?: ChatSnapshot
-	client?: ChatClient
-	unavailable?: boolean
-	isAvailable?: boolean
-}
-
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
 const EMPTY_TOOLS: readonly ActiveTool[] = []
 
-/** Distance from the bottom that still counts as "at the bottom" for autoscroll. */
 const STICKY_SCROLL_THRESHOLD_PX = 48
 
 function WidgetChat({
 	title,
 	appearance,
-	hidden,
 	forcedScheme,
 	snapshot,
 	client,
-	unavailable,
-	isAvailable,
 }: {
 	title?: string
 	appearance: WidgetAppearance
-	hidden?: boolean
 	forcedScheme?: ColorScheme
-} & ChatPresentation) {
+	snapshot?: ChatSnapshot
+	client?: ChatClient
+}) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
 	const [draft, setDraft] = useState("")
-	const [submitting, setSubmitting] = useState(false)
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const draftRef = useRef("")
-	const pendingSend = useRef<{ originalDraft: string; text: string; messageIds: Set<string> } | undefined>(undefined)
+	const pendingSend = useRef<{ draft: string; acceptedMessageId: string | undefined } | undefined>(undefined)
 	const wasOpen = useRef(false)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const stickToBottomRef = useRef(true)
@@ -201,32 +187,10 @@ function WidgetChat({
 	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
-	const initialization = snapshot?.initialization ?? (unavailable ? "error" : "ready")
-	const generation = snapshot?.generation ?? "idle"
-	const resetting = snapshot?.reset === "resetting"
-	const activeGeneration = generation !== "idle"
-	const unusable = unavailable || initialization === "error"
-	const cannotReply = (snapshot?.configuration?.isAvailable ?? isAvailable) === false
-	const disabled = unusable || cannotReply || initialization !== "ready" || resetting || activeGeneration || submitting
-	// A missing provider is setup state, not a visitor error, so it replaces any older error.
-	const visibleError: ChatError | undefined = unavailable
-		? { code: "embed-not-found" }
-		: cannotReply
-			? undefined
-			: snapshot?.error
-	const hasStreamingAssistant = messages.some(
-		(message) => message.role === "assistant" && message.outcome === "streaming",
-	)
-	const showPendingResponse =
-		(submitting || generation === "sending" || generation === "streaming") && !hasStreamingAssistant
-	const canStartNewChat =
-		client !== undefined &&
-		!resetting &&
-		(initialization === "ready" ||
-			(initialization === "error" &&
-				snapshot?.configuration !== undefined &&
-				visibleError !== undefined &&
-				errorAllowsNewChat(visibleError)))
+	const activity = snapshot?.activity ?? "idle"
+	const disabled = snapshot ? !snapshot.actions.includes("send") : false
+	const visibleError = snapshot?.error
+	const canStartNewChat = snapshot?.actions.includes("new-chat") === true
 
 	useEffect(() => {
 		draftRef.current = draft
@@ -234,18 +198,10 @@ function WidgetChat({
 
 	useEffect(() => {
 		const pending = pendingSend.current
-		if (!pending) return
-		const accepted = messages.some(
-			(message) =>
-				!pending.messageIds.has(message.id) &&
-				message.role === "user" &&
-				message.text === pending.text &&
-				message.outcome === "completed",
-		)
-		if (!accepted) return
+		if (!pending || !snapshot?.acceptedMessageId || snapshot.acceptedMessageId === pending.acceptedMessageId) return
 		pendingSend.current = undefined
-		if (draftRef.current === pending.originalDraft) setDraft("")
-	}, [messages])
+		if (draftRef.current === pending.draft) setDraft("")
+	}, [snapshot?.acceptedMessageId])
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -268,7 +224,6 @@ function WidgetChat({
 			element.scrollHeight - element.scrollTop - element.clientHeight <= STICKY_SCROLL_THRESHOLD_PX
 	}
 
-	// Reopening starts pinned to the latest message.
 	useLayoutEffect(() => {
 		if (open) {
 			stickToBottomRef.current = true
@@ -283,8 +238,6 @@ function WidgetChat({
 		}
 	})
 
-	// Precedence: visitor, then operator, then host.
-	// `forcedScheme` is preview-only and pins whichever tab the operator is editing.
 	const operatorScheme: ColorScheme =
 		appearance.theme === "system" ? (prefersDark ? "dark" : "light") : appearance.theme
 	const scheme = forcedScheme ?? visitorScheme ?? operatorScheme
@@ -296,20 +249,17 @@ function WidgetChat({
 		if (!text || disabled || !client) {
 			return
 		}
-		pendingSend.current = { originalDraft: draft, text, messageIds: new Set(messages.map(({ id }) => id)) }
+		pendingSend.current = { draft, acceptedMessageId: snapshot?.acceptedMessageId }
 		stickToBottomRef.current = true
-		setSubmitting(true)
 		try {
 			await client.sendMessage(text)
 		} catch {
-			pendingSend.current = undefined
-		} finally {
-			setSubmitting(false)
+			// An uncertain send can still be accepted during SDK recovery.
 		}
 	}
 
 	async function handleNewChat() {
-		if (!canStartNewChat) return
+		if (!canStartNewChat || !client) return
 		stickToBottomRef.current = true
 		try {
 			await client.startNewChat()
@@ -342,8 +292,6 @@ function WidgetChat({
 		"--talqo-background-input": active.background,
 		"--talqo-surface-input": active.surface,
 		"--talqo-text-input": active.text,
-		// visibility, not display: nothing shifts when the fetched configuration paints.
-		...(hidden && { visibility: "hidden" }),
 	} as CSSProperties
 
 	const panelStyle: CSSProperties = size ? { width: size.width, height: size.height } : {}
@@ -376,8 +324,6 @@ function WidgetChat({
 					}}
 				>
 					{resizable && (
-						// Only the corner grip: it resizes width and height in one drag and
-						// never collides with the header like the edge handles did.
 						<div
 							aria-hidden="true"
 							data-testid="resize-corner"
@@ -390,7 +336,6 @@ function WidgetChat({
 							)}
 							onPointerDown={startResize}
 						>
-							{/* Diagonal grip lines hinting the panel can be stretched. */}
 							<ResizeGripIcon
 								aria-hidden="true"
 								className={cn(
@@ -442,17 +387,10 @@ function WidgetChat({
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
 						<BubbleGroup>
-							{messages.length === 0 && initialization === "ready" && !unusable && !cannotReply && (
+							{messages.length === 0 && activity === "idle" && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
 										{t("greeting")}
-									</BubbleContent>
-								</Bubble>
-							)}
-							{cannotReply && !unavailable && (
-								<Bubble align="start">
-									<BubbleContent role="status" variant="muted" className="tw:text-muted-foreground">
-										{t("chatUnavailable")}
 									</BubbleContent>
 								</Bubble>
 							)}
@@ -466,20 +404,16 @@ function WidgetChat({
 									</BubbleContent>
 								</Bubble>
 							)}
-							{showPendingResponse && (
+							{activity === "sending" && (
 								<Bubble align="start">
 									<BubbleContent variant="muted" className="tw:text-foreground">
 										<ResponseIndicator label={t("agentResponding")} />
 									</BubbleContent>
 								</Bubble>
 							)}
-							{initialization === "loading" && (
-								<p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
-							)}
-							{snapshot?.recovery === "pending" && (
-								<p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
-							)}
-							{snapshot?.recovery === "unavailable" && (
+							{activity === "loading" && <p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>}
+							{activity === "recovering" && <p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>}
+							{snapshot?.notices.includes("recovery-unavailable") && (
 								<p
 									role="alert"
 									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
@@ -487,7 +421,7 @@ function WidgetChat({
 									{t("recoveryUnavailable")}
 								</p>
 							)}
-							{snapshot?.persistence === "memory" && snapshot.error?.code !== "storage-unavailable" && (
+							{snapshot?.notices.includes("storage-unavailable") && (
 								<p
 									role="status"
 									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
@@ -501,26 +435,25 @@ function WidgetChat({
 									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
 								>
 									<p>{errorText(visibleError, t)}</p>
-									{visibleError.code === "chat-daily-allowance-exceeded" &&
-										(visibleError.retryAt ?? snapshot?.retryAt) && (
-											<time dateTime={visibleError.retryAt ?? snapshot?.retryAt}>
-												{t("allowanceReset", {
-													reset: new Date((visibleError.retryAt ?? snapshot?.retryAt)!).toLocaleString(),
-												})}
-											</time>
-										)}
+									{visibleError.retryAt && (
+										<time dateTime={visibleError.retryAt}>
+											{t("retryAfter", {
+												reset: new Date(visibleError.retryAt).toLocaleString(),
+											})}
+										</time>
+									)}
 									{visibleError.retriable === true && (
 										<button
 											type="button"
 											onClick={() => void handleRetry()}
-											disabled={resetting}
+											disabled={!snapshot?.actions.includes("retry")}
 											aria-label={t("retry")}
 											className="tw:rounded-control tw:border tw:border-destructive tw:px-3 tw:py-2 tw:text-destructive tw:disabled:opacity-50"
 										>
 											{t("retry")}
 										</button>
 									)}
-									{errorAllowsNewChat(visibleError) && (
+									{visibleError.newChatAvailable && (
 										<button
 											type="button"
 											onClick={() => void handleNewChat()}
@@ -547,12 +480,12 @@ function WidgetChat({
 							disabled={disabled}
 							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:disabled:opacity-50"
 						/>
-						{activeGeneration ? (
+						{snapshot?.actions.includes("stop") || activity === "stopping" ? (
 							<button
 								type="button"
 								onClick={() => void handleCancel()}
-								aria-label={generation === "cancelling" ? t("stopping") : t("stopGenerating")}
-								disabled={generation === "cancelling"}
+								aria-label={activity === "stopping" ? t("stopping") : t("stopGenerating")}
+								disabled={activity === "stopping"}
 								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
 							>
 								<StopIcon aria-hidden="true" />
@@ -577,11 +510,7 @@ function WidgetChat({
 				aria-label={open ? t("closeChat") : t("openChat")}
 				aria-expanded={open}
 				aria-haspopup="dialog"
-				title={cannotReply ? t("chatUnavailable") : undefined}
-				className={cn(
-					"tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:shadow-lg tw:transition-transform tw:hover:scale-105",
-					cannotReply ? "tw:bg-muted tw:text-muted-foreground" : "tw:bg-primary tw:text-primary-foreground",
-				)}
+				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
 			>
 				<ChatIcon aria-hidden="true" />
 			</button>
@@ -589,14 +518,7 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({
-	title,
-	appearance,
-	hidden,
-	forcedScheme,
-	unavailable,
-	isAvailable,
-}: EmbeddedWidgetProps) {
+export function EmbeddedWidget({ title, appearance, forcedScheme, isAvailable }: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -604,37 +526,24 @@ export function EmbeddedWidget({
 		void i18n.changeLanguage(resolved.language)
 	}, [i18n, resolved.language])
 
+	if (isAvailable === false) return null
+
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat
-				title={title}
-				appearance={resolved}
-				hidden={hidden}
-				forcedScheme={forcedScheme}
-				unavailable={unavailable}
-				isAvailable={isAvailable}
-			/>
+			<WidgetChat title={title} appearance={resolved} forcedScheme={forcedScheme} />
 		</I18nextProvider>
 	)
 }
 
-export function ConnectedEmbeddedWidget({
-	client,
-	title,
-	appearance,
-	hidden,
-	forcedScheme,
-}: ConnectedEmbeddedWidgetProps) {
+export function ConnectedEmbeddedWidget({ client, title, appearance, forcedScheme }: ConnectedEmbeddedWidgetProps) {
 	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
-	const [initializationFailed, setInitializationFailed] = useState(false)
 
 	useEffect(() => {
-		void client.initialize().catch(() => setInitializationFailed(true))
+		void client.initialize().catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
 		return () => client.dispose()
 	}, [client])
 
-	// Render nothing for a disabled embed: the content component (and its i18n setup) never mounts.
-	if (snapshot.configuration?.isDisabled === true) {
+	if (!snapshot.isAvailable) {
 		return null
 	}
 
@@ -642,10 +551,8 @@ export function ConnectedEmbeddedWidget({
 		<ConnectedWidgetContent
 			client={client}
 			snapshot={snapshot}
-			initializationFailed={initializationFailed}
 			title={title}
 			appearance={appearance}
-			hidden={hidden}
 			forcedScheme={forcedScheme}
 		/>
 	)
@@ -654,12 +561,10 @@ export function ConnectedEmbeddedWidget({
 function ConnectedWidgetContent({
 	client,
 	snapshot,
-	initializationFailed,
 	title,
 	appearance,
-	hidden,
 	forcedScheme,
-}: ConnectedEmbeddedWidgetProps & { snapshot: ChatSnapshot; initializationFailed: boolean }) {
+}: ConnectedEmbeddedWidgetProps & { snapshot: ChatSnapshot }) {
 	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
 	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
@@ -673,16 +578,9 @@ function ConnectedWidgetContent({
 			<WidgetChat
 				title={title ?? snapshot.configuration?.title}
 				appearance={resolved}
-				hidden={
-					hidden ||
-					(snapshot.configuration === undefined && !initializationFailed && snapshot.initialization !== "error")
-				}
 				forcedScheme={forcedScheme}
 				snapshot={snapshot}
 				client={client}
-				unavailable={
-					initializationFailed && snapshot.initialization !== "error" && snapshot.configuration === undefined
-				}
 			/>
 		</I18nextProvider>
 	)

@@ -4,8 +4,7 @@ import type { AsyncStorage } from "./storage.ts"
 export type ChatConfiguration = {
 	readonly title: string
 	readonly appearance: Readonly<Record<string, unknown>>
-	readonly isDisabled: boolean
-	/** False while the deployment cannot generate replies; sending is refused until it changes. */
+	/** Requires an enabled embed and a usable text provider. */
 	readonly isAvailable: boolean
 }
 
@@ -75,17 +74,16 @@ export type ChatError = {
 }
 
 export type ChatSnapshot = {
+	/** False before configuration loads or when the embed cannot reply. Turn errors do not change availability. */
+	readonly isAvailable: boolean
 	readonly configuration: ChatConfiguration | undefined
 	readonly messages: readonly ChatMessage[]
-	readonly initialization: "idle" | "loading" | "ready" | "error"
-	readonly generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling"
-	readonly reset: "idle" | "resetting"
-	/** In-flight tool calls. Updated on tool-start/end, independent of deltas. */
+	readonly activity: "idle" | "loading" | "sending" | "responding" | "stopping" | "recovering" | "resetting" | "blocked"
+	readonly actions: readonly ("send" | "stop" | "retry" | "new-chat")[]
+	readonly notices: readonly ("storage-unavailable" | "recovery-unavailable")[]
+	readonly acceptedMessageId: string | undefined
 	readonly activeTools: readonly ActiveTool[]
-	readonly persistence: "persistent" | "memory"
-	readonly recovery: "idle" | "pending" | "unavailable"
 	readonly error: ChatError | undefined
-	readonly retryAt: string | undefined
 }
 
 export type SessionState = {

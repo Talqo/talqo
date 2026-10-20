@@ -11,24 +11,22 @@ const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 
 const READY_SNAPSHOT: ChatSnapshot = {
+	isAvailable: true,
 	configuration: {
 		title: "SDK support",
 		appearance: {
 			theme: "light",
 			light: { primary: "#123456", background: "#fefefe" },
 		},
-		isDisabled: false,
 		isAvailable: true,
 	},
 	messages: [],
-	initialization: "ready",
-	generation: "idle",
-	reset: "idle",
+	activity: "idle",
+	actions: ["send", "new-chat"],
+	notices: [],
+	acceptedMessageId: undefined,
 	activeTools: [],
-	persistence: "persistent",
-	recovery: "idle",
 	error: undefined,
-	retryAt: undefined,
 }
 
 const noopAction = async () => {}
@@ -186,7 +184,8 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("renders SDK transcript updates and cancellation with partial cancelled output", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			generation: "streaming",
+			activity: "responding",
+			actions: ["stop", "new-chat"],
 			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -236,7 +235,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("shows an accessible animated response indicator only until text arrives", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			generation: "sending",
+			activity: "sending",
 			messages: [message("u1", "user", "Hello", "completed")],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -248,7 +247,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				generation: "streaming",
+				activity: "responding",
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "streaming")],
 			}),
 		)
@@ -257,7 +256,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				generation: "streaming",
+				activity: "responding",
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
 			}),
 		)
@@ -268,12 +267,12 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("trims sends, prevents duplicate submissions, and clears only after SDK acceptance", async () => {
 		const store = fakeClient()
 		let finish!: () => void
-		store.onSend(
-			() =>
-				new Promise<void>((resolve) => {
-					finish = resolve
-				}),
-		)
+		store.onSend(() => {
+			store.setSnapshot({ ...READY_SNAPSHOT, activity: "sending", actions: ["stop", "new-chat"] })
+			return new Promise<void>((resolve) => {
+				finish = resolve
+			})
+		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 		await draft("  hello  ")
@@ -285,7 +284,8 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				generation: "streaming",
+				activity: "responding",
+				acceptedMessageId: "u1",
 				messages: [message("u1", "user", "hello", "completed")],
 			}),
 		)
@@ -293,7 +293,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () => finish())
 	})
 
-	test("rejects empty input and preserves a draft when a pre-accept send rejects", async () => {
+	test("rejects empty input and retains a failed send's draft until SDK acceptance", async () => {
 		const store = fakeClient()
 		store.onSend(async () => {
 			throw new Error("rejected")
@@ -308,6 +308,8 @@ describe("ConnectedEmbeddedWidget", () => {
 		await submit()
 		expect(store.calls.sends).toEqual(["keep this"])
 		expect(input().value).toBe("keep this")
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, acceptedMessageId: "recovered-user" }))
+		expect(input().value).toBe("")
 	})
 
 	test("offers new chat for any conversation, preserving draft and focusing after success", async () => {
@@ -363,51 +365,22 @@ describe("ConnectedEmbeddedWidget", () => {
 			store.setSnapshot({
 				...READY_SNAPSHOT,
 				messages: [message("u1", "user", "Full", "completed")],
-				error: error("chat-conversation-too-long"),
+				error: error("chat-conversation-too-long", { newChatAvailable: true }),
 			}),
 		)
 		expect(host.textContent).toContain("conversation is full")
 		expect(host.querySelectorAll("button[aria-label='New chat']").length).toBe(2)
 	})
 
-	test("a disabled embed renders nothing and never sends", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			configuration: { title: "SDK support", appearance: {}, isDisabled: true, isAvailable: true },
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-
-		expect(host.textContent).toBe("")
-		expect(store.calls.sends).toEqual([])
-	})
-
-	test("an embed that cannot reply greys out the launcher, explains it calmly, and blocks the composer", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			configuration: { title: "SDK support", appearance: {}, isDisabled: false, isAvailable: false },
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-
-		expect(host.querySelector("button[aria-haspopup=dialog]")?.className).toContain("tw:bg-muted")
-		await openChat()
-
-		expect(host.querySelector("[role='status']")?.textContent).toContain("isn't available right now")
-		expect(host.querySelector("[role='alert']")).toBeNull()
-		expect(host.textContent).not.toContain("How can I help")
-		expect(input().disabled).toBe(true)
-	})
-
-	test("an embed that cannot reply shows the setup state instead of an older error", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			configuration: { title: "SDK support", appearance: {}, isDisabled: false, isAvailable: false },
-			error: error("provider-error"),
-		})
+	test("SDK availability hides an open widget and restores its launcher", async () => {
+		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
-
-		expect(host.textContent).toContain("isn't available right now")
-		expect(host.querySelector("[role='alert']")).toBeNull()
+		expect(host.querySelector("[role='dialog']")).not.toBeNull()
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, isAvailable: false }))
+		expect(host.childElementCount).toBe(0)
+		await act(async () => store.setSnapshot(READY_SNAPSHOT))
+		expect(host.querySelector("button[aria-haspopup=dialog]")).not.toBeNull()
 	})
 
 	test("offers an explicit retry only for a retriable failed turn", async () => {
@@ -415,6 +388,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			...READY_SNAPSHOT,
 			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
 			error: error("provider-error", { retriable: true }),
+			actions: ["send", "retry", "new-chat"],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
@@ -427,7 +401,8 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				reset: "resetting",
+				activity: "resetting",
+				actions: [],
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
 				error: error("provider-error", { retriable: true }),
 			}),
@@ -441,8 +416,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("renders recovery and storage error notices", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			persistence: "memory",
-			recovery: "unavailable",
+			notices: ["storage-unavailable", "recovery-unavailable"],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
@@ -458,9 +432,10 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("offers new chat when a revoked stored session has no loadable messages", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			initialization: "error",
+			activity: "blocked",
+			actions: ["new-chat"],
 			messages: [],
-			error: error("chat-session-unauthorized"),
+			error: error("chat-session-unauthorized", { newChatAvailable: true }),
 		})
 		store.onInitialize(async () => {
 			throw new Error("revoked")
@@ -480,7 +455,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	})
 
 	test("renders a loading state while initializing", async () => {
-		const store = fakeClient({ ...READY_SNAPSHOT, initialization: "loading" })
+		const store = fakeClient({ ...READY_SNAPSHOT, activity: "loading", actions: [] })
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 		expect(host.textContent).toContain("Loading chat")
@@ -506,9 +481,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	test("renders recovery progress, protocol errors, and retry time", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			generation: "recovery",
-			recovery: "pending",
-			retryAt: "2026-09-13T00:00:00Z",
+			activity: "recovering",
 			error: error("invalid-response"),
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -519,8 +492,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				retryAt: "2026-09-13T00:00:00Z",
-				error: error("chat-daily-allowance-exceeded"),
+				error: error("chat-daily-allowance-exceeded", { retryAt: "2026-09-13T00:00:00Z" }),
 			}),
 		)
 		expect(host.querySelector("time")?.dateTime).toBe("2026-09-13T00:00:00Z")
@@ -600,7 +572,7 @@ describe("transcript autoscroll", () => {
 	test("follows streamed text growth while pinned", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			generation: "streaming",
+			activity: "responding",
 			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -612,7 +584,7 @@ describe("transcript autoscroll", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				generation: "streaming",
+				activity: "responding",
 				messages: [
 					message("u1", "user", "Hello", "completed"),
 					message("a1", "assistant", "Part one and part two", "streaming"),
@@ -626,7 +598,7 @@ describe("transcript autoscroll", () => {
 	test("leaves a scrolled-up visitor alone while the response streams", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
-			generation: "streaming",
+			activity: "responding",
 			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
 		})
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
@@ -638,7 +610,7 @@ describe("transcript autoscroll", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
-				generation: "streaming",
+				activity: "responding",
 				messages: [
 					message("u1", "user", "Hello", "completed"),
 					message("a1", "assistant", "Part one and part two", "streaming"),
@@ -665,6 +637,7 @@ describe("transcript autoscroll", () => {
 		await act(async () =>
 			store.setSnapshot({
 				...READY_SNAPSHOT,
+				acceptedMessageId: "u2",
 				messages: [message("u1", "user", "First", "completed"), message("u2", "user", "second", "completed")],
 			}),
 		)

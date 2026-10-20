@@ -969,14 +969,11 @@
 					"appearance": {
 						"$ref": "#/components/schemas/EmbedAppearance"
 					},
-					"isDisabled": {
-						"type": "boolean"
-					},
 					"isAvailable": {
 						"type": "boolean"
 					}
 				},
-				"required": ["version", "name", "appearance", "isDisabled", "isAvailable"]
+				"required": ["version", "name", "appearance", "isAvailable"]
 			},
 			"ChatEventV1": {
 				"oneOf": [

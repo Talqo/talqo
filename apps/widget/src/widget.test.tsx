@@ -2,17 +2,6 @@ import { beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
 
-/** mount() commits outside act(), so the rendered root appears on a later tick. */
-async function widgetRoot(): Promise<HTMLElement> {
-	for (let attempt = 0; attempt < 50; attempt += 1) {
-		const element = document.querySelector(".talqo-widget")
-		if (element instanceof HTMLElement) return element
-		// eslint-disable-next-line no-await-in-loop -- each tick lets React commit.
-		await new Promise((resolve) => setTimeout(resolve, 1))
-	}
-	throw new Error("widget root never rendered")
-}
-
 describe("widget mount", () => {
 	beforeEach(() => {
 		unmount()
@@ -45,11 +34,11 @@ describe("widget mount", () => {
 		expect(document.querySelector("#talqo-widget")).toBeNull()
 	})
 
-	// No token in this harness, so nothing is fetched and nothing may stay hidden.
-	test("paints visible when there is no widget token to fetch", async () => {
+	test("warns and renders no widget without an embed token", () => {
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		mount()
-
-		expect((await widgetRoot()).style.visibility).toBe("")
+		expect(document.querySelector("#talqo-widget")?.childElementCount).toBe(0)
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: embed token or API origin missing")
 	})
 
 	test("does not reach the network without a widget token", () => {

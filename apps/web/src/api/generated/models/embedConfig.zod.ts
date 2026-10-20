@@ -12,7 +12,6 @@ export const EmbedConfig = zod.object({
 	version: zod.number(),
 	name: zod.string(),
 	appearance: EmbedAppearance,
-	isDisabled: zod.boolean(),
 	isAvailable: zod.boolean(),
 })
 

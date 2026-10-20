@@ -25,7 +25,6 @@ export type Embed = {
 export type EmbedConfig = {
 	appearance: WidgetAppearance
 	isAvailable: boolean
-	isDisabled: boolean
 	name: string
 	updatedAt: Date
 	version: number
@@ -164,7 +163,7 @@ async function setDisabled(id: string, isDisabled: boolean): Promise<Embed> {
 
 export async function getEmbedDetail(id: string): Promise<{ embed: Embed; isAvailable: boolean }> {
 	const embed = await getEmbed(id)
-	return { embed, isAvailable: await aiProvider.canGenerateText() }
+	return { embed, isAvailable: !embed.isDisabled && (await aiProvider.canGenerateText()) }
 }
 
 export async function deleteEmbed(id: string): Promise<void> {
@@ -178,8 +177,8 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	annotate({ "embed.id": row.id, "agent.id": row.agentId })
 	const { name, appearance, isDisabled } = toEmbed(row)
-	const isAvailable = await aiProvider.canGenerateText()
-	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, isDisabled, updatedAt: row.updatedAt }
+	const isAvailable = !isDisabled && (await aiProvider.canGenerateText())
+	return { version: WIDGET_CONFIG_VERSION, name, appearance, isAvailable, updatedAt: row.updatedAt }
 }
 
 export async function getEmbedByToken(embedToken: string): Promise<Embed> {

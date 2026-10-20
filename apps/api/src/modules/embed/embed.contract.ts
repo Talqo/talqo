@@ -80,8 +80,7 @@ export const embedConfigResponseSchema = z
 		version: z.number(),
 		name: z.string(),
 		appearance: appearanceResponseSchema,
-		isDisabled: z.boolean(),
-		// False until the deployment has a usable AI provider: the chat cannot reply yet.
+		// Requires an enabled embed and a usable text provider.
 		isAvailable: z.boolean(),
 	})
 	.openapi("EmbedConfig")

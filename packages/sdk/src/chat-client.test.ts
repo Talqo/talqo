@@ -13,7 +13,6 @@ import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from
 const configuration: ChatConfiguration = {
 	title: "Support",
 	appearance: { primary: "#123456" },
-	isDisabled: false,
 	isAvailable: true,
 }
 
@@ -180,19 +179,45 @@ describe("createChatClient", () => {
 		})
 		const client = createChatClient({ apiUrl: "https://api.example.test", embedToken: "embed", storage, transport })
 
+		expect(client.getSnapshot().isAvailable).toBe(false)
+		expect(client.getSnapshot().actions).toEqual([])
 		await client.initialize()
 
-		expect(client.getSnapshot()).toMatchObject({ initialization: "ready", configuration, persistence: "persistent" })
+		expect(client.getSnapshot()).toMatchObject({
+			isAvailable: true,
+			activity: "idle",
+			configuration,
+			notices: [],
+			actions: ["send", "new-chat"],
+		})
 		expect(client.getSnapshot().messages.map(({ id }) => id)).toEqual(["u1", "a1"])
 	})
 
-	test("never opens a session when the configuration is disabled", async () => {
+	test("keeps failed configuration unavailable without losing diagnostics", async () => {
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			transport: baseTransport({
+				loadConfiguration: async () => {
+					throw new Error("offline")
+				},
+			}),
+		})
+		await expect(client.initialize()).rejects.toThrow("offline")
+		expect(client.getSnapshot()).toMatchObject({
+			isAvailable: false,
+			activity: "blocked",
+			error: { code: "transport-error" },
+		})
+	})
+
+	test("never opens a session when the configuration is unavailable", async () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")
 		await storage.setItem(key, JSON.stringify({ version: 1, credential: "credential" }))
 		let sessionLoads = 0
 		const transport = baseTransport({
-			loadConfiguration: async () => ({ ...configuration, isDisabled: true }),
+			loadConfiguration: async () => ({ ...configuration, isAvailable: false }),
 			loadSession: async () => {
 				sessionLoads += 1
 				return { messages: [], activeGeneration: undefined }
@@ -203,8 +228,10 @@ describe("createChatClient", () => {
 		await client.initialize()
 
 		expect(client.getSnapshot()).toMatchObject({
-			initialization: "ready",
-			configuration: { ...configuration, isDisabled: true },
+			isAvailable: false,
+			activity: "idle",
+			configuration: { ...configuration, isAvailable: false },
+			actions: [],
 		})
 		expect(client.getSnapshot().messages).toEqual([])
 		expect(sessionLoads).toBe(0)
@@ -245,7 +272,8 @@ describe("createChatClient", () => {
 
 		expect(observed).toContainEqual(["hello"])
 		expect(observed).toContainEqual(["hello", "Hel"])
-		expect(client.getSnapshot()).toMatchObject({ generation: "idle", error: undefined })
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", error: undefined })
+		expect(client.getSnapshot().acceptedMessageId).toBe("server-user")
 		expect(client.getSnapshot().messages).toMatchObject([
 			{ id: "server-user", text: "hello", outcome: "completed" },
 			{ id: "server-assistant", text: "Hello", outcome: "completed" },
@@ -273,13 +301,55 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		const first = client.sendMessage("first")
+		expect(client.getSnapshot()).toMatchObject({ activity: "sending", actions: ["stop", "new-chat"] })
 		await expect(client.sendMessage("second")).rejects.toThrow("already active")
 		pending.reject(new Error("connection lost"))
 		await expect(first).rejects.toThrow("connection lost")
 
 		expect(sends).toBe(1)
-		expect(client.getSnapshot()).toMatchObject({ generation: "recovery", recovery: "pending" })
+		expect(client.getSnapshot()).toMatchObject({ activity: "recovering" })
+		expect(client.getSnapshot().actions).toEqual(["stop", "new-chat"])
 		expect(client.getSnapshot().messages[0]).toMatchObject({ text: "first", outcome: "interrupted" })
+	})
+
+	test("cancelling during initial persistence leaves no send or session to restore", async () => {
+		const memory = createMemoryStorage()
+		const write = deferred<void>()
+		let firstWrite = true
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: {
+				...memory,
+				async setItem(key, value) {
+					if (firstWrite) {
+						firstWrite = false
+						await write.promise
+					}
+					await memory.setItem(key, value)
+				},
+			},
+			transport: baseTransport({
+				cancelResponse: async () => {
+					throw new ChatTransportError({ code: "chat-session-unauthorized", status: 401 })
+				},
+				sendMessage: async ({ signal }) => {
+					sends += 1
+					signal.throwIfAborted()
+					return streamFrom([])
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		const stopping = client.cancelResponse()
+		write.resolve()
+		await stopping
+		expect(await sending).toBeInstanceOf(Error)
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [], actions: ["send", "new-chat"] })
+		expect(sends).toBe(0)
+		expect(await memory.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
 	})
 
 	test("clears a definitely rejected first session and permits a different send", async () => {
@@ -316,10 +386,9 @@ describe("createChatClient", () => {
 
 		await expect(client.sendMessage("rejected")).rejects.toBe(rejection)
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "idle",
-			recovery: "idle",
+			isAvailable: true,
+			activity: "idle",
 			error: rejection.detail,
-			retryAt: rejection.detail.retryAt,
 			messages: [],
 		})
 		expect(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
@@ -346,8 +415,7 @@ describe("createChatClient", () => {
 
 		await expect(client.sendMessage("hey")).rejects.toBe(rejection)
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "idle",
-			recovery: "idle",
+			activity: "idle",
 			error: rejection.detail,
 			messages: [],
 		})
@@ -372,7 +440,7 @@ describe("createChatClient", () => {
 		const refusal = await client.sendMessage("hey").catch((error: unknown) => error)
 		expect(refusal).toBeInstanceOf(ChatClientError)
 		expect(refusal).toMatchObject({ detail: { code: "chat-unavailable" } })
-		expect(client.getSnapshot()).toMatchObject({ generation: "idle", messages: [] })
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [] })
 		expect(sends).toBe(0)
 	})
 
@@ -418,7 +486,7 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(sends).toHaveLength(2)
 		expect(sends[1]).toEqual(sends[0])
@@ -462,7 +530,7 @@ describe("createChatClient", () => {
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(loads).toBe(2)
 		expect(sends).toHaveLength(2)
@@ -498,7 +566,7 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(loads).toBe(2)
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
@@ -530,7 +598,7 @@ describe("createChatClient", () => {
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(loads).toBe(26)
 	})
@@ -562,9 +630,9 @@ describe("createChatClient", () => {
 			})
 			await client.initialize()
 			await expect(client.sendMessage("hello")).rejects.toBe(rejection)
-			await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+			await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 
-			expect(client.getSnapshot()).toMatchObject({ generation: "recovery", recovery: "unavailable" })
+			expect(client.getSnapshot().activity).toBe("blocked")
 			expect(client.getSnapshot().messages[0]).toMatchObject({ outcome: "interrupted" })
 		})
 	}
@@ -590,7 +658,7 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 
 		expect(loads).toBe(0)
 		await expect(client.sendMessage("hello")).rejects.toThrow("pending message")
@@ -622,14 +690,12 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
-		await waitForSnapshot(client, () => client.getSnapshot().generation === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(sends).toBe(2)
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "idle",
-			recovery: "idle",
+			activity: "idle",
 			error: rejection.detail,
-			retryAt: rejection.detail.retryAt,
 			messages: [],
 		})
 		const record = readChatStorageRecord(
@@ -653,7 +719,7 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("before acceptance")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 		expect(client.getSnapshot().messages).not.toContainEqual(expect.objectContaining({ outcome: "pending" }))
 	})
 
@@ -684,7 +750,7 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("before acceptance")
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 		expect(client.getSnapshot().messages).toEqual([expect.objectContaining({ id: "u1", outcome: "completed" })])
 	})
 
@@ -725,10 +791,8 @@ describe("createChatClient", () => {
 
 		await expect(client.sendMessage("hello")).rejects.toThrow("transport-error")
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "recovery",
-			recovery: "pending",
-			error: { code: "transport-error" },
-			retryAt: "2026-09-13T00:00:00.000Z",
+			activity: "recovering",
+			error: { code: "transport-error", retryAt: "2026-09-13T00:00:00.000Z" },
 		})
 		expect(client.getSnapshot().messages[0]).toMatchObject({ outcome: "completed" })
 		expect(client.getSnapshot().messages[1]).toMatchObject({ outcome: "interrupted" })
@@ -748,10 +812,8 @@ describe("createChatClient", () => {
 		await recoveryObserved.promise
 		unsubscribe()
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "recovery",
-			recovery: "pending",
+			activity: "recovering",
 			error: undefined,
-			retryAt: undefined,
 		})
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "streaming" })
 		client.dispose()
@@ -798,6 +860,7 @@ describe("createChatClient", () => {
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("provider-error")
 
+		expect(client.getSnapshot().actions).toEqual(["send", "retry", "new-chat"])
 		await client.retryLastMessage()
 
 		expect(sent).toEqual(["hello", "hello"])
@@ -924,12 +987,11 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("stream failed")
-		await waitForSnapshot(client, () => client.getSnapshot().generation === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect({ sends, loads }).toEqual({ sends: 1, loads: 1 })
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "idle",
-			recovery: "idle",
+			activity: "idle",
 			error: rejection.detail,
 			messages: [
 				{ id: "u1", outcome: "completed" },
@@ -964,7 +1026,7 @@ describe("createChatClient", () => {
 		})
 
 		await client.initialize()
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 		expect(loads).toBe(1)
 		expect(client.getSnapshot().messages).toHaveLength(1)
@@ -1003,7 +1065,7 @@ describe("createChatClient", () => {
 		})
 
 		await client.initialize()
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 		await expect(client.sendMessage("hello")).rejects.toThrow("already active")
 
 		expect(loads).toBe(65)
@@ -1051,7 +1113,7 @@ describe("createChatClient", () => {
 
 		expect(cancellation).toMatchObject({ credential: "11111111-1111-4111-8111-111111111111" })
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "idle",
+			activity: "idle",
 			messages: [{ outcome: "interrupted" }],
 		})
 		expect(
@@ -1115,7 +1177,7 @@ describe("createChatClient", () => {
 
 		order.push("cleared")
 		expect(order).toEqual(["cancel", "cleared"])
-		expect(client.getSnapshot()).toMatchObject({ messages: [], generation: "idle", reset: "idle" })
+		expect(client.getSnapshot()).toMatchObject({ messages: [], activity: "idle" })
 		expect(await storage.getItem(key)).toBeNull()
 	})
 
@@ -1161,6 +1223,7 @@ describe("createChatClient", () => {
 		blockRemoval = true
 
 		const resetting = client.startNewChat()
+		expect(client.getSnapshot()).toMatchObject({ activity: "resetting", actions: [] })
 		await expect(client.retryLastMessage()).rejects.toThrow("resetting")
 
 		expect(sends).toBe(1)
@@ -1192,7 +1255,7 @@ describe("createChatClient", () => {
 
 		await expect(client.startNewChat()).rejects.toThrow("cancel failed")
 		expect(client.getSnapshot().messages[0]?.text).toBe("keep me")
-		expect(client.getSnapshot()).toMatchObject({ reset: "idle", error: { code: "reset-failed" } })
+		expect(client.getSnapshot()).toMatchObject({ activity: "recovering", error: { code: "reset-failed" } })
 	})
 
 	test("starts a new chat from a revoked-session initialization error using loaded configuration", async () => {
@@ -1214,11 +1277,13 @@ describe("createChatClient", () => {
 		})
 
 		await expect(client.initialize()).rejects.toThrow("chat-session-unauthorized")
-		expect(client.getSnapshot()).toMatchObject({ initialization: "error", configuration })
+		expect(client.getSnapshot()).toMatchObject({ isAvailable: true, activity: "blocked", configuration })
+		expect(client.getSnapshot().actions).toEqual(["new-chat"])
+		expect(client.getSnapshot().error?.newChatAvailable).toBe(true)
 		await client.startNewChat()
 
 		expect(client.getSnapshot()).toMatchObject({
-			initialization: "ready",
+			activity: "idle",
 			configuration,
 			messages: [],
 			error: undefined,
@@ -1268,7 +1333,7 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot()).toMatchObject({
 			messages: [expect.objectContaining({ text: "keep me" })],
 			error: { code: "reset-failed" },
-			persistence: "memory",
+			notices: ["storage-unavailable"],
 		})
 		expect(readChatStorageRecord(persisted)).toEqual({ version: 1, credential: "credential" })
 		await client.sendMessage("still usable")
@@ -1318,10 +1383,9 @@ describe("createChatClient", () => {
 		await client.cancelResponse()
 		await expect(sending).rejects.toThrow("cancelled")
 
-		await waitForSnapshot(client, () => client.getSnapshot().recovery === "unavailable")
+		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
 		expect(client.getSnapshot()).toMatchObject({
-			generation: "recovery",
-			recovery: "unavailable",
+			activity: "blocked",
 			error: { code: "chat-session-unauthorized", status: 401 },
 		})
 	})
@@ -1379,12 +1443,11 @@ describe("createChatClient", () => {
 			cancellation.reject(new Error("cancel failed"))
 			await expect(cancelling).rejects.toThrow("cancel failed")
 			if (!sendSettlesFirst) expect(await sendingRejection).toBeInstanceOf(Error)
-			await waitForSnapshot(client, () => client.getSnapshot().recovery === "idle")
+			await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
 			expect(sends).toBe(1)
 			expect(client.getSnapshot()).toMatchObject({
-				generation: "idle",
-				recovery: "idle",
+				activity: "idle",
 				messages: [{ id: "u1", outcome: "completed" }],
 			})
 			expect(
@@ -1426,14 +1489,14 @@ describe("createChatClient", () => {
 		})
 		await client.initialize()
 		const sending = client.sendMessage("hello")
-		await waitForSnapshot(client, () => client.getSnapshot().generation === "streaming")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "responding")
 		const cancelling = client.cancelResponse()
 		terminal.resolve()
 		await sending
 		cancellation.reject(new Error("cancel failed"))
 		await expect(cancelling).rejects.toThrow("cancel failed")
 
-		expect(client.getSnapshot()).toMatchObject({ generation: "idle", error: undefined })
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", error: undefined })
 		await expect(client.sendMessage("again")).resolves.toBeUndefined()
 		expect(sends).toBe(2)
 	})
@@ -1484,7 +1547,7 @@ describe("createChatClient", () => {
 		const cancelling = client.cancelResponse()
 		await cancellationStarted.promise
 
-		expect(client.getSnapshot().generation).toBe("cancelling")
+		expect(client.getSnapshot().activity).toBe("stopping")
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ outcome: "streaming" })
 		expect(sendAborted).toBe(false)
 		cancellation.resolve()
@@ -1577,7 +1640,7 @@ describe("createChatClient", () => {
 			notifications += 1
 		})
 		await client.initialize()
-		expect(client.getSnapshot()).toMatchObject({ persistence: "memory", error: { code: "storage-unavailable" } })
+		expect(client.getSnapshot()).toMatchObject({ notices: [], error: { code: "storage-unavailable" } })
 		void client.sendMessage("hello").catch(() => undefined)
 		await started.promise
 		const beforeDispose = notifications

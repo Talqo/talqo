@@ -178,18 +178,18 @@ test("operator disables the embed from the embeds overview and the public config
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+				return ((await response.json()) as { isAvailable: boolean }).isAvailable
 			})
-			.toBe(true)
+			.toBe(false)
 
 		await toggle.click()
 		await expect(toggle).toBeChecked()
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+				return ((await response.json()) as { isAvailable: boolean }).isAvailable
 			})
-			.toBe(false)
+			.toBe(true)
 	} finally {
 		// The shared seed keeps serving other journeys, so restore it on any failure path.
 		await page.request.post(`/api/embeds/${source.id}/enable`)
