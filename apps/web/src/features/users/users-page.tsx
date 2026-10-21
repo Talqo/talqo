@@ -417,7 +417,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button disabled={canAssignRoles && !rolesQuery.isSuccess} />}>
+			<DialogTrigger render={<Button disabled={canAssignRoles && rolesQuery.isPending} />}>
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
@@ -425,7 +425,10 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 				<DialogHeader>
 					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
 				</DialogHeader>
-				{canAssignRoles ? (
+				{canAssignRoles && rolesQuery.isError ? (
+					<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
+				) : null}
+				{canAssignRoles && rolesQuery.data ? (
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
 						<RolePicker

@@ -192,6 +192,35 @@ afterEach(async () => {
 })
 
 describe("UsersPage", () => {
+	test("allows a role-less invitation after roles fail to load and explains the failure", async () => {
+		rolesFailure = problem("internal-server-error", 500)
+		await renderPage()
+		expect(button(t("auth.invitations.heading")).disabled).toBe(false)
+		await click(button(t("auth.invitations.heading")))
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
+	test("retries role loading inside the invitation dialog without silently selecting roles", async () => {
+		rolesFailure = problem("internal-server-error", 500)
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		rolesFailure = undefined
+		await click(button(t("common.retry"), dialog()))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		await click(checkbox("Default"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: ["default"],
+		})
+	})
+
 	test("preselects Default for invitations and submits exactly the edited selection", async () => {
 		roles = [
 			{ id: "default", name: "Renamed default", permissions: [], memberCount: 0 },
@@ -208,6 +237,22 @@ describe("UsersPage", () => {
 		await click(button(t("auth.invitations.create"), dialog()))
 		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
 			roleIds: ["support"],
+		})
+	})
+
+	test("keeps the selected roles visible when a background refresh fails", async () => {
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		rolesFailure = problem("internal-server-error", 500)
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("true")
+		await click(checkbox("Default"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
 		})
 	})
 
