@@ -26,17 +26,25 @@ async function giveViewerRole(page: Page): Promise<string> {
 	})
 	await expect(response).toBeOK()
 	const roleId = ((await response.json()) as { role: { id: string } }).role.id
-	const agentsResponse = await page.request.get("/api/agents")
-	const { agents } = (await agentsResponse.json()) as { agents: { id: string }[] }
-	await Promise.all(
-		agents.map(async ({ id }) =>
-			expect(
-				await page.request.put(`/api/agents/${id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
-			).toBeOK(),
-		),
-	)
-	await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
-	return roleId
+	try {
+		const agentsResponse = await page.request.get("/api/agents")
+		await expect(agentsResponse).toBeOK()
+		const { agents } = (await agentsResponse.json()) as { agents: { id: string }[] }
+		const grants = await Promise.allSettled(
+			agents.map(async ({ id }) =>
+				expect(
+					await page.request.put(`/api/agents/${id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+				).toBeOK(),
+			),
+		)
+		const failed = grants.find((result) => result.status === "rejected")
+		if (failed?.status === "rejected") throw failed.reason
+		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
+		return roleId
+	} catch (error) {
+		await removeViewerRole(page, roleId)
+		throw error
+	}
 }
 
 // Deleting the role also removes the assignment.

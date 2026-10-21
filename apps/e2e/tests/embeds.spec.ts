@@ -67,6 +67,28 @@ test("operator creates an embed and configures it immediately", async ({ page })
 	}
 })
 
+test("embed configuration waits for agent permissions before showing editable controls", async ({ page }) => {
+	const embed = seeded[0]
+	if (!embed) throw new Error("Shared seed embed is missing")
+	const release = Promise.withResolvers<void>()
+	await page.route("**/api/agents", async (route) => {
+		await release.promise
+		await route.continue()
+	})
+	try {
+		const loaded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/embeds/${embed.id}`)
+		await page.goto(`/dashboard/embeds/${embed.id}`)
+		await loaded
+		await expect(page.locator("main").getByText("Loading…", { exact: true })).toBeVisible()
+		await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0)
+		release.resolve()
+		await expect(page.getByLabel("Name", { exact: true })).toBeEnabled()
+	} finally {
+		release.resolve()
+		await page.unroute("**/api/agents")
+	}
+})
+
 test("operator permanently deletes an embed from its danger zone", async ({ page }) => {
 	const source = website
 	const name = "Disposable embed"

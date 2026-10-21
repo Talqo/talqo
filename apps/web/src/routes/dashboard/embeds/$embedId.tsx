@@ -1,6 +1,7 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
 	EMBED_FORM_DEFAULTS,
@@ -147,7 +148,8 @@ function EmbedDetailPage() {
 	const queryClient = useQueryClient()
 	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
 	const embed = embedResponse?.data.embed
-	const permissions = useListAgents().data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
+	const agentsQuery = useListAgents()
+	const permissions = agentsQuery.data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
 		mutation: {
@@ -225,11 +227,14 @@ function EmbedDetailPage() {
 		)
 	}
 
-	if (isLoading) {
+	if (isLoading || agentsQuery.isPending) {
 		return <p className="text-muted-foreground">{t("embedSetup.loading")}</p>
 	}
 	if (isError || !embed) {
 		return <p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+	}
+	if (agentsQuery.isError) {
+		return <ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
 	}
 
 	return (

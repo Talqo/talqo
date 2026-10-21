@@ -77,9 +77,9 @@ function requireSession(options: SessionOptions) {
 						options.embedPermission,
 					)
 				if ((!embedId && c.req.method === "POST") || c.req.method === "PUT") {
-					const input = z.object({ agentId: z.string() }).safeParse(await c.req.json<unknown>())
-					if (input.success)
-						await roles.requireAgentPermission(session.user.id, input.data.agentId, options.embedPermission)
+					const input = z.object({ agentId: z.string().min(1) }).safeParse(await c.req.json<unknown>())
+					if (!input.success) return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+					await roles.requireAgentPermission(session.user.id, input.data.agentId, options.embedPermission)
 				}
 			}
 
