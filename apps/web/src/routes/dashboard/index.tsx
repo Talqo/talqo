@@ -40,7 +40,7 @@ export const Route = createFileRoute("/dashboard/")({
 		agents: parseAgentsParam(search.agents),
 		days: parseDaysParam(search.days),
 	}),
-	beforeLoad: requirePermission("agents:read"),
+	beforeLoad: requirePermission("stats:read"),
 	component: DashboardIndexPage,
 })
 
@@ -82,7 +82,7 @@ function DashboardIndexPage() {
 
 	const { error, isLoading } = statsQuery
 	const overview = statsQuery.data?.data.overview
-	const allAgents = agentsQuery.data?.data.agents
+	const allAgents = agentsQuery.data?.data.agents.filter((agent) => agent.permissions.includes("stats:read"))
 	// The selection box covers every workspace agent; agents without activity simply add zero points.
 	const allIds = useMemo(() => (allAgents ?? []).map((agent) => agent.id), [allAgents])
 	const agentLines = useMemo<AgentLine[]>(

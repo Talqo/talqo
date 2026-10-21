@@ -69,10 +69,7 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await page.getByRole("link", { name: "Agents", exact: true }).click()
-	await expect(page.getByRole("button", { name: "Create agent", exact: true })).toHaveCount(0)
+	await expect(page).toHaveURL("/dashboard/account")
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
@@ -125,10 +122,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()
 
-	// The forced change keeps the session, landing signed in on the dashboard. Without
-	// agents:read the member sees the access-restricted card instead of statistics.
-	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 })
 
 test("an admin deletes a member, who can no longer log in", async ({ page }) => {

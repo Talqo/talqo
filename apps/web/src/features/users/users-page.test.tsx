@@ -28,15 +28,7 @@ type ListedUser = {
 	username: string
 }
 
-const EVERYTHING = [
-	"admin",
-	"users:read",
-	"users:manage",
-	"roles:manage",
-	"ai_provider:manage",
-	"agents:read",
-	"agents:manage",
-]
+const EVERYTHING = ["admin", "users:read", "users:manage", "roles:manage", "ai_provider:manage"]
 
 let myPermissions: string[]
 let users: ListedUser[]
@@ -73,7 +65,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
-	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles })
+	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/invitations" && method === "POST")
 		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
@@ -83,8 +75,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 				{ permission: "users:manage", implies: ["users:read"] },
 				{ permission: "roles:manage", implies: ["users:read"] },
 				{ permission: "ai_provider:manage", implies: [] },
-				{ permission: "agents:read", implies: [] },
-				{ permission: "agents:manage", implies: ["agents:read"] },
 			],
 		})
 	}
@@ -289,7 +279,7 @@ describe("UsersPage", () => {
 	})
 
 	test("offers user actions only for users whose access the operator holds", async () => {
-		myPermissions = ["users:read", "users:manage", "agents:read"]
+		myPermissions = ["users:read", "users:manage"]
 		users = [user("reader"), user("editor", { canManage: false })]
 		await renderPage()
 
@@ -300,9 +290,9 @@ describe("UsersPage", () => {
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {
-		myPermissions = ["users:read", "roles:manage", "agents:read"]
+		myPermissions = ["users:read", "roles:manage"]
 		roles = [
-			{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 },
+			{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 },
 			{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 0 },
 		]
 		users = [user("helper")]
@@ -376,13 +366,13 @@ describe("UsersPage", () => {
 		rolesResponse = deferred.promise
 		await renderPage()
 		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
-		await act(async () => deferred.resolve(json({ roles: [] })))
+		await act(async () => deferred.resolve(json({ roles: [], manageableRoleIds: [] })))
 		await settle()
 		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
 	test("starts from the user's current roles every time the dialog opens", async () => {
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 		users = [user("helper", { roles: [{ id: "readers", name: "Readers" }] })]
@@ -399,7 +389,7 @@ describe("UsersPage", () => {
 	})
 
 	test("closes and refreshes users and the operator's own access after saving", async () => {
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 		const usersBefore = requestCount("/api/users")
@@ -416,7 +406,7 @@ describe("UsersPage", () => {
 
 	test("shows the server's reason when saving roles fails and keeps the dialog open", async () => {
 		assignFailure = problem("permission-exceeds-own", 403)
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 

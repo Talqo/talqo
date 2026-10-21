@@ -4,14 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
-export const getStatsOverviewParamsDaysOneMax = 365;
-
+export const getStatsOverviewParamsDaysOneMax = 365
 
 export const GetStatsOverviewParams = zod.object({
-  "days": zod.union([zod.int().min(1).max(getStatsOverviewParamsDaysOneMax),zod.enum(['all'])]).optional()
+	days: zod.union([zod.int().min(1).max(getStatsOverviewParamsDaysOneMax), zod.enum(["all"])]).optional(),
 })
 
-export type GetStatsOverviewParams = zod.input<typeof GetStatsOverviewParams>;
-export type GetStatsOverviewParamsOutput = zod.output<typeof GetStatsOverviewParams>;
+export type GetStatsOverviewParams = zod.input<typeof GetStatsOverviewParams>
+export type GetStatsOverviewParamsOutput = zod.output<typeof GetStatsOverviewParams>

@@ -43,11 +43,13 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	const agentsQuery = useListAgents()
 	const agentLines = useMemo(
 		() =>
-			(agentsQuery.data?.data.agents ?? []).map((agent, index) => ({
-				id: agent.id,
-				name: agent.name,
-				color: agentLineColor(index),
-			})),
+			(agentsQuery.data?.data.agents ?? [])
+				.filter((agent) => agent.permissions.includes("conversations:read"))
+				.map((agent, index) => ({
+					id: agent.id,
+					name: agent.name,
+					color: agentLineColor(index),
+				})),
 		[agentsQuery.data],
 	)
 	const agentNames = new Map(agentLines.map((line) => [line.id, line.name]))

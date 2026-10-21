@@ -4,12 +4,21 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { Agent } from '../agent.zod';
+import * as zod from "zod"
 
 export const ListAgents200 = zod.object({
-  "agents": zod.array(Agent)
+	agents: zod.array(
+		zod.object({
+			id: zod.string(),
+			name: zod.string(),
+			createdAt: zod.iso.datetime({ offset: true }),
+			updatedAt: zod.iso.datetime({ offset: true }),
+			permissions: zod.array(
+				zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
+			),
+		}),
+	),
 })
 
-export type ListAgents200 = zod.input<typeof ListAgents200>;
-export type ListAgents200Output = zod.output<typeof ListAgents200>;
+export type ListAgents200 = zod.input<typeof ListAgents200>
+export type ListAgents200Output = zod.output<typeof ListAgents200>

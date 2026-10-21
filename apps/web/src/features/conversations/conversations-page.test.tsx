@@ -17,8 +17,8 @@ const { createRoot } = await import("react-dom/client")
 const { act, useState } = await import("react")
 const { t } = await import("i18next")
 
-const SHOP = { id: "11111111-1111-4111-8111-111111111111", name: "Shop helper" }
-const DOCS = { id: "22222222-2222-4222-8222-222222222222", name: "Docs helper" }
+const SHOP = { id: "11111111-1111-4111-8111-111111111111", name: "Shop helper", permissions: ["conversations:read"] }
+const DOCS = { id: "22222222-2222-4222-8222-222222222222", name: "Docs helper", permissions: ["conversations:read"] }
 
 function summary(id: string, startedAt: string, overrides: Record<string, unknown> = {}) {
 	return {

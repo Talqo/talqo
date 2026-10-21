@@ -22,6 +22,25 @@
 		"saveProfile": "Save profile",
 		"subheading": "Manage your account settings and preferences."
 	},
+	"agentAccess": {
+		"addRole": "Add role",
+		"admin": "Admin: full access",
+		"chooseRole": "Choose a role",
+		"conversations": "Read conversations",
+		"deleteAgent": "Delete agent",
+		"editConfiguration": "Edit configuration",
+		"empty": "No roles have access. Add a role to grant permissions.",
+		"permissionsFor": "Permissions for {{role}}",
+		"remove": "Remove role access",
+		"removed": "Role access removed. Add the role again to restore it.",
+		"removePrompt": "Remove {{role}}'s access to this agent? Members may retain access through other roles. You can restore access by adding this role again.",
+		"roles": "Roles with access",
+		"save": "Save permissions",
+		"saved": "Permissions saved.",
+		"statistics": "View statistics",
+		"title": "Access",
+		"viewConfiguration": "View configuration"
+	},
 	"agentConfig": {
 		"backToAgents": "Back to agents",
 		"cancel": "Cancel",
@@ -547,19 +566,13 @@
 		"nameError": "Enter a name of up to {{max}} characters.",
 		"notYours": "You can only give access you have yourself.",
 		"permissionDescriptions": {
-			"agentsManage": "Create, change and delete agents, their knowledge, connections and website embeds.",
-			"agentsRead": "View agents, their knowledge, connections and website embeds.",
 			"aiProviderManage": "Choose the AI provider and models that agents use.",
-			"conversationsRead": "Read what visitors asked agents and how the agents answered.",
 			"rolesManage": "Create roles and choose who has them.",
 			"usersManage": "Invite users, reset their passwords and remove them.",
 			"usersRead": "View everyone who can sign in to this dashboard."
 		},
 		"permissionLabels": {
-			"agentsManage": "Manage agents",
-			"agentsRead": "See agents",
 			"aiProviderManage": "Configure AI",
-			"conversationsRead": "See conversations",
 			"rolesManage": "Manage roles",
 			"usersManage": "Manage users",
 			"usersRead": "See users"

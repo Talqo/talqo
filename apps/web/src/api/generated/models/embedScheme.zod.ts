@@ -4,15 +4,15 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const EmbedScheme = zod.object({
-  "primary": zod.string(),
-  "textOnPrimary": zod.string(),
-  "background": zod.string(),
-  "surface": zod.string(),
-  "text": zod.string()
-});
+	primary: zod.string(),
+	textOnPrimary: zod.string(),
+	background: zod.string(),
+	surface: zod.string(),
+	text: zod.string(),
+})
 
-export type EmbedScheme = zod.input<typeof EmbedScheme>;
-export type EmbedSchemeOutput = zod.output<typeof EmbedScheme>;
+export type EmbedScheme = zod.input<typeof EmbedScheme>
+export type EmbedSchemeOutput = zod.output<typeof EmbedScheme>

@@ -4,11 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const HealthResponse = zod.object({
-  "status": zod.enum(['ok'])
-});
+	status: zod.enum(["ok"]),
+})
 
-export type HealthResponse = zod.input<typeof HealthResponse>;
-export type HealthResponseOutput = zod.output<typeof HealthResponse>;
+export type HealthResponse = zod.input<typeof HealthResponse>
+export type HealthResponseOutput = zod.output<typeof HealthResponse>

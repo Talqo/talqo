@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { eq, sql } from "drizzle-orm"
+import { eq, inArray, sql } from "drizzle-orm"
 
 import { agent, blacklistWord } from "./agent.schema.ts"
 
@@ -42,6 +42,16 @@ export async function findAllWithWords(): Promise<AgentWithWords[]> {
 		.from(agent)
 		.orderBy(sql`lower(${agent.name})`)
 	return attachWords(rows)
+}
+
+export async function findSummaries(
+	scope: readonly string[] | "all",
+): Promise<Pick<AgentRow, "id" | "name" | "createdAt" | "updatedAt">[]> {
+	return db
+		.select({ id: agent.id, name: agent.name, createdAt: agent.createdAt, updatedAt: agent.updatedAt })
+		.from(agent)
+		.where(scope === "all" ? undefined : inArray(agent.id, [...scope]))
+		.orderBy(sql`lower(${agent.name})`)
 }
 
 export async function findByIdWithWords(id: string): Promise<AgentWithWords | undefined> {

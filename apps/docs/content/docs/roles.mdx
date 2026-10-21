@@ -17,6 +17,26 @@ Invitation links work once. If the sender's password is reset, their links stop 
 
 Deleting a role does not invalidate invitation links, but they no longer give that role. If no roles remain on an invitation, the new member joins without access.
 
+## Choose access to an agent
+
+1. Open **Agents**, select the agent, and find **Access** above its danger zone on the **Configuration** tab.
+2. Click **Add role**, choose a role, and select its permissions.
+3. Click **Save permissions**. Switching roles keeps unfinished edits without granting them.
+
+Choose the responsibilities this role needs:
+
+- **View statistics** shows analytics, without customer transcripts or configuration.
+- **Read conversations** shows visitor messages and agent replies.
+- **View configuration** shows instructions, knowledge, connections, and embeds.
+- **Edit configuration** includes viewing and allows changing those settings. This includes command-based MCP connections that run programs on your server, so grant it only to trusted people.
+- **Delete agent** allows deletion separately from editing.
+
+Select an existing role to change its permissions. **Remove role access** takes effect immediately after confirmation, without saving other edits. It does not delete the role. Restore access by adding the role again.
+
+You need **Manage roles** and **View configuration** on that agent to change access. You can grant or remove only permissions you hold on that same agent.
+
+The Dashboard and Conversations sidebar entries appear when you have the corresponding permission on at least one agent. Each section shows only agents you may access there. A new agent is visible only to admin until access is assigned.
+
 ## You can only give what you have
 
 You can manage or assign only roles whose access you have yourself. You can reset someone's password or remove them only if you have all their access. Only the admin can reset or remove the admin.

@@ -213,10 +213,17 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 
 	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
 	const roleResponse = await page.request.post("/api/roles", {
-		data: { name: `Embed viewers ${Date.now()}`, permissions: ["agents:read"] },
+		data: { name: `Embed viewers ${Date.now()}`, permissions: [] },
 	})
 	await expect(roleResponse).toBeOK()
 	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
+	await Promise.all(
+		[...new Set(seeded.map((embed) => embed.agentId))].map(async (agentId) =>
+			expect(
+				await page.request.put(`/api/agents/${agentId}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+			).toBeOK(),
+		),
+	)
 	await expect(await page.request.put(`/api/users/${viewerId}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 
 	try {
@@ -225,7 +232,7 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 		await page.getByLabel("Username").fill(viewer.username)
 		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
 		await page.getByRole("button", { name: "Log in" }).click()
-		await expect(page).toHaveURL("/dashboard")
+		await expect(page).toHaveURL("/dashboard/agents")
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await page.getByRole("link", { name: /Website Assistant/ }).click()

@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { eq, gte, sql } from "drizzle-orm"
+import { and, eq, gte, inArray, sql } from "drizzle-orm"
 
 import { usageRecord } from "./usage.schema.ts"
 
@@ -47,7 +47,10 @@ const usageInputTokens = sql<number>`coalesce(sum(${usageRecord.inputTokens}), 0
 const usageOutputTokens = sql<number>`coalesce(sum(${usageRecord.outputTokens}), 0)::int`
 
 // Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
-export async function getDailyUsageTotalsByAgent(since: Date): Promise<AgentDailyUsageTotals[]> {
+export async function getDailyUsageTotalsByAgent(
+	since: Date,
+	scope: readonly string[] | "all",
+): Promise<AgentDailyUsageTotals[]> {
 	return db
 		.select({
 			agentId: usageRecord.agentId,
@@ -56,7 +59,9 @@ export async function getDailyUsageTotalsByAgent(since: Date): Promise<AgentDail
 			outputTokens: usageOutputTokens,
 		})
 		.from(usageRecord)
-		.where(gte(usageRecord.createdAt, since))
+		.where(
+			and(gte(usageRecord.createdAt, since), scope === "all" ? undefined : inArray(usageRecord.agentId, [...scope])),
+		)
 		.groupBy(usageRecord.agentId, usageDay)
 		.orderBy(usageRecord.agentId, usageDay)
 }

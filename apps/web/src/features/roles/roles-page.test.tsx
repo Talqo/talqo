@@ -22,8 +22,6 @@ const GRANTABLE = [
 	{ permission: "users:manage", implies: ["users:read"] },
 	{ permission: "roles:manage", implies: ["users:read"] },
 	{ permission: "ai_provider:manage", implies: [] },
-	{ permission: "agents:read", implies: [] },
-	{ permission: "agents:manage", implies: ["agents:read"] },
 ]
 const EVERYTHING = ["admin", ...GRANTABLE.map(({ permission }) => permission)]
 const ME = { id: "me", username: "operator", mustChangePassword: false }
@@ -72,7 +70,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ users: [{ ...ME, roles: ownRoles, permissions: myPermissions, canManage: true }] })
 	}
 	if (url === "/api/permissions") return json({ permissions: GRANTABLE })
-	if (url === "/api/roles" && method === "GET") return refreshedRolesResponse ?? rolesFailure ?? json({ roles })
+	if (url === "/api/roles" && method === "GET")
+		return refreshedRolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/roles" && method === "POST") {
 		if (createFailure) return createFailure
 		const body = parseJsonBody(init?.body) as Pick<Role, "name" | "permissions">
@@ -223,16 +222,16 @@ describe("role management", () => {
 	})
 
 	test("chooses a free default name and lists names and people without permission summaries", async () => {
-		roles = [{ id: "existing", name: "NEW ROLE", permissions: ["agents:manage"], memberCount: 3 }]
+		roles = [{ id: "existing", name: "NEW ROLE", permissions: ["users:manage"], memberCount: 3 }]
 		await renderPage()
 		expect(host.textContent).toContain(t("roles.members", { people: 3 }))
-		expect(host.textContent).not.toContain(t("roles.permissionLabels.agentsManage"))
+		expect(host.textContent).not.toContain(t("roles.permissionLabels.usersManage"))
 		await click(button(t("roles.create")))
 		expect(nameInput().value).toBe("New role 2")
 	})
 
 	test("opens a role by clicking its row", async () => {
-		roles = [{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 0 }]
 		await renderPage()
 		const row = host.querySelector<HTMLElement>("[data-role-id='support']")
 		if (!row) throw new Error("role link not rendered")
@@ -301,31 +300,28 @@ describe("role management", () => {
 	})
 
 	test("shows included switches and explains permissions the operator lacks", async () => {
-		myPermissions = ["roles:manage", "users:read", "agents:read", "agents:manage"]
+		myPermissions = ["roles:manage", "users:read", "users:manage"]
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		expect(permissionSwitch(t("roles.permissionLabels.aiProviderManage")).disabled).toBe(true)
 		expect(host.textContent).toContain(t("roles.notYours"))
-		await click(permissionSwitch(t("roles.permissionLabels.agentsManage")))
-		const included = permissionSwitch(t("roles.permissionLabels.agentsRead"))
+		await click(permissionSwitch(t("roles.permissionLabels.usersManage")))
+		const included = permissionSwitch(t("roles.permissionLabels.usersRead"))
 		expect(included.getAttribute("aria-checked")).toBe("true")
 		expect(included.disabled).toBe(true)
-		expect(host.textContent).toContain(
-			t("roles.includedWith", { permission: t("roles.permissionLabels.agentsManage") }),
-		)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("roles.permissionLabels.usersManage") }))
 	})
 
 	test("saves selected permissions and remains on the editable role page", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		await type(nameInput(), "Helpdesk")
-		await click(permissionSwitch(t("roles.permissionLabels.agentsRead")))
-		await click(permissionSwitch(t("roles.permissionLabels.agentsManage")))
+		await click(permissionSwitch(t("roles.permissionLabels.usersManage")))
 		expect(host.textContent).toContain(t("roles.unsaved"))
 		await save()
 		expect(requests.find(({ method }) => method === "PUT")?.body).toEqual({
 			name: "Helpdesk",
-			permissions: ["agents:read", "agents:manage"],
+			permissions: ["users:manage"],
 		})
 		expect(nameInput().value).toBe("Helpdesk")
 		expect(host.textContent).toContain(t("roles.saved"))
@@ -355,7 +351,12 @@ describe("role management", () => {
 		expect(button(t("roles.saving"), host).disabled).toBe(true)
 		expect(button(t("roles.delete"), host).disabled).toBe(true)
 		await act(async () =>
-			deferred.resolve(json({ roles: [{ id: "support", name: "Helpdesk", permissions: [], memberCount: 0 }] })),
+			deferred.resolve(
+				json({
+					roles: [{ id: "support", name: "Helpdesk", permissions: [], memberCount: 0 }],
+					manageableRoleIds: ["support"],
+				}),
+			),
 		)
 		await settle()
 		expect(nameInput().value).toBe("Helpdesk")
@@ -364,7 +365,7 @@ describe("role management", () => {
 	})
 
 	test("offers no changes to a role with access the operator lacks", async () => {
-		myPermissions = ["roles:manage", "users:read", "agents:read"]
+		myPermissions = ["roles:manage", "users:read"]
 		roles = [{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 1 }]
 		await renderPage("ai")
 		expect(host.textContent).toContain(t("roles.cannotChange"))
@@ -394,7 +395,7 @@ describe("role management", () => {
 	})
 
 	test("confirms deletion with recovery instructions and returns to the role list", async () => {
-		roles = [{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 3 }]
+		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 3 }]
 		await renderPage("support")
 		await type(nameInput(), "Unsaved name")
 		await click(button(t("roles.delete"), host))

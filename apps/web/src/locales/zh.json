@@ -22,6 +22,25 @@
 		"saveProfile": "保存个人资料",
 		"subheading": "管理您的账户设置和偏好。"
 	},
+	"agentAccess": {
+		"addRole": "添加角色",
+		"admin": "管理员：完全访问权限",
+		"chooseRole": "选择角色",
+		"conversations": "阅读对话",
+		"deleteAgent": "删除智能体",
+		"editConfiguration": "编辑配置",
+		"empty": "没有角色拥有访问权限。请添加角色并设置权限。",
+		"permissionsFor": "{{role}}的权限",
+		"remove": "移除角色访问权限",
+		"removed": "角色访问权限已移除。重新添加该角色即可恢复。",
+		"removePrompt": "移除{{role}}对此智能体的访问权限？成员可能仍可通过其他角色访问。重新添加此角色即可恢复权限。",
+		"roles": "有访问权限的角色",
+		"save": "保存权限",
+		"saved": "权限已保存。",
+		"statistics": "查看统计数据",
+		"title": "访问权限",
+		"viewConfiguration": "查看配置"
+	},
 	"agentConfig": {
 		"backToAgents": "返回智能体列表",
 		"cancel": "取消",
@@ -547,19 +566,13 @@
 		"nameError": "请输入不超过 {{max}} 个字符的名称。",
 		"notYours": "你只能授予自己拥有的访问权限。",
 		"permissionDescriptions": {
-			"agentsManage": "创建、更改和删除智能体及其知识、连接和网站嵌入。",
-			"agentsRead": "查看智能体及其知识、连接和网站嵌入。",
 			"aiProviderManage": "选择智能体使用的 AI 提供商和模型。",
-			"conversationsRead": "阅读访客向智能体提出的问题以及智能体的回答。",
 			"rolesManage": "创建角色并决定谁拥有它们。",
 			"usersManage": "邀请用户、重置他们的密码并移除他们。",
 			"usersRead": "查看所有可以登录此控制台的人。"
 		},
 		"permissionLabels": {
-			"agentsManage": "管理智能体",
-			"agentsRead": "查看智能体",
 			"aiProviderManage": "配置 AI",
-			"conversationsRead": "查看对话",
 			"rolesManage": "管理角色",
 			"usersManage": "管理用户",
 			"usersRead": "查看用户"

@@ -4,17 +4,18 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { EmbedScheme } from './embedScheme.zod';
+import * as zod from "zod"
+
+import { EmbedScheme } from "./embedScheme.zod"
 
 export const EmbedAppearance = zod.object({
-  "light": EmbedScheme,
-  "dark": EmbedScheme,
-  "position": zod.enum(['bottom-right', 'bottom-left']),
-  "theme": zod.enum(['system', 'light', 'dark']),
-  "themeToggle": zod.boolean(),
-  "language": zod.string()
-});
+	light: EmbedScheme,
+	dark: EmbedScheme,
+	position: zod.enum(["bottom-right", "bottom-left"]),
+	theme: zod.enum(["system", "light", "dark"]),
+	themeToggle: zod.boolean(),
+	language: zod.string(),
+})
 
-export type EmbedAppearance = zod.input<typeof EmbedAppearance>;
-export type EmbedAppearanceOutput = zod.output<typeof EmbedAppearance>;
+export type EmbedAppearance = zod.input<typeof EmbedAppearance>
+export type EmbedAppearanceOutput = zod.output<typeof EmbedAppearance>

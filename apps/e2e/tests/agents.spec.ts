@@ -22,10 +22,19 @@ async function giveViewerRole(page: Page): Promise<string> {
 	const user = users.find(({ username }) => username === VIEWER.username)
 	if (!user) throw new Error("Seed user is missing")
 	const response = await page.request.post("/api/roles", {
-		data: { name: `Agent viewers ${Date.now()}`, permissions: ["agents:read"] },
+		data: { name: `Agent viewers ${Date.now()}`, permissions: [] },
 	})
 	await expect(response).toBeOK()
 	const roleId = ((await response.json()) as { role: { id: string } }).role.id
+	const agentsResponse = await page.request.get("/api/agents")
+	const { agents } = (await agentsResponse.json()) as { agents: { id: string }[] }
+	await Promise.all(
+		agents.map(async ({ id }) =>
+			expect(
+				await page.request.put(`/api/agents/${id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+			).toBeOK(),
+		),
+	)
 	await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 	return roleId
 }
@@ -51,7 +60,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await page.getByLabel("Name").fill("Docs helper")
 	await page.getByLabel("System prompt").fill("You answer questions from the product docs.")
 	await page.getByLabel("Word blacklist").fill("spam")
-	await page.getByRole("button", { name: "Add" }).click()
+	await page.getByRole("button", { name: "Add", exact: true }).click()
 	await page.getByLabel("Word blacklist").fill("abuse")
 	await page.getByLabel("Word blacklist").press("Enter")
 	await page.getByRole("button", { name: "Save changes" }).click()
@@ -142,17 +151,16 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/agents")
-	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 
 	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.
 	await page.goto("/dashboard/users")
-	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("button", { name: "Invite a member" })).toHaveCount(0)
 
 	// Nested routes are covered by the same gate, not just top-level ones.
 	await page.goto("/dashboard/ai-configuration")
-	await expect(page.getByText("Access restricted")).toBeVisible()
-	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
+	await expect(page).toHaveURL("/dashboard/account")
 })
 
 test("switching accounts does not reuse cached agent permissions", async ({ page }) => {

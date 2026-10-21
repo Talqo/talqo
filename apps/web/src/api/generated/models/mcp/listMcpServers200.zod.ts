@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { McpServer } from '../mcpServer.zod';
+import * as zod from "zod"
+
+import { McpServer } from "../mcpServer.zod"
 
 export const ListMcpServers200 = zod.object({
-  "servers": zod.array(McpServer)
+	servers: zod.array(McpServer),
 })
 
-export type ListMcpServers200 = zod.input<typeof ListMcpServers200>;
-export type ListMcpServers200Output = zod.output<typeof ListMcpServers200>;
+export type ListMcpServers200 = zod.input<typeof ListMcpServers200>
+export type ListMcpServers200Output = zod.output<typeof ListMcpServers200>

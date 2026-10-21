@@ -12,7 +12,14 @@ import {
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
-import { GRANTABLE_PERMISSIONS, Permission, PERMISSIONS, ROLE_IDS_MAX, ROLE_NAME_MAX_LENGTH } from "./roles.service.ts"
+import {
+	AGENT_PERMISSIONS,
+	GRANTABLE_PERMISSIONS,
+	PERMISSIONS,
+	Permission,
+	ROLE_IDS_MAX,
+	ROLE_NAME_MAX_LENGTH,
+} from "./roles.service.ts"
 
 const usernameSchema = z
 	.string()
@@ -94,7 +101,7 @@ export const grantablePermissionsResponseSchema = z.object({
 	),
 })
 
-export const roleListResponseSchema = z.object({ roles: z.array(roleSchema) })
+export const roleListResponseSchema = z.object({ roles: z.array(roleSchema), manageableRoleIds: z.array(z.string()) })
 export const roleResponseSchema = z.object({ role: roleSchema })
 export const userRolesResponseSchema = z.object({ roles: z.array(roleSummarySchema) })
 
@@ -150,6 +157,96 @@ const userParamsSchema = z.object({
 
 const roleParamsSchema = z.object({
 	roleId: z.string().openapi({ param: { name: "roleId", in: "path" } }),
+})
+
+const agentAccessParamsSchema = z.object({ agentId: z.string().min(1) })
+const agentRoleParamsSchema = agentAccessParamsSchema.extend({ roleId: z.string().min(1) })
+export const agentPermissionsResponseSchema = z.object({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })
+export const agentAccessResponseSchema = z.object({
+	roles: z.array(roleSummarySchema.extend({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })),
+})
+
+export const getAgentPermissionsRoute = createRoute({
+	method: "get",
+	path: "/agents/{agentId}/permissions",
+	operationId: "getAgentPermissions",
+	tags: ["Roles"],
+	...access.session(),
+	request: { params: agentAccessParamsSchema },
+	responses: {
+		200: {
+			content: { "application/json": { schema: agentPermissionsResponseSchema } },
+			description: "Effective agent permissions",
+		},
+		401: authRequired,
+		403: permissionForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
+		500: serverError,
+	},
+})
+
+export const getAgentAccessRoute = createRoute({
+	method: "get",
+	path: "/agents/{agentId}/access",
+	operationId: "getAgentAccess",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: { params: agentAccessParamsSchema },
+	responses: {
+		200: {
+			content: { "application/json": { schema: agentAccessResponseSchema } },
+			description: "Roles and their agent grants",
+		},
+		401: authRequired,
+		403: permissionForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
+		500: serverError,
+	},
+})
+
+export const setAgentAccessRoute = createRoute({
+	method: "put",
+	path: "/agents/{agentId}/access/{roleId}",
+	operationId: "setAgentAccess",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: {
+		params: agentRoleParamsSchema,
+		body: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: agentPermissionsResponseSchema
+						.strict()
+						.refine(({ permissions }) => permissions.length > 0 && hasNoRepeats(permissions)),
+				},
+			},
+		},
+	},
+	responses: {
+		204: noContentResponse,
+		400: invalidRequest,
+		401: authRequired,
+		403: targetForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
+		500: serverError,
+	},
+})
+
+export const removeAgentAccessRoute = createRoute({
+	method: "delete",
+	path: "/agents/{agentId}/access/{roleId}",
+	operationId: "removeAgentAccess",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: { params: agentRoleParamsSchema },
+	responses: {
+		204: noContentResponse,
+		401: authRequired,
+		403: targetForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
+		500: serverError,
+	},
 })
 
 export const getSetupStatusRoute = createRoute({

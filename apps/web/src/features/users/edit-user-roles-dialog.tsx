@@ -26,12 +26,14 @@ export function EditUserRolesDialog({
 	isSelf,
 	ownRoles,
 	roles,
+	manageableRoleIds,
 	targetUser,
 }: {
 	heldPermissions: readonly string[]
 	isSelf: boolean
 	ownRoles: readonly Role[]
 	roles: readonly Role[]
+	manageableRoleIds: readonly string[]
 	targetUser: TargetUser
 }) {
 	const { t } = useTranslation()
@@ -81,7 +83,7 @@ export function EditUserRolesDialog({
 				) : (
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="sr-only">{t("users.editRolesTitle", { username: targetUser.username })}</legend>
-						<RolePicker heldPermissions={heldPermissions} roles={roles} selected={selected} onChange={setSelected} />
+						<RolePicker heldPermissions={heldPermissions} manageableRoleIds={manageableRoleIds} roles={roles} selected={selected} onChange={setSelected} />
 					</fieldset>
 				)}
 				{locksOut ? (

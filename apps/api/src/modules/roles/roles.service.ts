@@ -13,15 +13,15 @@ import * as repo from "./roles.repository.ts"
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 // Everything a role may hold; `admin` is held only through the admin grant.
-export const GRANTABLE_PERMISSIONS = [
-	"users:read",
-	"users:manage",
-	"roles:manage",
-	"ai_provider:manage",
+export const GRANTABLE_PERMISSIONS = ["users:read", "users:manage", "roles:manage", "ai_provider:manage"] as const
+export const AGENT_PERMISSIONS = [
+	"stats:read",
+	"conversations:read",
 	"agents:read",
 	"agents:manage",
-	"conversations:read",
+	"agents:delete",
 ] as const
+export type AgentPermission = (typeof AGENT_PERMISSIONS)[number]
 export const PERMISSIONS = ["admin", ...GRANTABLE_PERMISSIONS] as const
 export type Permission = (typeof PERMISSIONS)[number]
 export type GrantablePermission = (typeof GRANTABLE_PERMISSIONS)[number]
@@ -36,14 +36,14 @@ export const Permission = {
 	AgentsRead: "agents:read",
 	AgentsManage: "agents:manage",
 	ConversationsRead: "conversations:read",
-} as const satisfies Record<string, Permission>
+	StatsRead: "stats:read",
+	AgentsDelete: "agents:delete",
+} as const satisfies Record<string, Permission | AgentPermission>
 
 // "admin" is the first entry only for display stability; it implies every other permission.
 const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
 	admin: PERMISSIONS.filter((permission) => permission !== "admin"),
 	// Mutating grants imply read access to the same capability; keep this a DAG, never a cycle.
-	"agents:manage": ["agents:read"],
-	"conversations:read": ["agents:read"],
 	"users:manage": ["users:read"],
 	"roles:manage": ["users:read"],
 }
@@ -132,6 +132,7 @@ async function validateInvitationRoles(invitedBy: string, roleIds: string[]): Pr
 	if ((await repo.findRolesByIds(roleIds)).length !== roleIds.length)
 		throw new RoleNotFoundError("Invitation role no longer exists")
 	requireHeld(held, await permissionsOfRoles(roleIds))
+	await requireScopedAuthority(invitedBy, await repo.findAgentPermissionsOfRoles(roleIds))
 }
 
 export async function redeemInvitation(input: {
@@ -175,6 +176,129 @@ export async function redeemInvitation(input: {
 // Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
 	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
+}
+
+export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
+	const held = new Set(permissions)
+	if (held.has(Permission.AgentsManage)) held.add(Permission.AgentsRead)
+	return AGENT_PERMISSIONS.filter((permission) => held.has(permission))
+}
+
+export async function listAgentPermissions(userId: string, agentId: string): Promise<AgentPermission[]> {
+	const access = await agentPermissionsById(userId)
+	return access === "all" ? [...AGENT_PERMISSIONS] : (access.get(agentId) ?? [])
+}
+
+export async function agentPermissionsById(userId: string): Promise<Map<string, AgentPermission[]> | "all"> {
+	if ((await listEffectivePermissions(userId)).includes(Permission.Admin)) return "all"
+	const rows = await repo.findAgentPermissionsForUsers([userId])
+	return new Map(
+		[...Map.groupBy(rows, (row) => row.agentId)].map(([agentId, grants]) => [
+			agentId,
+			effectiveAgentPermissions(grants.map((grant) => grant.permission)),
+		]),
+	)
+}
+
+export async function agentScope(userId: string, permission?: AgentPermission): Promise<string[] | "all"> {
+	const access = await agentPermissionsById(userId)
+	return access === "all"
+		? "all"
+		: [...access].filter(([, held]) => !permission || held.includes(permission)).map(([agentId]) => agentId)
+}
+
+export async function requireAgentScope(userId: string, permission: AgentPermission): Promise<string[] | "all"> {
+	const scope = await agentScope(userId, permission)
+	if (scope !== "all" && scope.length === 0) throw new PermissionDeniedError(`Missing ${permission}`)
+	return scope
+}
+
+export async function requireAgentPermission(
+	userId: string,
+	agentId: string,
+	permission: AgentPermission,
+): Promise<void> {
+	const held = await listAgentPermissions(userId, agentId)
+	if (held.length === 0) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+	if (!held.includes(permission)) throw new PermissionDeniedError(`Missing ${permission}`)
+}
+
+async function requireScopedAuthority(
+	actorId: string,
+	grants: readonly { agentId: string; permission: string }[],
+): Promise<void> {
+	if (!holdsScopedPermissions(await agentPermissionsById(actorId), grants))
+		throw new PermissionExceedsOwnError("Cannot manage agent access beyond own permissions")
+}
+
+function holdsScopedPermissions(
+	held: Map<string, AgentPermission[]> | "all",
+	grants: readonly { agentId: string; permission: string }[],
+): boolean {
+	return (
+		held === "all" ||
+		[...Map.groupBy(grants, (grant) => grant.agentId)].every(([agentId, targeted]) =>
+			effectiveAgentPermissions(targeted.map((grant) => grant.permission)).every((permission) =>
+				held.get(agentId)?.includes(permission),
+			),
+		)
+	)
+}
+
+export async function listAgentAccess(
+	actorId: string,
+	agentId: string,
+): Promise<{ roles: { id: string; name: string; permissions: AgentPermission[] }[] }> {
+	await managementPermissions(actorId, Permission.RolesManage)
+	await requireAgentPermission(actorId, agentId, Permission.AgentsRead)
+	const [roles, grants] = await Promise.all([repo.findRoles(), repo.findAgentRolePermissions(agentId)])
+	return {
+		roles: roles.map(({ id, name }) => ({
+			id,
+			name,
+			permissions: AGENT_PERMISSIONS.filter((permission) =>
+				grants.some((grant) => grant.roleId === id && grant.permission === permission),
+			),
+		})),
+	}
+}
+
+export async function setAgentAccess(
+	actorId: string,
+	agentId: string,
+	roleId: string,
+	permissions: AgentPermission[],
+): Promise<void> {
+	assertUnique(permissions, "Agent permissions")
+	if (permissions.some((permission) => !(AGENT_PERMISSIONS as readonly string[]).includes(permission)))
+		throw new InvalidRoleInputError("Unknown agent permission")
+	await repo.withAccessLock(async () => {
+		await managementPermissions(actorId, Permission.RolesManage)
+		await requireAgentPermission(actorId, agentId, Permission.AgentsRead)
+		await getRole(roleId)
+		const rows = await repo.findAgentRolePermissions(agentId)
+		const before = effectiveAgentPermissions(
+			rows.filter((grant) => grant.roleId === roleId).map((grant) => grant.permission),
+		)
+		const after = effectiveAgentPermissions(permissions)
+		const changed = [
+			...before.filter((permission) => !after.includes(permission)),
+			...after.filter((permission) => !before.includes(permission)),
+		]
+		await requireScopedAuthority(
+			actorId,
+			changed.map((permission) => ({ agentId, permission })),
+		)
+		const normalized = permissions.filter(
+			(permission) => permission !== Permission.AgentsRead || !permissions.includes(Permission.AgentsManage),
+		)
+		try {
+			await repo.replaceAgentRolePermissions(agentId, roleId, normalized)
+		} catch (error) {
+			if (isForeignKeyViolation(error)) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+			throw error
+		}
+	})
 }
 
 export const ROLE_NAME_MAX_LENGTH = 64
@@ -298,6 +422,22 @@ export async function listRoles(): Promise<Role[]> {
 	return toRoles(await repo.findRoles())
 }
 
+export async function manageableRoleIds(actorId: string, roles: readonly Role[]): Promise<string[]> {
+	const held = await listEffectivePermissions(actorId)
+	const scoped = await agentPermissionsById(actorId)
+	const grants = await repo.findAgentPermissionsOfRoles(roles.map((role) => role.id))
+	return roles
+		.filter(
+			(role) =>
+				role.permissions.every((permission) => held.includes(permission)) &&
+				holdsScopedPermissions(
+					scoped,
+					grants.filter((grant) => grant.roleId === role.id),
+				),
+		)
+		.map((role) => role.id)
+}
+
 export async function createRole(input: RoleInput, actorId: string): Promise<Role> {
 	const value = normalizeRoleInput(input)
 	return repo.withAccessLock(async () => {
@@ -336,6 +476,7 @@ export async function deleteRole(id: string, actorId: string): Promise<void> {
 		const current = await getRole(id)
 		requireHeld(held, current.permissions)
 		if (id === DEFAULT_ROLE_ID) throw new DefaultRoleDeleteNotAllowedError()
+		await requireScopedAuthority(actorId, await repo.findAgentPermissionsOfRoles([id]))
 		await repo.deleteRoleById(id)
 	})
 }
@@ -352,6 +493,7 @@ export async function assignRoles(userId: string, roleIds: string[], actorId: st
 		const current = (await repo.findRolesOfUser(userId)).map(({ id }) => id)
 		const changed = [...current.filter((id) => !roleIds.includes(id)), ...roleIds.filter((id) => !current.includes(id))]
 		requireHeld(held, await permissionsOfRoles(changed))
+		await requireScopedAuthority(actorId, await repo.findAgentPermissionsOfRoles(changed))
 		try {
 			await repo.replaceUserRoles(userId, roleIds)
 		} catch (error) {
@@ -380,6 +522,17 @@ export async function listUsersWithAccess(actorId: string): Promise<UserWithAcce
 	const rolesByUser = Map.groupBy(roles, ({ userId }) => userId)
 	const sourcesByUser = Map.groupBy(sources, ({ userId }) => userId)
 	const held = effectivePermissions(sourcesByUser.get(actorId) ?? [])
+	const scoped = await repo.findAgentPermissionsForUsers([...new Set([...userIds, actorId])])
+	const ownScoped = held.includes(Permission.Admin)
+		? "all"
+		: new Map(
+				[
+					...Map.groupBy(
+						scoped.filter((grant) => grant.userId === actorId),
+						(grant) => grant.agentId,
+					),
+				].map(([agentId, grants]) => [agentId, effectiveAgentPermissions(grants.map((grant) => grant.permission))]),
+			)
 	const managesUsers = held.includes(Permission.UsersManage)
 	return users.map((user) => {
 		const permissions = effectivePermissions(sourcesByUser.get(user.id) ?? [])
@@ -387,7 +540,13 @@ export async function listUsersWithAccess(actorId: string): Promise<UserWithAcce
 			id: user.id,
 			username: user.username,
 			permissions,
-			canManage: managesUsers && permissions.every((permission) => held.includes(permission)),
+			canManage:
+				managesUsers &&
+				permissions.every((permission) => held.includes(permission)) &&
+				holdsScopedPermissions(
+					ownScoped,
+					scoped.filter((grant) => grant.userId === user.id),
+				),
 			mustChangePassword: managesUsers ? user.mustChangePassword : null,
 			roles: (rolesByUser.get(user.id) ?? []).map(({ id, name }) => ({ id, name })),
 		}
@@ -414,6 +573,7 @@ export async function resetUserPassword(userId: string, newPassword: string, act
 		const held = await managementPermissions(actorId, Permission.UsersManage)
 		await identity.getUser(userId)
 		requireHeld(held, await listEffectivePermissions(userId))
+		await requireScopedAuthority(actorId, await repo.findAgentPermissionsForUsers([userId]))
 		await identity.setPassword(userId, newPassword)
 	})
 }
@@ -423,6 +583,7 @@ export async function deleteUser(userId: string, actorId: string): Promise<void>
 		const held = await managementPermissions(actorId, Permission.UsersManage)
 		await identity.getUser(userId)
 		requireHeld(held, await listEffectivePermissions(userId))
+		await requireScopedAuthority(actorId, await repo.findAgentPermissionsForUsers([userId]))
 		await identity.deleteUser(userId)
 	})
 }

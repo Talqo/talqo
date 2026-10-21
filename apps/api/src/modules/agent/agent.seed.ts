@@ -27,6 +27,8 @@ const SEED_AGENTS = [
 	},
 ]
 
+export const SEED_AGENT_IDS = SEED_AGENTS.map((agent) => agent.id)
+
 export async function seed(): Promise<void> {
 	await Promise.all(
 		SEED_AGENTS.map(async (agent) => {

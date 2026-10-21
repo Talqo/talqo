@@ -4,16 +4,15 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
-export const assignUserRolesBodyRoleIdsItemMax = 128;
+export const assignUserRolesBodyRoleIdsItemMax = 128
 
-export const assignUserRolesBodyRoleIdsMax = 100;
-
+export const assignUserRolesBodyRoleIdsMax = 100
 
 export const AssignUserRolesBody = zod.object({
-  "roleIds": zod.array(zod.string().min(1).max(assignUserRolesBodyRoleIdsItemMax)).max(assignUserRolesBodyRoleIdsMax)
+	roleIds: zod.array(zod.string().min(1).max(assignUserRolesBodyRoleIdsItemMax)).max(assignUserRolesBodyRoleIdsMax),
 })
 
-export type AssignUserRolesBody = zod.input<typeof AssignUserRolesBody>;
-export type AssignUserRolesBodyOutput = zod.output<typeof AssignUserRolesBody>;
+export type AssignUserRolesBody = zod.input<typeof AssignUserRolesBody>
+export type AssignUserRolesBodyOutput = zod.output<typeof AssignUserRolesBody>

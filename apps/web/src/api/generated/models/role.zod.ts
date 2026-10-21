@@ -4,14 +4,14 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const Role = zod.object({
-  "id": zod.string(),
-  "name": zod.string(),
-  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:read', 'agents:manage', 'conversations:read'])),
-  "memberCount": zod.int()
-});
+	id: zod.string(),
+	name: zod.string(),
+	permissions: zod.array(zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage"])),
+	memberCount: zod.int(),
+})
 
-export type Role = zod.input<typeof Role>;
-export type RoleOutput = zod.output<typeof Role>;
+export type Role = zod.input<typeof Role>
+export type RoleOutput = zod.output<typeof Role>
