@@ -25,6 +25,8 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		const access = page.locator("[data-slot=card]", { has: page.getByRole("heading", { name: "Access", exact: true }) })
 		await access.getByRole("button", { name: "Add role", exact: true }).click()
 		await access.getByLabel("Choose a role").selectOption(role.id)
+		await expect(page.getByRole("link", { name: "View statistics", exact: true })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: "Read conversations", exact: true })).toHaveCount(0)
 		await expect(access.locator("fieldset")).toBeFocused()
 		await expect(access.getByText("Admin: full access", { exact: true })).toHaveCount(0)
 		await access.getByRole("switch", { name: "View statistics", exact: true }).check()
@@ -46,6 +48,9 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		await expect(operator.getByLabel("System prompt")).toHaveCount(0)
 		await expect(operator.getByRole("heading", { name: "Access", exact: true })).toHaveCount(0)
 		await expect(operator.getByRole("button", { name: "Delete agent", exact: true })).toHaveCount(0)
+		await operator.getByRole("link", { name: "Read conversations", exact: true }).click()
+		await expect(operator).toHaveURL(/\/dashboard\/conversations\?/)
+		expect(new URL(operator.url()).searchParams.get("agents")).toContain(agent.id)
 
 		await access.getByRole("switch", { name: "Delete agent", exact: true }).check()
 		page.once("dialog", (dialog) => dialog.accept())
