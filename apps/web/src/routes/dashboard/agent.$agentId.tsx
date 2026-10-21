@@ -6,7 +6,6 @@ import {
 	useUpdateAgent,
 	getGetAgentQueryKey,
 } from "@/api/generated/agent/agent.ts"
-import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
 import { useGetAgentPermissions, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
@@ -20,7 +19,7 @@ import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
-import { Button, buttonVariants } from "@talqo/ui/components/button"
+import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
 	Dialog,
@@ -52,7 +51,7 @@ function isAgentTab(value: unknown): value is AgentTab {
 }
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
-	beforeLoad: requirePermission("agents:visible"),
+	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		tab: isAgentTab(search.tab) ? search.tab : undefined,
 	}),
@@ -73,11 +72,8 @@ function AgentConfigPage() {
 	const permissionsQuery = useGetAgentPermissions(agentId)
 	const permissions = permissionsQuery.data?.data.permissions
 	const canRead = permissions?.includes("agents:read") ?? false
-	const summaryQuery = useListAgents()
 	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })
-	const summary = summaryQuery.data?.data.agents.find((agent) => agent.id === agentId)
-	const configuration = agentQuery.data?.data.agent
-	const agent = canRead ? configuration : summary
+	const agent = agentQuery.data?.data.agent
 	const { error, isLoading } = agentQuery
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
@@ -94,11 +90,11 @@ function AgentConfigPage() {
 	const canManageAccess = canRead && (globalPermissions?.includes("roles:manage") ?? false)
 	const client = useQueryClient()
 	useEffect(() => {
-		if (permissionsQuery.error?.status === NOT_FOUND_STATUS) {
+		if (permissionsQuery.error?.status === NOT_FOUND_STATUS || (permissionsQuery.data && !canRead)) {
 			client.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
 			void navigate({ to: "/dashboard/agents", replace: true, ignoreBlocker: true })
 		}
-	}, [permissionsQuery.error, agentId, client, navigate])
+	}, [permissionsQuery.error, permissionsQuery.data, canRead, agentId, client, navigate])
 
 	const {
 		register,
@@ -111,13 +107,14 @@ function AgentConfigPage() {
 	})
 
 	useEffect(() => {
-		if (configuration) {
-			reset({ name: configuration.name, systemPrompt: configuration.systemPrompt })
+		if (agent) {
+			reset({ name: agent.name, systemPrompt: agent.systemPrompt })
 		}
-	}, [configuration, reset])
-	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (configuration?.wordBlacklist ?? [])
+	}, [agent, reset])
+	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (agent?.wordBlacklist ?? [])
 
 	async function onValid(values: AgentFormValues) {
+		if (!canManage) return
 		setFormError(null)
 		setSaved(false)
 		try {
@@ -155,28 +152,29 @@ function AgentConfigPage() {
 		}
 	}
 
-	if (isLoading || permissionsQuery.isPending || summaryQuery.isPending) {
+	if (isLoading || permissionsQuery.isPending) {
 		return (
 			<div className="mx-auto max-w-3xl">
 				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
 			</div>
 		)
 	}
-	if (permissionsQuery.isError || summaryQuery.isError || (canRead && agentQuery.isError)) {
+	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
 			<div className="mx-auto max-w-3xl space-y-6">
 				<BackLink t={t} />
 				<ProblemAlert
-					error={permissionsQuery.error ?? summaryQuery.error ?? agentQuery.error}
+					error={permissionsQuery.error ?? agentQuery.error}
 					onRetry={() => {
 						void permissionsQuery.refetch()
-						void summaryQuery.refetch()
 						if (canRead) void agentQuery.refetch()
 					}}
 				/>
 			</div>
 		)
 	}
+
+	if (!canRead) return null
 
 	if (!agent) {
 		return (
@@ -193,10 +191,10 @@ function AgentConfigPage() {
 		<div className="mx-auto max-w-3xl space-y-6">
 			<BackLink t={t} />
 
-			<PageHeader title={t("agentConfig.heading", { name: agent.name })} description={t("agentConfig.subheading")} />
+			<PageHeader title={agent.name} description={canManage ? t("agentConfig.subheading") : undefined} />
 
 			<Tabs
-				value={canRead ? tab : "configuration"}
+				value={tab}
 				onValueChange={(value) => {
 					if (isAgentTab(value)) {
 						void setTab({ search: (prev) => ({ ...prev, tab: value }), replace: true, resetScroll: false })
@@ -205,103 +203,75 @@ function AgentConfigPage() {
 			>
 				<TabsList>
 					<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
-					{canRead && (
-						<>
-							<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
-							<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
-							<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
-						</>
-					)}
+					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
+					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
+					<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
 				</TabsList>
 				<TabsContent value="configuration" className="space-y-6">
-					{canRead && (
-						<Card>
-							<CardHeader>
-								<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
-								<CardDescription>{t("agentConfig.cardDescription")}</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-									{formError && (
-										<p role="alert" className="text-destructive text-sm">
-											{formError}
-										</p>
+					<Card>
+						<CardHeader>
+							<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
+							{canManage && <CardDescription>{t("agentConfig.cardDescription")}</CardDescription>}
+						</CardHeader>
+						<CardContent>
+							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
+								{formError && (
+									<p role="alert" className="text-destructive text-sm">
+										{formError}
+									</p>
+								)}
+								<div className="space-y-2">
+									<Label htmlFor="config-name">{t("agentFields.name")}</Label>
+									<Input
+										id="config-name"
+										placeholder={t("agentFields.namePlaceholder")}
+										readOnly={!canManage}
+										aria-invalid={errors.name ? true : undefined}
+										{...register("name", { onChange: () => setSaved(false) })}
+									/>
+									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
+									<Textarea
+										id="config-system-prompt"
+										placeholder={t("agentFields.systemPromptPlaceholder")}
+										rows={5}
+										readOnly={!canManage}
+										aria-invalid={errors.systemPrompt ? true : undefined}
+										{...register("systemPrompt", { onChange: () => setSaved(false) })}
+									/>
+									{errors.systemPrompt && (
+										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
 									)}
-									<div className="space-y-2">
-										<Label htmlFor="config-name">{t("agentFields.name")}</Label>
-										<Input
-											id="config-name"
-											placeholder={t("agentFields.namePlaceholder")}
-											disabled={!canManage}
-											aria-invalid={errors.name ? true : undefined}
-											{...register("name", { onChange: () => setSaved(false) })}
-										/>
-										{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
-										<Textarea
-											id="config-system-prompt"
-											placeholder={t("agentFields.systemPromptPlaceholder")}
-											rows={5}
-											disabled={!canManage}
-											aria-invalid={errors.systemPrompt ? true : undefined}
-											{...register("systemPrompt", { onChange: () => setSaved(false) })}
-										/>
-										{errors.systemPrompt && (
-											<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor={canManage ? "config-blacklist" : undefined}>{t("agentFields.wordBlacklist")}</Label>
+									<BlacklistTermsEditor
+										id="config-blacklist"
+										value={terms}
+										onChange={(next) => {
+											setSaved(false)
+											setEditedTerms({ agentId, terms: next })
+										}}
+										disabled={!canManage}
+									/>
+								</div>
+								{canManage && (
+									<div className="flex items-center gap-3 pt-2">
+										<Button type="submit" disabled={updateAgent.isPending}>
+											{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
+										</Button>
+										{saved && (
+											<span role="status" className="text-muted-foreground text-sm">
+												{t("agentConfig.saved")}
+											</span>
 										)}
 									</div>
-									<div className="space-y-2">
-										<Label htmlFor="config-blacklist">{t("agentFields.wordBlacklist")}</Label>
-										<BlacklistTermsEditor
-											id="config-blacklist"
-											value={terms}
-											onChange={(next) => {
-												setSaved(false)
-												setEditedTerms({ agentId, terms: next })
-											}}
-											disabled={!canManage}
-										/>
-									</div>
-									{canManage && (
-										<div className="flex items-center gap-3 pt-2">
-											<Button type="submit" disabled={updateAgent.isPending}>
-												{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
-											</Button>
-											{saved && (
-												<span role="status" className="text-muted-foreground text-sm">
-													{t("agentConfig.saved")}
-												</span>
-											)}
-										</div>
-									)}
-								</form>
-							</CardContent>
-						</Card>
-					)}
-					{!canRead && (permissions?.includes("stats:read") || permissions?.includes("conversations:read")) && (
-						<div className="flex flex-wrap gap-2">
-							{permissions?.includes("stats:read") && (
-								<Link
-									className={buttonVariants({ variant: "outline" })}
-									to="/dashboard"
-									search={{ agents: [agentId], days: undefined }}
-								>
-									{t("agentAccess.statistics")}
-								</Link>
-							)}
-							{permissions?.includes("conversations:read") && (
-								<Link
-									className={buttonVariants({ variant: "outline" })}
-									to="/dashboard/conversations"
-									search={{ agents: [agentId], page: undefined }}
-								>
-									{t("agentAccess.conversations")}
-								</Link>
-							)}
-						</div>
-					)}
+								)}
+							</form>
+						</CardContent>
+					</Card>
 					{canManageAccess && permissions && (
 						<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
 					)}
@@ -362,19 +332,15 @@ function AgentConfigPage() {
 						</Card>
 					)}
 				</TabsContent>
-				{canRead && (
-					<>
-						<TabsContent value="context">
-							<AgentFilesCard agentId={agentId} canManage={canManage} />
-						</TabsContent>
-						<TabsContent value="embeds">
-							<AgentEmbedsPanel agentId={agentId} canManage={canManage} />
-						</TabsContent>
-						<TabsContent value="mcp">
-							<McpConnectionsCard agentId={agentId} canManage={canManage} />
-						</TabsContent>
-					</>
-				)}
+				<TabsContent value="context">
+					<AgentFilesCard agentId={agentId} canManage={canManage} />
+				</TabsContent>
+				<TabsContent value="embeds">
+					<AgentEmbedsPanel agentId={agentId} canManage={canManage} />
+				</TabsContent>
+				<TabsContent value="mcp">
+					<McpConnectionsCard agentId={agentId} canManage={canManage} />
+				</TabsContent>
 			</Tabs>
 		</div>
 	)

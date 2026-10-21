@@ -6,7 +6,6 @@ import { useMatches } from "@tanstack/react-router"
 export type Permission =
 	| GetMyPermissions200["permissions"][number]
 	| ListAgents200["agents"][number]["permissions"][number]
-	| "agents:visible"
 
 export type AccessGate = "open" | "pending" | "error" | "denied"
 
@@ -43,17 +42,10 @@ export function accessGate(
 	if (query.isError) return "error"
 	const permissions: readonly string[] = query.data?.data.permissions ?? []
 	if (permissions.includes("admin") || permissions.includes(required)) return "open"
-	if (
-		required === "agents:visible" ||
-		required.startsWith("agents:") ||
-		required === "stats:read" ||
-		required === "conversations:read"
-	) {
+	if (required.startsWith("agents:") || required === "stats:read" || required === "conversations:read") {
 		if (!agents || agents.isPending) return "pending"
 		if (agents.isError) return "error"
-		return agents.data?.data.agents.some(
-			(agent) => required === "agents:visible" || (agent.permissions as readonly string[]).includes(required),
-		)
+		return agents.data?.data.agents.some((agent) => (agent.permissions as readonly string[]).includes(required))
 			? "open"
 			: "denied"
 	}

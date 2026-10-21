@@ -139,7 +139,7 @@ describe("agent-scoped access", () => {
 	it("keeps grants scoped to existing agents and combines roles additively", async () => {
 		const { admin, a, b, role, operator } = await agentAccessFixture()
 		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
-		await service.setAgentAccess(admin, b.id, role.id, ["stats:read"])
+		await service.setAgentAccess(admin, b.id, role.id, ["stats:read", "agents:delete"])
 		const observer = await service.createRole({ name: "Observers", permissions: [] }, admin)
 		await service.setAgentAccess(admin, a.id, observer.id, ["conversations:read"])
 		await service.assignRoles(operator.id, [role.id, observer.id], admin)
@@ -149,7 +149,11 @@ describe("agent-scoped access", () => {
 			"agents:read",
 			"agents:manage",
 		])
-		expect(await service.listAgentPermissions(operator.id, b.id)).toEqual(["stats:read"])
+		expect(await service.listAgentPermissions(operator.id, b.id)).toEqual([
+			"stats:read",
+			"agents:read",
+			"agents:delete",
+		])
 		expect(await service.agentScope(operator.id, "agents:manage")).toEqual([a.id])
 		const created = await agents.createAgent({ name: "New agent", systemPrompt: "Private", wordBlacklist: [] })
 		expect(await service.listAgentPermissions(operator.id, created.id)).toEqual([])

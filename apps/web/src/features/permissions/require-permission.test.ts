@@ -29,7 +29,6 @@ describe("accessGate", () => {
 			},
 		}
 		expect(accessGate("stats:read", permissions, agents)).toBe("open")
-		expect(accessGate("agents:visible", permissions, agents)).toBe("open")
 		expect(accessGate("conversations:read", permissions, agents)).toBe("denied")
 		expect(accessGate("agents:read", permissions, agents)).toBe("denied")
 	})

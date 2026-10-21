@@ -46,7 +46,7 @@ const navLabels = {
 
 function allowedNavItems(permissions: string[], agents: { permissions: string[] }[]): readonly NavItem[] {
 	const admin = permissions.includes("admin")
-	const canReadAgents = admin || agents.length > 0
+	const canReadAgents = admin || agents.some((agent) => agent.permissions.includes("agents:read"))
 	const canReadConversations = admin || agents.some((agent) => agent.permissions.includes("conversations:read"))
 	const canReadStats = admin || agents.some((agent) => agent.permissions.includes("stats:read"))
 	const canManageProvider = permissions.includes("ai_provider:manage")

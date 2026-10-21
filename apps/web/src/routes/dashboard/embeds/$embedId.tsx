@@ -62,11 +62,13 @@ function SchemeColorFields({
 	scheme,
 	control,
 	appearanceScheme,
+	readOnly,
 	t,
 }: {
 	scheme: ColorSchemeTab
 	control: Control<EmbedFormValues>
 	appearanceScheme: { primary: string; textOnPrimary: string; background: string; surface: string; text: string }
+	readOnly: boolean
 	t: (key: string) => string
 }) {
 	return (
@@ -77,6 +79,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-primary`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorPrimary")}
 						value={field.value}
 						onChange={field.onChange}
@@ -90,6 +93,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-text-on-primary`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorTextOnPrimary")}
 						value={field.value}
 						onChange={field.onChange}
@@ -103,6 +107,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-background`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorBackground")}
 						value={field.value}
 						onChange={field.onChange}
@@ -116,6 +121,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-surface`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorSurface")}
 						value={field.value}
 						onChange={field.onChange}
@@ -129,6 +135,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-text`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorText")}
 						value={field.value}
 						onChange={field.onChange}
@@ -211,7 +218,7 @@ function EmbedDetailPage() {
 	}
 
 	function onValid(submitted: EmbedFormValues) {
-		if (!embed) return
+		if (!embed || !canManage) return
 		updateEmbed.mutate(
 			{
 				embedId,
@@ -283,13 +290,12 @@ function EmbedDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-							{/* Native cascade: one attribute disables every control below, including the
-							    Base UI triggers, so a read-only operator reads the widget without editing it. */}
-							<fieldset disabled={!canManage} className="space-y-4">
+							<fieldset className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="widget-name">{t("embedSetup.nameLabel")}</Label>
 									<Input
 										id="widget-name"
+										readOnly={!canManage}
 										aria-invalid={formState.errors.name ? true : undefined}
 										{...register("name")}
 									/>
@@ -313,10 +319,22 @@ function EmbedDetailPage() {
 										<TabsTrigger value="dark">{t("embedSetup.tabDark")}</TabsTrigger>
 									</TabsList>
 									<TabsContent value="light">
-										<SchemeColorFields scheme="light" control={control} appearanceScheme={appearance.light} t={t} />
+										<SchemeColorFields
+											scheme="light"
+											control={control}
+											appearanceScheme={appearance.light}
+											readOnly={!canManage}
+											t={t}
+										/>
 									</TabsContent>
 									<TabsContent value="dark">
-										<SchemeColorFields scheme="dark" control={control} appearanceScheme={appearance.dark} t={t} />
+										<SchemeColorFields
+											scheme="dark"
+											control={control}
+											appearanceScheme={appearance.dark}
+											readOnly={!canManage}
+											t={t}
+										/>
 									</TabsContent>
 								</Tabs>
 
@@ -328,6 +346,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={positionOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isWidgetPosition(value) && field.onChange(value)}
 											>
@@ -354,6 +373,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={themeOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isWidgetTheme(value) && field.onChange(value)}
 											>
@@ -377,7 +397,12 @@ function EmbedDetailPage() {
 										control={control}
 										name="themeToggle"
 										render={({ field }) => (
-											<Switch id="widget-theme-toggle" checked={field.value} onCheckedChange={field.onChange} />
+											<Switch
+												id="widget-theme-toggle"
+												disabled={!canManage}
+												checked={field.value}
+												onCheckedChange={field.onChange}
+											/>
 										)}
 									/>
 									<Label htmlFor="widget-theme-toggle">{t("embedSetup.themeToggle")}</Label>
@@ -391,6 +416,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={languageOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isSupportedLanguage(value) && field.onChange(value)}
 											>
