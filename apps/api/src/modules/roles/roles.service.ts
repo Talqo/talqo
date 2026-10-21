@@ -180,7 +180,7 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 
 export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
 	const held = new Set(permissions)
-	if (held.has(Permission.AgentsManage)) held.add(Permission.AgentsRead)
+	if (held.has(Permission.AgentsManage) || held.has(Permission.AgentsDelete)) held.add(Permission.AgentsRead)
 	return AGENT_PERMISSIONS.filter((permission) => held.has(permission))
 }
 
@@ -290,7 +290,9 @@ export async function setAgentAccess(
 			changed.map((permission) => ({ agentId, permission })),
 		)
 		const normalized = permissions.filter(
-			(permission) => permission !== Permission.AgentsRead || !permissions.includes(Permission.AgentsManage),
+			(permission) =>
+				permission !== Permission.AgentsRead ||
+				(!permissions.includes(Permission.AgentsManage) && !permissions.includes(Permission.AgentsDelete)),
 		)
 		try {
 			await repo.replaceAgentRolePermissions(agentId, roleId, normalized)

@@ -50,29 +50,30 @@ export function BlacklistTermsEditor({
 
 	return (
 		<div className="space-y-2">
-			<div className="flex gap-2">
-				<Input
-					id={id}
-					value={draft}
-					disabled={disabled}
-					placeholder={t("blacklist.termPlaceholder")}
-					aria-invalid={error ? true : undefined}
-					aria-describedby={`${id}-help`}
-					onChange={(event) => {
-						setDraft(event.target.value)
-						setError(null)
-					}}
-					onKeyDown={(event) => {
-						if (event.key === "Enter") {
-							event.preventDefault() // Enter adds a term, not the form.
-							handleAdd()
-						}
-					}}
-				/>
-				<Button type="button" variant="outline" onClick={handleAdd} disabled={disabled}>
-					{t("blacklist.addTerm")}
-				</Button>
-			</div>
+			{!disabled && (
+				<div className="flex gap-2">
+					<Input
+						id={id}
+						value={draft}
+						placeholder={t("blacklist.termPlaceholder")}
+						aria-invalid={error ? true : undefined}
+						aria-describedby={`${id}-help`}
+						onChange={(event) => {
+							setDraft(event.target.value)
+							setError(null)
+						}}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault() // Enter adds a term, not the form.
+								handleAdd()
+							}
+						}}
+					/>
+					<Button type="button" variant="outline" onClick={handleAdd}>
+						{t("blacklist.addTerm")}
+					</Button>
+				</div>
+			)}
 			<p id={`${id}-help`} className="text-muted-foreground text-xs">
 				{t("blacklist.help")}
 			</p>

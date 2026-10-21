@@ -117,6 +117,10 @@ describe("AgentAccessCard", () => {
 		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("false")
 		await click(button("Support"))
 		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("true")
+		await click(permissionSwitch("agents:manage"))
+		await click(permissionSwitch("agents:delete"))
+		expect(permissionSwitch("agents:read").disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.deleteAgent") }))
 		expect(mutations).toEqual([])
 	})
 

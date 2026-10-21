@@ -29,11 +29,13 @@ async function giveViewerRole(page: Page): Promise<string> {
 	try {
 		const agentsResponse = await page.request.get("/api/agents")
 		await expect(agentsResponse).toBeOK()
-		const { agents } = (await agentsResponse.json()) as { agents: { id: string }[] }
+		const { agents } = (await agentsResponse.json()) as { agents: { id: string; name: string }[] }
 		const grants = await Promise.allSettled(
-			agents.map(async ({ id }) =>
+			agents.map(async ({ id, name }) =>
 				expect(
-					await page.request.put(`/api/agents/${id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+					await page.request.put(`/api/agents/${id}/access/${roleId}`, {
+						data: { permissions: [name === SEEDED_AGENT ? "agents:read" : "stats:read"] },
+					}),
 				).toBeOK(),
 			),
 		)
@@ -62,7 +64,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await page.getByRole("button", { name: "Create agent" }).click()
 	await expect(page).toHaveURL(/\/dashboard\/agent\//)
 	createdAgentId = new URL(page.url()).pathname.split("/").pop()
-	await expect(page.getByRole("heading", { name: "Configure New agent" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "New agent", exact: true })).toBeVisible()
 	await expect(page.getByLabel("Name")).toHaveValue("New agent")
 
 	await page.getByLabel("Name").fill("Docs helper")
@@ -77,7 +79,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	await page.getByRole("button", { name: "Remove abuse" }).click()
 	await page.getByRole("button", { name: "Save changes" }).click()
 	await page.reload()
-	await expect(page.getByRole("heading", { name: "Configure Docs helper" })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Docs helper", exact: true })).toBeVisible()
 	await expect(page.getByText("spam", { exact: true })).toBeVisible()
 	await expect(page.getByText("abuse", { exact: true })).toHaveCount(0)
 
@@ -117,11 +119,20 @@ test("a read-only operator can inspect agents but finds no management controls",
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: /Product Advisor/ })).toHaveCount(0)
+		const { agents } = (await (await page.request.get("/api/agents")).json()) as {
+			agents: { id: string; name: string }[]
+		}
+		const hidden = agents.find(({ name }) => name === "Product Advisor")
+		if (!hidden) throw new Error("Missing reporting-only agent")
+		await page.goto(`/dashboard/agent/${hidden.id}`)
+		await expect(page).toHaveURL("/dashboard/agents")
 		await page.getByRole("link", { name: new RegExp(SEEDED_AGENT) }).click()
 
-		await expect(page.getByRole("heading", { name: `Configure ${SEEDED_AGENT}` })).toBeVisible()
-		await expect(page.getByLabel("Name")).toBeDisabled()
-		await expect(page.getByLabel("System prompt")).toBeDisabled()
+		await expect(page.getByRole("heading", { name: SEEDED_AGENT, exact: true })).toBeVisible()
+		await expect(page.getByLabel("Name")).toHaveAttribute("readonly", "")
+		await expect(page.getByLabel("System prompt")).toHaveAttribute("readonly", "")
+		await expect(page.getByRole("button", { name: "Add", exact: true })).toHaveCount(0)
 		await expect(page.getByText("Intercom", { exact: true })).toBeVisible()
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
@@ -139,8 +150,10 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
 		await page.getByRole("link", { name: "Website", exact: true }).click()
 
-		await expect(page.getByLabel("Name")).toBeDisabled()
-		await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
+		await expect(page.getByLabel("Name")).toHaveAttribute("readonly", "")
+		await expect(page.getByLabel("Brand color hex value", { exact: true })).toHaveAttribute("readonly", "")
+		await page.getByRole("tab", { name: "Dark", exact: true }).click()
+		await expect(page.getByLabel("Brand color hex value", { exact: true })).toHaveAttribute("readonly", "")
 		await expect(page.locator("pre")).toBeVisible()
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)

@@ -18,13 +18,13 @@ Per-agent permissions are:
 - `conversations:read`, displayed as "Read conversations". Allows this agent's conversation list and transcripts, without configuration.
 - `agents:read`, displayed as "View configuration". Allows reading instructions, blacklist, knowledge files, MCP connections, and embeds.
 - `agents:manage`, displayed as "Edit configuration". Includes `agents:read`. Allows configuration changes, knowledge uploads and removal, MCP connection operations, and embed creation, editing, deletion, token rotation, and enabling/disabling.
-- `agents:delete`, displayed as "Delete agent". Allows deletion subject to existing deletion invariants and confirmation. Does not grant editing or transcript access.
+- `agents:delete`, displayed as "Delete agent". Includes `agents:read`. Allows deletion subject to existing deletion invariants and confirmation. Does not grant editing or transcript access.
 
 Remove the current implications from conversation reading to configuration reading and from admin to an enumerated global agent permission list. Admin instead satisfies both global and agent-scoped authorization directly.
 
-Any agent permission makes its ID and name visible to the operator. Agent discovery returns summaries and effective permissions, not system prompts or other configuration. Detailed configuration reads require `agents:read`. Statistics-only and conversation-only operators can use their dashboard sections without fetching configuration. A deletion-only operator can reach the deletion action without loading protected configuration.
+Any agent permission makes its ID and name available to the relevant dashboard sections. Agent discovery returns summaries and effective permissions, not system prompts or other configuration. The Agents sidebar entry, list, and individual configuration pages require `agents:read`. Statistics-only and conversation-only operators use Dashboard and Conversations instead, without fetching configuration. Agent deletion includes viewing so its confirmation is reachable on the configuration page.
 
-The agent page loads its summary and effective permissions before protected queries. Without configuration viewing, hide configuration fields, knowledge, embeds, and MCP content rather than mounting their queries. Show links to permitted statistics and conversations, and show the existing deletion danger zone when deletion is allowed. This lets a deletion-only operator use the existing page without adding a second deletion workflow.
+The agent page checks its effective permissions before fetching configuration. Without configuration viewing, redirect away without mounting protected queries. Without editing, show selectable read-only text, allow inspection of tabs and downloads, disable state-changing switches, and hide mutation controls. The heading is the agent's name. Show access management and the deletion danger zone only with their respective permissions. Do not add statistics or conversation shortcuts to this page.
 
 Permissions from all assigned roles combine additively for the same agent. Permissions never cross agent boundaries. Editing does not imply statistics, transcripts, deletion, or access administration.
 
@@ -43,7 +43,7 @@ The `roles` module owns a new `role_agent_permission` table:
 - `permission`, restricted to the per-agent catalog.
 - Composite primary key over all three columns and an index supporting agent-first queries.
 
-There is no separate role-agent membership table. A role has access when at least one permission row exists. Store independent grants; normalize away explicit `agents:read` when `agents:manage` already supplies it.
+There is no separate role-agent membership table. A role has access when at least one permission row exists. Store independent grants; normalize away explicit `agents:read` when editing or deletion already supplies it.
 
 `role_permission` holds only global permissions. Delete its old agent and conversation permission rows in a new migration without converting them. Existing non-admin operators lose those global capabilities until admin assigns explicit agent grants. Preserve unrelated roles, memberships, global permissions, and business data. Development and E2E seeds explicitly create their intended scoped grants.
 
@@ -112,7 +112,7 @@ Generate OpenAPI and both consumer artifacts from the source contracts. Do not h
 
 Show Dashboard when the operator has `stats:read` on at least one agent. Show Conversations when the operator has `conversations:read` on at least one agent. Access to an agent without the corresponding capability does not expose either section. These checks depend on permissions, not whether statistics or conversations already exist.
 
-Show Agents when at least one agent is visible. Admin always sees Dashboard, Conversations, and Agents, including when no agents exist. Keep Users and AI configuration governed by their global permissions, and Account available to every signed-in operator. Apply the same visibility rules to desktop and mobile navigation.
+Show Agents when the operator has `agents:read` on at least one agent, and list only agents with that permission. Admin always sees Dashboard, Conversations, and Agents, including when no agents exist. Keep Users and AI configuration governed by their global permissions, and Account available to every signed-in operator. Apply the same visibility rules to desktop and mobile navigation.
 
 Direct URLs enforce the same requirements. After sign-in or loss of the current section's access, navigate to the first permitted sidebar destination, falling back to Account. Refresh navigation after access changes without retaining protected content. Navigation visibility is not a substitute for API authorization.
 
@@ -156,6 +156,6 @@ Use pure tests for implication expansion, scoped union, and authority comparison
 - Direct IDs, nested resource IDs, embed reassignment, transcript reads, pagination, empty scopes, and analytics aggregates do not bypass agent boundaries. Public chat behavior remains unchanged.
 - Role replacement is atomic, deletion cascades remove grants, invalid input fails, and re-adding a removed role uses fresh authorization.
 
-Component tests cover selected-role editing, drafts across selection changes, implication controls, empty selections, selected-role Save, immediate confirmed removal, mutually exclusive mutations, failed mutations, re-adding a role, and inaccessible actions. Verify that a deletion-only page does not fetch configuration. Navigation tests cover each capability independently, no accessible agents, agents without activity, admin with no agents, query errors, and landing-page fallback. E2E covers admin assigning access through the new section, a restricted operator seeing and using only their allowed dashboard sections, and revocation denying their next request and updating navigation on revalidation. Reuse existing journey setup and mock external providers only at their boundaries.
+Component tests cover selected-role editing, drafts across selection changes, implication controls, empty selections, selected-role Save, immediate confirmed removal, mutually exclusive mutations, failed mutations, re-adding a role, and inaccessible actions. Verify that reporting-only operators cannot enter configuration pages and that read-only operators can inspect but not change settings. Navigation tests cover each capability independently, no accessible agents, agents without activity, admin with no agents, query errors, and landing-page fallback. E2E covers admin assigning access through the new section, a restricted operator seeing and using only their allowed dashboard sections, and revocation denying their next request and updating navigation on revalidation. Reuse existing journey setup and mock external providers only at their boundaries.
 
 Run focused checks first, followed by `bun run quality:fix`, `bun run typecheck`, `bun run test`, `bun run test:integration`, `bun run e2e`, `bun run contracts:check`, and `bun run i18n:fix`. Run `bun run actions:check` only if workflows change. Inspect the final diff for compatibility branches, redundant checks, and accidental unrelated edits.

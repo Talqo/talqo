@@ -61,7 +61,6 @@
 		"deletePrompt": "This permanently deletes {{name}} and all of its conversation and usage history. There is no undo.",
 		"deleteTitle": "Delete agent?",
 		"deleting": "Deleting…",
-		"heading": "Configure {{name}}",
 		"loading": "Loading agent…",
 		"notFound": "Agent not found. It may have been removed.",
 		"save": "Save changes",

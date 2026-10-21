@@ -61,7 +61,6 @@
 		"deletePrompt": "Tímto trvale smažete agenta {{name}} včetně veškeré historie konverzací a využití. Akci nelze vrátit zpět.",
 		"deleteTitle": "Smazat agenta?",
 		"deleting": "Mazání…",
-		"heading": "Nastavit {{name}}",
 		"loading": "Načítání agenta…",
 		"notFound": "Agent nebyl nalezen. Možná byl odstraněn.",
 		"save": "Uložit změny",

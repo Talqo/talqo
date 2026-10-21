@@ -40,7 +40,9 @@ const PERMISSION_DESCRIPTIONS = {
 function expanded(permissions: readonly Permission[]): Permission[] {
 	return (Object.keys(PERMISSION_LABELS) as Permission[]).filter(
 		(permission) =>
-			permissions.includes(permission) || (permission === "agents:read" && permissions.includes("agents:manage")),
+			permissions.includes(permission) ||
+			(permission === "agents:read" &&
+				(permissions.includes("agents:manage") || permissions.includes("agents:delete"))),
 	)
 }
 
@@ -116,7 +118,8 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	function toggle(permission: Permission) {
 		if (!selected) return
 		const next = values.includes(permission) ? values.filter((value) => value !== permission) : [...values, permission]
-		if (next.includes("agents:manage") && !next.includes("agents:read")) next.push("agents:read")
+		if ((next.includes("agents:manage") || next.includes("agents:delete")) && !next.includes("agents:read"))
+			next.push("agents:read")
 		if (
 			selected.permissions.length > 0 &&
 			JSON.stringify(expanded(next)) === JSON.stringify(expanded(selected.permissions))
@@ -211,10 +214,16 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 								<div className="divide-y">
 									{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => {
 										const id = `access-${agentId}-${permission}`
-										const included = permission === "agents:read" && values.includes("agents:manage")
+										const included =
+											permission === "agents:read" &&
+											(values.includes("agents:manage") || values.includes("agents:delete"))
 										const notHeld = !permissions.includes(permission)
 										const hint = included
-											? t("roles.includedWith", { permission: t("agentAccess.editConfiguration") })
+											? t("roles.includedWith", {
+													permission: values.includes("agents:manage")
+														? t("agentAccess.editConfiguration")
+														: t("agentAccess.deleteAgent"),
+												})
 											: notHeld
 												? t("roles.notYours")
 												: null
