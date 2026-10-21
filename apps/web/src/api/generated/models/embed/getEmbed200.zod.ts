@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { Embed } from '../embed.zod';
+import * as zod from "zod"
+
+import { Embed } from "../embed.zod"
 
 export const GetEmbed200 = zod.object({
-  "embed": Embed
+	embed: Embed,
 })
 
-export type GetEmbed200 = zod.input<typeof GetEmbed200>;
-export type GetEmbed200Output = zod.output<typeof GetEmbed200>;
+export type GetEmbed200 = zod.input<typeof GetEmbed200>
+export type GetEmbed200Output = zod.output<typeof GetEmbed200>

@@ -124,7 +124,7 @@ export const listEmbedsRoute = createRoute({
 	path: "/",
 	operationId: "listEmbeds",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.session(),
 	request: { query: listEmbedsQuerySchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedListResponseSchema } }, description: "All embeds" },
@@ -139,7 +139,7 @@ export const createEmbedRoute = createRoute({
 	path: "/",
 	operationId: "createEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: {
 		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
 	},
@@ -159,7 +159,7 @@ export const getEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "getEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.embed(roles.Permission.AgentsRead),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "One embed" },
@@ -175,7 +175,7 @@ export const updateEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "updateEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: {
 		params: embedParamsSchema,
 		body: { content: { "application/json": { schema: embedInputSchema } }, required: true },
@@ -196,7 +196,7 @@ export const rotateEmbedTokenRoute = createRoute({
 	path: "/{embedId}/embed-token/rotate",
 	operationId: "rotateEmbedToken",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed token rotated" },
@@ -212,7 +212,7 @@ export const disableEmbedRoute = createRoute({
 	path: "/{embedId}/disable",
 	operationId: "disableEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed disabled" },
@@ -228,7 +228,7 @@ export const enableEmbedRoute = createRoute({
 	path: "/{embedId}/enable",
 	operationId: "enableEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "Embed enabled" },
@@ -244,7 +244,7 @@ export const deleteEmbedRoute = createRoute({
 	path: "/{embedId}",
 	operationId: "deleteEmbed",
 	tags: ["Embed"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.embed(roles.Permission.AgentsManage),
 	request: { params: embedParamsSchema },
 	responses: {
 		204: noContentResponse,

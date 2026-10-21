@@ -1,3 +1,4 @@
+import { getListAgentsQueryKey } from "@/api/generated/agent/agent"
 import { getGetMyPermissionsQueryKey } from "@/api/generated/roles/roles.ts"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
@@ -18,7 +19,10 @@ export function useAccessError(...errors: unknown[]): boolean {
 	const forbidden = statuses.has(FORBIDDEN_STATUS)
 	useEffect(() => {
 		if (unauthorized) void navigate({ to: "/login" })
-		else if (forbidden) void queryClient.invalidateQueries({ queryKey: getGetMyPermissionsQueryKey() })
+		else if (forbidden) {
+			void queryClient.invalidateQueries({ queryKey: getGetMyPermissionsQueryKey() })
+			void queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() })
+		}
 	}, [unauthorized, forbidden, navigate, queryClient])
 	return forbidden
 }

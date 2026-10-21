@@ -4,15 +4,15 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const ConversationMessage = zod.object({
-  "id": zod.string(),
-  "role": zod.enum(['user', 'assistant']),
-  "text": zod.string(),
-  "createdAt": zod.iso.datetime({"offset":true}),
-  "outcome": zod.enum(['streaming', 'completed', 'failed', 'cancelled', 'blocked', 'interrupted'])
-});
+	id: zod.string(),
+	role: zod.enum(["user", "assistant"]),
+	text: zod.string(),
+	createdAt: zod.iso.datetime({ offset: true }),
+	outcome: zod.enum(["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"]),
+})
 
-export type ConversationMessage = zod.input<typeof ConversationMessage>;
-export type ConversationMessageOutput = zod.output<typeof ConversationMessage>;
+export type ConversationMessage = zod.input<typeof ConversationMessage>
+export type ConversationMessageOutput = zod.output<typeof ConversationMessage>

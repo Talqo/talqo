@@ -323,6 +323,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 											isSelf={user.id === currentUserId}
 											ownRoles={ownRoles}
 											roles={roles}
+											manageableRoleIds={rolesQuery.data?.data.manageableRoleIds ?? []}
 											targetUser={user}
 										/>
 									) : canManageRoles ? (
@@ -434,6 +435,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
 						<RolePicker
+							manageableRoleIds={rolesQuery.data.data.manageableRoleIds}
 							disabled={createInvitation.isPending || Boolean(inviteUrl)}
 							heldPermissions={held}
 							roles={roles}

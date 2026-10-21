@@ -4,10 +4,11 @@ import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE, WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
-import { beforeEach, describe, expect, it } from "bun:test"
+import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
+import * as repository from "./embed.repository.ts"
 import * as service from "./embed.service.ts"
 
 async function createAgent(name = "Docs helper"): Promise<string> {
@@ -17,13 +18,16 @@ async function createAgent(name = "Docs helper"): Promise<string> {
 }
 
 async function createEmbed(agentId: string, overrides: Partial<service.EmbedInput> = {}): Promise<service.Embed> {
-	return service.createEmbed({ agentId, name: "Marketing site", appearance: DEFAULT_WIDGET_APPEARANCE, ...overrides })
+	return service.createEmbed(
+		{ agentId, name: "Marketing site", appearance: DEFAULT_WIDGET_APPEARANCE, ...overrides },
+		await testAdminId(),
+	)
 }
 
 /** Both write paths take a whole embed, so a targeted change overrides the stored one. */
 async function replaceEmbed(embed: service.Embed, overrides: Partial<service.EmbedInput>): Promise<service.Embed> {
 	const { agentId, name, appearance } = embed
-	return service.updateEmbed(embed.id, { agentId, name, appearance, ...overrides })
+	return service.updateEmbed(embed.id, { agentId, name, appearance, ...overrides }, await testAdminId())
 }
 
 beforeEach(async () => {
@@ -98,7 +102,7 @@ describe("embed lifecycle", () => {
 	it("rotates an embed token and atomically increments its access version", async () => {
 		const created = await createEmbed(await createAgent())
 
-		const rotated = await service.rotateEmbedToken(created.id)
+		const rotated = await service.rotateEmbedToken(created.id, await testAdminId())
 
 		expect(rotated.embedToken).not.toBe(created.embedToken)
 		expect(rotated.accessVersion).toBe(created.accessVersion + 1)
@@ -116,19 +120,21 @@ describe("embed lifecycle", () => {
 
 	it("raises a typed error for an unknown embed", async () => {
 		await expect(service.getEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
-		await expect(service.deleteEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
+		await expect(service.deleteEmbed(crypto.randomUUID(), await testAdminId())).rejects.toThrow(
+			service.EmbedNotFoundError,
+		)
 	})
 
 	it("persists disable and enable without bumping the access version", async () => {
 		const created = await createEmbed(await createAgent())
 
-		const disabled = await service.disableEmbed(created.id)
+		const disabled = await service.disableEmbed(created.id, await testAdminId())
 
 		expect(disabled.isDisabled).toBe(true)
 		expect(disabled.accessVersion).toBe(created.accessVersion)
 		expect((await service.getEmbed(created.id)).isDisabled).toBe(true)
 
-		const enabled = await service.enableEmbed(created.id)
+		const enabled = await service.enableEmbed(created.id, await testAdminId())
 
 		expect(enabled.isDisabled).toBe(false)
 		expect(enabled.accessVersion).toBe(created.accessVersion)
@@ -137,7 +143,7 @@ describe("embed lifecycle", () => {
 
 	it("keeps the disabled flag through a whole-object update", async () => {
 		const created = await createEmbed(await createAgent())
-		await service.disableEmbed(created.id)
+		await service.disableEmbed(created.id, await testAdminId())
 
 		const updated = await replaceEmbed(created, { name: "Renamed" })
 
@@ -145,8 +151,12 @@ describe("embed lifecycle", () => {
 	})
 
 	it("raises a typed error when disabling or enabling an unknown embed", async () => {
-		await expect(service.disableEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
-		await expect(service.enableEmbed(crypto.randomUUID())).rejects.toThrow(service.EmbedNotFoundError)
+		await expect(service.disableEmbed(crypto.randomUUID(), await testAdminId())).rejects.toThrow(
+			service.EmbedNotFoundError,
+		)
+		await expect(service.enableEmbed(crypto.randomUUID(), await testAdminId())).rejects.toThrow(
+			service.EmbedNotFoundError,
+		)
 	})
 })
 
@@ -162,7 +172,7 @@ describe("agent deletion", () => {
 		const agentId = await createAgent()
 		const created = await createEmbed(agentId)
 
-		await service.deleteEmbed(created.id)
+		await service.deleteEmbed(created.id, await testAdminId())
 
 		await expect(agent.deleteAgent(agentId)).resolves.toBeUndefined()
 	})
@@ -230,13 +240,13 @@ describe("public config lookup", () => {
 		expect(after.status).toBe(200)
 		expect(await after.json()).toMatchObject({ isAvailable: true })
 
-		await service.disableEmbed(created.id)
+		await service.disableEmbed(created.id, await testAdminId())
 		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
 			headers: { "If-None-Match": after.headers.get("etag") ?? "" },
 		})
 		expect(disabled.status).toBe(200)
 		expect(await disabled.json()).toMatchObject({ isAvailable: false })
-		await service.enableEmbed(created.id)
+		await service.enableEmbed(created.id, await testAdminId())
 		expect((await service.getConfigByToken(created.embedToken)).isAvailable).toBe(true)
 	})
 
@@ -317,9 +327,45 @@ async function createReaderSession(): Promise<string> {
 }
 
 describe("embed detail route", () => {
+	it("requires editing on both agents to reassign an embed", async () => {
+		const a = await createAgent("Source")
+		const b = await createAgent("Destination")
+		const created = await createEmbed(a)
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		const input = { agentId: b, name: created.name, appearance: created.appearance }
+		await giveRole(operator.id, ["agents:manage"], [a])
+		await expect(service.updateEmbed(created.id, input, operator.id)).rejects.toMatchObject({ status: 404 })
+		await giveRole(operator.id, ["agents:manage"], [b])
+		await expect(service.updateEmbed(created.id, input, operator.id)).rejects.toMatchObject({ status: 404 })
+		await giveRole(operator.id, ["agents:manage"], [a, b])
+		expect((await service.updateEmbed(created.id, input, operator.id)).agentId).toBe(b)
+	})
+
+	it("does not mutate an embed moved to an unauthorized source after the access check", async () => {
+		const a = await createAgent("Checked source")
+		const b = await createAgent("Allowed destination")
+		const hidden = await createAgent("Concurrent source")
+		const created = await createEmbed(a)
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["agents:manage"], [a, b])
+		const update = repository.updateEmbed
+		using _ = spyOn(repository, "updateEmbed").mockImplementation(async (...args) => {
+			await sql`UPDATE embed SET agent_id = ${hidden} WHERE id = ${created.id}`
+			return update(...args)
+		})
+		await expect(
+			service.updateEmbed(
+				created.id,
+				{ agentId: b, name: "Must not apply", appearance: created.appearance },
+				operator.id,
+			),
+		).rejects.toMatchObject({ status: 404 })
+		expect(await service.getEmbed(created.id)).toMatchObject({ agentId: hidden, name: created.name })
+	})
+
 	it("tells the dashboard whether visitors can get replies", async () => {
-		const cookie = await createManagerSession()
 		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
 
 		const response = await app.request(`/api/embeds/${created.id}`, { headers: { Cookie: cookie } })
 
@@ -330,8 +376,8 @@ describe("embed detail route", () => {
 
 describe("embed disable and enable routes", () => {
 	it("disables and enables an embed with agents:manage", async () => {
-		const cookie = await createManagerSession()
 		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
 
 		const disabled = await app.request(`/api/embeds/${created.id}/disable`, {
 			method: "POST",
@@ -353,8 +399,8 @@ describe("embed disable and enable routes", () => {
 	})
 
 	it("denies disabling and enabling for an agent reader without agents:manage", async () => {
-		const cookie = await createReaderSession()
 		const created = await createEmbed(await createAgent())
+		const cookie = await createReaderSession()
 
 		const disabled = await app.request(`/api/embeds/${created.id}/disable`, {
 			method: "POST",

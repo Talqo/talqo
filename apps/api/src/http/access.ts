@@ -6,11 +6,13 @@ import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
+import * as embeds from "@/modules/embed/embed.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 import { matchedRoutes } from "hono/route"
+import { z } from "zod"
 
 // Each contract spreads one `access.*` entry, which sets both its OpenAPI `security` and its
 // enforcement. `requireAccessPolicy` refuses any matched route without one, so access fails closed.
@@ -35,6 +37,8 @@ const allowPublic = policy(
 type SessionOptions = {
 	allowPendingPasswordChange?: boolean
 	permission?: roles.Permission
+	agentPermission?: roles.AgentPermission
+	embedPermission?: roles.AgentPermission
 }
 
 function requireSession(options: SessionOptions) {
@@ -57,6 +61,25 @@ function requireSession(options: SessionOptions) {
 				const held = await roles.listEffectivePermissions(session.user.id)
 				if (!held.includes(options.permission)) {
 					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
+				}
+			}
+			if (options.agentPermission) {
+				const agentId = c.req.param("agentId")
+				if (!agentId) throw new Error("agent.access_missing_id")
+				await roles.requireAgentPermission(session.user.id, agentId, options.agentPermission)
+			}
+			if (options.embedPermission) {
+				const embedId = c.req.param("embedId")
+				if (embedId)
+					await roles.requireAgentPermission(
+						session.user.id,
+						(await embeds.getEmbed(embedId)).agentId,
+						options.embedPermission,
+					)
+				if ((!embedId && c.req.method === "POST") || c.req.method === "PUT") {
+					const input = z.object({ agentId: z.string() }).safeParse(await c.req.json<unknown>())
+					if (input.success)
+						await roles.requireAgentPermission(session.user.id, input.data.agentId, options.embedPermission)
 				}
 			}
 
@@ -96,6 +119,14 @@ export const access = {
 		middleware: requireSession(options),
 	}),
 	permission: permissionAccess,
+	agent: (permission: roles.AgentPermission): SessionAccess => ({
+		security: sessionSecurity,
+		middleware: requireSession({ agentPermission: permission }),
+	}),
+	embed: (permission: roles.AgentPermission): SessionAccess => ({
+		security: sessionSecurity,
+		middleware: requireSession({ embedPermission: permission }),
+	}),
 	chatBearer: { security: chatBearerSecurity, middleware: requireChatBearer },
 }
 

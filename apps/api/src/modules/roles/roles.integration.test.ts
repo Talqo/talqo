@@ -404,7 +404,7 @@ describe("admin grant", () => {
 			.insertPermissionGrant({
 				id: crypto.randomUUID(),
 				userId: member.id,
-				permission: "agents:read",
+				permission: "users:read",
 				grantedBy: member.id,
 			})
 			.catch((error: unknown) => error)
@@ -427,7 +427,7 @@ describe("admin grant", () => {
 
 		const response = await call(cookie, "POST", "/permission-grants", {
 			userId: crypto.randomUUID(),
-			permission: "agents:read",
+			permission: "users:read",
 		})
 
 		await expectCode(response, 404, "route-not-found")
@@ -437,16 +437,16 @@ describe("admin grant", () => {
 		const { cookie: adminCookie } = await createAdminSession()
 		const memberUsername = uniqueUsername()
 		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
-		await giveRole(member.id, ["agents:read"])
+		await giveRole(member.id, ["users:read"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
-		const beforeRemoval = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		const beforeRemoval = await app.request("/api/users", { headers: { Cookie: memberCookie } })
 		expect(beforeRemoval.status).toBe(200)
 
 		expect((await call(adminCookie, "PUT", `/users/${member.id}/roles`, { roleIds: [] })).status).toBe(200)
 
 		// The same session must lose access without signing in again.
-		const afterRemoval = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		const afterRemoval = await app.request("/api/users", { headers: { Cookie: memberCookie } })
 		expect(afterRemoval.status).toBe(403)
 	})
 })
@@ -461,15 +461,15 @@ describe("effective permissions", () => {
 		expect(await response.json()).toEqual({ permissions: [...service.PERMISSIONS] })
 	})
 
-	it("expands a member's agents:manage role to include agents:read", async () => {
+	it("expands a member's users:manage role to include users:read", async () => {
 		const memberUsername = uniqueUsername()
 		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
-		await giveRole(member.id, ["agents:manage"])
+		await giveRole(member.id, ["users:manage"])
 		const memberCookie = await login(memberUsername, DEFAULT_PASSWORD)
 
 		const response = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 
-		expect(await response.json()).toEqual({ permissions: ["agents:read", "agents:manage"] })
+		expect(await response.json()).toEqual({ permissions: ["users:read", "users:manage"] })
 	})
 
 	it("returns an empty list for a member without roles and reflects a new role immediately", async () => {
@@ -488,17 +488,17 @@ describe("effective permissions", () => {
 
 	it("authorizes through an assigned role, including implied permissions", async () => {
 		const member = await createMember()
-		await assignRoles(member.id, [(await createRole(["agents:manage"])).id])
+		await assignRoles(member.id, [(await createRole(["users:manage"])).id])
 
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "agents:manage"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["users:read", "users:manage"])
 	})
 
 	it("unions permissions across every assigned role", async () => {
 		const member = await createMember()
 		const roles = [
 			await createRole(["ai_provider:manage"]),
-			await createRole(["agents:read"]),
-			await createRole(["agents:manage"]),
+			await createRole(["users:read"]),
+			await createRole(["users:manage"]),
 		]
 		await assignRoles(
 			member.id,
@@ -506,9 +506,9 @@ describe("effective permissions", () => {
 		)
 
 		expect(await service.listEffectivePermissions(member.id)).toEqual([
+			"users:read",
+			"users:manage",
 			"ai_provider:manage",
-			"agents:read",
-			"agents:manage",
 		])
 	})
 
@@ -548,8 +548,8 @@ describe("role management", () => {
 		await seed.seed()
 		const roles = await service.listRoles()
 		expect(roles.map(({ name, permissions }) => ({ name, permissions }))).toEqual([
-			{ name: "Agent editors", permissions: ["agents:manage"] },
-			{ name: "Support", permissions: ["agents:read", "conversations:read"] },
+			{ name: "Agent editors", permissions: [] },
+			{ name: "Support", permissions: [] },
 			{ name: "Team managers", permissions: ["users:manage", "roles:manage"] },
 		])
 		const member = await createMember()
@@ -557,7 +557,7 @@ describe("role management", () => {
 		const support = roles.find(({ name }) => name === "Support")
 		if (!support) throw new Error("Support role was not seeded")
 		await assignRoles(member.id, [support.id])
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read", "conversations:read"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual([])
 		await updateRole(support.id, { name: "Helpdesk", permissions: [] })
 		await seed.seed()
 		expect(await service.listRoles()).toHaveLength(3)
@@ -571,19 +571,19 @@ describe("role management", () => {
 
 	it("creates, lists, updates and deletes a role", async () => {
 		const member = await createMember()
-		const created = await createRole(["agents:manage", "agents:read", "ai_provider:manage"], "  Support  ")
+		const created = await createRole(["users:manage", "users:read", "ai_provider:manage"], "  Support  ")
 		await assignRoles(member.id, [created.id])
 
 		expect(created).toEqual({
 			id: created.id,
 			name: "Support",
-			permissions: ["ai_provider:manage", "agents:manage"],
+			permissions: ["users:manage", "ai_provider:manage"],
 			memberCount: 0,
 		})
 		expect(await service.listRoles()).toEqual([{ ...created, memberCount: 1 }])
 
-		const updated = await updateRole(created.id, { name: "Helpdesk", permissions: ["agents:read"] })
-		expect(updated).toEqual({ id: created.id, name: "Helpdesk", permissions: ["agents:read"], memberCount: 1 })
+		const updated = await updateRole(created.id, { name: "Helpdesk", permissions: ["users:read"] })
+		expect(updated).toEqual({ id: created.id, name: "Helpdesk", permissions: ["users:read"], memberCount: 1 })
 
 		await deleteRole(created.id)
 		expect(await service.listRoles()).toEqual([])
@@ -616,7 +616,7 @@ describe("role management", () => {
 			service.InvalidRoleInputError,
 		)
 		await expect(createRole(["admin"])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
-		await expect(createRole(["agents:read", "agents:read"])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
+		await expect(createRole(["users:read", "users:read"])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
 	})
 
 	it("reports an unknown role on update and delete", async () => {
@@ -634,9 +634,6 @@ describe("role management", () => {
 			{ permission: "users:manage", implies: ["users:read"] },
 			{ permission: "roles:manage", implies: ["users:read"] },
 			{ permission: "ai_provider:manage", implies: [] },
-			{ permission: "agents:read", implies: [] },
-			{ permission: "agents:manage", implies: ["agents:read"] },
-			{ permission: "conversations:read", implies: ["agents:read"] },
 		])
 	})
 })
@@ -661,27 +658,27 @@ describe("role assignment", () => {
 
 	it("rejects an unknown user, an unknown role and duplicate role ids without changing anything", async () => {
 		const member = await createMember()
-		const role = await createRole(["agents:read"])
+		const role = await createRole(["users:read"])
 		await assignRoles(member.id, [role.id])
 
 		await expect(assignRoles(crypto.randomUUID(), [])).rejects.toBeInstanceOf(identity.UserNotFoundError)
 		await expect(assignRoles(member.id, [crypto.randomUUID()])).rejects.toBeInstanceOf(service.RoleNotFoundError)
 		await expect(assignRoles(member.id, [role.id, role.id])).rejects.toBeInstanceOf(service.InvalidRoleInputError)
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["users:read"])
 	})
 
 	it("settles simultaneous identical assignments without a duplicate-key failure", async () => {
 		const member = await createMember()
-		const role = await createRole(["agents:read"])
+		const role = await createRole(["users:read"])
 
 		await Promise.all([assignRoles(member.id, [role.id]), assignRoles(member.id, [role.id])])
 
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["users:read"])
 	})
 
 	it("concurrent replacements leave one requested role set, never their union", async () => {
 		const member = await createMember()
-		const first = await createRole(["agents:read"])
+		const first = await createRole(["users:read"])
 		const second = await createRole(["ai_provider:manage"])
 
 		await Promise.all([assignRoles(member.id, [first.id]), assignRoles(member.id, [second.id])])
@@ -730,19 +727,19 @@ describe("role routes", () => {
 	})
 
 	it("creates, lists, updates and deletes a role within the manager's own permissions", async () => {
-		const manager = await memberWith(["roles:manage", "agents:manage"])
+		const manager = await memberWith(["roles:manage", "users:manage"])
 
-		const created = await call(manager.cookie, "POST", "/roles", roleBody(["agents:read"], "Readers"))
+		const created = await call(manager.cookie, "POST", "/roles", roleBody(["users:read"], "Readers"))
 		expect(created.status).toBe(201)
 		const { role } = (await created.json()) as { role: service.Role }
-		expect(role).toEqual({ id: role.id, name: "Readers", permissions: ["agents:read"], memberCount: 0 })
+		expect(role).toEqual({ id: role.id, name: "Readers", permissions: ["users:read"], memberCount: 0 })
 
 		const listed = (await (await call(manager.cookie, "GET", "/roles")).json()) as { roles: service.Role[] }
 		expect(listed.roles).toContainEqual(role)
 
-		const updated = await call(manager.cookie, "PUT", `/roles/${role.id}`, roleBody(["agents:manage"], "Editors"))
+		const updated = await call(manager.cookie, "PUT", `/roles/${role.id}`, roleBody(["users:manage"], "Editors"))
 		expect(updated.status).toBe(200)
-		expect(await updated.json()).toEqual({ role: { ...role, name: "Editors", permissions: ["agents:manage"] } })
+		expect(await updated.json()).toEqual({ role: { ...role, name: "Editors", permissions: ["users:manage"] } })
 
 		expect((await call(manager.cookie, "DELETE", `/roles/${role.id}`)).status).toBe(204)
 	})
@@ -764,18 +761,18 @@ describe("role routes", () => {
 	it("rejects admin, unknown and repeated permissions in a role", async () => {
 		const { cookie } = await createAdminSession()
 
-		for (const permissions of [["admin"], ["agents:fly"], ["agents:read", "agents:read"]]) {
+		for (const permissions of [["admin"], ["agents:fly"], ["users:read", "users:read"]]) {
 			// oxlint-disable-next-line no-await-in-loop -- asserts each body in order.
 			await expectCode(await call(cookie, "POST", "/roles", { name: "Bad", permissions }), 400, "invalid-request")
 		}
 	})
 
 	it("refuses role changes that involve permissions the manager lacks", async () => {
-		const manager = await memberWith(["roles:manage", "agents:read"])
+		const manager = await memberWith(["roles:manage", "users:read"])
 		const powerful = await createRole(["ai_provider:manage"])
 		const exceeds = "permission-exceeds-own"
 
-		await expectCode(await call(manager.cookie, "POST", "/roles", roleBody(["agents:manage"])), 403, exceeds)
+		await expectCode(await call(manager.cookie, "POST", "/roles", roleBody(["users:manage"])), 403, exceeds)
 		await expectCode(
 			await call(manager.cookie, "PUT", `/roles/${powerful.id}`, roleBody([], powerful.name)),
 			403,
@@ -786,9 +783,9 @@ describe("role routes", () => {
 	})
 
 	it("assigns roles and answers 404 for an unknown user or role", async () => {
-		const manager = await memberWith(["roles:manage", "agents:manage"])
+		const manager = await memberWith(["roles:manage", "users:manage"])
 		const member = await createMember()
-		const role = await createRole(["agents:read"])
+		const role = await createRole(["users:read"])
 
 		const response = await call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds: [role.id] })
 
@@ -824,7 +821,7 @@ describe("role routes", () => {
 
 	it("rechecks the caller's access when it was revoked after the request gate", async () => {
 		const { cookie: adminCookie } = await createAdminSession()
-		const manager = await memberWith(["roles:manage", "agents:read"])
+		const manager = await memberWith(["roles:manage", "users:read"])
 		const checked = Promise.withResolvers<void>()
 		const resume = Promise.withResolvers<void>()
 		const original = service.listEffectivePermissions
@@ -839,7 +836,7 @@ describe("role routes", () => {
 			return held
 		})
 
-		const pending = call(manager.cookie, "POST", "/roles", roleBody(["agents:read"], "Revoked manager's role"))
+		const pending = call(manager.cookie, "POST", "/roles", roleBody(["users:read"], "Revoked manager's role"))
 		await checked.promise
 		try {
 			expect((await call(adminCookie, "PUT", `/users/${manager.userId}/roles`, { roleIds: [] })).status).toBe(200)
@@ -852,9 +849,9 @@ describe("role routes", () => {
 	})
 
 	it("refuses assigning or removing a role beyond the manager's permissions but leaves kept roles alone", async () => {
-		const manager = await memberWith(["roles:manage", "agents:read"])
+		const manager = await memberWith(["roles:manage", "users:read"])
 		const member = await createMember()
-		const [powerful, reader] = await Promise.all([createRole(["ai_provider:manage"]), createRole(["agents:read"])])
+		const [powerful, reader] = await Promise.all([createRole(["ai_provider:manage"]), createRole(["users:read"])])
 		const assign = (roleIds: string[]) => call(manager.cookie, "PUT", `/users/${member.id}/roles`, { roleIds })
 
 		await expectCode(await assign([powerful.id]), 403, "permission-exceeds-own")
@@ -869,7 +866,7 @@ describe("user management routes", () => {
 	it("lists roles and permissions without exposing password-change state to users:read", async () => {
 		const reader = await memberWith(["users:read"])
 		const member = await createMember()
-		const role = await createRole(["agents:manage"])
+		const role = await createRole(["users:manage"])
 		await assignRoles(member.id, [role.id])
 
 		const response = await call(reader.cookie, "GET", "/users")
@@ -881,7 +878,7 @@ describe("user management routes", () => {
 			username: member.username,
 			mustChangePassword: null,
 			roles: [{ id: role.id, name: role.name }],
-			permissions: ["agents:read", "agents:manage"],
+			permissions: ["users:read", "users:manage"],
 			canManage: false,
 		})
 	})
@@ -895,8 +892,8 @@ describe("user management routes", () => {
 	})
 
 	it("lets users:manage reset and delete a user whose permissions they hold", async () => {
-		const manager = await memberWith(["users:manage", "agents:read"])
-		const target = await memberWith(["agents:read"])
+		const manager = await memberWith(["users:manage", "users:read"])
+		const target = await memberWith(["users:read"])
 
 		const reset = await call(manager.cookie, "PATCH", `/users/${target.userId}/password`, {
 			newPassword: "reset-by-manager-123",

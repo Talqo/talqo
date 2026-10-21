@@ -2,7 +2,7 @@ import { db, sql as client } from "@/db/client.ts"
 import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm"
 import { union } from "drizzle-orm/pg-core"
 
-import { invitation, invitationRole, permissionGrant, role, rolePermission, userRole } from "./roles.schema.ts"
+import { invitation, invitationRole, permissionGrant, role, rolePermission, roleAgentPermission, userRole } from "./roles.schema.ts"
 
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert
@@ -10,6 +10,49 @@ export type PermissionGrant = typeof permissionGrant.$inferSelect
 export type NewPermissionGrant = typeof permissionGrant.$inferInsert
 export type Role = typeof role.$inferSelect
 export type RolePermission = typeof rolePermission.$inferSelect
+
+export async function findAgentPermissionsForUsers(
+	userIds: string[],
+): Promise<{ userId: string; agentId: string; permission: string }[]> {
+	if (userIds.length === 0) return []
+	return db
+		.select({
+			userId: userRole.userId,
+			agentId: roleAgentPermission.agentId,
+			permission: roleAgentPermission.permission,
+		})
+		.from(userRole)
+		.innerJoin(roleAgentPermission, eq(userRole.roleId, roleAgentPermission.roleId))
+		.where(inArray(userRole.userId, userIds))
+}
+
+export async function findAgentPermissionsOfRoles(
+	roleIds: string[],
+): Promise<{ roleId: string; agentId: string; permission: string }[]> {
+	if (roleIds.length === 0) return []
+	return db.select().from(roleAgentPermission).where(inArray(roleAgentPermission.roleId, roleIds))
+}
+
+export async function findAgentRolePermissions(agentId: string): Promise<{ roleId: string; permission: string }[]> {
+	return db
+		.select({ roleId: roleAgentPermission.roleId, permission: roleAgentPermission.permission })
+		.from(roleAgentPermission)
+		.where(eq(roleAgentPermission.agentId, agentId))
+}
+
+export async function replaceAgentRolePermissions(
+	agentId: string,
+	roleId: string,
+	permissions: readonly string[],
+): Promise<void> {
+	await db.transaction(async (tx) => {
+		await tx
+			.delete(roleAgentPermission)
+			.where(and(eq(roleAgentPermission.agentId, agentId), eq(roleAgentPermission.roleId, roleId)))
+		if (permissions.length > 0)
+			await tx.insert(roleAgentPermission).values(permissions.map((permission) => ({ agentId, roleId, permission })))
+	})
+}
 
 let accessChanges = Promise.resolve()
 

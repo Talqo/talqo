@@ -75,12 +75,13 @@ test("a read-only operator can inspect agents but finds no management controls",
 	const user = users.find(({ username }) => username === viewer.username)
 	assert(user, "Invited viewer is missing")
 	const roleResponse = await page.request.post("/api/roles", {
-		data: { name: `Agent viewers ${Date.now()}`, permissions: ["agents:read"] },
+		data: { name: `Agent viewers ${Date.now()}`, permissions: [] },
 	})
 	await expect(roleResponse).toBeOK()
 	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
 	let filePath: string | undefined
 	try {
+		await expect(await page.request.put(`/api/agents/${agent.id}/access/${roleId}`, { data: { permissions: ["agents:read"] } })).toBeOK()
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 		const embedResponse = await page.request.post("/api/embeds", {
 			data: { name: "Website", agentId: agent.id, appearance: WIDGET_APPEARANCE },

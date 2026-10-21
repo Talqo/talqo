@@ -2,7 +2,6 @@ import { MAX_CHAT_INPUT_CHARACTERS } from "@/config/env.ts"
 import { access } from "@/http/access.ts"
 import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { CONVERSATION_AGENT_FILTER_MAX, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
@@ -207,7 +206,7 @@ export const listConversationsRoute = createRoute({
 	path: "/",
 	operationId: "listConversations",
 	tags: ["Conversation"],
-	...access.permission(roles.Permission.ConversationsRead),
+	...access.session(),
 	request: { query: listConversationsQuery },
 	responses: {
 		200: {
@@ -226,7 +225,7 @@ export const getConversationRoute = createRoute({
 	path: "/{conversationId}",
 	operationId: "getConversation",
 	tags: ["Conversation"],
-	...access.permission(roles.Permission.ConversationsRead),
+	...access.session(),
 	request: { params: transcriptParams },
 	responses: {
 		200: {

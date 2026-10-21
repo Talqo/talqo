@@ -2,6 +2,7 @@ import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
+import * as agents from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
@@ -31,10 +32,41 @@ import {
 	updateRoleRoute,
 	userListResponseSchema,
 	userRolesResponseSchema,
+	getAgentPermissionsRoute,
+	agentPermissionsResponseSchema,
+	getAgentAccessRoute,
+	agentAccessResponseSchema,
+	setAgentAccessRoute,
+	removeAgentAccessRoute,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
+	.openapi(getAgentPermissionsRoute, async (c) => {
+		await agents.getAgent(c.req.valid("param").agentId)
+		const permissions = await service.listAgentPermissions(c.get("user").id, c.req.valid("param").agentId)
+		if (permissions.length === 0) return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+		return c.json(agentPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
+	})
+	.openapi(getAgentAccessRoute, async (c) => {
+		await agents.getAgent(c.req.valid("param").agentId)
+		return c.json(
+			agentAccessResponseSchema.parse(await service.listAgentAccess(c.get("user").id, c.req.valid("param").agentId)),
+			HTTP_STATUS.OK,
+		)
+	})
+	.openapi(setAgentAccessRoute, async (c) => {
+		const { agentId, roleId } = c.req.valid("param")
+		await agents.getAgent(agentId)
+		await service.setAgentAccess(c.get("user").id, agentId, roleId, c.req.valid("json").permissions)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
+	.openapi(removeAgentAccessRoute, async (c) => {
+		const { agentId, roleId } = c.req.valid("param")
+		await agents.getAgent(agentId)
+		await service.setAgentAccess(c.get("user").id, agentId, roleId, [])
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
@@ -107,7 +139,14 @@ rolesRoutes.openapi(listGrantablePermissionsRoute, (c) => {
 })
 
 rolesRoutes.openapi(listRolesRoute, async (c) => {
-	return c.json(roleListResponseSchema.parse({ roles: await service.listRoles() }), HTTP_STATUS.OK)
+	const roles = await service.listRoles()
+	return c.json(
+		roleListResponseSchema.parse({
+			roles,
+			manageableRoleIds: await service.manageableRoleIds(c.get("user").id, roles),
+		}),
+		HTTP_STATUS.OK,
+	)
 })
 
 rolesRoutes.openapi(createRoleRoute, async (c) => {

@@ -4,11 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const ListEmbedsParams = zod.object({
-  "agentId": zod.string().optional()
+	agentId: zod.string().optional(),
 })
 
-export type ListEmbedsParams = zod.input<typeof ListEmbedsParams>;
-export type ListEmbedsParamsOutput = zod.output<typeof ListEmbedsParams>;
+export type ListEmbedsParams = zod.input<typeof ListEmbedsParams>
+export type ListEmbedsParamsOutput = zod.output<typeof ListEmbedsParams>

@@ -4,11 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const UploadAgentFileBody = zod.object({
-  "file": zod.instanceof(Blob)
+	file: zod.instanceof(Blob),
 })
 
-export type UploadAgentFileBody = zod.input<typeof UploadAgentFileBody>;
-export type UploadAgentFileBodyOutput = zod.output<typeof UploadAgentFileBody>;
+export type UploadAgentFileBody = zod.input<typeof UploadAgentFileBody>
+export type UploadAgentFileBodyOutput = zod.output<typeof UploadAgentFileBody>

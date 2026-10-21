@@ -4,18 +4,17 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
-export const changePasswordBodyCurrentPasswordMax = 128;
+export const changePasswordBodyCurrentPasswordMax = 128
 
-export const changePasswordBodyNewPasswordMin = 8;
-export const changePasswordBodyNewPasswordMax = 128;
-
+export const changePasswordBodyNewPasswordMin = 8
+export const changePasswordBodyNewPasswordMax = 128
 
 export const ChangePasswordBody = zod.object({
-  "currentPassword": zod.string().min(1).max(changePasswordBodyCurrentPasswordMax),
-  "newPassword": zod.string().min(changePasswordBodyNewPasswordMin).max(changePasswordBodyNewPasswordMax)
+	currentPassword: zod.string().min(1).max(changePasswordBodyCurrentPasswordMax),
+	newPassword: zod.string().min(changePasswordBodyNewPasswordMin).max(changePasswordBodyNewPasswordMax),
 })
 
-export type ChangePasswordBody = zod.input<typeof ChangePasswordBody>;
-export type ChangePasswordBodyOutput = zod.output<typeof ChangePasswordBody>;
+export type ChangePasswordBody = zod.input<typeof ChangePasswordBody>
+export type ChangePasswordBodyOutput = zod.output<typeof ChangePasswordBody>

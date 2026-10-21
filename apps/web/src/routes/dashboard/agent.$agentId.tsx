@@ -4,10 +4,14 @@ import {
 	useDeleteAgent,
 	useGetAgent,
 	useUpdateAgent,
+	getGetAgentQueryKey,
 } from "@/api/generated/agent/agent.ts"
+import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
-import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { useGetAgentPermissions, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
+import { AgentAccessCard } from "@/features/agents/agent-access-card"
 import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
@@ -48,10 +52,10 @@ function isAgentTab(value: unknown): value is AgentTab {
 }
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
+	beforeLoad: requirePermission("agents:visible"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		tab: isAgentTab(search.tab) ? search.tab : undefined,
 	}),
-	beforeLoad: requirePermission("agents:read"),
 	component: AgentConfigPage,
 })
 
@@ -65,9 +69,15 @@ function AgentConfigPage() {
 	const { agentId } = Route.useParams()
 	const { tab = "configuration" } = Route.useSearch()
 	const setTab = Route.useNavigate()
-	const permissions = useGetMyPermissions().data?.data.permissions
-	const agentQuery = useGetAgent(agentId)
-	const agent = agentQuery.data?.data.agent
+	const globalPermissions = useGetMyPermissions().data?.data.permissions
+	const permissionsQuery = useGetAgentPermissions(agentId)
+	const permissions = permissionsQuery.data?.data.permissions
+	const canRead = permissions?.includes("agents:read") ?? false
+	const summaryQuery = useListAgents()
+	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })
+	const summary = summaryQuery.data?.data.agents.find((agent) => agent.id === agentId)
+	const configuration = agentQuery.data?.data.agent
+	const agent = canRead ? configuration : summary
 	const { error, isLoading } = agentQuery
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
@@ -80,6 +90,15 @@ function AgentConfigPage() {
 	const [confirmOpen, setConfirmOpen] = useState(false)
 
 	const canManage = permissions?.includes("agents:manage") ?? false
+	const canDelete = permissions?.includes("agents:delete") ?? false
+	const canManageAccess = canRead && (globalPermissions?.includes("roles:manage") ?? false)
+	const client = useQueryClient()
+	useEffect(() => {
+		if (permissionsQuery.error?.status === NOT_FOUND_STATUS) {
+			client.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
+			void navigate({ to: "/dashboard/agents", replace: true, ignoreBlocker: true })
+		}
+	}, [permissionsQuery.error, agentId, client, navigate])
 
 	const {
 		register,
@@ -92,11 +111,11 @@ function AgentConfigPage() {
 	})
 
 	useEffect(() => {
-		if (agent) {
-			reset({ name: agent.name, systemPrompt: agent.systemPrompt })
+		if (configuration) {
+			reset({ name: configuration.name, systemPrompt: configuration.systemPrompt })
 		}
-	}, [agent, reset])
-	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (agent?.wordBlacklist ?? [])
+	}, [configuration, reset])
+	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (configuration?.wordBlacklist ?? [])
 
 	async function onValid(values: AgentFormValues) {
 		setFormError(null)
@@ -136,10 +155,25 @@ function AgentConfigPage() {
 		}
 	}
 
-	if (isLoading) {
+	if (isLoading || permissionsQuery.isPending || summaryQuery.isPending) {
 		return (
 			<div className="mx-auto max-w-3xl">
 				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
+			</div>
+		)
+	}
+	if (permissionsQuery.isError || summaryQuery.isError || (canRead && agentQuery.isError)) {
+		return (
+			<div className="mx-auto max-w-3xl space-y-6">
+				<BackLink t={t} />
+				<ProblemAlert
+					error={permissionsQuery.error ?? summaryQuery.error ?? agentQuery.error}
+					onRetry={() => {
+						void permissionsQuery.refetch()
+						void summaryQuery.refetch()
+						if (canRead) void agentQuery.refetch()
+					}}
+				/>
 			</div>
 		)
 	}
@@ -162,7 +196,7 @@ function AgentConfigPage() {
 			<PageHeader title={t("agentConfig.heading", { name: agent.name })} description={t("agentConfig.subheading")} />
 
 			<Tabs
-				value={tab}
+				value={canRead ? tab : "configuration"}
 				onValueChange={(value) => {
 					if (isAgentTab(value)) {
 						void setTab({ search: (prev) => ({ ...prev, tab: value }), replace: true, resetScroll: false })
@@ -171,12 +205,16 @@ function AgentConfigPage() {
 			>
 				<TabsList>
 					<TabsTrigger value="configuration">{t("agentConfig.tabConfiguration")}</TabsTrigger>
-					<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
-					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
-					<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
+					{canRead && (
+						<>
+							<TabsTrigger value="context">{t("agentConfig.tabContext")}</TabsTrigger>
+							<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
+							<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
+						</>
+					)}
 				</TabsList>
-				<TabsContent value="configuration">
-					<div className="space-y-6">
+				<TabsContent value="configuration" className="space-y-6">
+					{canRead && (
 						<Card>
 							<CardHeader>
 								<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
@@ -231,78 +269,100 @@ function AgentConfigPage() {
 											<Button type="submit" disabled={updateAgent.isPending}>
 												{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
 											</Button>
-											{saved && <output className="text-muted-foreground text-sm">{t("agentConfig.saved")}</output>}
+											{saved && (
+												<span role="status" className="text-muted-foreground text-sm">
+													{t("agentConfig.saved")}
+												</span>
+											)}
 										</div>
 									)}
 								</form>
 							</CardContent>
 						</Card>
+					)}
+					{permissions?.includes("stats:read") && (
+						<Link to="/dashboard" search={{ agents: [agentId], days: undefined }}>
+							{t("agentAccess.statistics")}
+						</Link>
+					)}
+					{permissions?.includes("conversations:read") && (
+						<Link to="/dashboard/conversations" search={{ agents: [agentId], page: undefined }}>
+							{t("agentAccess.conversations")}
+						</Link>
+					)}
+					{canManageAccess && permissions && (
+						<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
+					)}
 
-						{canManage && (
-							<Card variant="destructive">
-								<CardHeader>
-									<CardTitle>{t("agentConfig.dangerZone")}</CardTitle>
-									<CardDescription>{t("agentConfig.dangerDescription")}</CardDescription>
-								</CardHeader>
-								<CardContent>
-									<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-										<Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-											<Trash2 className="size-4" />
-											{t("agentConfig.deleteAgent")}
-										</Button>
-										<DialogContent>
-											<DialogHeader>
-												<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
-												<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>
-											</DialogHeader>
-											{deleteError && (
-												<p role="alert" className="text-destructive text-sm">
-													{deleteError}
-												</p>
-											)}
-											<div className="space-y-2">
-												<Label htmlFor="delete-confirm">
-													<span className="sr-only">{t("agentConfig.confirmLabel", { name: agent.name })}</span>
-												</Label>
-												<Input
-													id="delete-confirm"
-													value={confirmation}
-													onChange={(event) => setConfirmation(event.target.value)}
-													placeholder={agent.name}
-													autoComplete="off"
-												/>
-												<p className="text-muted-foreground text-xs">
-													{t("agentConfig.confirmHelp", { name: agent.name })}
-												</p>
-											</div>
-											<DialogFooter>
-												<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-													{t("agentConfig.cancel")}
-												</Button>
-												<Button
-													variant="destructive"
-													disabled={confirmation !== agent.name || deleteAgent.isPending}
-													onClick={onConfirmDelete}
-												>
-													{deleteAgent.isPending ? t("agentConfig.deleting") : t("agentConfig.deleteConfirm")}
-												</Button>
-											</DialogFooter>
-										</DialogContent>
-									</Dialog>
-								</CardContent>
-							</Card>
-						)}
-					</div>
+					{canDelete && (
+						// Card outlines come from ring-1, so the red goes on the ring, not a border.
+						<Card className="ring-destructive">
+							<CardHeader>
+								<CardTitle>{t("agentConfig.dangerZone")}</CardTitle>
+								<CardDescription>{t("agentConfig.dangerDescription")}</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+									<Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+										<Trash2 className="size-4" />
+										{t("agentConfig.deleteAgent")}
+									</Button>
+									<DialogContent>
+										<DialogHeader>
+											<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
+											<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>
+										</DialogHeader>
+										{deleteError && (
+											<p role="alert" className="text-destructive text-sm">
+												{deleteError}
+											</p>
+										)}
+										<div className="space-y-2">
+											<Label htmlFor="delete-confirm" className="flex items-center gap-2">
+												<span className="sr-only">{t("agentConfig.confirmLabel", { name: agent.name })}</span>
+											</Label>
+											<Input
+												id="delete-confirm"
+												value={confirmation}
+												onChange={(event) => setConfirmation(event.target.value)}
+												placeholder={agent.name}
+												autoComplete="off"
+											/>
+											<p className="text-muted-foreground text-xs">
+												{t("agentConfig.confirmHelp", { name: agent.name })}
+											</p>
+										</div>
+										<DialogFooter>
+											<Button variant="outline" onClick={() => setConfirmOpen(false)}>
+												{t("agentConfig.cancel")}
+											</Button>
+											<Button
+												variant="destructive"
+												disabled={confirmation !== agent.name || deleteAgent.isPending}
+												onClick={onConfirmDelete}
+											>
+												{deleteAgent.isPending ? t("agentConfig.deleting") : t("agentConfig.deleteConfirm")}
+											</Button>
+										</DialogFooter>
+									</DialogContent>
+								</Dialog>
+							</CardContent>
+						</Card>
+					)}
 				</TabsContent>
-				<TabsContent value="context">
-					<AgentFilesCard agentId={agentId} canManage={canManage} />
-				</TabsContent>
-				<TabsContent value="embeds">
-					<AgentEmbedsPanel agentId={agentId} canManage={canManage} />
-				</TabsContent>
-				<TabsContent value="mcp">
-					<McpConnectionsCard agentId={agentId} canManage={canManage} />
-				</TabsContent>
+				{canRead && (
+					<>
+						<TabsContent value="context">
+							<AgentFilesCard agentId={agentId} canManage={canManage} />
+						</TabsContent>
+						<TabsContent value="embeds">
+							<AgentEmbedsPanel agentId={agentId} canManage={canManage} />
+						</TabsContent>
+						<TabsContent value="mcp">
+							<McpConnectionsCard agentId={agentId} canManage={canManage} />
+						</TabsContent>
+					</>
+				)}
 			</Tabs>
 		</div>
 	)
@@ -374,26 +434,24 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 									</Link>
 								</CardTitle>
 							</CardHeader>
-							<CardContent>
-								<div className="space-y-3">
-									<div className="flex items-center justify-between gap-2">
-										<div className="flex items-center gap-1.5" aria-hidden="true">
-											{LIGHT_PALETTE_KEYS.map((key) => (
-												<span
-													key={key}
-													className="size-4 rounded-full border"
-													style={{ backgroundColor: embed.appearance.light[key] }}
-												/>
-											))}
-										</div>
-										<span className="text-muted-foreground text-sm">
-											{isSupportedLanguage(embed.appearance.language)
-												? supportedLanguages[embed.appearance.language]
-												: embed.appearance.language}
-										</span>
+							<CardContent className="space-y-3">
+								<div className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5" aria-hidden="true">
+										{LIGHT_PALETTE_KEYS.map((key) => (
+											<span
+												key={key}
+												className="size-4 rounded-full border"
+												style={{ backgroundColor: embed.appearance.light[key] }}
+											/>
+										))}
 									</div>
-									{canManage && <EmbedEnabledSwitch embed={embed} />}
+									<span className="text-muted-foreground text-sm">
+										{isSupportedLanguage(embed.appearance.language)
+											? supportedLanguages[embed.appearance.language]
+											: embed.appearance.language}
+									</span>
 								</div>
+								{canManage && <EmbedEnabledSwitch embed={embed} />}
 							</CardContent>
 						</Card>
 					))}

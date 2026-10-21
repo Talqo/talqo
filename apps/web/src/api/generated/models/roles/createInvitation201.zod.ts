@@ -4,12 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
 export const CreateInvitation201 = zod.object({
-  "token": zod.string(),
-  "expiresAt": zod.iso.datetime({"offset":true})
+	token: zod.string(),
+	expiresAt: zod.iso.datetime({ offset: true }),
 })
 
-export type CreateInvitation201 = zod.input<typeof CreateInvitation201>;
-export type CreateInvitation201Output = zod.output<typeof CreateInvitation201>;
+export type CreateInvitation201 = zod.input<typeof CreateInvitation201>
+export type CreateInvitation201Output = zod.output<typeof CreateInvitation201>

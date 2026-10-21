@@ -4,17 +4,20 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
+import * as zod from "zod"
 
-export const updateCurrentUserBodyUsernameMin = 3;
-export const updateCurrentUserBodyUsernameMax = 32;
+export const updateCurrentUserBodyUsernameMin = 3
+export const updateCurrentUserBodyUsernameMax = 32
 
-
-export const updateCurrentUserBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_-]+$');
+export const updateCurrentUserBodyUsernameRegExp = new RegExp("^[a-zA-Z0-9_-]+$")
 
 export const UpdateCurrentUserBody = zod.object({
-  "username": zod.string().min(updateCurrentUserBodyUsernameMin).max(updateCurrentUserBodyUsernameMax).regex(updateCurrentUserBodyUsernameRegExp)
+	username: zod
+		.string()
+		.min(updateCurrentUserBodyUsernameMin)
+		.max(updateCurrentUserBodyUsernameMax)
+		.regex(updateCurrentUserBodyUsernameRegExp),
 })
 
-export type UpdateCurrentUserBody = zod.input<typeof UpdateCurrentUserBody>;
-export type UpdateCurrentUserBodyOutput = zod.output<typeof UpdateCurrentUserBody>;
+export type UpdateCurrentUserBody = zod.input<typeof UpdateCurrentUserBody>
+export type UpdateCurrentUserBodyOutput = zod.output<typeof UpdateCurrentUserBody>

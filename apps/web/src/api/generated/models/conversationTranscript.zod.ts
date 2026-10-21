@@ -4,15 +4,16 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { ConversationMessage } from './conversationMessage.zod';
+import * as zod from "zod"
+
+import { ConversationMessage } from "./conversationMessage.zod"
 
 export const ConversationTranscript = zod.object({
-  "id": zod.string(),
-  "agentId": zod.string(),
-  "startedAt": zod.iso.datetime({"offset":true}),
-  "messages": zod.array(ConversationMessage)
-});
+	id: zod.string(),
+	agentId: zod.string(),
+	startedAt: zod.iso.datetime({ offset: true }),
+	messages: zod.array(ConversationMessage),
+})
 
-export type ConversationTranscript = zod.input<typeof ConversationTranscript>;
-export type ConversationTranscriptOutput = zod.output<typeof ConversationTranscript>;
+export type ConversationTranscript = zod.input<typeof ConversationTranscript>
+export type ConversationTranscriptOutput = zod.output<typeof ConversationTranscript>

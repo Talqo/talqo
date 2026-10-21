@@ -4,15 +4,16 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { EmbedAppearance } from './embedAppearance.zod';
+import * as zod from "zod"
+
+import { EmbedAppearance } from "./embedAppearance.zod"
 
 export const EmbedConfig = zod.object({
-  "version": zod.number(),
-  "name": zod.string(),
-  "appearance": EmbedAppearance,
-  "isAvailable": zod.boolean()
-});
+	version: zod.number(),
+	name: zod.string(),
+	appearance: EmbedAppearance,
+	isAvailable: zod.boolean(),
+})
 
-export type EmbedConfig = zod.input<typeof EmbedConfig>;
-export type EmbedConfigOutput = zod.output<typeof EmbedConfig>;
+export type EmbedConfig = zod.input<typeof EmbedConfig>
+export type EmbedConfigOutput = zod.output<typeof EmbedConfig>

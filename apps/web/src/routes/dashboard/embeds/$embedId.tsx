@@ -1,5 +1,5 @@
+import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
-import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
@@ -147,7 +147,7 @@ function EmbedDetailPage() {
 	const queryClient = useQueryClient()
 	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
 	const embed = embedResponse?.data.embed
-	const permissions = useGetMyPermissions().data?.data.permissions
+	const permissions = useListAgents().data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
 		mutation: {

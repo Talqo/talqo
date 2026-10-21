@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { User } from '../user.zod';
+import * as zod from "zod"
+
+import { User } from "../user.zod"
 
 export const GetSession200 = zod.object({
-  "user": zod.union([User,zod.null()])
+	user: zod.union([User, zod.null()]),
 })
 
-export type GetSession200 = zod.input<typeof GetSession200>;
-export type GetSession200Output = zod.output<typeof GetSession200>;
+export type GetSession200 = zod.input<typeof GetSession200>
+export type GetSession200Output = zod.output<typeof GetSession200>

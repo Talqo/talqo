@@ -14,7 +14,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agents")({
-	beforeLoad: requirePermission("agents:read"),
+	beforeLoad: requirePermission("agents:visible"),
 	component: AgentsPage,
 })
 
@@ -30,7 +30,7 @@ function AgentsPage() {
 	const createAgent = useCreateAgent()
 	const [createError, setCreateError] = useState<string | null>(null)
 
-	const canManage = useGetMyPermissions().data?.data.permissions.includes("agents:manage") ?? false
+	const canManage = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
 
 	async function handleCreate() {
 		setCreateError(null)

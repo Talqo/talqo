@@ -270,20 +270,24 @@ describe("agent authorization", () => {
 
 	it("lets a manage-only operator read, because manage implies read", async () => {
 		const admin = await createAdminSession()
-		const manager = await createMemberSession(admin.userId, ["agents:manage"])
-		const created = await createJsonRequest(manager, "POST", "/api/agents", {
+		const created = await createJsonRequest(admin.cookie, "POST", "/api/agents", {
 			name: "Managed",
 			systemPrompt: "Prompt",
 			wordBlacklist: [],
 		})
 		expect(created.status).toBe(201)
+		const { agent } = (await created.json()) as AgentPayload
+		const manager = await createMemberSession(admin.userId, ["agents:manage"])
+		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: manager } })).status).toBe(200)
 		expect((await app.request("/api/agents", { headers: { Cookie: manager } })).status).toBe(200)
 	})
 
-	it("denies all agent endpoints to an operator without agent grants", async () => {
+	it("returns an empty discovery list and denies creation without agent grants", async () => {
 		const admin = await createAdminSession()
 		const member = await createMemberSession(admin.userId)
-		expect((await app.request("/api/agents", { headers: { Cookie: member } })).status).toBe(403)
+		const response = await app.request("/api/agents", { headers: { Cookie: member } })
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ agents: [] })
 		expect(
 			(
 				await createJsonRequest(member, "POST", "/api/agents", {

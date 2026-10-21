@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { User } from '../user.zod';
+import * as zod from "zod"
+
+import { User } from "../user.zod"
 
 export const BootstrapAdmin201 = zod.object({
-  "user": User
+	user: User,
 })
 
-export type BootstrapAdmin201 = zod.input<typeof BootstrapAdmin201>;
-export type BootstrapAdmin201Output = zod.output<typeof BootstrapAdmin201>;
+export type BootstrapAdmin201 = zod.input<typeof BootstrapAdmin201>
+export type BootstrapAdmin201Output = zod.output<typeof BootstrapAdmin201>

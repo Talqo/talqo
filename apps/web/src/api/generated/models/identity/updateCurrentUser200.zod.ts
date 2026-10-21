@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { User } from '../user.zod';
+import * as zod from "zod"
+
+import { User } from "../user.zod"
 
 export const UpdateCurrentUser200 = zod.object({
-  "user": User
+	user: User,
 })
 
-export type UpdateCurrentUser200 = zod.input<typeof UpdateCurrentUser200>;
-export type UpdateCurrentUser200Output = zod.output<typeof UpdateCurrentUser200>;
+export type UpdateCurrentUser200 = zod.input<typeof UpdateCurrentUser200>
+export type UpdateCurrentUser200Output = zod.output<typeof UpdateCurrentUser200>

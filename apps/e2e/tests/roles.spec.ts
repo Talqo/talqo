@@ -9,7 +9,7 @@ async function logOut(page: Page) {
 	await expect(page).toHaveURL("/login")
 }
 
-test("an admin gives an invited operator a role and the dashboard follows it", async ({ page, request }) => {
+test("an admin gives an invited operator a role and the dashboard follows it", async ({ page, request, agent }) => {
 	const roleName = `Editors${Date.now()}`.padEnd(64, "a")
 	const operator = { username: crypto.randomUUID().replaceAll("-", ""), password: "operator-role-password" }
 	let createdRoleId: string | undefined
@@ -24,14 +24,11 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await expect(page).toHaveURL(/\/dashboard\/users\/roles\/[^/]+$/)
 			createdRoleId = new URL(page.url()).pathname.split("/").pop()
 			await page.getByLabel("Name").fill(roleName)
-			await page.getByRole("switch", { name: "Manage agents" }).click()
-			await expect(page.getByRole("switch", { name: "See agents" })).toBeChecked()
 			await page.getByRole("button", { name: "Save changes" }).click()
 			await expect(page.getByText("Changes saved.", { exact: true })).toBeVisible()
+			await expect(await page.request.put(`/api/agents/${agent.id}/access/${createdRoleId}`, { data: { permissions: ["agents:manage"] } })).toBeOK()
 			await page.reload()
 			await expect(page.getByLabel("Name")).toHaveValue(roleName)
-			await expect(page.getByRole("switch", { name: "Manage agents" })).toBeChecked()
-			await expect(page.getByRole("switch", { name: "See agents" })).toBeChecked()
 			await page.setViewportSize({ width: 390, height: 844 })
 			await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 			await expect(page.getByRole("heading", { name: roleName, exact: true })).toBeVisible()
@@ -75,7 +72,10 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
 
 			await page.getByRole("link", { name: "Agents", exact: true }).click()
-			await expect(page.getByRole("button", { name: "Create agent" })).toBeVisible()
+			await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
+			await page.getByRole("link", { name: new RegExp(agent.name) }).click()
+			await expect(page.getByLabel("System prompt")).toBeEnabled()
+			await expect(page.getByRole("button", { name: "Delete agent", exact: true })).toHaveCount(0)
 
 			// A hidden link is not the boundary: the page itself must refuse.
 			await page.goto("/dashboard/users/roles")

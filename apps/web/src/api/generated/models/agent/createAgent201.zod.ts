@@ -4,12 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from 'zod';
-import { Agent } from '../agent.zod';
+import * as zod from "zod"
+
+import { Agent } from "../agent.zod"
 
 export const CreateAgent201 = zod.object({
-  "agent": Agent
+	agent: Agent,
 })
 
-export type CreateAgent201 = zod.input<typeof CreateAgent201>;
-export type CreateAgent201Output = zod.output<typeof CreateAgent201>;
+export type CreateAgent201 = zod.input<typeof CreateAgent201>
+export type CreateAgent201Output = zod.output<typeof CreateAgent201>

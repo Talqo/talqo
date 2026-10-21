@@ -1,3 +1,4 @@
+import { getListAgentsQueryKey, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
@@ -6,12 +7,12 @@ import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
 import { useQueryClient } from "@tanstack/react-query"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate, useRouter } from "@tanstack/react-router"
 import { Bot, LayoutDashboard, LogOut, Menu, MessagesSquare, Settings2, User, Users, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type NavRequirement = "agentRead" | "conversationsRead" | "providerManage" | "usersRead"
+type NavRequirement = "agentRead" | "statsRead" | "conversationsRead" | "providerManage" | "usersRead"
 
 type NavItem = {
 	to:
@@ -26,7 +27,7 @@ type NavItem = {
 }
 
 const navItems: readonly NavItem[] = [
-	{ to: "/dashboard", icon: LayoutDashboard, requires: "agentRead" },
+	{ to: "/dashboard", icon: LayoutDashboard, requires: "statsRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/conversations", icon: MessagesSquare, requires: "conversationsRead" },
 	{ to: "/dashboard/users", icon: Users, requires: "usersRead" },
@@ -43,13 +44,16 @@ const navLabels = {
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>
 
-function allowedNavItems(permissions: string[]): readonly NavItem[] {
-	const canReadAgents = permissions.includes("agents:read")
-	const canReadConversations = permissions.includes("conversations:read")
+function allowedNavItems(permissions: string[], agents: { permissions: string[] }[]): readonly NavItem[] {
+	const admin = permissions.includes("admin")
+	const canReadAgents = admin || agents.length > 0
+	const canReadConversations = admin || agents.some((agent) => agent.permissions.includes("conversations:read"))
+	const canReadStats = admin || agents.some((agent) => agent.permissions.includes("stats:read"))
 	const canManageProvider = permissions.includes("ai_provider:manage")
 	const canReadUsers = permissions.includes("users:read")
 	return navItems.filter((item) => {
 		if (item.requires === "agentRead") return canReadAgents
+		if (item.requires === "statsRead") return canReadStats
 		if (item.requires === "conversationsRead") return canReadConversations
 		if (item.requires === "providerManage") return canManageProvider
 		if (item.requires === "usersRead") return canReadUsers
@@ -83,14 +87,21 @@ function NavLink({ item, onNavigate }: { item: (typeof navItems)[number]; onNavi
 function NavList({ className, onNavigate }: { className: string; onNavigate: () => void }) {
 	const { t } = useTranslation()
 	const query = useGetMyPermissions()
+	const agentsQuery = useListAgents()
 	return (
 		<nav className={className}>
-			{query.isPending ? (
+			{query.isPending || agentsQuery.isPending ? (
 				<output className="text-muted-foreground block px-3 text-sm">{t("auth.loading")}</output>
-			) : query.isError ? (
-				<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
+			) : query.isError || agentsQuery.isError ? (
+				<ProblemAlert
+					error={query.error ?? agentsQuery.error}
+					onRetry={() => {
+						void query.refetch()
+						void agentsQuery.refetch()
+					}}
+				/>
 			) : (
-				allowedNavItems(query.data.data.permissions).map((item) => (
+				allowedNavItems(query.data.data.permissions, agentsQuery.data?.data.agents ?? []).map((item) => (
 					<NavLink key={item.to} item={item} onNavigate={onNavigate} />
 				))
 			)}
@@ -124,8 +135,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const closeMobile = () => setMobileOpen(false)
 	const accountName = useGetSession().data?.data.user?.username ?? "…"
 	const permissionsQuery = useGetMyPermissions()
+	const agentsQuery = useListAgents()
 	// Children stay unmounted until the gate opens, so a denied caller fires no queries.
-	const gate = accessGate(useRequiredPermission(), permissionsQuery)
+	const gate = accessGate(useRequiredPermission(), permissionsQuery, agentsQuery)
+	const navigate = useNavigate()
+	const client = useQueryClient()
+	const router = useRouter()
+	useEffect(
+		() =>
+			router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
+				if (fromLocation?.pathname !== toLocation.pathname)
+					void client.invalidateQueries({ queryKey: getListAgentsQueryKey() })
+			}),
+		[router, client],
+	)
+	useEffect(() => {
+		if (gate === "denied" && permissionsQuery.data && agentsQuery.data) {
+			const destination =
+				allowedNavItems(permissionsQuery.data.data.permissions, agentsQuery.data.data.agents)[0]?.to ??
+				"/dashboard/account"
+			void navigate({ to: destination, replace: true })
+		}
+	}, [gate, permissionsQuery.data, agentsQuery.data, navigate])
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
@@ -165,7 +196,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					{gate === "open" && children}
 					{gate === "pending" && <p className="text-muted-foreground">{t("auth.loading")}</p>}
 					{gate === "error" && (
-						<ProblemAlert error={permissionsQuery.error} onRetry={() => void permissionsQuery.refetch()} />
+						<ProblemAlert
+							error={permissionsQuery.error ?? agentsQuery.error}
+							onRetry={() => {
+								void permissionsQuery.refetch()
+								void agentsQuery.refetch()
+							}}
+						/>
 					)}
 					{gate === "denied" && <AccessDenied />}
 				</main>
