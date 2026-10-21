@@ -207,9 +207,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 						)}
 						{selected ? (
 							<fieldset ref={editor} tabIndex={-1} className="space-y-3" disabled={pending}>
-								<legend className="mb-3 max-w-full font-medium break-words">
-									{t("agentAccess.permissionsFor", { role: selected.name })}
-								</legend>
+								<legend className="sr-only">{t("agentAccess.permissionsFor", { role: selected.name })}</legend>
 								<div className="divide-y">
 									{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => {
 										const id = `access-${agentId}-${permission}`
