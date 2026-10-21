@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
+import { logIn } from "./log-in"
+
 const ADMIN = { username: "admin", password: "admin123" }
 
 const createdMembers: string[] = []
@@ -15,14 +17,6 @@ test.afterEach(async ({ request }) => {
 		}),
 	)
 })
-
-async function logIn(page: Page, account: { password: string; username: string }) {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(account.username)
-	await page.getByLabel("Password", { exact: true }).fill(account.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
-}
 
 // Disposable member, so password-mutating tests never touch the shared seed accounts.
 async function inviteMember(page: Page, username: string, password: string) {

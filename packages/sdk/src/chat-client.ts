@@ -7,9 +7,9 @@ import type {
 	ChatMessage,
 	ChatSnapshot,
 	SessionState,
-} from "./types"
+} from "./types.ts"
 
-import { ChatTransportError, createFetchChatTransport } from "./fetch-transport"
+import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
@@ -17,7 +17,7 @@ import {
 	createResilientStorage,
 	readChatStorageRecord,
 	type ChatStorageRecord,
-} from "./storage"
+} from "./storage.ts"
 
 const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
@@ -39,14 +39,19 @@ export class ChatClientError extends Error {
 }
 
 function defaultRandomUUID(): string {
-	const crypto = globalThis.crypto
-	if (crypto === undefined) throw new Error("Web Crypto is required to generate chat credentials")
-	return crypto.randomUUID()
+	try {
+		return globalThis.crypto.randomUUID()
+	} catch {
+		throw new Error("Web Crypto is required to generate chat credentials")
+	}
 }
 
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
-		if (signal.aborted) return reject(signal.reason)
+		if (signal.aborted) {
+			reject(signal.reason)
+			return
+		}
 		const timeout = setTimeout(() => {
 			signal.removeEventListener("abort", onAbort)
 			resolve()
@@ -110,8 +115,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storage = createResilientStorage(
 		options.storage ?? {
 			getItem: async (key) => globalThis.localStorage.getItem(key),
-			setItem: async (key, value) => globalThis.localStorage.setItem(key, value),
-			removeItem: async (key) => globalThis.localStorage.removeItem(key),
+			setItem: async (key, value) => {
+				globalThis.localStorage.setItem(key, value)
+			},
+			removeItem: async (key) => {
+				globalThis.localStorage.removeItem(key)
+			},
 		},
 		createMemoryStorage(),
 		() => {
@@ -204,8 +213,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							text: pending.text,
 						})
 						// Obtaining a successful response proves the idempotent request was accepted.
+						const iterator = events[Symbol.asyncIterator]()
 						// oxlint-disable-next-line no-await-in-loop
-						await events[Symbol.asyncIterator]().return?.()
+						if (typeof iterator.return === "function") await iterator.return()
 						if (pendingMessage?.requestId === pending.requestId) {
 							pendingMessage = undefined
 							// oxlint-disable-next-line no-await-in-loop

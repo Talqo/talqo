@@ -53,7 +53,7 @@ export function toAppearance(values: EmbedFormValues): WidgetAppearance {
 		position: values.position,
 		theme: values.theme,
 		themeToggle: values.themeToggle,
-		language: values.language as WidgetAppearance["language"],
+		language: values.language,
 	}
 }
 

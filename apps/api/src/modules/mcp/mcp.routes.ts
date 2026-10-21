@@ -1,7 +1,6 @@
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
-
-import type { McpCreateBody, McpUpdateBody } from "./mcp.contract.ts"
 
 import {
 	createMcpServerRoute,
@@ -25,8 +24,10 @@ const serversRoutes = new OpenAPIHono()
 	})
 	.openapi(createMcpServerRoute, async (c) => {
 		const { agentId } = c.req.valid("param")
-		const { name, server } = c.req.valid("json") as McpCreateBody
-		const created = await service.createServer(agentId, { name, ...server })
+		const { name, server } = c.req.valid("json")
+		annotate(c, { "mcp.transport": server.transport })
+		const created = await service.createServer(agentId, { name, ...server }, annotator(c))
+		annotate(c, { "mcp.server.id": created.id })
 		return c.json(serverDetailSchema.parse({ server: created }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getMcpServerRoute, async (c) => {
@@ -36,13 +37,14 @@ const serversRoutes = new OpenAPIHono()
 	})
 	.openapi(updateMcpServerRoute, async (c) => {
 		const { agentId, serverId } = c.req.valid("param")
-		const { name, server, expectedRevision, tools } = c.req.valid("json") as McpUpdateBody
-		const updated = await service.updateServer(agentId, serverId, {
-			name,
-			...server,
-			expectedRevision,
-			tools,
-		})
+		const { name, server, expectedRevision, tools } = c.req.valid("json")
+		annotate(c, { "mcp.transport": server.transport })
+		const updated = await service.updateServer(
+			agentId,
+			serverId,
+			{ name, ...server, expectedRevision, tools },
+			annotator(c),
+		)
 		return c.json(serverDetailSchema.parse({ server: updated }), HTTP_STATUS.OK)
 	})
 	.openapi(deleteMcpServerRoute, async (c) => {

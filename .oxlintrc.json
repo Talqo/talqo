@@ -5,9 +5,14 @@
 		"**/routeTree.gen.ts",
 		"**/api/generated/**",
 		"packages/sdk/src/generated/**",
-		"**/dist/**"
+		"**/dist/**",
+		"apps/**/vite-env.d.ts",
+		".claude/**"
 	],
 	"plugins": ["import", "oxc", "typescript", "unicorn"],
+	"options": {
+		"typeAware": true
+	},
 	"categories": {
 		"correctness": "error",
 		"perf": "error",
@@ -39,11 +44,53 @@
 			}
 		],
 		"typescript/consistent-type-definitions": ["error", "type"],
+		"typescript/consistent-type-imports": "error",
+		// bun:test matchers return void by design; awaiting them is required under other runners.
+		"typescript/await-thenable": "off",
+		"typescript/no-array-delete": "error",
+		"typescript/no-base-to-string": "error",
+		"typescript/no-duplicate-type-constituents": "error",
+		"typescript/no-floating-promises": "error",
+		"typescript/no-for-in-array": "error",
+		// The two `new Function` uses execute the built bundle in a sandbox for tests.
+		"typescript/no-implied-eval": "off",
+		"typescript/no-meaningless-void-operator": "error",
+		"typescript/no-explicit-any": "error",
+		"typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false } }],
+		"typescript/no-mixed-enums": "error",
+		"typescript/no-redundant-type-constituents": "error",
+		"typescript/no-unnecessary-qualifier": "error",
+		"typescript/no-unnecessary-template-expression": "error",
+		// Flags the vault generic (call sites specialize `T`) and explicit args bun's expect overloads require.
+		"typescript/no-unnecessary-type-arguments": "off",
+		"typescript/no-unnecessary-type-constraint": "error",
+		"typescript/no-unnecessary-type-parameters": "off",
+		"typescript/no-unsafe-argument": "error",
+		"typescript/no-unsafe-assignment": "error",
+		"typescript/no-unsafe-call": "error",
+		"typescript/no-unsafe-declaration-merging": "error",
+		"typescript/no-unsafe-enum-comparison": "error",
+		"typescript/no-unsafe-member-access": "error",
+		"typescript/no-unsafe-return": "error",
+		// tsgolint flags every narrowing assertion, including `unknown as T`, deviating from typescript-eslint.
+		"typescript/no-unsafe-type-assertion": "off",
+		"typescript/no-unsafe-unary-minus": "error",
+		"typescript/non-nullable-type-assertion-style": "error",
+		"typescript/prefer-find": "error",
+		"typescript/prefer-reduce-type-parameter": "error",
+		"typescript/prefer-return-this-type": "error",
+		"typescript/related-getter-setter-pairs": "error",
+		"typescript/require-array-sort-compare": "error",
+		"typescript/restrict-plus-operands": "error",
+		"typescript/restrict-template-expressions": "error",
+		"typescript/switch-exhaustiveness-check": "error",
+		// Flags explicit `.call()` bindings and this-free closure factories passed to `useSyncExternalStore`.
+		"typescript/unbound-method": "off",
 		"no-restricted-globals": ["error", "close", "open", "print", "focus", "blur", "scroll", "status"]
 	},
 	"overrides": [
 		{
-			"files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/test-helpers.ts", ".claude/skills/**/*.ts"],
+			"files": ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/test-helpers.ts"],
 			"rules": {
 				"no-magic-numbers": "off"
 			}

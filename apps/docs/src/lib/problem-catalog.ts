@@ -150,6 +150,13 @@ export const PROBLEMS = [
 		guidance: "Reload the configuration and retry the change.",
 	},
 	{
+		code: "conversation-not-found",
+		title: "Conversation not found",
+		status: "404",
+		meaning: "The conversation does not exist, or its agent was deleted.",
+		guidance: "Go back to the conversation list and open one from there.",
+	},
+	{
 		code: "current-password-incorrect",
 		title: "Current password incorrect",
 		status: "400",
@@ -373,5 +380,6 @@ type UndocumentedCode = Exclude<ProblemCode, (typeof PROBLEMS)[number]["code"]>
 
 // Every problem code the API can emit needs a docs entry. This fails typecheck
 // (instead of a test) when a code is added without documenting it.
-const allCodesDocumented: Record<UndocumentedCode, never> = {}
+type AssertAllDocumented = UndocumentedCode extends never ? true : ["missing docs for:", UndocumentedCode]
+const allCodesDocumented: AssertAllDocumented = true
 void allCodesDocumented

@@ -142,7 +142,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | Done |
 | FR-2.26 | Dashboard displays the total number of end-user messages over time | Medium | Done |
-| FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
+| FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Done |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |
 | FR-2.30 | Dashboard displays general engagement metrics (total conversations, unique chat users, percentage of site visitors who used the widget) | Low | Not started |
@@ -168,8 +168,8 @@ Talqo is related to these repos:
 | NFR-1.1 | The widget must be deployable via a script tag so it can be embedded on any website, including static pages, without requiring a specific framework | Enables integration into any website regardless of tech stack. Related to FR-2.7 | High | In progress (built widget.js self-mounts from a script tag) |
 | NFR-1.2 | Operator- and developer-facing documentation (widget integration guide, SDK reference, configuration reference) must be provided | Docs app uses Fumadocs | High | In progress (AI provider configuration reference added) |
 | NFR-1.3 | API, dashboard, and widget ship in one container image; docs ships its own image | Orchestration (Compose/Helm/k8s) is `talqo-deploy`'s responsibility, not this repo's | High | In progress |
-| NFR-1.3a | The CD pipeline builds and publishes tagged images for each component to a public container registry (e.g. `ghcr.io/talqo/*`) on release | Lets `talqo-deploy`'s recipes reference a pre-built image instead of building from source | High | Not started |
-| NFR-1.3b | The CD pipeline publishes the connection SDK — installable TypeScript package to the npm registry on release | Same release-automation treatment as NFR-1.3a's image publishing — the SDK isn't usable by developers if it only exists as source | High | Not started |
+| NFR-1.3a | Publish versioned Talqo and docs images to GHCR on release | Matching versions; `latest` follows prod deployment | High | Done |
+| NFR-1.3b | Publish the SDK with JavaScript and TypeScript declarations to npm on release | Matching release version; trusted publishing | High | Done |
 | NFR-1.4 | Operator-configurable settings (AI provider key, agent configuration, etc.) are supplied through the dashboard web interface after deployment | The database connection and `APP_SECRET` are supplied via environment variables at deploy time and validated at startup | High | In progress (AI provider configuration done) |
 
 ### 4.2 Safety & Content Policy (NFR-2)

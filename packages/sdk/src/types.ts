@@ -1,5 +1,5 @@
-import type { ProblemDetails } from "./generated/contracts"
-import type { AsyncStorage } from "./storage"
+import type { ProblemDetails } from "./generated/contracts.ts"
+import type { AsyncStorage } from "./storage.ts"
 
 export type ChatConfiguration = {
 	readonly title: string

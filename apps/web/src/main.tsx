@@ -15,7 +15,7 @@ applyTheme(getInitialTheme())
 
 const queryClient = new QueryClient()
 
-const router = createRouter({ routeTree })
+const router = createRouter({ routeTree, scrollRestoration: true })
 
 declare module "@tanstack/react-router" {
 	// eslint-disable-next-line typescript/consistent-type-definitions

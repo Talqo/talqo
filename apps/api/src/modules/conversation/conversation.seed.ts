@@ -1,7 +1,8 @@
-import { db, sql } from "@/db/client.ts"
+import { db, sql as postgres } from "@/db/client.ts"
 import { estimateTokens } from "@/modules/usage/usage.service.ts"
+import { sql } from "drizzle-orm"
 
-import { conversation, generationAttempt, message } from "./conversation.schema.ts"
+import { conversation, type GenerationAttemptOutcome, generationAttempt, message } from "./conversation.schema.ts"
 
 // Development traffic fixtures: a month of fixed daily conversations per seeded agent plus two
 // recent ones, so dashboard statistics render real series out of the box. Returns the seeded
@@ -166,8 +167,8 @@ function planRows(now: Date): PlannedRows {
 	return rows
 }
 
-export async function seed(): Promise<SeededAttempt[]> {
-	const [marker] = await sql`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
+async function seedTraffic(): Promise<SeededAttempt[]> {
+	const [marker] = await postgres`SELECT 1 FROM conversation WHERE id LIKE ${`${MARKER_PREFIX}%`} LIMIT 1`
 	if (marker) return []
 	const rows = planRows(new Date())
 	await db.transaction(async (tx) => {
@@ -176,4 +177,210 @@ export async function seed(): Promise<SeededAttempt[]> {
 		await tx.insert(message).values(rows.messages)
 	})
 	return rows.usages
+}
+
+const TRANSCRIPT_AGENT_ID = SEED_AGENTS[0].agentId
+const TRANSCRIPT_EMBED_ID = "22222222-2222-4222-8222-222222222222"
+const TRANSCRIPT_TOKENS = 200
+const UUID_NODE_DIGITS = 12
+const MILLISECONDS_PER_HOUR = 3_600_000
+
+type TranscriptTurn = { answer: string; outcome: GenerationAttemptOutcome; question: string }
+type TranscriptConversation = { startedHoursAgo: number; turns: TranscriptTurn[] }
+
+const TRANSCRIPTS: TranscriptConversation[] = [
+	{
+		startedHoursAgo: 72,
+		turns: [
+			{
+				question: "How long does shipping to Germany take?",
+				answer:
+					"Orders to Germany usually arrive in **3–5 business days**. You get a tracking link by email once it ships.",
+				outcome: "completed",
+			},
+			{
+				question: "Can I change the delivery address after ordering?",
+				answer: "Yes, until the order ships. Reply to your confirmation email with the new address and we update it.",
+				outcome: "completed",
+			},
+		],
+	},
+	{
+		startedHoursAgo: 30,
+		turns: [
+			{
+				question: "What plans do you offer?",
+				answer:
+					"We offer three plans:\n\n- **Starter**: one website, email support\n- **Growth**: up to five websites, priority support\n- **Business**: unlimited websites and a dedicated contact\n\nSee the [pricing page](https://example.com/pricing) for current prices.",
+				outcome: "completed",
+			},
+		],
+	},
+	{
+		startedHoursAgo: 26,
+		turns: [
+			{
+				question: "How do I add the chat to my website?",
+				answer:
+					'Paste this snippet before the closing `</body>` tag:\n\n```html\n<script src="https://chat.example.com/widget.js" data-embed-token="YOUR_TOKEN" async></script>\n```\n\n| Platform | Where to paste |\n| --- | --- |\n| Shopify | Theme > Edit code > `theme.liquid` |\n| WordPress | Appearance > Theme file editor > `footer.php` |',
+				outcome: "completed",
+			},
+		],
+	},
+	{
+		startedHoursAgo: 20,
+		turns: [
+			{ question: "Do you integrate with Zendesk?", answer: "We do not integrate directly with", outcome: "blocked" },
+		],
+	},
+	{
+		startedHoursAgo: 5,
+		turns: [{ question: "Is the product available in Czech?", answer: "", outcome: "failed" }],
+	},
+	{
+		startedHoursAgo: 2,
+		turns: [
+			{
+				question: "Can I return a sale item?",
+				answer: "Sale items can be returned within",
+				outcome: "interrupted",
+			},
+		],
+	},
+	{
+		startedHoursAgo: 0.5,
+		turns: [
+			{
+				question: "Write me a long comparison of every plan feature.",
+				answer: "Here is a full comparison of every feature, starting with",
+				outcome: "cancelled",
+			},
+		],
+	},
+]
+
+/** Deterministic UUIDv4s, so re-seeding finds the same rows instead of duplicating them. */
+function seedId(kind: string, index: number): string {
+	return `${kind}-0000-4000-8000-${String(index).padStart(UUID_NODE_DIGITS, "0")}`
+}
+
+function transcriptRows(now: number) {
+	let attemptCount = 0
+	let messageCount = 0
+	const conversations: (typeof conversation.$inferInsert)[] = []
+	const attempts: (typeof generationAttempt.$inferInsert)[] = []
+	const messages: (typeof message.$inferInsert)[] = []
+	for (const [index, seeded] of TRANSCRIPTS.entries()) {
+		const conversationId = seedId("66666666", index)
+		const startedAt = now - seeded.startedHoursAgo * MILLISECONDS_PER_HOUR
+		let latestCompletedMessageId: string | null = null
+		let revision = 0
+		for (const [turnIndex, turn] of seeded.turns.entries()) {
+			const attemptId = seedId("88888888", (attemptCount += 1))
+			const askedAt = new Date(startedAt + turnIndex * MILLISECONDS_PER_MINUTE)
+			const questionId = seedId("99999999", (messageCount += 1))
+			const answerId = seedId("99999999", (messageCount += 1))
+			if (turn.outcome === "completed") {
+				latestCompletedMessageId = answerId
+				revision += 1
+			}
+			attempts.push({
+				id: attemptId,
+				conversationId,
+				requestId: seedId("aaaaaaaa", attemptCount),
+				estimatedInputTokens: TRANSCRIPT_TOKENS,
+				status: turn.outcome,
+				finalOutcome: turn.outcome,
+				networkHash: "seed-network",
+				leaseToken: attemptId,
+				leaseExpiresAt: askedAt,
+				provider: "openai-compatible",
+				model: "chat-model",
+				providerInvoked: true,
+				usageInputTokens: TRANSCRIPT_TOKENS,
+				usageOutputTokens: TRANSCRIPT_TOKENS,
+				createdAt: askedAt,
+				updatedAt: askedAt,
+			})
+			messages.push(
+				{
+					id: questionId,
+					conversationId,
+					generationAttemptId: attemptId,
+					role: "user",
+					text: turn.question,
+					outcome: "completed",
+					createdAt: askedAt,
+					updatedAt: askedAt,
+				},
+				{
+					id: answerId,
+					conversationId,
+					generationAttemptId: attemptId,
+					role: "assistant",
+					text: turn.answer,
+					outcome: turn.outcome,
+					createdAt: new Date(askedAt.getTime() + 1),
+					updatedAt: askedAt,
+				},
+			)
+		}
+		conversations.push({
+			id: conversationId,
+			referenceId: seedId("77777777", index),
+			agentId: TRANSCRIPT_AGENT_ID,
+			embedId: TRANSCRIPT_EMBED_ID,
+			embedAccessVersion: 1,
+			revision,
+			latestCompletedMessageId,
+			createdAt: new Date(startedAt),
+		})
+	}
+	return { attempts, conversations, messages }
+}
+
+async function seedTranscripts(): Promise<void> {
+	const rows = transcriptRows(Date.now())
+	await db.transaction(async (tx) => {
+		await tx
+			.insert(conversation)
+			.values(rows.conversations)
+			.onConflictDoUpdate({
+				target: conversation.id,
+				set: {
+					revision: sql`excluded.revision`,
+					latestCompletedMessageId: sql`excluded.latest_completed_message_id`,
+					createdAt: sql`excluded.created_at`,
+				},
+			})
+		await tx
+			.insert(generationAttempt)
+			.values(rows.attempts)
+			.onConflictDoUpdate({
+				target: generationAttempt.id,
+				set: {
+					status: sql`excluded.status`,
+					finalOutcome: sql`excluded.final_outcome`,
+					createdAt: sql`excluded.created_at`,
+					updatedAt: sql`excluded.updated_at`,
+				},
+			})
+		await tx
+			.insert(message)
+			.values(rows.messages)
+			.onConflictDoUpdate({
+				target: message.id,
+				set: {
+					text: sql`excluded.text`,
+					outcome: sql`excluded.outcome`,
+					createdAt: sql`excluded.created_at`,
+					updatedAt: sql`excluded.updated_at`,
+				},
+			})
+	})
+}
+
+export async function seed(): Promise<SeededAttempt[]> {
+	await seedTranscripts()
+	return seedTraffic()
 }

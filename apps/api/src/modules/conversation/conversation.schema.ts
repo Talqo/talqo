@@ -23,6 +23,10 @@ export const conversation = pgTable(
 	"conversation",
 	{
 		id: text("id").primaryKey(),
+		referenceId: text("reference_id")
+			.notNull()
+			.unique()
+			.default(sql`gen_random_uuid()::text`),
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
@@ -36,6 +40,7 @@ export const conversation = pgTable(
 		index("conversation_agent_id_idx").on(table.agentId),
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
+		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
 	],
 )
 

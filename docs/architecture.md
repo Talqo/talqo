@@ -27,6 +27,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | TanStack Query | Browser server state | [ADR-0006](adr/0006-use-tanstack-query-for-server-state.md) |
 | Vercel AI SDK | Text and embedding provider interfaces | [ADR-0011](adr/0011-use-vercel-ai-sdk.md) |
 | Hono | HTTP transport | None |
+| pino | Request wide events on stdout | [ADR-0019](adr/0019-emit-wide-events-with-pino.md) |
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
 | TanStack Router | Routing and URL state | None |
@@ -56,7 +57,7 @@ packages -X-> apps
 - Apps may import packages. Packages never import app source.
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
-- `packages/sdk` is the workspace-private, framework-independent browser chat SDK; the widget consumes it.
+- `packages/sdk` is the framework-independent browser chat SDK; the widget consumes its workspace source and stable releases publish its ESM JavaScript and declarations to npm as `@talqo/sdk`.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.

@@ -20,12 +20,17 @@
 		"format:fix": "oxfmt .",
 		"i18n": "turbo run i18n --output-logs=errors-only",
 		"i18n:fix": "turbo run i18n:fix --output-logs=errors-only",
-		"knip": "knip",
+		"knip": "knip --cache --cache-location .cache/knip",
 		"lint": "oxlint --deny-warnings --report-unused-disable-directives .",
 		"lint:fix": "oxlint --deny-warnings --report-unused-disable-directives --fix .",
+		"pack:sdk": "bash scripts/pack-sdk.sh",
 		"prepare": "husky",
+		"push": "bash scripts/push-images.sh all",
+		"push:docs": "bash scripts/push-images.sh docs",
+		"push:talqo": "bash scripts/push-images.sh talqo",
 		"quality": "turbo run lint format --output-logs=errors-only",
 		"quality:fix": "turbo run lint:fix format:fix --output-logs=errors-only",
+		"release": "bash scripts/release.sh",
 		"test": "turbo run test --output-logs=errors-only",
 		"test:integration": "turbo run test:integration --output-logs=errors-only",
 		"typecheck": "turbo run typecheck --output-logs=errors-only"
@@ -34,13 +39,14 @@
 		"@commitlint/cli": "^21.2.3",
 		"@commitlint/config-conventional": "^21.2.3",
 		"@playwright/cli": "^0.1.22",
+		"@types/bun": "1.4.3",
 		"husky": "^9.1.7",
-		"knip": "6.39.0",
-		"orval": "8.39.0",
-		"oxfmt": "0.71.0",
-		"oxlint": "1.86.0",
-		"oxlint-tsgolint": "^7.0.2003",
-		"turbo": "2.11.7"
+		"knip": "6.41.0",
+		"orval": "8.43.0",
+		"oxfmt": "0.73.0",
+		"oxlint": "1.88.0",
+		"oxlint-tsgolint": "^7.0.2004",
+		"turbo": "2.11.9"
 	},
-	"packageManager": "bun@1.4.2"
+	"packageManager": "bun@1.4.3"
 }

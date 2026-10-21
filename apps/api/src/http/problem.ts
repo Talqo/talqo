@@ -1,6 +1,7 @@
 import type { Context } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 
+import { annotate } from "@/http/wide-event.ts"
 import { z } from "@hono/zod-openapi"
 import { PROBLEM_CODES } from "@talqo/shared/problem-codes"
 
@@ -17,7 +18,7 @@ const PROBLEM_CODE_VALUES = [firstProblemCode, ...remainingProblemCodes] satisfi
 function problemDetails<C extends ProblemCode>(code: C) {
 	return Object.freeze({
 		code,
-		type: `${PROBLEM_TYPE_BASE}${code}` as `${typeof PROBLEM_TYPE_BASE}${C}`,
+		type: `${PROBLEM_TYPE_BASE}${code}`,
 	})
 }
 
@@ -44,6 +45,7 @@ export function problemResponse<C extends ProblemCode, S extends ContentfulStatu
 	code: C,
 	status: S,
 ) {
+	annotate(context, { "error.code": code })
 	return context.json(problemDetails(code), status, { "Content-Type": "application/problem+json" })
 }
 

@@ -12,7 +12,10 @@ describe("built embed bundle", () => {
 	test("boots and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
-		expect(() => new Function(code)()).not.toThrow()
+		const run = new Function(code) as unknown as () => unknown
+		expect(() => {
+			run()
+		}).not.toThrow()
 
 		const globalScope = window as { TalqoWidget?: { mount: unknown; unmount: unknown } }
 		expect(typeof globalScope.TalqoWidget).toBe("object")
@@ -24,7 +27,8 @@ describe("built embed bundle", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
 
-		new Function(code)()
+		const run = new Function(code) as unknown as () => unknown
+		run()
 
 		expect(fetchSpy).not.toHaveBeenCalled()
 	})
@@ -45,7 +49,8 @@ describe("built embed bundle", () => {
 		const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")
 		Object.defineProperty(document, "readyState", { value: "loading", configurable: true })
 		try {
-			new Function(code)()
+			const run = new Function(code) as unknown as () => unknown
+			run()
 			expect(document.querySelector("#talqo-widget")).toBeNull()
 
 			document.dispatchEvent(new Event("DOMContentLoaded"))

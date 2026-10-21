@@ -16,7 +16,12 @@ const databaseStub: unknown = new Proxy(unreachable, {
 	apply: () => unreachable(),
 })
 
-mock.module("@/db/client.ts", () => ({
+await mock.module("@/db/client.ts", () => ({
 	db: databaseStub,
 	sql: databaseStub,
+}))
+
+// Keeps request logs out of test output; wide-event tests inject their own sink.
+await mock.module("@/http/wide-event-stdout.ts", () => ({
+	stdoutWideEventLog: { write: () => undefined, flush: () => undefined },
 }))

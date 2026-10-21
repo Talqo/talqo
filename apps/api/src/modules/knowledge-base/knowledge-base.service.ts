@@ -24,7 +24,18 @@ export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB
 export const MAX_UPLOAD_BODY_BYTES = MAX_FILE_SIZE_BYTES + MULTIPART_MARGIN_BYTES
 
 export const ALLOWED_EXTENSIONS = [".docx", ".md", ".pdf", ".txt"] as const
+export type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number]
 const ALLOWED_EXTENSION_SET: ReadonlySet<string> = new Set(ALLOWED_EXTENSIONS)
+
+function isAllowedExtension(extension: string): extension is AllowedExtension {
+	return ALLOWED_EXTENSION_SET.has(extension)
+}
+
+// A rejected extension is free-form operator input, so it is reported only as "other".
+export function uploadExtension(name: string): AllowedExtension | "other" {
+	const extension = extname(name).toLowerCase()
+	return isAllowedExtension(extension) ? extension : "other"
+}
 
 const UPLOAD_DIR = env.TALQO_UPLOAD_DIR ?? join(tmpdir(), "talqo")
 
@@ -88,7 +99,7 @@ export function validateName(name: string): void {
 
 export function validateUpload(file: { name: string; size: number }): void {
 	const ext = extname(file.name).toLowerCase()
-	if (!ALLOWED_EXTENSION_SET.has(ext)) {
+	if (!isAllowedExtension(ext)) {
 		const allowed = ALLOWED_EXTENSIONS.map((extension) => extension.slice(1).toUpperCase()).join(", ")
 		throw new InvalidFileError(`File type ${ext || "(none)"} is not allowed; use ${allowed}`)
 	}

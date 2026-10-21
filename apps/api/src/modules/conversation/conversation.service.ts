@@ -1,3 +1,5 @@
+import type { Annotate } from "@/http/wide-event.ts"
+
 import { env } from "@/config/env.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
@@ -10,6 +12,7 @@ import { z } from "zod"
 
 import { createBlacklistFilter } from "./blacklist.ts"
 import {
+	ConversationNotFoundError,
 	ConversationTooLongError,
 	InvalidChatInputError,
 	ProviderUnavailableError,
@@ -24,6 +27,8 @@ import {
 	type GenerationAttemptStatus,
 } from "./conversation.schema.ts"
 
+export type { GenerationAttemptOutcome } from "./conversation.schema.ts"
+
 const COMPLETED_PAIR_WIDTH = 2
 const FRESH_PROMPT_MESSAGE_COUNT = 2
 const MILLISECONDS_PER_SECOND = 1000
@@ -36,12 +41,12 @@ const OUTPUT_FLUSH_MS = 100
 const UUID_SCHEMA = z.uuid({ version: "v4" })
 
 type GenerationEvent =
-	| { model: string; provider: string; type: "start" }
+	| { model: string; provider: aiProvider.AiProviderId; type: "start" }
 	| { text: string; type: "text" }
 	| {
 			model: string
 			outcome: "cancelled" | "completed" | "failed" | "interrupted"
-			provider: string
+			provider: aiProvider.AiProviderId
 			type: "finish"
 			usage: usageService.ProviderUsage
 	  }
@@ -53,7 +58,7 @@ type PreparedOperation = {
 		onToolEvent?: (event: aiProvider.ToolEvent) => void,
 	): AsyncIterable<GenerationEvent>
 	model: string
-	provider: string
+	provider: aiProvider.AiProviderId
 }
 
 type Dependencies = {
@@ -99,10 +104,12 @@ export type ChatEvent =
 	  }
 	| {
 			version: 1
-			error: { code: string; newChatAvailable: boolean; retriable: boolean }
+			error: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean }
 			outcome: "failed"
 			type: "error"
 	  }
+
+type ChatErrorCode = "chat-context-limit" | "chat-input-incompatible" | "provider-error"
 
 type SendInput = {
 	credential: string
@@ -232,9 +239,13 @@ export function createConversationService(dependencies: Dependencies) {
 		messages: aiProvider.TextMessage[],
 		prepared: PreparedOperation,
 		emit: (event: ChatEvent) => void,
+		annotate: Annotate,
 	): Promise<void> {
 		const { generationAttempt, assistantMessage } = accepted
-		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) return
+		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) {
+			annotate({ "chat.lease_lost": true })
+			return
+		}
 		const controller = new AbortController()
 		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
@@ -291,7 +302,7 @@ export function createConversationService(dependencies: Dependencies) {
 		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
 		let terminalObserved = false
-		let publicError = {
+		let publicError: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean } = {
 			code: "provider-error",
 			retriable: true,
 			newChatAvailable: false,
@@ -300,6 +311,7 @@ export function createConversationService(dependencies: Dependencies) {
 		let connection: mcp.OpenTools | undefined
 		try {
 			connection = await mcp.openTools(agent.id, controller.signal)
+			annotate({ "mcp.servers_degraded": connection.degradedServers })
 		} catch (error) {
 			console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
 		}
@@ -308,6 +320,7 @@ export function createConversationService(dependencies: Dependencies) {
 			if (
 				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
 			) {
+				annotate({ "chat.lease_lost": true })
 				return
 			}
 			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
@@ -385,6 +398,12 @@ export function createConversationService(dependencies: Dependencies) {
 			outputText: observedOutput,
 			usage: providerUsage,
 		})
+		annotate({
+			"gen_ai.provider.name": provider,
+			"gen_ai.response.model": model,
+			"gen_ai.usage.input_tokens": normalized.inputTokens,
+			"gen_ai.usage.output_tokens": normalized.outputTokens,
+		})
 		try {
 			if (
 				await repository.stageFinalization({
@@ -408,6 +427,8 @@ export function createConversationService(dependencies: Dependencies) {
 				} else {
 					emit({ version: 1, type: "terminal", outcome })
 				}
+			} else {
+				annotate({ "chat.lease_lost": true })
 			}
 		} catch (error) {
 			console.error("conversation.finalization.failed", {
@@ -419,10 +440,11 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 
 	return {
-		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}) {
+		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}, annotate: Annotate = () => {}) {
 			await recoverUsage()
 			if (!input.text) throw new InvalidChatInputError("Message text is required")
 			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			const conversationId = requireUuid(
 				input.credential,
@@ -435,7 +457,9 @@ export function createConversationService(dependencies: Dependencies) {
 			) {
 				throw new SessionUnauthorizedError("Session does not belong to this embed")
 			}
+			annotate({ "chat.new_conversation": !session })
 			const agentId = currentEmbed.agentId
+			annotate({ "agent.id": agentId, "embed.id": currentEmbed.id })
 			const agent = await agentService.getAgent(agentId)
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedGenerationAttempt
@@ -449,15 +473,19 @@ export function createConversationService(dependencies: Dependencies) {
 				let question = input.text
 				try {
 					const chunks = await knowledgeBase.searchKnowledge(agentId, input.text)
+					annotate({ "rag.chunks": chunks.length, "rag.degraded": false })
 					if (chunks.length) {
 						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
 					}
 				} catch (error) {
+					annotate({ "rag.degraded": true })
 					console.error("knowledge-base.retrieval.degraded", { agentId, error: String(error) })
 				}
 				const messages = completedPrompt(systemPrompt, history.messages, question)
 				const promptContent = promptText(messages)
-				if ([...promptContent].length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+				const promptCharacters = Array.from(promptContent).length
+				annotate({ "chat.prompt_characters": promptCharacters })
+				if (promptCharacters > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 				let prepared: PreparedOperation
 				try {
 					prepared = await dependencies.prepare({
@@ -506,11 +534,12 @@ export function createConversationService(dependencies: Dependencies) {
 					createdAt: accepted.assistantMessage.createdAt.toISOString(),
 				},
 			}
+			annotate({ "chat.duplicate": accepted.duplicate })
 			emit(acceptedEvent)
 			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
-			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit)
+			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 
@@ -549,4 +578,64 @@ export function getConversationService() {
 		timeoutMs: env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND,
 		prepare: (input) => aiProvider.prepareTextOperation(input),
 	}))
+}
+
+export const CONVERSATION_PAGE_SIZE = 25
+export const CONVERSATION_PAGE_MAX = 10_000
+export const CONVERSATION_AGENT_FILTER_MAX = 100
+const CONVERSATION_PREVIEW_LENGTH = 160
+
+type ConversationSummary = {
+	agentId: string
+	id: string
+	messageCount: number
+	preview: string | null
+	startedAt: string
+}
+
+export type ConversationPage = {
+	conversations: ConversationSummary[]
+	page: number
+	pageSize: number
+	total: number
+}
+
+export type ConversationTranscript = {
+	agentId: string
+	id: string
+	messages: ChatMessage[]
+	startedAt: string
+}
+
+export async function listConversations(filter: { agentId?: string[]; page: number }): Promise<ConversationPage> {
+	const { rows, total } = await repository.listConversations({
+		agentIds: filter.agentId,
+		limit: CONVERSATION_PAGE_SIZE,
+		offset: (filter.page - 1) * CONVERSATION_PAGE_SIZE,
+		previewLength: CONVERSATION_PREVIEW_LENGTH,
+	})
+	return {
+		conversations: rows.map((row) => ({
+			id: row.referenceId,
+			agentId: row.agentId,
+			messageCount: row.messageCount,
+			preview: row.preview,
+			startedAt: row.createdAt.toISOString(),
+		})),
+		page: filter.page,
+		pageSize: CONVERSATION_PAGE_SIZE,
+		total,
+	}
+}
+
+export async function getConversationTranscript(referenceId: string): Promise<ConversationTranscript> {
+	await repository.recoverExpiredGenerationAttempts()
+	const found = await repository.findConversationByReference(referenceId)
+	if (!found) throw new ConversationNotFoundError()
+	return {
+		id: found.referenceId,
+		agentId: found.agentId,
+		startedAt: found.createdAt.toISOString(),
+		messages: (await repository.listMessages(found.id)).map(publicMessage),
+	}
 }

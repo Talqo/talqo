@@ -61,9 +61,9 @@ function json(body: unknown, status = 200): Response {
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = String(input)
+	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
-	requests.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined })
+	requests.push({ url, method, body: init?.body ? parseJsonBody(init.body) : undefined })
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: ME })
 	if (url === "/api/users") {
@@ -75,7 +75,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/roles" && method === "GET") return refreshedRolesResponse ?? rolesFailure ?? json({ roles })
 	if (url === "/api/roles" && method === "POST") {
 		if (createFailure) return createFailure
-		const body = JSON.parse(String(init?.body)) as Pick<Role, "name" | "permissions">
+		const body = parseJsonBody(init?.body) as Pick<Role, "name" | "permissions">
 		const role = { id: "new-role", memberCount: 0, ...body }
 		roles.push(role)
 		return json({ role }, 201)
@@ -87,12 +87,17 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	}
 	if (url.startsWith("/api/roles/") && method === "PUT") {
 		if (updateFailure) return updateFailure
-		const body = JSON.parse(String(init?.body)) as Pick<Role, "name" | "permissions">
+		const body = parseJsonBody(init?.body) as Pick<Role, "name" | "permissions">
 		const role = { id, memberCount: 0, ...body }
 		roles = roles.map((current) => (current.id === id ? role : current))
 		return json({ role })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
+}
+
+function parseJsonBody(body: BodyInit | null | undefined): unknown {
+	if (typeof body !== "string") throw new Error("Expected a JSON request body")
+	return JSON.parse(body)
 }
 
 async function settle() {

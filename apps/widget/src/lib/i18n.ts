@@ -11,7 +11,7 @@ export const isWidgetLanguage = isSupportedLanguage
 
 export function createWidgetI18n(language: WidgetLanguage = "en"): I18nInstance {
 	const instance = createInstance()
-	instance.use(initReactI18next).init({
+	void instance.use(initReactI18next).init({
 		lng: language,
 		fallbackLng: "en",
 		resources: {

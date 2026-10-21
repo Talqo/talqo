@@ -19,14 +19,13 @@ function count(value: unknown): number | undefined {
 }
 
 export function estimateTokens(text: string): number {
-	return Math.ceil([...text].length / APPROXIMATION_CHARACTERS_PER_TOKEN)
+	return Math.ceil(Array.from(text).length / APPROXIMATION_CHARACTERS_PER_TOKEN)
 }
 
 function sumIfComplete(values: unknown[]): number | undefined {
 	const counts = values.map(count)
-	return counts.every((value) => value !== undefined)
-		? counts.reduce<number>((total, value) => total + (value ?? 0), 0)
-		: undefined
+	if (!counts.every((value): value is number => value !== undefined)) return undefined
+	return counts.reduce((total, value) => total + value, 0)
 }
 
 export function normalizeUsage(input: { inputText: string; outputText: string; usage?: ProviderUsage }): {

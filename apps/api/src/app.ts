@@ -7,9 +7,14 @@ import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
 import { PROBLEM_CODES, ApiError, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
 import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate, wideEvents } from "@/http/wide-event.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
-import { createConversationRoutes, type ChatBindings } from "@/modules/conversation/conversation.routes.ts"
+import {
+	conversationOperatorRoutes,
+	createConversationRoutes,
+	type ChatBindings,
+} from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"
 import { agentFilesRoutes } from "@/modules/knowledge-base/knowledge-base.routes.ts"
@@ -30,6 +35,7 @@ export const app = new OpenAPIHono<{ Bindings: ChatBindings }>({
 		if (!result.success) {
 			return problemResponse(context, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
 		}
+		return undefined
 	},
 })
 
@@ -46,6 +52,8 @@ app.openAPIRegistry.registerComponent("securitySchemes", "ChatBearer", {
 app.openAPIRegistry.register("ProblemDetails", problemDetailsSchema)
 
 app.openapi(getHealthRoute, (context) => context.json({ status: "ok" } as const, HTTP_STATUS.OK))
+// After /health so liveness probes stay out of the request log.
+app.use("*", wideEvents)
 app.use("*", rejectOversizedBody)
 app.use("*", rejectMalformedJson)
 // Ahead of route access policies, so preflights and 401s carry CORS headers. Scoped to the public
@@ -75,6 +83,7 @@ api.route("/chat", createConversationRoutes())
 api.route("/stats", statsRoutes)
 api.route("/agents", agentFilesRoutes)
 api.route("/agents", mcpServerRoutes)
+api.route("/conversations", conversationOperatorRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
 // Mirrors Hono's default errorHandler pass-through for response-carrying errors,
@@ -90,7 +99,7 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 	if ("getResponse" in error && typeof error.getResponse === "function") {
 		let response: unknown
 		try {
-			response = error.getResponse()
+			response = (error.getResponse as () => unknown)()
 		} catch (responseError) {
 			console.error(responseError)
 			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
@@ -114,6 +123,7 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 		}
 	}
 
+	annotate(context, { "error.type": error.constructor.name })
 	if (APICallError.isInstance(error)) {
 		console.error("provider.call.failed", {
 			message: error.message,

@@ -35,7 +35,10 @@ describe("discoverModels", () => {
 	it("sends the Google API key in a header, never in the URL", async () => {
 		let seen: { headers: Headers; url: string } | undefined
 		const capturing: ModelDiscoveryFetch = async (url, init) => {
-			seen = { headers: new Headers(init?.headers), url: String(url) }
+			seen = {
+				headers: new Headers(init?.headers),
+				url: typeof url === "string" ? url : url instanceof URL ? url.href : url.url,
+			}
 			return googleFetcher(url, init)
 		}
 
@@ -51,7 +54,7 @@ describe("discoverModels", () => {
 	it("uses the configured OpenAI-compatible base URL", async () => {
 		let requestedUrl = ""
 		const fetcher: ModelDiscoveryFetch = async (input) => {
-			requestedUrl = String(input)
+			requestedUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 			return new Response(JSON.stringify({ data: [] }))
 		}
 
@@ -71,7 +74,7 @@ describe("discoverModels", () => {
 	it("rejects a non-HTTP provider endpoint before sending credentials", async () => {
 		let requestedUrl = ""
 		const fetcher: ModelDiscoveryFetch = async (input) => {
-			requestedUrl = String(input)
+			requestedUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 			return new Response(JSON.stringify({ data: [] }))
 		}
 

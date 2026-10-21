@@ -2,18 +2,35 @@
 	"name": "@talqo/sdk",
 	"version": "0.0.0",
 	"private": true,
+	"description": "Framework-independent browser chat SDK for Talqo",
+	"license": "SEE LICENSE IN LICENSE.md",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Talqo/talqo.git",
+		"directory": "packages/sdk"
+	},
+	"files": [
+		"dist",
+		"LICENSE.md"
+	],
 	"type": "module",
+	"types": "./dist/index.d.ts",
 	"exports": "./src/index.ts",
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
 	"scripts": {
+		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
 		"test": "bun test",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "bun check"
 	},
 	"dependencies": {
-		"eventsource-parser": "4.1.1"
+		"eventsource-parser": "4.1.2"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",
-		"@types/bun": "1.4.1",
+		"@types/bun": "1.4.3",
 		"typescript": "7.0.2"
 	}
 }

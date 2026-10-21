@@ -593,6 +593,22 @@ describe("ConnectedEmbeddedWidget", () => {
 			expect(bubble?.textContent).toContain("Before")
 			expect(bubble?.textContent).toContain("after")
 		})
+
+		test("shows markdown images as links instead of fetching them", async () => {
+			const store = fakeClient({
+				...READY_SNAPSHOT,
+				messages: [message("a1", "assistant", "![Size chart](https://example.com/chart.png)", "completed")],
+			})
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const bubble = host.querySelector("[data-slot='bubble-content']")
+			expect(bubble?.querySelector("img")).toBeNull()
+			const link = bubble?.querySelector("a")
+			expect(link?.getAttribute("href")).toBe("https://example.com/chart.png")
+			expect(link?.textContent).toBe("Size chart")
+			expect(link?.rel).toContain("noreferrer")
+		})
 	})
 })
 

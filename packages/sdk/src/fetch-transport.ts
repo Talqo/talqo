@@ -6,12 +6,12 @@ import type {
 	GetChatSession200MessagesItem,
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
-} from "./generated/contracts"
-import type { ChatError, ChatEvent, ChatTransport } from "./types"
+} from "./generated/contracts.ts"
+import type { ChatError, ChatEvent, ChatTransport } from "./types.ts"
 
-import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts"
-import { parseSseStream } from "./sse"
-import { isChatErrorCode } from "./types"
+import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts.ts"
+import { parseSseStream } from "./sse.ts"
+import { isChatErrorCode } from "./types.ts"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
@@ -66,7 +66,7 @@ async function* responseChunks(body: ReadableStream<Uint8Array>, signal: AbortSi
 		while (true) {
 			// oxlint-disable-next-line no-await-in-loop -- stream chunks must be read sequentially.
 			const result = await reader.read()
-			if (signal.aborted) throw signal.reason
+			signal.throwIfAborted()
 			if (result.done) {
 				consumed = true
 				return

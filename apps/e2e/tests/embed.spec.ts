@@ -130,7 +130,8 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page }
 		(frame, config) => {
 			const iframe = frame as HTMLIFrameElement
 			window.addEventListener("message", (event) => {
-				if (event.source !== iframe.contentWindow || event.data?.type !== "ready") return
+				const data = event.data as { type?: unknown }
+				if (event.source !== iframe.contentWindow || data?.type !== "ready") return
 				iframe.contentWindow?.postMessage(config.message, "*")
 			})
 			iframe.setAttribute("sandbox", "allow-scripts")
@@ -254,7 +255,9 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
 
 	await page.evaluate(() => {
-		const entry = Object.entries(localStorage).find(([key]) => key.startsWith("talqo:chat:v1:"))
+		const entry: [string, string] | undefined = Object.entries(localStorage).find(([key]) =>
+			key.startsWith("talqo:chat:v1:"),
+		)
 		const stored: unknown = entry?.[1] ? JSON.parse(entry[1]) : undefined
 		if (!stored || typeof stored !== "object" || !("credential" in stored) || typeof stored.credential !== "string") {
 			throw new Error("Expected the widget to persist its session credential")

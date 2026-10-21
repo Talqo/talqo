@@ -139,19 +139,16 @@ describe("preview availability", () => {
 const originalMatchMedia = window.matchMedia
 
 function stubMatchMedia(matches: boolean) {
-	window.matchMedia = mock(
-		(query: string) =>
-			({
-				matches: query.includes("(min-width: 640px) and (pointer: fine)") ? matches : false,
-				media: query,
-				addEventListener: () => {},
-				removeEventListener: () => {},
-				addListener: () => {},
-				removeListener: () => {},
-				onchange: null,
-				dispatchEvent: () => false,
-			}) as MediaQueryList,
-	) as unknown as typeof window.matchMedia
+	window.matchMedia = mock((query: string) => ({
+		matches: query.includes("(min-width: 640px) and (pointer: fine)") ? matches : false,
+		media: query,
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		addListener: () => {},
+		removeListener: () => {},
+		onchange: null,
+		dispatchEvent: () => false,
+	}))
 }
 
 function stubViewport(width: number, height: number) {

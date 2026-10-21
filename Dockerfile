@@ -1,18 +1,30 @@
-# Required runtime env: APP_SECRET, DATABASE_URL, TALQO_DOCLING_URL.
-
-FROM oven/bun:1.4.2 AS build
+FROM oven/bun:1.4.3 AS pruner
 
 WORKDIR /app
 
-COPY package.json bun.lock bunfig.toml turbo.json ./
-COPY apps ./apps
-COPY packages ./packages
+COPY package.json ./
+RUN bun install --global "turbo@$(bun -p 'require("./package.json").devDependencies.turbo')"
+
+COPY . .
+RUN turbo prune @talqo/api @talqo/web @talqo/widget --docker
+
+FROM oven/bun:1.4.3 AS build
+
+WORKDIR /app
+
+COPY --from=pruner /app/out/json/ ./
+COPY bunfig.toml ./
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile && \
-	bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
+	bun install --frozen-lockfile
 
-FROM oven/bun:1.4.2-slim AS runtime
+COPY --from=pruner /app/out/full/ ./
+
+RUN bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
+
+FROM oven/bun:1.4.3-slim AS runtime
+
+LABEL org.opencontainers.image.source="https://github.com/Talqo/talqo"
 
 WORKDIR /app
 

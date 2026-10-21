@@ -1,3 +1,4 @@
+import type { Annotate } from "@/http/wide-event.ts"
 import type { CredentialSecretMap } from "@/lib/credential-vault.ts"
 
 import { env } from "@/config/env.ts"
@@ -7,8 +8,7 @@ import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 
 import type { OpenToolsResult } from "./mcp.client.ts"
-import type { McpServerPatch } from "./mcp.schema.ts"
-import type { McpServerRow } from "./mcp.schema.ts"
+import type { McpServerPatch, McpServerRow, NewMcpServer } from "./mcp.schema.ts"
 import type {
 	McpCreateInput,
 	McpHttpInput,
@@ -59,7 +59,7 @@ export class InvalidMcpServerNameError extends ApiError {
 }
 
 /** The open connection that conversation holds for one generation. */
-export type OpenTools = OpenToolsResult
+export type OpenTools = OpenToolsResult & { degradedServers: number }
 
 const vault = createCredentialVault(env.APP_SECRET, KEY_CONTEXT)
 
@@ -128,8 +128,11 @@ function mergeSecrets(
 	return merged
 }
 
-function httpColumns(serverId: string, input: McpHttpInput, existing?: CredentialSecretMap | null): McpServerPatch {
+type TransportColumns = McpServerPatch & Pick<NewMcpServer, "transport">
+
+function httpColumns(serverId: string, input: McpHttpInput, existing?: CredentialSecretMap | null): TransportColumns {
 	return {
+		transport: input.transport,
 		url: input.url,
 		authMode: input.authMode,
 		headers:
@@ -142,8 +145,9 @@ function httpColumns(serverId: string, input: McpHttpInput, existing?: Credentia
 	}
 }
 
-function stdioColumns(serverId: string, input: McpStdioInput, existing?: CredentialSecretMap | null): McpServerPatch {
+function stdioColumns(serverId: string, input: McpStdioInput, existing?: CredentialSecretMap | null): TransportColumns {
 	return {
+		transport: input.transport,
 		url: null,
 		authMode: null,
 		headers: null,
@@ -172,8 +176,9 @@ function endpointChanged(existing: McpServerRow, input: McpCreateInput): boolean
 }
 
 /** A connection works when it offered tools. A failure leaves the configuration and any snapshot alone. */
-async function withDiscoveredTools(row: McpServerRow): Promise<McpServerRow> {
+async function withDiscoveredTools(row: McpServerRow, annotate: Annotate): Promise<McpServerRow> {
 	const discovered = await discoverTools(row, { vault })
+	annotate({ "mcp.tools_discovered": discovered.length })
 	if (discovered.length === 0) return row
 	return (await repo.update(row.id, { tools: mergeTools(row.tools, discovered) })) ?? row
 }
@@ -186,7 +191,11 @@ export async function getServer(agentId: string, serverId: string): Promise<McpS
 	return toView(await ownedRow(agentId, serverId))
 }
 
-export async function createServer(agentId: string, input: McpCreateInput): Promise<McpServerView> {
+export async function createServer(
+	agentId: string,
+	input: McpCreateInput,
+	annotate: Annotate = () => {},
+): Promise<McpServerView> {
 	assertValid(input)
 	const id = crypto.randomUUID()
 	try {
@@ -194,10 +203,9 @@ export async function createServer(agentId: string, input: McpCreateInput): Prom
 			id,
 			agentId,
 			name: input.name.trim(),
-			transport: input.transport,
 			...(input.transport === "http" ? httpColumns(id, input) : stdioColumns(id, input)),
 		})
-		return toView(await withDiscoveredTools(row))
+		return toView(await withDiscoveredTools(row, annotate))
 	} catch (error) {
 		if (isUniqueViolation(error)) throw new DuplicateMcpServerNameError(`Already named ${input.name}`)
 		if (isForeignKeyViolation(error)) throw new UnknownAgentError(`Agent ${agentId} not found`)
@@ -205,7 +213,12 @@ export async function createServer(agentId: string, input: McpCreateInput): Prom
 	}
 }
 
-export async function updateServer(agentId: string, serverId: string, input: McpUpdateInput): Promise<McpServerView> {
+export async function updateServer(
+	agentId: string,
+	serverId: string,
+	input: McpUpdateInput,
+	annotate: Annotate = () => {},
+): Promise<McpServerView> {
 	const existing = await ownedRow(agentId, serverId)
 	assertValid(input)
 	const base =
@@ -213,18 +226,16 @@ export async function updateServer(agentId: string, serverId: string, input: Mcp
 			? httpColumns(serverId, input, existing.headers)
 			: stdioColumns(serverId, input, existing.env)
 	// A changed endpoint invalidates the snapshot; otherwise the operator's toggles are applied to it.
-	const tools = endpointChanged(existing, input)
-		? []
-		: input.tools !== undefined
-			? applySelection(existing.tools, input.tools)
-			: existing.tools
+	const changed = endpointChanged(existing, input)
+	annotate({ "mcp.endpoint_changed": changed })
+	const tools = changed ? [] : input.tools !== undefined ? applySelection(existing.tools, input.tools) : existing.tools
 	const saved = await repo.updateAtRevision(
 		serverId,
 		{ ...base, name: input.name.trim(), tools },
 		input.expectedRevision,
 	)
 	if (!saved) throw new RevisionConflictError("Connection changed; reload and retry")
-	return toView(await withDiscoveredTools(saved))
+	return toView(await withDiscoveredTools(saved, annotate))
 }
 
 export async function deleteServer(agentId: string, serverId: string): Promise<void> {
@@ -245,11 +256,15 @@ export async function setServerDisabled(
 /** Called from `conversation.run`, where an abort signal exists. Chat never fails because of MCP. */
 export async function openTools(agentId: string, signal: AbortSignal): Promise<OpenTools> {
 	const enabled = (await repo.listForAgent(agentId)).filter((row) => !row.isDisabled)
-	return openServerTools(enabled, {
+	// A server can degrade once per colliding tool name, so count servers, not callbacks.
+	const degraded = new Set<string>()
+	const opened = await openServerTools(enabled, {
 		vault,
 		signal,
 		onDegraded(row, error) {
+			degraded.add(row.id)
 			console.error("mcp.server.degraded", { agentId, serverId: row.id, transport: row.transport, error })
 		},
 	})
+	return { ...opened, degradedServers: degraded.size }
 }

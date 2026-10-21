@@ -1,5 +1,6 @@
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
+import { annotate } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 
@@ -20,6 +21,7 @@ const { SESSION_COOKIE } = service
 const authRoutes = new OpenAPIHono()
 	.openapi(loginRoute, async (c) => {
 		const { token, expiresAt, user } = await service.login(c.req.valid("json"))
+		annotate(c, { "user.id": user.id })
 		setCookie(c, SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
 		return c.json({ user }, HTTP_STATUS.OK)
 	})
