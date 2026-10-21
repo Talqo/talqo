@@ -11,8 +11,8 @@ import {
 import { ProblemAlert } from "@/components/problem-alert"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import { Checkbox } from "@talqo/ui/components/checkbox"
 import { Label } from "@talqo/ui/components/label"
+import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useBlocker } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
@@ -27,6 +27,14 @@ const PERMISSION_LABELS = {
 	"agents:read": "agentAccess.viewConfiguration",
 	"agents:manage": "agentAccess.editConfiguration",
 	"agents:delete": "agentAccess.deleteAgent",
+} as const satisfies Record<Permission, string>
+
+const PERMISSION_DESCRIPTIONS = {
+	"stats:read": "agentAccess.descriptions.statistics",
+	"conversations:read": "agentAccess.descriptions.conversations",
+	"agents:read": "agentAccess.descriptions.viewConfiguration",
+	"agents:manage": "agentAccess.descriptions.editConfiguration",
+	"agents:delete": "agentAccess.descriptions.deleteAgent",
 } as const satisfies Record<Permission, string>
 
 function expanded(permissions: readonly Permission[]): Permission[] {
@@ -124,7 +132,6 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 				<CardTitle>{t("agentAccess.title")}</CardTitle>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<p className="text-muted-foreground text-sm">{t("agentAccess.admin")}</p>
 				{query.isPending ? (
 					<p role="status">{t("roles.loading")}</p>
 				) : query.isError ? (
@@ -203,26 +210,41 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 								<legend className="mb-3 max-w-full font-medium break-words">
 									{t("agentAccess.permissionsFor", { role: selected.name })}
 								</legend>
-								{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => (
-									<div key={permission} className="flex items-center gap-2">
-										<Checkbox
-											id={`access-${permission}`}
-											checked={values.includes(permission)}
-											disabled={
-												pending ||
-												!permissions.includes(permission) ||
-												(permission === "agents:read" && values.includes("agents:manage"))
-											}
-											onCheckedChange={() => toggle(permission)}
-										/>
-										<Label htmlFor={`access-${permission}`}>{t(PERMISSION_LABELS[permission])}</Label>
-									</div>
-								))}
+								<div className="divide-y">
+									{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => {
+										const id = `access-${agentId}-${permission}`
+										const included = permission === "agents:read" && values.includes("agents:manage")
+										const notHeld = !permissions.includes(permission)
+										const hint = included
+											? t("roles.includedWith", { permission: t("agentAccess.editConfiguration") })
+											: notHeld
+												? t("roles.notYours")
+												: null
+										return (
+											<div key={permission} className="flex items-start justify-between gap-6 py-4">
+												<div className="space-y-1">
+													<Label htmlFor={id}>{t(PERMISSION_LABELS[permission])}</Label>
+													<p id={`${id}-description`} className="text-muted-foreground text-sm">
+														{t(PERMISSION_DESCRIPTIONS[permission])}
+														{hint ? <span className="block">{hint}</span> : null}
+													</p>
+												</div>
+												<Switch
+													render={<button type="button" />}
+													nativeButton
+													id={id}
+													className="mt-0.5"
+													checked={values.includes(permission)}
+													disabled={pending || notHeld || included}
+													aria-describedby={`${id}-description`}
+													onCheckedChange={() => toggle(permission)}
+												/>
+											</div>
+										)
+									})}
+								</div>
 								{(save.error || remove.error) && <ProblemAlert error={save.error ?? remove.error} />}
-								<div className="flex flex-wrap items-center gap-2">
-									<Button onClick={onSave} disabled={pending || !drafts[selected.id] || values.length === 0}>
-										{save.isPending ? t("roles.saving") : t("agentAccess.save")}
-									</Button>
+								<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
 									{selected.permissions.length > 0 ? (
 										<Button
 											variant="destructive"
@@ -234,6 +256,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									) : (
 										<Button
 											variant="outline"
+											className="ml-auto"
 											onClick={() => {
 												clearDraft(selected.id)
 												setSelectedId(undefined)
@@ -242,6 +265,13 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 											{t("agentConfig.cancel")}
 										</Button>
 									)}
+									<Button
+										className={selected.permissions.length > 0 ? "ml-auto" : undefined}
+										onClick={onSave}
+										disabled={pending || !drafts[selected.id] || values.length === 0}
+									>
+										{save.isPending ? t("roles.saving") : t("agentAccess.save")}
+									</Button>
 								</div>
 							</fieldset>
 						) : (

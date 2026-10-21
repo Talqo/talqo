@@ -24,10 +24,16 @@
 	},
 	"agentAccess": {
 		"addRole": "Přidat roli",
-		"admin": "Administrátor: plný přístup",
 		"chooseRole": "Vyberte roli",
 		"conversations": "Číst konverzace",
 		"deleteAgent": "Smazat agenta",
+		"descriptions": {
+			"conversations": "Číst konverzace návštěvníků s tímto agentem.",
+			"deleteAgent": "Trvale smazat tohoto agenta a jeho historii.",
+			"editConfiguration": "Měnit nastavení, znalostní bázi, připojení a vložení tohoto agenta.",
+			"statistics": "Zobrazovat statistiky a využití tohoto agenta.",
+			"viewConfiguration": "Zobrazovat nastavení, znalostní bázi, připojení a vložení tohoto agenta."
+		},
 		"editConfiguration": "Upravovat nastavení",
 		"empty": "Žádná role nemá přístup. Přidejte roli a nastavte oprávnění.",
 		"permissionsFor": "Oprávnění pro {{role}}",
