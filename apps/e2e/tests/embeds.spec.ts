@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test"
 
+import { logIn } from "./log-in"
+
 const operator = { username: "admin", password: "admin123" }
 
 type SeededEmbed = {
@@ -14,11 +16,7 @@ type SeededEmbed = {
 let seeded: SeededEmbed[] = []
 
 test.beforeEach(async ({ page }) => {
-	await page.goto("/login")
-	await page.getByLabel("Username").fill(operator.username)
-	await page.getByLabel("Password", { exact: true }).fill(operator.password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	await logIn(page, operator)
 
 	// The suite seeds once but these tests save, so a retry would start from mutated state.
 	seeded = ((await (await page.request.get("/api/embeds")).json()) as { embeds: SeededEmbed[] }).embeds

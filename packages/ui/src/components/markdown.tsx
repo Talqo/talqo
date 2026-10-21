@@ -1,18 +1,26 @@
 import type { ComponentProps } from "react"
 
 import { cn } from "@talqo/ui/lib/utils"
-import ReactMarkdown, { type Components } from "react-markdown"
+import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
-/** react-markdown passes a hast `node` that must never reach the DOM element. */
-type MarkdownElementProps<T extends keyof React.JSX.IntrinsicElements> = ComponentProps<T> & { node?: unknown }
-
-function MarkdownLink({ node: _node, ...props }: MarkdownElementProps<"a">) {
+function MarkdownLink({ node: _node, ...props }: ComponentProps<"a"> & ExtraProps) {
 	return <a {...props} target="_blank" rel="noopener noreferrer" />
+}
+
+// Fetching a model-supplied image URL would leak the reader's IP or chat contents.
+function MarkdownImage({ src, alt }: ComponentProps<"img"> & ExtraProps) {
+	if (typeof src !== "string" || !src) return alt ?? null
+	return (
+		<a href={src} target="_blank" rel="noopener noreferrer">
+			{alt || src}
+		</a>
+	)
 }
 
 const markdownComponents: Components = {
 	a: MarkdownLink,
+	img: MarkdownImage,
 }
 
 // Raw HTML never renders: no rehype-raw, so markup in model output stays inert text.

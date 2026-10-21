@@ -11,6 +11,7 @@ import {
 	type WidgetScheme,
 	type WidgetSchemeInput,
 } from "@talqo/shared/widget-appearance"
+import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
 import {
 	type CSSProperties,
@@ -36,7 +37,6 @@ import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
-import { Markdown } from "./components/ui/markdown"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
 import { useResizablePanel } from "./lib/use-resizable-panel"

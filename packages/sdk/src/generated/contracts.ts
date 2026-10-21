@@ -125,6 +125,10 @@ export type ProblemDetails =
 			type: "https://docs.talqo.chat/problems#configuration-conflict"
 	  }
 	| {
+			code: "conversation-not-found"
+			type: "https://docs.talqo.chat/problems#conversation-not-found"
+	  }
+	| {
 			code: "current-password-incorrect"
 			type: "https://docs.talqo.chat/problems#current-password-incorrect"
 	  }

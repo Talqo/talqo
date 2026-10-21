@@ -13,9 +13,10 @@ import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
-import { buildInvitationUrl, formatInvitationExpiry } from "@/features/authentication/invitation.ts"
+import { buildInvitationUrl } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
+import { formatDateTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -436,7 +437,7 @@ function InviteMemberDialog() {
 						</div>
 						<p className="text-muted-foreground text-xs">
 							{t("auth.invitations.expiresLabel", {
-								date: formatInvitationExpiry(invite.expiresAt, language),
+								date: formatDateTime(invite.expiresAt, language),
 							})}
 						</p>
 						{copied ? (

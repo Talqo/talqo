@@ -9,15 +9,6 @@ export function formatBytes(sizeBytes: number): string {
 	return `${sizeBytes} B`
 }
 
-export function formatFileDate(iso: string, language: string): string {
-	const date = new Date(iso)
-	if (Number.isNaN(date.getTime())) return iso
-	return new Intl.DateTimeFormat(language, {
-		dateStyle: "medium",
-		timeStyle: "short",
-	}).format(date)
-}
-
 export function splitExtension(name: string): { base: string; extension: string } {
 	const dot = name.lastIndexOf(".")
 	if (dot <= 0) return { base: name, extension: "" }

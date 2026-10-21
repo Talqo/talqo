@@ -88,6 +88,10 @@ export const ProblemDetails = zod.union([
 		type: zod.enum(["https://docs.talqo.chat/problems#configuration-conflict"]),
 	}),
 	zod.object({
+		code: zod.enum(["conversation-not-found"]),
+		type: zod.enum(["https://docs.talqo.chat/problems#conversation-not-found"]),
+	}),
+	zod.object({
 		code: zod.enum(["current-password-incorrect"]),
 		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
 	}),

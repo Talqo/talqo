@@ -142,7 +142,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.25 | Dashboard displays graphs of token consumption over time | Medium | Done |
 | FR-2.26 | Dashboard displays the total number of end-user messages over time | Medium | Done |
-| FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Not started |
+| FR-2.27 | Operator can view end-user conversations to assess how the widget is serving end users | High | Done |
 | FR-2.28 | Dashboard displays a breakdown of conversation categories (e.g. product inquiries, order issues, returns, general FAQ) | Low | Not started |
 | FR-2.29 | Dashboard displays satisfaction rating analytics | Low | Not started |
 | FR-2.30 | Dashboard displays general engagement metrics (total conversations, unique chat users, percentage of site visitors who used the widget) | Low | Not started |
