@@ -20,7 +20,7 @@ import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
-import { Button } from "@talqo/ui/components/button"
+import { Button, buttonVariants } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
 	Dialog,
@@ -280,15 +280,27 @@ function AgentConfigPage() {
 							</CardContent>
 						</Card>
 					)}
-					{permissions?.includes("stats:read") && (
-						<Link to="/dashboard" search={{ agents: [agentId], days: undefined }}>
-							{t("agentAccess.statistics")}
-						</Link>
-					)}
-					{permissions?.includes("conversations:read") && (
-						<Link to="/dashboard/conversations" search={{ agents: [agentId], page: undefined }}>
-							{t("agentAccess.conversations")}
-						</Link>
+					{!canRead && (permissions?.includes("stats:read") || permissions?.includes("conversations:read")) && (
+						<div className="flex flex-wrap gap-2">
+							{permissions?.includes("stats:read") && (
+								<Link
+									className={buttonVariants({ variant: "outline" })}
+									to="/dashboard"
+									search={{ agents: [agentId], days: undefined }}
+								>
+									{t("agentAccess.statistics")}
+								</Link>
+							)}
+							{permissions?.includes("conversations:read") && (
+								<Link
+									className={buttonVariants({ variant: "outline" })}
+									to="/dashboard/conversations"
+									search={{ agents: [agentId], page: undefined }}
+								>
+									{t("agentAccess.conversations")}
+								</Link>
+							)}
+						</div>
 					)}
 					{canManageAccess && permissions && (
 						<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
