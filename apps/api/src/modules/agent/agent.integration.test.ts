@@ -278,6 +278,15 @@ describe("agent authorization", () => {
 		expect(created.status).toBe(201)
 		const { agent } = (await created.json()) as AgentPayload
 		const manager = await createMemberSession(admin.userId, ["agents:manage"])
+		expect(
+			(
+				await createJsonRequest(manager, "POST", "/api/agents", {
+					name: "Forbidden",
+					systemPrompt: "No",
+					wordBlacklist: [],
+				})
+			).status,
+		).toBe(403)
 		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: manager } })).status).toBe(200)
 		expect((await app.request("/api/agents", { headers: { Cookie: manager } })).status).toBe(200)
 	})

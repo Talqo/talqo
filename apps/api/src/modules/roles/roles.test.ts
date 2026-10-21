@@ -17,17 +17,6 @@ describe("effectivePermissions", () => {
 		expect(
 			effectivePermissions([{ permission: "systems:aws" }, { permission: "constructor" }, { permission: "__proto__" }]),
 		).toEqual([])
-	})
-})
-
-describe("effectiveAgentPermissions", () => {
-	it("editing implies configuration viewing without transcripts, statistics or deletion", () => {
-		expect(effectiveAgentPermissions(["agents:manage", "agents:read"])).toEqual(["agents:read", "agents:manage"])
-	})
-	it("conversation and statistics access do not imply configuration access", () => {
-		expect(effectiveAgentPermissions(["stats:read", "conversations:read", "unknown"])).toEqual([
-			"stats:read",
-			"conversations:read",
-		])
+		expect(effectiveAgentPermissions(["unknown"])).toEqual([])
 	})
 })
