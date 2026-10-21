@@ -137,6 +137,25 @@ describe("AgentAccessCard", () => {
 		expect(mutations).toEqual([{ method: "PUT", body: JSON.stringify({ permissions: ["stats:read"] }) }])
 	})
 
+	test("keeps a new role selected when its last draft permission is switched off", async () => {
+		await render()
+		await click(button(t("agentAccess.addRole")))
+		const select = host.querySelector("select")
+		if (!select) throw new Error("Missing role picker")
+		await act(async () => {
+			select.value = "observers"
+			select.dispatchEvent(new Event("change", { bubbles: true }))
+		})
+		await click(permissionSwitch("stats:read"))
+		await click(permissionSwitch("stats:read"))
+		expect(button("Observers").getAttribute("aria-pressed")).toBe("true")
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("false")
+		await click(button(t("agentConfig.cancel")))
+		expect(host.textContent).not.toContain(t("agentAccess.permissionsFor", { role: "Observers" }))
+		expect(mutations).toEqual([])
+	})
+
 	test("removes saved access immediately without saving the unsaved permission changes", async () => {
 		await render()
 		await click(permissionSwitch("stats:read"))

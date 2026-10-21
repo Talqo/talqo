@@ -327,6 +327,31 @@ async function createReaderSession(): Promise<string> {
 }
 
 describe("embed detail route", () => {
+	it("rejects missing or invalid destination agents without creating or changing embeds", async () => {
+		const created = await createEmbed(await createAgent())
+		const cookie = await createManagerSession()
+		await Promise.all(
+			[{}, [], null, { agentId: 123 }, { agentId: "" }].flatMap((body) =>
+				(
+					[
+						["POST", "/api/embeds"],
+						["PUT", `/api/embeds/${created.id}`],
+					] as const
+				).map(async ([method, path]) => {
+					const response = await app.request(path, {
+						method,
+						headers: { Cookie: cookie, "Content-Type": "application/json" },
+						body: JSON.stringify(body),
+					})
+					expect(response.status).toBe(400)
+					expect(await response.json()).toMatchObject({ code: "invalid-request" })
+				}),
+			),
+		)
+		expect(await service.listEmbeds()).toHaveLength(1)
+		expect(await service.getEmbed(created.id)).toEqual(created)
+	})
+
 	it("requires editing on both agents to reassign an embed", async () => {
 		const a = await createAgent("Source")
 		const b = await createAgent("Destination")
