@@ -82,11 +82,9 @@ function isDefiniteRejection(error: unknown): error is ChatTransportError {
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: readonly ChatMessage[] = []
-	let initialization: "idle" | "loading" | "ready" | "error" = "idle"
-	let generation: "idle" | "sending" | "streaming" | "recovery" | "cancelling" = "idle"
-	let reset: "idle" | "resetting" = "idle"
-	let persistence: "persistent" | "memory" = "persistent"
-	let recovery: "idle" | "pending" | "unavailable" = "idle"
+	let initialization: "loading" | "ready" | "error" = "loading"
+	let generation: "idle" | "sending" | "streaming" | "recovery" | "recovery-exhausted" | "cancelling" = "idle"
+	let resetting = false
 	let acceptedMessageId: string | undefined
 	let error: ChatError | undefined
 	let credential: string | undefined
@@ -114,7 +112,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const now = options.now ?? (() => new Date())
 	const transport = options.transport ?? createFetchChatTransport()
 
-	let snapshot = createSnapshot()
 	const storage = createResilientStorage(
 		options.storage ?? {
 			getItem: async (key) => globalThis.localStorage.getItem(key),
@@ -127,13 +124,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		},
 		createMemoryStorage(),
 		() => {
-			persistence = "memory"
 			error = {
 				code: "storage-unavailable",
 			}
 			publish()
 		},
 	)
+	let snapshot = createSnapshot()
 
 	function createSnapshot(): ChatSnapshot {
 		const isAvailable = configuration?.isAvailable === true
@@ -143,7 +140,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				error?.code === "chat-context-limit" ||
 				error?.code === "chat-session-unauthorized")
 		const actions: ChatSnapshot["actions"][number][] = []
-		if (isAvailable && reset === "idle") {
+		if (isAvailable && !resetting) {
 			if (initialization === "ready" && generation === "idle" && !activeSend && !pendingMessage) {
 				actions.push("send")
 				if (error?.retriable && messages.at(-1)?.role === "assistant" && messages.at(-1)?.outcome === "failed")
@@ -153,8 +150,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			if (initialization === "ready" || (initialization === "error" && newChatAvailable)) actions.push("new-chat")
 		}
 		const notices: ChatSnapshot["notices"][number][] = []
-		if (persistence === "memory" && error?.code !== "storage-unavailable") notices.push("storage-unavailable")
-		if (recovery === "unavailable") notices.push("recovery-unavailable")
+		if (storage.isFallback() && error?.code !== "storage-unavailable") notices.push("storage-unavailable")
+		if (generation === "recovery-exhausted") notices.push("recovery-unavailable")
 		return {
 			isAvailable,
 			configuration,
@@ -169,9 +166,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	}
 
 	function currentActivity(): ChatSnapshot["activity"] {
-		if (reset === "resetting") return "resetting"
+		if (resetting) return "resetting"
 		if (generation === "cancelling") return "stopping"
-		if (recovery === "unavailable" || initialization === "error") return "blocked"
+		if (generation === "recovery-exhausted" || initialization === "error") return "blocked"
 		if (generation === "recovery") return "recovering"
 		if (generation === "sending") return "sending"
 		if (generation === "streaming") return "responding"
@@ -201,13 +198,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		acceptedMessageId = messages.findLast((message) => message.role === "user" && message.outcome === "completed")?.id
 		activeGenerationId = session.activeGeneration?.id
 		error = undefined
-		if (session.activeGeneration === undefined) {
-			generation = "idle"
-			recovery = "idle"
-		} else {
-			generation = "recovery"
-			recovery = "pending"
-		}
+		generation = session.activeGeneration === undefined ? "idle" : "recovery"
 		publish()
 	}
 
@@ -270,7 +261,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						}
 						error = cause.detail
 						generation = "idle"
-						recovery = "idle"
 						activeGenerationId = undefined
 						publish()
 						return
@@ -278,7 +268,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				}
 			}
 			if (!disposed && generation === "recovery") {
-				recovery = "unavailable"
+				generation = "recovery-exhausted"
 				messages = messages.map((message) =>
 					message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
 				)
@@ -319,7 +309,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							},
 						]
 						generation = "recovery"
-						recovery = "pending"
 					}
 				}
 				initialization = "ready"
@@ -349,7 +338,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
 		if (!snapshot.isAvailable) throw new ChatClientError({ code: "chat-unavailable" })
-		if (reset === "resetting") throw new Error("Chat session is resetting")
+		if (resetting) throw new Error("Chat session is resetting")
 		if (activeSend !== undefined) throw new Error("A chat response is already active")
 		if (pendingMessage !== undefined) {
 			throw new Error("The pending message must be recovered before sending another message")
@@ -389,7 +378,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				...messages,
 				{ id: localUserId, role: "user", text, createdAt: now().toISOString(), outcome: "pending" },
 			]
-			recovery = "idle"
 			error = undefined
 			publish()
 			send.dispatched = true
@@ -447,7 +435,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						replaceMessage(assistantId, (message) => ({ ...message, outcome: event.outcome }))
 					if (event.type === "error") error = event.error
 					generation = "idle"
-					recovery = "idle"
 					activeGenerationId = undefined
 					publish()
 					if (event.type === "error") throw new ChatClientError(event.error)
@@ -470,7 +457,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					await persist({ version: CHAT_STORAGE_VERSION, credential: sendCredential })
 				}
 				generation = "idle"
-				recovery = "idle"
 				error = transportError(cause)
 			} else if (send.cancellationRequested) {
 				if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome: "cancelled" }))
@@ -479,7 +465,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				if (assistantId !== undefined)
 					replaceMessage(assistantId, (message) => ({ ...message, outcome: "interrupted" }))
 				generation = "recovery"
-				recovery = "pending"
 				error = transportError(cause)
 				beginSessionRecoveryPolling()
 			}
@@ -534,7 +519,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				}
 				recoveryController?.abort()
 				generation = "idle"
-				recovery = "idle"
 				activeGenerationId = undefined
 				publish()
 			} catch (cause) {
@@ -550,7 +534,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						if (credential !== undefined) await persist({ version: CHAT_STORAGE_VERSION, credential })
 					}
 					generation = "recovery"
-					recovery = "pending"
 					error = cause instanceof ChatTransportError ? cause.detail : { code: "cancel-failed" }
 					beginSessionRecoveryPolling()
 				} else if (generation === "cancelling") {
@@ -588,8 +571,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	async function startNewChat(): Promise<void> {
 		requireUsable()
-		if (reset === "resetting") return
-		reset = "resetting"
+		if (resetting) return
+		resetting = true
 		publish()
 		try {
 			if (generation !== "idle" || activeGenerationId !== undefined) await cancelResponse()
@@ -605,14 +588,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			messages = []
 			acceptedMessageId = undefined
 			generation = "idle"
-			recovery = "idle"
 			error = undefined
 			if (configuration !== undefined) initialization = "ready"
 		} catch (cause) {
 			error = { ...transportError(cause), code: "reset-failed" }
 			throw cause
 		} finally {
-			reset = "idle"
+			resetting = false
 			publish()
 		}
 	}
