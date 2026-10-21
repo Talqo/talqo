@@ -24,10 +24,16 @@
 	},
 	"agentAccess": {
 		"addRole": "添加角色",
-		"admin": "管理员：完全访问权限",
 		"chooseRole": "选择角色",
 		"conversations": "阅读对话",
 		"deleteAgent": "删除智能体",
+		"descriptions": {
+			"conversations": "阅读访客与此智能体的对话。",
+			"deleteAgent": "永久删除此智能体及其历史记录。",
+			"editConfiguration": "更改此智能体的设置、知识库、连接和嵌入。",
+			"statistics": "查看此智能体的统计数据和使用情况。",
+			"viewConfiguration": "查看此智能体的设置、知识库、连接和嵌入。"
+		},
 		"editConfiguration": "编辑配置",
 		"empty": "没有角色拥有访问权限。请添加角色并设置权限。",
 		"permissionsFor": "{{role}}的权限",

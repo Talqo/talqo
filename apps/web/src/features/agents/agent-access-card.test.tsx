@@ -55,10 +55,10 @@ function button(name: string): HTMLButtonElement {
 	return found
 }
 
-function checkbox(permission: Permission): HTMLElement {
-	const label = host.querySelector<HTMLLabelElement>(`label[for="access-${permission}"]`)
-	const found = label ? host.querySelector<HTMLElement>(`[role=checkbox][aria-labelledby="${label.id}"]`) : null
-	if (!found) throw new Error(`Missing checkbox ${permission}`)
+function permissionSwitch(permission: Permission): HTMLButtonElement {
+	const found = document.getElementById(`access-agent-${permission}`)
+	if (!(found instanceof HTMLButtonElement) || found.getAttribute("role") !== "switch")
+		throw new Error(`Missing switch ${permission}`)
 	return found
 }
 
@@ -109,13 +109,14 @@ describe("AgentAccessCard", () => {
 	test("preserves each role's draft while showing only the selected role's permissions", async () => {
 		roles[1] = { id: "observers", name: "Observers", permissions: ["stats:read"] }
 		await render()
-		await click(checkbox("agents:manage"))
-		expect(checkbox("agents:read").getAttribute("aria-disabled")).toBe("true")
+		await click(permissionSwitch("agents:manage"))
+		expect(permissionSwitch("agents:read").disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.editConfiguration") }))
 		await click(button("Observers"))
-		expect(checkbox("stats:read").getAttribute("aria-checked")).toBe("true")
-		expect(checkbox("agents:manage").getAttribute("aria-checked")).toBe("false")
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("false")
 		await click(button("Support"))
-		expect(checkbox("agents:manage").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("true")
 		expect(mutations).toEqual([])
 	})
 
@@ -130,15 +131,15 @@ describe("AgentAccessCard", () => {
 		})
 		expect(document.activeElement).toBe(host.querySelector("fieldset"))
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
-		await click(checkbox("stats:read"))
+		await click(permissionSwitch("stats:read"))
 		expect(mutations).toEqual([])
 		await click(button(t("agentAccess.save")))
 		expect(mutations).toEqual([{ method: "PUT", body: JSON.stringify({ permissions: ["stats:read"] }) }])
 	})
 
-	test("removes saved access immediately without saving the unsaved checkbox changes", async () => {
+	test("removes saved access immediately without saving the unsaved permission changes", async () => {
 		await render()
-		await click(checkbox("stats:read"))
+		await click(permissionSwitch("stats:read"))
 		await click(button(t("agentAccess.remove")))
 		expect(mutations).toEqual([{ method: "DELETE", body: undefined }])
 		expect(host.textContent).toContain(t("agentAccess.empty"))
@@ -148,16 +149,16 @@ describe("AgentAccessCard", () => {
 
 	test("keeps editing disabled until saved permissions finish refreshing", async () => {
 		await render()
-		await click(checkbox("stats:read"))
+		await click(permissionSwitch("stats:read"))
 		const refreshed = Promise.withResolvers<Response>()
 		refreshResponse = refreshed.promise
 		await click(button(t("agentAccess.save")))
 		expect(button(t("roles.saving")).disabled).toBe(true)
-		expect(checkbox("stats:read").getAttribute("aria-disabled")).toBe("true")
+		expect(permissionSwitch("stats:read").disabled).toBe(true)
 		expect(button(t("agentAccess.remove")).disabled).toBe(true)
 		await act(async () => refreshed.resolve(json({ roles })))
 		await settle()
-		expect(checkbox("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.textContent).toContain(t("agentAccess.saved"))
 	})
 
@@ -167,10 +168,11 @@ describe("AgentAccessCard", () => {
 			403,
 		)
 		await render(["agents:read", "stats:read"])
-		expect(checkbox("agents:manage").getAttribute("aria-disabled")).toBe("true")
-		await click(checkbox("stats:read"))
+		expect(permissionSwitch("agents:manage").disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.notYours"))
+		await click(permissionSwitch("stats:read"))
 		await click(button(t("agentAccess.save")))
-		expect(checkbox("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
 		await click(button(t("agentAccess.addRole")))
 		const select = host.querySelector("select")

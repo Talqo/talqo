@@ -24,10 +24,16 @@
 	},
 	"agentAccess": {
 		"addRole": "Add role",
-		"admin": "Admin: full access",
 		"chooseRole": "Choose a role",
 		"conversations": "Read conversations",
 		"deleteAgent": "Delete agent",
+		"descriptions": {
+			"conversations": "Read visitor conversations with this agent.",
+			"deleteAgent": "Permanently delete this agent and its history.",
+			"editConfiguration": "Change this agent's settings, knowledge base, connections, and embeds.",
+			"statistics": "View statistics and usage for this agent.",
+			"viewConfiguration": "View this agent's settings, knowledge base, connections, and embeds."
+		},
 		"editConfiguration": "Edit configuration",
 		"empty": "No roles have access. Add a role to grant permissions.",
 		"permissionsFor": "Permissions for {{role}}",

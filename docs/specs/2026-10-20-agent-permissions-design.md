@@ -122,11 +122,11 @@ Do not add push updates or permission polling. Revalidate access on navigation a
 
 Place Access inside the existing Configuration tab, immediately above the deletion danger zone. Do not create an Access tab. Show the section only to operators with global role management and scoped configuration viewing, including admin.
 
-The section contains a keyboard-accessible list of assigned roles, an "Add role" control with a plus icon, and one selected role's permission checkboxes below. Identify the selected role in the permission editor heading. Do not render every role's permissions in the list. Admin appears separately as a fixed "Admin: full access" entry, not as an editable role.
+The section contains a keyboard-accessible list of assigned roles, an "Add role" control with a plus icon, and one selected role's permission switches below. Match the Roles editor's divided rows, descriptions, and right-aligned switches. Identify the selected role in the permission editor heading. Do not render every role's permissions in the list or an admin access notice. Align Save to the right and keep removal separate on the left.
 
-Adding a role opens its empty draft. Exclude roles already assigned or already drafted from the picker. Nothing is granted until Save succeeds. Save applies the selected role only. Switching roles preserves drafts locally; leaving the page with dirty drafts offers discard confirmation. Show the implied viewing permission when editing is selected and prevent contradictory checkbox states.
+Adding a role opens its empty draft. Exclude roles already assigned or already drafted from the picker. Nothing is granted until Save succeeds. Save applies the selected role only. Switching roles preserves drafts locally; leaving the page with dirty drafts offers discard confirmation. Show the implied viewing permission when editing is selected and prevent contradictory switch states.
 
-Save requires at least one selected permission. With none selected, a new draft cannot be saved; an existing assignment directs the operator to Remove role access. This keeps checkbox changes from silently invoking the immediate-removal operation.
+Save requires at least one selected permission. With none selected, a new draft cannot be saved; an existing assignment directs the operator to Remove role access. This keeps permission changes from silently invoking the immediate-removal operation.
 
 Place "Remove role access" beside Save for persisted assignments. Confirm in plain language that members lose this role's access to this agent, but may retain access through other roles. Confirmation sends DELETE immediately, independently of Save. After success, remove that role and its draft from the section. Cancelling or a failed request preserves the draft and saved state. Unsaved additions have Cancel rather than a destructive removal action.
 
