@@ -1522,16 +1522,25 @@ describe("operator conversation reads", () => {
 		expect(page.conversations.map((item) => item.id)).not.toContain(CREDENTIAL_1)
 	})
 
-	it("filters by agent", async () => {
+	it("filters conversations and transcripts by scoped read access, including explicit agent filters", async () => {
 		const first = await fixture()
 		const second = await fixture()
 		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "mine")
 		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "theirs")
 
-		const page = await listConversations({ agentId: [first.createdAgent.id], page: 1 }, await testAdminId())
-
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["conversations:read"], [first.createdAgent.id])
+		const page = await listConversations({ page: 1 }, operator.id)
 		expect(page.total).toBe(1)
 		expect(page.conversations.map((item) => item.preview)).toEqual(["mine"])
+		expect((await listConversations({ agentId: [first.createdAgent.id], page: 1 }, operator.id)).total).toBe(1)
+		expect((await listConversations({ agentId: [second.createdAgent.id], page: 1 }, operator.id)).total).toBe(0)
+		const all = await listConversations({ page: 1 }, await testAdminId())
+		const hidden = all.conversations.find((item) => item.agentId === second.createdAgent.id)
+		if (!hidden) throw new Error("Missing hidden conversation")
+		await expect(getConversationTranscript(hidden.id, operator.id)).rejects.toMatchObject({ status: 404 })
+		await giveRole(operator.id, ["stats:read"], [first.createdAgent.id])
+		await expect(listConversations({ page: 1 }, operator.id)).rejects.toMatchObject({ status: 403 })
 	})
 
 	it("pages by offset without skipping or repeating conversations", async () => {

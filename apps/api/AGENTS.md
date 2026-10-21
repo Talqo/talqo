@@ -10,7 +10,7 @@
 - Reserve `.contract.ts` for HTTP/OpenAPI schemas and `.schema.ts` for Drizzle declarations.
 - The identity contract owns the shared user response schema; the roles contract reuses its fields for user listings.
 - Keep runtime database code in `src/db` and migration output in root `drizzle/`.
-- Use `<module>.integration.test.ts` for module integration tests through the service interface.
+- Keep exactly one integration test file per module, named `<module>.integration.test.ts`, exercising the module through its service interface. Group scenarios with `describe`; do not split them into additional integration test files.
 - Service errors that map to HTTP extend `ApiError` with problem code and status; `app.onError` maps them centrally, never per-route.
 - Convert pg violations to domain errors in services; never map them in routes.
 - Declare a shared route prefix once with Hono `route()`.

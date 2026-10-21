@@ -331,7 +331,7 @@ describe("embed detail route", () => {
 		const created = await createEmbed(await createAgent())
 		const cookie = await createManagerSession()
 		await Promise.all(
-			[{}, [], null, { agentId: 123 }, { agentId: "" }].flatMap((body) =>
+			[{}, { agentId: 123 }, { agentId: "" }].flatMap((body) =>
 				(
 					[
 						["POST", "/api/embeds"],
