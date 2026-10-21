@@ -122,7 +122,7 @@ Do not add push updates or permission polling. Revalidate access on navigation a
 
 Place Access inside the existing Configuration tab, immediately above the deletion danger zone. Do not create an Access tab. Show the section only to operators with global role management and scoped configuration viewing, including admin.
 
-The section contains a keyboard-accessible list of assigned roles, an "Add role" control with a plus icon, and one selected role's permission switches below. Match the Roles editor's divided rows, descriptions, and right-aligned switches. Identify the selected role in the permission editor heading. Do not render every role's permissions in the list or an admin access notice. Align Save to the right and keep removal separate on the left.
+The section contains a keyboard-accessible list of assigned roles, an "Add role" control with a plus icon, and one selected role's permission switches below. Match the Roles editor's divided rows, descriptions, and right-aligned switches. The selected role provides visible context; identify it in a screen-reader-only fieldset legend rather than repeating it as a heading. Do not render every role's permissions in the list or an admin access notice. Align Save to the right and keep removal separate on the left.
 
 Adding a role opens its empty draft. Exclude roles already assigned or already drafted from the picker. Nothing is granted until Save succeeds. Save applies the selected role only. Switching roles preserves drafts locally; leaving the page with dirty drafts offers discard confirmation. Show the implied viewing permission when editing is selected and prevent contradictory switch states.
 
