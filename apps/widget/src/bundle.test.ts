@@ -22,7 +22,6 @@ describe("built embed bundle", () => {
 		expect(document.querySelector("#talqo-widget")).not.toBeNull()
 	})
 
-	// A host page with no Talqo snippet must not see a stray request from the bundle.
 	test("makes no network request when the page carries no embed snippet", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))

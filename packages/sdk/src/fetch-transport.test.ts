@@ -89,14 +89,13 @@ async function rejectedDetail(action: Promise<unknown>) {
 describe("createFetchChatTransport", () => {
 	test("loads canonical embed configuration and maps name to title", async () => {
 		const fake = recordingFetch([
-			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isDisabled: true, isAvailable: false }),
+			jsonResponse({ version: 1, name: "Support", appearance: APPEARANCE, isAvailable: false }),
 		])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
 		expect(await transport.loadConfiguration(context())).toEqual({
 			title: "Support",
 			appearance: APPEARANCE,
-			isDisabled: true,
 			isAvailable: false,
 		})
 		expect(fake.calls).toMatchObject([
@@ -403,7 +402,6 @@ describe("createFetchChatTransport", () => {
 				version: 1,
 				name: "Support",
 				appearance: { ...APPEARANCE, extra: true },
-				isDisabled: false,
 				isAvailable: true,
 			}),
 			jsonResponse(
@@ -444,7 +442,6 @@ describe("createFetchChatTransport", () => {
 		expect(await transport.loadConfiguration(context())).toEqual({
 			title: "Support",
 			appearance: { ...APPEARANCE, extra: true },
-			isDisabled: false,
 			isAvailable: true,
 		})
 		const problemError = await rejectedDetail(transport.loadConfiguration(context()))

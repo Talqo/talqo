@@ -32,18 +32,8 @@ const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {
 	"chat-unavailable": (t) => t("chatUnavailable"),
 }
 
-const NEW_CHAT_ERROR_CODES = new Set<ChatError["code"]>([
-	"chat-conversation-too-long",
-	"chat-context-limit",
-	"chat-session-unauthorized",
-])
-
 export function errorText(error: ChatError, t: Translate): string {
 	return ERROR_TRANSLATORS[error.code](t, error)
-}
-
-export function errorAllowsNewChat(error: ChatError): boolean {
-	return error.newChatAvailable ?? NEW_CHAT_ERROR_CODES.has(error.code)
 }
 
 const outcomeKeys = {

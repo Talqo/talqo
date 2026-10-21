@@ -201,27 +201,7 @@ describe("public config lookup", () => {
 		expect((await service.getConfigByToken(created.embedToken)).appearance.light.primary).toBe("#ff0000")
 	})
 
-	it("reports the disabled flag to already-installed embeds and flips their ETag", async () => {
-		const agentId = await createAgent()
-		const created = await createEmbed(agentId)
-
-		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(false)
-		const before = await app.request(`/api/embed-config/${created.embedToken}`)
-		expect(await before.json()).toMatchObject({ isDisabled: false })
-		const etag = before.headers.get("etag") ?? ""
-
-		await service.disableEmbed(created.id)
-
-		// A fresh ETag lets every cached embed learn the state within the max-age window.
-		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
-			headers: { "If-None-Match": etag },
-		})
-		expect(disabled.status).toBe(200)
-		expect(await disabled.json()).toMatchObject({ isDisabled: true })
-		expect((await service.getConfigByToken(created.embedToken)).isDisabled).toBe(true)
-	})
-
-	it("reports availability once an AI provider is configured and flips the ETag", async () => {
+	it("reports combined availability in public config, invalidating cached config", async () => {
 		const created = await createEmbed(await createAgent())
 		const before = await app.request(`/api/embed-config/${created.embedToken}`)
 		expect(await before.json()).toMatchObject({ isAvailable: false })
@@ -249,6 +229,15 @@ describe("public config lookup", () => {
 		})
 		expect(after.status).toBe(200)
 		expect(await after.json()).toMatchObject({ isAvailable: true })
+
+		await service.disableEmbed(created.id)
+		const disabled = await app.request(`/api/embed-config/${created.embedToken}`, {
+			headers: { "If-None-Match": after.headers.get("etag") ?? "" },
+		})
+		expect(disabled.status).toBe(200)
+		expect(await disabled.json()).toMatchObject({ isAvailable: false })
+		await service.enableEmbed(created.id)
+		expect((await service.getConfigByToken(created.embedToken)).isAvailable).toBe(true)
 	})
 
 	it("serves the config over HTTP without a session, with cache headers", async () => {
@@ -264,7 +253,6 @@ describe("public config lookup", () => {
 			version: WIDGET_CONFIG_VERSION,
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
-			isDisabled: false,
 			isAvailable: false,
 		})
 	})
@@ -336,7 +324,7 @@ describe("embed detail route", () => {
 		const response = await app.request(`/api/embeds/${created.id}`, { headers: { Cookie: cookie } })
 
 		expect(response.status).toBe(200)
-		expect(await response.json()).toMatchObject({ embed: { id: created.id }, isAvailable: false })
+		expect(await response.json()).toMatchObject({ embed: { id: created.id } })
 	})
 })
 

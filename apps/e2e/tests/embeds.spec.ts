@@ -160,7 +160,7 @@ test("the widget's own name reaches the embedded chat header", async ({ page }) 
 	}
 })
 
-test("operator disables the embed from the embeds overview and the public config reflects it", async ({ page }) => {
+test("disabling an embed hides it publicly but keeps its appearance previews usable", async ({ page }) => {
 	const source = seeded.find(({ name }) => name === "Website")
 	if (!source) throw new Error("Shared seed Website embed is missing")
 
@@ -176,18 +176,24 @@ test("operator disables the embed from the embeds overview and the public config
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+				return ((await response.json()) as { isAvailable: boolean }).isAvailable
 			})
-			.toBe(true)
+			.toBe(false)
+
+		await page.goto(`/dashboard/embeds/${source.id}`)
+		await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
+		await page.goto(`/embed-preview?embed=${source.id}`)
+		await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
+		await page.goto(`/dashboard/agent/${source.agentId}?tab=embeds`)
 
 		await toggle.click()
 		await expect(toggle).toBeChecked()
 		await expect
 			.poll(async () => {
 				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isDisabled: boolean }).isDisabled
+				return ((await response.json()) as { isAvailable: boolean }).isAvailable
 			})
-			.toBe(false)
+			.toBe(true)
 	} finally {
 		// The shared seed keeps serving other journeys, so restore it on any failure path.
 		await page.request.post(`/api/embeds/${source.id}/enable`)

@@ -40,7 +40,6 @@ export interface EmbedConfig {
 	version: number
 	name: string
 	appearance: EmbedAppearance
-	isDisabled: boolean
 	isAvailable: boolean
 }
 

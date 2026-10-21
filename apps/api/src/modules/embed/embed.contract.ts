@@ -80,8 +80,7 @@ export const embedConfigResponseSchema = z
 		version: z.number(),
 		name: z.string(),
 		appearance: appearanceResponseSchema,
-		isDisabled: z.boolean(),
-		// False until the deployment has a usable AI provider: the chat cannot reply yet.
+		// Requires an enabled embed and a usable text provider.
 		isAvailable: z.boolean(),
 	})
 	.openapi("EmbedConfig")
@@ -94,8 +93,6 @@ const embedInputSchema = z.object({
 })
 
 export const embedDetailResponseSchema = z.object({ embed: embedResponseSchema })
-// Lets the dashboard preview show what visitors see when the deployment cannot reply.
-export const getEmbedResponseSchema = embedDetailResponseSchema.extend({ isAvailable: z.boolean() })
 export const embedListResponseSchema = z.object({ embeds: z.array(embedResponseSchema) })
 
 const embedParamsSchema = z.object({
@@ -165,7 +162,7 @@ export const getEmbedRoute = createRoute({
 	...access.permission(roles.Permission.AgentsRead),
 	request: { params: embedParamsSchema },
 	responses: {
-		200: { content: { "application/json": { schema: getEmbedResponseSchema } }, description: "One embed" },
+		200: { content: { "application/json": { schema: embedDetailResponseSchema } }, description: "One embed" },
 		401: authRequired,
 		403: forbidden,
 		404: embedNotFound,

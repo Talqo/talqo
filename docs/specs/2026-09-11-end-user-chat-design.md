@@ -223,7 +223,7 @@ chat.dispose();
 ```
 
 - Construction performs no network work. Initialize fetches configuration, including colors, and restores history if a credential exists.
-- The snapshot exposes embed configuration, transcript, initialization/generation status, structured error, and retry/reset time.
+- The snapshot exposes embed configuration, transcript, semantic activity, available actions, notices, message acceptance, and structured errors with retry time. Initialization, generation, reset, and recovery state machines remain internal to the SDK.
 - Streaming changes the assistant message in the observable snapshot; consumers do not parse events or concatenate chunks.
 - Send owns optimistic messages, credential creation, server-ID reconciliation, and at-most-one local active send.
 - Server concurrency and authorization still apply; the SDK is not a security boundary.
@@ -242,16 +242,17 @@ Provide a New chat button in the chat-panel header beside the existing theme/clo
 
 | State | UI behavior |
 | --- | --- |
-| Initializing | Loading feedback; sending unavailable until ready |
+| Initializing | Hidden until usable configuration loads; sending disabled while restoring history |
 | Streaming | Incremental assistant text and cancellation control |
 | Daily allowance reached | Network-specific explanation and reset time |
 | Concurrent work limit | Preserve draft and explain that another response is running |
 | Conversation full | Preserve draft/history and offer new chat |
-| Invalid embed/revoked session | Explain lost access; no automatic session-creation loop |
+| Invalid or unavailable embed | Hide the widget and retain diagnostics |
+| Revoked session | Explain lost access and offer new chat; no automatic session-creation loop |
 | Failed/cancelled/interrupted/blocked reply | Distinguish partial content from completed messages |
 | Storage unavailable | In-memory operation without promising reload recovery |
 
-Preserve the existing visual language, desktop/mobile behavior, and accessibility. Appearance previews must remain non-billable; do not create sessions or invoke a model merely to render a dashboard preview. If no valid embed exists, the widget cannot silently fall back to a working anonymous chat.
+Preserve the existing visual language, desktop/mobile behavior, and accessibility. Appearance previews stay visible even when the embed cannot reply and remain non-billable; do not create sessions or invoke a model merely to render a dashboard preview. If no valid embed exists, the visitor widget cannot silently fall back to a working anonymous chat.
 
 ## Configuration Policy
 
