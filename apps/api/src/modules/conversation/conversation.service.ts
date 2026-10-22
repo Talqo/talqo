@@ -1,6 +1,7 @@
 import type { Annotate } from "@/http/wide-event.ts"
 
 import { env } from "@/config/env.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
@@ -639,7 +640,12 @@ export async function getConversationTranscript(referenceId: string, actorId: st
 	await repository.recoverExpiredGenerationAttempts()
 	const found = await repository.findConversationByReference(referenceId)
 	if (!found) throw new ConversationNotFoundError()
-	await roles.requireAgentPermission(actorId, found.agentId, roles.Permission.ConversationsRead)
+	await roles.requireAgentPermission(
+		actorId,
+		found.agentId,
+		roles.Permission.ConversationsRead,
+		PROBLEM_CODES.CONVERSATION_NOT_FOUND,
+	)
 	return {
 		id: found.referenceId,
 		agentId: found.agentId,

@@ -151,7 +151,9 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/agents")
-	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
+	await page.goto(`/dashboard/embeds/${crypto.randomUUID()}`)
+	await expect(page).toHaveURL("/dashboard/account")
 
 	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.
 	await page.goto("/dashboard/users")

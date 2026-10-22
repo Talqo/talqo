@@ -4,7 +4,6 @@ import {
 	useDeleteAgent,
 	useGetAgent,
 	useUpdateAgent,
-	getGetAgentQueryKey,
 } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
 import { useGetAgentAccess, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
@@ -16,7 +15,9 @@ import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-ter
 import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
+import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { retryUnlessClientError } from "@/lib/query-retry"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
@@ -69,7 +70,7 @@ function AgentConfigPage() {
 	const { tab = "configuration" } = Route.useSearch()
 	const setTab = Route.useNavigate()
 	const globalPermissions = useGetMyPermissions().data?.data.permissions
-	const permissionsQuery = useGetAgentAccess(agentId)
+	const permissionsQuery = useGetAgentAccess(agentId, { query: { retry: retryUnlessClientError } })
 	const permissions = permissionsQuery.data?.data.permissions
 	const canRead = permissions?.includes("agents:read") ?? false
 	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })
@@ -91,10 +92,10 @@ function AgentConfigPage() {
 	const client = useQueryClient()
 	useEffect(() => {
 		if (permissionsQuery.error?.status === NOT_FOUND_STATUS || (permissionsQuery.data && !canRead)) {
-			client.removeQueries({ queryKey: getGetAgentQueryKey(agentId) })
+			clearAgentContent(client)
 			void navigate({ to: "/dashboard/agents", replace: true, ignoreBlocker: true })
 		}
-	}, [permissionsQuery.error, permissionsQuery.data, canRead, agentId, client, navigate])
+	}, [permissionsQuery.error, permissionsQuery.data, canRead, client, navigate])
 
 	const {
 		register,
@@ -207,7 +208,7 @@ function AgentConfigPage() {
 					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
 					<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
 				</TabsList>
-				<TabsContent value="configuration" className="space-y-6">
+				<TabsContent value="configuration" keepMounted className="space-y-6">
 					<Card>
 						<CardHeader>
 							<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
@@ -395,7 +396,9 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 					{t("embedSetup.loadError")}
 				</p>
 			) : !embeds?.length ? (
-				<p className="text-muted-foreground">{t("embedSetup.noEmbeds")}</p>
+				<p className="text-muted-foreground">
+					{canManage ? t("embedSetup.noEmbeds") : t("embedSetup.noEmbedsReadOnly")}
+				</p>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{embeds.map((embed) => (
@@ -429,7 +432,7 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 											: embed.appearance.language}
 									</span>
 								</div>
-								{canManage && <EmbedEnabledSwitch embed={embed} />}
+								<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
 							</CardContent>
 						</Card>
 					))}

@@ -37,10 +37,7 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username), userId: admin.id }
 }
 
-async function createMemberSession(
-	grantedBy: string,
-	permissions: ("agents:read" | "agents:manage")[] = [],
-): Promise<string> {
+async function createMemberSession(grantedBy: string, permissions: roles.AgentPermission[] = []): Promise<string> {
 	const username = uniqueUsername()
 	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
@@ -289,6 +286,23 @@ describe("agent authorization", () => {
 		).toBe(403)
 		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: manager } })).status).toBe(200)
 		expect((await app.request("/api/agents", { headers: { Cookie: manager } })).status).toBe(200)
+		expect(
+			(await app.request(`/api/agents/${agent.id}`, { method: "DELETE", headers: { Cookie: manager } })).status,
+		).toBe(403)
+		const deleter = await createMemberSession(admin.userId, ["agents:delete"])
+		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: deleter } })).status).toBe(200)
+		expect(
+			(
+				await createJsonRequest(deleter, "PUT", `/api/agents/${agent.id}`, {
+					name: "Forbidden edit",
+					systemPrompt: "No",
+					wordBlacklist: [],
+				})
+			).status,
+		).toBe(403)
+		expect(
+			(await app.request(`/api/agents/${agent.id}`, { method: "DELETE", headers: { Cookie: deleter } })).status,
+		).toBe(204)
 	})
 
 	it("returns an empty discovery list and denies creation without agent grants", async () => {

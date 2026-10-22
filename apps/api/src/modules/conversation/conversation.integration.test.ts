@@ -1538,7 +1538,16 @@ describe("operator conversation reads", () => {
 		const all = await listConversations({ page: 1 }, await testAdminId())
 		const hidden = all.conversations.find((item) => item.agentId === second.createdAgent.id)
 		if (!hidden) throw new Error("Missing hidden conversation")
-		await expect(getConversationTranscript(hidden.id, operator.id)).rejects.toMatchObject({ status: 404 })
+		await expect(getConversationTranscript(hidden.id, operator.id)).rejects.toMatchObject({
+			status: 404,
+			problemCode: "conversation-not-found",
+		})
+		const { token } = await identity.createSession(operator.id)
+		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
+		const hiddenResponse = await app.request(`/api/conversations/${hidden.id}`, { headers })
+		const missingResponse = await app.request(`/api/conversations/${crypto.randomUUID()}`, { headers })
+		expect(hiddenResponse.status).toBe(404)
+		expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
 		await giveRole(operator.id, ["stats:read"], [first.createdAgent.id])
 		await expect(listConversations({ page: 1 }, operator.id)).rejects.toMatchObject({ status: 403 })
 	})
@@ -1617,9 +1626,18 @@ describe("operator conversation reads", () => {
 	})
 
 	it("denies operators who can see agents but not conversations", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "private conversation")
 		const cookie = await operatorSession(roles.Permission.AgentRead)
+		const headers = { Cookie: cookie }
+		expect((await app.request(`/api/agents/${createdAgent.id}`, { headers })).status).toBe(200)
+		const [conversation] = (await listConversations({ page: 1 }, await testAdminId())).conversations
+		if (!conversation) throw new Error("Missing conversation")
+		const transcript = await app.request(`/api/conversations/${conversation.id}`, { headers })
+		expect(transcript.status).toBe(403)
+		expect(await transcript.json()).toMatchObject({ code: "permission-denied" })
 
-		const response = await app.request("/api/conversations", { headers: { Cookie: cookie } })
+		const response = await app.request("/api/conversations", { headers })
 
 		expect(response.status).toBe(403)
 		expect(await response.json()).toMatchObject({ code: "permission-denied" })

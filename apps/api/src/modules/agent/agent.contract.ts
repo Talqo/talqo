@@ -61,7 +61,7 @@ export const listAgentsRoute = createRoute({
 	tags: ["Agent"],
 	...access.session(),
 	responses: {
-		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "All agents" },
+		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "Visible agents" },
 		401: authRequired,
 		403: forbidden,
 		500: serverError,

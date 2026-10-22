@@ -37,6 +37,22 @@ beforeEach(async () => {
 })
 
 describe("embed lifecycle", () => {
+	it("conceals hidden embeds with the same problem as missing embeds", async () => {
+		const visible = await createAgent("Visible")
+		const hidden = await createEmbed(await createAgent("Hidden"))
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["agents:manage"], [visible])
+		const { token } = await identity.createSession(operator.id)
+		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
+		const hiddenResponse = await app.request(`/api/embeds/${hidden.id}`, { headers })
+		const missingResponse = await app.request(`/api/embeds/${crypto.randomUUID()}`, { headers })
+		expect(hiddenResponse.status).toBe(404)
+		expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
+		await expect(service.disableEmbed(hidden.id, operator.id)).rejects.toMatchObject({
+			status: 404,
+			problemCode: "embed-not-found",
+		})
+	})
 	it("mints a distinct embed token and starts at access version one", async () => {
 		const agentId = await createAgent()
 
@@ -54,7 +70,7 @@ describe("embed lifecycle", () => {
 		await createEmbed(first)
 		await createEmbed(second, { name: "Support portal" })
 
-		const embeds = await service.listEmbeds(first)
+		const embeds = await service.listVisibleEmbeds(await testAdminId(), first)
 
 		expect(embeds).toHaveLength(1)
 		expect(embeds[0]?.agentId).toBe(first)
@@ -369,7 +385,7 @@ describe("embed detail route", () => {
 				}),
 			),
 		)
-		expect(await service.listEmbeds()).toHaveLength(1)
+		expect(await service.listVisibleEmbeds(await testAdminId())).toHaveLength(1)
 		expect(await service.getEmbed(created.id, await testAdminId())).toEqual(created)
 	})
 

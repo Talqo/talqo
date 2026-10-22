@@ -127,7 +127,7 @@ export const listEmbedsRoute = createRoute({
 	...access.agent(roles.Permission.AgentRead),
 	request: { query: listEmbedsQuerySchema },
 	responses: {
-		200: { content: { "application/json": { schema: embedListResponseSchema } }, description: "All embeds" },
+		200: { content: { "application/json": { schema: embedListResponseSchema } }, description: "Visible embeds" },
 		401: authRequired,
 		403: forbidden,
 		500: serverError,

@@ -2,7 +2,6 @@ import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
-import * as agents from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
@@ -41,7 +40,6 @@ import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
 	.openapi(getAgentAccessRoute, async (c) => {
-		await agents.getAgent(c.req.valid("param").agentId)
 		return c.json(
 			agentAccessResponseSchema.parse(await service.listAgentAccess(c.get("user").id, c.req.valid("param").agentId)),
 			HTTP_STATUS.OK,
@@ -49,13 +47,11 @@ export const rolesRoutes = new OpenAPIHono()
 	})
 	.openapi(setAgentAccessRoute, async (c) => {
 		const { agentId, roleId } = c.req.valid("param")
-		await agents.getAgent(agentId)
 		await service.setAgentAccess(c.get("user").id, agentId, roleId, c.req.valid("json").permissions)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(removeAgentAccessRoute, async (c) => {
 		const { agentId, roleId } = c.req.valid("param")
-		await agents.getAgent(agentId)
 		await service.setAgentAccess(c.get("user").id, agentId, roleId, [])
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
