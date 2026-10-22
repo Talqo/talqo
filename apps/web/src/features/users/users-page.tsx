@@ -180,15 +180,7 @@ function ResetPasswordDialog({
 	)
 }
 
-function DeleteUserDialog({
-	disabled,
-	onDeleted,
-	targetUser,
-}: {
-	disabled: boolean
-	onDeleted: () => void
-	targetUser: ListedUser
-}) {
+function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; targetUser: ListedUser }) {
 	const { t } = useTranslation()
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
@@ -218,7 +210,7 @@ function DeleteUserDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" disabled={disabled} />}>
+			<DialogTrigger render={<Button variant="destructive" />}>
 				<Trash2 className="size-4" />
 				{t("users.delete")}
 			</DialogTrigger>
@@ -341,11 +333,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 												disabled={user.id === currentUserId}
 												onReset={handleReset}
 											/>
-											<DeleteUserDialog
-												targetUser={user}
-												disabled={user.id === currentUserId}
-												onDeleted={handleDeleted}
-											/>
+											{user.id !== currentUserId ? <DeleteUserDialog targetUser={user} onDeleted={handleDeleted} /> : null}
 										</>
 									) : null}
 								</div>

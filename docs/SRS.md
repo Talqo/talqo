@@ -86,7 +86,7 @@ Talqo is related to these repos:
 | FR-2.4 | Operator can change their account password | Medium | Done |
 | FR-2.4a | An operator with user-management permission can reset another operator account's password, provided they hold every permission that account has (no self-service password recovery exists, since there is no self-registration or email flow) | Medium | Done |
 | FR-2.5 | Operator can update their account information (username) | Medium | Done |
-| FR-2.6 | Operator can delete their account | Medium | Done |
+| FR-2.6 | A non-admin operator can permanently delete their account from Account settings, ending all sessions while preserving shared agents and analytics; the admin account cannot be deleted | Medium | Done |
 | FR-2.6a | An operator with user-management permission can delete another operator account they hold every permission of; deletion ends its sessions and removes its permissions | Medium | Done |
 | FR-2.6b | An operator with role-management permission can create, rename, change and delete roles, each a named set of permissions | Medium | Done |
 | FR-2.6c | An operator with role-management permission can assign several roles to an operator account; the account holds every permission of its roles | Medium | Done |

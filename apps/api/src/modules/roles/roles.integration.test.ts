@@ -5,6 +5,7 @@ import * as identity from "@/modules/identity/identity.service.ts"
 import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
+import { myPermissionsResponseSchema } from "./roles.contract.ts"
 import * as repo from "./roles.repository.ts"
 import * as seed from "./roles.seed.ts"
 import * as service from "./roles.service.ts"
@@ -94,6 +95,16 @@ async function createMemberSession(): Promise<string> {
 }
 
 describe("roles", () => {
+	it("rejects admin self-deletion without revoking the session or reopening setup", async () => {
+		const { cookie, userId } = await createAdminSession()
+
+		await expectCode(await call(cookie, "DELETE", "/me"), 403, "admin-deletion-not-allowed")
+		expect(await identity.getUser(userId)).toMatchObject({ id: userId })
+		const permissions = myPermissionsResponseSchema.parse(await (await call(cookie, "GET", "/me/permissions")).json())
+		expect(permissions.permissions).toContain("admin")
+		expect(await (await app.request("/api/setup")).json()).toEqual({ needsSetup: false })
+	})
+
 	it("reports that setup is needed before any admin exists", async () => {
 		await sql`DELETE FROM permission_grant WHERE permission = 'admin'`
 

@@ -10,6 +10,13 @@ export type ProblemDefinition = {
 
 export const PROBLEMS = [
 	{
+		code: "admin-deletion-not-allowed",
+		title: "Admin deletion not allowed",
+		status: "403",
+		meaning: "The administrator account cannot be deleted because it would reopen public setup.",
+		guidance: "Keep the administrator account. Only non-admin accounts can delete themselves.",
+	},
+	{
 		code: "admin-already-exists",
 		title: "Admin already exists",
 		status: "409",
