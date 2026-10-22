@@ -216,10 +216,11 @@
 			"copy": "Kopírovat odkaz na pozvánku",
 			"copyFailed": "Odkaz na pozvánku se nepodařilo zkopírovat. Vyberte jej a zkopírujte ručně.",
 			"create": "Vytvořit pozvánku",
-			"description": "Vytvořte bezpečný jednorázový odkaz pro nového člena.",
 			"expiresLabel": "(vyprší {{date}})",
 			"heading": "Pozvat člena",
-			"linkLabel": "Odkaz na pozvánku:"
+			"linkLabel": "Odkaz na pozvánku:",
+			"noRoles": "Nejsou vybrané žádné role. Tento člen nebude mít žádná oprávnění.",
+			"roles": "Role"
 		},
 		"loading": "Načítání…",
 		"login": {
@@ -497,6 +498,7 @@
 		"configuration-conflict": "Konfigurace se změnila. Načtěte stránku znovu a akci opakujte.",
 		"conversation-not-found": "Tato konverzace už neexistuje.",
 		"current-password-incorrect": "Aktuální heslo není správné.",
+		"default-role-delete-not-allowed": "Předvybranou roli pro pozvánky nelze smazat. Můžete změnit její název a oprávnění.",
 		"embed-not-found": "Integrace nebyla nalezena.",
 		"internal-server-error": "Na serveru došlo k neočekávané chybě.",
 		"invalid-ai-provider-configuration": "Konfigurace poskytovatele AI je neplatná.",

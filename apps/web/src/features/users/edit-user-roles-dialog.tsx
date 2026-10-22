@@ -2,10 +2,10 @@ import type { Role } from "@/api/generated/models/role.zod"
 
 import { useAssignUserRoles } from "@/api/generated/roles/roles.ts"
 import { ProblemAlert } from "@/components/problem-alert"
-import { holdsAll, losesRoleManagement } from "@/features/roles/role-form"
+import { losesRoleManagement } from "@/features/roles/role-form"
+import { RolePicker } from "@/features/roles/role-picker"
 import { useRefreshAccess } from "@/features/roles/use-refresh-access"
 import { Button } from "@talqo/ui/components/button"
-import { Checkbox } from "@talqo/ui/components/checkbox"
 import {
 	Dialog,
 	DialogContent,
@@ -15,7 +15,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@talqo/ui/components/dialog"
-import { Label } from "@talqo/ui/components/label"
 import { Pencil } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -66,10 +65,6 @@ export function EditUserRolesDialog({
 		setOpen(next)
 	}
 
-	function toggle(roleId: string) {
-		setSelected((current) => (current.includes(roleId) ? current.filter((id) => id !== roleId) : [...current, roleId]))
-	}
-
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger render={<Button variant="outline" />}>
@@ -86,35 +81,7 @@ export function EditUserRolesDialog({
 				) : (
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="sr-only">{t("users.editRolesTitle", { username: targetUser.username })}</legend>
-						{roles.map((role) => {
-							const notHeld = !holdsAll(heldPermissions, role.permissions)
-							const id = `user-${targetUser.id}-role-${role.id}`
-							return (
-								<div
-									key={role.id}
-									className="rounded-item has-data-checked:border-primary/50 has-data-checked:bg-primary/5 flex min-w-0 items-start gap-3 border p-3"
-								>
-									<Checkbox
-										id={id}
-										className="mt-0.5"
-										checked={selected.includes(role.id)}
-										disabled={notHeld}
-										aria-describedby={notHeld ? `${id}-description` : undefined}
-										onCheckedChange={() => toggle(role.id)}
-									/>
-									<div className="min-w-0 flex-1 space-y-1">
-										<Label htmlFor={id} className="block truncate leading-5" title={role.name}>
-											{role.name}
-										</Label>
-										{notHeld ? (
-											<p id={`${id}-description`} className="text-muted-foreground text-xs">
-												{t("users.roleNotYours")}
-											</p>
-										) : null}
-									</div>
-								</div>
-							)
-						})}
+						<RolePicker heldPermissions={heldPermissions} roles={roles} selected={selected} onChange={setSelected} />
 					</fieldset>
 				)}
 				{locksOut ? (

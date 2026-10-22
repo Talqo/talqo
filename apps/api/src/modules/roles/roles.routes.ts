@@ -51,7 +51,7 @@ export const rolesRoutes = new OpenAPIHono()
 const invitationRoutes = new OpenAPIHono()
 	.openapi(createInvitationRoute, async (c) => {
 		const user = c.get("user")
-		const { token, expiresAt } = await service.createInvitation(user.id)
+		const { token, expiresAt } = await service.createInvitation(user.id, c.req.valid("json")?.roleIds ?? [])
 		return c.json(
 			createInvitationResponseSchema.parse({ token, expiresAt: expiresAt.toISOString() }),
 			HTTP_STATUS.CREATED,

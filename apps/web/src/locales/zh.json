@@ -216,10 +216,11 @@
 			"copy": "复制邀请链接",
 			"copyFailed": "无法复制邀请链接。请选中链接并手动复制。",
 			"create": "创建邀请",
-			"description": "为新成员创建安全的一次性链接。",
 			"expiresLabel": "（{{date}} 过期）",
 			"heading": "邀请成员",
-			"linkLabel": "邀请链接："
+			"linkLabel": "邀请链接：",
+			"noRoles": "未选择角色。该成员将没有访问权限。",
+			"roles": "角色"
 		},
 		"loading": "正在加载…",
 		"login": {
@@ -491,6 +492,7 @@
 		"configuration-conflict": "配置已更改，请重新加载后重试。",
 		"conversation-not-found": "此对话已不存在。",
 		"current-password-incorrect": "当前密码不正确。",
+		"default-role-delete-not-allowed": "邀请中预选的角色无法删除。您可以修改其名称和权限。",
 		"embed-not-found": "未找到该嵌入项。",
 		"internal-server-error": "服务器遇到意外错误。",
 		"invalid-ai-provider-configuration": "AI 提供商配置无效。",

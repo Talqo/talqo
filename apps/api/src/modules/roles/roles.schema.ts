@@ -76,3 +76,19 @@ export const userRole = pgTable(
 	},
 	(table) => [primaryKey({ columns: [table.userId, table.roleId] }), index("user_role_role_id_idx").on(table.roleId)],
 )
+
+export const invitationRole = pgTable(
+	"invitation_role",
+	{
+		invitationId: text("invitation_id")
+			.notNull()
+			.references(() => invitation.id, { onDelete: "cascade" }),
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+	},
+	(table) => [
+		primaryKey({ columns: [table.invitationId, table.roleId] }),
+		index("invitation_role_role_id_idx").on(table.roleId),
+	],
+)

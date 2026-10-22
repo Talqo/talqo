@@ -74,6 +74,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
 	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles })
+	if (url === "/api/invitations" && method === "POST")
+		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
 		return json({
 			permissions: [
@@ -190,6 +192,88 @@ afterEach(async () => {
 })
 
 describe("UsersPage", () => {
+	test("allows a role-less invitation after roles fail to load and explains the failure", async () => {
+		rolesFailure = problem("internal-server-error", 500)
+		await renderPage()
+		expect(button(t("auth.invitations.heading")).disabled).toBe(false)
+		await click(button(t("auth.invitations.heading")))
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
+	test("retries role loading inside the invitation dialog without silently selecting roles", async () => {
+		rolesFailure = problem("internal-server-error", 500)
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		rolesFailure = undefined
+		await click(button(t("common.retry"), dialog()))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		await click(checkbox("Default"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: ["default"],
+		})
+	})
+
+	test("preselects Default for invitations and submits exactly the edited selection", async () => {
+		roles = [
+			{ id: "default", name: "Renamed default", permissions: [], memberCount: 0 },
+			{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 0 },
+		]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Renamed default").getAttribute("aria-checked")).toBe("true")
+		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
+		await click(checkbox("Renamed default"))
+		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
+		await click(checkbox("Support"))
+		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: ["support"],
+		})
+	})
+
+	test("keeps the selected roles visible when a background refresh fails", async () => {
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		rolesFailure = problem("internal-server-error", 500)
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("true")
+		await click(checkbox("Default"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
+	test("allows invitations with no selected roles when Default is absent", async () => {
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
+	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
+		myPermissions = ["users:read", "users:manage", "roles:manage"]
+		roles = [{ id: "default", name: "Default", permissions: ["agents:manage"], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+	})
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
 		users = [

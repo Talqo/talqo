@@ -27,6 +27,7 @@ import type { AssignUserRolesBody } from "../models/roles/assignUserRolesBody.zo
 import type { BootstrapAdmin201 } from "../models/roles/bootstrapAdmin201.zod"
 import type { BootstrapAdminBody } from "../models/roles/bootstrapAdminBody.zod"
 import type { CreateInvitation201 } from "../models/roles/createInvitation201.zod"
+import type { CreateInvitationBody } from "../models/roles/createInvitationBody.zod"
 import type { CreateRole201 } from "../models/roles/createRole201.zod"
 import type { CreateRoleBody } from "../models/roles/createRoleBody.zod"
 import type { GetMyPermissions200 } from "../models/roles/getMyPermissions200.zod"
@@ -334,6 +335,11 @@ export type createInvitationResponse201 = {
 	status: 201
 }
 
+export type createInvitationResponse400 = {
+	data: ProblemDetails
+	status: 400
+}
+
 export type createInvitationResponse401 = {
 	data: ProblemDetails
 	status: 401
@@ -342,6 +348,16 @@ export type createInvitationResponse401 = {
 export type createInvitationResponse403 = {
 	data: ProblemDetails
 	status: 403
+}
+
+export type createInvitationResponse404 = {
+	data: ProblemDetails
+	status: 404
+}
+
+export type createInvitationResponse413 = {
+	data: ProblemDetails
+	status: 413
 }
 
 export type createInvitationResponse500 = {
@@ -353,8 +369,11 @@ export type createInvitationResponseSuccess = createInvitationResponse201 & {
 	headers: Headers
 }
 export type createInvitationResponseError = (
+	| createInvitationResponse400
 	| createInvitationResponse401
 	| createInvitationResponse403
+	| createInvitationResponse404
+	| createInvitationResponse413
 	| createInvitationResponse500
 ) & {
 	headers: Headers
@@ -364,11 +383,30 @@ export const getCreateInvitationUrl = () => {
 	return `/api/invitations`
 }
 
-export const createInvitation = async (options?: RequestInit): Promise<createInvitationResponseSuccess> => {
+export const createInvitation = async (
+	createInvitationBody?: CreateInvitationBody,
+	options?: RequestInit,
+): Promise<createInvitationResponseSuccess> => {
+	const getHeaders = (h?: NonNullable<RequestInit["headers"]>): Record<string, string | readonly string[]> => {
+		if (!h) return {}
+		if (h instanceof Headers) return Object.fromEntries(h.entries())
+		if (Symbol.iterator in h) {
+			return Object.fromEntries(
+				Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+			)
+		}
+		const headers: Record<string, string | readonly string[]> = {}
+		for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+			if (value !== undefined) headers[name] = value
+		}
+		return headers
+	}
 	const res = await fetch(getCreateInvitationUrl(), {
 		credentials: "include",
 		...options,
 		method: "POST",
+		headers: { "Content-Type": "application/json", ...getHeaders(options?.headers) },
+		body: JSON.stringify(createInvitationBody),
 	})
 
 	const body = [204, 205, 304].includes(res.status) ? null : await res.text()
@@ -390,9 +428,19 @@ export const getCreateInvitationMutationOptions = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(options?: {
-	mutation?: UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext>
+	mutation?: UseMutationOptions<
+		Awaited<ReturnType<typeof createInvitation>>,
+		TError,
+		CreateInvitationMutationVariables,
+		TContext
+	>
 	fetch?: RequestInit
-}): UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext> => {
+}): UseMutationOptions<
+	Awaited<ReturnType<typeof createInvitation>>,
+	TError,
+	CreateInvitationMutationVariables,
+	TContext
+> => {
 	const mutationKey = getCreateInvitationMutationKey()
 	const { mutation: mutationOptions, fetch: fetchOptions } = options
 		? options.mutation && "mutationKey" in options.mutation && options.mutation.mutationKey
@@ -400,27 +448,43 @@ export const getCreateInvitationMutationOptions = <
 			: { ...options, mutation: { ...options.mutation, mutationKey } }
 		: { mutation: { mutationKey }, fetch: undefined }
 
-	const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInvitation>>, void> = () => {
-		return createInvitation(fetchOptions)
+	const mutationFn: MutationFunction<
+		Awaited<ReturnType<typeof createInvitation>>,
+		CreateInvitationMutationVariables
+	> = (props) => {
+		const { data } = props ?? {}
+
+		return createInvitation(data, fetchOptions)
 	}
 
 	return { mutationFn, ...mutationOptions }
 }
 
 export type CreateInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createInvitation>>>
-
+export type CreateInvitationMutationBody = CreateInvitationBody | undefined
 export type CreateInvitationMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+export type CreateInvitationMutationVariables = { data?: CreateInvitationBody }
 
 export const useCreateInvitation = <
 	TError = globalThis.Error & { info?: ProblemDetails; status?: number },
 	TContext = unknown,
 >(
 	options?: {
-		mutation?: UseMutationOptions<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext>
+		mutation?: UseMutationOptions<
+			Awaited<ReturnType<typeof createInvitation>>,
+			TError,
+			CreateInvitationMutationVariables,
+			TContext
+		>
 		fetch?: RequestInit
 	},
 	queryClient?: QueryClient,
-): UseMutationResult<Awaited<ReturnType<typeof createInvitation>>, TError, void, TContext> => {
+): UseMutationResult<
+	Awaited<ReturnType<typeof createInvitation>>,
+	TError,
+	CreateInvitationMutationVariables,
+	TContext
+> => {
 	return useMutation(getCreateInvitationMutationOptions(options), queryClient)
 }
 export type redeemInvitationResponse201 = {
@@ -1707,6 +1771,11 @@ export type deleteRoleResponse404 = {
 	status: 404
 }
 
+export type deleteRoleResponse409 = {
+	data: ProblemDetails
+	status: 409
+}
+
 export type deleteRoleResponse500 = {
 	data: ProblemDetails
 	status: 500
@@ -1719,6 +1788,7 @@ export type deleteRoleResponseError = (
 	| deleteRoleResponse401
 	| deleteRoleResponse403
 	| deleteRoleResponse404
+	| deleteRoleResponse409
 	| deleteRoleResponse500
 ) & {
 	headers: Headers

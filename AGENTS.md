@@ -41,7 +41,9 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 - Follow [the architecture guide](docs/architecture.md) and the nearest `AGENTS.md`.
 - Default to no ADR. Write one in [`docs/adr`](docs/adr) only for a decision with credible alternatives and real tradeoffs a future contributor would reopen, and never for implementation details. Follow [its rules](docs/adr/AGENTS.md).
 - Before adding a paragraph to any doc, ask what a maintainer would get wrong without it. If the code answers the question, leave it out.
-- Never hand-edit generated artifacts.
+- Never hand-edit generated artifacts, except migration SQL. Keep migration snapshots and journals generated.
+- Each PR may add at most one database migration.
+- Preserve relational normalization. Model relationships with foreign keys and junction tables, not arrays or JSON collections of IDs.
 - If a rule here blocks the task in front of you, say so and get a human decision before breaking it.
 
 Run after changes:

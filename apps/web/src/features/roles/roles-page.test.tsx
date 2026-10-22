@@ -195,6 +195,21 @@ afterEach(async () => {
 })
 
 describe("role management", () => {
+	test("disables deletion of a renamed Default role while allowing name and permission edits", async () => {
+		roles = [{ id: "default", name: "starting access", permissions: [], memberCount: 0 }]
+		await renderPage("default")
+		expect(button(t("roles.delete"), host).disabled).toBe(true)
+		expect(host.textContent).toContain(t("problems.default-role-delete-not-allowed"))
+		expect(nameInput().disabled).toBe(false)
+		await type(nameInput(), "new starters")
+		await click(permissionSwitch(t("roles.permissionLabels.agentsRead")))
+		await save()
+		expect(requests.find(({ method, url }) => method === "PUT" && url === "/api/roles/default")?.body).toEqual({
+			name: "new starters",
+			permissions: ["agents:read"],
+		})
+	})
+
 	test("creates a blank role immediately and opens its page without a dialog", async () => {
 		await renderPage()
 		await click(button(t("roles.create")))

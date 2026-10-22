@@ -2,7 +2,7 @@ import { db, sql as client } from "@/db/client.ts"
 import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm"
 import { union } from "drizzle-orm/pg-core"
 
-import { invitation, permissionGrant, role, rolePermission, userRole } from "./roles.schema.ts"
+import { invitation, invitationRole, permissionGrant, role, rolePermission, userRole } from "./roles.schema.ts"
 
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert
@@ -44,10 +44,42 @@ export async function adminGrantExists(): Promise<boolean> {
 	return row !== undefined
 }
 
-export async function insertInvitation(values: NewInvitation): Promise<Invitation> {
-	const [row] = await db.insert(invitation).values(values).returning()
-	if (!row) throw new Error("insertInvitation: insert returned no row")
-	return row
+export async function insertInvitation(values: NewInvitation, roleIds: string[] = []): Promise<Invitation> {
+	return db.transaction(async (tx) => {
+		const [row] = await tx.insert(invitation).values(values).returning()
+		if (!row) throw new Error("insertInvitation: insert returned no row")
+		if (roleIds.length > 0) {
+			await tx.insert(invitationRole).values(roleIds.map((roleId) => ({ invitationId: row.id, roleId })))
+		}
+		return row
+	})
+}
+
+export async function findInvitationRoleIds(invitationId: string): Promise<string[]> {
+	const rows = await db
+		.select({ roleId: invitationRole.roleId })
+		.from(invitationRole)
+		.where(eq(invitationRole.invitationId, invitationId))
+	return rows.map(({ roleId }) => roleId)
+}
+
+export async function assignInvitationRoles(invitationId: string, userId: string): Promise<boolean> {
+	return db.transaction(async (tx) => {
+		// Account self-deletion bypasses the access lock; hold the invitation through assignment.
+		const [current] = await tx
+			.select({ id: invitation.id })
+			.from(invitation)
+			.where(eq(invitation.id, invitationId))
+			.for("update")
+		if (!current) return false
+		await tx.insert(userRole).select(
+			tx
+				.select({ userId: sql<string>`${userId}`.as("user_id"), roleId: invitationRole.roleId })
+				.from(invitationRole)
+				.where(eq(invitationRole.invitationId, invitationId)),
+		)
+		return true
+	})
 }
 
 export async function claimInvitation(tokenHash: string): Promise<Invitation | undefined> {

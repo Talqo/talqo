@@ -10,6 +10,7 @@ erDiagram
     ROLE_PERMISSION
     USER_ROLE
     INVITATION
+    INVITATION_ROLE
     PERMISSION_GRANT
     AUDIT_LOG
 
@@ -34,6 +35,8 @@ erDiagram
     ROLE ||--o{ USER_ROLE : "assigned through"
     ROLE ||--o{ ROLE_PERMISSION : includes
     USER ||--o{ INVITATION : sends
+    INVITATION ||--o{ INVITATION_ROLE : includes
+    ROLE ||--o{ INVITATION_ROLE : "selected through"
     USER ||--o{ PERMISSION_GRANT : holds
     USER ||--o{ AUDIT_LOG : performs
 
