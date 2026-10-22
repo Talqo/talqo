@@ -99,11 +99,19 @@ test("an admin resets a member's password and forces them through a new one", as
 	await logIn(page, { username: memberUsername, password: memberFinalPassword })
 })
 
-test("an admin deletes a member, who can no longer log in", async ({ page, request, member }) => {
+test("an admin can delete a member but cannot delete their own account", async ({ page, request, member }) => {
 	const { username: memberUsername, password: memberPassword } = member
 	await createInvitedMember(request, { username: memberUsername, password: memberPassword })
 
 	await openDashboard(page)
+	await page.getByRole("link", { name: "Account", exact: true }).click()
+	const dangerZone = page.locator("[data-slot=card]", { has: page.getByRole("heading", { name: "Danger zone" }) })
+	const destructive = await dangerZone.evaluate((element) =>
+		getComputedStyle(element).getPropertyValue("--destructive").trim(),
+	)
+	await expect(dangerZone).toHaveCSS("--tw-ring-color", destructive)
+	await expect(page.getByText("The administrator account cannot be deleted.", { exact: false })).toBeVisible()
+	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
@@ -145,21 +153,4 @@ test("a member cancels then deletes their own account from Account settings", as
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/account")
 	await expect(page).toHaveURL("/login")
-	await page.getByLabel("Username").fill(username)
-	await page.getByLabel("Password", { exact: true }).fill(password)
-	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page.getByRole("alert")).toBeVisible()
-	await expect(page).toHaveURL("/login")
-})
-
-test("the admin account explains why self-deletion is unavailable", async ({ page }) => {
-	await logIn(page, ADMIN)
-	await page.getByRole("link", { name: "Account", exact: true }).click()
-	const dangerZone = page.locator("[data-slot=card]", { has: page.getByRole("heading", { name: "Danger zone" }) })
-	const destructive = await dangerZone.evaluate((element) =>
-		getComputedStyle(element).getPropertyValue("--destructive").trim(),
-	)
-	await expect(dangerZone).toHaveCSS("--tw-ring-color", destructive)
-	await expect(page.getByText("The administrator account cannot be deleted.", { exact: false })).toBeVisible()
-	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 })

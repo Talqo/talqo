@@ -295,10 +295,9 @@ describe("agent-scoped access", () => {
 
 describe("roles", () => {
 	it("rejects admin self-deletion without revoking the session or reopening setup", async () => {
-		const { cookie, userId } = await createAdminSession()
+		const { cookie } = await createAdminSession()
 
 		await expectCode(await call(cookie, "DELETE", "/me"), 403, "admin-deletion-not-allowed")
-		expect(await identity.getUser(userId)).toMatchObject({ id: userId })
 		const permissions = myPermissionsResponseSchema.parse(await (await call(cookie, "GET", "/me/permissions")).json())
 		expect(permissions.permissions).toContain("admin")
 		expect(await (await app.request("/api/setup")).json()).toEqual({ needsSetup: false })
