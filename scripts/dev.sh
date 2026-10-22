@@ -24,12 +24,14 @@ dev_server=
 # Invoked by the EXIT, HUP, INT, and TERM traps.
 cleanup() {
 	status=$?
-	trap - EXIT HUP INT TERM
+	trap - EXIT
+	# Docker inherits ignored signals so terminal shutdown cannot interrupt teardown.
+	trap '' HUP INT TERM
 	if [ -n "$dev_server" ] && kill -0 "$dev_server" 2>/dev/null; then
 		kill -TERM "$dev_server"
 		wait "$dev_server" || :
 	fi
-	docker compose down || status=1
+	docker compose down </dev/null || status=1
 	exit "$status"
 }
 trap cleanup EXIT
