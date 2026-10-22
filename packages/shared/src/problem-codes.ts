@@ -1,5 +1,6 @@
 export const PROBLEM_CODES = {
 	ADMIN_ALREADY_EXISTS: "admin-already-exists",
+	ADMIN_DELETION_NOT_ALLOWED: "admin-deletion-not-allowed",
 	AGENT_FILE_INVALID: "agent-file-invalid",
 	AGENT_FILE_NAME_TAKEN: "agent-file-name-taken",
 	AGENT_FILE_NOT_FOUND: "agent-file-not-found",

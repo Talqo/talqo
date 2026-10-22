@@ -10,6 +10,9 @@ export const ProblemDetails = zod.union([zod.object({
   "code": zod.enum(['admin-already-exists']),
   "type": zod.enum(['https://docs.talqo.chat/problems#admin-already-exists'])
 }),zod.object({
+  "code": zod.enum(['admin-deletion-not-allowed']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#admin-deletion-not-allowed'])
+}),zod.object({
   "code": zod.enum(['agent-file-invalid']),
   "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-invalid'])
 }),zod.object({

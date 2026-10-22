@@ -599,3 +599,12 @@ export async function deleteUser(userId: string, actorId: string): Promise<void>
 		await identity.deleteUser(userId)
 	})
 }
+
+export async function deleteCurrentUser(userId: string): Promise<void> {
+	await repo.withAccessLock(async () => {
+		if ((await listEffectivePermissions(userId)).includes(Permission.Admin)) {
+			throw new ApiError(PROBLEM_CODES.ADMIN_DELETION_NOT_ALLOWED, HTTP_STATUS.FORBIDDEN)
+		}
+		await identity.deleteUser(userId)
+	})
+}

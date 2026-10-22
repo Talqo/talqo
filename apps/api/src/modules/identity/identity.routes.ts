@@ -1,6 +1,7 @@
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 
@@ -55,7 +56,7 @@ const currentUserRoutes = new OpenAPIHono()
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 	.openapi(deleteCurrentUserRoute, async (c) => {
-		await service.deleteUser(c.get("user").id)
+		await roles.deleteCurrentUser(c.get("user").id)
 		deleteCookie(c, SESSION_COOKIE, sessionCookieOptions())
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})

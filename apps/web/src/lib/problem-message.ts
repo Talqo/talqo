@@ -9,6 +9,7 @@ const PROBLEM_PROPERTY_COUNT = 2
 // Deliberately not exhaustive: public-chat codes never surface in the dashboard and fall back.
 const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) => string>> = {
 	"admin-already-exists": (t) => t("problems.admin-already-exists"),
+	"admin-deletion-not-allowed": (t) => t("problems.admin-deletion-not-allowed"),
 	"agent-file-invalid": (t) => t("problems.agent-file-invalid"),
 	"agent-file-name-taken": (t) => t("problems.agent-file-name-taken"),
 	"agent-file-not-found": (t) => t("problems.agent-file-not-found"),
