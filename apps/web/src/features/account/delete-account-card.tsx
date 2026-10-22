@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next"
 export function DeleteAccountCard() {
 	const { t } = useTranslation()
 	const permissions = useGetMyPermissions()
+	const isAdmin = permissions.data?.data.permissions.includes("admin") ?? false
 	const queryClient = useQueryClient()
 	const navigate = useNavigate()
 	const deleteAccount = useDeleteCurrentUser({
@@ -43,14 +44,14 @@ export function DeleteAccountCard() {
 		<Card className="ring-destructive">
 			<CardHeader>
 				<CardTitle>{t("account.dangerZone")}</CardTitle>
-				<CardDescription>{t("account.dangerDescription")}</CardDescription>
+				{permissions.isSuccess && !isAdmin ? <CardDescription>{t("account.dangerDescription")}</CardDescription> : null}
 			</CardHeader>
 			<CardContent>
 				{permissions.isPending ? (
 					<p className="text-muted-foreground text-sm">{t("auth.loading")}</p>
 				) : permissions.isError ? (
 					<ProblemAlert error={permissions.error} onRetry={() => void permissions.refetch()} />
-				) : permissions.data.data.permissions.includes("admin") ? (
+				) : isAdmin ? (
 					<p className="text-muted-foreground text-sm">{t("problems.admin-deletion-not-allowed")}</p>
 				) : (
 					<Dialog open={open} onOpenChange={handleOpenChange}>

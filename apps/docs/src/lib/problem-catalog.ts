@@ -351,7 +351,7 @@ export const PROBLEMS = [
 		title: "Self delete not allowed",
 		status: "400",
 		meaning: "An operator attempted to use the user-delete flow on their own account.",
-		guidance: "Delete the current account through DELETE /api/me instead.",
+		guidance: "Non-admin accounts can delete themselves through DELETE /api/me. The admin account cannot be deleted.",
 	},
 	{
 		code: "self-password-reset-not-allowed",

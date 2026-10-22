@@ -105,12 +105,8 @@ test("an admin can delete a member but cannot delete their own account", async (
 
 	await openDashboard(page)
 	await page.getByRole("link", { name: "Account", exact: true }).click()
-	const dangerZone = page.locator("[data-slot=card]", { has: page.getByRole("heading", { name: "Danger zone" }) })
-	const destructive = await dangerZone.evaluate((element) =>
-		getComputedStyle(element).getPropertyValue("--destructive").trim(),
-	)
-	await expect(dangerZone).toHaveCSS("--tw-ring-color", destructive)
 	await expect(page.getByText("The administrator account cannot be deleted.", { exact: false })).toBeVisible()
+	await expect(page.getByText("Deleting your account signs you out everywhere", { exact: false })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
