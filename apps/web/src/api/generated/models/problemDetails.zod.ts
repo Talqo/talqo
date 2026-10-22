@@ -4,222 +4,168 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const ProblemDetails = zod.union([
-	zod.object({
-		code: zod.enum(["admin-already-exists"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#admin-already-exists"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-file-invalid"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-invalid"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-file-name-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-name-taken"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-file-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-file-not-retryable"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-file-not-retryable"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-invalid"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-invalid"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-in-use"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-in-use"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-name-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-name-taken"]),
-	}),
-	zod.object({
-		code: zod.enum(["agent-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#agent-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["authentication-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#authentication-required"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-client-address-unavailable"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-client-address-unavailable"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-concurrency-limit"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-concurrency-limit"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-context-limit"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-context-limit"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-conversation-too-long"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-conversation-too-long"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-daily-allowance-exceeded"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-daily-allowance-exceeded"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-input-incompatible"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-input-incompatible"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-request-conflict"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-request-conflict"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-session-busy"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-busy"]),
-	}),
-	zod.object({
-		code: zod.enum(["chat-session-unauthorized"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#chat-session-unauthorized"]),
-	}),
-	zod.object({
-		code: zod.enum(["configuration-conflict"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#configuration-conflict"]),
-	}),
-	zod.object({
-		code: zod.enum(["conversation-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#conversation-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["current-password-incorrect"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#current-password-incorrect"]),
-	}),
-	zod.object({
-		code: zod.enum(["default-role-delete-not-allowed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#default-role-delete-not-allowed"]),
-	}),
-	zod.object({
-		code: zod.enum(["duplicate-mcp-server-name"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#duplicate-mcp-server-name"]),
-	}),
-	zod.object({
-		code: zod.enum(["embed-disabled"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#embed-disabled"]),
-	}),
-	zod.object({
-		code: zod.enum(["embed-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#embed-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["internal-server-error"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#internal-server-error"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-mcp-server-url"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-mcp-server-url"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-mcp-server-name"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-mcp-server-name"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-ai-provider-configuration"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-ai-provider-configuration"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-credentials"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-credentials"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-invitation"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-invitation"]),
-	}),
-	zod.object({
-		code: zod.enum(["invalid-request"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#invalid-request"]),
-	}),
-	zod.object({
-		code: zod.enum(["malformed-json"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#malformed-json"]),
-	}),
-	zod.object({
-		code: zod.enum(["mcp-server-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#mcp-server-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["model-discovery-unsupported"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#model-discovery-unsupported"]),
-	}),
-	zod.object({
-		code: zod.enum(["password-change-not-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#password-change-not-required"]),
-	}),
-	zod.object({
-		code: zod.enum(["password-change-required"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#password-change-required"]),
-	}),
-	zod.object({
-		code: zod.enum(["payload-too-large"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#payload-too-large"]),
-	}),
-	zod.object({
-		code: zod.enum(["permission-denied"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#permission-denied"]),
-	}),
-	zod.object({
-		code: zod.enum(["permission-exceeds-own"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#permission-exceeds-own"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-credentials-rejected"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-credentials-rejected"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-error"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-error"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-rate-limited"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-rate-limited"]),
-	}),
-	zod.object({
-		code: zod.enum(["provider-unreachable"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#provider-unreachable"]),
-	}),
-	zod.object({
-		code: zod.enum(["request-failed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#request-failed"]),
-	}),
-	zod.object({
-		code: zod.enum(["role-name-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#role-name-taken"]),
-	}),
-	zod.object({
-		code: zod.enum(["role-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#role-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["route-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#route-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["self-delete-not-allowed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#self-delete-not-allowed"]),
-	}),
-	zod.object({
-		code: zod.enum(["self-password-reset-not-allowed"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#self-password-reset-not-allowed"]),
-	}),
-	zod.object({
-		code: zod.enum(["user-not-found"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#user-not-found"]),
-	}),
-	zod.object({
-		code: zod.enum(["username-taken"]),
-		type: zod.enum(["https://docs.talqo.chat/problems#username-taken"]),
-	}),
-])
+export const ProblemDetails = zod.union([zod.object({
+  "code": zod.enum(['admin-already-exists']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#admin-already-exists'])
+}),zod.object({
+  "code": zod.enum(['agent-file-invalid']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-invalid'])
+}),zod.object({
+  "code": zod.enum(['agent-file-name-taken']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-name-taken'])
+}),zod.object({
+  "code": zod.enum(['agent-file-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-not-found'])
+}),zod.object({
+  "code": zod.enum(['agent-file-not-retryable']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-file-not-retryable'])
+}),zod.object({
+  "code": zod.enum(['agent-invalid']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-invalid'])
+}),zod.object({
+  "code": zod.enum(['agent-in-use']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-in-use'])
+}),zod.object({
+  "code": zod.enum(['agent-name-taken']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-name-taken'])
+}),zod.object({
+  "code": zod.enum(['agent-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#agent-not-found'])
+}),zod.object({
+  "code": zod.enum(['authentication-required']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#authentication-required'])
+}),zod.object({
+  "code": zod.enum(['chat-client-address-unavailable']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-client-address-unavailable'])
+}),zod.object({
+  "code": zod.enum(['chat-concurrency-limit']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-concurrency-limit'])
+}),zod.object({
+  "code": zod.enum(['chat-context-limit']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-context-limit'])
+}),zod.object({
+  "code": zod.enum(['chat-conversation-too-long']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-conversation-too-long'])
+}),zod.object({
+  "code": zod.enum(['chat-daily-allowance-exceeded']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-daily-allowance-exceeded'])
+}),zod.object({
+  "code": zod.enum(['chat-input-incompatible']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-input-incompatible'])
+}),zod.object({
+  "code": zod.enum(['chat-request-conflict']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-request-conflict'])
+}),zod.object({
+  "code": zod.enum(['chat-session-busy']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-session-busy'])
+}),zod.object({
+  "code": zod.enum(['chat-session-unauthorized']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#chat-session-unauthorized'])
+}),zod.object({
+  "code": zod.enum(['configuration-conflict']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#configuration-conflict'])
+}),zod.object({
+  "code": zod.enum(['conversation-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#conversation-not-found'])
+}),zod.object({
+  "code": zod.enum(['current-password-incorrect']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#current-password-incorrect'])
+}),zod.object({
+  "code": zod.enum(['default-role-delete-not-allowed']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#default-role-delete-not-allowed'])
+}),zod.object({
+  "code": zod.enum(['duplicate-mcp-server-name']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#duplicate-mcp-server-name'])
+}),zod.object({
+  "code": zod.enum(['embed-disabled']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#embed-disabled'])
+}),zod.object({
+  "code": zod.enum(['embed-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#embed-not-found'])
+}),zod.object({
+  "code": zod.enum(['internal-server-error']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#internal-server-error'])
+}),zod.object({
+  "code": zod.enum(['invalid-mcp-server-url']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-mcp-server-url'])
+}),zod.object({
+  "code": zod.enum(['invalid-mcp-server-name']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-mcp-server-name'])
+}),zod.object({
+  "code": zod.enum(['invalid-ai-provider-configuration']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-ai-provider-configuration'])
+}),zod.object({
+  "code": zod.enum(['invalid-credentials']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-credentials'])
+}),zod.object({
+  "code": zod.enum(['invalid-invitation']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-invitation'])
+}),zod.object({
+  "code": zod.enum(['invalid-request']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#invalid-request'])
+}),zod.object({
+  "code": zod.enum(['malformed-json']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#malformed-json'])
+}),zod.object({
+  "code": zod.enum(['mcp-server-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#mcp-server-not-found'])
+}),zod.object({
+  "code": zod.enum(['model-discovery-unsupported']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#model-discovery-unsupported'])
+}),zod.object({
+  "code": zod.enum(['password-change-not-required']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#password-change-not-required'])
+}),zod.object({
+  "code": zod.enum(['password-change-required']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#password-change-required'])
+}),zod.object({
+  "code": zod.enum(['payload-too-large']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#payload-too-large'])
+}),zod.object({
+  "code": zod.enum(['permission-denied']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#permission-denied'])
+}),zod.object({
+  "code": zod.enum(['permission-exceeds-own']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#permission-exceeds-own'])
+}),zod.object({
+  "code": zod.enum(['provider-credentials-rejected']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#provider-credentials-rejected'])
+}),zod.object({
+  "code": zod.enum(['provider-error']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#provider-error'])
+}),zod.object({
+  "code": zod.enum(['provider-rate-limited']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#provider-rate-limited'])
+}),zod.object({
+  "code": zod.enum(['provider-unreachable']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#provider-unreachable'])
+}),zod.object({
+  "code": zod.enum(['request-failed']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#request-failed'])
+}),zod.object({
+  "code": zod.enum(['role-name-taken']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#role-name-taken'])
+}),zod.object({
+  "code": zod.enum(['role-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#role-not-found'])
+}),zod.object({
+  "code": zod.enum(['route-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#route-not-found'])
+}),zod.object({
+  "code": zod.enum(['self-delete-not-allowed']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#self-delete-not-allowed'])
+}),zod.object({
+  "code": zod.enum(['self-password-reset-not-allowed']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#self-password-reset-not-allowed'])
+}),zod.object({
+  "code": zod.enum(['user-not-found']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#user-not-found'])
+}),zod.object({
+  "code": zod.enum(['username-taken']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#username-taken'])
+})]);
 
-export type ProblemDetails = zod.input<typeof ProblemDetails>
-export type ProblemDetailsOutput = zod.output<typeof ProblemDetails>
+export type ProblemDetails = zod.input<typeof ProblemDetails>;
+export type ProblemDetailsOutput = zod.output<typeof ProblemDetails>;
