@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"e2e": "bun --env-file ../api/.env.example ../../scripts/test-e2e.ts",
+		"e2e": "bun --no-env-file --no-orphans node_modules/@playwright/test/cli.js test --project=chromium",
 		"typecheck": "bun check"
 	},
 	"devDependencies": {

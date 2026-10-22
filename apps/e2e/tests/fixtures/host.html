@@ -2,6 +2,14 @@
 <html>
 	<body>
 		<p>host text</p>
-		<script async src="/widget.js" data-talqo-embed-token="__TOKEN__" data-talqo-api="__API_ORIGIN__"></script>
+		<script>
+			const params = new URLSearchParams(location.search)
+			const script = document.createElement("script")
+			script.src = "/widget.js"
+			script.async = true
+			script.dataset.talqoEmbedToken = params.get("token")
+			script.dataset.talqoApi = params.get("api")
+			document.body.append(script)
+		</script>
 	</body>
 </html>

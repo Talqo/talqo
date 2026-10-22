@@ -12,7 +12,8 @@ bun install
 
 ## Development
 
-- Run `bun run dev` for the API, web app, widget, and PostgreSQL; each worktree gets isolated ports and database resources. Use `bun run dev:docs` for documentation.
+- Run `bun run dev` for the API, web app, widget, PostgreSQL, and Docling. Each worktree gets isolated ports and containers; the command prints the dashboard, widget demo, and API URLs. Use `bun run dev:docs` for documentation.
+- Ctrl-C stops the servers and containers and keeps database volumes. If the terminal is closed forcibly, run `bun run dev:teardown` to remove this worktree's containers and network.
 
 ## Placement
 
@@ -60,7 +61,7 @@ bun run typecheck
 bun run test
 ```
 
-Run `bun run build` for build-affecting changes and `bun run e2e` for critical journeys.
+Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 
 ## Documentation And Pull Requests
 
