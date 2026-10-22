@@ -33,7 +33,7 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 - **Contracts.** Changing an API contract touches `apps/api` and both generated clients in the same change.
 - **Entry points.** An end-user behavior must work identically in the widget, in the dashboard preview, and in custom SDK UIs. Fixing one UI is not fixing the feature.
 - **Reverse states.** If you added a way in, add the way out and the way to see it. Agent deletion needs its dependent cleanup.
-- **Docs.** Check whether the change makes `docs/architecture.md`, the ERD, the SRS, or the user documentation in `apps/docs` inaccurate.
+- **Docs.** Update `docs/architecture.md` only when architecture, boundaries, ownership, or canonical structure change. Update `docs/ERD.md` and `docs/SRS.md` only when their content becomes wrong. None of these record implementation details; those belong in code or a spec. Update `apps/docs` only for information the UI does not provide.
 
 ## Code
 

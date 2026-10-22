@@ -3,13 +3,11 @@ title: Embed and chat integration
 description: Configure the widget for public end-user chat.
 ---
 
-## Terminology and availability
-
-An **embed** is a public integration configuration. It selects one agent and owns its appearance, public embed token, and access version. The **widget** is Talqo's pre-built UI for an embed. The embed token is visible in the host page and is not a visitor credential.
+The embed token is public and visible in the host page. It cannot read a visitor's conversation. For a custom chat interface, use the [SDK](/sdk).
 
 ## Widget snippet
 
-Create an embed in the dashboard and use the generated snippet. Its canonical shape is:
+Place the generated widget snippet on your website:
 
 ```html
 <script
@@ -22,26 +20,18 @@ Create an embed in the dashboard and use the generated snippet. Its canonical sh
 
 Keep `async`, so the widget never delays the host page's own content. Omit `data-talqo-api` when `widget.js` and the API share an origin.
 
-Fetching appearance or opening the widget does not create a conversation. The first accepted message creates one private session and exactly one conversation. Starting a new chat clears the browser's active credential but retains the old conversation on the server.
-
 ## Chat behavior
 
-Talqo sends the current saved system prompt, the full sequence of completed user/assistant pairs, and the new message to the configured text model. It does not silently truncate or summarize. Current chat does not retrieve knowledge or create embeddings. If an agent has tools connections enabled, chat calls them and the widget shows the activity; see [connecting an MCP server](/mcp-connections). Failed, cancelled, blocked, and interrupted turns remain visible but are excluded from later model input.
-
-When the embed is disabled or no text model is configured, `snapshot.isAvailable` is false and the visitor widget is hidden. It is also false before configuration loads, but ordinary response errors do not change it. Custom SDK UIs can use the same flag. Dashboard appearance previews stay visible without creating sessions or invoking a model. `sendMessage` rejects unavailable chat with a `ChatClientError` whose code is `chat-unavailable` and does not set `snapshot.error`.
-
-Streaming uses versioned JSON events in SSE framing over a POST response consumed with fetch. It is not browser `EventSource`. Session history and subsequent sends require the private bearer credential; the public embed token alone cannot read a conversation.
+Talqo sends the saved system prompt and completed conversation history with each message. It does not truncate or summarize history. Failed, cancelled, blocked, and interrupted replies are excluded from later model input.
 
 ## Limits and network identity
 
-The API enforces a daily accepted-question allowance and concurrent-generation cap independently for each agent and normalized client network. All embeds and sessions for that agent share the network allowance. This is not a billing quota, token allowance, deployment-wide pool, DDoS defense, or reliable count of people.
-
-Address normalization, trusted proxies, and IPv6 grouping trade-offs are documented in [Deployment](/deployment).
+Chat limits apply per agent and visitor network, not per embed or conversation. Visitors sharing a network may share the same allowance. See [Deployment](/deployment) for limits and proxy configuration.
 
 ## Rotation, retention, and deletion
 
-Rotating an embed token has no overlap period. Update installed snippets immediately. Rotation increments `accessVersion`, so the old token cannot fetch configuration or start chat and sessions created under the old version lose access. Reassigning or deleting an embed also revokes its sessions. These operations retain conversations and usage and cannot undo provider work already dispatched.
+Rotating an embed token takes effect immediately. Update installed snippets at once. Existing chats lose access. Reassigning or deleting an embed also revokes its chats, but retains conversations and usage. These actions cannot cancel work already sent to the AI provider.
 
-Talqo otherwise retains chat history and usage without automatic expiry. Deleting an agent permanently deletes its conversations, sessions, attempts, messages, network counters, and usage. Attached embeds must be deleted before the agent can be deleted.
+Talqo retains chat history and usage without automatic expiry, including after a visitor starts a new chat. Deleting an agent permanently deletes its conversations and usage. Attached embeds must be deleted first.
 
-Usage stores unified numeric input and output token counts for each actual model-call attempt. Talqo uses valid provider counts when available and approximates a missing side from the complete input or observed output. Counts include the system prompt and resent completed history on every call, can undercount unobserved cancelled output or hidden reasoning, and are not invoice reconciliation.
+Token usage includes the system prompt and conversation history on every model call. Some counts are estimates and may omit cancelled output or hidden reasoning. Do not use them to reconcile provider invoices.

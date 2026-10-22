@@ -1,11 +1,19 @@
 ---
 name: writing-tests
-description: Use when deciding whether a change needs tests, selecting test layers and scenarios, writing or reviewing unit, integration, or browser E2E tests, or debugging tests and test doubles.
+description: "Use whenever tests are involved: deciding what to test, choosing a layer, writing or reviewing tests, and debugging test doubles."
 ---
 
 # Writing tests
 
 Prefer fewer tests that catch important defects.
+
+## Required reading
+
+Read the matching reference before acting, not after:
+
+- Read [testing strategy](references/testing-strategy.md) before deciding whether to test or what to test.
+- Read [writing good tests](references/writing-good-tests.md) before writing or changing any test.
+- Read [browser testing](references/browser-testing.md) before writing or changing a browser E2E test.
 
 ## Choose scope
 
@@ -31,9 +39,3 @@ Prefer fewer tests that catch important defects.
 ## Verify and report
 
 Run focused checks, then broaden according to risk. Investigate unexpected failures and warnings without hiding pre-existing issues. Report checks actually run, results, and material verification gaps; do not claim an unobserved reproduction.
-
-## References
-
-- Read [testing strategy](references/testing-strategy.md) for coverage selection and artifact-appropriate checks.
-- Read [writing good tests](references/writing-good-tests.md) for assertion, fixture, and test-double examples.
-- Read [browser testing](references/browser-testing.md) for browser E2E, visual, and accessibility checks.
