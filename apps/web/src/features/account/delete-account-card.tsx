@@ -40,7 +40,7 @@ export function DeleteAccountCard() {
 	}
 
 	return (
-		<Card className="border-destructive">
+		<Card className="ring-destructive">
 			<CardHeader>
 				<CardTitle>{t("account.dangerZone")}</CardTitle>
 				<CardDescription>{t("account.dangerDescription")}</CardDescription>
