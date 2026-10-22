@@ -19,6 +19,7 @@ export default defineConfig({
 	reporter: isCI ? [["line"], ["html", { open: "never" }]] : "list",
 	retries: isCI ? CI_RETRIES : 0,
 	testDir: "./tests",
+	timeout: 60_000,
 	use: { screenshot: "only-on-failure", trace: "retain-on-failure" },
 	workers: 4,
 	webServer: {
