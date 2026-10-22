@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-An ADR records why one option beat its alternatives, never how the chosen option works. If the body reads like a design or implementation summary, it is not an ADR. Put that content in code comments, `docs/architecture.md`, or a spec instead.
+An ADR records why one option beat its alternatives, never how the chosen option works. If the body reads like a design or implementation summary, it is not an ADR. Put that content in code comments or a spec instead.
 
 Write an ADR only when at least two credible options existed, each with a cost or risk worth accepting, and a future contributor would otherwise reopen the choice. Before creating the file, name the alternatives and their accepted costs. If you cannot name at least one real alternative a contributor would defend, do not write the ADR.
 
