@@ -56,8 +56,11 @@ export TALQO_API_PORT TALQO_WEB_PORT TALQO_WIDGET_PORT
 printf 'Dashboard: http://localhost:%s\nWidget demo: http://localhost:%s\nAPI: http://localhost:%s\n' \
 	"$TALQO_WEB_PORT" "$TALQO_WIDGET_PORT" "$TALQO_API_PORT"
 
-turbo run dev --filter=@talqo/web --ui=tui &
+# Background commands otherwise receive /dev/null instead of terminal input.
+exec 3<&0
+turbo run dev --filter=@talqo/web --ui=tui <&3 3<&- &
 dev_server=$!
+exec 3<&-
 status=0
 wait "$dev_server" || status=$?
 dev_server=
