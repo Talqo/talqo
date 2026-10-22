@@ -1,5 +1,5 @@
 [install]
-globalStore = false
+globalStore = true
 linker = "isolated"
 minimumReleaseAge = 86400
 
