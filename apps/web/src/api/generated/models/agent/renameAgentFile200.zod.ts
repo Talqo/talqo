@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { AgentFile } from "../agentFile.zod"
+import * as zod from 'zod';
+import { AgentFile } from '../agentFile.zod';
 
 export const RenameAgentFile200 = zod.object({
-	file: AgentFile,
+  "file": AgentFile
 })
 
-export type RenameAgentFile200 = zod.input<typeof RenameAgentFile200>
-export type RenameAgentFile200Output = zod.output<typeof RenameAgentFile200>
+export type RenameAgentFile200 = zod.input<typeof RenameAgentFile200>;
+export type RenameAgentFile200Output = zod.output<typeof RenameAgentFile200>;

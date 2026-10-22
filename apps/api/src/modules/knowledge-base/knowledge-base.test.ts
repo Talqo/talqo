@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test"
 
 import {
+	BYTES_PER_MB,
 	InvalidFileError,
 	MAX_FILE_NAME_LENGTH,
 	MAX_FILE_SIZE_MB,
-	BYTES_PER_MB,
 	resolveRenameTarget,
 	uploadExtension,
 	validateName,

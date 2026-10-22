@@ -4,101 +4,60 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const saveAiProviderConfigurationBodyExpectedRevisionMin = 0
+export const saveAiProviderConfigurationBodyExpectedRevisionMin = 0;
 
-export const saveAiProviderConfigurationBodyTextOneModelIdMax = 256
+export const saveAiProviderConfigurationBodyTextOneModelIdMax = 256;
 
-export const saveAiProviderConfigurationBodyTextOneSettingsMaxOne = 2048
+export const saveAiProviderConfigurationBodyTextOneSettingsMaxOne = 2048;
 
-export const saveAiProviderConfigurationBodyTextOneCredentialsMaxOne = 4096
+export const saveAiProviderConfigurationBodyTextOneCredentialsMaxOne = 4096;
 
-export const saveAiProviderConfigurationBodyTextTwoModelIdMax = 256
+export const saveAiProviderConfigurationBodyTextTwoModelIdMax = 256;
 
-export const saveAiProviderConfigurationBodyTextTwoSettingsMaxOne = 2048
+export const saveAiProviderConfigurationBodyTextTwoSettingsMaxOne = 2048;
 
-export const saveAiProviderConfigurationBodyEmbeddingOneModelIdMax = 256
+export const saveAiProviderConfigurationBodyEmbeddingOneModelIdMax = 256;
 
-export const saveAiProviderConfigurationBodyEmbeddingOneSettingsMaxOne = 2048
+export const saveAiProviderConfigurationBodyEmbeddingOneSettingsMaxOne = 2048;
 
-export const saveAiProviderConfigurationBodyEmbeddingOneCredentialsMaxOne = 4096
+export const saveAiProviderConfigurationBodyEmbeddingOneCredentialsMaxOne = 4096;
 
-export const saveAiProviderConfigurationBodyEmbeddingTwoModelIdMax = 256
+export const saveAiProviderConfigurationBodyEmbeddingTwoModelIdMax = 256;
 
-export const saveAiProviderConfigurationBodyEmbeddingTwoSettingsMaxOne = 2048
+export const saveAiProviderConfigurationBodyEmbeddingTwoSettingsMaxOne = 2048;
+
 
 export const SaveAiProviderConfigurationBody = zod.object({
-	expectedRevision: zod.int().min(saveAiProviderConfigurationBodyExpectedRevisionMin),
-	text: zod.union([
-		zod.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string().min(1).max(saveAiProviderConfigurationBodyTextOneModelIdMax),
-			authMode: zod.enum(["static"]),
-			settings: zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextOneSettingsMaxOne)),
-			credentials: zod
-				.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextOneCredentialsMaxOne))
-				.optional(),
-		}),
-		zod.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string().min(1).max(saveAiProviderConfigurationBodyTextTwoModelIdMax),
-			authMode: zod.enum(["deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextTwoSettingsMaxOne)),
-		}),
-	]),
-	embedding: zod.union([
-		zod.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string().min(1).max(saveAiProviderConfigurationBodyEmbeddingOneModelIdMax),
-			authMode: zod.enum(["static"]),
-			settings: zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingOneSettingsMaxOne)),
-			credentials: zod
-				.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingOneCredentialsMaxOne))
-				.optional(),
-			credentialSource: zod.enum(["text", "separate", "deployment-identity"]),
-		}),
-		zod.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string().min(1).max(saveAiProviderConfigurationBodyEmbeddingTwoModelIdMax),
-			authMode: zod.enum(["deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingTwoSettingsMaxOne)),
-			credentialSource: zod.enum(["text", "separate", "deployment-identity"]),
-		}),
-	]),
+  "expectedRevision": zod.int().min(saveAiProviderConfigurationBodyExpectedRevisionMin),
+  "text": zod.union([zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string().min(1).max(saveAiProviderConfigurationBodyTextOneModelIdMax),
+  "authMode": zod.enum(['static']),
+  "settings": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextOneSettingsMaxOne)),
+  "credentials": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextOneCredentialsMaxOne)).optional()
+}),zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string().min(1).max(saveAiProviderConfigurationBodyTextTwoModelIdMax),
+  "authMode": zod.enum(['deployment-identity']),
+  "settings": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyTextTwoSettingsMaxOne))
+})]),
+  "embedding": zod.union([zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string().min(1).max(saveAiProviderConfigurationBodyEmbeddingOneModelIdMax),
+  "authMode": zod.enum(['static']),
+  "settings": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingOneSettingsMaxOne)),
+  "credentials": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingOneCredentialsMaxOne)).optional(),
+  "credentialSource": zod.enum(['text', 'separate', 'deployment-identity'])
+}),zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string().min(1).max(saveAiProviderConfigurationBodyEmbeddingTwoModelIdMax),
+  "authMode": zod.enum(['deployment-identity']),
+  "settings": zod.record(zod.string(), zod.string().max(saveAiProviderConfigurationBodyEmbeddingTwoSettingsMaxOne)),
+  "credentialSource": zod.enum(['text', 'separate', 'deployment-identity'])
+})])
 })
 
-export type SaveAiProviderConfigurationBody = zod.input<typeof SaveAiProviderConfigurationBody>
-export type SaveAiProviderConfigurationBodyOutput = zod.output<typeof SaveAiProviderConfigurationBody>
+export type SaveAiProviderConfigurationBody = zod.input<typeof SaveAiProviderConfigurationBody>;
+export type SaveAiProviderConfigurationBodyOutput = zod.output<typeof SaveAiProviderConfigurationBody>;

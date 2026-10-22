@@ -4,16 +4,16 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { requireAccessPolicy } from "@/http/access.ts"
 import { getHealthRoute } from "@/http/health.contract.ts"
 import { rejectMalformedJson, rejectOversizedBody } from "@/http/json-body.ts"
-import { PROBLEM_CODES, ApiError, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
+import { ApiError, PROBLEM_CODES, problemDetailsSchema, problemResponse } from "@/http/problem.ts"
 import { API_PREFIX } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, wideEvents } from "@/http/wide-event.ts"
 import { agentRoutes } from "@/modules/agent/agent.routes.ts"
 import { aiProviderRoutes } from "@/modules/ai-provider/ai-provider.routes.ts"
 import {
+	type ChatBindings,
 	conversationOperatorRoutes,
 	createConversationRoutes,
-	type ChatBindings,
 } from "@/modules/conversation/conversation.routes.ts"
 import { embedConfigRoutes, embedRoutes } from "@/modules/embed/embed.routes.ts"
 import { identityRoutes } from "@/modules/identity/identity.routes.ts"

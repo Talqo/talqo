@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { McpServer } from "../mcpServer.zod"
+import * as zod from 'zod';
+import { McpServer } from '../mcpServer.zod';
 
 export const SetMcpServerDisabled200 = zod.object({
-	server: McpServer,
+  "server": McpServer
 })
 
-export type SetMcpServerDisabled200 = zod.input<typeof SetMcpServerDisabled200>
-export type SetMcpServerDisabled200Output = zod.output<typeof SetMcpServerDisabled200>
+export type SetMcpServerDisabled200 = zod.input<typeof SetMcpServerDisabled200>;
+export type SetMcpServerDisabled200Output = zod.output<typeof SetMcpServerDisabled200>;

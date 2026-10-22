@@ -1,8 +1,8 @@
 import {
 	credentialsFormSchema,
+	type CredentialsFormValues,
 	invitationRegistrationFormSchema,
 	registrationFormSchema,
-	type CredentialsFormValues,
 } from "@/features/authentication/credentials-schema.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from "@talqo/shared"

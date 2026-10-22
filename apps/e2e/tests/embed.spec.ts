@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type TestInfo } from "@playwright/test"
+import { type APIRequestContext, expect, test, type TestInfo } from "@playwright/test"
 import { readFile } from "node:fs/promises"
 import { createServer, type Server } from "node:http"
 import path from "node:path"

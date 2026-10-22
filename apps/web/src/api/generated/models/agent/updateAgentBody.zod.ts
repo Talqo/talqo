@@ -4,23 +4,22 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const updateAgentBodyNameMax = 100
+export const updateAgentBodyNameMax = 100;
 
-export const updateAgentBodySystemPromptMax = 20000
+export const updateAgentBodySystemPromptMax = 20000;
 
-export const updateAgentBodyWordBlacklistItemMax = 100
+export const updateAgentBodyWordBlacklistItemMax = 100;
 
-export const updateAgentBodyWordBlacklistMax = 100
+export const updateAgentBodyWordBlacklistMax = 100;
+
 
 export const UpdateAgentBody = zod.object({
-	name: zod.string().min(1).max(updateAgentBodyNameMax),
-	systemPrompt: zod.string().min(1).max(updateAgentBodySystemPromptMax),
-	wordBlacklist: zod
-		.array(zod.string().min(1).max(updateAgentBodyWordBlacklistItemMax))
-		.max(updateAgentBodyWordBlacklistMax),
+  "name": zod.string().min(1).max(updateAgentBodyNameMax),
+  "systemPrompt": zod.string().min(1).max(updateAgentBodySystemPromptMax),
+  "wordBlacklist": zod.array(zod.string().min(1).max(updateAgentBodyWordBlacklistItemMax)).max(updateAgentBodyWordBlacklistMax)
 })
 
-export type UpdateAgentBody = zod.input<typeof UpdateAgentBody>
-export type UpdateAgentBodyOutput = zod.output<typeof UpdateAgentBody>
+export type UpdateAgentBody = zod.input<typeof UpdateAgentBody>;
+export type UpdateAgentBodyOutput = zod.output<typeof UpdateAgentBody>;

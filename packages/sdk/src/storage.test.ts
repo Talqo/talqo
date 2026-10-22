@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+	type AsyncStorage,
 	CHAT_STORAGE_VERSION,
 	createChatStorageKey,
 	createMemoryStorage,
 	createResilientStorage,
 	readChatStorageRecord,
-	type AsyncStorage,
 } from "./storage"
 
 describe("chat storage", () => {

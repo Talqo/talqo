@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.3 AS pruner
+FROM oven/bun:1.4.4 AS pruner
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN bun install --global "turbo@$(bun -p 'require("./package.json").devDependenc
 COPY . .
 RUN turbo prune @talqo/api @talqo/web @talqo/widget --docker
 
-FROM oven/bun:1.4.3 AS build
+FROM oven/bun:1.4.4 AS build
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY --from=pruner /app/out/full/ ./
 
 RUN bunx turbo run build --filter=@talqo/api --filter=@talqo/web --filter=@talqo/widget
 
-FROM oven/bun:1.4.3-slim AS runtime
+FROM oven/bun:1.4.4-slim AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/Talqo/talqo"
 

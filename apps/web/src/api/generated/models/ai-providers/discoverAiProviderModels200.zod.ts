@@ -4,11 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const DiscoverAiProviderModels200 = zod.object({
-	models: zod.array(zod.string()),
+  "models": zod.array(zod.string())
 })
 
-export type DiscoverAiProviderModels200 = zod.input<typeof DiscoverAiProviderModels200>
-export type DiscoverAiProviderModels200Output = zod.output<typeof DiscoverAiProviderModels200>
+export type DiscoverAiProviderModels200 = zod.input<typeof DiscoverAiProviderModels200>;
+export type DiscoverAiProviderModels200Output = zod.output<typeof DiscoverAiProviderModels200>;

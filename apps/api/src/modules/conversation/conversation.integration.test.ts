@@ -31,10 +31,10 @@ import {
 } from "./conversation.errors.ts"
 import * as repository from "./conversation.repository.ts"
 import {
+	CONVERSATION_PAGE_SIZE,
 	createConversationService,
 	getConversationService,
 	getConversationTranscript,
-	CONVERSATION_PAGE_SIZE,
 	listConversations,
 } from "./conversation.service.ts"
 

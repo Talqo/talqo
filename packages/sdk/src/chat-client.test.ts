@@ -2,11 +2,11 @@ import { describe, expect, spyOn, test } from "bun:test"
 
 import {
 	ChatClientError,
-	ChatTransportError,
-	createChatClient,
 	type ChatConfiguration,
 	type ChatEvent,
 	type ChatTransport,
+	ChatTransportError,
+	createChatClient,
 } from "./index"
 import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from "./storage"
 

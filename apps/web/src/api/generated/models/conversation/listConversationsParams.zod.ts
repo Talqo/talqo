@@ -4,17 +4,18 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const listConversationsParamsAgentIdMax = 100
+export const listConversationsParamsAgentIdMax = 100;
 
-export const listConversationsParamsPageDefault = 1
-export const listConversationsParamsPageMax = 10000
+export const listConversationsParamsPageDefault = 1;
+export const listConversationsParamsPageMax = 10000;
+
 
 export const ListConversationsParams = zod.object({
-	agentId: zod.array(zod.uuid()).max(listConversationsParamsAgentIdMax).optional(),
-	page: zod.int().min(1).max(listConversationsParamsPageMax).default(listConversationsParamsPageDefault),
+  "agentId": zod.array(zod.uuid()).max(listConversationsParamsAgentIdMax).optional(),
+  "page": zod.int().min(1).max(listConversationsParamsPageMax).default(listConversationsParamsPageDefault)
 })
 
-export type ListConversationsParams = zod.input<typeof ListConversationsParams>
-export type ListConversationsParamsOutput = zod.output<typeof ListConversationsParams>
+export type ListConversationsParams = zod.input<typeof ListConversationsParams>;
+export type ListConversationsParamsOutput = zod.output<typeof ListConversationsParams>;

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test"
 
 import {
-	ChatTransportError,
-	createFetchChatTransport,
 	type ChatEvent,
 	type ChatMessage,
+	ChatTransportError,
+	createFetchChatTransport,
 	type SessionState,
 } from "./index"
 

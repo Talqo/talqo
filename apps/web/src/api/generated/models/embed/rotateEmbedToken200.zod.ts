@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { Embed } from "../embed.zod"
+import * as zod from 'zod';
+import { Embed } from '../embed.zod';
 
 export const RotateEmbedToken200 = zod.object({
-	embed: Embed,
+  "embed": Embed
 })
 
-export type RotateEmbedToken200 = zod.input<typeof RotateEmbedToken200>
-export type RotateEmbedToken200Output = zod.output<typeof RotateEmbedToken200>
+export type RotateEmbedToken200 = zod.input<typeof RotateEmbedToken200>;
+export type RotateEmbedToken200Output = zod.output<typeof RotateEmbedToken200>;

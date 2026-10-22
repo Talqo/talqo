@@ -2,7 +2,7 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { describe, expect, test } from "bun:test"
 
-import { EMPTY_DRAFT, toCreateBody, toEditBody, toggledBody, type ConnectionDraft } from "./connection-body"
+import { type ConnectionDraft, EMPTY_DRAFT, toCreateBody, toEditBody, toggledBody } from "./connection-body"
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {

@@ -2,7 +2,7 @@ import { db, sql as postgres } from "@/db/client.ts"
 import { estimateTokens } from "@/modules/usage/usage.service.ts"
 import { sql } from "drizzle-orm"
 
-import { conversation, type GenerationAttemptOutcome, generationAttempt, message } from "./conversation.schema.ts"
+import { conversation, generationAttempt, type GenerationAttemptOutcome, message } from "./conversation.schema.ts"
 
 // Development traffic fixtures: a month of fixed daily conversations per seeded agent plus two
 // recent ones, so dashboard statistics render real series out of the box. Returns the seeded
