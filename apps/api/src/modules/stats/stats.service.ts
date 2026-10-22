@@ -70,7 +70,7 @@ export async function getStatsOverview(query: StatsOverviewQuery, actorId: strin
 		conversationService.getDailyMessageCountsByAgent(since, scope),
 		usageService.getDailyUsageTotalsByAgent(since, scope),
 		conversationService.getActiveConversationCountsByAgent(activeCutoff, scope),
-		agentService.listVisibleAgents(actorId),
+		agentService.listAgents(actorId),
 	])
 	const active: StatsActiveConversations[] = activeCounts.map((row) => ({
 		agentId: row.agentId,

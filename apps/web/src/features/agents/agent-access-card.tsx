@@ -3,7 +3,6 @@ import type { GetAgentAccess200 } from "@/api/generated/models/roles/getAgentAcc
 import { getListAgentsQueryKey } from "@/api/generated/agent/agent"
 import {
 	getGetAgentAccessQueryKey,
-	getGetAgentPermissionsQueryKey,
 	useGetAgentAccess,
 	useRemoveAgentAccess,
 	useSetAgentAccess,
@@ -19,7 +18,7 @@ import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type Permission = GetAgentAccess200["roles"][number]["permissions"][number]
+type Permission = GetAgentAccess200["permissions"][number]
 
 const PERMISSION_LABELS = {
 	"stats:read": "agentAccess.statistics",
@@ -83,7 +82,6 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	async function refresh(): Promise<void> {
 		await Promise.all([
 			client.invalidateQueries({ queryKey: getGetAgentAccessQueryKey(agentId) }),
-			client.invalidateQueries({ queryKey: getGetAgentPermissionsQueryKey(agentId) }),
 			client.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
 		])
 	}

@@ -82,14 +82,13 @@ Proposed endpoints:
 
 - `GET /agents`: visible agent summaries with effective agent permissions. No configuration fields.
 - `GET /me/permissions`: global permissions only. Update consumers rather than retaining the old response semantics for agent access.
-- `GET /agents/{agentId}/permissions`: the caller's effective permissions, available when the agent is visible.
-- `GET /agents/{agentId}/access`: assigned roles and explicit grants, plus roles available to add. Requires `roles:manage` and scoped `agents:read`.
+- `GET /agents/{agentId}/access`: the caller's effective permissions, available when the agent is visible. Include roles and their explicit grants only when the caller holds `roles:manage` and scoped `agents:read`.
 - `PUT /agents/{agentId}/access/{roleId}`: atomically replace this role's grants on this agent. Requires at least one effective permission; empty sets use removal instead.
 - `DELETE /agents/{agentId}/access/{roleId}`: remove this role's grants immediately after authorization. Does not delete the role.
 
 The roles module owns access-management contracts and routes, composed at these paths by the application. Reads return only information needed for this agent. Do not expose other agents' grants to populate its picker.
 
-Use the visible-agent summary query for sidebar capability checks and agent pickers. Do not request permissions separately for every listed agent. The per-agent permissions endpoint supports direct agent URLs without first loading the entire list. Admin status comes from global permissions, including when the agent list is empty.
+Use the visible-agent summary query for sidebar capability checks and agent pickers. Do not request permissions separately for every listed agent. The access endpoint supports direct agent URLs without first loading the entire list. Admin status comes from global permissions, including when the agent list is empty.
 
 Authentication failures remain 401. Missing capability on a visible agent is 403. A resource outside the caller's visible agents returns the same 404 as a nonexistent resource. Filter collection data before pagination, counts, and aggregation. Use existing RFC 9457 error handling; unknown permissions and duplicate request entries fail validation.
 

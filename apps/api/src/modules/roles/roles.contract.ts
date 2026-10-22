@@ -161,28 +161,10 @@ const roleParamsSchema = z.object({
 
 const agentAccessParamsSchema = z.object({ agentId: z.string().min(1) })
 const agentRoleParamsSchema = agentAccessParamsSchema.extend({ roleId: z.string().min(1) })
-export const agentPermissionsResponseSchema = z.object({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })
+const agentPermissionsResponseSchema = z.object({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })
 export const agentAccessResponseSchema = z.object({
-	roles: z.array(roleSummarySchema.extend({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })),
-})
-
-export const getAgentPermissionsRoute = createRoute({
-	method: "get",
-	path: "/agents/{agentId}/permissions",
-	operationId: "getAgentPermissions",
-	tags: ["Roles"],
-	...access.session(),
-	request: { params: agentAccessParamsSchema },
-	responses: {
-		200: {
-			content: { "application/json": { schema: agentPermissionsResponseSchema } },
-			description: "Effective agent permissions",
-		},
-		401: authRequired,
-		403: permissionForbidden,
-		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
-		500: serverError,
-	},
+	permissions: z.array(z.enum(AGENT_PERMISSIONS)),
+	roles: z.array(roleSummarySchema.extend({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })).optional(),
 })
 
 export const getAgentAccessRoute = createRoute({
@@ -190,12 +172,12 @@ export const getAgentAccessRoute = createRoute({
 	path: "/agents/{agentId}/access",
 	operationId: "getAgentAccess",
 	tags: ["Roles"],
-	...access.permission(Permission.RolesManage),
+	...access.session(),
 	request: { params: agentAccessParamsSchema },
 	responses: {
 		200: {
 			content: { "application/json": { schema: agentAccessResponseSchema } },
-			description: "Roles and their agent grants",
+			description: "Effective permissions, with role grants for access managers",
 		},
 		401: authRequired,
 		403: permissionForbidden,

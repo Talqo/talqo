@@ -33,11 +33,11 @@ export const Permission = {
 	UsersManage: "users:manage",
 	RolesManage: "roles:manage",
 	AiProviderManage: "ai_provider:manage",
-	AgentsRead: "agents:read",
-	AgentsManage: "agents:manage",
+	AgentRead: "agents:read",
+	AgentManage: "agents:manage",
 	ConversationsRead: "conversations:read",
 	StatsRead: "stats:read",
-	AgentsDelete: "agents:delete",
+	AgentDelete: "agents:delete",
 } as const satisfies Record<string, Permission | AgentPermission>
 
 // "admin" is the first entry only for display stability; it implies every other permission.
@@ -180,7 +180,7 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 
 export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
 	const held = new Set(permissions)
-	if (held.has(Permission.AgentsManage) || held.has(Permission.AgentsDelete)) held.add(Permission.AgentsRead)
+	if (held.has(Permission.AgentManage) || held.has(Permission.AgentDelete)) held.add(Permission.AgentRead)
 	return AGENT_PERMISSIONS.filter((permission) => held.has(permission))
 }
 
@@ -245,14 +245,20 @@ function holdsScopedPermissions(
 	)
 }
 
-export async function listAgentAccess(
-	actorId: string,
-	agentId: string,
-): Promise<{ roles: { id: string; name: string; permissions: AgentPermission[] }[] }> {
-	await managementPermissions(actorId, Permission.RolesManage)
-	await requireAgentPermission(actorId, agentId, Permission.AgentsRead)
+export type AgentAccess = {
+	permissions: AgentPermission[]
+	roles?: { id: string; name: string; permissions: AgentPermission[] }[]
+}
+
+export async function listAgentAccess(actorId: string, agentId: string): Promise<AgentAccess> {
+	const permissions = await listAgentPermissions(actorId, agentId)
+	if (permissions.length === 0) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+	const globalPermissions = await listEffectivePermissions(actorId)
+	if (!permissions.includes(Permission.AgentRead) || !globalPermissions.includes(Permission.RolesManage))
+		return { permissions }
 	const [roles, grants] = await Promise.all([repo.findRoles(), repo.findAgentRolePermissions(agentId)])
 	return {
+		permissions,
 		roles: roles.map(({ id, name }) => ({
 			id,
 			name,
@@ -274,7 +280,7 @@ export async function setAgentAccess(
 		throw new InvalidRoleInputError("Unknown agent permission")
 	await repo.withAccessLock(async () => {
 		await managementPermissions(actorId, Permission.RolesManage)
-		await requireAgentPermission(actorId, agentId, Permission.AgentsRead)
+		await requireAgentPermission(actorId, agentId, Permission.AgentRead)
 		await getRole(roleId)
 		const rows = await repo.findAgentRolePermissions(agentId)
 		const before = effectiveAgentPermissions(
@@ -291,8 +297,8 @@ export async function setAgentAccess(
 		)
 		const normalized = permissions.filter(
 			(permission) =>
-				permission !== Permission.AgentsRead ||
-				(!permissions.includes(Permission.AgentsManage) && !permissions.includes(Permission.AgentsDelete)),
+				permission !== Permission.AgentRead ||
+				(!permissions.includes(Permission.AgentManage) && !permissions.includes(Permission.AgentDelete)),
 		)
 		try {
 			await repo.replaceAgentRolePermissions(agentId, roleId, normalized)

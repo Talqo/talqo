@@ -15,9 +15,9 @@ const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
 
-type Permission = GetAgentAccess200["roles"][number]["permissions"][number]
+type Permission = GetAgentAccess200["permissions"][number]
 const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
-let roles: GetAgentAccess200["roles"]
+let roles: NonNullable<GetAgentAccess200["roles"]>
 let mutations: { method: string; body?: string }[]
 let failure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
@@ -79,7 +79,7 @@ beforeEach(() => {
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
-		if (method === "GET") return refreshResponse ?? json({ roles })
+		if (method === "GET") return refreshResponse ?? json({ permissions: ALL, roles })
 		mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
 		if (failure) return failure
 		const selected = roles.find((role) => url.endsWith(`/${role.id}`))

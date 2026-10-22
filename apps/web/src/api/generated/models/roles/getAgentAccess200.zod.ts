@@ -9,15 +9,20 @@ import * as zod from "zod"
 import { RoleSummary } from "../roleSummary.zod"
 
 export const GetAgentAccess200 = zod.object({
-	roles: zod.array(
-		RoleSummary.and(
-			zod.object({
-				permissions: zod.array(
-					zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
-				),
-			}),
-		),
+	permissions: zod.array(
+		zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
 	),
+	roles: zod
+		.array(
+			RoleSummary.and(
+				zod.object({
+					permissions: zod.array(
+						zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
+					),
+				}),
+			),
+		)
+		.optional(),
 })
 
 export type GetAgentAccess200 = zod.input<typeof GetAgentAccess200>

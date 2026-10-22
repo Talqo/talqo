@@ -106,19 +106,24 @@ export async function listEmbeds(agentId?: string): Promise<Embed[]> {
 }
 
 export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Embed[]> {
-	const scope = await roles.agentScope(actorId, roles.Permission.AgentsRead)
+	const scope = await roles.agentScope(actorId, roles.Permission.AgentRead)
 	const ids = agentId ? (scope === "all" || scope.includes(agentId) ? [agentId] : []) : scope
 	return (await repo.listEmbeds(ids)).map(toEmbed)
 }
 
-export async function getEmbed(id: string): Promise<Embed> {
+export async function getEmbed(
+	id: string,
+	actorId: string,
+	permission: "agents:read" | "agents:manage" = roles.Permission.AgentRead,
+): Promise<Embed> {
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
+	await roles.requireAgentPermission(actorId, row.agentId, permission)
 	return toEmbed(row)
 }
 
 export async function createEmbed(input: EmbedInput, actorId: string): Promise<Embed> {
-	await roles.requireAgentPermission(actorId, input.agentId, roles.Permission.AgentsManage)
+	await roles.requireAgentPermission(actorId, input.agentId, roles.Permission.AgentManage)
 	try {
 		const row = await repo.insertEmbed({
 			id: crypto.randomUUID(),
@@ -134,15 +139,9 @@ export async function createEmbed(input: EmbedInput, actorId: string): Promise<E
 	}
 }
 
-async function managedEmbed(id: string, actorId: string): Promise<Embed> {
-	const current = await getEmbed(id)
-	await roles.requireAgentPermission(actorId, current.agentId, roles.Permission.AgentsManage)
-	return current
-}
-
 export async function updateEmbed(id: string, input: EmbedInput, actorId: string): Promise<Embed> {
-	const current = await managedEmbed(id, actorId)
-	await roles.requireAgentPermission(actorId, input.agentId, roles.Permission.AgentsManage)
+	const current = await getEmbed(id, actorId, roles.Permission.AgentManage)
+	await roles.requireAgentPermission(actorId, input.agentId, roles.Permission.AgentManage)
 	try {
 		const row = await repo.updateEmbed(
 			id,
@@ -162,7 +161,7 @@ export async function updateEmbed(id: string, input: EmbedInput, actorId: string
 }
 
 export async function rotateEmbedToken(id: string, actorId: string): Promise<Embed> {
-	const current = await managedEmbed(id, actorId)
+	const current = await getEmbed(id, actorId, roles.Permission.AgentManage)
 	const row = await repo.rotateEmbedToken(id, generateOpaqueToken(), current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
 	return toEmbed(row)
@@ -177,14 +176,14 @@ export async function enableEmbed(id: string, actorId: string): Promise<Embed> {
 }
 
 async function setDisabled(id: string, isDisabled: boolean, actorId: string): Promise<Embed> {
-	const current = await managedEmbed(id, actorId)
+	const current = await getEmbed(id, actorId, roles.Permission.AgentManage)
 	const row = await repo.setEmbedDisabled(id, isDisabled, current.agentId)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
 	return toEmbed(row)
 }
 
 export async function deleteEmbed(id: string, actorId: string): Promise<void> {
-	const current = await managedEmbed(id, actorId)
+	const current = await getEmbed(id, actorId, roles.Permission.AgentManage)
 	if (!(await repo.deleteEmbed(id, current.agentId))) throw new EmbedNotFoundError(`Embed ${id} not found`)
 }
 
