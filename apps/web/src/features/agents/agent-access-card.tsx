@@ -3,11 +3,14 @@ import type { GetAgentAccess200 } from "@/api/generated/models/roles/getAgentAcc
 import { getListAgentsQueryKey } from "@/api/generated/agent/agent"
 import {
 	getGetAgentAccessQueryKey,
+	getGetMyPermissionsQueryKey,
 	useGetAgentAccess,
 	useRemoveAgentAccess,
 	useSetAgentAccess,
 } from "@/api/generated/roles/roles"
 import { ProblemAlert } from "@/components/problem-alert"
+import { clearAgentContent } from "@/features/permissions/clear-agent-content"
+import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Label } from "@talqo/ui/components/label"
@@ -19,6 +22,8 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 type Permission = GetAgentAccess200["permissions"][number]
+const FORBIDDEN_STATUS = 403
+const NOT_FOUND_STATUS = 404
 
 const PERMISSION_LABELS = {
 	"stats:read": "agentAccess.statistics",
@@ -47,10 +52,10 @@ function expanded(permissions: readonly Permission[]): Permission[] {
 
 export function AgentAccessCard({ agentId, permissions }: { agentId: string; permissions: readonly Permission[] }) {
 	const { t } = useTranslation()
-	const query = useGetAgentAccess(agentId)
+	const query = useGetAgentAccess(agentId, { query: { retry: retryUnlessClientError } })
 	const client = useQueryClient()
-	const save = useSetAgentAccess({ mutation: { onSuccess: refresh } })
-	const remove = useRemoveAgentAccess({ mutation: { onSuccess: refresh } })
+	const save = useSetAgentAccess({ mutation: { onSuccess: refresh, onError: refreshAfterAccessError } })
+	const remove = useRemoveAgentAccess({ mutation: { onSuccess: refresh, onError: refreshAfterAccessError } })
 	const addRoleButton = useRef<HTMLButtonElement>(null)
 	const editor = useRef<HTMLFieldSetElement>(null)
 	const focusEditor = useRef(false)
@@ -60,11 +65,15 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	const [notice, setNotice] = useState<"saved" | "removed">()
 	const roles = query.data?.data.roles ?? []
 	const visible = roles.filter((role) => role.permissions.length > 0 || drafts[role.id] !== undefined)
-	const selected = roles.find((role) => role.id === (selectedId ?? visible[0]?.id))
+	const selected = visible.find((role) => role.id === selectedId) ?? visible[0]
 	const values = selected ? expanded(drafts[selected.id] ?? selected.permissions) : []
 	const pending = save.isPending || remove.isPending
-	const dirty = Object.keys(drafts).length > 0
-	useBlocker({ shouldBlockFn: () => dirty && !window.confirm(t("roles.leavePrompt")), enableBeforeUnload: dirty })
+	const dirty = roles.some(({ id }) => drafts[id] !== undefined)
+	useBlocker({
+		shouldBlockFn: ({ current, next }) =>
+			current.pathname !== next.pathname && dirty && !window.confirm(t("roles.leavePrompt")),
+		enableBeforeUnload: dirty,
+	})
 	useEffect(() => {
 		if (selected && focusEditor.current) {
 			editor.current?.focus()
@@ -83,11 +92,24 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 		await Promise.all([
 			client.invalidateQueries({ queryKey: getGetAgentAccessQueryKey(agentId) }),
 			client.invalidateQueries({ queryKey: getListAgentsQueryKey() }),
+			client.invalidateQueries({ queryKey: getGetMyPermissionsQueryKey() }),
 		])
+		const access = client.getQueryData<{ data: GetAgentAccess200 }>(getGetAgentAccessQueryKey(agentId))
+		if (
+			client.getQueryState(getGetAgentAccessQueryKey(agentId))?.error ||
+			permissions.some((permission) => !access?.data.permissions.includes(permission))
+		)
+			clearAgentContent(client)
+	}
+
+	async function refreshAfterAccessError(error: { status: number }): Promise<void> {
+		if (error.status === FORBIDDEN_STATUS || error.status === NOT_FOUND_STATUS) await refresh()
 	}
 
 	function onSave(): void {
 		if (!selected || values.length === 0) return
+		remove.reset()
+		setNotice(undefined)
 		save.mutate(
 			{ agentId, roleId: selected.id, data: { permissions: values } },
 			{
@@ -101,6 +123,8 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 
 	function onRemove(): void {
 		if (!selected || !window.confirm(t("agentAccess.removePrompt", { role: selected.name }))) return
+		save.reset()
+		setNotice(undefined)
 		remove.mutate(
 			{ agentId, roleId: selected.id },
 			{
@@ -162,6 +186,8 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 							<Button
 								ref={addRoleButton}
 								variant="outline"
+								aria-expanded={adding}
+								aria-controls={`role-picker-${agentId}`}
 								onClick={() => setAdding(!adding)}
 								disabled={pending || visible.length === roles.length}
 							>
@@ -175,7 +201,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 							</Link>
 						)}
 						{adding && (
-							<div className="space-y-2">
+							<div id={`role-picker-${agentId}`} className="space-y-2">
 								<Label htmlFor={`add-role-${agentId}`}>{t("agentAccess.chooseRole")}</Label>
 								<select
 									id={`add-role-${agentId}`}
@@ -249,6 +275,11 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									})}
 								</div>
 								{(save.error || remove.error) && <ProblemAlert error={save.error ?? remove.error} />}
+								{selected.permissions.length > 0 && values.length === 0 && (
+									<p role="status" className="text-muted-foreground text-sm">
+										{t("agentAccess.useRemove")}
+									</p>
+								)}
 								<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
 									{selected.permissions.length > 0 ? (
 										<Button

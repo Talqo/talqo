@@ -10,6 +10,7 @@ import {
 	toAppearance,
 	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
+import { requirePermission } from "@/features/permissions/require-permission"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { isWidgetPosition, isWidgetTheme, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
@@ -42,6 +43,7 @@ function isColorSchemeTab(value: unknown): value is ColorSchemeTab {
 }
 
 export const Route = createFileRoute("/dashboard/embeds/$embedId")({
+	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		colorTab: isColorSchemeTab(search.colorTab) ? search.colorTab : undefined,
 	}),

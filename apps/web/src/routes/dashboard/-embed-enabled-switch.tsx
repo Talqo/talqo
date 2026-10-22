@@ -15,7 +15,7 @@ const NOT_FOUND_STATUS = 404
 
 type EmbedTarget = { id: string; agentId: string; isDisabled: boolean }
 
-export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
+export function EmbedEnabledSwitch({ embed, disabled = false }: { embed: EmbedTarget; disabled?: boolean }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const invalidateEmbed = async () => {
@@ -29,6 +29,7 @@ export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 	const pending = disableEmbed.isPending || enableEmbed.isPending
 
 	async function onToggle(enabled: boolean) {
+		if (disabled) return
 		setError(null)
 		try {
 			if (enabled) {
@@ -52,7 +53,7 @@ export function EmbedEnabledSwitch({ embed }: { embed: EmbedTarget }) {
 			<div className="flex items-center gap-2">
 				<Switch
 					checked={!embed.isDisabled}
-					disabled={pending}
+					disabled={disabled || pending}
 					onCheckedChange={(checked) => void onToggle(checked)}
 					aria-label={t("embedSetup.embedEnabled")}
 				/>

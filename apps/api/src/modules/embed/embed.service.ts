@@ -101,10 +101,6 @@ function toColumns(appearance: WidgetAppearance) {
 	}
 }
 
-export async function listEmbeds(agentId?: string): Promise<Embed[]> {
-	return (await repo.listEmbeds(agentId ? [agentId] : "all")).map(toEmbed)
-}
-
 export async function listVisibleEmbeds(actorId: string, agentId?: string): Promise<Embed[]> {
 	const scope = await roles.agentScope(actorId, roles.Permission.AgentRead)
 	const ids = agentId ? (scope === "all" || scope.includes(agentId) ? [agentId] : []) : scope
@@ -118,7 +114,7 @@ export async function getEmbed(
 ): Promise<Embed> {
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)
-	await roles.requireAgentPermission(actorId, row.agentId, permission)
+	await roles.requireAgentPermission(actorId, row.agentId, permission, PROBLEM_CODES.EMBED_NOT_FOUND)
 	return toEmbed(row)
 }
 

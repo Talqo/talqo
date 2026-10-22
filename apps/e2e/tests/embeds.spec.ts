@@ -230,7 +230,7 @@ test("disabling an embed hides it publicly but keeps its appearance previews usa
 	}
 })
 
-test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
+test("a read-only user can inspect embed state but cannot toggle it", async ({ page }) => {
 	const viewer = { username: "user", password: "user1234" }
 
 	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
@@ -260,7 +260,8 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 		await page.getByRole("link", { name: /Website Assistant/ }).click()
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
-		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeDisabled()
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeChecked()
 	} finally {
 		await page.request.post("/api/auth/login", { data: operator })
 		// Deleting the role also removes the assignment.

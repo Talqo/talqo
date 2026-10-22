@@ -213,6 +213,44 @@ describe("agent-scoped access", () => {
 		expect(await (await get(a.id)).json()).toEqual({ permissions: ["stats:read"] })
 	})
 
+	it("validates access replacements over HTTP and removes grants only through DELETE", async () => {
+		const { admin, a, role } = await agentAccessFixture()
+		const { token } = await identity.createSession(admin)
+		const cookie = `${identity.SESSION_COOKIE}=${token}`
+		const path = `/agents/${a.id}/access/${role.id}`
+		expect((await call(cookie, "PUT", path, { permissions: ["agents:read"] })).status).toBe(204)
+		for (const permissions of [[], ["agents:read", "agents:read"], ["unknown"]]) {
+			// oxlint-disable-next-line no-await-in-loop -- each invalid replacement must preserve the saved grant.
+			await expectCode(await call(cookie, "PUT", path, { permissions }), 400, "invalid-request")
+		}
+		expect(await repo.findAgentRolePermissions(a.id)).toEqual([{ roleId: role.id, permission: "agents:read" }])
+		expect((await call(cookie, "DELETE", path)).status).toBe(204)
+		expect(await repo.findAgentRolePermissions(a.id)).toEqual([])
+		const missing = crypto.randomUUID()
+		await expectCode(await call(cookie, "GET", `/agents/${missing}/access`), 404, "agent-not-found")
+		await expectCode(
+			await call(cookie, "PUT", `/agents/${missing}/access/${role.id}`, { permissions: ["agents:read"] }),
+			404,
+			"agent-not-found",
+		)
+		await expectCode(await call(cookie, "DELETE", `/agents/${missing}/access/${role.id}`), 404, "agent-not-found")
+		await expectCode(await call(cookie, "GET", `/agents/${missing}/mcp-servers`), 404, "agent-not-found")
+	})
+
+	it("seeds scoped access when a seed role name already exists under a different ID", async () => {
+		const admin = await testAdminId()
+		const support = await service.createRole({ name: "Support", permissions: [] }, admin)
+		const agent = await agents.createAgent({ name: "Seeded", systemPrompt: "Private", wordBlacklist: [] })
+		await seed.seed()
+		await seed.seedAgentAccess([agent.id])
+		expect(
+			(await repo.findAgentRolePermissions(agent.id))
+				.filter(({ roleId }) => roleId === support.id)
+				.map(({ permission }) => permission)
+				.toSorted(),
+		).toEqual(["conversations:read", "stats:read"])
+	})
+
 	it("prevents escalation through membership, role deletion, password reset and operator deletion", async () => {
 		const { admin, a, b, role, operator } = await agentAccessFixture()
 		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage", "users:manage"] }, admin)

@@ -145,7 +145,6 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("button", { name: "Retry processing faq.md" })).toHaveCount(0)
 		await expect(page.getByText("Drag files here, or click to browse")).toHaveCount(0)
 
-		// Embeds ride on the same permission, so their controls must disappear too.
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
 		await page.getByRole("link", { name: "Website", exact: true }).click()
@@ -172,6 +171,8 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await expect(page.getByRole("link", { name: "AI configuration" })).toHaveCount(0)
 
 	await page.goto("/dashboard/agents")
+	await expect(page).toHaveURL("/dashboard/account")
+	await page.goto(`/dashboard/embeds/${crypto.randomUUID()}`)
 	await expect(page).toHaveURL("/dashboard/account")
 
 	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.

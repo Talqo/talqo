@@ -1,6 +1,6 @@
 import type { PublicUser } from "@/modules/identity/identity.service.ts"
 
-import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { ApiError, PROBLEM_CODES, type ProblemCode } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken, hashOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation, isUniqueViolation } from "@/lib/pg-error.ts"
@@ -12,7 +12,7 @@ import * as repo from "./roles.repository.ts"
 // eslint-disable-next-line no-magic-numbers
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
-// Everything a role may hold; `admin` is held only through the admin grant.
+// Global role permissions; `admin` is held only through the admin grant.
 export const GRANTABLE_PERMISSIONS = ["users:read", "users:manage", "roles:manage", "ai_provider:manage"] as const
 export const AGENT_PERMISSIONS = [
 	"stats:read",
@@ -172,7 +172,6 @@ export async function redeemInvitation(input: {
 	})
 }
 
-// The only source of a user's permissions: the admin grant plus every assigned role's permissions.
 // Fetched fresh on every call, never cached, so a removed role denies the next request (ADR-0008/0009).
 export async function listEffectivePermissions(userId: string): Promise<Permission[]> {
 	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
@@ -217,9 +216,10 @@ export async function requireAgentPermission(
 	userId: string,
 	agentId: string,
 	permission: AgentPermission,
+	notFoundCode: ProblemCode = PROBLEM_CODES.AGENT_NOT_FOUND,
 ): Promise<void> {
 	const held = await listAgentPermissions(userId, agentId)
-	if (held.length === 0) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+	if (held.length === 0) throw new ApiError(notFoundCode, HTTP_STATUS.NOT_FOUND)
 	if (!held.includes(permission)) throw new PermissionDeniedError(`Missing ${permission}`)
 }
 

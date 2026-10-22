@@ -18,6 +18,7 @@ const { t } = await import("i18next")
 type Permission = GetAgentAccess200["permissions"][number]
 const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
 let roles: NonNullable<GetAgentAccess200["roles"]>
+let effective: Permission[]
 let mutations: { method: string; body?: string }[]
 let failure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
@@ -72,6 +73,7 @@ beforeEach(() => {
 		{ id: "support", name: "Support", permissions: ["agents:read"] },
 		{ id: "observers", name: "Observers", permissions: [] },
 	]
+	effective = ALL
 	mutations = []
 	failure = undefined
 	refreshResponse = undefined
@@ -79,7 +81,7 @@ beforeEach(() => {
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
-		if (method === "GET") return refreshResponse ?? json({ permissions: ALL, roles })
+		if (method === "GET") return refreshResponse ?? json({ permissions: effective, roles })
 		mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
 		if (failure) return failure
 		const selected = roles.find((role) => url.endsWith(`/${role.id}`))
@@ -106,6 +108,64 @@ afterEach(async () => {
 })
 
 describe("AgentAccessCard", () => {
+	test("directs an empty existing grant to removal instead of Save", async () => {
+		await render()
+		await click(permissionSwitch("agents:read"))
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+		expect(host.textContent).toContain(t("agentAccess.useRemove"))
+		expect(button(t("agentAccess.remove")).disabled).toBe(false)
+		expect(mutations).toEqual([])
+	})
+
+	test("reconciles deleted roles and their drafts when access is refreshed", async () => {
+		roles[1] = { id: "observers", name: "Observers", permissions: ["stats:read"] }
+		await render()
+		await click(permissionSwitch("conversations:read"))
+		roles = roles.filter(({ id }) => id !== "support")
+		await act(async () => client.refetchQueries())
+		await settle()
+		expect(button("Observers").getAttribute("aria-pressed")).toBe("true")
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(host.textContent).not.toContain(t("agentAccess.empty"))
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+	})
+
+	test("shows the latest operation's failure and keeps the draft", async () => {
+		await render()
+		await click(permissionSwitch("stats:read"))
+		failure = json(
+			{ code: "permission-exceeds-own", type: "https://docs.talqo.chat/problems#permission-exceeds-own" },
+			403,
+		)
+		await click(button(t("agentAccess.save")))
+		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.permission-exceeds-own"))
+		failure = json({ code: "role-not-found", type: "https://docs.talqo.chat/problems#role-not-found" }, 404)
+		await click(button(t("agentAccess.remove")))
+		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.role-not-found"))
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(mutations.map(({ method }) => method)).toEqual(["PUT", "DELETE"])
+	})
+
+	test("clears protected content after self-revocation without dropping the access summary", async () => {
+		await render()
+		const protectedKeys = [
+			["/api/agents/agent"],
+			["/api/agents/agent/files"],
+			["/api/agents/agent/mcp-servers"],
+			["/api/stats", { days: 7 }],
+			["/api/conversations"],
+			["/api/conversations/transcript"],
+			["/api/embeds"],
+			["/api/embeds/embed"],
+		]
+		for (const key of protectedKeys) client.setQueryData(key, { private: true })
+		client.setQueryData(["/api/auth/session"], { user: "operator" })
+		effective = []
+		await click(button(t("agentAccess.remove")))
+		for (const key of protectedKeys) expect(client.getQueryData(key)).toBeUndefined()
+		expect(client.getQueryData(["/api/agents/agent/access"])).toBeDefined()
+		expect(client.getQueryData(["/api/auth/session"])).toEqual({ user: "operator" })
+	})
 	test("preserves each role's draft while showing only the selected role's permissions", async () => {
 		roles[1] = { id: "observers", name: "Observers", permissions: ["stats:read"] }
 		await render()
@@ -152,7 +212,7 @@ describe("AgentAccessCard", () => {
 		expect(button(t("roles.saving")).disabled).toBe(true)
 		expect(permissionSwitch("stats:read").disabled).toBe(true)
 		expect(button(t("agentAccess.remove")).disabled).toBe(true)
-		await act(async () => refreshed.resolve(json({ roles })))
+		await act(async () => refreshed.resolve(json({ permissions: effective, roles })))
 		await settle()
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.textContent).toContain(t("agentAccess.saved"))

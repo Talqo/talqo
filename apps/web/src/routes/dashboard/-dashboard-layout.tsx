@@ -3,6 +3,7 @@ import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { ProblemAlert } from "@/components/problem-alert"
+import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
@@ -90,9 +91,10 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	const agentsQuery = useListAgents()
 	return (
 		<nav className={className}>
-			{query.isPending || agentsQuery.isPending ? (
+			{(query.isPending || agentsQuery.isPending) && (
 				<output className="text-muted-foreground block px-3 text-sm">{t("auth.loading")}</output>
-			) : query.isError || agentsQuery.isError ? (
+			)}
+			{(query.isError || agentsQuery.isError) && (
 				<ProblemAlert
 					error={query.error ?? agentsQuery.error}
 					onRetry={() => {
@@ -100,11 +102,13 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 						void agentsQuery.refetch()
 					}}
 				/>
-			) : (
-				allowedNavItems(query.data.data.permissions, agentsQuery.data?.data.agents ?? []).map((item) => (
-					<NavLink key={item.to} item={item} onNavigate={onNavigate} />
-				))
 			)}
+			{allowedNavItems(
+				query.data?.data.permissions ?? [],
+				agentsQuery.isSuccess ? agentsQuery.data.data.agents : [],
+			).map((item) => (
+				<NavLink key={item.to} item={item} onNavigate={onNavigate} />
+			))}
 		</nav>
 	)
 }
@@ -151,12 +155,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	)
 	useEffect(() => {
 		if (gate === "denied" && permissionsQuery.data && agentsQuery.data) {
+			clearAgentContent(client)
 			const destination =
 				allowedNavItems(permissionsQuery.data.data.permissions, agentsQuery.data.data.agents)[0]?.to ??
 				"/dashboard/account"
 			void navigate({ to: destination, replace: true })
 		}
-	}, [gate, permissionsQuery.data, agentsQuery.data, navigate])
+	}, [gate, permissionsQuery.data, agentsQuery.data, navigate, client])
 
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">

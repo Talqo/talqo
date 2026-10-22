@@ -4284,7 +4284,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "All agents",
+						"description": "Visible agents",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -4797,7 +4797,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "All embeds",
+						"description": "Visible embeds",
 						"content": {
 							"application/json": {
 								"schema": {
