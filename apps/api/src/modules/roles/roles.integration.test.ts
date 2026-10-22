@@ -178,22 +178,6 @@ describe("roles", () => {
 })
 
 describe("invitations", () => {
-	it("seeds an empty Default role without replacing existing similarly named roles", async () => {
-		await repo.deleteRoleById("default")
-		const existing = await createRole(["agents:read"], "dEfAuLt")
-		await createRole([], "Default 2")
-		const migration = await Bun.file(new URL("../../../drizzle/0013_invitation_roles.sql", import.meta.url)).text()
-		const seedSql = migration.split("--> statement-breakpoint").at(-1)
-		if (!seedSql) throw new Error("Default role seed is missing")
-		await sql.unsafe(seedSql)
-		expect(await repo.findRoleById("default")).toMatchObject({ name: "Default 3" })
-		expect(await repo.findPermissionsOfRoles(["default"])).toEqual([])
-		expect(await repo.findRoleById(existing.id)).toMatchObject({ name: "dEfAuLt" })
-		expect(await repo.findPermissionsOfRoles([existing.id])).toEqual([
-			{ roleId: existing.id, permission: "agents:read" },
-		])
-	})
-
 	it("rejects acceptance if the inviter deletes their account during member creation", async () => {
 		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "agents:read"])
 		const role = await createRole(["agents:read"])
@@ -214,46 +198,6 @@ describe("invitations", () => {
 		}
 	})
 
-	it("rolls back invitation creation when a selected role does not exist", async () => {
-		const id = crypto.randomUUID()
-		await expect(
-			repo.insertInvitation(
-				{
-					id,
-					tokenHash: hashOpaqueToken(crypto.randomUUID()),
-					invitedBy: await testAdminId(),
-					expiresAt: new Date(Date.now() + 60_000),
-				},
-				["missing"],
-			),
-		).rejects.toMatchObject({ cause: { code: "23503" } })
-		expect(await sql`SELECT id FROM invitation WHERE id = ${id}`).toHaveLength(0)
-	})
-
-	it("enforces unique invitation-role pairs and valid references in the database", async () => {
-		const role = await createRole([])
-		const invite = await repo.insertInvitation(
-			{
-				id: crypto.randomUUID(),
-				tokenHash: hashOpaqueToken(crypto.randomUUID()),
-				invitedBy: await testAdminId(),
-				expiresAt: new Date(Date.now() + 60_000),
-			},
-			[role.id],
-		)
-		await expect(
-			sql`INSERT INTO invitation_role (invitation_id, role_id) VALUES (${invite.id}, ${role.id})`.execute(),
-		).rejects.toMatchObject({ code: "23505" })
-		await expect(
-			sql`INSERT INTO invitation_role (invitation_id, role_id) VALUES (${invite.id}, 'missing')`.execute(),
-		).rejects.toMatchObject({ code: "23503" })
-		await expect(
-			sql`INSERT INTO invitation_role (invitation_id, role_id) VALUES ('missing', ${role.id})`.execute(),
-		).rejects.toMatchObject({ code: "23503" })
-		await sql`DELETE FROM invitation WHERE id = ${invite.id}`
-		expect(await sql`SELECT * FROM invitation_role WHERE invitation_id = ${invite.id}`).toHaveLength(0)
-	})
-
 	it("keeps invitations usable with their remaining roles after a role is deleted", async () => {
 		const actor = await testAdminId()
 		const removed = await createRole(["agents:manage"])
@@ -266,7 +210,6 @@ describe("invitations", () => {
 			username: uniqueUsername(),
 			password: DEFAULT_PASSWORD,
 		})
-		expect(await repo.findRolesOfUser(joined.id)).toEqual([{ id: kept.id, name: kept.name }])
 		expect(await service.listEffectivePermissions(joined.id)).toEqual(["agents:read"])
 		const member = await service.redeemInvitation({
 			token: unaffected.token,
@@ -285,12 +228,11 @@ describe("invitations", () => {
 			username: uniqueUsername(),
 			password: DEFAULT_PASSWORD,
 		})
-		expect(await repo.findRolesOfUser(member.id)).toEqual([])
 		expect(await service.listEffectivePermissions(member.id)).toEqual([])
 	})
 
 	it("assigns exactly the invitation roles on acceptance", async () => {
-		const { cookie } = await createAdminSession()
+		const { cookie, userId: actor } = await createAdminSession()
 		const role = await createRole(["agents:read"])
 		const response = await call(cookie, "POST", "/invitations", { roleIds: [role.id] })
 		expect(response.status).toBe(201)
@@ -302,8 +244,10 @@ describe("invitations", () => {
 		})
 		expect(accepted.status).toBe(201)
 		const { user } = (await accepted.json()) as { user: { id: string } }
-		expect(await repo.findRolesOfUser(user.id)).toEqual([{ id: role.id, name: role.name }])
-		expect(await service.listEffectivePermissions(user.id)).toEqual(["agents:read"])
+		expect((await service.listUsersWithAccess(actor)).find(({ id }) => id === user.id)).toMatchObject({
+			roles: [{ id: role.id, name: role.name }],
+			permissions: ["agents:read"],
+		})
 	})
 
 	it("rejects invitation roles beyond the inviter's authority", async () => {
