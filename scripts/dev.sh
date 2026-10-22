@@ -13,6 +13,7 @@ command -v docker >/dev/null || {
 : "${TALQO_DOCLING_PORT:=0}"
 export TALQO_POSTGRES_PORT TALQO_DOCLING_PORT
 
+# The kernel picks an unused port; scanning with ss/lsof would race the later bind.
 free_port() {
 	bun -e 'const server = Bun.serve({ fetch: () => new Response(), port: 0 }); console.log(server.port); server.stop(true)'
 }
