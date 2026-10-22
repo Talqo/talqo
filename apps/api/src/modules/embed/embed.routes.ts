@@ -49,7 +49,7 @@ export const embedRoutes = new OpenAPIHono()
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getEmbedRoute, async (c) => {
-		const embed = await service.getEmbed(c.req.valid("param").embedId)
+		const embed = await service.getEmbed(c.req.valid("param").embedId, c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(updateEmbedRoute, async (c) => {

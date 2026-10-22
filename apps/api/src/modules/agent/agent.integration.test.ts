@@ -2,7 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as service from "./agent.service.ts"
@@ -227,7 +227,7 @@ describe("agent service interface", () => {
 		const fetched = await service.getAgent(created.id)
 		expect(fetched).toEqual(created)
 
-		const listed = await service.listAgents()
+		const listed = await service.listAgents(await testAdminId())
 		expect(listed.map((agent) => agent.id)).toEqual([created.id])
 
 		await service.deleteAgent(created.id)

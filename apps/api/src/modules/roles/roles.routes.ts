@@ -32,8 +32,6 @@ import {
 	updateRoleRoute,
 	userListResponseSchema,
 	userRolesResponseSchema,
-	getAgentPermissionsRoute,
-	agentPermissionsResponseSchema,
 	getAgentAccessRoute,
 	agentAccessResponseSchema,
 	setAgentAccessRoute,
@@ -42,12 +40,6 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
-	.openapi(getAgentPermissionsRoute, async (c) => {
-		await agents.getAgent(c.req.valid("param").agentId)
-		const permissions = await service.listAgentPermissions(c.get("user").id, c.req.valid("param").agentId)
-		if (permissions.length === 0) return problemResponse(c, PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-		return c.json(agentPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
-	})
 	.openapi(getAgentAccessRoute, async (c) => {
 		await agents.getAgent(c.req.valid("param").agentId)
 		return c.json(

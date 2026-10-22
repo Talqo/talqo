@@ -2721,90 +2721,6 @@
 				}
 			}
 		},
-		"/api/agents/{agentId}/permissions": {
-			"get": {
-				"operationId": "getAgentPermissions",
-				"tags": ["Roles"],
-				"security": [
-					{
-						"SessionCookie": []
-					}
-				],
-				"parameters": [
-					{
-						"schema": {
-							"type": "string",
-							"minLength": 1
-						},
-						"required": true,
-						"name": "agentId",
-						"in": "path"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Effective agent permissions",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"permissions": {
-											"type": "array",
-											"items": {
-												"type": "string",
-												"enum": ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
-											}
-										}
-									},
-									"required": ["permissions"]
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "Problem response. Codes: authentication-required.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Problem response. Codes: password-change-required, permission-denied.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Problem response. Codes: agent-not-found.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Problem response. Codes: internal-server-error.",
-						"content": {
-							"application/problem+json": {
-								"schema": {
-									"$ref": "#/components/schemas/ProblemDetails"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/api/agents/{agentId}/access": {
 			"get": {
 				"operationId": "getAgentAccess",
@@ -2827,12 +2743,19 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Roles and their agent grants",
+						"description": "Effective permissions, with role grants for access managers",
 						"content": {
 							"application/json": {
 								"schema": {
 									"type": "object",
 									"properties": {
+										"permissions": {
+											"type": "array",
+											"items": {
+												"type": "string",
+												"enum": ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
+											}
+										},
 										"roles": {
 											"type": "array",
 											"items": {
@@ -2863,7 +2786,7 @@
 											}
 										}
 									},
-									"required": ["roles"]
+									"required": ["permissions"]
 								}
 							}
 						}

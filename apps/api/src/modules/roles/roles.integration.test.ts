@@ -132,7 +132,7 @@ describe("agent-scoped access", () => {
 		await revoke
 		expect(await attempted).toMatchObject({ problemCode: "permission-exceeds-own" })
 		expect(
-			(await service.listAgentAccess(admin, a.id)).roles.find((entry) => entry.id === target.id)?.permissions,
+			(await service.listAgentAccess(admin, a.id)).roles?.find((entry) => entry.id === target.id)?.permissions,
 		).toEqual([])
 	})
 
@@ -164,7 +164,7 @@ describe("agent-scoped access", () => {
 		await service.setAgentAccess(admin, a.id, role.id, ["stats:read"])
 		const response = await app.request("/api/agents", { headers: { Cookie: cookie } })
 		expect(await response.json()).toMatchObject({ agents: [{ id: a.id, permissions: ["stats:read"] }] })
-		const discovery = await agents.listVisibleAgents(operator.id)
+		const discovery = await agents.listAgents(operator.id)
 		expect(discovery[0]).not.toHaveProperty("systemPrompt")
 		const get = (path: string) => app.request(`/api${path}`, { headers: { Cookie: cookie } })
 		expect((await get(`/agents/${a.id}`)).status).toBe(403)
@@ -192,6 +192,25 @@ describe("agent-scoped access", () => {
 		await expect(service.setAgentAccess(operator.id, b.id, target.id, ["agents:read"])).rejects.toMatchObject({
 			status: 404,
 		})
+	})
+
+	it("returns effective access and reveals role grants only to configuration access managers", async () => {
+		const { admin, a, b, role, cookie } = await agentAccessFixture()
+		const get = (agentId: string) => app.request(`/api/agents/${agentId}/access`, { headers: { Cookie: cookie } })
+		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		expect(await (await get(a.id)).json()).toEqual({ permissions: ["agents:read"] })
+		expect((await get(b.id)).status).toBe(404)
+
+		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage"] }, admin)
+		const manager = await get(a.id)
+		expect(manager.status).toBe(200)
+		expect(await manager.json()).toEqual({
+			permissions: ["agents:read"],
+			roles: [{ id: role.id, name: role.name, permissions: ["agents:read"] }],
+		})
+
+		await service.setAgentAccess(admin, a.id, role.id, ["stats:read"])
+		expect(await (await get(a.id)).json()).toEqual({ permissions: ["stats:read"] })
 	})
 
 	it("prevents escalation through membership, role deletion, password reset and operator deletion", async () => {

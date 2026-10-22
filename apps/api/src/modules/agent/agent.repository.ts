@@ -36,15 +36,7 @@ async function attachWords(rows: AgentRow[]): Promise<AgentWithWords[]> {
 	)
 }
 
-export async function findAllWithWords(): Promise<AgentWithWords[]> {
-	const rows = await db
-		.select()
-		.from(agent)
-		.orderBy(sql`lower(${agent.name})`)
-	return attachWords(rows)
-}
-
-export async function findSummaries(
+export async function findAll(
 	scope: readonly string[] | "all",
 ): Promise<Pick<AgentRow, "id" | "name" | "createdAt" | "updatedAt">[]> {
 	return db

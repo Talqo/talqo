@@ -22,15 +22,13 @@ export const agentRoutes = new OpenAPIHono()
 	.openapi(listAgentsRoute, async (c) => {
 		return c.json(
 			agentListResponseSchema.parse({
-				agents: (await service.listVisibleAgents(c.get("user").id)).map(
-					({ id, name, permissions, createdAt, updatedAt }) => ({
-						id,
-						name,
-						permissions,
-						createdAt: createdAt.toISOString(),
-						updatedAt: updatedAt.toISOString(),
-					}),
-				),
+				agents: (await service.listAgents(c.get("user").id)).map(({ id, name, permissions, createdAt, updatedAt }) => ({
+					id,
+					name,
+					permissions,
+					createdAt: createdAt.toISOString(),
+					updatedAt: updatedAt.toISOString(),
+				})),
 			}),
 			HTTP_STATUS.OK,
 		)

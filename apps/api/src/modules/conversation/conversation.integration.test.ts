@@ -1617,7 +1617,7 @@ describe("operator conversation reads", () => {
 	})
 
 	it("denies operators who can see agents but not conversations", async () => {
-		const cookie = await operatorSession(roles.Permission.AgentsRead)
+		const cookie = await operatorSession(roles.Permission.AgentRead)
 
 		const response = await app.request("/api/conversations", { headers: { Cookie: cookie } })
 

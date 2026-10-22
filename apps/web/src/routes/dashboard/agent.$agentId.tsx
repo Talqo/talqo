@@ -7,7 +7,7 @@ import {
 	getGetAgentQueryKey,
 } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
-import { useGetAgentPermissions, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { useGetAgentAccess, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AgentAccessCard } from "@/features/agents/agent-access-card"
@@ -69,7 +69,7 @@ function AgentConfigPage() {
 	const { tab = "configuration" } = Route.useSearch()
 	const setTab = Route.useNavigate()
 	const globalPermissions = useGetMyPermissions().data?.data.permissions
-	const permissionsQuery = useGetAgentPermissions(agentId)
+	const permissionsQuery = useGetAgentAccess(agentId)
 	const permissions = permissionsQuery.data?.data.permissions
 	const canRead = permissions?.includes("agents:read") ?? false
 	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })

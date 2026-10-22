@@ -96,24 +96,18 @@ export function normalizeAgentInput(input: AgentInput): AgentInput {
 	return { name, systemPrompt, wordBlacklist }
 }
 
-export async function listAgents(): Promise<Agent[]> {
-	return (await repo.findAllWithWords()).map(toAgent)
-}
-
-export async function listVisibleAgents(
+export async function listAgents(
 	actorId: string,
 ): Promise<(Pick<Agent, "id" | "name" | "createdAt" | "updatedAt"> & { permissions: roles.AgentPermission[] })[]> {
 	const access = await roles.agentPermissionsById(actorId)
-	const agents = await repo.findSummaries(access === "all" ? "all" : [...access.keys()])
-	return agents
-		.filter((agent) => access === "all" || access.has(agent.id))
-		.map(({ id, name, createdAt, updatedAt }) => ({
-			id,
-			name,
-			createdAt,
-			updatedAt,
-			permissions: access === "all" ? [...roles.AGENT_PERMISSIONS] : (access.get(id) ?? []),
-		}))
+	const agents = await repo.findAll(access === "all" ? "all" : [...access.keys()])
+	return agents.map(({ id, name, createdAt, updatedAt }) => ({
+		id,
+		name,
+		createdAt,
+		updatedAt,
+		permissions: access === "all" ? [...roles.AGENT_PERMISSIONS] : (access.get(id) ?? []),
+	}))
 }
 
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
