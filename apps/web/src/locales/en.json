@@ -24,7 +24,6 @@
 	},
 	"agentAccess": {
 		"addRole": "Add role",
-		"chooseRole": "Choose a role",
 		"conversations": "Read conversations",
 		"deleteAgent": "Delete agent",
 		"descriptions": {

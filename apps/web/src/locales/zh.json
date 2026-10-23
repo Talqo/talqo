@@ -24,7 +24,6 @@
 	},
 	"agentAccess": {
 		"addRole": "添加角色",
-		"chooseRole": "选择角色",
 		"conversations": "阅读对话",
 		"deleteAgent": "删除智能体",
 		"descriptions": {

@@ -68,6 +68,15 @@ async function click(element: HTMLElement) {
 	await settle()
 }
 
+async function chooseObservers() {
+	await click(button(t("agentAccess.addRole")))
+	const item = [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find(
+		(element) => element.textContent?.trim() === "Observers",
+	)
+	if (!item) throw new Error("Missing Observers menu item")
+	await click(item)
+}
+
 beforeEach(() => {
 	roles = [
 		{ id: "support", name: "Support", permissions: ["agents:read"] },
@@ -186,13 +195,7 @@ describe("AgentAccessCard", () => {
 
 	test("keeps a new role selected when its last draft permission is switched off", async () => {
 		await render()
-		await click(button(t("agentAccess.addRole")))
-		const select = host.querySelector("select")
-		if (!select) throw new Error("Missing role picker")
-		await act(async () => {
-			select.value = "observers"
-			select.dispatchEvent(new Event("change", { bubbles: true }))
-		})
+		await chooseObservers()
 		await click(permissionSwitch("stats:read"))
 		await click(permissionSwitch("stats:read"))
 		expect(button("Observers").getAttribute("aria-pressed")).toBe("true")
@@ -230,13 +233,7 @@ describe("AgentAccessCard", () => {
 		await click(button(t("agentAccess.save")))
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
-		await click(button(t("agentAccess.addRole")))
-		const select = host.querySelector("select")
-		if (!select) throw new Error("Missing role picker")
-		await act(async () => {
-			select.value = "observers"
-			select.dispatchEvent(new Event("change", { bubbles: true }))
-		})
+		await chooseObservers()
 		expect(host.querySelector("[role=alert]")).toBeNull()
 	})
 })
