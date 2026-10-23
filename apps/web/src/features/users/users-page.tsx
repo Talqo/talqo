@@ -383,7 +383,14 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 		if (createInvitation.isPending) return
 		if (next)
 			setSelected(
-				roles.filter((role) => role.id === DEFAULT_ROLE_ID && holdsAll(held, role.permissions)).map(({ id }) => id),
+				roles
+					.filter(
+						(role) =>
+							role.id === DEFAULT_ROLE_ID &&
+							holdsAll(held, role.permissions) &&
+							rolesQuery.data?.data.manageableRoleIds.includes(role.id),
+					)
+					.map(({ id }) => id),
 			)
 		setOpen(next)
 		if (!next) {

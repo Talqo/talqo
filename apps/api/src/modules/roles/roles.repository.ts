@@ -2,7 +2,15 @@ import { db, sql as client } from "@/db/client.ts"
 import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm"
 import { union } from "drizzle-orm/pg-core"
 
-import { invitation, invitationRole, permissionGrant, role, rolePermission, roleAgentPermission, userRole } from "./roles.schema.ts"
+import {
+	invitation,
+	invitationRole,
+	permissionGrant,
+	role,
+	rolePermission,
+	roleAgentPermission,
+	userRole,
+} from "./roles.schema.ts"
 
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert

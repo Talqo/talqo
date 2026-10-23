@@ -377,9 +377,51 @@ describe("roles", () => {
 })
 
 describe("invitations", () => {
+	it("checks invitation agent scope at creation and acceptance without consuming a rejected link", async () => {
+		const admin = await testAdminId()
+		const a = await agents.createAgent({
+			name: `Invitation ${crypto.randomUUID()}`,
+			systemPrompt: "A",
+			wordBlacklist: [],
+		})
+		const b = await agents.createAgent({
+			name: `Invitation ${crypto.randomUUID()}`,
+			systemPrompt: "B",
+			wordBlacklist: [],
+		})
+		const role = await createRole(["users:manage", "roles:manage"])
+		const operator = await createMember()
+		await service.assignRoles(operator.id, [role.id], admin)
+		const { token: sessionToken } = await identity.createSession(operator.id)
+		const cookie = `${identity.SESSION_COOKIE}=${sessionToken}`
+		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
+		const target = await createRole([])
+		await service.setAgentAccess(admin, b.id, target.id, ["agents:read"])
+		await expectCode(
+			await call(cookie, "POST", "/invitations", { roleIds: [target.id] }),
+			403,
+			"permission-exceeds-own",
+		)
+		await service.setAgentAccess(admin, b.id, target.id, [])
+		await service.setAgentAccess(admin, a.id, target.id, ["agents:read"])
+		const response = await call(cookie, "POST", "/invitations", { roleIds: [target.id] })
+		expect(response.status).toBe(201)
+		const { token } = (await response.json()) as { token: string }
+		await service.setAgentAccess(admin, a.id, role.id, [])
+		const username = uniqueUsername()
+		await expect(service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })).rejects.toMatchObject({
+			problemCode: "invalid-invitation",
+		})
+		expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
+		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		const joined = await service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })
+		expect(await service.listAgentPermissions(joined.id, a.id)).toEqual(["agents:read"])
+		expect(await service.listAgentPermissions(joined.id, b.id)).toEqual([])
+	})
+
 	it("rejects acceptance if the inviter deletes their account during member creation", async () => {
-		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "agents:read"])
-		const role = await createRole(["agents:read"])
+		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "ai_provider:manage"])
+		const role = await createRole(["ai_provider:manage"])
 		const invite = await service.createInvitation(userId, [role.id])
 		const username = uniqueUsername()
 		const createUser = identity.createUser
@@ -399,8 +441,8 @@ describe("invitations", () => {
 
 	it("keeps invitations usable with their remaining roles after a role is deleted", async () => {
 		const actor = await testAdminId()
-		const removed = await createRole(["agents:manage"])
-		const kept = await createRole(["agents:read"])
+		const removed = await createRole(["roles:manage"])
+		const kept = await createRole(["ai_provider:manage"])
 		const affected = await service.createInvitation(actor, [removed.id, kept.id])
 		const unaffected = await service.createInvitation(actor, [kept.id])
 		await deleteRole(removed.id)
@@ -409,17 +451,17 @@ describe("invitations", () => {
 			username: uniqueUsername(),
 			password: DEFAULT_PASSWORD,
 		})
-		expect(await service.listEffectivePermissions(joined.id)).toEqual(["agents:read"])
+		expect(await service.listEffectivePermissions(joined.id)).toEqual(["ai_provider:manage"])
 		const member = await service.redeemInvitation({
 			token: unaffected.token,
 			username: uniqueUsername(),
 			password: DEFAULT_PASSWORD,
 		})
-		expect(await service.listEffectivePermissions(member.id)).toEqual(["agents:read"])
+		expect(await service.listEffectivePermissions(member.id)).toEqual(["ai_provider:manage"])
 	})
 
 	it("joins without permissions when all invitation roles have been deleted", async () => {
-		const role = await createRole(["agents:manage"])
+		const role = await createRole(["ai_provider:manage"])
 		const invite = await service.createInvitation(await testAdminId(), [role.id])
 		await deleteRole(role.id)
 		const member = await service.redeemInvitation({
@@ -432,7 +474,7 @@ describe("invitations", () => {
 
 	it("assigns exactly the invitation roles on acceptance", async () => {
 		const { cookie, userId: actor } = await createAdminSession()
-		const role = await createRole(["agents:read"])
+		const role = await createRole(["ai_provider:manage"])
 		const response = await call(cookie, "POST", "/invitations", { roleIds: [role.id] })
 		expect(response.status).toBe(201)
 		const { token } = (await response.json()) as { token: string }
@@ -445,13 +487,13 @@ describe("invitations", () => {
 		const { user } = (await accepted.json()) as { user: { id: string } }
 		expect((await service.listUsersWithAccess(actor)).find(({ id }) => id === user.id)).toMatchObject({
 			roles: [{ id: role.id, name: role.name }],
-			permissions: ["agents:read"],
+			permissions: ["ai_provider:manage"],
 		})
 	})
 
 	it("rejects invitation roles beyond the inviter's authority", async () => {
 		const { cookie } = await memberWith(["users:manage", "roles:manage"])
-		const role = await createRole(["agents:manage"])
+		const role = await createRole(["ai_provider:manage"])
 		await expectCode(await call(cookie, "POST", "/invitations", { roleIds: [role.id] }), 403, "permission-exceeds-own")
 	})
 
@@ -474,8 +516,8 @@ describe("invitations", () => {
 	})
 
 	it("refuses acceptance after the inviter's authority is revoked without creating a member", async () => {
-		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "agents:read"])
-		const role = await createRole(["agents:read"])
+		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "ai_provider:manage"])
+		const role = await createRole(["ai_provider:manage"])
 		const response = await call(cookie, "POST", "/invitations", { roleIds: [role.id] })
 		const { token } = (await response.json()) as { token: string }
 		await assignRoles(userId, [])
@@ -732,12 +774,13 @@ describe("role management", () => {
 		await repo.insertRoleWithPermissions({ id: "default", name: "Default" }, [])
 		await expectCode(await call(cookie, "DELETE", "/roles/default"), 409, "default-role-delete-not-allowed")
 		expect(
-			(await call(cookie, "PUT", "/roles/default", { name: "starting access", permissions: ["agents:read"] })).status,
+			(await call(cookie, "PUT", "/roles/default", { name: "starting access", permissions: ["ai_provider:manage"] }))
+				.status,
 		).toBe(200)
 		await expectCode(await call(cookie, "DELETE", "/roles/default"), 409, "default-role-delete-not-allowed")
 		expect((await service.listRoles()).find(({ id }) => id === "default")).toMatchObject({
 			name: "starting access",
-			permissions: ["agents:read"],
+			permissions: ["ai_provider:manage"],
 		})
 		const sameName = await createRole([], "Default")
 		expect((await call(cookie, "DELETE", `/roles/${sameName.id}`)).status).toBe(204)

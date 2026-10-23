@@ -37,7 +37,7 @@ async function inviteMember(page: Page, username: string, password: string) {
 	await page.getByLabel("Confirm password").fill(password)
 	await page.getByRole("button", { name: "Create account" }).click()
 	// Accepting an invitation signs the member straight in.
-	await expect(page).toHaveURL("/dashboard")
+	await expect(page).toHaveURL("/dashboard/account")
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
 }
@@ -69,7 +69,9 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await page.getByLabel("Confirm password").fill(memberPassword)
 	await page.getByRole("button", { name: "Create account" }).click()
 
-	await expect(page).toHaveURL("/dashboard/account")
+	await expect(page).toHaveURL("/dashboard")
+	await expect(page.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
+	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
