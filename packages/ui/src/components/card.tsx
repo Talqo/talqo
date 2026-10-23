@@ -51,7 +51,7 @@ function CardTitle({
 	size = "default",
 	...props
 }: Omit<React.ComponentProps<"h3">, "ref"> & { level?: HeadingLevel; size?: "default" | "lg" }) {
-	const Heading = `h${level}` as "h3"
+	const Heading: `h${HeadingLevel}` = `h${level}`
 	return (
 		<Heading
 			data-slot="card-title"
