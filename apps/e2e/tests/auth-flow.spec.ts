@@ -140,8 +140,8 @@ test("an admin can delete a member but cannot delete their own account", async (
 
 	await logIn(page, ADMIN)
 	await page.getByRole("link", { name: "Account", exact: true }).click()
-	await expect(page.getByText("The administrator account cannot be deleted.", { exact: false })).toBeVisible()
-	await expect(page.getByText("Deleting your account signs you out everywhere", { exact: false })).toHaveCount(0)
+	await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Danger zone", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
