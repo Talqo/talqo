@@ -13,6 +13,6 @@ export default defineConfig({
 	lint: {
 		acceptedAttributes: recommendedAcceptedAttributes,
 		acceptedTags: recommendedAcceptedTags,
-		ignore: ["src/routeTree.gen.ts"],
+		ignore: ["src/routeTree.gen.ts", "src/**/*.test.{ts,tsx}"],
 	},
 })
