@@ -24,7 +24,6 @@
 	},
 	"agentAccess": {
 		"addRole": "Přidat roli",
-		"chooseRole": "Vyberte roli",
 		"conversations": "Číst konverzace",
 		"deleteAgent": "Smazat agenta",
 		"descriptions": {

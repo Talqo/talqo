@@ -13,6 +13,12 @@ import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@talqo/ui/components/dropdown-menu"
 import { Label } from "@talqo/ui/components/label"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
@@ -61,7 +67,6 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	const focusEditor = useRef(false)
 	const [selectedId, setSelectedId] = useState<string>()
 	const [drafts, setDrafts] = useState<Record<string, Permission[]>>({})
-	const [adding, setAdding] = useState(false)
 	const [notice, setNotice] = useState<"saved" | "removed">()
 	const roles = query.data?.data.roles ?? []
 	const visible = roles.filter((role) => role.permissions.length > 0 || drafts[role.id] !== undefined)
@@ -74,12 +79,6 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 			current.pathname !== next.pathname && dirty && !window.confirm(t("roles.leavePrompt")),
 		enableBeforeUnload: dirty,
 	})
-	useEffect(() => {
-		if (selected && focusEditor.current) {
-			editor.current?.focus()
-			focusEditor.current = false
-		}
-	}, [selected])
 	useEffect(() => {
 		if (notice === "removed" && !pending) addRoleButton.current?.focus()
 	}, [notice, pending])
@@ -183,54 +182,49 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									</span>
 								</Button>
 							))}
-							<Button
-								ref={addRoleButton}
-								variant="outline"
-								aria-expanded={adding}
-								aria-controls={`role-picker-${agentId}`}
-								onClick={() => setAdding(!adding)}
-								disabled={pending || visible.length === roles.length}
+							<DropdownMenu
+								onOpenChange={(open) => {
+									if (open) focusEditor.current = false
+								}}
 							>
-								<Plus className="size-4" />
-								{t("agentAccess.addRole")}
-							</Button>
+								<DropdownMenuTrigger
+									ref={addRoleButton}
+									render={<Button variant="outline" />}
+									disabled={pending || visible.length === roles.length}
+								>
+									<Plus className="size-4" />
+									{t("agentAccess.addRole")}
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									className="w-max max-w-[calc(100vw-2rem)]"
+									finalFocus={() => (focusEditor.current ? editor.current : addRoleButton.current)}
+								>
+									{roles
+										.filter((role) => !visible.some(({ id }) => id === role.id))
+										.map((role) => (
+											<DropdownMenuItem
+												key={role.id}
+												onClick={() => {
+													focusEditor.current = true
+													setSelectedId(role.id)
+													setDrafts((current) => ({ ...current, [role.id]: [] }))
+													setNotice(undefined)
+													save.reset()
+													remove.reset()
+												}}
+											>
+												<span className="truncate" title={role.name}>
+													{role.name}
+												</span>
+											</DropdownMenuItem>
+										))}
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 						{roles.length === 0 && (
 							<Link to="/dashboard/users/roles" className="text-primary underline">
 								{t("roles.create")}
 							</Link>
-						)}
-						{adding && (
-							<div id={`role-picker-${agentId}`} className="space-y-2">
-								<Label htmlFor={`add-role-${agentId}`}>{t("agentAccess.chooseRole")}</Label>
-								<select
-									id={`add-role-${agentId}`}
-									className="border-input bg-background w-full rounded-md border p-2"
-									value=""
-									disabled={pending}
-									onChange={(event) => {
-										const id = event.target.value
-										if (id) {
-											focusEditor.current = true
-											setSelectedId(id)
-											setDrafts((current) => ({ ...current, [id]: [] }))
-											setAdding(false)
-											setNotice(undefined)
-											save.reset()
-											remove.reset()
-										}
-									}}
-								>
-									<option value="">{t("agentAccess.chooseRole")}</option>
-									{roles
-										.filter((role) => !visible.some(({ id }) => id === role.id))
-										.map((role) => (
-											<option key={role.id} value={role.id}>
-												{role.name}
-											</option>
-										))}
-								</select>
-							</div>
 						)}
 						{selected ? (
 							<fieldset ref={editor} tabIndex={-1} className="space-y-3" disabled={pending}>
