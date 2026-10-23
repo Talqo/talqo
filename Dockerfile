@@ -16,7 +16,7 @@ COPY --from=pruner /app/out/json/ ./
 COPY bunfig.toml ./
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile
+	BUN_INSTALL_GLOBAL_STORE=0 bun install --frozen-lockfile
 
 COPY --from=pruner /app/out/full/ ./
 
