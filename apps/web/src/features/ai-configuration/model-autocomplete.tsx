@@ -83,7 +83,7 @@ export function ModelAutocomplete({
 								<Combobox.Item
 									key={model}
 									value={model}
-									className="data-highlighted:bg-accent data-highlighted:text-accent-foreground min-h-item rounded-item relative flex w-full cursor-default items-center gap-2 pr-8 pl-3 text-sm outline-none select-none"
+									className="data-highlighted:bg-accent data-highlighted:text-accent-foreground min-h-item rounded-item relative flex w-full items-center gap-2 pr-8 pl-3 text-sm outline-none select-none"
 								>
 									{model}
 									<Combobox.ItemIndicator className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">

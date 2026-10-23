@@ -49,6 +49,10 @@
 	margin: 0;
 }
 
+.talqo-widget button:not(:disabled, [aria-disabled="true"], [data-disabled]) {
+	cursor: pointer;
+}
+
 .talqo-widget .talqo-scrollbar {
 	scrollbar-color: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent) transparent;
 	scrollbar-width: thin;
