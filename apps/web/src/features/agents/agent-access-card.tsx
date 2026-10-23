@@ -13,13 +13,8 @@ import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@talqo/ui/components/dropdown-menu"
 import { Label } from "@talqo/ui/components/label"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useBlocker } from "@tanstack/react-router"
@@ -182,44 +177,47 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									</span>
 								</Button>
 							))}
-							<DropdownMenu
+							<Select<string>
+								value={null}
 								onOpenChange={(open) => {
 									if (open) focusEditor.current = false
 								}}
+								onValueChange={(id) => {
+									if (id === null) return
+									focusEditor.current = true
+									setSelectedId(id)
+									setDrafts((current) => ({ ...current, [id]: [] }))
+									setNotice(undefined)
+									save.reset()
+									remove.reset()
+								}}
 							>
-								<DropdownMenuTrigger
+								<SelectTrigger
 									ref={addRoleButton}
-									render={<Button variant="outline" />}
+									aria-label={t("agentAccess.addRole")}
 									disabled={pending || visible.length === roles.length}
+									render={<Button variant="outline" />}
+									className="[&>svg:last-child]:hidden"
 								>
 									<Plus className="size-4" />
-									{t("agentAccess.addRole")}
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
+									<span>{t("agentAccess.addRole")}</span>
+								</SelectTrigger>
+								<SelectContent
+									align="start"
 									className="w-max max-w-[calc(100vw-2rem)]"
 									finalFocus={() => (focusEditor.current ? editor.current : addRoleButton.current)}
 								>
 									{roles
 										.filter((role) => !visible.some(({ id }) => id === role.id))
 										.map((role) => (
-											<DropdownMenuItem
-												key={role.id}
-												onClick={() => {
-													focusEditor.current = true
-													setSelectedId(role.id)
-													setDrafts((current) => ({ ...current, [role.id]: [] }))
-													setNotice(undefined)
-													save.reset()
-													remove.reset()
-												}}
-											>
+											<SelectItem key={role.id} value={role.id}>
 												<span className="truncate" title={role.name}>
 													{role.name}
 												</span>
-											</DropdownMenuItem>
+											</SelectItem>
 										))}
-								</DropdownMenuContent>
-							</DropdownMenu>
+								</SelectContent>
+							</Select>
 						</div>
 						{roles.length === 0 && (
 							<Link to="/dashboard/users/roles" className="text-primary underline">
