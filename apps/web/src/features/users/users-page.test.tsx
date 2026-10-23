@@ -65,7 +65,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
-	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
+	if (url === "/api/roles")
+		return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/invitations" && method === "POST")
 		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
@@ -214,7 +215,7 @@ describe("UsersPage", () => {
 	test("preselects Default for invitations and submits exactly the edited selection", async () => {
 		roles = [
 			{ id: "default", name: "Renamed default", permissions: [], memberCount: 0 },
-			{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 0 },
+			{ id: "support", name: "Support", permissions: ["ai_provider:manage"], memberCount: 0 },
 		]
 		await renderPage()
 		await click(button(t("auth.invitations.heading")))
@@ -257,12 +258,25 @@ describe("UsersPage", () => {
 
 	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
-		roles = [{ id: "default", name: "Default", permissions: ["agents:manage"], memberCount: 0 }]
+		roles = [{ id: "default", name: "Default", permissions: ["ai_provider:manage"], memberCount: 0 }]
 		await renderPage()
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+	})
+	test("does not preselect or allow an invitation role with inaccessible agent grants", async () => {
+		myPermissions = ["users:read", "users:manage", "roles:manage"]
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		rolesResponse = Promise.resolve(json({ roles, manageableRoleIds: [] }))
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
 	})
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]

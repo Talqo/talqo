@@ -83,7 +83,13 @@ export function EditUserRolesDialog({
 				) : (
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="sr-only">{t("users.editRolesTitle", { username: targetUser.username })}</legend>
-						<RolePicker heldPermissions={heldPermissions} manageableRoleIds={manageableRoleIds} roles={roles} selected={selected} onChange={setSelected} />
+						<RolePicker
+							heldPermissions={heldPermissions}
+							manageableRoleIds={manageableRoleIds}
+							roles={roles}
+							selected={selected}
+							onChange={setSelected}
+						/>
 					</fieldset>
 				)}
 				{locksOut ? (

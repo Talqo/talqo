@@ -45,9 +45,8 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await page.getByRole("button", { name: "Create account" }).click()
 
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await page.getByRole("link", { name: "Agents", exact: true }).click()
-	await expect(page.getByRole("button", { name: "Create agent", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
+	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")

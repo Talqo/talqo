@@ -201,11 +201,11 @@ describe("role management", () => {
 		expect(host.textContent).toContain(t("problems.default-role-delete-not-allowed"))
 		expect(nameInput().disabled).toBe(false)
 		await type(nameInput(), "new starters")
-		await click(permissionSwitch(t("roles.permissionLabels.agentsRead")))
+		await click(permissionSwitch(t("roles.permissionLabels.aiProviderManage")))
 		await save()
 		expect(requests.find(({ method, url }) => method === "PUT" && url === "/api/roles/default")?.body).toEqual({
 			name: "new starters",
-			permissions: ["agents:read"],
+			permissions: ["ai_provider:manage"],
 		})
 	})
 
