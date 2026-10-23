@@ -4,7 +4,7 @@ import { cn } from "@talqo/ui/lib/utils"
 
 const bubbleContentVariants = {
 	default: "tw:bg-primary tw:text-primary-foreground",
-	muted: "tw:bg-muted",
+	muted: "tw:bg-muted tw:text-foreground",
 } as const
 
 type BubbleVariant = keyof typeof bubbleContentVariants

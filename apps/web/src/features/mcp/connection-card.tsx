@@ -98,127 +98,130 @@ export function ConnectionCard({
 	return (
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
-					{/* Green dot means last save found tools. */}
-					<span
-						aria-hidden="true"
-						className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-green-500" : "bg-destructive"}`}
-					/>
-					<span className="truncate">{server.name}</span>
+				<CardTitle>
+					<span className="flex items-center gap-2">
+						<span
+							aria-hidden="true"
+							className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
+						/>
+						<span className="truncate">{server.name}</span>
+					</span>
 				</CardTitle>
 				<p className="text-muted-foreground truncate font-mono text-sm">{connectionSummary(server)}</p>
 			</CardHeader>
-			<CardContent className="space-y-3">
-				<div className="flex items-center justify-between gap-2">
-					<p className="text-muted-foreground text-xs">{t("mcp.toolsAvailable", { toolCount: server.toolCount })}</p>
-					{server.tools.length > 0 && (
-						<Button variant="ghost" size="xs" onClick={() => setExpanded((value) => !value)}>
-							{expanded ? t("mcp.hideTools") : t("mcp.showTools")}
-						</Button>
-					)}
-				</div>
-				{!server.isWorking && (
-					<p role="alert" className="text-destructive text-xs">
-						{t("mcp.unreachable")}
-					</p>
-				)}
-				{expanded && (
-					<fieldset className="space-y-1">
-						<legend className="sr-only">{t("mcp.toolsLegend")}</legend>
-						{server.tools.map((tool) => (
-							<label key={tool.name} className="flex items-center gap-2 text-sm">
-								<Switch
-									checked={tool.enabled}
-									disabled={!canManage}
-									aria-label={tool.name}
-									onCheckedChange={(checked) =>
-										void guard(() =>
-											update.mutateAsync({
-												agentId,
-												serverId: server.id,
-												data: toggledBody(server, tool.name, checked),
-											}),
-										)
-									}
-								/>
-								<span className="truncate">{tool.name}</span>
-							</label>
-						))}
-					</fieldset>
-				)}
-
-				{canManage && (
+			<CardContent>
+				<div className="space-y-3">
 					<div className="flex items-center justify-between gap-2">
-						<Switch
-							checked={!server.isDisabled}
-							disabled={setDisabled.isPending}
-							onCheckedChange={(checked) =>
-								void guard(() =>
-									setDisabled.mutateAsync({
-										agentId,
-										serverId: server.id,
-										action: checked ? "enable" : "disable",
-									}),
-								)
-							}
-							aria-label={t("mcp.enabled")}
-						/>
-						<div className="flex items-center gap-1">
-							<ConnectionDialog key={server.id} agentId={agentId} server={server} />
-							<Button
-								variant="destructive"
-								size="icon-sm"
-								onClick={() => setConfirmOpen(true)}
-								aria-label={t("mcp.remove")}
-							>
-								<Trash2 className="size-4" />
+						<p className="text-muted-foreground text-xs">{t("mcp.toolsAvailable", { toolCount: server.toolCount })}</p>
+						{server.tools.length > 0 && (
+							<Button variant="ghost" size="xs" onClick={() => setExpanded((value) => !value)}>
+								{expanded ? t("mcp.hideTools") : t("mcp.showTools")}
 							</Button>
-						</div>
-					</div>
-				)}
-				{error && (
-					<p role="alert" className="text-destructive text-xs">
-						{error}
-					</p>
-				)}
-
-				<Dialog
-					open={confirmOpen}
-					onOpenChange={(next) => {
-						if (remove.isPending) return
-						setConfirmOpen(next)
-						if (!next) setError(null)
-					}}
-				>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>{t("mcp.removeTitle")}</DialogTitle>
-							<DialogDescription>{t("mcp.removePrompt", { name: server.name })}</DialogDescription>
-						</DialogHeader>
-						{error && (
-							<p role="alert" className="text-destructive text-sm">
-								{error}
-							</p>
 						)}
-						<DialogFooter>
-							<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-								{t("common.cancel")}
-							</Button>
-							<Button
-								variant="destructive"
-								disabled={remove.isPending}
-								onClick={() =>
-									void guard(async () => {
-										await remove.mutateAsync({ agentId, serverId: server.id })
-										setConfirmOpen(false)
-									})
+					</div>
+					{!server.isWorking && (
+						<p role="alert" className="text-destructive text-xs">
+							{t("mcp.unreachable")}
+						</p>
+					)}
+					{expanded && (
+						<fieldset className="space-y-1">
+							<legend className="sr-only">{t("mcp.toolsLegend")}</legend>
+							{server.tools.map((tool) => (
+								<label key={tool.name} className="flex items-center gap-2 text-sm">
+									<Switch
+										checked={tool.enabled}
+										disabled={!canManage}
+										aria-label={tool.name}
+										onCheckedChange={(checked) =>
+											void guard(() =>
+												update.mutateAsync({
+													agentId,
+													serverId: server.id,
+													data: toggledBody(server, tool.name, checked),
+												}),
+											)
+										}
+									/>
+									<span className="truncate">{tool.name}</span>
+								</label>
+							))}
+						</fieldset>
+					)}
+
+					{canManage && (
+						<div className="flex items-center justify-between gap-2">
+							<Switch
+								checked={!server.isDisabled}
+								disabled={setDisabled.isPending}
+								onCheckedChange={(checked) =>
+									void guard(() =>
+										setDisabled.mutateAsync({
+											agentId,
+											serverId: server.id,
+											action: checked ? "enable" : "disable",
+										}),
+									)
 								}
-							>
-								{remove.isPending ? t("mcp.removing") : t("mcp.removeConfirm")}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+								aria-label={t("mcp.enabled")}
+							/>
+							<div className="flex items-center gap-1">
+								<ConnectionDialog key={server.id} agentId={agentId} server={server} />
+								<Button
+									variant="destructive"
+									size="icon-sm"
+									onClick={() => setConfirmOpen(true)}
+									aria-label={t("mcp.remove")}
+								>
+									<Trash2 className="size-4" />
+								</Button>
+							</div>
+						</div>
+					)}
+					{error && (
+						<p role="alert" className="text-destructive text-xs">
+							{error}
+						</p>
+					)}
+
+					<Dialog
+						open={confirmOpen}
+						onOpenChange={(next) => {
+							if (remove.isPending) return
+							setConfirmOpen(next)
+							if (!next) setError(null)
+						}}
+					>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>{t("mcp.removeTitle")}</DialogTitle>
+								<DialogDescription>{t("mcp.removePrompt", { name: server.name })}</DialogDescription>
+							</DialogHeader>
+							{error && (
+								<p role="alert" className="text-destructive text-sm">
+									{error}
+								</p>
+							)}
+							<DialogFooter>
+								<Button variant="outline" onClick={() => setConfirmOpen(false)}>
+									{t("common.cancel")}
+								</Button>
+								<Button
+									variant="destructive"
+									disabled={remove.isPending}
+									onClick={() =>
+										void guard(async () => {
+											await remove.mutateAsync({ agentId, serverId: server.id })
+											setConfirmOpen(false)
+										})
+									}
+								>
+									{remove.isPending ? t("mcp.removing") : t("mcp.removeConfirm")}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+				</div>
 			</CardContent>
 		</Card>
 	)

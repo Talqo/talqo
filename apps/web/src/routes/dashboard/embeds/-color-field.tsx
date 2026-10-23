@@ -33,7 +33,8 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 				<Input
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
-					className="w-28 font-mono"
+					font="mono"
+					className="w-28"
 					aria-label={t("embedSetup.hexValue", { label })}
 					aria-invalid={isHexColor(value) ? undefined : true}
 				/>

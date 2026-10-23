@@ -241,7 +241,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
-		const indicator = host.querySelector<HTMLElement>("[role='status']")
+		const indicator = host.querySelector<HTMLOutputElement>("output")
 		expect(indicator?.textContent).toBe("Agent is responding")
 
 		await act(async () =>
@@ -251,7 +251,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "streaming")],
 			}),
 		)
-		expect(host.querySelectorAll("[role='status']")).toHaveLength(1)
+		expect(host.querySelectorAll("output")).toHaveLength(1)
 
 		await act(async () =>
 			store.setSnapshot({
@@ -260,7 +260,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
 			}),
 		)
-		expect(host.querySelector("[role='status']")).toBeNull()
+		expect(host.querySelector("output")).toBeNull()
 		expect(host.textContent).toContain("Answer")
 	})
 
@@ -376,7 +376,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
-		expect(host.querySelector("[role='dialog']")).not.toBeNull()
+		expect(host.querySelector("dialog[open]")).not.toBeNull()
 		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, isAvailable: false }))
 		expect(host.childElementCount).toBe(0)
 		await act(async () => store.setSnapshot(READY_SNAPSHOT))
@@ -421,7 +421,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
-		const notices = Array.from(host.querySelectorAll<HTMLElement>("p")).filter(
+		const notices = Array.from(host.querySelectorAll<HTMLElement>("[role='alert'], output")).filter(
 			(element) =>
 				element.textContent?.includes("recovery is unavailable") ||
 				element.textContent?.includes("cannot be restored after a reload"),

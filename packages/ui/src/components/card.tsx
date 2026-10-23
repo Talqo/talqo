@@ -1,13 +1,26 @@
 import { cn } from "@talqo/ui/lib/utils"
 import * as React from "react"
 
-function Card({ className, size = "default", ...props }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+const cardVariants = {
+	default: "",
+	elevated: "shadow-sm",
+	interactive: "transition-colors group-hover:bg-muted/50 group-focus-visible:ring-ring",
+	destructive: "ring-destructive",
+} as const
+
+function Card({
+	className,
+	size = "default",
+	variant = "default",
+	...props
+}: React.ComponentProps<"div"> & { size?: "default" | "sm"; variant?: keyof typeof cardVariants }) {
 	return (
 		<div
 			data-slot="card"
 			data-size={size}
 			className={cn(
 				"group/card bg-card text-card-foreground ring-foreground/10 rounded-surface *:[img:first-child]:rounded-t-surface *:[img:last-child]:rounded-b-surface flex flex-col gap-(--card-spacing) overflow-hidden py-(--card-spacing) text-sm ring-1 [--card-spacing:var(--spacing-surface-padding)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] data-[size=sm]:has-data-[slot=card-footer]:pb-0",
+				cardVariants[variant],
 				className,
 			)}
 			{...props}
@@ -35,13 +48,20 @@ type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
 function CardTitle({
 	className,
 	level = 3,
+	size = "default",
 	...props
-}: Omit<React.ComponentProps<"h3">, "ref"> & { level?: HeadingLevel }) {
+}: Omit<React.ComponentProps<"h3">, "ref"> & { level?: HeadingLevel; size?: "default" | "lg" }) {
 	const Heading = `h${level}` as "h3"
 	return (
 		<Heading
 			data-slot="card-title"
-			className={cn("text-base leading-snug font-medium group-data-[size=sm]/card:text-sm", className)}
+			className={cn(
+				"leading-snug",
+				size === "lg"
+					? "text-2xl font-semibold tracking-tight"
+					: "text-base font-medium group-data-[size=sm]/card:text-sm",
+				className,
+			)}
 			{...props}
 		/>
 	)
