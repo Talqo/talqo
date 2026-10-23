@@ -69,11 +69,13 @@ async function click(element: HTMLElement) {
 }
 
 async function chooseObservers() {
-	await click(button(t("agentAccess.addRole")))
-	const item = [...document.querySelectorAll<HTMLElement>("[role=menuitem]")].find(
+	const trigger = host.querySelector<HTMLElement>("[role=combobox]")
+	if (!trigger) throw new Error("Missing role picker")
+	await click(trigger)
+	const item = [...document.querySelectorAll<HTMLElement>("[role=option]")].find(
 		(element) => element.textContent?.trim() === "Observers",
 	)
-	if (!item) throw new Error("Missing Observers menu item")
+	if (!item) throw new Error("Missing Observers option")
 	await click(item)
 }
 
