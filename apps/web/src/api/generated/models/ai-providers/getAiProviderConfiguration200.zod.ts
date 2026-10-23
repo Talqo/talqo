@@ -4,53 +4,34 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const getAiProviderConfiguration200RevisionMin = 0
+export const getAiProviderConfiguration200RevisionMin = 0;
 
-export const getAiProviderConfiguration200TextSettingsMaxOne = 2048
+export const getAiProviderConfiguration200TextSettingsMaxOne = 2048;
 
-export const getAiProviderConfiguration200EmbeddingSettingsMaxOne = 2048
+export const getAiProviderConfiguration200EmbeddingSettingsMaxOne = 2048;
+
 
 export const GetAiProviderConfiguration200 = zod.object({
-	revision: zod.int().min(getAiProviderConfiguration200RevisionMin),
-	health: zod.enum(["unconfigured", "configured", "unusable"]),
-	text: zod
-		.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string(),
-			authMode: zod.enum(["static", "deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200TextSettingsMaxOne)),
-			hasCredentials: zod.boolean(),
-		})
-		.nullable(),
-	embedding: zod
-		.object({
-			providerId: zod.enum([
-				"openai",
-				"anthropic",
-				"google",
-				"mistral",
-				"azure",
-				"amazon-bedrock",
-				"openai-compatible",
-			]),
-			modelId: zod.string(),
-			authMode: zod.enum(["static", "deployment-identity"]),
-			settings: zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200EmbeddingSettingsMaxOne)),
-			hasCredentials: zod.boolean(),
-			credentialSource: zod.enum(["text", "separate", "deployment-identity"]),
-		})
-		.nullable(),
+  "revision": zod.int().min(getAiProviderConfiguration200RevisionMin),
+  "health": zod.enum(['unconfigured', 'configured', 'unusable']),
+  "text": zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string(),
+  "authMode": zod.enum(['static', 'deployment-identity']),
+  "settings": zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200TextSettingsMaxOne)),
+  "hasCredentials": zod.boolean()
+}).nullable(),
+  "embedding": zod.object({
+  "providerId": zod.enum(['openai', 'anthropic', 'google', 'mistral', 'azure', 'amazon-bedrock', 'openai-compatible']),
+  "modelId": zod.string(),
+  "authMode": zod.enum(['static', 'deployment-identity']),
+  "settings": zod.record(zod.string(), zod.string().max(getAiProviderConfiguration200EmbeddingSettingsMaxOne)),
+  "hasCredentials": zod.boolean(),
+  "credentialSource": zod.enum(['text', 'separate', 'deployment-identity'])
+}).nullable()
 })
 
-export type GetAiProviderConfiguration200 = zod.input<typeof GetAiProviderConfiguration200>
-export type GetAiProviderConfiguration200Output = zod.output<typeof GetAiProviderConfiguration200>
+export type GetAiProviderConfiguration200 = zod.input<typeof GetAiProviderConfiguration200>;
+export type GetAiProviderConfiguration200Output = zod.output<typeof GetAiProviderConfiguration200>;

@@ -8,14 +8,14 @@ import { parseAgentsParam } from "@/features/statistics/agents-search"
 import { AgentFilter } from "@/features/statistics/components/agent-filter"
 import { RangeFilter } from "@/features/statistics/components/range-filter"
 import {
+	type AgentLine,
 	agentLineColor,
 	DailyStatsChart,
+	type StatsCard,
 	StatsCards,
+	type StatsMetric,
 	statsMetricKeys,
 	useCompactNumber,
-	type AgentLine,
-	type StatsCard,
-	type StatsMetric,
 } from "@/features/statistics/components/stats-charts"
 import { toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-stats"
 import { DEFAULT_STATS_DAYS, parseDaysParam, type StatsDays } from "@/features/statistics/ranges"

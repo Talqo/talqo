@@ -3,7 +3,7 @@ import type { UpdateMcpServerBody } from "@/api/generated/models/mcp/updateMcpSe
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 
-import { toEnvRecord, type EnvVariable } from "@/features/mcp/mcp-env-variables"
+import { type EnvVariable, toEnvRecord } from "@/features/mcp/mcp-env-variables"
 
 /** Mirrors the API's MCP_SERVER_NAME_MAX_LENGTH; the server rejects anything beyond it. */
 export const MCP_SERVER_NAME_LIMIT = 80
@@ -71,12 +71,7 @@ export const EMPTY_DRAFT: ConnectionDraft = {
 }
 
 export type DraftReason =
-	| "nameRequired"
-	| "nameAscii"
-	| "nameTooLong"
-	| "addressRequired"
-	| "commandRequired"
-	| "secretRequired"
+	"nameRequired" | "nameAscii" | "nameTooLong" | "addressRequired" | "commandRequired" | "secretRequired"
 
 type StoredSecrets = { env: { name: string }[]; headers: { name: string }[] }
 

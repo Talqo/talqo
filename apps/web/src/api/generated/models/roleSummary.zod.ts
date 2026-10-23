@@ -4,12 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const RoleSummary = zod.object({
-	id: zod.string(),
-	name: zod.string(),
-})
+  "id": zod.string(),
+  "name": zod.string()
+});
 
-export type RoleSummary = zod.input<typeof RoleSummary>
-export type RoleSummaryOutput = zod.output<typeof RoleSummary>
+export type RoleSummary = zod.input<typeof RoleSummary>;
+export type RoleSummaryOutput = zod.output<typeof RoleSummary>;

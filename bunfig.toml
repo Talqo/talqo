@@ -1,5 +1,5 @@
 [install]
-globalStore = false # TODO: Enable after https://github.com/oven-sh/bun/issues/36795 is fixed.
+globalStore = true
 linker = "isolated"
 minimumReleaseAge = 86400
 
@@ -8,3 +8,25 @@ bun = true
 
 [test]
 pathIgnorePatterns = ["apps/e2e/**"]
+
+[fmt]
+printWidth = 120
+semi = false
+singleQuote = false
+trailingComma = "all"
+useTabs = true
+endOfLine = "lf"
+ignorePatterns = ["**/*.md", "**/.source/**", "**/routeTree.gen.ts", "**/generated/**", "apps/api/openapi.json"]
+
+[fmt.sortImports]
+groups = [
+	["type-builtin", "type-external", "type-internal"],
+	["builtin", "external", "internal"],
+	["type-parent", "type-sibling", "type-index"],
+	["parent", "sibling", "index"],
+	"style",
+	"unknown",
+]
+
+[fmt.sortTailwindcss]
+functions = ["cn", "clsx", "twMerge"]

@@ -4,11 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const GetSetupStatus200 = zod.object({
-	needsSetup: zod.boolean(),
+  "needsSetup": zod.boolean()
 })
 
-export type GetSetupStatus200 = zod.input<typeof GetSetupStatus200>
-export type GetSetupStatus200Output = zod.output<typeof GetSetupStatus200>
+export type GetSetupStatus200 = zod.input<typeof GetSetupStatus200>;
+export type GetSetupStatus200Output = zod.output<typeof GetSetupStatus200>;

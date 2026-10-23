@@ -12,12 +12,12 @@
 		"build": "turbo run build",
 		"ci": "bun run --sequential actions:check contracts:check quality knip i18n typecheck test build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated packages/sdk/src/generated | grep .",
-		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x oxfmt apps/api/openapi.json && bun x orval --config orval.config.ts --fail-on-warnings && bun x oxfmt apps/web/src/api/generated packages/sdk/src/generated",
+		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x orval --config orval.config.ts --fail-on-warnings",
 		"dev": "bun scripts/dev.ts",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",
 		"e2e": "turbo run e2e --output-logs=errors-only",
-		"format": "oxfmt --check",
-		"format:fix": "oxfmt .",
+		"format": "bun fmt --check",
+		"format:fix": "bun fmt",
 		"i18n": "turbo run i18n --output-logs=errors-only",
 		"i18n:fix": "turbo run i18n:fix --output-logs=errors-only",
 		"knip": "knip --cache --cache-location .cache/knip",
@@ -43,10 +43,9 @@
 		"husky": "^9.1.7",
 		"knip": "6.41.0",
 		"orval": "8.43.0",
-		"oxfmt": "0.73.0",
 		"oxlint": "1.88.0",
 		"oxlint-tsgolint": "^7.0.2004",
 		"turbo": "2.11.9"
 	},
-	"packageManager": "bun@1.4.3"
+	"packageManager": "bun@1.4.4"
 }

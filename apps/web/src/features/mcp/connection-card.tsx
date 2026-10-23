@@ -2,9 +2,9 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import {
 	type DeleteMcpServerMutationError,
+	getListMcpServersQueryKey,
 	type ListMcpServersQueryResult,
 	type UpdateMcpServerMutationError,
-	getListMcpServersQueryKey,
 	useDeleteMcpServer,
 	useSetMcpServerDisabled,
 	useUpdateMcpServer,

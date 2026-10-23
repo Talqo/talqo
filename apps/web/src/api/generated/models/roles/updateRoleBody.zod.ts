@@ -4,28 +4,17 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const updateRoleBodyNameMax = 64
+export const updateRoleBodyNameMax = 64;
 
-export const updateRoleBodyPermissionsMax = 7
+export const updateRoleBodyPermissionsMax = 7;
+
 
 export const UpdateRoleBody = zod.object({
-	name: zod.string().min(1).max(updateRoleBodyNameMax),
-	permissions: zod
-		.array(
-			zod.enum([
-				"users:read",
-				"users:manage",
-				"roles:manage",
-				"ai_provider:manage",
-				"agents:read",
-				"agents:manage",
-				"conversations:read",
-			]),
-		)
-		.max(updateRoleBodyPermissionsMax),
+  "name": zod.string().min(1).max(updateRoleBodyNameMax),
+  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:read', 'agents:manage', 'conversations:read'])).max(updateRoleBodyPermissionsMax)
 })
 
-export type UpdateRoleBody = zod.input<typeof UpdateRoleBody>
-export type UpdateRoleBodyOutput = zod.output<typeof UpdateRoleBody>
+export type UpdateRoleBody = zod.input<typeof UpdateRoleBody>;
+export type UpdateRoleBodyOutput = zod.output<typeof UpdateRoleBody>;

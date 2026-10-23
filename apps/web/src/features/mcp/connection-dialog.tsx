@@ -4,12 +4,12 @@ import { getListMcpServersQueryKey, useCreateMcpServer, useUpdateMcpServer } fro
 import { McpArgumentsEditor } from "@/features/mcp/components/mcp-arguments-editor"
 import { McpEnvEditor } from "@/features/mcp/components/mcp-env-editor"
 import {
+	type ConnectionDraft,
+	type DraftReason,
 	EMPTY_DRAFT,
 	MCP_SERVER_NAME_LIMIT,
 	toCreateBody,
 	toEditBody,
-	type ConnectionDraft,
-	type DraftReason,
 } from "@/features/mcp/connection-body"
 import { Button } from "@talqo/ui/components/button"
 import {

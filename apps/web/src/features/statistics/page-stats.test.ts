@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { toAgentDailyPoints, toSelectedStats, type StatsOverview } from "./page-stats"
+import { type StatsOverview, toAgentDailyPoints, toSelectedStats } from "./page-stats"
 
 function overview(overrides?: Partial<StatsOverview>): StatsOverview {
 	return {

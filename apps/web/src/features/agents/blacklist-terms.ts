@@ -1,8 +1,7 @@
 export const BLACKLIST_TERM_LIMIT = 100
 
 export type AddTermResult =
-	| { ok: true; term: string; terms: string[] }
-	| { ok: false; reason: "duplicate" | "empty" | "limit" }
+	{ ok: true; term: string; terms: string[] } | { ok: false; reason: "duplicate" | "empty" | "limit" }
 
 export function addBlacklistTerm(terms: string[], input: string): AddTermResult {
 	const term = input.trim()

@@ -11,7 +11,7 @@ import {
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
-import { resetPasswordSchema, type ResetPasswordFormValues } from "@/features/authentication/change-password-schema.ts"
+import { type ResetPasswordFormValues, resetPasswordSchema } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl } from "@/features/authentication/invitation.ts"
 import { AccessDenied } from "@/features/permissions/components/access-denied"

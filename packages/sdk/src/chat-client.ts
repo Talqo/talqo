@@ -12,11 +12,11 @@ import type {
 import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
 import {
 	CHAT_STORAGE_VERSION,
+	type ChatStorageRecord,
 	createChatStorageKey,
 	createMemoryStorage,
 	createResilientStorage,
 	readChatStorageRecord,
-	type ChatStorageRecord,
 } from "./storage.ts"
 
 const ONE_SECOND_MS = 1_000
