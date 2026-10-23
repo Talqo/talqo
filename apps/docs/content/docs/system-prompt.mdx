@@ -1,0 +1,42 @@
+---
+title: Writing a system prompt
+description: Shape how the agent answers on your website.
+---
+
+The system prompt is the standing instruction the agent follows in every chat. The agent knows nothing about your business except what you give it here, in [knowledge files](/knowledge-base), and through tools. Changes take effect on the next message.
+
+## What is already built in
+
+Talqo adds its own rules before your text. The agent already stays on the topic of your business, declines unrelated requests, avoids recommending competitors, and promises only actions its tools can perform. Your prompt cannot switch these rules off, so build on them instead of repeating or fighting them.
+
+## What to put in yours
+
+- Who the agent is and how it should sound, such as formality and language.
+- What it should help with first, in order of importance.
+- Policies it must follow exactly, such as return conditions or delivery times.
+- How to hand off what it cannot solve, such as a contact address or opening hours.
+
+Concrete rules beat general ones. "If a visitor asks about a damaged delivery, ask for the order number and give the claims address" works better than "be helpful with complaints."
+
+## Keep it short
+
+The prompt is sent with every message and counts toward token usage on every model call. A long prompt costs more per reply and leaves less room for the conversation itself. Move reference material into [knowledge files](/knowledge-base) instead; the agent pulls from those only when relevant.
+
+Do not use the prompt for words that must never appear in replies. An instruction can be reasoned around; the agent's word blacklist blocks such replies outright.
+
+## An example
+
+A complete prompt can stay this small:
+
+```text
+You are the support assistant of Fernhill, an outdoor gear shop.
+
+Answer in the visitor's language. Be brief and friendly. Base product
+and policy answers on the knowledge files; if they do not cover a
+question, say so instead of guessing.
+
+If you cannot resolve a request, point the visitor to
+support@fernhill.example or +44 20 7946 0958 (Mon–Fri, 9:00–17:00).
+```
+
+Notice what it leaves out: staying on topic, politeness to rude visitors, and not selling competitor products are already covered by the built-in rules, so repeating them here would only add tokens to every message.

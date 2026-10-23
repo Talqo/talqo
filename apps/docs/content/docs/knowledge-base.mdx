@@ -1,0 +1,22 @@
+---
+title: Knowledge files
+description: Let an agent answer from your own documents.
+---
+
+An agent answers from the knowledge files you upload, alongside its system prompt and tools. It never loads a whole file into a chat. For each question it pulls in only the few best-matching excerpts, at most five per message, and ignores them when they do not fit the question.
+
+## Processing takes time
+
+Uploads are prepared in the background. A file reaches answers only once it shows as ready; before that the agent answers without it. The first document on a fresh installation takes the longest, because the converter loads its models on first use.
+
+If preparation fails, the file stays in place and the agent keeps answering from the rest. Once the cause is fixed, retry the file.
+
+## Answers follow the AI configuration
+
+Files are prepared with the embedding model from your [AI provider configuration](/ai-provider-configuration). Switching the embedding model re-processes every file, and each file returns to answers only as it becomes ready again.
+
+If the embedding provider stops working, new uploads wait or fail and the agent answers without them. Visitors see nothing of this, so check file statuses after changing AI settings.
+
+## What visitors can learn from files
+
+Retrieved excerpts become part of the model input, so answers from large files add to token usage. Visitors cannot download your files from the chat, but the agent may quote or paraphrase what it retrieves. Upload nothing visitors must never read.
