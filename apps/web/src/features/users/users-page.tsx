@@ -50,15 +50,7 @@ const NOT_FOUND_STATUS = 404
 
 type ListedUser = { id: string; username: string }
 
-function ResetPasswordDialog({
-	disabled,
-	onReset,
-	targetUser,
-}: {
-	disabled: boolean
-	onReset: (userId: string) => void
-	targetUser: ListedUser
-}) {
+function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string) => void; targetUser: ListedUser }) {
 	const { t } = useTranslation()
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -112,9 +104,7 @@ function ResetPasswordDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" disabled={disabled} />}>
-				{t("users.resetPassword")}
-			</DialogTrigger>
+			<DialogTrigger render={<Button variant="outline" />}>{t("users.resetPassword")}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{t("users.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
@@ -326,14 +316,10 @@ function UsersList({ held }: { held: readonly string[] }) {
 									{canManageUsers && exceedsOperator ? (
 										<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
 									) : null}
-									{canManageUsers && !exceedsOperator ? (
+									{canManageUsers && !exceedsOperator && user.id !== currentUserId ? (
 										<>
-											<ResetPasswordDialog
-												targetUser={user}
-												disabled={user.id === currentUserId}
-												onReset={handleReset}
-											/>
-											{user.id !== currentUserId ? <DeleteUserDialog targetUser={user} onDeleted={handleDeleted} /> : null}
+											<ResetPasswordDialog targetUser={user} onReset={handleReset} />
+											<DeleteUserDialog targetUser={user} onDeleted={handleDeleted} />
 										</>
 									) : null}
 								</div>

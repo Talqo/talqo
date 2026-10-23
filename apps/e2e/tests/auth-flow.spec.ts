@@ -94,7 +94,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await expect(page).toHaveURL("/dashboard/users")
 
 	const adminRow = page.locator("[data-slot=card]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Reset password" })).toBeDisabled()
+	await expect(adminRow.getByRole("button", { name: "Reset password" })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
 	await expect(memberRow.getByText("Pending password change")).toHaveCount(0)
