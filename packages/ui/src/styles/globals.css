@@ -24,6 +24,7 @@
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
+	--color-success: var(--success);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);
@@ -134,6 +135,7 @@
 	--accent: var(--color-green-50);
 	--accent-foreground: var(--color-green-900);
 	--destructive: var(--color-red-600);
+	--success: var(--color-green-500);
 	--destructive-foreground: var(--color-neutral-50);
 	--border: var(--color-neutral-200);
 	--input: var(--color-neutral-200);
@@ -170,6 +172,7 @@
 	--accent: var(--color-green-900);
 	--accent-foreground: var(--color-green-50);
 	--destructive: var(--color-red-500);
+	--success: var(--color-green-400);
 	--destructive-foreground: var(--color-neutral-50);
 	--border: var(--color-neutral-800);
 	--input: var(--color-neutral-800);
@@ -190,6 +193,14 @@
 }
 
 @layer base {
+	/* https://ui.shadcn.com/docs/components/base/button#cursor */
+	:is(button, [role="button"], [role="checkbox"], [role="radio"], [role="switch"], [role="tab"], [role="option"]):not(
+		:disabled,
+		[aria-disabled="true"],
+		[data-disabled]
+	) {
+		cursor: pointer;
+	}
 	* {
 		@apply border-border outline-ring/50;
 		scrollbar-color: color-mix(in srgb, var(--muted-foreground) 55%, transparent) transparent;

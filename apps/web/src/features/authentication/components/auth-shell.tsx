@@ -24,9 +24,9 @@ export function AuthShell({ children, description, title }: AuthShellProps) {
 					<span className="bg-primary size-2.5 rounded-full" />
 					<span className="text-lg font-semibold tracking-tight">{t("common.appName")}</span>
 				</div>
-				<Card className="shadow-sm">
+				<Card variant="elevated">
 					<CardHeader className="text-center">
-						<CardTitle level={1} className="text-2xl font-semibold tracking-tight">
+						<CardTitle level={1} size="lg">
 							{title}
 						</CardTitle>
 						{description ? <CardDescription>{description}</CardDescription> : null}

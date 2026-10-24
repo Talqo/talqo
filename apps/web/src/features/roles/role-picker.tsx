@@ -49,8 +49,8 @@ export function RolePicker({
 							}
 						/>
 						<div className="min-w-0 flex-1 space-y-1">
-							<Label htmlFor={id} className="block truncate leading-5" title={role.name}>
-								{role.name}
+							<Label htmlFor={id} className="block" title={role.name}>
+								<span className="block truncate leading-5">{role.name}</span>
 							</Label>
 							{notHeld ? (
 								<p id={`${id}-description`} className="text-muted-foreground text-xs">

@@ -36,11 +36,11 @@ const STATS_REFRESH_MS = 60_000
 const DEFAULT_QUERY_RETRIES = 3
 
 export const Route = createFileRoute("/dashboard/")({
-	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>): { agents?: string[]; days?: StatsDays } => ({
 		agents: parseAgentsParam(search.agents),
 		days: parseDaysParam(search.days),
 	}),
+	beforeLoad: requirePermission("agents:read"),
 	component: DashboardIndexPage,
 })
 

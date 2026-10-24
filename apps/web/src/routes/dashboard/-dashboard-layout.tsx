@@ -86,9 +86,7 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	return (
 		<nav className={className}>
 			{query.isPending ? (
-				<p role="status" className="text-muted-foreground px-3 text-sm">
-					{t("auth.loading")}
-				</p>
+				<output className="text-muted-foreground block px-3 text-sm">{t("auth.loading")}</output>
 			) : query.isError ? (
 				<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
 			) : (

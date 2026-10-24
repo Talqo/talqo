@@ -73,14 +73,16 @@ export function RolesPage() {
 							className="group rounded-surface focus-visible:ring-ring block outline-none focus-visible:ring-2"
 							data-role-id={role.id}
 						>
-							<Card className="group-hover:bg-muted/50 transition-colors">
-								<CardContent className="flex flex-wrap items-center justify-between gap-2">
-									<span className="min-w-0 flex-1 truncate font-medium" title={role.name}>
-										{role.name}
-									</span>
-									<span className="text-muted-foreground shrink-0 text-sm">
-										{t("roles.members", { people: role.memberCount })}
-									</span>
+							<Card variant="interactive">
+								<CardContent>
+									<div className="flex flex-wrap items-center justify-between gap-2">
+										<span className="min-w-0 flex-1 truncate font-medium" title={role.name}>
+											{role.name}
+										</span>
+										<span className="text-muted-foreground shrink-0 text-sm">
+											{t("roles.members", { people: role.memberCount })}
+										</span>
+									</div>
 								</CardContent>
 							</Card>
 						</Link>

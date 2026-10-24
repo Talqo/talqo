@@ -41,9 +41,7 @@ export function ConversationPage({
 			</Button>
 
 			{query.isPending ? (
-				<p className="text-muted-foreground" role="status">
-					{t("conversations.loadingTranscript")}
-				</p>
+				<output className="text-muted-foreground block">{t("conversations.loadingTranscript")}</output>
 			) : !conversation || notFound ? (
 				<ProblemAlert error={query.error} onRetry={notFound ? undefined : () => void query.refetch()} />
 			) : (

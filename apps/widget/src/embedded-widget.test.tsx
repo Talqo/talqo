@@ -148,7 +148,7 @@ describe("EmbeddedWidget resize", () => {
 	let root: Root
 
 	function panel(): HTMLElement | null {
-		return host.querySelector('[role="dialog"]')
+		return host.querySelector("dialog[open]")
 	}
 
 	function launcher(): HTMLButtonElement {
