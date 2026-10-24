@@ -11,17 +11,9 @@ force_streaming_custom_llm_provider = "openai"
 
 [pr_reviewer]
 inline_key_issues = true
-publish_output_no_suggestions = false
-review_heading = "Code review"
-require_tests_review = false
-require_security_review = false
-require_ticket_analysis_review = false
 require_estimate_effort_to_review = false
 enable_review_labels_effort = false
-enable_review_labels_security = false
 extra_instructions = """
-- Report concrete issues introduced by this PR as key issues with precise file and line anchors, including bugs, regressions, and security vulnerabilities. Explain the trigger and impact; do not generate replacement code or patch suggestions.
-- Omit generic risks, review guidance, praise, and speculative findings. Return no key issues when none are supported by the code.
 - Flag code that duplicates existing project utilities or established library functions; name the alternative when known.
 - Suggest simpler code when it preserves behavior and removes unnecessary abstractions, options, or duplicated logic.
 - Flag comments and docstrings that restate the code, narrate steps, or record changes; remove them rather than reword them. Keep only non-obvious rationale. Prefer one line, at most two unless correctness requires more.
