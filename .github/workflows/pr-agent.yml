@@ -9,10 +9,6 @@ on: # zizmor: ignore[dangerous-triggers] API-only; no PR code execution.
 permissions:
   contents: read
 
-concurrency:
-  group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
-
 jobs:
   review:
     if: >-
@@ -25,6 +21,10 @@ jobs:
       startsWith(github.event.comment.body, '/improve') ||
       startsWith(github.event.comment.body, '/describe'))))
     runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    concurrency:
+      group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: true
     permissions:
       contents: read
       issues: write
