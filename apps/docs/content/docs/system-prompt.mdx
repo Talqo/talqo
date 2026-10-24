@@ -22,7 +22,7 @@ Concrete rules beat general ones. "If a visitor asks about a damaged delivery, a
 
 The prompt is sent with every message and counts toward token usage on every model call. A long prompt costs more per reply and leaves less room for the conversation itself. Move reference material into [knowledge files](/knowledge-base) instead; the agent pulls from those only when relevant.
 
-Do not use the prompt for words that must never appear in replies. An instruction can be reasoned around; the agent's word blacklist blocks such replies outright.
+Words that must never appear in replies belong in the agent's word blacklist, which blocks such replies outright. A prompt instruction can be reasoned around, so do not try to build that list in the prompt.
 
 ## An example
 
