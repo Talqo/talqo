@@ -1,6 +1,4 @@
 # End-To-End Tests
 
-- Test critical journeys through the real web app and API.
-- Use the API-owned shared development seed as the isolated-database baseline; create and clean up journey-specific records in the owning spec.
-- Mock only external providers; never use fixed sleeps.
-- Add auth setup or page objects only after repeated use.
+- AI configuration is installation-wide. Workers must not share an API or database.
+- Never change seeded accounts. Create disposable accounts for tests that change passwords or roles.

@@ -11,7 +11,7 @@ import { MAX_FILE_SIZE_BYTES } from "./knowledge-base.service.ts"
 
 const LARGE_UPLOAD_BYTES = 300_000
 
-// Set by scripts/test-integration.ts; integration tests must not fall back to a directory inside src/.
+// Integration uploads must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
 

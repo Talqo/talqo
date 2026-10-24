@@ -2,6 +2,27 @@
 	"$schema": "https://turborepo.com/schema.json",
 	"agentGuidance": false,
 	"tasks": {
+		"@talqo/api#dev:setup": {
+			"cache": false,
+			"passThroughEnv": ["APP_SECRET", "DATABASE_URL", "TALQO_*"]
+		},
+		"@talqo/api#dev": {
+			"cache": false,
+			"persistent": true,
+			"dependsOn": ["dev:setup"],
+			"passThroughEnv": ["APP_SECRET", "DATABASE_URL", "NODE_ENV", "TALQO_*"]
+		},
+		"@talqo/web#dev": {
+			"cache": false,
+			"persistent": true,
+			"with": ["@talqo/api#dev", "@talqo/widget#dev"],
+			"passThroughEnv": ["TALQO_API_PORT", "TALQO_WEB_PORT", "TALQO_WIDGET_PORT", "VITE_WIDGET_*"]
+		},
+		"@talqo/widget#dev": {
+			"cache": false,
+			"persistent": true,
+			"passThroughEnv": ["TALQO_API_PORT", "TALQO_WIDGET_PORT", "VITE_WIDGET_*"]
+		},
 		"//#format": {},
 		"//#format:fix": {
 			"cache": false,
@@ -17,37 +38,19 @@
 		},
 		"dev": {
 			"cache": false,
-			"passThroughEnv": [
-				"APP_SECRET",
-				"DATABASE_URL",
-				"NODE_ENV",
-				"TALQO_API_PORT",
-				"TALQO_DOCLING_URL",
-				"TALQO_CHAT_DAILY_MESSAGE_LIMIT",
-				"TALQO_CHAT_MAX_CONCURRENT_GENERATIONS_PER_IP",
-				"TALQO_TRUSTED_PROXY_CIDRS",
-				"TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH",
-				"TALQO_CHAT_MAX_INPUT_CHARACTERS",
-				"TALQO_CHAT_MAX_OUTPUT_TOKENS",
-				"TALQO_CHAT_GENERATION_TIMEOUT_SECONDS",
-				"TALQO_WEB_PORT",
-				"TALQO_WIDGET_PORT",
-				"VITE_WIDGET_CDN_URL",
-				"VITE_WIDGET_DEMO_API_URL",
-				"VITE_WIDGET_PREVIEW_URL"
-			],
 			"persistent": true
 		},
 		"e2e": {
 			"cache": false,
-			"dependsOn": ["@talqo/widget#build"]
+			"dependsOn": ["@talqo/widget#build", "@talqo/web#build"]
 		},
 		"test": {
 			"dependsOn": ["transit"],
 			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
 		},
 		"test:integration": {
-			"cache": false
+			"cache": false,
+			"passThroughEnv": ["TALQO_TEST_WORKERS", "DOCKER_*", "TMPDIR"]
 		},
 		"typecheck": {
 			"dependsOn": ["transit"],

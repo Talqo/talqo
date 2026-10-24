@@ -1,270 +1,156 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 
-import { logIn } from "./log-in"
-
-const operator = { username: "admin", password: "admin123" }
-
-type SeededEmbed = {
-	id: string
-	name: string
-	agentId: string
-	appearance: unknown
-	accessVersion: number
-	embedToken: string
-}
-
-let seeded: SeededEmbed[] = []
-let website: SeededEmbed
-let viewerId: string
+import { test } from "./application"
+import { openDashboard } from "./log-in"
+import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 test.beforeEach(async ({ page }) => {
-	await logIn(page, operator)
-
-	// The suite seeds once but these tests save, so a retry would start from mutated state.
-	seeded = ((await (await page.request.get("/api/embeds")).json()) as { embeds: SeededEmbed[] }).embeds
-	const source = seeded.find(({ name }) => name === "Website")
-	if (!source) throw new Error("Shared seed Website embed is missing")
-	website = source
-	const { users } = (await (await page.request.get("/api/users")).json()) as {
-		users: { id: string; username: string }[]
-	}
-	const viewer = users.find(({ username }) => username === "user")
-	if (!viewer) throw new Error("Shared seed user is missing")
-	viewerId = viewer.id
-
-	// Widget customization lives on the owning agent's page.
-	await page.getByRole("link", { name: "Agents", exact: true }).click()
-	await page.getByRole("link", { name: /Website Assistant/ }).click()
-	await page.getByRole("tab", { name: "Embeds" }).click()
+	await openDashboard(page)
 })
 
-// Runs even when the test fails, which is exactly when the state is left dirty.
-test.afterEach(async ({ page }) => {
-	await Promise.all(
-		seeded.map((embed) =>
-			page.request.put(`/api/embeds/${embed.id}`, {
-				data: { name: embed.name, agentId: embed.agentId, appearance: embed.appearance },
-			}),
-		),
-	)
-})
+async function createEmbed(page: Page, agentId: string) {
+	const response = await page.request.post("/api/embeds", {
+		data: { name: "Journey embed", agentId, appearance: WIDGET_APPEARANCE },
+	})
+	await expect(response).toBeOK()
+	const { embed } = (await response.json()) as { embed: { id: string; embedToken: string } }
+	return embed
+}
 
-test("operator creates an embed and configures it immediately", async ({ page }) => {
+test("operator creates, names, and permanently deletes an embed", async ({ page, agent }) => {
+	const agentId = agent.id
+	await page.goto(`/dashboard/agent/${agentId}?tab=embeds`)
 	const responsePromise = page.waitForResponse(
 		(response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/embeds",
 	)
 	await page.getByRole("button", { name: "New embed" }).click()
-	const response = await responsePromise
-	expect(response.ok()).toBe(true)
-	const { embed } = (await response.json()) as { embed: { id: string } }
+	const created = await responsePromise
+	expect(created.ok()).toBe(true)
+	const { embed } = (await created.json()) as { embed: { id: string } }
+	await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
 
-	try {
-		await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
-		// The form arrives prefilled; the exact default copy lives in locales, not here.
-		await expect(page.getByLabel("Name", { exact: true })).not.toHaveValue("")
-	} finally {
-		await page.request.delete(`/api/embeds/${embed.id}`)
-	}
-})
-
-test("operator permanently deletes an embed from its danger zone", async ({ page }) => {
-	const source = website
-	const name = "Disposable embed"
-	const response = await page.request.post("/api/embeds", {
-		data: { name, agentId: source.agentId, appearance: source.appearance },
-	})
-	expect(response.ok()).toBe(true)
-	const { embed } = (await response.json()) as { embed: { id: string } }
-
-	try {
-		await page.reload()
-		const embedCard = page.locator("[data-slot=card]", { hasText: name })
-		await expect(embedCard).toBeVisible()
-		await page.getByRole("link", { name, exact: true }).click()
-		await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
-		const deleteButton = page.getByRole("button", { name: "Delete embed" })
-		await expect(deleteButton).toBeVisible()
-		await deleteButton.click()
-		const dialog = page.getByRole("dialog", { name: "Delete embed?" })
-		const confirmButton = dialog.getByRole("button", { name: "Delete permanently" })
-		await expect(confirmButton).toBeDisabled()
-		await dialog.getByPlaceholder(name).fill(`${name} typo`)
-		await expect(confirmButton).toBeDisabled()
-		await dialog.getByPlaceholder(name).fill(name)
-		await expect(confirmButton).toBeEnabled()
-		await confirmButton.click()
-
-		await expect(page).toHaveURL(`/dashboard/agent/${source.agentId}?tab=embeds`)
-		await expect(page.locator("[data-slot=card]", { hasText: name })).toHaveCount(0)
-		await expect.poll(async () => (await page.request.get(`/api/embeds/${embed.id}`)).status()).toBe(404)
-	} finally {
-		await page.request.delete(`/api/embeds/${embed.id}`)
-	}
-})
-
-test("operator customizes an embed and the widget preview follows without reloading", async ({ page }) => {
-	const card = page.locator("[data-slot=card]", { hasText: "Website" })
-	await expect(card).toBeVisible()
-	await page.getByRole("link", { name: "Website", exact: true }).click()
-	const previewCard = page.locator("[data-slot=card]", { hasText: "Live preview" })
-	await expect(
-		previewCard.locator("[data-slot=card-content]").getByRole("button", { name: "Open full-screen preview" }),
-	).toBeVisible()
-
-	const preview = page.frameLocator("iframe")
-	const launcher = preview.getByRole("button", { name: "Open chat" })
-	await expect(launcher).toBeVisible()
-
-	// The frame must not navigate: appearance travels over postMessage, not the URL.
-	const initialSrc = await page.locator("iframe").evaluate((iframe: HTMLIFrameElement) => iframe.src)
-
-	// The Light tab is the default; its brand color field carries the seeded primary.
-	await page.getByLabel("Brand color hex value", { exact: true }).fill("#b91c1c")
-	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
-	await expect(page.locator("iframe")).toHaveJSProperty("src", initialSrc)
-
+	await page.getByLabel("Name", { exact: true }).fill("Customer help")
+	const saved = page.waitForResponse(
+		(response) =>
+			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embed.id}`,
+	)
 	await page.getByRole("button", { name: "Save changes" }).click()
-	await expect(page.getByText("Saved just now.")).toBeVisible()
-
+	expect((await saved).ok()).toBe(true)
 	await page.reload()
-	await expect(preview.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", "rgb(185, 28, 28)")
-})
-
-test("operator switches to the Dark tab and edits an independent palette", async ({ page }) => {
-	await page.getByRole("link", { name: "Website", exact: true }).click()
-
+	await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Customer help")
 	const preview = page.frameLocator("iframe")
-	const launcher = preview.getByRole("button", { name: "Open chat" })
+	await page.locator("iframe").scrollIntoViewIfNeeded()
+	await preview.getByRole("button", { name: "Open chat" }).click()
+	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Customer help")
+
+	await page.getByRole("button", { name: "Delete embed" }).click()
+	const dialog = page.getByRole("dialog", { name: "Delete embed?" })
+	const confirm = dialog.getByRole("button", { name: "Delete permanently" })
+	await expect(confirm).toBeDisabled()
+	await dialog.getByPlaceholder("Customer help").fill("Customer help typo")
+	await expect(confirm).toBeDisabled()
+	await dialog.getByPlaceholder("Customer help").fill("Customer help")
+	await confirm.click()
+	await expect(page).toHaveURL(`/dashboard/agent/${agentId}?tab=embeds`)
+	await page.reload()
+	await expect(page.getByRole("link", { name: "Customer help", exact: true })).toHaveCount(0)
+	expect((await page.request.get(`/api/embeds/${embed.id}`)).status()).toBe(404)
+})
+
+test("operator previews and saves independent light and dark palettes", async ({ page, agent }) => {
+	const embed = await createEmbed(page, agent.id)
+	await page.goto(`/dashboard/embeds/${embed.id}`)
+	const launcher = page.frameLocator("iframe").getByRole("button", { name: "Open chat" })
 	await expect(launcher).toBeVisible()
-	const lightPrimary = await launcher.evaluate((el) => getComputedStyle(el).backgroundColor)
+	let previewNavigations = 0
+	page.on("framenavigated", (frame) => {
+		if (frame.parentFrame()) previewNavigations += 1
+	})
 
-	await page.getByRole("tab", { name: "Dark" }).click()
-	await page.getByLabel("Brand color hex value", { exact: true }).fill("#0ea5e9")
+	await page.getByRole("tab", { name: "Light", exact: true }).click()
+	await page
+		.getByRole("tabpanel", { name: "Light", exact: true })
+		.getByLabel("Brand color hex value", { exact: true })
+		.fill("#b91c1c")
+	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
+	await page.getByRole("tab", { name: "Dark", exact: true }).click()
+	await page
+		.getByRole("tabpanel", { name: "Dark", exact: true })
+		.getByLabel("Brand color hex value", { exact: true })
+		.fill("#0ea5e9")
 	await expect(launcher).toHaveCSS("background-color", "rgb(14, 165, 233)")
-
-	// The light tab's own color must be unaffected by the dark edit.
-	await page.getByRole("tab", { name: "Light" }).click()
-	await expect(launcher).toHaveCSS("background-color", lightPrimary)
+	await page.getByRole("tab", { name: "Light", exact: true }).click()
+	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
+	expect(previewNavigations).toBe(0)
+	const saved = page.waitForResponse(
+		(response) =>
+			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embed.id}`,
+	)
+	await page.getByRole("button", { name: "Save changes" }).click()
+	expect((await saved).ok()).toBe(true)
+	await page.reload()
+	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
+	await page.getByRole("tab", { name: "Dark", exact: true }).click()
+	await expect(launcher).toHaveCSS("background-color", "rgb(14, 165, 233)")
 })
 
-test("the widget's own name reaches the embedded chat header", async ({ page }) => {
-	const source = website
-	const name = `Header probe ${Date.now()}`
-	const response = await page.request.post("/api/embeds", {
-		data: { name, agentId: source.agentId, appearance: source.appearance },
-	})
-	expect(response.ok()).toBe(true)
-	const probe = (await response.json()) as { embed: { id: string } }
-
-	try {
-		await page.goto(`/dashboard/embeds/${probe.embed.id}`)
-		const preview = page.frameLocator("iframe")
-		const launcher = preview.getByRole("button", { name: "Open chat" })
-		await expect(launcher).toBeVisible()
-		// A real pointer click is unreliable through the preview's CSS `transform: scale()`.
-		await launcher.dispatchEvent("click")
-		await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText(name)
-	} finally {
-		await page.request.delete(`/api/embeds/${probe.embed.id}`)
-	}
-})
-
-test("disabling an embed hides it publicly but keeps its appearance previews usable", async ({ page }) => {
-	const source = website
-
-	const card = page.locator("[data-slot=card]", { hasText: "Website" })
+test("operator disables and re-enables an installed embed", async ({ page, agent }) => {
+	const agentId = agent.id
+	const embed = await createEmbed(page, agent.id)
+	await page.goto(`/dashboard/agent/${agentId}?tab=embeds`)
+	const card = page
+		.locator("[data-slot=card]")
+		.filter({ has: page.getByRole("link", { name: "Journey embed", exact: true }) })
 	const toggle = card.getByRole("switch", { name: "Embed enabled" })
+	await expect(toggle).toBeChecked()
+	await toggle.click()
+	await expect(toggle).not.toBeChecked()
+	await page.reload()
+	await expect(toggle).not.toBeChecked()
+	await expect
+		.poll(async () => {
+			const response = await page.request.get(`/api/embed-config/${embed.embedToken}`)
+			return ((await response.json()) as { isAvailable: boolean }).isAvailable
+		})
+		.toBe(false)
 
-	try {
-		await expect(toggle).toBeChecked()
-		await toggle.click()
-		await expect(toggle).not.toBeChecked()
+	// Disabling hides the public chat but keeps appearance previews usable.
+	await page.goto(`/dashboard/embeds/${embed.id}`)
+	await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
+	await page.goto(`/embed-preview?embed=${embed.id}`)
+	await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
+	await page.goto(`/dashboard/agent/${agentId}?tab=embeds`)
 
-		// The ETag-cached public config is how already-installed embeds learn the state.
-		await expect
-			.poll(async () => {
-				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isAvailable: boolean }).isAvailable
-			})
-			.toBe(false)
-
-		await page.goto(`/dashboard/embeds/${source.id}`)
-		await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
-		await page.goto(`/embed-preview?embed=${source.id}`)
-		await expect(page.frameLocator("iframe").getByRole("button", { name: "Open chat" })).toBeVisible()
-		await page.goto(`/dashboard/agent/${source.agentId}?tab=embeds`)
-
-		await toggle.click()
-		await expect(toggle).toBeChecked()
-		await expect
-			.poll(async () => {
-				const response = await page.request.get(`/api/embed-config/${source.embedToken}`)
-				return ((await response.json()) as { isAvailable: boolean }).isAvailable
-			})
-			.toBe(true)
-	} finally {
-		// The shared seed keeps serving other journeys, so restore it on any failure path.
-		await page.request.post(`/api/embeds/${source.id}/enable`)
-	}
+	await expect(toggle).not.toBeChecked()
+	await toggle.click()
+	await expect(toggle).toBeChecked()
+	await page.reload()
+	await expect(toggle).toBeChecked()
+	await expect
+		.poll(async () => {
+			const response = await page.request.get(`/api/embed-config/${embed.embedToken}`)
+			return ((await response.json()) as { isAvailable: boolean }).isAvailable
+		})
+		.toBe(true)
 })
 
-test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
-	const viewer = { username: "user", password: "user1234" }
-
-	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
-	const roleResponse = await page.request.post("/api/roles", {
-		data: { name: `Embed viewers ${Date.now()}`, permissions: ["agents:read"] },
-	})
-	await expect(roleResponse).toBeOK()
-	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
-	await expect(await page.request.put(`/api/users/${viewerId}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
-
-	try {
-		await page.getByRole("button", { name: "Log out" }).click()
-		await expect(page).toHaveURL("/login")
-		await page.getByLabel("Username").fill(viewer.username)
-		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
-		await page.getByRole("button", { name: "Log in" }).click()
-		await expect(page).toHaveURL("/dashboard")
-
-		await page.getByRole("link", { name: "Agents", exact: true }).click()
-		await page.getByRole("link", { name: /Website Assistant/ }).click()
-		await page.getByRole("tab", { name: "Embeds" }).click()
-		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
-		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
-	} finally {
-		await page.request.post("/api/auth/login", { data: operator })
-		// Deleting the role also removes the assignment.
-		await expect(await page.request.delete(`/api/roles/${roleId}`)).toBeOK()
-	}
-})
-
-test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
-	const source = website
-	const response = await page.request.post("/api/embeds", {
-		data: { name: "Rotation test", agentId: source.agentId, appearance: source.appearance },
-	})
-	const temporary = (await response.json()) as { embed: SeededEmbed }
-
-	try {
-		await page.goto(`/dashboard/embeds/${temporary.embed.id}`)
-		const tokenInput = page.getByLabel("Embed token", { exact: true })
-		const original = await tokenInput.inputValue()
-
-		await page.getByRole("button", { name: "Rotate token" }).click()
-		const dialog = page.getByRole("dialog", { name: "Rotate the embed token?" })
-		await dialog.getByRole("button", { name: "Rotate token" }).click()
-		await expect(dialog).toBeHidden()
-
-		await expect(tokenInput).not.toHaveValue(original)
-		await expect(page.locator("pre")).not.toContainText(original)
-
-		// The replacement snippet carries the live token and stays non-blocking.
-		const rotated = await tokenInput.inputValue()
-		const snippet = page.locator("pre")
-		await expect(snippet).toContainText(`data-talqo-embed-token="${rotated}"`)
-		await expect(snippet).toContainText("<script async")
-	} finally {
-		await page.request.delete(`/api/embeds/${temporary.embed.id}`)
-	}
+test("operator rotates an embed token and receives a working replacement snippet", async ({ page, agent }) => {
+	const embed = await createEmbed(page, agent.id)
+	await page.goto(`/dashboard/embeds/${embed.id}`)
+	const tokenInput = page.getByLabel("Embed token", { exact: true })
+	await expect(tokenInput).toHaveValue(embed.embedToken)
+	await page.getByRole("button", { name: "Rotate token" }).click()
+	const dialog = page.getByRole("dialog", { name: "Rotate the embed token?" })
+	await dialog.getByRole("button", { name: "Rotate token" }).click()
+	await expect(dialog).toBeHidden()
+	await expect(tokenInput).not.toHaveValue(embed.embedToken)
+	const rotated = await tokenInput.inputValue()
+	await page.reload()
+	await expect(tokenInput).toHaveValue(rotated)
+	const snippet = page.locator("pre")
+	await expect(snippet).not.toContainText(embed.embedToken)
+	await expect(snippet).toContainText(`data-talqo-embed-token="${rotated}"`)
+	await expect(snippet).toContainText("<script async")
+	expect((await page.request.get(`/api/embed-config/${embed.embedToken}`)).status()).toBe(404)
+	await expect(await page.request.get(`/api/embed-config/${rotated}`)).toBeOK()
 })

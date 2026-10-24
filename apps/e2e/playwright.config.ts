@@ -1,25 +1,15 @@
 import { defineConfig, devices } from "@playwright/test"
-
-import { getFreePort } from "./tests/get-free-port"
+import path from "node:path"
 
 const isCI = Boolean(process.env.CI)
 const CI_RETRIES = 2
-const apiPort = process.env.TALQO_API_PORT ?? "3000"
-const webPort = process.env.TALQO_WEB_PORT ?? "4173"
-const widgetPort = process.env.TALQO_WIDGET_PORT ?? String(await getFreePort())
-const providerPort = process.env.E2E_PROVIDER_PORT ?? String(await getFreePort())
-
-const widgetOrigin = process.env.E2E_WIDGET_CDN_URL
-	? new URL(process.env.E2E_WIDGET_CDN_URL).origin
-	: `http://127.0.0.1:${widgetPort}`
-const webOrigin = `http://127.0.0.1:${webPort}`
-
-const widgetPreviewUrl = `${widgetOrigin}/dev-preview.html`
-process.env.E2E_WIDGET_CDN_URL = `${widgetOrigin}/widget.js`
+const ROOT = path.resolve(import.meta.dirname, "../..")
+const postgresContainer = process.env.E2E_POSTGRES_CONTAINER ?? `talqo-e2e-${crypto.randomUUID()}`
+process.env.E2E_POSTGRES_CONTAINER = postgresContainer
 
 export default defineConfig({
 	forbidOnly: isCI,
-	fullyParallel: false,
+	fullyParallel: true,
 	outputDir: "test-results",
 	projects: [
 		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
@@ -29,46 +19,14 @@ export default defineConfig({
 	reporter: isCI ? [["line"], ["html", { open: "never" }]] : "list",
 	retries: isCI ? CI_RETRIES : 0,
 	testDir: "./tests",
-	use: {
-		baseURL: webOrigin,
-		screenshot: "only-on-failure",
-		trace: "on-first-retry",
-		video: "off",
+	timeout: 60_000,
+	use: { screenshot: "only-on-failure", trace: "retain-on-failure" },
+	workers: 4,
+	webServer: {
+		name: "PostgreSQL",
+		command: `exec docker compose --project-name ${postgresContainer} --profile test run --rm --interactive=false --name ${postgresContainer} --service-ports --no-deps postgres-test`,
+		cwd: ROOT,
+		wait: { stderr: /listening on IPv4[\s\S]*database system is ready to accept connections/ },
+		gracefulShutdown: { signal: "SIGINT", timeout: 10_000 },
 	},
-	webServer: [
-		{
-			command: "bun run tests/fake-provider.ts",
-			cwd: ".",
-			reuseExistingServer: false,
-			timeout: 120_000,
-			url: `http://127.0.0.1:${providerPort}/health`,
-		},
-		{
-			command: "bun run dev",
-			cwd: "../api",
-			reuseExistingServer: false,
-			timeout: 120_000,
-			url: `http://127.0.0.1:${apiPort}/health`,
-		},
-		{
-			command: "bun run dev --host 127.0.0.1",
-			cwd: "../widget",
-			env: { TALQO_WIDGET_PORT: new URL(widgetOrigin).port },
-			reuseExistingServer: false,
-			timeout: 120_000,
-			url: widgetOrigin,
-		},
-		{
-			command: `bun run dev --host 127.0.0.1 --port ${webPort}`,
-			cwd: "../web",
-			env: {
-				VITE_WIDGET_CDN_URL: process.env.E2E_WIDGET_CDN_URL,
-				VITE_WIDGET_PREVIEW_URL: widgetPreviewUrl,
-			},
-			reuseExistingServer: false,
-			timeout: 120_000,
-			url: webOrigin,
-		},
-	],
-	workers: 1,
 })
