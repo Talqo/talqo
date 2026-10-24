@@ -46,15 +46,19 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 - Preserve relational normalization. Model relationships with foreign keys and junction tables, not arrays or JSON collections of IDs.
 - If a rule here blocks the task in front of you, say so and get a human decision before breaking it.
 
-Run after changes:
+## Feedback loop
+
+Run only the checks your change can break. CI runs all of them except `e2e` on every pull request.
 
 ```sh
-bun run quality:fix
-bun run typecheck
-bun run test
-bun run test:integration
-bun run e2e
-bun run contracts:check
-bun run i18n:fix         # only if app locales or translated keys changed
-bun run actions:check    # only if .github/workflows changed
+bun run quality:fix      # any edit
+bun run typecheck        # any code edit
+bun run test             # changed behavior or its tests
+bun run test:integration # module, database, service, or route
+bun run contracts:check  # API contract or generated client
+bun run e2e              # web, widget, SDK, or API request handling; never run on PRs
+bun run i18n:fix         # app locales or translated keys
+bun run actions:check    # .github/workflows
 ```
+
+Docs-only changes need no tests.
