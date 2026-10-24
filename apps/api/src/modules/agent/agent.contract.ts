@@ -93,7 +93,7 @@ export const getAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "getAgent",
 	tags: ["Agent"],
-	...access.agent(roles.Permission.AgentRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "One agent" },
@@ -109,7 +109,7 @@ export const updateAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "updateAgent",
 	tags: ["Agent"],
-	...access.agent(roles.Permission.AgentManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: {
 		params: agentParamsSchema,
 		body: { content: { "application/json": { schema: updateAgentRequestSchema } }, required: true },
@@ -131,7 +131,7 @@ export const deleteAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "deleteAgent",
 	tags: ["Agent"],
-	...access.agent(roles.Permission.AgentDelete),
+	...access.agent(roles.AgentPermission.AgentDelete),
 	request: { params: agentParamsSchema },
 	responses: {
 		204: noContentResponse,

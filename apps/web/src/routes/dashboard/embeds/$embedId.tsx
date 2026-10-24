@@ -43,10 +43,10 @@ function isColorSchemeTab(value: unknown): value is ColorSchemeTab {
 }
 
 export const Route = createFileRoute("/dashboard/embeds/$embedId")({
-	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		colorTab: isColorSchemeTab(search.colorTab) ? search.colorTab : undefined,
 	}),
+	beforeLoad: requirePermission("agents:read"),
 	component: EmbedDetailPage,
 })
 

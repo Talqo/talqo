@@ -33,12 +33,15 @@ export const Permission = {
 	UsersManage: "users:manage",
 	RolesManage: "roles:manage",
 	AiProviderManage: "ai_provider:manage",
+} as const satisfies Record<string, Permission>
+
+export const AgentPermission = {
 	AgentRead: "agents:read",
 	AgentManage: "agents:manage",
 	ConversationsRead: "conversations:read",
 	StatsRead: "stats:read",
 	AgentDelete: "agents:delete",
-} as const satisfies Record<string, Permission | AgentPermission>
+} as const satisfies Record<string, AgentPermission>
 
 // "admin" is the first entry only for display stability; it implies every other permission.
 const IMPLIED_BY: Partial<Record<Permission, Permission[]>> = {
@@ -179,7 +182,8 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 
 export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
 	const held = new Set(permissions)
-	if (held.has(Permission.AgentManage) || held.has(Permission.AgentDelete)) held.add(Permission.AgentRead)
+	if (held.has(AgentPermission.AgentManage) || held.has(AgentPermission.AgentDelete))
+		held.add(AgentPermission.AgentRead)
 	return AGENT_PERMISSIONS.filter((permission) => held.has(permission))
 }
 
@@ -254,7 +258,7 @@ export async function listAgentAccess(actorId: string, agentId: string): Promise
 	const permissions = await listAgentPermissions(actorId, agentId)
 	if (permissions.length === 0) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 	const globalPermissions = await listEffectivePermissions(actorId)
-	if (!permissions.includes(Permission.AgentRead) || !globalPermissions.includes(Permission.RolesManage))
+	if (!permissions.includes(AgentPermission.AgentRead) || !globalPermissions.includes(Permission.RolesManage))
 		return { permissions }
 	const [roles, grants] = await Promise.all([repo.findRoles(), repo.findAgentRolePermissions(agentId)])
 	return {
@@ -280,7 +284,7 @@ export async function setAgentAccess(
 		throw new InvalidRoleInputError("Unknown agent permission")
 	await repo.withAccessLock(async () => {
 		await managementPermissions(actorId, Permission.RolesManage)
-		await requireAgentPermission(actorId, agentId, Permission.AgentRead)
+		await requireAgentPermission(actorId, agentId, AgentPermission.AgentRead)
 		await getRole(roleId)
 		const rows = await repo.findAgentRolePermissions(agentId)
 		const before = effectiveAgentPermissions(
@@ -297,8 +301,8 @@ export async function setAgentAccess(
 		)
 		const normalized = permissions.filter(
 			(permission) =>
-				permission !== Permission.AgentRead ||
-				(!permissions.includes(Permission.AgentManage) && !permissions.includes(Permission.AgentDelete)),
+				permission !== AgentPermission.AgentRead ||
+				(!permissions.includes(AgentPermission.AgentManage) && !permissions.includes(AgentPermission.AgentDelete)),
 		)
 		try {
 			await repo.replaceAgentRolePermissions(agentId, roleId, normalized)

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test"
+import assert from "node:assert/strict"
 
 import { logIn } from "./log-in"
 
@@ -124,7 +125,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 			agents: { id: string; name: string }[]
 		}
 		const hidden = agents.find(({ name }) => name === "Product Advisor")
-		if (!hidden) throw new Error("Missing reporting-only agent")
+		assert.ok(hidden, "Missing reporting-only agent")
 		await page.goto(`/dashboard/agent/${hidden.id}`)
 		await expect(page).toHaveURL("/dashboard/agents")
 		await page.getByRole("link", { name: new RegExp(SEEDED_AGENT) }).click()

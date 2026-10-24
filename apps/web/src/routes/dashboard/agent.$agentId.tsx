@@ -52,10 +52,10 @@ function isAgentTab(value: unknown): value is AgentTab {
 }
 
 export const Route = createFileRoute("/dashboard/agent/$agentId")({
-	beforeLoad: requirePermission("agents:read"),
 	validateSearch: (search: Record<string, unknown>) => ({
 		tab: isAgentTab(search.tab) ? search.tab : undefined,
 	}),
+	beforeLoad: requirePermission("agents:read"),
 	component: AgentConfigPage,
 })
 
@@ -208,130 +208,127 @@ function AgentConfigPage() {
 					<TabsTrigger value="embeds">{t("agentConfig.tabEmbeds")}</TabsTrigger>
 					<TabsTrigger value="mcp">{t("agentConfig.tabMcp")}</TabsTrigger>
 				</TabsList>
-				<TabsContent value="configuration" keepMounted className="space-y-6">
-					<Card>
-						<CardHeader>
-							<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
-							{canManage && <CardDescription>{t("agentConfig.cardDescription")}</CardDescription>}
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-								{formError && (
-									<p role="alert" className="text-destructive text-sm">
-										{formError}
-									</p>
-								)}
-								<div className="space-y-2">
-									<Label htmlFor="config-name">{t("agentFields.name")}</Label>
-									<Input
-										id="config-name"
-										placeholder={t("agentFields.namePlaceholder")}
-										readOnly={!canManage}
-										aria-invalid={errors.name ? true : undefined}
-										{...register("name", { onChange: () => setSaved(false) })}
-									/>
-									{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
-									<Textarea
-										id="config-system-prompt"
-										placeholder={t("agentFields.systemPromptPlaceholder")}
-										rows={5}
-										readOnly={!canManage}
-										aria-invalid={errors.systemPrompt ? true : undefined}
-										{...register("systemPrompt", { onChange: () => setSaved(false) })}
-									/>
-									{errors.systemPrompt && (
-										<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
-									)}
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor={canManage ? "config-blacklist" : undefined}>{t("agentFields.wordBlacklist")}</Label>
-									<BlacklistTermsEditor
-										id="config-blacklist"
-										value={terms}
-										onChange={(next) => {
-											setSaved(false)
-											setEditedTerms({ agentId, terms: next })
-										}}
-										disabled={!canManage}
-									/>
-								</div>
-								{canManage && (
-									<div className="flex items-center gap-3 pt-2">
-										<Button type="submit" disabled={updateAgent.isPending}>
-											{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
-										</Button>
-										{saved && (
-											<span role="status" className="text-muted-foreground text-sm">
-												{t("agentConfig.saved")}
-											</span>
-										)}
-									</div>
-								)}
-							</form>
-						</CardContent>
-					</Card>
-					{canManageAccess && permissions && (
-						<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
-					)}
-
-					{canDelete && (
-						// Card outlines come from ring-1, so the red goes on the ring, not a border.
-						<Card className="ring-destructive">
+				<TabsContent value="configuration" keepMounted>
+					<div className="space-y-6">
+						<Card>
 							<CardHeader>
-								<CardTitle>{t("agentConfig.dangerZone")}</CardTitle>
-								<CardDescription>{t("agentConfig.dangerDescription")}</CardDescription>
+								<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
+								{canManage && <CardDescription>{t("agentConfig.cardDescription")}</CardDescription>}
 							</CardHeader>
 							<CardContent>
-								<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-									<Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-										<Trash2 className="size-4" />
-										{t("agentConfig.deleteAgent")}
-									</Button>
-									<DialogContent>
-										<DialogHeader>
-											<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
-											<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>
-										</DialogHeader>
-										{deleteError && (
-											<p role="alert" className="text-destructive text-sm">
-												{deleteError}
-											</p>
+								<form onSubmit={handleSubmit(onValid)} className="space-y-4">
+									{formError && (
+										<p role="alert" className="text-destructive text-sm">
+											{formError}
+										</p>
+									)}
+									<div className="space-y-2">
+										<Label htmlFor="config-name">{t("agentFields.name")}</Label>
+										<Input
+											id="config-name"
+											placeholder={t("agentFields.namePlaceholder")}
+											readOnly={!canManage}
+											aria-invalid={errors.name ? true : undefined}
+											{...register("name", { onChange: () => setSaved(false) })}
+										/>
+										{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
+										<Textarea
+											id="config-system-prompt"
+											placeholder={t("agentFields.systemPromptPlaceholder")}
+											rows={5}
+											readOnly={!canManage}
+											aria-invalid={errors.systemPrompt ? true : undefined}
+											{...register("systemPrompt", { onChange: () => setSaved(false) })}
+										/>
+										{errors.systemPrompt && (
+											<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
 										)}
-										<div className="space-y-2">
-											<Label htmlFor="delete-confirm" className="flex items-center gap-2">
-												<span className="sr-only">{t("agentConfig.confirmLabel", { name: agent.name })}</span>
-											</Label>
-											<Input
-												id="delete-confirm"
-												value={confirmation}
-												onChange={(event) => setConfirmation(event.target.value)}
-												placeholder={agent.name}
-												autoComplete="off"
-											/>
-											<p className="text-muted-foreground text-xs">
-												{t("agentConfig.confirmHelp", { name: agent.name })}
-											</p>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor={canManage ? "config-blacklist" : undefined}>{t("agentFields.wordBlacklist")}</Label>
+										<BlacklistTermsEditor
+											id="config-blacklist"
+											value={terms}
+											onChange={(next) => {
+												setSaved(false)
+												setEditedTerms({ agentId, terms: next })
+											}}
+											disabled={!canManage}
+										/>
+									</div>
+									{canManage && (
+										<div className="flex items-center gap-3 pt-2">
+											<Button type="submit" disabled={updateAgent.isPending}>
+												{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
+											</Button>
+											{saved && <output className="text-muted-foreground text-sm">{t("agentConfig.saved")}</output>}
 										</div>
-										<DialogFooter>
-											<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-												{t("agentConfig.cancel")}
-											</Button>
-											<Button
-												variant="destructive"
-												disabled={confirmation !== agent.name || deleteAgent.isPending}
-												onClick={onConfirmDelete}
-											>
-												{deleteAgent.isPending ? t("agentConfig.deleting") : t("agentConfig.deleteConfirm")}
-											</Button>
-										</DialogFooter>
-									</DialogContent>
-								</Dialog>
+									)}
+								</form>
 							</CardContent>
 						</Card>
-					)}
+						{canManageAccess && permissions && (
+							<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
+						)}
+
+						{canDelete && (
+							<Card variant="destructive">
+								<CardHeader>
+									<CardTitle>{t("agentConfig.dangerZone")}</CardTitle>
+									<CardDescription>{t("agentConfig.dangerDescription")}</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+										<Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+											<Trash2 className="size-4" />
+											{t("agentConfig.deleteAgent")}
+										</Button>
+										<DialogContent>
+											<DialogHeader>
+												<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
+												<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>
+											</DialogHeader>
+											{deleteError && (
+												<p role="alert" className="text-destructive text-sm">
+													{deleteError}
+												</p>
+											)}
+											<div className="space-y-2">
+												<Label htmlFor="delete-confirm">
+													<span className="sr-only">{t("agentConfig.confirmLabel", { name: agent.name })}</span>
+												</Label>
+												<Input
+													id="delete-confirm"
+													value={confirmation}
+													onChange={(event) => setConfirmation(event.target.value)}
+													placeholder={agent.name}
+													autoComplete="off"
+												/>
+												<p className="text-muted-foreground text-xs">
+													{t("agentConfig.confirmHelp", { name: agent.name })}
+												</p>
+											</div>
+											<DialogFooter>
+												<Button variant="outline" onClick={() => setConfirmOpen(false)}>
+													{t("agentConfig.cancel")}
+												</Button>
+												<Button
+													variant="destructive"
+													disabled={confirmation !== agent.name || deleteAgent.isPending}
+													onClick={onConfirmDelete}
+												>
+													{deleteAgent.isPending ? t("agentConfig.deleting") : t("agentConfig.deleteConfirm")}
+												</Button>
+											</DialogFooter>
+										</DialogContent>
+									</Dialog>
+								</CardContent>
+							</Card>
+						)}
+					</div>
 				</TabsContent>
 				<TabsContent value="context">
 					<AgentFilesCard agentId={agentId} canManage={canManage} />
@@ -415,24 +412,26 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 									</Link>
 								</CardTitle>
 							</CardHeader>
-							<CardContent className="space-y-3">
-								<div className="flex items-center justify-between gap-2">
-									<div className="flex items-center gap-1.5" aria-hidden="true">
-										{LIGHT_PALETTE_KEYS.map((key) => (
-											<span
-												key={key}
-												className="size-4 rounded-full border"
-												style={{ backgroundColor: embed.appearance.light[key] }}
-											/>
-										))}
+							<CardContent>
+								<div className="space-y-3">
+									<div className="flex items-center justify-between gap-2">
+										<div className="flex items-center gap-1.5" aria-hidden="true">
+											{LIGHT_PALETTE_KEYS.map((key) => (
+												<span
+													key={key}
+													className="size-4 rounded-full border"
+													style={{ backgroundColor: embed.appearance.light[key] }}
+												/>
+											))}
+										</div>
+										<span className="text-muted-foreground text-sm">
+											{isSupportedLanguage(embed.appearance.language)
+												? supportedLanguages[embed.appearance.language]
+												: embed.appearance.language}
+										</span>
 									</div>
-									<span className="text-muted-foreground text-sm">
-										{isSupportedLanguage(embed.appearance.language)
-											? supportedLanguages[embed.appearance.language]
-											: embed.appearance.language}
-									</span>
+									<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
 								</div>
-								<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
 							</CardContent>
 						</Card>
 					))}

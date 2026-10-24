@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test"
+import assert from "node:assert/strict"
 
 import { logIn } from "./log-in"
 
@@ -48,12 +49,12 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		await page.getByRole("button", { name: "Save changes" }).click()
 		await expect(page.getByText("Changes saved.", { exact: true })).toBeVisible()
 		const roleId = new URL(page.url()).pathname.split("/").pop()
-		if (!roleId) throw new Error("Missing role ID")
+		assert.ok(roleId, "Missing role ID")
 		const { agents } = (await (await page.request.get("/api/agents")).json()) as {
 			agents: { id: string; name: string }[]
 		}
 		const agent = agents.find(({ name }) => name === "Website Assistant")
-		if (!agent) throw new Error("Missing seeded agent")
+		assert.ok(agent, "Missing seeded agent")
 		await expect(
 			await page.request.put(`/api/agents/${agent.id}/access/${roleId}`, { data: { permissions: ["agents:manage"] } }),
 		).toBeOK()

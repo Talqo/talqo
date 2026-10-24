@@ -4,44 +4,40 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const mcpServerToolCountMin = 0
+export const mcpServerToolCountMin = 0;
 
-export const mcpServerRevisionMin = 0
+export const mcpServerRevisionMin = 0;
+
+
 
 export const McpServer = zod.object({
-	id: zod.string(),
-	name: zod.string(),
-	transport: zod.enum(["http", "stdio"]),
-	url: zod.string().nullable(),
-	authMode: zod.union([zod.literal("none"), zod.literal("headers"), zod.literal(null)]).nullable(),
-	command: zod.string().nullable(),
-	args: zod.array(zod.string()),
-	headers: zod.array(
-		zod.object({
-			name: zod.string(),
-			hasValue: zod.boolean(),
-		}),
-	),
-	env: zod.array(
-		zod.object({
-			name: zod.string(),
-			hasValue: zod.boolean(),
-		}),
-	),
-	tools: zod.array(
-		zod.object({
-			name: zod.string(),
-			description: zod.string(),
-			enabled: zod.boolean(),
-		}),
-	),
-	toolCount: zod.int().min(mcpServerToolCountMin),
-	isWorking: zod.boolean(),
-	isDisabled: zod.boolean(),
-	revision: zod.int().min(mcpServerRevisionMin),
-})
+  "id": zod.string(),
+  "name": zod.string(),
+  "transport": zod.enum(['http', 'stdio']),
+  "url": zod.string().nullable(),
+  "authMode": zod.union([zod.literal('none'),zod.literal('headers'),zod.literal(null)]).nullable(),
+  "command": zod.string().nullable(),
+  "args": zod.array(zod.string()),
+  "headers": zod.array(zod.object({
+  "name": zod.string(),
+  "hasValue": zod.boolean()
+})),
+  "env": zod.array(zod.object({
+  "name": zod.string(),
+  "hasValue": zod.boolean()
+})),
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "enabled": zod.boolean()
+})),
+  "toolCount": zod.int().min(mcpServerToolCountMin),
+  "isWorking": zod.boolean(),
+  "isDisabled": zod.boolean(),
+  "revision": zod.int().min(mcpServerRevisionMin)
+});
 
-export type McpServer = zod.input<typeof McpServer>
-export type McpServerOutput = zod.output<typeof McpServer>
+export type McpServer = zod.input<typeof McpServer>;
+export type McpServerOutput = zod.output<typeof McpServer>;

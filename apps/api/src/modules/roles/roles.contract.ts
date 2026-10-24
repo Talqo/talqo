@@ -15,8 +15,8 @@ import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 import {
 	AGENT_PERMISSIONS,
 	GRANTABLE_PERMISSIONS,
-	PERMISSIONS,
 	Permission,
+	PERMISSIONS,
 	ROLE_IDS_MAX,
 	ROLE_NAME_MAX_LENGTH,
 } from "./roles.service.ts"

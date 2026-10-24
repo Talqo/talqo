@@ -4,26 +4,24 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const redeemInvitationBodyTokenMax = 128
+export const redeemInvitationBodyTokenMax = 128;
 
-export const redeemInvitationBodyUsernameMin = 3
-export const redeemInvitationBodyUsernameMax = 32
+export const redeemInvitationBodyUsernameMin = 3;
+export const redeemInvitationBodyUsernameMax = 32;
 
-export const redeemInvitationBodyUsernameRegExp = new RegExp("^[a-zA-Z0-9_-]+$")
-export const redeemInvitationBodyPasswordMin = 8
-export const redeemInvitationBodyPasswordMax = 128
+
+export const redeemInvitationBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_-]+$');
+export const redeemInvitationBodyPasswordMin = 8;
+export const redeemInvitationBodyPasswordMax = 128;
+
 
 export const RedeemInvitationBody = zod.object({
-	token: zod.string().min(1).max(redeemInvitationBodyTokenMax),
-	username: zod
-		.string()
-		.min(redeemInvitationBodyUsernameMin)
-		.max(redeemInvitationBodyUsernameMax)
-		.regex(redeemInvitationBodyUsernameRegExp),
-	password: zod.string().min(redeemInvitationBodyPasswordMin).max(redeemInvitationBodyPasswordMax),
+  "token": zod.string().min(1).max(redeemInvitationBodyTokenMax),
+  "username": zod.string().min(redeemInvitationBodyUsernameMin).max(redeemInvitationBodyUsernameMax).regex(redeemInvitationBodyUsernameRegExp),
+  "password": zod.string().min(redeemInvitationBodyPasswordMin).max(redeemInvitationBodyPasswordMax)
 })
 
-export type RedeemInvitationBody = zod.input<typeof RedeemInvitationBody>
-export type RedeemInvitationBodyOutput = zod.output<typeof RedeemInvitationBody>
+export type RedeemInvitationBody = zod.input<typeof RedeemInvitationBody>;
+export type RedeemInvitationBodyOutput = zod.output<typeof RedeemInvitationBody>;

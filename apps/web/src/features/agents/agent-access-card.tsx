@@ -13,6 +13,15 @@ import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@talqo/ui/components/dialog"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
@@ -63,6 +72,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	const [selectedId, setSelectedId] = useState<string>()
 	const [drafts, setDrafts] = useState<Record<string, Permission[]>>({})
 	const [notice, setNotice] = useState<"saved" | "removed">()
+	const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
 	const roles = query.data?.data.roles ?? []
 	const visible = roles.filter((role) => role.permissions.length > 0 || drafts[role.id] !== undefined)
 	const selected = visible.find((role) => role.id === selectedId) ?? visible[0]
@@ -116,13 +126,14 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	}
 
 	function onRemove(): void {
-		if (!selected || !window.confirm(t("agentAccess.removePrompt", { role: selected.name }))) return
+		if (!selected) return
 		save.reset()
 		setNotice(undefined)
 		remove.mutate(
 			{ agentId, roleId: selected.id },
 			{
 				onSuccess: () => {
+					setConfirmRemoveOpen(false)
 					clearDraft(selected.id)
 					setSelectedId(undefined)
 					setNotice("removed")
@@ -150,168 +161,200 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 			<CardHeader>
 				<CardTitle>{t("agentAccess.title")}</CardTitle>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				{query.isPending ? (
-					<p role="status">{t("roles.loading")}</p>
-				) : query.isError ? (
-					<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
-				) : (
-					<>
-						<div className="flex flex-wrap gap-2" role="group" aria-label={t("agentAccess.roles")}>
-							{visible.map((role) => (
-								<Button
-									key={role.id}
-									variant={selected?.id === role.id ? "default" : "outline"}
-									aria-pressed={selected?.id === role.id}
-									className="max-w-full"
-									onClick={() => {
-										setSelectedId(role.id)
+			<CardContent>
+				<div className="space-y-4">
+					{query.isPending ? (
+						<output>{t("roles.loading")}</output>
+					) : query.isError ? (
+						<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
+					) : (
+						<>
+							<fieldset className="flex flex-wrap gap-2" disabled={pending}>
+								<legend className="sr-only">{t("agentAccess.roles")}</legend>
+								{visible.map((role) => (
+									<Button
+										key={role.id}
+										variant={selected?.id === role.id ? "default" : "outline"}
+										aria-pressed={selected?.id === role.id}
+										className="max-w-full"
+										onClick={() => {
+											setSelectedId(role.id)
+											setNotice(undefined)
+											save.reset()
+											remove.reset()
+										}}
+										disabled={pending}
+									>
+										<span className="truncate" title={role.name}>
+											{role.name}
+										</span>
+									</Button>
+								))}
+								<Select<string>
+									value={null}
+									onOpenChange={(open) => {
+										if (open) focusEditor.current = false
+									}}
+									onValueChange={(id) => {
+										if (id === null) return
+										focusEditor.current = true
+										setSelectedId(id)
+										setDrafts((current) => ({ ...current, [id]: [] }))
 										setNotice(undefined)
 										save.reset()
 										remove.reset()
 									}}
-									disabled={pending}
 								>
-									<span className="truncate" title={role.name}>
-										{role.name}
-									</span>
-								</Button>
-							))}
-							<Select<string>
-								value={null}
-								onOpenChange={(open) => {
-									if (open) focusEditor.current = false
-								}}
-								onValueChange={(id) => {
-									if (id === null) return
-									focusEditor.current = true
-									setSelectedId(id)
-									setDrafts((current) => ({ ...current, [id]: [] }))
-									setNotice(undefined)
-									save.reset()
-									remove.reset()
-								}}
-							>
-								<SelectTrigger
-									ref={addRoleButton}
-									aria-label={t("agentAccess.addRole")}
-									disabled={pending || visible.length === roles.length}
-									render={<Button variant="outline" />}
-									className="[&>svg:last-child]:hidden"
-								>
-									<Plus className="size-4" />
-									<span>{t("agentAccess.addRole")}</span>
-								</SelectTrigger>
-								<SelectContent
-									align="start"
-									className="w-max max-w-[calc(100vw-2rem)]"
-									finalFocus={() => (focusEditor.current ? editor.current : addRoleButton.current)}
-								>
-									{roles
-										.filter((role) => !visible.some(({ id }) => id === role.id))
-										.map((role) => (
-											<SelectItem key={role.id} value={role.id}>
-												<span className="truncate" title={role.name}>
-													{role.name}
-												</span>
-											</SelectItem>
-										))}
-								</SelectContent>
-							</Select>
-						</div>
-						{roles.length === 0 && (
-							<Link to="/dashboard/users/roles" className="text-primary underline">
-								{t("roles.create")}
-							</Link>
-						)}
-						{selected ? (
-							<fieldset ref={editor} tabIndex={-1} className="space-y-3" disabled={pending}>
-								<legend className="sr-only">{t("agentAccess.permissionsFor", { role: selected.name })}</legend>
-								<div className="divide-y">
-									{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => {
-										const id = `access-${agentId}-${permission}`
-										const included =
-											permission === "agents:read" &&
-											(values.includes("agents:manage") || values.includes("agents:delete"))
-										const notHeld = !permissions.includes(permission)
-										const hint = included
-											? t("roles.includedWith", {
-													permission: values.includes("agents:manage")
-														? t("agentAccess.editConfiguration")
-														: t("agentAccess.deleteAgent"),
-												})
-											: notHeld
-												? t("roles.notYours")
-												: null
-										return (
-											<div key={permission} className="flex items-start justify-between gap-6 py-4">
-												<div className="space-y-1">
-													<Label htmlFor={id}>{t(PERMISSION_LABELS[permission])}</Label>
-													<p id={`${id}-description`} className="text-muted-foreground text-sm">
-														{t(PERMISSION_DESCRIPTIONS[permission])}
-														{hint ? <span className="block">{hint}</span> : null}
-													</p>
-												</div>
-												<Switch
-													render={<button type="button" />}
-													nativeButton
-													id={id}
-													className="mt-0.5"
-													checked={values.includes(permission)}
-													disabled={pending || notHeld || included}
-													aria-describedby={`${id}-description`}
-													onCheckedChange={() => toggle(permission)}
-												/>
-											</div>
-										)
-									})}
-								</div>
-								{(save.error || remove.error) && <ProblemAlert error={save.error ?? remove.error} />}
-								{selected.permissions.length > 0 && values.length === 0 && (
-									<p role="status" className="text-muted-foreground text-sm">
-										{t("agentAccess.useRemove")}
-									</p>
-								)}
-								<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-									{selected.permissions.length > 0 ? (
-										<Button
-											variant="destructive"
-											disabled={pending || selected.permissions.some((permission) => !permissions.includes(permission))}
-											onClick={onRemove}
-										>
-											{t("agentAccess.remove")}
-										</Button>
-									) : (
-										<Button
-											variant="outline"
-											className="ml-auto"
-											onClick={() => {
-												clearDraft(selected.id)
-												setSelectedId(undefined)
-											}}
-										>
-											{t("agentConfig.cancel")}
-										</Button>
-									)}
-									<Button
-										className={selected.permissions.length > 0 ? "ml-auto" : undefined}
-										onClick={onSave}
-										disabled={pending || !drafts[selected.id] || values.length === 0}
+									<SelectTrigger
+										ref={addRoleButton}
+										aria-label={t("agentAccess.addRole")}
+										disabled={pending || visible.length === roles.length}
+										render={<Button variant="outline" />}
+										className="[&>svg:last-child]:hidden"
 									>
-										{save.isPending ? t("roles.saving") : t("agentAccess.save")}
-									</Button>
-								</div>
+										<Plus className="size-4" />
+										<span>{t("agentAccess.addRole")}</span>
+									</SelectTrigger>
+									<SelectContent
+										align="start"
+										className="w-max max-w-[calc(100vw-2rem)]"
+										finalFocus={() => (focusEditor.current ? editor.current : addRoleButton.current)}
+									>
+										{roles
+											.filter((role) => !visible.some(({ id }) => id === role.id))
+											.map((role) => (
+												<SelectItem key={role.id} value={role.id}>
+													<span className="truncate" title={role.name}>
+														{role.name}
+													</span>
+												</SelectItem>
+											))}
+									</SelectContent>
+								</Select>
 							</fieldset>
-						) : (
-							<p className="text-muted-foreground text-sm">{t("agentAccess.empty")}</p>
-						)}
-						{notice && (
-							<p role="status" className="text-muted-foreground text-sm">
-								{notice === "saved" ? t("agentAccess.saved") : t("agentAccess.removed")}
-							</p>
-						)}
-					</>
-				)}
+							{roles.length === 0 && (
+								<Link to="/dashboard/users/roles" className="text-primary underline">
+									{t("roles.create")}
+								</Link>
+							)}
+							{selected ? (
+								<fieldset ref={editor} tabIndex={-1} className="space-y-3" disabled={pending}>
+									<legend className="sr-only">{t("agentAccess.permissionsFor", { role: selected.name })}</legend>
+									<div className="divide-y">
+										{(Object.keys(PERMISSION_LABELS) as Permission[]).map((permission) => {
+											const id = `access-${agentId}-${permission}`
+											const included =
+												permission === "agents:read" &&
+												(values.includes("agents:manage") || values.includes("agents:delete"))
+											const notHeld = !permissions.includes(permission)
+											const hint = included
+												? t("roles.includedWith", {
+														permission: values.includes("agents:manage")
+															? t("agentAccess.editConfiguration")
+															: t("agentAccess.deleteAgent"),
+													})
+												: notHeld
+													? t("roles.notYours")
+													: null
+											return (
+												<div key={permission} className="flex items-start justify-between gap-6 py-4">
+													<div className="space-y-1">
+														<Label htmlFor={id}>{t(PERMISSION_LABELS[permission])}</Label>
+														<p id={`${id}-description`} className="text-muted-foreground text-sm">
+															{t(PERMISSION_DESCRIPTIONS[permission])}
+															{hint ? <span className="block">{hint}</span> : null}
+														</p>
+													</div>
+													<Switch
+														render={<button type="button" aria-label={t(PERMISSION_LABELS[permission])} />}
+														nativeButton
+														id={id}
+														className="mt-0.5"
+														checked={values.includes(permission)}
+														disabled={pending || notHeld || included}
+														aria-describedby={`${id}-description`}
+														onCheckedChange={() => toggle(permission)}
+													/>
+												</div>
+											)
+										})}
+									</div>
+									{save.error && <ProblemAlert error={save.error} />}
+									{selected.permissions.length > 0 && values.length === 0 && (
+										<output className="text-muted-foreground block text-sm">{t("agentAccess.useRemove")}</output>
+									)}
+									<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+										{selected.permissions.length > 0 ? (
+											<Dialog
+												open={confirmRemoveOpen}
+												onOpenChange={(open) => {
+													if (pending) return
+													setConfirmRemoveOpen(open)
+													remove.reset()
+												}}
+											>
+												<DialogTrigger
+													render={
+														<Button
+															variant="destructive"
+															disabled={
+																pending || selected.permissions.some((permission) => !permissions.includes(permission))
+															}
+														/>
+													}
+												>
+													{t("agentAccess.remove")}
+												</DialogTrigger>
+												<DialogContent>
+													<DialogHeader>
+														<DialogTitle>{t("agentAccess.remove")}</DialogTitle>
+														<DialogDescription>
+															{t("agentAccess.removePrompt", { role: selected.name })}
+														</DialogDescription>
+													</DialogHeader>
+													<ProblemAlert error={remove.error} />
+													<DialogFooter>
+														<Button variant="outline" disabled={pending} onClick={() => setConfirmRemoveOpen(false)}>
+															{t("agentConfig.cancel")}
+														</Button>
+														<Button variant="destructive" disabled={pending} onClick={onRemove}>
+															{t("agentAccess.remove")}
+														</Button>
+													</DialogFooter>
+												</DialogContent>
+											</Dialog>
+										) : (
+											<Button
+												variant="outline"
+												className="ml-auto"
+												onClick={() => {
+													clearDraft(selected.id)
+													setSelectedId(undefined)
+												}}
+											>
+												{t("agentConfig.cancel")}
+											</Button>
+										)}
+										<Button
+											className={selected.permissions.length > 0 ? "ml-auto" : undefined}
+											onClick={onSave}
+											disabled={pending || !drafts[selected.id] || values.length === 0}
+										>
+											{save.isPending ? t("roles.saving") : t("agentAccess.save")}
+										</Button>
+									</div>
+								</fieldset>
+							) : (
+								<p className="text-muted-foreground text-sm">{t("agentAccess.empty")}</p>
+							)}
+							{notice && (
+								<output className="text-muted-foreground block text-sm">
+									{notice === "saved" ? t("agentAccess.saved") : t("agentAccess.removed")}
+								</output>
+							)}
+						</>
+					)}
+				</div>
 			</CardContent>
 		</Card>
 	)

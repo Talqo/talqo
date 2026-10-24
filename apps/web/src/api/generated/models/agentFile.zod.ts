@@ -4,25 +4,19 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const agentFileSizeBytesMin = 0
+export const agentFileSizeBytesMin = 0;
+
+
 
 export const AgentFile = zod.object({
-	name: zod.string(),
-	sizeBytes: zod.int().min(agentFileSizeBytesMin),
-	createdAt: zod.iso.datetime({ offset: true }),
-	embeddingStatus: zod.enum(["pending", "processing", "ready", "failed"]),
-	embeddingError: zod
-		.union([
-			zod.literal("conversion-failed"),
-			zod.literal("empty-document"),
-			zod.literal("provider-error"),
-			zod.literal("unknown"),
-			zod.literal(null),
-		])
-		.nullable(),
-})
+  "name": zod.string(),
+  "sizeBytes": zod.int().min(agentFileSizeBytesMin),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "embeddingStatus": zod.enum(['pending', 'processing', 'ready', 'failed']),
+  "embeddingError": zod.union([zod.literal('conversion-failed'),zod.literal('empty-document'),zod.literal('provider-error'),zod.literal('unknown'),zod.literal(null)]).nullable()
+});
 
-export type AgentFile = zod.input<typeof AgentFile>
-export type AgentFileOutput = zod.output<typeof AgentFile>
+export type AgentFile = zod.input<typeof AgentFile>;
+export type AgentFileOutput = zod.output<typeof AgentFile>;

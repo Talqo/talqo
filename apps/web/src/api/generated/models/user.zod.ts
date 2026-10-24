@@ -4,13 +4,13 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const User = zod.object({
-	id: zod.string(),
-	username: zod.string(),
-	mustChangePassword: zod.boolean(),
-})
+  "id": zod.string(),
+  "username": zod.string(),
+  "mustChangePassword": zod.boolean()
+});
 
-export type User = zod.input<typeof User>
-export type UserOutput = zod.output<typeof User>
+export type User = zod.input<typeof User>;
+export type UserOutput = zod.output<typeof User>;

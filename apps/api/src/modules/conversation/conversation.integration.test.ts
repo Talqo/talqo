@@ -1602,7 +1602,7 @@ describe("operator conversation reads", () => {
 	it("serves conversations over HTTP to conversations:read without exposing the visitor credential", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
-		const cookie = await operatorSession(roles.Permission.ConversationsRead)
+		const cookie = await operatorSession(roles.AgentPermission.ConversationsRead)
 		const get = (path: string) => app.request(`/api/conversations${path}`, { headers: { Cookie: cookie } })
 
 		const list = await get(`?agentId=${createdAgent.id}`)
@@ -1628,7 +1628,7 @@ describe("operator conversation reads", () => {
 	it("denies operators who can see agents but not conversations", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "private conversation")
-		const cookie = await operatorSession(roles.Permission.AgentRead)
+		const cookie = await operatorSession(roles.AgentPermission.AgentRead)
 		const headers = { Cookie: cookie }
 		expect((await app.request(`/api/agents/${createdAgent.id}`, { headers })).status).toBe(200)
 		const [conversation] = (await listConversations({ page: 1 }, await testAdminId())).conversations

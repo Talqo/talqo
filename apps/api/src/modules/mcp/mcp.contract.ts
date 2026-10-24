@@ -111,7 +111,7 @@ const domain = {
 }
 
 export const listMcpServersRoute = createRoute({
-	...access.agent(roles.Permission.AgentRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	method: "get",
 	path: "/",
 	operationId: "listMcpServers",
@@ -124,7 +124,7 @@ export const listMcpServersRoute = createRoute({
 })
 
 export const createMcpServerRoute = createRoute({
-	...access.agent(roles.Permission.AgentManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	method: "post",
 	path: "/",
 	operationId: "createMcpServer",
@@ -141,7 +141,7 @@ export const createMcpServerRoute = createRoute({
 })
 
 export const getMcpServerRoute = createRoute({
-	...access.agent(roles.Permission.AgentRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	method: "get",
 	path: "/{serverId}",
 	operationId: "getMcpServer",
@@ -154,7 +154,7 @@ export const getMcpServerRoute = createRoute({
 })
 
 export const updateMcpServerRoute = createRoute({
-	...access.agent(roles.Permission.AgentManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	method: "put",
 	path: "/{serverId}",
 	operationId: "updateMcpServer",
@@ -171,7 +171,7 @@ export const updateMcpServerRoute = createRoute({
 })
 
 export const deleteMcpServerRoute = createRoute({
-	...access.agent(roles.Permission.AgentManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	method: "delete",
 	path: "/{serverId}",
 	operationId: "deleteMcpServer",
@@ -186,7 +186,7 @@ export const deleteMcpServerRoute = createRoute({
 // Dedicated enable/disable, mirroring embed: PUT carries the whole configuration, so flipping a
 // boolean through it would mean re-sending secrets the operator never sees.
 export const setMcpServerDisabledRoute = createRoute({
-	...access.agent(roles.Permission.AgentManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	method: "post",
 	path: "/{serverId}/{action}",
 	operationId: "setMcpServerDisabled",

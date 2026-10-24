@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { AgentFile } from "../agentFile.zod"
+import * as zod from 'zod';
+import { AgentFile } from '../agentFile.zod';
 
 export const UploadAgentFile201 = zod.object({
-	file: AgentFile,
+  "file": AgentFile
 })
 
-export type UploadAgentFile201 = zod.input<typeof UploadAgentFile201>
-export type UploadAgentFile201Output = zod.output<typeof UploadAgentFile201>
+export type UploadAgentFile201 = zod.input<typeof UploadAgentFile201>;
+export type UploadAgentFile201Output = zod.output<typeof UploadAgentFile201>;

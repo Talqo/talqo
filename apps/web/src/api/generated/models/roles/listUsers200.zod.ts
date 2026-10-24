@@ -4,22 +4,19 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { RoleSummary } from "../roleSummary.zod"
+import * as zod from 'zod';
+import { RoleSummary } from '../roleSummary.zod';
 
 export const ListUsers200 = zod.object({
-	users: zod.array(
-		zod.object({
-			id: zod.string(),
-			username: zod.string(),
-			mustChangePassword: zod.boolean().nullable(),
-			permissions: zod.array(zod.enum(["admin", "users:read", "users:manage", "roles:manage", "ai_provider:manage"])),
-			canManage: zod.boolean(),
-			roles: zod.array(RoleSummary),
-		}),
-	),
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "mustChangePassword": zod.boolean().nullable(),
+  "permissions": zod.array(zod.enum(['admin', 'users:read', 'users:manage', 'roles:manage', 'ai_provider:manage'])),
+  "canManage": zod.boolean(),
+  "roles": zod.array(RoleSummary)
+}))
 })
 
-export type ListUsers200 = zod.input<typeof ListUsers200>
-export type ListUsers200Output = zod.output<typeof ListUsers200>
+export type ListUsers200 = zod.input<typeof ListUsers200>;
+export type ListUsers200Output = zod.output<typeof ListUsers200>;

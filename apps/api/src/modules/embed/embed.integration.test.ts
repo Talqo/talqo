@@ -331,14 +331,14 @@ async function login(username: string, password: string): Promise<string> {
 async function createManagerSession(): Promise<string> {
 	const username = uniqueUsername()
 	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
-	await giveRole(user.id, [roles.Permission.AgentManage])
+	await giveRole(user.id, [roles.AgentPermission.AgentManage])
 	return login(username, DEFAULT_PASSWORD)
 }
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()
 	const user = await identity.createUser({ username, password: DEFAULT_PASSWORD })
-	await giveRole(user.id, [roles.Permission.AgentRead])
+	await giveRole(user.id, [roles.AgentPermission.AgentRead])
 	return login(username, DEFAULT_PASSWORD)
 }
 
@@ -350,7 +350,7 @@ describe("embed detail route", () => {
 		const second = await createEmbed(a)
 		const hidden = await createEmbed(b)
 		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
-		await giveRole(operator.id, [roles.Permission.AgentRead], [a])
+		await giveRole(operator.id, [roles.AgentPermission.AgentRead], [a])
 		const { token } = await identity.createSession(operator.id)
 		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
 

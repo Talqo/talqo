@@ -68,8 +68,7 @@ test("operator creates an embed and configures it immediately", async ({ page })
 })
 
 test("embed configuration waits for agent permissions before showing editable controls", async ({ page }) => {
-	const embed = seeded[0]
-	if (!embed) throw new Error("Shared seed embed is missing")
+	const embed = website
 	const release = Promise.withResolvers<void>()
 	await page.route("**/api/agents", async (route) => {
 		await release.promise
