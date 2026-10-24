@@ -39,7 +39,7 @@ unsubscribe()
 chat.dispose()
 ```
 
-`initialize()` loads the embed configuration and restores the conversation. Subscribe before initializing so your interface observes loading and recovery states. `sendMessage()` streams updates through the subscription and resolves when sending completes. Catch rejected operations and render `getSnapshot().error` when present.
+`initialize()` loads the embed configuration and restores the conversation. Subscribe before initializing so your interface observes loading and recovery states. `sendMessage()` streams updates through the subscription and resolves when sending completes. Catch rejected operations and render `getSnapshot().error` when present. Server-reported error codes are documented in the [API problem types](/problems) catalog.
 
 ## State and controls
 
