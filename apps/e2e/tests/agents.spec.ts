@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test"
+import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 
 import { test } from "./application"
@@ -59,6 +60,7 @@ test("manager creates, configures, and deletes an agent through the real API", a
 		await expect(page.getByRole("link", { name: new RegExp(agentName) })).toHaveCount(0)
 		createdAgentId = undefined
 	} finally {
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- Cleanup must handle partially completed journeys.
 		if (createdAgentId) await expect(await page.request.delete(`/api/agents/${createdAgentId}`)).toBeOK()
 	}
 })
@@ -71,7 +73,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 	await expect(usersResponse).toBeOK()
 	const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
 	const user = users.find(({ username }) => username === viewer.username)
-	if (!user) throw new Error("Invited viewer is missing")
+	assert(user, "Invited viewer is missing")
 	const roleResponse = await page.request.post("/api/roles", {
 		data: { name: `Agent viewers ${Date.now()}`, permissions: ["agents:read"] },
 	})
@@ -111,7 +113,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		const download = await downloadPromise
 		expect(download.suggestedFilename()).toBe("reader-guide.md")
 		const downloadedPath = await download.path()
-		if (!downloadedPath) throw new Error("Knowledge file download failed")
+		assert(downloadedPath, "Knowledge file download failed")
 		expect(await readFile(downloadedPath, "utf8")).toBe("Reader guide")
 		await expect(page.getByRole("button", { name: "Rename reader-guide.md" })).toHaveCount(0)
 		await expect(page.getByRole("button", { name: "Delete reader-guide.md" })).toHaveCount(0)
@@ -134,6 +136,7 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(await page.request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 		await expect(await page.request.delete(`/api/users/${user.id}`)).toBeOK()
 		await expect(await page.request.delete(`/api/roles/${roleId}`)).toBeOK()
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- The upload may fail before a file exists to clean up.
 		if (filePath) await expect(await page.request.delete(filePath)).toBeOK()
 	}
 })

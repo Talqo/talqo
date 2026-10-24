@@ -108,7 +108,9 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		await expect(response).toBeOK()
 		const { users } = (await response.json()) as { users: { id: string; username: string }[] }
 		const user = users.find(({ username }) => username === operator.username)
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- The journey may already have deleted the user.
 		if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- Cleanup must handle failed creation and completed deletion.
 		if (createdRoleId) await expect(await request.delete(`/api/roles/${createdRoleId}`)).toBeOK()
 	}
 })
