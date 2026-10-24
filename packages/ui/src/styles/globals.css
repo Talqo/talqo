@@ -193,6 +193,14 @@
 }
 
 @layer base {
+	/* https://ui.shadcn.com/docs/components/base/button#cursor */
+	:is(button, [role="button"], [role="checkbox"], [role="radio"], [role="switch"], [role="tab"], [role="option"]):not(
+		:disabled,
+		[aria-disabled="true"],
+		[data-disabled]
+	) {
+		cursor: pointer;
+	}
 	* {
 		@apply border-border outline-ring/50;
 		scrollbar-color: color-mix(in srgb, var(--muted-foreground) 55%, transparent) transparent;
