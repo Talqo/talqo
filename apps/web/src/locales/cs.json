@@ -1,14 +1,18 @@
 {
 	"account": {
+		"cancel": "Zrušit",
 		"changePassword": "Změnit heslo",
 		"changePasswordDescription": "Použijte silné heslo, které nikde jinde nepoužíváte.",
-		"comingSoon": "Již brzy",
 		"confirmNewPassword": "Potvrdit nové heslo",
 		"currentPassword": "Současné heslo",
 		"currentPasswordRequired": "Zadejte své současné heslo.",
-		"dangerDescription": "Smazáním účtu odstraníte všechny agenty a analytická data.",
+		"dangerDescription": "Smazáním účtu se odhlásíte na všech zařízeních. Sdílení agenti a analytická data zůstanou zachováni.",
 		"dangerZone": "Nebezpečná zóna",
 		"deleteAccount": "Smazat účet",
+		"deleteFailed": "Účet se nepodařilo smazat. Zkuste to znovu.",
+		"deletePrompt": "Tímto trvale smažete svůj účet a odhlásíte se na všech zařízeních. Sdílení agenti a analytická data zůstanou zachováni. Účet nelze obnovit. Pokud se chcete vrátit, požádejte správce o novou pozvánku.",
+		"deleteTitle": "Smazat váš účet?",
+		"deleting": "Mazání…",
 		"heading": "Účet",
 		"name": "Jméno",
 		"nameInvalid": "Jméno musí mít {{min}}-{{max}} znaků a obsahovat pouze písmena, čísla, podtržítka a pomlčky.",
@@ -511,6 +515,7 @@
 	},
 	"problems": {
 		"admin-already-exists": "Účet správce již existuje.",
+		"admin-deletion-not-allowed": "Účet správce nelze smazat. Ponechte si jej pro správu přístupu.",
 		"agent-file-invalid": "Soubor agenta je neplatný.",
 		"agent-file-name-taken": "Soubor agenta s tímto názvem již existuje.",
 		"agent-file-not-found": "Soubor agenta nebyl nalezen.",

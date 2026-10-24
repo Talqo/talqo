@@ -49,6 +49,9 @@ export type ProblemDetails = {
   code: 'admin-already-exists';
   type: 'https://docs.talqo.chat/problems#admin-already-exists';
 } | {
+  code: 'admin-deletion-not-allowed';
+  type: 'https://docs.talqo.chat/problems#admin-deletion-not-allowed';
+} | {
   code: 'agent-file-invalid';
   type: 'https://docs.talqo.chat/problems#agent-file-invalid';
 } | {

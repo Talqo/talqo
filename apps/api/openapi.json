@@ -48,6 +48,28 @@
               "code": {
                 "type": "string",
                 "enum": [
+                  "admin-deletion-not-allowed"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#admin-deletion-not-allowed"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
                   "agent-file-invalid"
                 ]
               },
@@ -3292,7 +3314,17 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: password-change-required.",
+            "description": "Problem response. Codes: password-change-required, admin-deletion-not-allowed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: user-not-found.",
             "content": {
               "application/problem+json": {
                 "schema": {
