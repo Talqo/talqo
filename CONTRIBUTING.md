@@ -13,7 +13,7 @@ bun install
 ## Development
 
 - Run `bun run dev` for the API, web app, widget, PostgreSQL, and Docling. Each worktree gets isolated ports and containers; the command prints the dashboard, widget demo, and API URLs. Use `bun run dev:docs` for documentation.
-- Ctrl-C stops the servers and containers and keeps database volumes. If the terminal is closed forcibly, run `bun run dev:teardown` to remove this worktree's containers and network.
+- Ctrl-C stops the servers and containers and keeps database volumes. After forced termination, run `bun run dev:teardown` from the worktree root to remove its containers and network.
 
 ## Placement
 
