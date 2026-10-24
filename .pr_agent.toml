@@ -1,4 +1,5 @@
 [config]
+publish_output_progress = false
 max_model_tokens = 100000
 ai_timeout = 600
 propagate_tool_errors = true
@@ -23,7 +24,6 @@ inline_key_issues = true
 require_estimate_effort_to_review = false
 enable_review_labels_effort = false
 extra_instructions = """
-- Prioritize correctness, security, data loss, and missing regression coverage. Report only concrete issues introduced by this PR.
 - Flag code that duplicates existing project utilities or established library functions; name the alternative when known.
 - Suggest simpler code when it preserves behavior and removes unnecessary abstractions, options, or duplicated logic.
 - Flag comments and docstrings that restate the code, narrate steps, or record changes; remove them rather than reword them. Keep only non-obvious rationale. Prefer one line, at most two unless correctness requires more.
