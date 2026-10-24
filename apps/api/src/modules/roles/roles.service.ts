@@ -69,6 +69,11 @@ class AdminAlreadyExistsError extends ApiError {
 		super(PROBLEM_CODES.ADMIN_ALREADY_EXISTS, HTTP_STATUS.CONFLICT, message, undefined, options)
 	}
 }
+class AdminDeletionNotAllowedError extends ApiError {
+	constructor() {
+		super(PROBLEM_CODES.ADMIN_DELETION_NOT_ALLOWED, HTTP_STATUS.FORBIDDEN)
+	}
+}
 class InvalidInvitationError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
 		super(PROBLEM_CODES.INVALID_INVITATION, HTTP_STATUS.CONFLICT, message, undefined, options)
@@ -423,6 +428,15 @@ export async function deleteUser(userId: string, actorId: string): Promise<void>
 		const held = await managementPermissions(actorId, Permission.UsersManage)
 		await identity.getUser(userId)
 		requireHeld(held, await listEffectivePermissions(userId))
+		await identity.deleteUser(userId)
+	})
+}
+
+export async function deleteCurrentUser(userId: string): Promise<void> {
+	await repo.withAccessLock(async () => {
+		if ((await listEffectivePermissions(userId)).includes(Permission.Admin)) {
+			throw new AdminDeletionNotAllowedError()
+		}
 		await identity.deleteUser(userId)
 	})
 }

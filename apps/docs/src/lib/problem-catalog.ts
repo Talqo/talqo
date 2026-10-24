@@ -10,6 +10,13 @@ export type ProblemDefinition = {
 
 export const PROBLEMS = [
 	{
+		code: "admin-deletion-not-allowed",
+		title: "Admin deletion not allowed",
+		status: "403",
+		meaning: "The administrator account cannot be deleted because it would reopen public setup.",
+		guidance: "Keep the administrator account. Only non-admin accounts can delete themselves.",
+	},
+	{
 		code: "admin-already-exists",
 		title: "Admin already exists",
 		status: "409",
@@ -344,7 +351,7 @@ export const PROBLEMS = [
 		title: "Self delete not allowed",
 		status: "400",
 		meaning: "An operator attempted to use the user-delete flow on their own account.",
-		guidance: "Delete the current account through DELETE /api/me instead.",
+		guidance: "Non-admin accounts can delete themselves through DELETE /api/me. The admin account cannot be deleted.",
 	},
 	{
 		code: "self-password-reset-not-allowed",

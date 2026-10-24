@@ -1,14 +1,18 @@
 {
 	"account": {
+		"cancel": "取消",
 		"changePassword": "修改密码",
 		"changePasswordDescription": "请使用强密码，且不要在其他地方重复使用。",
-		"comingSoon": "即将推出",
 		"confirmNewPassword": "确认新密码",
 		"currentPassword": "当前密码",
 		"currentPasswordRequired": "请输入当前密码。",
-		"dangerDescription": "删除账户将移除所有智能体和分析数据。",
+		"dangerDescription": "删除账户会使您在所有设备上退出登录。共享智能体和分析数据将保留。",
 		"dangerZone": "危险区域",
 		"deleteAccount": "删除账户",
+		"deleteFailed": "无法删除您的账户。请重试。",
+		"deletePrompt": "此操作将永久删除您的账户，并使您在所有设备上退出登录。共享智能体和分析数据将保留。账户无法恢复。如需再次使用，请向管理员申请新的邀请。",
+		"deleteTitle": "删除您的账户？",
+		"deleting": "正在删除…",
 		"heading": "账户",
 		"name": "姓名",
 		"nameInvalid": "姓名必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。",
@@ -480,6 +484,7 @@
 	},
 	"problems": {
 		"admin-already-exists": "管理员账户已存在。",
+		"admin-deletion-not-allowed": "无法删除管理员账户。请保留此账户以管理访问权限。",
 		"agent-file-invalid": "智能体文件无效。",
 		"agent-file-name-taken": "已存在同名智能体文件。",
 		"agent-file-not-found": "未找到该智能体文件。",

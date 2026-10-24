@@ -94,7 +94,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await expect(page).toHaveURL("/dashboard/users")
 
 	const adminRow = page.locator("[data-slot=card]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Reset password" })).toBeDisabled()
+	await expect(adminRow.getByRole("button", { name: "Reset password" })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
 	await expect(memberRow.getByText("Pending password change")).toHaveCount(0)
@@ -131,7 +131,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
 })
 
-test("an admin deletes a member, who can no longer log in", async ({ page }) => {
+test("an admin can delete a member but cannot delete their own account", async ({ page }) => {
 	const memberUsername = `member_${Date.now()}_delete`
 	const memberPassword = "member-doomed-password"
 
@@ -139,11 +139,15 @@ test("an admin deletes a member, who can no longer log in", async ({ page }) => 
 	await inviteMember(page, memberUsername, memberPassword)
 
 	await logIn(page, ADMIN)
+	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Danger zone", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
 	const adminRow = page.locator("[data-slot=card]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Delete", exact: true })).toBeDisabled()
+	await expect(adminRow.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
 	await memberRow.getByRole("button", { name: "Delete", exact: true }).click()
@@ -163,5 +167,24 @@ test("an admin deletes a member, who can no longer log in", async ({ page }) => 
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page.getByRole("alert")).toBeVisible()
+	await expect(page).toHaveURL("/login")
+})
+
+test("a member cancels then deletes their own account from Account settings", async ({ page }) => {
+	const username = `member_${Date.now()}_self_delete`
+	const password = "member-self-delete-password"
+	createdMembers.push(username)
+	await inviteMember(page, username, password)
+	await logIn(page, { username, password })
+	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await page.getByRole("button", { name: "Delete account", exact: true }).click()
+	const dialog = page.getByRole("dialog")
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+	await expect(dialog).toBeHidden()
+	await expect(page).toHaveURL("/dashboard/account")
+	await page.getByRole("button", { name: "Delete account", exact: true }).click()
+	await dialog.getByRole("button", { name: "Delete account", exact: true }).click()
+	await expect(page).toHaveURL("/login")
+	await page.goto("/dashboard/account")
 	await expect(page).toHaveURL("/login")
 })

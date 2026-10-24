@@ -1,14 +1,18 @@
 {
 	"account": {
+		"cancel": "Cancel",
 		"changePassword": "Change password",
 		"changePasswordDescription": "Use a strong password you do not reuse elsewhere.",
-		"comingSoon": "Coming soon",
 		"confirmNewPassword": "Confirm new password",
 		"currentPassword": "Current password",
 		"currentPasswordRequired": "Enter your current password.",
-		"dangerDescription": "Deleting your account removes all agents and analytics data.",
+		"dangerDescription": "Deleting your account signs you out everywhere. Shared agents and analytics are kept.",
 		"dangerZone": "Danger zone",
 		"deleteAccount": "Delete account",
+		"deleteFailed": "Your account could not be deleted. Try again.",
+		"deletePrompt": "This permanently deletes your account and signs you out everywhere. Shared agents and analytics are kept. Your account cannot be restored. To return, ask an administrator for a new invitation.",
+		"deleteTitle": "Delete your account?",
+		"deleting": "Deleting…",
 		"heading": "Account",
 		"name": "Name",
 		"nameInvalid": "Name must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens.",
@@ -480,6 +484,7 @@
 	},
 	"problems": {
 		"admin-already-exists": "An admin account already exists.",
+		"admin-deletion-not-allowed": "The administrator account cannot be deleted. Keep this account to manage access.",
 		"agent-file-invalid": "The agent file is invalid.",
 		"agent-file-name-taken": "An agent file with this name already exists.",
 		"agent-file-not-found": "The agent file was not found.",
