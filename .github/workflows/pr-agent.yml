@@ -31,6 +31,7 @@ jobs:
       pull-requests: write
     env:
       OPENAI__API_BASE: ${{ vars.PR_AGENT_API_BASE }}
+      LITELLM__FORCE_STREAMING_API_BASE_SUBSTRINGS: ${{ format('[{0}]', toJSON(vars.PR_AGENT_API_BASE)) }}
       OPENAI_KEY: ${{ secrets.PR_AGENT_API_KEY }}
       CONFIG__MODEL: openai/${{ vars.PR_AGENT_MODEL }}
       CONFIG__CUSTOM_MODEL_MAX_TOKENS: ${{ vars.PR_AGENT_CONTEXT_WINDOW }}

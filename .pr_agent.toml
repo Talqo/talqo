@@ -8,7 +8,6 @@ output_run_cost = false
 [litellm]
 custom_llm_provider = "openai"
 force_streaming_custom_llm_provider = "openai"
-force_streaming_api_base_substrings = ["ark.ap-southeast.bytepluses.com"]
 
 [pr_reviewer]
 inline_key_issues = true
