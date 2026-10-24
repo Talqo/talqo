@@ -12,12 +12,16 @@ const WEBSITE_ASSISTANT_ID = "11111111-1111-4111-8111-111111111111"
 let server: Server
 let hostBaseURL: string
 let apiOrigin: string
+let providerOrigin: string
 let journeyFixture: { agentId: string; embedId?: string } | undefined
 
 test.beforeAll(async () => {
 	const apiPort = process.env.TALQO_API_PORT
 	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
 	apiOrigin = `http://127.0.0.1:${apiPort}`
+	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
+	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
+	providerOrigin = new URL(providerUrl).origin
 	const template = await readFile(HOST_HTML_PATH, "utf8")
 
 	server = createServer((req, res) => {
@@ -58,8 +62,7 @@ test.afterAll(async () => {
 })
 
 test.afterEach(async ({ request }) => {
-	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
-	if (providerUrl) await expect(await request.post(`${new URL(providerUrl).origin}/control/reset`)).toBeOK()
+	await expect(await request.post(`${providerOrigin}/control/reset`)).toBeOK()
 	if (journeyFixture) {
 		if (journeyFixture.embedId) await expect(await request.delete(`/api/embeds/${journeyFixture.embedId}`)).toBeOK()
 		await expect(await request.delete(`/api/agents/${journeyFixture.agentId}`)).toBeOK()
@@ -68,9 +71,7 @@ test.afterEach(async ({ request }) => {
 })
 
 test("a recorded chat appears in the dashboard statistics after login", async ({ page, request }, testInfo) => {
-	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
-	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
-	await expect(await request.post(`${new URL(providerUrl).origin}/control/reset`)).toBeOK()
+	await expect(await request.post(`${providerOrigin}/control/reset`)).toBeOK()
 
 	const admin = { username: "admin", password: "admin123" }
 	await expect(await request.post(`${apiOrigin}/api/auth/login`, { data: admin })).toBeOK()
@@ -85,7 +86,7 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 		embeds: { appearance: unknown }[]
 	}
 	const appearance = seedEmbeds.embeds[0]?.appearance
-	if (!appearance) throw new Error("Shared seed embed is missing")
+	expect(appearance, "Shared seed embed is missing").toBeDefined()
 	const embedResponse = await request.post(`${apiOrigin}/api/embeds`, {
 		data: { agentId: agent.id, name: "Stats test", appearance },
 	})
@@ -143,7 +144,7 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 	await page.getByRole("option", { name: "Website Assistant", exact: true }).click()
 	await page.keyboard.press("Escape")
 	await expect(websiteAssistantRow).toHaveCount(0)
-	await expect(page.url()).toContain("agents=")
+	await expect(page).toHaveURL(/[?&]agents=/)
 
 	// The quick action clears the whole selection.
 	await agentFilter.click()
@@ -162,11 +163,11 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 	const rangeFilter = page.getByRole("combobox", { name: "Time range", exact: true })
 	await rangeFilter.click()
 	await page.getByRole("option", { name: "7 days", exact: true }).click()
-	await expect(page.url()).toContain("days=7")
-	await expect(page.url()).toContain("agents=")
+	await expect(page).toHaveURL(/[?&]days=7(?:&|$)/)
+	await expect(page).toHaveURL(/[?&]agents=/)
 	await expect(websiteAssistantRow).toBeVisible()
 	await rangeFilter.click()
 	await page.getByRole("option", { name: "All time", exact: true }).click()
-	await expect(page.url()).toContain("days=all")
+	await expect(page).toHaveURL(/[?&]days=all(?:&|$)/)
 	await expect(websiteAssistantRow).toBeVisible()
 })

@@ -14,12 +14,23 @@ type SeededEmbed = {
 }
 
 let seeded: SeededEmbed[] = []
+let website: SeededEmbed
+let viewerId: string
 
 test.beforeEach(async ({ page }) => {
 	await logIn(page, operator)
 
 	// The suite seeds once but these tests save, so a retry would start from mutated state.
 	seeded = ((await (await page.request.get("/api/embeds")).json()) as { embeds: SeededEmbed[] }).embeds
+	const source = seeded.find(({ name }) => name === "Website")
+	if (!source) throw new Error("Shared seed Website embed is missing")
+	website = source
+	const { users } = (await (await page.request.get("/api/users")).json()) as {
+		users: { id: string; username: string }[]
+	}
+	const viewer = users.find(({ username }) => username === "user")
+	if (!viewer) throw new Error("Shared seed user is missing")
+	viewerId = viewer.id
 
 	// Widget customization lives on the owning agent's page.
 	await page.getByRole("link", { name: "Agents", exact: true }).click()
@@ -57,8 +68,7 @@ test("operator creates an embed and configures it immediately", async ({ page })
 })
 
 test("operator permanently deletes an embed from its danger zone", async ({ page }) => {
-	const source = seeded[0]
-	if (!source) throw new Error("Shared seed embed is missing")
+	const source = website
 	const name = "Disposable embed"
 	const response = await page.request.post("/api/embeds", {
 		data: { name, agentId: source.agentId, appearance: source.appearance },
@@ -106,12 +116,12 @@ test("operator customizes an embed and the widget preview follows without reload
 	await expect(launcher).toBeVisible()
 
 	// The frame must not navigate: appearance travels over postMessage, not the URL.
-	const initialSrc = await page.locator("iframe").getAttribute("src")
+	const initialSrc = await page.locator("iframe").evaluate((iframe: HTMLIFrameElement) => iframe.src)
 
 	// The Light tab is the default; its brand color field carries the seeded primary.
 	await page.getByLabel("Brand color hex value", { exact: true }).fill("#b91c1c")
 	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
-	expect(await page.locator("iframe").getAttribute("src")).toBe(initialSrc)
+	await expect(page.locator("iframe")).toHaveJSProperty("src", initialSrc)
 
 	await page.getByRole("button", { name: "Save changes" }).click()
 	await expect(page.getByText("Saved just now.")).toBeVisible()
@@ -138,8 +148,7 @@ test("operator switches to the Dark tab and edits an independent palette", async
 })
 
 test("the widget's own name reaches the embedded chat header", async ({ page }) => {
-	const source = seeded.find(({ name }) => name === "Website")
-	if (!source) throw new Error("Shared seed Website embed is missing")
+	const source = website
 	const name = `Header probe ${Date.now()}`
 	const response = await page.request.post("/api/embeds", {
 		data: { name, agentId: source.agentId, appearance: source.appearance },
@@ -161,8 +170,7 @@ test("the widget's own name reaches the embedded chat header", async ({ page }) 
 })
 
 test("disabling an embed hides it publicly but keeps its appearance previews usable", async ({ page }) => {
-	const source = seeded.find(({ name }) => name === "Website")
-	if (!source) throw new Error("Shared seed Website embed is missing")
+	const source = website
 
 	const card = page.locator("[data-slot=card]", { hasText: "Website" })
 	const toggle = card.getByRole("switch", { name: "Embed enabled" })
@@ -204,17 +212,12 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 	const viewer = { username: "user", password: "user1234" }
 
 	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
-	const { users } = (await (await page.request.get("/api/users")).json()) as {
-		users: { id: string; username: string }[]
-	}
-	const user = users.find(({ username }) => username === viewer.username)
-	if (!user) throw new Error("Seed user is missing")
 	const roleResponse = await page.request.post("/api/roles", {
 		data: { name: `Embed viewers ${Date.now()}`, permissions: ["agents:read"] },
 	})
 	await expect(roleResponse).toBeOK()
 	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
-	await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
+	await expect(await page.request.put(`/api/users/${viewerId}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 
 	try {
 		await page.getByRole("button", { name: "Log out" }).click()
@@ -237,8 +240,7 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 })
 
 test("operator rotates an embed token and receives a replacement snippet", async ({ page }) => {
-	const source = seeded.find(({ name }) => name === "Website")
-	if (!source) throw new Error("Shared seed Website embed is missing")
+	const source = website
 	const response = await page.request.post("/api/embeds", {
 		data: { name: "Rotation test", agentId: source.agentId, appearance: source.appearance },
 	})
@@ -252,7 +254,7 @@ test("operator rotates an embed token and receives a replacement snippet", async
 		await page.getByRole("button", { name: "Rotate token" }).click()
 		const dialog = page.getByRole("dialog", { name: "Rotate the embed token?" })
 		await dialog.getByRole("button", { name: "Rotate token" }).click()
-		await expect(dialog).not.toBeVisible()
+		await expect(dialog).toBeHidden()
 
 		await expect(tokenInput).not.toHaveValue(original)
 		await expect(page.locator("pre")).not.toContainText(original)

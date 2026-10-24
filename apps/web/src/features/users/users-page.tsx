@@ -292,70 +292,72 @@ function UsersList({ held }: { held: readonly string[] }) {
 	return (
 		<div className="space-y-3">
 			{canManageRoles && rolesQuery.isPending ? (
-				<p role="status" className="text-muted-foreground text-sm">
-					{t("roles.loading")}
-				</p>
+				<output className="text-muted-foreground block text-sm">{t("roles.loading")}</output>
 			) : null}
 			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
 			{users.map((user) => {
 				const exceedsOperator = !user.canManage
 				return (
 					<Card key={user.id} data-user-id={user.id}>
-						<CardContent className="space-y-4">
-							<div className="flex min-w-0 flex-wrap items-center gap-2">
-								<span className="max-w-full truncate font-medium" title={user.username}>
-									{user.username}
-								</span>
-								{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
-								{user.roles.map((role) => (
-									<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
-										<span className="max-w-48 truncate">{role.name}</span>
-									</Badge>
-								))}
-								{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
-							</div>
-							<div className="flex flex-wrap items-center gap-3">
-								{confirmedUserId === user.id && (
-									<span role="status" className="text-primary text-xs">
-										{t("users.resetSuccess")}
+						<CardContent>
+							<div className="space-y-4">
+								<div className="flex min-w-0 flex-wrap items-center gap-2">
+									<span className="max-w-full truncate font-medium" title={user.username}>
+										{user.username}
 									</span>
-								)}
-								{canManageRoles && roles && !rolesQuery.isError ? (
-									<EditUserRolesDialog
-										heldPermissions={held}
-										isSelf={user.id === currentUserId}
-										ownRoles={ownRoles}
-										roles={roles}
-										targetUser={user}
-									/>
-								) : canManageRoles ? (
-									<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
-										<Pencil className="size-4" />
-										{t("users.editRoles")}
-									</Button>
-								) : null}
-								{canManageUsers && exceedsOperator ? (
-									<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
-								) : null}
-								{canManageUsers && !exceedsOperator ? (
-									<>
-										<ResetPasswordDialog targetUser={user} disabled={user.id === currentUserId} onReset={handleReset} />
-										<DeleteUserDialog
+									{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+									{user.roles.map((role) => (
+										<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+											<span className="max-w-48 truncate">{role.name}</span>
+										</Badge>
+									))}
+									{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+								</div>
+								<div className="flex flex-wrap items-center gap-3">
+									{confirmedUserId === user.id && (
+										<output className="text-primary text-xs">{t("users.resetSuccess")}</output>
+									)}
+									{canManageRoles && roles && !rolesQuery.isError ? (
+										<EditUserRolesDialog
+											heldPermissions={held}
+											isSelf={user.id === currentUserId}
+											ownRoles={ownRoles}
+											roles={roles}
 											targetUser={user}
-											disabled={user.id === currentUserId}
-											onDeleted={handleDeleted}
 										/>
-									</>
+									) : canManageRoles ? (
+										<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
+											<Pencil className="size-4" />
+											{t("users.editRoles")}
+										</Button>
+									) : null}
+									{canManageUsers && exceedsOperator ? (
+										<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
+									) : null}
+									{canManageUsers && !exceedsOperator ? (
+										<>
+											<ResetPasswordDialog
+												targetUser={user}
+												disabled={user.id === currentUserId}
+												onReset={handleReset}
+											/>
+											<DeleteUserDialog
+												targetUser={user}
+												disabled={user.id === currentUserId}
+												onDeleted={handleDeleted}
+											/>
+										</>
+									) : null}
+								</div>
+								{canManageUsers && user.id === currentUserId ? (
+									<p className="text-muted-foreground text-xs">
+										{t("users.ownAccountHint")}{" "}
+										<Link to="/dashboard/account" className="underline">
+											{t("nav.account")}
+										</Link>
+									</p>
 								) : null}
 							</div>
-							{canManageUsers && user.id === currentUserId ? (
-								<p className="text-muted-foreground text-xs">
-									{t("users.ownAccountHint")}{" "}
-									<Link to="/dashboard/account" className="underline">
-										{t("nav.account")}
-									</Link>
-								</p>
-							) : null}
 						</CardContent>
 					</Card>
 				)
@@ -452,7 +454,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 					<div className="bg-muted/50 rounded-surface space-y-3 border p-4">
 						<Label htmlFor="invitation-link">{t("auth.invitations.linkLabel")}</Label>
 						<div className="flex gap-2">
-							<Input id="invitation-link" className="font-mono text-xs" value={inviteUrl} readOnly />
+							<Input id="invitation-link" font="mono" value={inviteUrl} readOnly />
 							<Button
 								variant="outline"
 								size="icon"
@@ -468,11 +470,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 								date: formatDateTime(invite.expiresAt, language),
 							})}
 						</p>
-						{copied ? (
-							<p className="text-primary text-xs" role="status">
-								{t("auth.invitations.copied")}
-							</p>
-						) : null}
+						{copied ? <output className="text-primary block text-xs">{t("auth.invitations.copied")}</output> : null}
 					</div>
 				) : null}
 				<DialogFooter>

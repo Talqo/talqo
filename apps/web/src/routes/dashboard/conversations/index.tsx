@@ -4,8 +4,8 @@ import { requirePermission } from "@/features/permissions/require-permission"
 import { createFileRoute } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/dashboard/conversations/")({
-	beforeLoad: requirePermission("conversations:read"),
 	validateSearch: parseConversationsSearch,
+	beforeLoad: requirePermission("conversations:read"),
 	component: ConversationsRoute,
 })
 

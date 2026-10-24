@@ -251,20 +251,22 @@ function EmbedDetailPage() {
 					<CardTitle>{t("embedSetup.embedCode")}</CardTitle>
 					<CardDescription>{t("embedSetup.embedDescription")}</CardDescription>
 				</CardHeader>
-				<CardContent className="space-y-3">
-					<div className="relative">
-						<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
-						<Button
-							variant="outline"
-							size="icon"
-							className="absolute top-2 right-2"
-							onClick={copySnippet}
-							aria-label={t("embedSetup.copyEmbed")}
-						>
-							{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
-						</Button>
+				<CardContent>
+					<div className="space-y-3">
+						<div className="relative">
+							<pre className="bg-muted rounded-surface overflow-x-auto border p-4 font-mono text-sm">{snippet}</pre>
+							<Button
+								variant="outline"
+								size="icon"
+								className="absolute top-2 right-2"
+								onClick={copySnippet}
+								aria-label={t("embedSetup.copyEmbed")}
+							>
+								{copied ? <Check className="text-primary size-4" /> : <Copy className="size-4" />}
+							</Button>
+						</div>
+						{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 					</div>
-					{embed.isDisabled && <p className="text-muted-foreground text-sm">{t("embedSetup.embedDisabledNote")}</p>}
 				</CardContent>
 			</Card>
 
@@ -467,25 +469,27 @@ function EmbedDetailPage() {
 			</div>
 
 			{canManage && (
-				<Card className="ring-destructive">
+				<Card variant="destructive">
 					<CardHeader>
 						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
 					</CardHeader>
-					<CardContent className="divide-y">
-						<div className="space-y-1 pb-4">
-							<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
-							<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
-							<Input id="embed-token" value={embed.embedToken} readOnly className="mt-2 font-mono" />
-							<div className="flex justify-end pt-2">
-								<RotateEmbedTokenDialog embedId={embedId} />
+					<CardContent>
+						<div className="divide-y">
+							<div className="space-y-1 pb-4">
+								<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
+								<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
+								<Input id="embed-token" value={embed.embedToken} readOnly font="mono" className="mt-2" />
+								<div className="flex justify-end pt-2">
+									<RotateEmbedTokenDialog embedId={embedId} />
+								</div>
 							</div>
-						</div>
-						<div className="flex flex-wrap items-center gap-3 pt-4">
-							<div className="min-w-60 flex-1 space-y-1">
-								<p className="text-sm font-medium">{t("embedSetup.deleteEmbed")}</p>
-								<p className="text-muted-foreground text-sm">{t("embedSetup.dangerDescription")}</p>
+							<div className="flex flex-wrap items-center gap-3 pt-4">
+								<div className="min-w-60 flex-1 space-y-1">
+									<p className="text-sm font-medium">{t("embedSetup.deleteEmbed")}</p>
+									<p className="text-muted-foreground text-sm">{t("embedSetup.dangerDescription")}</p>
+								</div>
+								<DeleteEmbedDialog embed={embed} />
 							</div>
-							<DeleteEmbedDialog embed={embed} />
 						</div>
 					</CardContent>
 				</Card>
