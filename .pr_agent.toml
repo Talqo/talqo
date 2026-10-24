@@ -1,0 +1,29 @@
+[config]
+fallback_models = []
+restricted_mode = true
+log_level = "INFO"
+output_run_details = true
+output_run_cost = false
+
+[litellm]
+custom_llm_provider = "openai"
+force_streaming_custom_llm_provider = "openai"
+
+[pr_reviewer]
+inline_key_issues = true
+require_estimate_effort_to_review = false
+enable_review_labels_effort = false
+extra_instructions = """
+- Flag code that duplicates existing project utilities or established library functions; name the alternative when known.
+- Suggest simpler code when it preserves behavior and removes unnecessary abstractions, options, or duplicated logic.
+- Flag comments and docstrings that restate the code, narrate steps, or record changes; remove them rather than reword them. Keep only non-obvious rationale. Prefer one line, at most two unless correctness requires more.
+- Check consistency with surrounding code and project conventions; prefer established patterns over new ones.
+"""
+
+[github_action_config]
+auto_review = true
+auto_describe = false
+auto_improve = false
+pr_actions = ["opened", "reopened", "ready_for_review"]
+handle_push_trigger = true
+push_commands = ["/review"]
