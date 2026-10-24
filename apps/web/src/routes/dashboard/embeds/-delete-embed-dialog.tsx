@@ -85,7 +85,7 @@ export function DeleteEmbedDialog({ embed }: { embed: DeleteTarget }) {
 					</p>
 				)}
 				<div className="space-y-2">
-					<Label htmlFor="delete-embed-confirmation" className="flex items-center gap-2">
+					<Label htmlFor="delete-embed-confirmation">
 						<span className="sr-only">{t("embedSetup.confirmLabel", { name: embed.name })}</span>
 					</Label>
 					<Input

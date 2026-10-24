@@ -139,7 +139,7 @@ function ProviderSelect({
 }
 
 function ModelField({
-	role,
+	modelRole: role,
 	label,
 	modelId,
 	onModelChange,
@@ -149,7 +149,7 @@ function ModelField({
 	storedCredentialRole,
 	disabled = false,
 }: {
-	role: "text" | "embedding"
+	modelRole: "text" | "embedding"
 	label: string
 	modelId: string
 	onModelChange: (modelId: string) => void
@@ -191,7 +191,7 @@ function ModelField({
 }
 
 function ConnectionFields({
-	role,
+	modelRole: role,
 	value,
 	onChange,
 	providers,
@@ -199,7 +199,7 @@ function ConnectionFields({
 	drafts,
 	disabled = false,
 }: {
-	role: "text" | "embedding"
+	modelRole: "text" | "embedding"
 	value: RoleValue
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
@@ -289,20 +289,20 @@ function ConnectionFields({
 			))}
 
 			{value.authMode === "static" && !disabled && (
-				<CredentialsSection role={role} provider={provider} value={value} onChange={onChange} stored={stored} />
+				<CredentialsSection modelRole={role} provider={provider} value={value} onChange={onChange} stored={stored} />
 			)}
 		</>
 	)
 }
 
 function CredentialsSection({
-	role,
+	modelRole: role,
 	provider,
 	value,
 	onChange,
 	stored,
 }: {
-	role: "text" | "embedding"
+	modelRole: "text" | "embedding"
 	provider: ProviderMetadata
 	value: RoleValue
 	onChange: (value: RoleValue) => void
@@ -370,7 +370,7 @@ function CredentialsSection({
 }
 
 function RoleFields(props: {
-	role: "text" | "embedding"
+	modelRole: "text" | "embedding"
 	value: RoleValue
 	onChange: (value: RoleValue) => void
 	providers: ProviderMetadata[]
@@ -379,7 +379,7 @@ function RoleFields(props: {
 	disabled?: boolean
 }) {
 	const { t } = useTranslation()
-	const { role, value, onChange, providers, stored, disabled = false } = props
+	const { modelRole: role, value, onChange, providers, stored, disabled = false } = props
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
 	if (!provider) return null
 
@@ -387,7 +387,7 @@ function RoleFields(props: {
 		<div className="space-y-4">
 			<ConnectionFields {...props} />
 			<ModelField
-				role={role}
+				modelRole={role}
 				label={role === "text" ? t("aiConfiguration.fields.textModel") : t("aiConfiguration.fields.embeddingModel")}
 				modelId={value.modelId}
 				onModelChange={(modelId) => onChange({ ...value, modelId })}
@@ -518,7 +518,7 @@ export function AiConfigurationPage() {
 							name="text"
 							render={({ field }) => (
 								<RoleFields
-									role="text"
+									modelRole="text"
 									value={field.value}
 									onChange={(next) => {
 										field.onChange(next)
@@ -611,7 +611,7 @@ export function AiConfigurationPage() {
 													{t("aiConfiguration.sameProviderNote")}
 												</p>
 												<ModelField
-													role="embedding"
+													modelRole="embedding"
 													label={t("aiConfiguration.fields.embeddingModel")}
 													modelId={field.value.modelId}
 													onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
@@ -623,7 +623,7 @@ export function AiConfigurationPage() {
 											</div>
 										) : (
 											<RoleFields
-												role="embedding"
+												modelRole="embedding"
 												value={field.value}
 												onChange={field.onChange}
 												providers={embeddingProviders}

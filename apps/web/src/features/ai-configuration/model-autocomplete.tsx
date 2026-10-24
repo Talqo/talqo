@@ -28,7 +28,7 @@ function FieldInput({
 }) {
 	return (
 		<>
-			<Autocomplete.Input id={id} placeholder={placeholder} render={<Input className="pr-8" />} />
+			<Autocomplete.Input id={id} placeholder={placeholder} render={<Input trailingAction />} />
 			<Autocomplete.Trigger
 				aria-label={triggerLabel}
 				className="text-muted-foreground hover:text-foreground size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none"

@@ -103,7 +103,7 @@ function AgentsPage() {
 							search={{ tab: undefined }}
 							className="group"
 						>
-							<Card className="group-hover:border-primary/40 h-full transition-colors">
+							<Card variant="interactive" className="h-full">
 								<CardHeader>
 									<CardTitle>{agent.name}</CardTitle>
 									<p className="text-muted-foreground text-xs">

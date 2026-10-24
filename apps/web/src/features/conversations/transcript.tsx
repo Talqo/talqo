@@ -4,9 +4,6 @@ import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
 import { useTranslation } from "react-i18next"
 
-const MARKDOWN_CLASS =
-	"space-y-2 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-background/60 [&_code]:px-1 [&_li+li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
-
 const OUTCOME_KEYS = {
 	streaming: "conversations.outcomeStreaming",
 	failed: "conversations.outcomeFailed",
@@ -38,7 +35,7 @@ export function Transcript({ messages }: { messages: Message[] }) {
 									fromVisitor ? "bg-primary text-primary-foreground whitespace-pre-wrap" : "bg-muted",
 								)}
 							>
-								{fromVisitor ? message.text : <Markdown className={MARKDOWN_CLASS}>{message.text}</Markdown>}
+								{fromVisitor ? message.text : <Markdown>{message.text}</Markdown>}
 							</div>
 						)}
 						{outcomeLabel && <span className="text-muted-foreground px-1 text-xs">{t(outcomeLabel)}</span>}

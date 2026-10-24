@@ -21,15 +21,17 @@ function UserManagement() {
 			onValueChange={(value) => {
 				void navigate({ to: value === "roles" ? "/dashboard/users/roles" : "/dashboard/users" })
 			}}
-			className="mx-auto max-w-3xl gap-6"
+			className="mx-auto max-w-3xl"
 		>
-			<TabsList aria-label={t("users.heading")}>
-				<TabsTrigger value="users">{t("nav.users")}</TabsTrigger>
-				{canManageRoles ? <TabsTrigger value="roles">{t("roles.heading")}</TabsTrigger> : null}
-			</TabsList>
-			<TabsContent value={tab}>
-				<Outlet />
-			</TabsContent>
+			<div className="flex flex-col gap-6">
+				<TabsList aria-label={t("users.heading")}>
+					<TabsTrigger value="users">{t("nav.users")}</TabsTrigger>
+					{canManageRoles ? <TabsTrigger value="roles">{t("roles.heading")}</TabsTrigger> : null}
+				</TabsList>
+				<TabsContent value={tab}>
+					<Outlet />
+				</TabsContent>
+			</div>
 		</Tabs>
 	)
 }
