@@ -1,6 +1,7 @@
+import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
-import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
 	EMBED_FORM_DEFAULTS,
@@ -9,6 +10,7 @@ import {
 	toAppearance,
 	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
+import { requirePermission } from "@/features/permissions/require-permission"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { isWidgetPosition, isWidgetTheme, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
@@ -44,6 +46,7 @@ export const Route = createFileRoute("/dashboard/embeds/$embedId")({
 	validateSearch: (search: Record<string, unknown>) => ({
 		colorTab: isColorSchemeTab(search.colorTab) ? search.colorTab : undefined,
 	}),
+	beforeLoad: requirePermission("agents:read"),
 	component: EmbedDetailPage,
 })
 
@@ -61,11 +64,13 @@ function SchemeColorFields({
 	scheme,
 	control,
 	appearanceScheme,
+	readOnly,
 	t,
 }: {
 	scheme: ColorSchemeTab
 	control: Control<EmbedFormValues>
 	appearanceScheme: { primary: string; textOnPrimary: string; background: string; surface: string; text: string }
+	readOnly: boolean
 	t: (key: string) => string
 }) {
 	return (
@@ -76,6 +81,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-primary`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorPrimary")}
 						value={field.value}
 						onChange={field.onChange}
@@ -89,6 +95,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-text-on-primary`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorTextOnPrimary")}
 						value={field.value}
 						onChange={field.onChange}
@@ -102,6 +109,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-background`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorBackground")}
 						value={field.value}
 						onChange={field.onChange}
@@ -115,6 +123,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-surface`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorSurface")}
 						value={field.value}
 						onChange={field.onChange}
@@ -128,6 +137,7 @@ function SchemeColorFields({
 				render={({ field }) => (
 					<ColorField
 						id={`color-${scheme}-text`}
+						readOnly={readOnly}
 						label={t("embedSetup.colorText")}
 						value={field.value}
 						onChange={field.onChange}
@@ -147,7 +157,8 @@ function EmbedDetailPage() {
 	const queryClient = useQueryClient()
 	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
 	const embed = embedResponse?.data.embed
-	const permissions = useGetMyPermissions().data?.data.permissions
+	const agentsQuery = useListAgents()
+	const permissions = agentsQuery.data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
 		mutation: {
@@ -209,7 +220,7 @@ function EmbedDetailPage() {
 	}
 
 	function onValid(submitted: EmbedFormValues) {
-		if (!embed) return
+		if (!embed || !canManage) return
 		updateEmbed.mutate(
 			{
 				embedId,
@@ -225,11 +236,14 @@ function EmbedDetailPage() {
 		)
 	}
 
-	if (isLoading) {
+	if (isLoading || agentsQuery.isPending) {
 		return <p className="text-muted-foreground">{t("embedSetup.loading")}</p>
 	}
 	if (isError || !embed) {
 		return <p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+	}
+	if (agentsQuery.isError) {
+		return <ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
 	}
 
 	return (
@@ -278,13 +292,12 @@ function EmbedDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit(onValid)} className="space-y-4">
-							{/* Native cascade: one attribute disables every control below, including the
-							    Base UI triggers, so a read-only operator reads the widget without editing it. */}
-							<fieldset disabled={!canManage} className="space-y-4">
+							<fieldset className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="widget-name">{t("embedSetup.nameLabel")}</Label>
 									<Input
 										id="widget-name"
+										readOnly={!canManage}
 										aria-invalid={formState.errors.name ? true : undefined}
 										{...register("name")}
 									/>
@@ -308,10 +321,22 @@ function EmbedDetailPage() {
 										<TabsTrigger value="dark">{t("embedSetup.tabDark")}</TabsTrigger>
 									</TabsList>
 									<TabsContent value="light">
-										<SchemeColorFields scheme="light" control={control} appearanceScheme={appearance.light} t={t} />
+										<SchemeColorFields
+											scheme="light"
+											control={control}
+											appearanceScheme={appearance.light}
+											readOnly={!canManage}
+											t={t}
+										/>
 									</TabsContent>
 									<TabsContent value="dark">
-										<SchemeColorFields scheme="dark" control={control} appearanceScheme={appearance.dark} t={t} />
+										<SchemeColorFields
+											scheme="dark"
+											control={control}
+											appearanceScheme={appearance.dark}
+											readOnly={!canManage}
+											t={t}
+										/>
 									</TabsContent>
 								</Tabs>
 
@@ -323,6 +348,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={positionOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isWidgetPosition(value) && field.onChange(value)}
 											>
@@ -349,6 +375,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={themeOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isWidgetTheme(value) && field.onChange(value)}
 											>
@@ -372,7 +399,12 @@ function EmbedDetailPage() {
 										control={control}
 										name="themeToggle"
 										render={({ field }) => (
-											<Switch id="widget-theme-toggle" checked={field.value} onCheckedChange={field.onChange} />
+											<Switch
+												id="widget-theme-toggle"
+												disabled={!canManage}
+												checked={field.value}
+												onCheckedChange={field.onChange}
+											/>
 										)}
 									/>
 									<Label htmlFor="widget-theme-toggle">{t("embedSetup.themeToggle")}</Label>
@@ -386,6 +418,7 @@ function EmbedDetailPage() {
 										render={({ field }) => (
 											<Select
 												items={languageOptions}
+												disabled={!canManage}
 												value={field.value}
 												onValueChange={(value) => isSupportedLanguage(value) && field.onChange(value)}
 											>

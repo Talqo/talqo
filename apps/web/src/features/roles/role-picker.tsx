@@ -11,6 +11,7 @@ import { holdsAll } from "./role-form"
 type RolePickerProps = {
 	disabled?: boolean
 	heldPermissions: readonly string[]
+	manageableRoleIds: readonly string[]
 	onChange: (selected: string[]) => void
 	roles: readonly Role[]
 	selected: readonly string[]
@@ -19,6 +20,7 @@ type RolePickerProps = {
 export function RolePicker({
 	disabled = false,
 	heldPermissions,
+	manageableRoleIds,
 	onChange,
 	roles,
 	selected,
@@ -29,7 +31,7 @@ export function RolePicker({
 	return (
 		<div className="space-y-2">
 			{roles.map((role) => {
-				const notHeld = !holdsAll(heldPermissions, role.permissions)
+				const notHeld = !holdsAll(heldPermissions, role.permissions) || !manageableRoleIds.includes(role.id)
 				const id = `${prefix}-${role.id}`
 				return (
 					<div

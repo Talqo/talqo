@@ -8,6 +8,7 @@ erDiagram
     SESSION
     ROLE
     ROLE_PERMISSION
+    ROLE_AGENT_PERMISSION
     USER_ROLE
     INVITATION
     INVITATION_ROLE
@@ -34,6 +35,8 @@ erDiagram
     USER ||--o{ USER_ROLE : has
     ROLE ||--o{ USER_ROLE : "assigned through"
     ROLE ||--o{ ROLE_PERMISSION : includes
+    ROLE ||--o{ ROLE_AGENT_PERMISSION : grants
+    AGENT ||--o{ ROLE_AGENT_PERMISSION : restricts
     USER ||--o{ INVITATION : sends
     INVITATION ||--o{ INVITATION_ROLE : includes
     ROLE ||--o{ INVITATION_ROLE : "selected through"

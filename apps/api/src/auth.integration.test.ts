@@ -53,14 +53,14 @@ describe("auth flow", () => {
 		const memberCookie = await login(memberUsername, memberPassword)
 
 		// Before any grant, the member has no elevated access at all.
-		const beforeGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		const beforeGrant = await app.request("/api/users", { headers: { Cookie: memberCookie } })
 		expect(beforeGrant.status).toBe(403)
 
-		// 4. Admin creates a role with `agents:read` and assigns it to the member.
+		// 4. Admin creates a role with `users:read` and assigns it to the member.
 		const roleResponse = await app.request("/api/roles", {
 			method: "POST",
 			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ name: `Readers ${crypto.randomUUID()}`, permissions: ["agents:read"] }),
+			body: JSON.stringify({ name: `Readers ${crypto.randomUUID()}`, permissions: ["users:read"] }),
 		})
 		expect(roleResponse.status).toBe(201)
 		const { role } = (await roleResponse.json()) as { role: { id: string } }
@@ -72,7 +72,7 @@ describe("auth flow", () => {
 		expect(assignResponse.status).toBe(200)
 
 		// 5. Member's access reflects the assigned role.
-		const afterGrant = await app.request("/api/agents", { headers: { Cookie: memberCookie } })
+		const afterGrant = await app.request("/api/users", { headers: { Cookie: memberCookie } })
 		expect(afterGrant.status).toBe(200)
 
 		// 6. Admin resets the member's password.

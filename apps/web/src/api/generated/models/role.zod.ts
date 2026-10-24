@@ -9,7 +9,7 @@ import * as zod from 'zod';
 export const Role = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:read', 'agents:manage', 'conversations:read'])),
+  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage'])),
   "memberCount": zod.int()
 });
 

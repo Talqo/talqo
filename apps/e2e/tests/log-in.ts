@@ -5,5 +5,5 @@ export async function logIn(page: Page, account: { password: string; username: s
 	await page.getByLabel("Username").fill(account.username)
 	await page.getByLabel("Password", { exact: true }).fill(account.password)
 	await page.getByRole("button", { name: "Log in" }).click()
-	await expect(page).toHaveURL("/dashboard")
+	await expect(page).toHaveURL(/\/dashboard(?:\/[^?]*)?(?:\?.*)?$/)
 }

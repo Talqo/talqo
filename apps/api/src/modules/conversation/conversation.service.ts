@@ -1,12 +1,14 @@
 import type { Annotate } from "@/http/wide-event.ts"
 
 import { env } from "@/config/env.ts"
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embedService from "@/modules/embed/embed.service.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as mcp from "@/modules/mcp/mcp.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
 import { z } from "zod"
 
@@ -607,9 +609,15 @@ export type ConversationTranscript = {
 	startedAt: string
 }
 
-export async function listConversations(filter: { agentId?: string[]; page: number }): Promise<ConversationPage> {
+export async function listConversations(
+	filter: { agentId?: string[]; page: number },
+	actorId: string,
+): Promise<ConversationPage> {
+	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.ConversationsRead)
+	const agentIds =
+		scope === "all" ? filter.agentId : filter.agentId ? filter.agentId.filter((id) => scope.includes(id)) : scope
 	const { rows, total } = await repository.listConversations({
-		agentIds: filter.agentId,
+		agentIds,
 		limit: CONVERSATION_PAGE_SIZE,
 		offset: (filter.page - 1) * CONVERSATION_PAGE_SIZE,
 		previewLength: CONVERSATION_PREVIEW_LENGTH,
@@ -628,10 +636,16 @@ export async function listConversations(filter: { agentId?: string[]; page: numb
 	}
 }
 
-export async function getConversationTranscript(referenceId: string): Promise<ConversationTranscript> {
+export async function getConversationTranscript(referenceId: string, actorId: string): Promise<ConversationTranscript> {
 	await repository.recoverExpiredGenerationAttempts()
 	const found = await repository.findConversationByReference(referenceId)
 	if (!found) throw new ConversationNotFoundError()
+	await roles.requireAgentPermission(
+		actorId,
+		found.agentId,
+		roles.AgentPermission.ConversationsRead,
+		PROBLEM_CODES.CONVERSATION_NOT_FOUND,
+	)
 	return {
 		id: found.referenceId,
 		agentId: found.agentId,

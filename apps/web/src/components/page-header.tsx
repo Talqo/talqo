@@ -6,7 +6,7 @@ export function PageHeader({
 	actions,
 }: {
 	title: string
-	description: string
+	description?: string
 	actions?: ReactNode
 }) {
 	return (
@@ -15,7 +15,7 @@ export function PageHeader({
 				<h1 className="text-foreground truncate text-3xl font-bold" title={title}>
 					{title}
 				</h1>
-				<p className="text-muted-foreground mt-2">{description}</p>
+				{description && <p className="text-muted-foreground mt-2">{description}</p>}
 			</div>
 			{actions}
 		</div>

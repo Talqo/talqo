@@ -67,7 +67,7 @@ export const listAgentFilesRoute = createRoute({
 	path: "/",
 	operationId: "listAgentFiles",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: {
@@ -86,7 +86,7 @@ export const uploadAgentFileRoute = createRoute({
 	path: "/",
 	operationId: "uploadAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: {
 		params: agentParamsSchema,
 		body: {
@@ -111,7 +111,7 @@ export const downloadAgentFileRoute = createRoute({
 	path: "/{fileName}",
 	operationId: "downloadAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	request: { params: fileParamsSchema },
 	responses: {
 		200: {
@@ -131,7 +131,7 @@ export const renameAgentFileRoute = createRoute({
 	path: "/{fileName}",
 	operationId: "renameAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: {
 		params: fileParamsSchema,
 		body: { content: { "application/json": { schema: renameAgentFileRequestSchema } }, required: true },
@@ -153,7 +153,7 @@ export const deleteAgentFileRoute = createRoute({
 	path: "/{fileName}",
 	operationId: "deleteAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,
@@ -170,7 +170,7 @@ export const retryAgentFileRoute = createRoute({
 	path: "/{fileName}/retry",
 	operationId: "retryAgentFile",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: { params: fileParamsSchema },
 	responses: {
 		204: noContentResponse,

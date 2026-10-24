@@ -323,6 +323,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 											isSelf={user.id === currentUserId}
 											ownRoles={ownRoles}
 											roles={roles}
+											manageableRoleIds={rolesQuery.data?.data.manageableRoleIds ?? []}
 											targetUser={user}
 										/>
 									) : canManageRoles ? (
@@ -382,7 +383,14 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 		if (createInvitation.isPending) return
 		if (next)
 			setSelected(
-				roles.filter((role) => role.id === DEFAULT_ROLE_ID && holdsAll(held, role.permissions)).map(({ id }) => id),
+				roles
+					.filter(
+						(role) =>
+							role.id === DEFAULT_ROLE_ID &&
+							holdsAll(held, role.permissions) &&
+							rolesQuery.data?.data.manageableRoleIds.includes(role.id),
+					)
+					.map(({ id }) => id),
 			)
 		setOpen(next)
 		if (!next) {
@@ -434,6 +442,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 					<fieldset className="min-w-0 space-y-2">
 						<legend className="mb-2 text-sm font-medium">{t("auth.invitations.roles")}</legend>
 						<RolePicker
+							manageableRoleIds={rolesQuery.data.data.manageableRoleIds}
 							disabled={createInvitation.isPending || Boolean(inviteUrl)}
 							heldPermissions={held}
 							roles={roles}

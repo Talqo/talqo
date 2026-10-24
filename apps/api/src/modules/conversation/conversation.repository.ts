@@ -562,21 +562,29 @@ const conversationDay = sql<string>`to_char(${conversation.createdAt} AT TIME ZO
 const messageDay = sql<string>`to_char(${message.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 
 // Sparse per-agent daily series: days without activity have no row, the consumer zero-fills.
-export async function getDailyConversationCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
+export async function getDailyConversationCountsByAgent(
+	since: Date,
+	scope: readonly string[] | "all",
+): Promise<AgentDailyCount[]> {
 	return db
 		.select({ agentId: conversation.agentId, date: conversationDay, count: count() })
 		.from(conversation)
-		.where(gte(conversation.createdAt, since))
+		.where(
+			and(gte(conversation.createdAt, since), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])),
+		)
 		.groupBy(conversation.agentId, conversationDay)
 		.orderBy(conversation.agentId, conversationDay)
 }
 
-export async function getDailyMessageCountsByAgent(since: Date): Promise<AgentDailyCount[]> {
+export async function getDailyMessageCountsByAgent(
+	since: Date,
+	scope: readonly string[] | "all",
+): Promise<AgentDailyCount[]> {
 	return db
 		.select({ agentId: conversation.agentId, date: messageDay, count: count() })
 		.from(message)
 		.innerJoin(conversation, eq(message.conversationId, conversation.id))
-		.where(gte(message.createdAt, since))
+		.where(and(gte(message.createdAt, since), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])))
 		.groupBy(conversation.agentId, messageDay)
 		.orderBy(conversation.agentId, messageDay)
 }
@@ -587,12 +595,15 @@ export type AgentConversationCount = {
 }
 
 // Conversations touched by any message since the cutoff, counted per owning agent.
-export async function getActiveConversationCountsByAgent(cutoff: Date): Promise<AgentConversationCount[]> {
+export async function getActiveConversationCountsByAgent(
+	cutoff: Date,
+	scope: readonly string[] | "all",
+): Promise<AgentConversationCount[]> {
 	return db
 		.select({ agentId: conversation.agentId, count: countDistinct(message.conversationId) })
 		.from(message)
 		.innerJoin(conversation, eq(message.conversationId, conversation.id))
-		.where(gte(message.createdAt, cutoff))
+		.where(and(gte(message.createdAt, cutoff), scope === "all" ? undefined : inArray(conversation.agentId, [...scope])))
 		.groupBy(conversation.agentId)
 		.orderBy(conversation.agentId)
 }

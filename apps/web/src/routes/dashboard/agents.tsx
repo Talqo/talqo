@@ -26,11 +26,11 @@ function AgentsPage() {
 	const { language } = useLanguage()
 	const navigate = useNavigate()
 	const { data, error, isLoading, refetch, isFetching } = useListAgents()
-	const agents = data?.data.agents
+	const agents = data?.data.agents.filter((agent) => agent.permissions.includes("agents:read"))
 	const createAgent = useCreateAgent()
 	const [createError, setCreateError] = useState<string | null>(null)
 
-	const canManage = useGetMyPermissions().data?.data.permissions.includes("agents:manage") ?? false
+	const canManage = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
 
 	async function handleCreate() {
 		setCreateError(null)

@@ -67,6 +67,27 @@ test("operator creates an embed and configures it immediately", async ({ page })
 	}
 })
 
+test("embed configuration waits for agent permissions before showing editable controls", async ({ page }) => {
+	const embed = website
+	const release = Promise.withResolvers<void>()
+	await page.route("**/api/agents", async (route) => {
+		await release.promise
+		await route.continue()
+	})
+	try {
+		const loaded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/embeds/${embed.id}`)
+		await page.goto(`/dashboard/embeds/${embed.id}`)
+		await loaded
+		await expect(page.locator("main").getByText("Loading…", { exact: true })).toBeVisible()
+		await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0)
+		release.resolve()
+		await expect(page.getByLabel("Name", { exact: true })).toBeEnabled()
+	} finally {
+		release.resolve()
+		await page.unroute("**/api/agents")
+	}
+})
+
 test("operator permanently deletes an embed from its danger zone", async ({ page }) => {
 	const source = website
 	const name = "Disposable embed"
@@ -208,15 +229,22 @@ test("disabling an embed hides it publicly but keeps its appearance previews usa
 	}
 })
 
-test("a read-only user does not see the embed toggle on the embeds overview", async ({ page }) => {
+test("a read-only user can inspect embed state but cannot toggle it", async ({ page }) => {
 	const viewer = { username: "user", password: "user1234" }
 
 	// Give a read-only role through the API boundary, then switch accounts and inspect the same page.
 	const roleResponse = await page.request.post("/api/roles", {
-		data: { name: `Embed viewers ${Date.now()}`, permissions: ["agents:read"] },
+		data: { name: `Embed viewers ${Date.now()}`, permissions: [] },
 	})
 	await expect(roleResponse).toBeOK()
 	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
+	await Promise.all(
+		[...new Set(seeded.map((embed) => embed.agentId))].map(async (agentId) =>
+			expect(
+				await page.request.put(`/api/agents/${agentId}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+			).toBeOK(),
+		),
+	)
 	await expect(await page.request.put(`/api/users/${viewerId}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 
 	try {
@@ -225,13 +253,14 @@ test("a read-only user does not see the embed toggle on the embeds overview", as
 		await page.getByLabel("Username").fill(viewer.username)
 		await page.getByLabel("Password", { exact: true }).fill(viewer.password)
 		await page.getByRole("button", { name: "Log in" }).click()
-		await expect(page).toHaveURL("/dashboard")
+		await expect(page).toHaveURL("/dashboard/agents")
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await page.getByRole("link", { name: /Website Assistant/ }).click()
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.locator("[data-slot=card]", { hasText: "Website" })).toBeVisible()
-		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeDisabled()
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeChecked()
 	} finally {
 		await page.request.post("/api/auth/login", { data: operator })
 		// Deleting the role also removes the assignment.

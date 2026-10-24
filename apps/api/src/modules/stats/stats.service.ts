@@ -1,5 +1,6 @@
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as conversationService from "@/modules/conversation/conversation.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
 
 export type StatsOverviewQuery = {
@@ -59,16 +60,17 @@ function utcDateKey(date: Date): string {
 
 // The sparse per-agent-day rows are the single source; totals, the dense daily axis, and the
 // per-agent breakdown are all derived from them so the views can never disagree.
-export async function getStatsOverview(query: StatsOverviewQuery): Promise<StatsOverview> {
+export async function getStatsOverview(query: StatsOverviewQuery, actorId: string): Promise<StatsOverview> {
+	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.StatsRead)
 	const since = query.days === "all" ? new Date(0) : new Date(Date.now() - (query.days - 1) * MILLISECONDS_PER_DAY)
 	since.setUTCHours(0, 0, 0, 0)
 	const activeCutoff = new Date(Date.now() - ACTIVE_CONVERSATION_WINDOW_MINUTES * MILLISECONDS_PER_MINUTE)
 	const [conversationCounts, messageCounts, usageTotals, activeCounts, agents] = await Promise.all([
-		conversationService.getDailyConversationCountsByAgent(since),
-		conversationService.getDailyMessageCountsByAgent(since),
-		usageService.getDailyUsageTotalsByAgent(since),
-		conversationService.getActiveConversationCountsByAgent(activeCutoff),
-		agentService.listAgents(),
+		conversationService.getDailyConversationCountsByAgent(since, scope),
+		conversationService.getDailyMessageCountsByAgent(since, scope),
+		usageService.getDailyUsageTotalsByAgent(since, scope),
+		conversationService.getActiveConversationCountsByAgent(activeCutoff, scope),
+		agentService.listAgents(actorId),
 	])
 	const active: StatsActiveConversations[] = activeCounts.map((row) => ({
 		agentId: row.agentId,
