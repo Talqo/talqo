@@ -6,12 +6,14 @@ import { afterEach, beforeEach, describe, expect, jest, mock, spyOn, test } from
 import type { DiscoveryContext } from "./discovery-readiness.ts"
 
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
+await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { useModelDiscovery } = await import("./use-model-discovery")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { Controller, useForm } = await import("react-hook-form")
+const { t } = await import("i18next")
 
 type Context = DiscoveryContext & { storedCredentialRole: "text" | "embedding" }
 
@@ -47,7 +49,7 @@ function Discovery({ context }: { context: Context }) {
 		<>
 			<output>{loading ? "loading" : failed ? "failed" : (models?.join(",") ?? "unavailable")}</output>
 			<button type="button" onClick={retry}>
-				Retry
+				{t("aiConfiguration.discovery.retry")}
 			</button>
 		</>
 	)
@@ -68,13 +70,13 @@ function ModelForm() {
 			render={({ field }) => (
 				<>
 					<Discovery context={{ ...CONTEXT, value: field.value }} />
-					<input aria-label="Model ID" value={field.value.modelId} readOnly />
+					<input aria-label={t("aiConfiguration.fields.textModel")} value={field.value.modelId} readOnly />
 					<button
 						type="button"
 						data-model-change
 						onClick={() => field.onChange({ ...field.value, modelId: "changed-model" })}
 					>
-						Change model
+						{t("aiConfiguration.fields.textModel")}
 					</button>
 				</>
 			)}
