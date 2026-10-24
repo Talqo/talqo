@@ -81,7 +81,17 @@ test("a read-only operator can inspect agents but finds no management controls",
 	const roleId = ((await roleResponse.json()) as { role: { id: string } }).role.id
 	let filePath: string | undefined
 	try {
-		await expect(await page.request.put(`/api/agents/${agent.id}/access/${roleId}`, { data: { permissions: ["agents:read"] } })).toBeOK()
+		const agentsResponse = await page.request.get("/api/agents")
+		await expect(agentsResponse).toBeOK()
+		const { agents } = (await agentsResponse.json()) as { agents: { id: string; name: string }[] }
+		const hidden = agents.find(({ name }) => name === "Product Advisor")
+		assert(hidden, "Missing reporting-only agent")
+		await expect(
+			await page.request.put(`/api/agents/${hidden.id}/access/${roleId}`, { data: { permissions: ["stats:read"] } }),
+		).toBeOK()
+		await expect(
+			await page.request.put(`/api/agents/${agent.id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+		).toBeOK()
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 		const embedResponse = await page.request.post("/api/embeds", {
 			data: { name: "Website", agentId: agent.id, appearance: WIDGET_APPEARANCE },
@@ -99,6 +109,9 @@ test("a read-only operator can inspect agents but finds no management controls",
 
 		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
+		await expect(page.getByRole("link", { name: /Product Advisor/ })).toHaveCount(0)
+		await page.goto(`/dashboard/agent/${hidden.id}`)
+		await expect(page).toHaveURL("/dashboard/agents")
 		await page.getByRole("link", { name: new RegExp(agent.name) }).click()
 
 		await expect(page.getByRole("heading", { name: agent.name, exact: true })).toBeVisible()
@@ -124,12 +137,13 @@ test("a read-only operator can inspect agents but finds no management controls",
 
 		await page.getByRole("tab", { name: "Embeds" }).click()
 		await expect(page.getByRole("link", { name: "Website", exact: true })).toBeVisible()
-		await expect(page.getByRole("switch", { name: "Embed enabled" })).toHaveCount(0)
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeDisabled()
+		await expect(page.getByRole("switch", { name: "Embed enabled" })).toBeChecked()
 		await expect(page.getByRole("button", { name: "New embed" })).toHaveCount(0)
 		await page.getByRole("link", { name: "Website", exact: true }).click()
 
-		await expect(page.getByLabel("Name")).toBeDisabled()
-		await expect(page.getByLabel("Brand color hex value", { exact: true })).toBeDisabled()
+		await expect(page.getByLabel("Name")).toHaveAttribute("readonly", "")
+		await expect(page.getByLabel("Brand color hex value", { exact: true })).toHaveAttribute("readonly", "")
 		await expect(page.locator("pre")).toBeVisible()
 		await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 		await expect(page.getByText("Danger zone")).toHaveCount(0)
@@ -144,7 +158,8 @@ test("a read-only operator can inspect agents but finds no management controls",
 })
 
 test("an ungranted operator sees neither agent navigation nor agent content", async ({ page }) => {
-	await openDashboard(page, MEMBER)
+	await logIn(page, MEMBER)
+	await expect(page).toHaveURL("/dashboard/account")
 
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
@@ -157,12 +172,12 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 
 	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.
 	await page.goto("/dashboard/users")
-	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("button", { name: "Invite a member" })).toHaveCount(0)
 
 	// Nested routes are covered by the same gate, not just top-level ones.
 	await page.goto("/dashboard/ai-configuration")
-	await expect(page.getByText("Access restricted")).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0)
 })
 
@@ -191,6 +206,6 @@ test("switching accounts does not reuse cached agent permissions", async ({ page
 		releasePermissions.resolve()
 		await page.unrouteAll({ behavior: "wait" })
 	}
-	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 })

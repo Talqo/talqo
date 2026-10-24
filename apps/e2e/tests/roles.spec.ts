@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test"
 
 import { test } from "./application"
 import { createInvitedMember } from "./invited-member"
-import { ADMIN, openDashboard } from "./log-in"
+import { ADMIN, logIn, openDashboard } from "./log-in"
 
 async function logOut(page: Page) {
 	await page.getByRole("button", { name: "Log out" }).click()
@@ -26,7 +26,11 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await page.getByLabel("Name").fill(roleName)
 			await page.getByRole("button", { name: "Save changes" }).click()
 			await expect(page.getByText("Changes saved.", { exact: true })).toBeVisible()
-			await expect(await page.request.put(`/api/agents/${agent.id}/access/${createdRoleId}`, { data: { permissions: ["agents:manage"] } })).toBeOK()
+			await expect(
+				await page.request.put(`/api/agents/${agent.id}/access/${createdRoleId}`, {
+					data: { permissions: ["agents:manage"] },
+				}),
+			).toBeOK()
 			await page.reload()
 			await expect(page.getByLabel("Name")).toHaveValue(roleName)
 			await page.setViewportSize({ width: 390, height: 844 })
@@ -39,8 +43,8 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 
 		await test.step("an invited operator starts without access", async () => {
 			await logOut(page)
-			await openDashboard(page, operator)
-			await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
+			await logIn(page, operator)
+			await expect(page).toHaveURL("/dashboard/account")
 			await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 			await logOut(page)
 		})
@@ -79,7 +83,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 
 			// A hidden link is not the boundary: the page itself must refuse.
 			await page.goto("/dashboard/users/roles")
-			await expect(page.getByText("Access restricted")).toBeVisible()
+			await expect(page).toHaveURL("/dashboard")
 			await expect(page.getByRole("button", { name: "Create role" })).toHaveCount(0)
 			await logOut(page)
 		})

@@ -1,20 +1,19 @@
-import { expect, test } from "@playwright/test"
+import { expect } from "@playwright/test"
 import assert from "node:assert/strict"
 
+import { test } from "./application"
+import { createInvitedMember } from "./invited-member"
 import { logIn } from "./log-in"
 
-test("admin grants one agent's reporting access and removes it immediately", async ({ page, browser }) => {
+test("admin grants one agent's reporting access and removes it immediately", async ({ page, browser, agent }) => {
+	const account = { username: crypto.randomUUID().replaceAll("-", ""), password: "reporting-test-password" }
+	await createInvitedMember(page.request, account)
 	await logIn(page, { username: "admin", password: "admin123" })
-	const { agents } = (await (await page.request.get("/api/agents")).json()) as {
-		agents: { id: string; name: string }[]
-	}
-	const agent = agents.find(({ name }) => name === "Website Assistant")
-	assert.ok(agent, "Missing seeded agent")
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
 		users: { id: string; username: string; roles: { id: string }[] }[]
 	}
-	const user = users.find(({ username }) => username === "user")
-	assert.ok(user, "Missing seeded operator")
+	const user = users.find(({ username }) => username === account.username)
+	assert.ok(user, "Missing invited operator")
 	const name = `Reporting ${crypto.randomUUID()}`
 	const created = await page.request.post("/api/roles", { data: { name, permissions: [] } })
 	await expect(created).toBeOK()
@@ -50,7 +49,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		await expect(access.getByRole("status")).toHaveText("Permissions saved.")
 
 		const operator = await context.newPage()
-		await logIn(operator, { username: "user", password: "user1234" })
+		await logIn(operator, account)
 		await expect(operator.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible()
 		await expect(operator.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
 		await expect(operator.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
@@ -79,9 +78,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		expect((await operator.request.get("/api/stats")).status()).toBe(403)
 	} finally {
 		await context.close()
-		await expect(
-			await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: user.roles.map(({ id }) => id) } }),
-		).toBeOK()
+		await expect(await page.request.delete(`/api/users/${user.id}`)).toBeOK()
 		await expect(await page.request.delete(`/api/roles/${role.id}`)).toBeOK()
 	}
 })
