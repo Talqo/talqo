@@ -1,48 +1,23 @@
-import { expect, type Page, test } from "@playwright/test"
+import { expect } from "@playwright/test"
 
-import { logIn } from "./log-in"
+import { test as applicationTest } from "./application"
+import { createInvitedMember } from "./invited-member"
+import { ADMIN, logIn, openDashboard } from "./log-in"
 
-const ADMIN = { username: "admin", password: "admin123" }
-
-const createdMembers: string[] = []
-
-test.afterEach(async ({ request }) => {
-	if (createdMembers.length === 0) return
-	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
-	const { users } = (await (await request.get("/api/users")).json()) as { users: { id: string; username: string }[] }
-	await Promise.all(
-		createdMembers.splice(0).map(async (username) => {
-			const user = users.find((candidate) => candidate.username === username)
-			if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
-		}),
-	)
+const test = applicationTest.extend<{ member: { username: string; password: string } }>({
+	member: async ({ request }, use) => {
+		const member = { username: crypto.randomUUID().replaceAll("-", ""), password: "member-original-password" }
+		await use(member)
+		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+		const response = await request.get("/api/users")
+		await expect(response).toBeOK()
+		const { users } = (await response.json()) as { users: { id: string; username: string }[] }
+		const user = users.find(({ username }) => username === member.username)
+		if (user) await expect(await request.delete(`/api/users/${user.id}`)).toBeOK()
+	},
 })
 
-// Disposable member, so password-mutating tests never touch the shared seed accounts.
-async function inviteMember(page: Page, username: string, password: string) {
-	await logIn(page, ADMIN)
-	await page.getByRole("link", { name: "Users" }).click()
-	await page.getByRole("button", { name: "Invite a member" }).click()
-	const dialog = page.getByRole("dialog")
-	await dialog.getByRole("button", { name: "Create invitation" }).click()
-	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
-	expect(new URL(inviteUrl).searchParams.get("token")).toBeTruthy()
-	// The dialog is modal, so close it before reaching the header controls.
-	await page.keyboard.press("Escape")
-	await page.getByRole("button", { name: "Log out" }).click()
-
-	await page.goto(inviteUrl)
-	await page.getByLabel("Username").fill(username)
-	await page.getByLabel("Password", { exact: true }).fill(password)
-	await page.getByLabel("Confirm password").fill(password)
-	await page.getByRole("button", { name: "Create account" }).click()
-	// Accepting an invitation signs the member straight in.
-	await expect(page).toHaveURL("/dashboard")
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
-}
-
-test("admin selects invitation roles and the member lands signed in with that access", async ({ page }) => {
+test("admin selects invitation roles and the member lands signed in with that access", async ({ page, member }) => {
 	await logIn(page, ADMIN)
 
 	await page.getByRole("link", { name: "Users" }).click()
@@ -59,10 +34,10 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	expect(inviteUrl).toMatch(/^https?:\/\//)
 	expect(new URL(inviteUrl).searchParams.get("token")).toBeTruthy()
 
-	const memberUsername = `member_${Date.now()}`
-	const memberPassword = "member-original-password"
-	createdMembers.push(memberUsername)
+	const { username: memberUsername, password: memberPassword } = member
 
+	await page.keyboard.press("Escape")
+	await page.getByRole("button", { name: "Log out" }).click()
 	await page.goto(inviteUrl)
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
@@ -70,9 +45,8 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await page.getByRole("button", { name: "Create account" }).click()
 
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
-	await page.getByRole("link", { name: "Agents", exact: true }).click()
-	await expect(page.getByRole("button", { name: "Create agent", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
+	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 
 	await page.getByRole("button", { name: "Log out" }).click()
 	await expect(page).toHaveURL("/login")
@@ -80,23 +54,21 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await expect(page).toHaveURL("/login")
 })
 
-test("an admin resets a member's password and forces them through a new one", async ({ page }) => {
-	const memberUsername = `member_${Date.now()}_reset`
-	const originalPassword = "member-original-password"
+test("an admin resets a member's password and forces them through a new one", async ({ page, request, member }) => {
+	const { username: memberUsername, password: originalPassword } = member
 	const adminResetPassword = "admin-reset-password-000"
 	const memberFinalPassword = "member-final-chosen-password"
-	createdMembers.push(memberUsername)
 
-	await inviteMember(page, memberUsername, originalPassword)
+	await createInvitedMember(request, { username: memberUsername, password: originalPassword })
 
-	await logIn(page, ADMIN)
+	await openDashboard(page)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
-	const adminRow = page.locator("[data-slot=card]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Reset password" })).toBeDisabled()
+	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
+	await expect(adminRow.getByRole("button", { name: "Reset password" })).toHaveCount(0)
 
-	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
+	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
 	await expect(memberRow.getByText("Pending password change")).toHaveCount(0)
 	await memberRow.getByRole("button", { name: "Reset password" }).click()
 	const dialog = page.getByRole("dialog")
@@ -125,31 +97,30 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
 	await page.getByRole("button", { name: "Set new password" }).click()
 
-	// The forced change keeps the session, landing signed in on the dashboard. Without
-	// agents:read the member sees the access-restricted card instead of statistics.
-	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("heading", { name: "Access restricted" })).toBeVisible()
+	await expect(page).toHaveURL("/dashboard/account")
+	await page.getByRole("button", { name: "Log out" }).click()
+	await logIn(page, { username: memberUsername, password: memberFinalPassword })
 })
 
-test("an admin deletes a member, who can no longer log in", async ({ page }) => {
-	const memberUsername = `member_${Date.now()}_delete`
-	const memberPassword = "member-doomed-password"
+test("an admin can delete a member but cannot delete their own account", async ({ page, request, member }) => {
+	const { username: memberUsername, password: memberPassword } = member
+	await createInvitedMember(request, { username: memberUsername, password: memberPassword })
 
-	// The test deletes the member itself, so it does not register with createdMembers cleanup.
-	await inviteMember(page, memberUsername, memberPassword)
-
-	await logIn(page, ADMIN)
+	await openDashboard(page)
+	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: "Danger zone", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
 	await page.getByRole("link", { name: "Users" }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
-	const adminRow = page.locator("[data-slot=card]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Delete", exact: true })).toBeDisabled()
+	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
+	await expect(adminRow.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0)
 
-	const memberRow = page.locator("[data-slot=card]", { hasText: memberUsername })
+	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
 	await memberRow.getByRole("button", { name: "Delete", exact: true }).click()
 	const dialog = page.getByRole("dialog")
 	const confirm = dialog.getByRole("button", { name: "Delete user" })
-	await expect(dialog.getByRole("textbox")).toHaveCount(0)
 	await expect(confirm).toBeEnabled()
 	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
 	await expect(memberRow).toBeVisible()
@@ -163,5 +134,22 @@ test("an admin deletes a member, who can no longer log in", async ({ page }) => 
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
 	await page.getByRole("button", { name: "Log in" }).click()
 	await expect(page.getByRole("alert")).toBeVisible()
+	await expect(page).toHaveURL("/login")
+})
+
+test("a member cancels then deletes their own account from Account settings", async ({ page, request, member }) => {
+	const { username, password } = member
+	await createInvitedMember(request, member)
+	await logIn(page, { username, password })
+	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await page.getByRole("button", { name: "Delete account", exact: true }).click()
+	const dialog = page.getByRole("dialog")
+	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+	await expect(dialog).toBeHidden()
+	await expect(page).toHaveURL("/dashboard/account")
+	await page.getByRole("button", { name: "Delete account", exact: true }).click()
+	await dialog.getByRole("button", { name: "Delete account", exact: true }).click()
+	await expect(page).toHaveURL("/login")
+	await page.goto("/dashboard/account")
 	await expect(page).toHaveURL("/login")
 })

@@ -7,6 +7,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 
 import {
+	agentAccessResponseSchema,
 	assignUserRolesRoute,
 	bootstrapAdminResponseSchema,
 	bootstrapAdminRoute,
@@ -15,6 +16,7 @@ import {
 	createRoleRoute,
 	deleteRoleRoute,
 	deleteUserRoute,
+	getAgentAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
 	grantablePermissionsResponseSchema,
@@ -24,9 +26,11 @@ import {
 	myPermissionsRoute,
 	redeemInvitationResponseSchema,
 	redeemInvitationRoute,
+	removeAgentAccessRoute,
 	resetUserPasswordRoute,
 	roleListResponseSchema,
 	roleResponseSchema,
+	setAgentAccessRoute,
 	setupStatusResponseSchema,
 	updateRoleRoute,
 	userListResponseSchema,
@@ -35,6 +39,22 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
+	.openapi(getAgentAccessRoute, async (c) => {
+		return c.json(
+			agentAccessResponseSchema.parse(await service.listAgentAccess(c.get("user").id, c.req.valid("param").agentId)),
+			HTTP_STATUS.OK,
+		)
+	})
+	.openapi(setAgentAccessRoute, async (c) => {
+		const { agentId, roleId } = c.req.valid("param")
+		await service.setAgentAccess(c.get("user").id, agentId, roleId, c.req.valid("json").permissions)
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
+	.openapi(removeAgentAccessRoute, async (c) => {
+		const { agentId, roleId } = c.req.valid("param")
+		await service.setAgentAccess(c.get("user").id, agentId, roleId, [])
+		return c.body(null, HTTP_STATUS.NO_CONTENT)
+	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
@@ -107,7 +127,14 @@ rolesRoutes.openapi(listGrantablePermissionsRoute, (c) => {
 })
 
 rolesRoutes.openapi(listRolesRoute, async (c) => {
-	return c.json(roleListResponseSchema.parse({ roles: await service.listRoles() }), HTTP_STATUS.OK)
+	const roles = await service.listRoles()
+	return c.json(
+		roleListResponseSchema.parse({
+			roles,
+			manageableRoleIds: await service.manageableRoleIds(c.get("user").id, roles),
+		}),
+		HTTP_STATUS.OK,
+	)
 })
 
 rolesRoutes.openapi(createRoleRoute, async (c) => {

@@ -1,138 +1,33 @@
-import { expect, test } from "@playwright/test"
-import { readFile } from "node:fs/promises"
-import { createServer, type Server } from "node:http"
-import path from "node:path"
+import { expect } from "@playwright/test"
 
-import { logIn } from "./log-in"
+import { test } from "./chat-embed"
+import { openDashboard } from "./log-in"
 
-const DIST = path.resolve(import.meta.dirname, "../../widget/dist")
-const HOST_HTML_PATH = path.resolve(import.meta.dirname, "fixtures/host.html")
 const WEBSITE_ASSISTANT_ID = "11111111-1111-4111-8111-111111111111"
 
-let server: Server
-let hostBaseURL: string
-let apiOrigin: string
-let providerOrigin: string
-let journeyFixture: { agentId: string; embedId?: string } | undefined
-
-test.beforeAll(async () => {
-	const apiPort = process.env.TALQO_API_PORT
-	if (!apiPort) throw new Error("TALQO_API_PORT missing — scripts/test-e2e.ts provides it")
-	apiOrigin = `http://127.0.0.1:${apiPort}`
-	const providerUrl = process.env.TALQO_SEED_AI_BASE_URL
-	if (!providerUrl) throw new Error("TALQO_SEED_AI_BASE_URL missing; scripts/test-e2e.ts provides it")
-	providerOrigin = new URL(providerUrl).origin
-	const template = await readFile(HOST_HTML_PATH, "utf8")
-
-	server = createServer((req, res) => {
-		const requestUrl = new URL(req.url ?? "/", "http://localhost")
-		if (requestUrl.pathname === "/") {
-			const token = requestUrl.searchParams.get("token") ?? ""
-			res
-				.writeHead(200, { "content-type": "text/html" })
-				.end(template.replace("__TOKEN__", token).replace("__API_ORIGIN__", apiOrigin))
-			return
-		}
-		const file =
-			requestUrl.pathname === "/widget.js" || requestUrl.pathname === "/widget.css"
-				? path.join(DIST, requestUrl.pathname.slice(1))
-				: null
-		if (!file) {
-			res.writeHead(404).end()
-			return
-		}
-		readFile(file)
-			.then((content) => {
-				res.writeHead(200, { "content-type": file.endsWith(".js") ? "text/javascript" : "text/css" }).end(content)
-			})
-			.catch(() => res.writeHead(404).end())
-	})
-	await new Promise<void>((resolve) => {
-		server.listen(0, "127.0.0.1", resolve)
-	})
-	const address = server.address()
-	if (typeof address !== "object" || !address) {
-		throw new Error("stats host server failed to bind")
-	}
-	hostBaseURL = `http://127.0.0.1:${address.port}`
-})
-
-test.afterAll(async () => {
-	server.close()
-})
-
-test.afterEach(async ({ request }) => {
-	await expect(await request.post(`${providerOrigin}/control/reset`)).toBeOK()
-	if (journeyFixture) {
-		if (journeyFixture.embedId) await expect(await request.delete(`/api/embeds/${journeyFixture.embedId}`)).toBeOK()
-		await expect(await request.delete(`/api/agents/${journeyFixture.agentId}`)).toBeOK()
-		journeyFixture = undefined
-	}
-})
-
-test("a recorded chat appears in the dashboard statistics after login", async ({ page, request }, testInfo) => {
-	await expect(await request.post(`${providerOrigin}/control/reset`)).toBeOK()
-
-	const admin = { username: "admin", password: "admin123" }
-	await expect(await request.post(`${apiOrigin}/api/auth/login`, { data: admin })).toBeOK()
-	const agentName = `Stats ${testInfo.project.name} ${testInfo.retry}`
-	const agentResponse = await request.post(`${apiOrigin}/api/agents`, {
-		data: { name: agentName, systemPrompt: "You are the support assistant on our company website.", wordBlacklist: [] },
-	})
-	await expect(agentResponse).toBeOK()
-	const { agent } = (await agentResponse.json()) as { agent: { id: string } }
-	journeyFixture = { agentId: agent.id }
-	const seedEmbeds = (await (await request.get(`${apiOrigin}/api/embeds`)).json()) as {
-		embeds: { appearance: unknown }[]
-	}
-	const appearance = seedEmbeds.embeds[0]?.appearance
-	expect(appearance, "Shared seed embed is missing").toBeDefined()
-	const embedResponse = await request.post(`${apiOrigin}/api/embeds`, {
-		data: { agentId: agent.id, name: "Stats test", appearance },
-	})
-	await expect(embedResponse).toBeOK()
-	const { embed } = (await embedResponse.json()) as { embed: { embedToken: string; id: string } }
-	journeyFixture.embedId = embed.id
+test("a recorded chat appears in the dashboard statistics after login", async ({ page, chatEmbed }) => {
+	const { agentName, widgetUrl } = chatEmbed
 
 	// Chat through the real widget; the fake provider answers immediately.
-	await page.goto(`${hostBaseURL}/?token=${encodeURIComponent(embed.embedToken)}`)
+	await page.goto(widgetUrl)
 	await page.getByRole("button", { name: "Open chat" }).click()
 	const dialog = page.getByRole("dialog")
 	await dialog.getByRole("textbox", { name: "Message" }).fill("Record this turn")
 	await dialog.getByRole("button", { name: "Send" }).click()
-	await expect(dialog.getByText("Unexpected fake provider request.", { exact: true })).toBeVisible()
-
-	// The fake provider reports 12 input and 6 output tokens for a completed turn.
-	await expect
-		.poll(async () => {
-			const response = await request.get(`${apiOrigin}/api/stats`)
-			const body = (await response.json()) as {
-				overview: { agents: { agentId: string; conversations: number }[] }
-			}
-			return body.overview.agents.find((row) => row.agentId === agent.id)?.conversations ?? 0
-		})
-		.toBeGreaterThanOrEqual(1)
+	await expect(dialog.getByText("Recorded answer.", { exact: true })).toBeVisible()
+	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
 
 	// Log in through the real web app; the landing page must show the recorded statistics.
-	await logIn(page, admin)
-	await expect(page.getByRole("heading", { name: "Welcome to Talqo" })).toBeVisible()
-	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
+	await openDashboard(page)
 	const agentRow = page.getByRole("row", { name: new RegExp(`^${agentName}`) })
 	await expect(agentRow).toBeVisible()
 	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
 	await expect(agentRow.getByRole("cell").nth(2)).toHaveText("2")
 	await expect(agentRow.getByRole("cell").nth(3)).toHaveText("18")
-
-	// Live and per-conversation insight cards render alongside the volume cards.
-	await expect(page.getByText("Active conversations (last 60 minutes)")).toBeVisible()
-	await expect(page.getByText("Messages per conversation", { exact: true })).toBeVisible()
-	await expect(page.getByText("Tokens per conversation", { exact: true })).toBeVisible()
 })
 
 test("the agent filter and time range scope the dashboard and ride in the URL", async ({ page }) => {
-	const admin = { username: "admin", password: "admin123" }
-	await logIn(page, admin)
-	await expect(page.getByRole("heading", { name: "Per-agent breakdown" })).toBeVisible()
+	await openDashboard(page)
 
 	const websiteAssistantRow = page.getByRole("row", { name: /^Website Assistant/ })
 	await expect(websiteAssistantRow).toBeVisible()
@@ -163,11 +58,12 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 	const rangeFilter = page.getByRole("combobox", { name: "Time range", exact: true })
 	await rangeFilter.click()
 	await page.getByRole("option", { name: "7 days", exact: true }).click()
-	await expect(page).toHaveURL(/[?&]days=7(?:&|$)/)
-	await expect(page).toHaveURL(/[?&]agents=/)
+	await expect(page).toHaveURL((url) => url.searchParams.get("days") === "7" && url.searchParams.has("agents"))
+	await page.reload()
+	await expect(rangeFilter).toContainText("7 days")
 	await expect(websiteAssistantRow).toBeVisible()
 	await rangeFilter.click()
 	await page.getByRole("option", { name: "All time", exact: true }).click()
-	await expect(page).toHaveURL(/[?&]days=all(?:&|$)/)
+	await expect(page).toHaveURL((url) => url.searchParams.get("days") === "all")
 	await expect(websiteAssistantRow).toBeVisible()
 })

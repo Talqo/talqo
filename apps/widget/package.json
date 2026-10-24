@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "vite build",
-		"dev": "vite",
+		"dev": "bun --env-file .env.example node_modules/vite/bin/vite.js",
 		"typecheck": "bun check",
 		"test": "bun test",
 		"i18n": "i18next-cli status && i18next-cli lint --quiet && i18next-cli extract --ci --dry-run --quiet",

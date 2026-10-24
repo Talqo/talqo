@@ -5,11 +5,11 @@ import {
 	useUpdateCurrentUser,
 } from "@/api/generated/identity/identity.ts"
 import { PageHeader } from "@/components/page-header"
+import { DeleteAccountCard } from "@/features/account/delete-account-card"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
 import { getProblemMessage } from "@/lib/problem-message.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
-import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
@@ -154,27 +154,6 @@ function PasswordCard() {
 	)
 }
 
-function DangerZoneCard() {
-	const { t } = useTranslation()
-
-	return (
-		<Card variant="destructive">
-			<CardHeader>
-				<div className="flex items-center gap-2">
-					<CardTitle>{t("account.dangerZone")}</CardTitle>
-					<Badge variant="secondary">{t("account.comingSoon")}</Badge>
-				</div>
-				<CardDescription>{t("account.dangerDescription")}</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<Button variant="destructive" disabled>
-					{t("account.deleteAccount")}
-				</Button>
-			</CardContent>
-		</Card>
-	)
-}
-
 function AccountPage() {
 	const { t } = useTranslation()
 	const session = useGetSession()
@@ -188,7 +167,7 @@ function AccountPage() {
 				<ProfileCard name={session.data?.data.user?.username ?? ""} />
 			)}
 			<PasswordCard />
-			<DangerZoneCard />
+			<DeleteAccountCard />
 		</div>
 	)
 }

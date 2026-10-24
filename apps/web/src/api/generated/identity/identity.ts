@@ -580,6 +580,11 @@ export type deleteCurrentUserResponse403 = {
   status: 403
 }
 
+export type deleteCurrentUserResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
 export type deleteCurrentUserResponse500 = {
   data: ProblemDetails
   status: 500
@@ -588,7 +593,7 @@ export type deleteCurrentUserResponse500 = {
 export type deleteCurrentUserResponseSuccess = (deleteCurrentUserResponse204) & {
   headers: Headers;
 };
-export type deleteCurrentUserResponseError = (deleteCurrentUserResponse401 | deleteCurrentUserResponse403 | deleteCurrentUserResponse500) & {
+export type deleteCurrentUserResponseError = (deleteCurrentUserResponse401 | deleteCurrentUserResponse403 | deleteCurrentUserResponse404 | deleteCurrentUserResponse500) & {
   headers: Headers;
 };
 

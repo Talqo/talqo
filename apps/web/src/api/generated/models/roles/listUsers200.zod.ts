@@ -12,7 +12,7 @@ export const ListUsers200 = zod.object({
   "id": zod.string(),
   "username": zod.string(),
   "mustChangePassword": zod.boolean().nullable(),
-  "permissions": zod.array(zod.enum(['admin', 'users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:read', 'agents:manage', 'conversations:read'])),
+  "permissions": zod.array(zod.enum(['admin', 'users:read', 'users:manage', 'roles:manage', 'ai_provider:manage'])),
   "canManage": zod.boolean(),
   "roles": zod.array(RoleSummary)
 }))

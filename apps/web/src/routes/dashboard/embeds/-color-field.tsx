@@ -10,10 +10,11 @@ type ColorFieldProps = {
 	id: string
 	label: string
 	onChange: (value: string) => void
+	readOnly: boolean
 	value: string
 }
 
-export function ColorField({ against, id, label, onChange, value }: ColorFieldProps) {
+export function ColorField({ against, id, label, onChange, readOnly, value }: ColorFieldProps) {
 	const { t } = useTranslation()
 	const comparable = isHexColor(value) && against !== undefined && isHexColor(against)
 	const ratio = comparable ? contrastRatio(value, against) : undefined
@@ -26,11 +27,13 @@ export function ColorField({ against, id, label, onChange, value }: ColorFieldPr
 				<input
 					id={id}
 					type="color"
+					disabled={readOnly}
 					value={isHexColor(value) ? value : "#000000"}
 					onChange={(event) => onChange(event.target.value)}
 					className="h-control rounded-control w-12 cursor-pointer border bg-transparent p-1"
 				/>
 				<Input
+					readOnly={readOnly}
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
 					font="mono"

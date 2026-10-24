@@ -8,7 +8,8 @@ import * as zod from 'zod';
 import { Role } from '../role.zod';
 
 export const ListRoles200 = zod.object({
-  "roles": zod.array(Role)
+  "roles": zod.array(Role),
+  "manageableRoleIds": zod.array(zod.string())
 })
 
 export type ListRoles200 = zod.input<typeof ListRoles200>;

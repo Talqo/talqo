@@ -48,6 +48,28 @@
               "code": {
                 "type": "string",
                 "enum": [
+                  "admin-deletion-not-allowed"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#admin-deletion-not-allowed"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
                   "agent-file-invalid"
                 ]
               },
@@ -1253,10 +1275,7 @@
                 "users:read",
                 "users:manage",
                 "roles:manage",
-                "ai_provider:manage",
-                "agents:read",
-                "agents:manage",
-                "conversations:read"
+                "ai_provider:manage"
               ]
             }
           },
@@ -3295,7 +3314,17 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: password-change-required.",
+            "description": "Problem response. Codes: password-change-required, admin-deletion-not-allowed.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: user-not-found.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3468,6 +3497,324 @@
           },
           "413": {
             "description": "Problem response. Codes: payload-too-large.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agentId}/access": {
+      "get": {
+        "operationId": "getAgentAccess",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Effective permissions, with role grants for access managers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "stats:read",
+                          "conversations:read",
+                          "agents:read",
+                          "agents:manage",
+                          "agents:delete"
+                        ]
+                      }
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/RoleSummary"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "permissions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "stats:read",
+                                    "conversations:read",
+                                    "agents:read",
+                                    "agents:manage",
+                                    "agents:delete"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "permissions"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: agent-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agents/{agentId}/access/{roleId}": {
+      "put": {
+        "operationId": "setAgentAccess",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "stats:read",
+                        "conversations:read",
+                        "agents:read",
+                        "agents:manage",
+                        "agents:delete"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "permissions"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "400": {
+            "description": "Problem response. Codes: invalid-request, malformed-json.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: agent-not-found, role-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeAgentAccess",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: agent-not-found, role-not-found.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3875,10 +4222,7 @@
                           "users:read",
                           "users:manage",
                           "roles:manage",
-                          "ai_provider:manage",
-                          "agents:read",
-                          "agents:manage",
-                          "conversations:read"
+                          "ai_provider:manage"
                         ]
                       }
                     }
@@ -3968,10 +4312,7 @@
                                 "users:read",
                                 "users:manage",
                                 "roles:manage",
-                                "ai_provider:manage",
-                                "agents:read",
-                                "agents:manage",
-                                "conversations:read"
+                                "ai_provider:manage"
                               ]
                             }
                           },
@@ -4252,10 +4593,7 @@
                               "users:read",
                               "users:manage",
                               "roles:manage",
-                              "ai_provider:manage",
-                              "agents:read",
-                              "agents:manage",
-                              "conversations:read"
+                              "ai_provider:manage"
                             ]
                           },
                           "implies": {
@@ -4266,10 +4604,7 @@
                                 "users:read",
                                 "users:manage",
                                 "roles:manage",
-                                "ai_provider:manage",
-                                "agents:read",
-                                "agents:manage",
-                                "conversations:read"
+                                "ai_provider:manage"
                               ]
                             }
                           }
@@ -4345,10 +4680,17 @@
                       "items": {
                         "$ref": "#/components/schemas/Role"
                       }
+                    },
+                    "manageableRoleIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
-                    "roles"
+                    "roles",
+                    "manageableRoleIds"
                   ]
                 }
               }
@@ -4416,13 +4758,10 @@
                         "users:read",
                         "users:manage",
                         "roles:manage",
-                        "ai_provider:manage",
-                        "agents:read",
-                        "agents:manage",
-                        "conversations:read"
+                        "ai_provider:manage"
                       ]
                     },
-                    "maxItems": 7
+                    "maxItems": 4
                   }
                 },
                 "required": [
@@ -4557,13 +4896,10 @@
                         "users:read",
                         "users:manage",
                         "roles:manage",
-                        "ai_provider:manage",
-                        "agents:read",
-                        "agents:manage",
-                        "conversations:read"
+                        "ai_provider:manage"
                       ]
                     },
-                    "maxItems": 7
+                    "maxItems": 4
                   }
                 },
                 "required": [
@@ -4887,7 +5223,7 @@
         ],
         "responses": {
           "200": {
-            "description": "All agents",
+            "description": "Visible agents",
             "content": {
               "application/json": {
                 "schema": {
@@ -4896,7 +5232,43 @@
                     "agents": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Agent"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "stats:read",
+                                "conversations:read",
+                                "agents:read",
+                                "agents:manage",
+                                "agents:delete"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "updatedAt",
+                          "permissions"
+                        ]
                       }
                     }
                   },
@@ -5396,7 +5768,7 @@
         ],
         "responses": {
           "200": {
-            "description": "All embeds",
+            "description": "Visible embeds",
             "content": {
               "application/json": {
                 "schema": {

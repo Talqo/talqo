@@ -3,7 +3,7 @@ import { sql } from "@/db/client.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import { getStatsOverview } from "./stats.service.ts"
@@ -126,12 +126,27 @@ beforeEach(async () => {
 })
 
 describe("stats overview aggregation", () => {
+	it("excludes hidden messages, token usage, activity and historical dates before aggregation", async () => {
+		const a = await agentService.createAgent({ name: "Hidden history", systemPrompt: "A", wordBlacklist: [] })
+		const b = await agentService.createAgent({ name: "Visible reporting", systemPrompt: "B", wordBlacklist: [] })
+		await seedChatHistory(a.id, b.id)
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["stats:read"], [b.id])
+		const overview = await getStatsOverview({ days: "all" }, operator.id)
+		expect(overview.days).toBe(1)
+		expect(overview.totals).toEqual({ conversations: 1, messages: 2, inputTokens: 1, outputTokens: 2 })
+		expect(overview.active).toEqual([{ agentId: b.id, conversations: 1 }])
+		expect(overview.agents).toEqual([
+			{ agentId: b.id, agentName: b.name, conversations: 1, messages: 2, inputTokens: 1, outputTokens: 2 },
+		])
+		expect(overview.agentDaily.every((point) => point.agentId === b.id)).toBe(true)
+	})
 	it("aggregates daily counts, token sums, and per-agent totals within the window", async () => {
 		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
 		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
 		await seedChatHistory(agentA.id, agentB.id)
 
-		const overview = await getStatsOverview({ days: 30 })
+		const overview = await getStatsOverview({ days: 30 }, await testAdminId())
 
 		expect(overview.days).toBe(30)
 		expect(overview.daily).toHaveLength(30)
@@ -218,7 +233,7 @@ describe("stats overview aggregation", () => {
 		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
 		await seedChatHistory(agentA.id, agentB.id)
 
-		const overview = await getStatsOverview({ days: 1 })
+		const overview = await getStatsOverview({ days: 1 }, await testAdminId())
 
 		expect(overview.daily).toHaveLength(1)
 		expect(overview.totals).toEqual({ conversations: 3, messages: 6, inputTokens: 301, outputTokens: 152 })
@@ -229,7 +244,7 @@ describe("stats overview aggregation", () => {
 		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
 		await seedChatHistory(agentA.id, agentB.id)
 
-		const overview = await getStatsOverview({ days: "all" })
+		const overview = await getStatsOverview({ days: "all" }, await testAdminId())
 
 		// The axis starts at the 40-day-old conversation, today inclusive.
 		expect(overview.days).toBe(OUTSIDE_WINDOW_DAYS + 1)
@@ -243,7 +258,7 @@ describe("stats overview aggregation", () => {
 	})
 
 	it("serves a single-day axis over all history when nothing is recorded", async () => {
-		const overview = await getStatsOverview({ days: "all" })
+		const overview = await getStatsOverview({ days: "all" }, await testAdminId())
 
 		expect(overview.days).toBe(1)
 		expect(overview.daily).toEqual([
@@ -273,7 +288,8 @@ describe("stats overview aggregation", () => {
 		expect(bareBody.overview.days).toBe(30)
 		expect(bareBody.overview.daily).toHaveLength(30)
 
-		await giveRole(member.id, ["agents:read"])
+		await agentService.createAgent({ name: "Reporting", systemPrompt: "Help.", wordBlacklist: [] })
+		await giveRole(member.id, ["stats:read"])
 		const granted = await app.request("/api/stats", { headers: { Cookie: memberCookie } })
 		expect(granted.status).toBe(200)
 	})

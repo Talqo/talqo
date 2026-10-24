@@ -14,7 +14,7 @@ import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.re
 import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
@@ -50,11 +50,14 @@ async function fixture() {
 		systemPrompt: "System",
 		wordBlacklist: [],
 	})
-	const createdEmbed = await embed.createEmbed({
-		agentId: createdAgent.id,
-		name: "Chat",
-		appearance: DEFAULT_WIDGET_APPEARANCE,
-	})
+	const createdEmbed = await embed.createEmbed(
+		{
+			agentId: createdAgent.id,
+			name: "Chat",
+			appearance: DEFAULT_WIDGET_APPEARANCE,
+		},
+		await testAdminId(),
+	)
 	return { createdAgent, createdEmbed }
 }
 
@@ -266,7 +269,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await sent.done
-		await embed.disableEmbed(createdEmbed.id)
+		await embed.disableEmbed(createdEmbed.id, await testAdminId())
 
 		await expect(
 			instance.service.send({
@@ -289,7 +292,7 @@ describe("conversation lifecycle", () => {
 		expect((await sql`SELECT count(*)::int AS count FROM generation_attempt`)[0]?.count).toBe(1)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation_daily_counter`)[0]?.count).toBe(1)
 
-		await embed.enableEmbed(createdEmbed.id)
+		await embed.enableEmbed(createdEmbed.id, await testAdminId())
 		const resumed = await instance.service.send({
 			embedToken: createdEmbed.embedToken,
 			credential: CREDENTIAL_1,
@@ -317,7 +320,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await sent.done
-		await embed.rotateEmbedToken(createdEmbed.id)
+		await embed.rotateEmbedToken(createdEmbed.id, await testAdminId())
 
 		await expect(instance.service.getSession(CREDENTIAL_1)).rejects.toBeInstanceOf(SessionUnauthorizedError)
 		expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(1)
@@ -552,7 +555,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await sent.done
-		await embed.deleteEmbed(createdEmbed.id)
+		await embed.deleteEmbed(createdEmbed.id, await testAdminId())
 		expect((await sql`SELECT embed_id FROM conversation`)[0]?.embed_id).toBeNull()
 
 		await agent.deleteAgent(createdAgent.id)
@@ -872,7 +875,7 @@ describe("conversation lifecycle", () => {
 			networkHash: "network-a",
 		})
 		await started.promise
-		await embed.deleteEmbed(createdEmbed.id)
+		await embed.deleteEmbed(createdEmbed.id, await testAdminId())
 		await agent.deleteAgent(createdAgent.id)
 		gate.resolve()
 		await expect(sent.done).resolves.toBeUndefined()
@@ -1312,11 +1315,14 @@ describe("conversation lifecycle", () => {
 			systemPrompt: "System",
 			wordBlacklist: ["poison"],
 		})
-		const createdEmbed = await embed.createEmbed({
-			agentId: createdAgent.id,
-			name: "Chat",
-			appearance: DEFAULT_WIDGET_APPEARANCE,
-		})
+		const createdEmbed = await embed.createEmbed(
+			{
+				agentId: createdAgent.id,
+				name: "Chat",
+				appearance: DEFAULT_WIDGET_APPEARANCE,
+			},
+			await testAdminId(),
+		)
 		const outputs = ["fine", "lost", "poison", "afterwards", "again"]
 		const calls: TextMessage[][] = []
 		let call = 0
@@ -1475,7 +1481,7 @@ async function chat(embedToken: string, credential: string, text: string): Promi
 	await sent.done
 }
 
-async function operatorSession(permission?: roles.GrantablePermission): Promise<string> {
+async function operatorSession(permission?: roles.GrantablePermission | roles.AgentPermission): Promise<string> {
 	const username = uniqueUsername()
 	const account = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	if (permission) await giveRole(account.id, [permission])
@@ -1506,7 +1512,7 @@ describe("operator conversation reads", () => {
 		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "follow-up")
 		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "x".repeat(500))
 
-		const page = await listConversations({ page: 1 })
+		const page = await listConversations({ page: 1 }, await testAdminId())
 
 		expect(page).toMatchObject({ page: 1, pageSize: CONVERSATION_PAGE_SIZE, total: 2 })
 		expect(page.conversations.map((item) => [item.agentId, item.messageCount, item.preview?.length])).toEqual([
@@ -1516,16 +1522,34 @@ describe("operator conversation reads", () => {
 		expect(page.conversations.map((item) => item.id)).not.toContain(CREDENTIAL_1)
 	})
 
-	it("filters by agent", async () => {
+	it("filters conversations and transcripts by scoped read access, including explicit agent filters", async () => {
 		const first = await fixture()
 		const second = await fixture()
 		await chat(first.createdEmbed.embedToken, CREDENTIAL_1, "mine")
 		await chat(second.createdEmbed.embedToken, CREDENTIAL_2, "theirs")
 
-		const page = await listConversations({ agentId: [first.createdAgent.id], page: 1 })
-
+		const operator = await identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+		await giveRole(operator.id, ["conversations:read"], [first.createdAgent.id])
+		const page = await listConversations({ page: 1 }, operator.id)
 		expect(page.total).toBe(1)
 		expect(page.conversations.map((item) => item.preview)).toEqual(["mine"])
+		expect((await listConversations({ agentId: [first.createdAgent.id], page: 1 }, operator.id)).total).toBe(1)
+		expect((await listConversations({ agentId: [second.createdAgent.id], page: 1 }, operator.id)).total).toBe(0)
+		const all = await listConversations({ page: 1 }, await testAdminId())
+		const hidden = all.conversations.find((item) => item.agentId === second.createdAgent.id)
+		if (!hidden) throw new Error("Missing hidden conversation")
+		await expect(getConversationTranscript(hidden.id, operator.id)).rejects.toMatchObject({
+			status: 404,
+			problemCode: "conversation-not-found",
+		})
+		const { token } = await identity.createSession(operator.id)
+		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
+		const hiddenResponse = await app.request(`/api/conversations/${hidden.id}`, { headers })
+		const missingResponse = await app.request(`/api/conversations/${crypto.randomUUID()}`, { headers })
+		expect(hiddenResponse.status).toBe(404)
+		expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
+		await giveRole(operator.id, ["stats:read"], [first.createdAgent.id])
+		await expect(listConversations({ page: 1 }, operator.id)).rejects.toMatchObject({ status: 403 })
 	})
 
 	it("pages by offset without skipping or repeating conversations", async () => {
@@ -1556,10 +1580,10 @@ describe("operator conversation reads", () => {
 			networkHash: "network-a",
 		})
 		await sql`UPDATE generation_attempt SET lease_expires_at = now() - interval '1 second' WHERE id = ${abandoned.generationId}`
-		const [summary] = (await listConversations({ page: 1 })).conversations
+		const [summary] = (await listConversations({ page: 1 }, await testAdminId())).conversations
 		if (!summary) throw new Error("Expected a conversation")
 
-		const transcript = await getConversationTranscript(summary.id)
+		const transcript = await getConversationTranscript(summary.id, await testAdminId())
 		gate.resolve()
 		await abandoned.done
 
@@ -1570,13 +1594,15 @@ describe("operator conversation reads", () => {
 			["user", "still there?", "completed"],
 			["assistant", "", "interrupted"],
 		])
-		await expect(getConversationTranscript(crypto.randomUUID())).rejects.toBeInstanceOf(ConversationNotFoundError)
+		await expect(getConversationTranscript(crypto.randomUUID(), await testAdminId())).rejects.toBeInstanceOf(
+			ConversationNotFoundError,
+		)
 	})
 
 	it("serves conversations over HTTP to conversations:read without exposing the visitor credential", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await chat(createdEmbed.embedToken, CREDENTIAL_1, "hello")
-		const cookie = await operatorSession(roles.Permission.ConversationsRead)
+		const cookie = await operatorSession(roles.AgentPermission.ConversationsRead)
 		const get = (path: string) => app.request(`/api/conversations${path}`, { headers: { Cookie: cookie } })
 
 		const list = await get(`?agentId=${createdAgent.id}`)
@@ -1600,9 +1626,18 @@ describe("operator conversation reads", () => {
 	})
 
 	it("denies operators who can see agents but not conversations", async () => {
-		const cookie = await operatorSession(roles.Permission.AgentsRead)
+		const { createdAgent, createdEmbed } = await fixture()
+		await chat(createdEmbed.embedToken, CREDENTIAL_1, "private conversation")
+		const cookie = await operatorSession(roles.AgentPermission.AgentRead)
+		const headers = { Cookie: cookie }
+		expect((await app.request(`/api/agents/${createdAgent.id}`, { headers })).status).toBe(200)
+		const [conversation] = (await listConversations({ page: 1 }, await testAdminId())).conversations
+		if (!conversation) throw new Error("Missing conversation")
+		const transcript = await app.request(`/api/conversations/${conversation.id}`, { headers })
+		expect(transcript.status).toBe(403)
+		expect(await transcript.json()).toMatchObject({ code: "permission-denied" })
 
-		const response = await app.request("/api/conversations", { headers: { Cookie: cookie } })
+		const response = await app.request("/api/conversations", { headers })
 
 		expect(response.status).toBe(403)
 		expect(await response.json()).toMatchObject({ code: "permission-denied" })

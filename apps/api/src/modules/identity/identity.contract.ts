@@ -167,7 +167,8 @@ export const deleteCurrentUserRoute = createRoute({
 	responses: {
 		204: noContentResponse,
 		401: authRequired,
-		403: passwordRequired,
+		403: problemResponse([PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, PROBLEM_CODES.ADMIN_DELETION_NOT_ALLOWED]),
+		404: problemResponse([PROBLEM_CODES.USER_NOT_FOUND]),
 		500: serverError,
 	},
 })

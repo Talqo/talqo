@@ -1,3 +1,4 @@
+import { agent } from "@/modules/agent/agent.schema.ts"
 import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
 import { check, index, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
@@ -90,5 +91,26 @@ export const invitationRole = pgTable(
 	(table) => [
 		primaryKey({ columns: [table.invitationId, table.roleId] }),
 		index("invitation_role_role_id_idx").on(table.roleId),
+	],
+)
+
+export const roleAgentPermission = pgTable(
+	"role_agent_permission",
+	{
+		roleId: text("role_id")
+			.notNull()
+			.references(() => role.id, { onDelete: "cascade" }),
+		agentId: text("agent_id")
+			.notNull()
+			.references(() => agent.id, { onDelete: "cascade" }),
+		permission: text("permission").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.roleId, table.agentId, table.permission] }),
+		index("role_agent_permission_agent_id_idx").on(table.agentId),
+		check(
+			"role_agent_permission_catalog",
+			sql`${table.permission} in ('stats:read', 'conversations:read', 'agents:read', 'agents:manage', 'agents:delete')`,
+		),
 	],
 )

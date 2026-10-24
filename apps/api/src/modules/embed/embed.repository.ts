@@ -1,5 +1,5 @@
 import { db } from "@/db/client.ts"
-import { asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, sql } from "drizzle-orm"
 
 import { embed } from "./embed.schema.ts"
 
@@ -7,11 +7,12 @@ export type Embed = typeof embed.$inferSelect
 export type NewEmbed = typeof embed.$inferInsert
 export type EmbedPatch = Omit<NewEmbed, "accessVersion" | "createdAt" | "embedToken" | "id">
 
-export async function listEmbeds(agentId?: string): Promise<Embed[]> {
-	const query = db.select().from(embed)
-	return agentId
-		? query.where(eq(embed.agentId, agentId)).orderBy(asc(embed.createdAt))
-		: query.orderBy(asc(embed.createdAt))
+export async function listEmbeds(scope: readonly string[] | "all"): Promise<Embed[]> {
+	return db
+		.select()
+		.from(embed)
+		.where(scope === "all" ? undefined : inArray(embed.agentId, [...scope]))
+		.orderBy(asc(embed.createdAt))
 }
 
 export async function findEmbed(id: string): Promise<Embed | undefined> {
@@ -30,7 +31,7 @@ export async function insertEmbed(values: NewEmbed): Promise<Embed> {
 	return row
 }
 
-export async function updateEmbed(id: string, patch: EmbedPatch): Promise<Embed | undefined> {
+export async function updateEmbed(id: string, patch: EmbedPatch, sourceAgentId: string): Promise<Embed | undefined> {
 	const [row] = await db
 		.update(embed)
 		.set({
@@ -38,27 +39,43 @@ export async function updateEmbed(id: string, patch: EmbedPatch): Promise<Embed 
 			accessVersion: sql`${embed.accessVersion} + CASE WHEN ${embed.agentId} <> ${patch.agentId} THEN 1 ELSE 0 END`,
 			updatedAt: new Date(),
 		})
-		.where(eq(embed.id, id))
+		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
 		.returning()
 	return row
 }
 
-export async function rotateEmbedToken(id: string, embedToken: string): Promise<Embed | undefined> {
+export async function rotateEmbedToken(
+	id: string,
+	embedToken: string,
+	sourceAgentId: string,
+): Promise<Embed | undefined> {
 	const [row] = await db
 		.update(embed)
 		.set({ embedToken, accessVersion: sql`${embed.accessVersion} + 1`, updatedAt: new Date() })
-		.where(eq(embed.id, id))
+		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
 		.returning()
 	return row
 }
 
 // No accessVersion bump: disabling must not silently kill live sessions (the flag is
 // enforced at acceptance instead). `updatedAt` still moves so the public config ETag flips.
-export async function setEmbedDisabled(id: string, isDisabled: boolean): Promise<Embed | undefined> {
-	const [row] = await db.update(embed).set({ isDisabled, updatedAt: new Date() }).where(eq(embed.id, id)).returning()
+export async function setEmbedDisabled(
+	id: string,
+	isDisabled: boolean,
+	sourceAgentId: string,
+): Promise<Embed | undefined> {
+	const [row] = await db
+		.update(embed)
+		.set({ isDisabled, updatedAt: new Date() })
+		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
+		.returning()
 	return row
 }
 
-export async function deleteEmbed(id: string): Promise<void> {
-	await db.delete(embed).where(eq(embed.id, id))
+export async function deleteEmbed(id: string, sourceAgentId: string): Promise<boolean> {
+	const removed = await db
+		.delete(embed)
+		.where(and(eq(embed.id, id), eq(embed.agentId, sourceAgentId)))
+		.returning({ id: embed.id })
+	return removed.length > 0
 }

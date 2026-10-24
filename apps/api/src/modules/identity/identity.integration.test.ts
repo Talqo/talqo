@@ -174,14 +174,19 @@ describe("identity", () => {
 		expect(response.status).toBe(409)
 	})
 
-	it("deletes the user and invalidates their session", async () => {
+	it("deletes the user and invalidates all their sessions", async () => {
 		const { cookie, username, password } = await createAndLogin()
+		const secondCookie = extractSessionCookie(await login(username, password))
 
 		const deleteResponse = await app.request("/api/me", { method: "DELETE", headers: { Cookie: cookie } })
 		expect(deleteResponse.status).toBe(204)
 
-		const sessionResponse = await app.request("/api/auth/session", { headers: { Cookie: cookie } })
-		expect(await sessionResponse.json()).toEqual({ user: null })
+		await Promise.all(
+			[cookie, secondCookie].map(async (sessionCookie) => {
+				const sessionResponse = await app.request("/api/auth/session", { headers: { Cookie: sessionCookie } })
+				expect(await sessionResponse.json()).toEqual({ user: null })
+			}),
+		)
 
 		expect((await login(username, password)).status).toBe(401)
 	})

@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test"
+import { expect } from "@playwright/test"
 
+import { test } from "./application"
 import { logIn } from "./log-in"
 
 const OPERATOR = { username: "admin", password: "admin123" }

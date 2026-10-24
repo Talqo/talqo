@@ -139,10 +139,10 @@ export function createConversationRoutes(
 
 export const conversationOperatorRoutes = new OpenAPIHono()
 	.openapi(listConversationsRoute, async (c) => {
-		const page = await listConversations(c.req.valid("query"))
+		const page = await listConversations(c.req.valid("query"), c.get("user").id)
 		return c.json(conversationListResponseSchema.parse(page), HTTP_STATUS.OK)
 	})
 	.openapi(getConversationRoute, async (c) => {
-		const conversation = await getConversationTranscript(c.req.valid("param").conversationId)
+		const conversation = await getConversationTranscript(c.req.valid("param").conversationId, c.get("user").id)
 		return c.json(conversationTranscriptResponseSchema.parse({ conversation }), HTTP_STATUS.OK)
 	})

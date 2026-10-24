@@ -28,15 +28,7 @@ type ListedUser = {
 	username: string
 }
 
-const EVERYTHING = [
-	"admin",
-	"users:read",
-	"users:manage",
-	"roles:manage",
-	"ai_provider:manage",
-	"agents:read",
-	"agents:manage",
-]
+const EVERYTHING = ["admin", "users:read", "users:manage", "roles:manage", "ai_provider:manage"]
 
 let myPermissions: string[]
 let users: ListedUser[]
@@ -73,7 +65,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
-	if (url === "/api/roles") return rolesResponse ?? rolesFailure ?? json({ roles })
+	if (url === "/api/roles")
+		return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/invitations" && method === "POST")
 		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
@@ -83,8 +76,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 				{ permission: "users:manage", implies: ["users:read"] },
 				{ permission: "roles:manage", implies: ["users:read"] },
 				{ permission: "ai_provider:manage", implies: [] },
-				{ permission: "agents:read", implies: [] },
-				{ permission: "agents:manage", implies: ["agents:read"] },
 			],
 		})
 	}
@@ -224,7 +215,7 @@ describe("UsersPage", () => {
 	test("preselects Default for invitations and submits exactly the edited selection", async () => {
 		roles = [
 			{ id: "default", name: "Renamed default", permissions: [], memberCount: 0 },
-			{ id: "support", name: "Support", permissions: ["agents:read"], memberCount: 0 },
+			{ id: "support", name: "Support", permissions: ["ai_provider:manage"], memberCount: 0 },
 		]
 		await renderPage()
 		await click(button(t("auth.invitations.heading")))
@@ -267,12 +258,25 @@ describe("UsersPage", () => {
 
 	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
-		roles = [{ id: "default", name: "Default", permissions: ["agents:manage"], memberCount: 0 }]
+		roles = [{ id: "default", name: "Default", permissions: ["ai_provider:manage"], memberCount: 0 }]
 		await renderPage()
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+	})
+	test("does not preselect or allow an invitation role with inaccessible agent grants", async () => {
+		myPermissions = ["users:read", "users:manage", "roles:manage"]
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		rolesResponse = Promise.resolve(json({ roles, manageableRoleIds: [] }))
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
+		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
 	})
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
@@ -289,7 +293,7 @@ describe("UsersPage", () => {
 	})
 
 	test("offers user actions only for users whose access the operator holds", async () => {
-		myPermissions = ["users:read", "users:manage", "agents:read"]
+		myPermissions = ["users:read", "users:manage"]
 		users = [user("reader"), user("editor", { canManage: false })]
 		await renderPage()
 
@@ -300,9 +304,9 @@ describe("UsersPage", () => {
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {
-		myPermissions = ["users:read", "roles:manage", "agents:read"]
+		myPermissions = ["users:read", "roles:manage"]
 		roles = [
-			{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 },
+			{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 },
 			{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 0 },
 		]
 		users = [user("helper")]
@@ -345,15 +349,14 @@ describe("UsersPage", () => {
 		expect(buttonNames(card("owner"))).toEqual([t("users.editRoles")])
 	})
 
-	test("keeps the operator's own reset and delete unavailable but offers role editing", async () => {
+	test("hides self-deletion and self-reset, and offers role editing and Account settings", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
 		users = [user("me")]
 		await renderPage()
 
-		expect(buttonNames(card("me"))).toEqual([t("users.editRoles"), t("users.resetPassword"), t("users.delete")])
+		expect(buttonNames(card("me"))).toEqual([t("users.editRoles")])
 		expect(button(t("users.editRoles"), card("me")).disabled).toBe(false)
-		expect(button(t("users.resetPassword"), card("me")).disabled).toBe(true)
-		expect(button(t("users.delete"), card("me")).disabled).toBe(true)
+		expect(card("me").querySelector("a[href='/dashboard/account']")).not.toBeNull()
 	})
 
 	test("says so when roles cannot be loaded instead of silently hiding role editing", async () => {
@@ -376,13 +379,13 @@ describe("UsersPage", () => {
 		rolesResponse = deferred.promise
 		await renderPage()
 		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
-		await act(async () => deferred.resolve(json({ roles: [] })))
+		await act(async () => deferred.resolve(json({ roles: [], manageableRoleIds: [] })))
 		await settle()
 		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
 	test("starts from the user's current roles every time the dialog opens", async () => {
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 		users = [user("helper", { roles: [{ id: "readers", name: "Readers" }] })]
@@ -399,7 +402,7 @@ describe("UsersPage", () => {
 	})
 
 	test("closes and refreshes users and the operator's own access after saving", async () => {
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 		const usersBefore = requestCount("/api/users")
@@ -416,7 +419,7 @@ describe("UsersPage", () => {
 
 	test("shows the server's reason when saving roles fails and keeps the dialog open", async () => {
 		assignFailure = problem("permission-exceeds-own", 403)
-		roles = [{ id: "readers", name: "Readers", permissions: ["agents:read"], memberCount: 0 }]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
 		users = [user("helper")]
 		await renderPage()
 
