@@ -10,6 +10,17 @@
 		".claude/**"
 	],
 	"plugins": ["import", "oxc", "typescript", "unicorn"],
+	"jsPlugins": [
+		"@shadcn/lint",
+		{ "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" },
+		"eslint-plugin-playwright"
+	],
+	"settings": {
+		"shadcn": {
+			"ui": "@talqo/ui/components",
+			"themeImports": ["^@talqo/ui/"]
+		}
+	},
 	"options": {
 		"typeAware": true
 	},
@@ -96,8 +107,16 @@
 			}
 		},
 		{
-			"files": ["apps/**/*.tsx", "packages/**/*.tsx"],
+			"files": ["apps/{web,widget,docs}/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
 			"plugins": ["react"],
+			"rules": {
+				"react/rules-of-hooks": "error",
+				"react/exhaustive-deps": "error"
+			}
+		},
+		{
+			"files": ["apps/**/*.tsx", "packages/**/*.tsx"],
+			"plugins": ["react", "jsx-a11y"],
 			"rules": {
 				"react/function-component-definition": ["error", { "namedComponents": "function-declaration" }],
 				"react/react-in-jsx-scope": "off",
@@ -113,6 +132,100 @@
 						]
 					}
 				]
+			}
+		},
+		{
+			"files": ["apps/{web,widget}/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
+			"rules": {
+				"shadcn/no-restyle": ["error", { "allow": ["layout"] }],
+				"shadcn/no-raw-colors": "error",
+				"shadcn/no-arbitrary-values": ["error", { "allow": ["layout"] }],
+				"shadcn/no-inline-styles": "error",
+				"shadcn/no-unknown-classes": "error",
+				"shadcn/require-static-classes": "error"
+			}
+		},
+		{
+			"files": ["packages/ui/src/components/**", "apps/widget/src/components/ui/**"],
+			"rules": {
+				// Component implementations own their appearance and variant functions.
+				"shadcn/no-restyle": "off",
+				"shadcn/no-arbitrary-values": "off",
+				"shadcn/require-static-classes": "off"
+			}
+		},
+		{
+			"files": [
+				"apps/web/src/features/statistics/components/agent-filter.tsx",
+				"apps/web/src/routes/dashboard/index.tsx",
+				"apps/web/src/routes/dashboard/agent.$agentId.tsx"
+			],
+			"rules": {
+				// These swatches display operator-selected colors, not design tokens.
+				"shadcn/no-inline-styles": ["error", { "allow": ["background", "background-color"] }]
+			}
+		},
+		{
+			"files": ["apps/web/src/features/embeds/components/widget-preview.tsx"],
+			"rules": {
+				"shadcn/no-inline-styles": ["error", { "allow": ["height", "transform", "transform-origin"] }]
+			}
+		},
+		{
+			"files": ["apps/widget/src/embedded-widget.tsx"],
+			"rules": {
+				"shadcn/no-inline-styles": ["error", { "allow": ["width", "height"] }]
+			}
+		},
+		{
+			"files": ["apps/widget/src/components/chat-feedback.tsx"],
+			"rules": {
+				"shadcn/no-inline-styles": ["error", { "allow": ["animation-delay"] }]
+			}
+		},
+		{
+			"files": ["apps/{web,docs}/src/**/*.{ts,tsx}"],
+			"rules": {
+				"@tanstack/router/create-route-property-order": "error",
+				"@tanstack/router/route-param-names": "error"
+			}
+		},
+		{
+			"files": ["apps/e2e/**/*.ts"],
+			"rules": {
+				"playwright/expect-expect": "error",
+				"playwright/missing-playwright-await": "error",
+				"playwright/no-conditional-expect": "error",
+				"playwright/no-conditional-in-test": "error",
+				"playwright/no-duplicate-hooks": "error",
+				"playwright/no-duplicate-slow": "error",
+				"playwright/no-element-handle": "error",
+				"playwright/no-eval": "error",
+				"playwright/no-focused-test": "error",
+				"playwright/no-force-option": "error",
+				"playwright/no-identical-title": "error",
+				"playwright/no-networkidle": "error",
+				"playwright/no-page-pause": "error",
+				"playwright/no-skipped-test": "error",
+				"playwright/no-standalone-expect": "error",
+				"playwright/no-unnecessary-assertions": "error",
+				"playwright/no-unsafe-references": "error",
+				"playwright/no-unused-locators": "error",
+				"playwright/no-useless-await": "error",
+				"playwright/no-useless-not": "error",
+				"playwright/no-wait-for-navigation": "error",
+				"playwright/no-wait-for-selector": "error",
+				"playwright/no-wait-for-timeout": "error",
+				"playwright/prefer-locator": "error",
+				"playwright/prefer-to-have-count": "error",
+				"playwright/prefer-to-have-length": "error",
+				"playwright/prefer-web-first-assertions": "error",
+				"playwright/require-annotation-reason": "error",
+				"playwright/valid-describe-callback": "error",
+				"playwright/valid-expect": "error",
+				"playwright/valid-expect-in-promise": "error",
+				"playwright/valid-test-tags": "error",
+				"playwright/valid-title": "error"
 			}
 		},
 		{

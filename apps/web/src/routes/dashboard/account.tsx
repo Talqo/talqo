@@ -77,30 +77,32 @@ function ProfileCard({ name }: { name: string }) {
 				<CardDescription>{t("account.profileDescription")}</CardDescription>
 			</CardHeader>
 			<form onSubmit={handleSubmit(onValid)}>
-				<CardContent className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="account-name">{t("account.name")}</Label>
-						<Input
-							id="account-name"
-							autoComplete="username"
-							aria-invalid={errors.name ? true : undefined}
-							{...register("name")}
-						/>
-						{errors.name && (
-							<p className="text-destructive text-xs" role="alert">
-								{t("account.nameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+				<CardContent>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="account-name">{t("account.name")}</Label>
+							<Input
+								id="account-name"
+								autoComplete="username"
+								aria-invalid={errors.name ? true : undefined}
+								{...register("name")}
+							/>
+							{errors.name && (
+								<p className="text-destructive text-xs" role="alert">
+									{t("account.nameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+								</p>
+							)}
+						</div>
+						{serverError && (
+							<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
+								{serverError}
 							</p>
 						)}
+						{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
+						<Button type="submit" disabled={updateUser.isPending || !isDirty}>
+							{t("account.saveProfile")}
+						</Button>
 					</div>
-					{serverError && (
-						<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
-							{serverError}
-						</p>
-					)}
-					{saved && <output className="text-muted-foreground block text-sm">{t("account.profileSaved")}</output>}
-					<Button type="submit" disabled={updateUser.isPending || !isDirty}>
-						{t("account.saveProfile")}
-					</Button>
 				</CardContent>
 			</form>
 		</Card>
@@ -136,15 +138,17 @@ function PasswordCard() {
 				<CardTitle>{t("account.changePassword")}</CardTitle>
 				<CardDescription>{t("account.changePasswordDescription")}</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-4">
-				<ChangePasswordForm
-					key={formKey}
-					error={error}
-					onSubmit={handleSubmit}
-					submitLabel={t("account.changePassword")}
-					submitting={changePassword.isPending}
-				/>
-				{saved && <output className="text-muted-foreground block text-sm">{t("account.passwordSaved")}</output>}
+			<CardContent>
+				<div className="space-y-4">
+					<ChangePasswordForm
+						key={formKey}
+						error={error}
+						onSubmit={handleSubmit}
+						submitLabel={t("account.changePassword")}
+						submitting={changePassword.isPending}
+					/>
+					{saved && <output className="text-muted-foreground block text-sm">{t("account.passwordSaved")}</output>}
+				</div>
 			</CardContent>
 		</Card>
 	)
@@ -154,7 +158,7 @@ function DangerZoneCard() {
 	const { t } = useTranslation()
 
 	return (
-		<Card className="border-destructive">
+		<Card variant="destructive">
 			<CardHeader>
 				<div className="flex items-center gap-2">
 					<CardTitle>{t("account.dangerZone")}</CardTitle>

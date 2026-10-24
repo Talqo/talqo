@@ -67,10 +67,7 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 	return (
 		<Bubble align={message.role === "user" ? "end" : "start"}>
 			{(awaitingText || message.text.length > 0) && (
-				<BubbleContent
-					variant={message.role === "user" ? "default" : "muted"}
-					className={cn(message.role === "assistant" && "tw:text-foreground")}
-				>
+				<BubbleContent variant={message.role === "user" ? "default" : "muted"}>
 					{awaitingText ? (
 						<ResponseIndicator label={t("agentResponding")} />
 					) : message.role === "assistant" ? (
@@ -133,7 +130,7 @@ function resolveAppearance(appearance: WidgetAppearanceInput | undefined): Widge
 	}
 }
 
-function trapFocus(event: KeyboardEvent<HTMLDivElement>, container: HTMLElement | null) {
+function trapFocus(event: KeyboardEvent<HTMLElement>, container: HTMLElement | null) {
 	if (event.key !== "Tab" || !container) {
 		return
 	}
@@ -175,7 +172,7 @@ function WidgetChat({
 	const [draft, setDraft] = useState("")
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
-	const panelRef = useRef<HTMLDivElement>(null)
+	const panelRef = useRef<HTMLDialogElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const draftRef = useRef("")
 	const pendingSend = useRef<{ draft: string; acceptedMessageId: string | undefined } | undefined>(undefined)
@@ -309,11 +306,11 @@ function WidgetChat({
 			{open && (
 				// max-h leaves room below for the launcher row plus a top clearance:
 				// 16px offset + 12px gap + 48px launcher + 16px clearance = 5.75rem.
-				<div
-					role="dialog"
+				<dialog
+					open
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:group tw:relative tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-overlay tw:border tw:border-border tw:bg-background tw:shadow-lg"
+					className="tw:group tw:relative tw:m-0 tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-overlay tw:border tw:border-border tw:bg-background tw:p-0 tw:text-foreground tw:shadow-lg"
 					style={panelStyle}
 					onKeyDown={(event) => {
 						if (event.key === "Escape") {
@@ -389,9 +386,7 @@ function WidgetChat({
 						<BubbleGroup>
 							{messages.length === 0 && activity === "idle" && (
 								<Bubble align="start">
-									<BubbleContent variant="muted" className="tw:text-foreground">
-										{t("greeting")}
-									</BubbleContent>
+									<BubbleContent variant="muted">{t("greeting")}</BubbleContent>
 								</Bubble>
 							)}
 							{messages.map((message) => (
@@ -399,14 +394,14 @@ function WidgetChat({
 							))}
 							{activeTools.length > 0 && (
 								<Bubble align="start">
-									<BubbleContent variant="muted" className="tw:text-foreground">
+									<BubbleContent variant="muted">
 										<ResponseIndicator label={t("toolRunning")} />
 									</BubbleContent>
 								</Bubble>
 							)}
 							{activity === "sending" && (
 								<Bubble align="start">
-									<BubbleContent variant="muted" className="tw:text-foreground">
+									<BubbleContent variant="muted">
 										<ResponseIndicator label={t("agentResponding")} />
 									</BubbleContent>
 								</Bubble>
@@ -422,12 +417,9 @@ function WidgetChat({
 								</p>
 							)}
 							{snapshot?.notices.includes("storage-unavailable") && (
-								<p
-									role="status"
-									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
-								>
+								<output className="tw:block tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm">
 									{t("errorStorageUnavailable")}
-								</p>
+								</output>
 							)}
 							{visibleError && (
 								<div
@@ -501,7 +493,7 @@ function WidgetChat({
 							</button>
 						)}
 					</form>
-				</div>
+				</dialog>
 			)}
 			<button
 				type="button"

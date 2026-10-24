@@ -15,7 +15,6 @@ export function ProviderNoticeBanner() {
 	if (!canManageProvider || notice === undefined) return null
 	return (
 		<div
-			role="status"
 			className={cn(
 				"rounded-surface p-surface-padding flex flex-wrap items-center justify-between gap-3 border text-sm",
 				// Missing setup is onboarding; only a failed check is an error.
@@ -24,7 +23,9 @@ export function ProviderNoticeBanner() {
 					: "border-destructive/30 bg-destructive/10 text-destructive",
 			)}
 		>
-			<p>{t(notice === "missing" ? "dashboard.aiProviderMissing" : "dashboard.aiProviderCheckFailed")}</p>
+			<output className="block">
+				{t(notice === "missing" ? "dashboard.aiProviderMissing" : "dashboard.aiProviderCheckFailed")}
+			</output>
 			<Button render={<Link to="/dashboard/ai-configuration" />} nativeButton={false} size="sm">
 				{t(notice === "missing" ? "dashboard.aiProviderMissingAction" : "dashboard.aiProviderCheckFailedAction")}
 			</Button>

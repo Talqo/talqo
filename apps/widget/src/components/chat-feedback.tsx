@@ -54,7 +54,7 @@ const RESPONSE_DOT_DELAYS_MS = [0, SECOND_RESPONSE_DOT_DELAY_MS, THIRD_RESPONSE_
 
 export function ResponseIndicator({ label }: { label: string }) {
 	return (
-		<span role="status">
+		<output>
 			<span className="tw:sr-only">{label}</span>
 			<span aria-hidden="true" className="tw:flex tw:h-5 tw:items-center tw:gap-1">
 				{RESPONSE_DOT_DELAYS_MS.map((delay) => (
@@ -65,6 +65,6 @@ export function ResponseIndicator({ label }: { label: string }) {
 					/>
 				))}
 			</span>
-		</span>
+		</output>
 	)
 }
