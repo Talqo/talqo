@@ -1,4 +1,8 @@
 [config]
+publish_output_progress = false
+max_model_tokens = 100000
+ai_timeout = 600
+propagate_tool_errors = true
 fallback_models = []
 restricted_mode = true
 log_level = "INFO"
@@ -9,7 +13,13 @@ output_run_cost = false
 custom_llm_provider = "openai"
 force_streaming_custom_llm_provider = "openai"
 
+[ignore]
+glob = ["**/*.lock", "**/*-lock.json", "**/openapi.json", "**/drizzle/meta/**", "**/*.gen.ts", "**/generated/**"]
+
 [pr_reviewer]
+enable_large_pr_chunking = true
+max_number_of_calls = 20
+num_max_findings = 100
 inline_key_issues = true
 require_estimate_effort_to_review = false
 enable_review_labels_effort = false
