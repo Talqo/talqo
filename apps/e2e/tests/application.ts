@@ -118,7 +118,7 @@ export const test = base.extend<
 							origin = port ? `http://127.0.0.1:${port}` : ""
 							return origin
 						},
-						{ message: `API startup log: ${logPath}` },
+						{ message: `API startup log: ${logPath}`, timeout: WORKER_SETUP_TIMEOUT },
 					)
 					.not.toBe("")
 				await use({ origin, providerOrigin, widgetHostOrigin: providerOrigin, logPath })

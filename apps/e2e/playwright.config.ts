@@ -27,6 +27,6 @@ export default defineConfig({
 		command: `exec docker compose --project-name ${postgresContainer} --profile test run --rm --interactive=false --name ${postgresContainer} --service-ports --no-deps postgres-test`,
 		cwd: ROOT,
 		wait: { stderr: /listening on IPv4[\s\S]*database system is ready to accept connections/ },
-		gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
+		gracefulShutdown: { signal: "SIGINT", timeout: 10_000 },
 	},
 })
