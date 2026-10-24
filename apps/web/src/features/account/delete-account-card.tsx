@@ -43,7 +43,7 @@ export function DeleteAccountCard() {
 	if (permissions.isPending || isAdmin) return null
 
 	return (
-		<Card className="ring-destructive">
+		<Card variant="destructive">
 			<CardHeader>
 				<CardTitle>{t("account.dangerZone")}</CardTitle>
 				{permissions.isSuccess ? <CardDescription>{t("account.dangerDescription")}</CardDescription> : null}

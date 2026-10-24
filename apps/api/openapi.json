@@ -3326,6 +3326,16 @@
               }
             }
           },
+          "404": {
+            "description": "Problem response. Codes: user-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Problem response. Codes: internal-server-error.",
             "content": {

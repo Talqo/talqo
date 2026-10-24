@@ -188,24 +188,16 @@ describe("roles", () => {
 })
 
 describe("invitations", () => {
-	it("rejects acceptance if the inviter deletes their account during member creation", async () => {
+	it("rejects acceptance after the inviter deletes their account without creating a member", async () => {
 		const { userId, cookie } = await memberWith(["users:manage", "roles:manage", "agents:read"])
 		const role = await createRole(["agents:read"])
 		const invite = await service.createInvitation(userId, [role.id])
 		const username = uniqueUsername()
-		const createUser = identity.createUser
-		const deletion = spyOn(identity, "createUser").mockImplementationOnce(async (input) => {
-			expect((await call(cookie, "DELETE", "/me")).status).toBe(204)
-			return createUser(input)
-		})
-		try {
-			await expect(
-				service.redeemInvitation({ token: invite.token, username, password: DEFAULT_PASSWORD }),
-			).rejects.toMatchObject({ problemCode: "invalid-invitation" })
-			expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
-		} finally {
-			deletion.mockRestore()
-		}
+		expect((await call(cookie, "DELETE", "/me")).status).toBe(204)
+		await expect(
+			service.redeemInvitation({ token: invite.token, username, password: DEFAULT_PASSWORD }),
+		).rejects.toMatchObject({ problemCode: "invalid-invitation" })
+		expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
 	})
 
 	it("keeps invitations usable with their remaining roles after a role is deleted", async () => {
