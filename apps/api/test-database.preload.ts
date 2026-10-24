@@ -1,22 +1,41 @@
-import { mock, spyOn } from "bun:test"
+import { afterAll, mock, spyOn } from "bun:test"
+import { mkdtemp, rm } from "node:fs/promises"
+import path from "node:path"
+import postgres from "postgres"
 
 // Keeps request logs out of test output; wide-event tests inject their own sink.
 await mock.module("@/http/wide-event-stdout.ts", () => ({
 	stdoutWideEventLog: { write: () => undefined, flush: () => undefined },
 }))
 
-const databaseUrls = (process.env.TALQO_TEST_DATABASE_URLS ?? "")
-	.split(",")
-	.map((url) => url.trim())
-	.filter((url) => url.length > 0)
-const uploadBase = process.env.TALQO_UPLOAD_DIR
+const templateUrl = process.env.TALQO_TEST_TEMPLATE_URL
+const uploadRoot = process.env.TALQO_TEST_UPLOAD_ROOT
+if (!templateUrl || !uploadRoot) throw new Error("Run integration tests with bun run test:integration")
 
-if (databaseUrls.length > 0) {
-	const workerId = Number(process.env.BUN_TEST_WORKER_ID ?? process.env.JEST_WORKER_ID ?? 0)
-	const index = Number.isSafeInteger(workerId) ? Math.abs(workerId) % databaseUrls.length : 0
-	process.env.DATABASE_URL = databaseUrls[index]
-	if (uploadBase) process.env.TALQO_UPLOAD_DIR = `${uploadBase}/worker-${index}`
+const template = new URL(templateUrl)
+const database = `talqo_file_${crypto.randomUUID().replaceAll("-", "")}`
+const admin = postgres(templateUrl, { database: "postgres", max: 1 })
+try {
+	await admin`CREATE DATABASE ${admin(database)} TEMPLATE ${admin(template.pathname.slice(1))}`
+} finally {
+	await admin.end()
 }
+template.pathname = `/${database}`
+process.env.DATABASE_URL = template.href
+const uploadDirectory = await mkdtemp(path.join(uploadRoot, "file-"))
+process.env.TALQO_UPLOAD_DIR = uploadDirectory
+
+afterAll(async () => {
+	const { sql } = await import("./src/db/client.ts")
+	await sql.end()
+	const cleanup = postgres(templateUrl, { database: "postgres", max: 1 })
+	try {
+		await cleanup`DROP DATABASE ${cleanup(database)} WITH (FORCE)`
+	} finally {
+		await cleanup.end()
+		await rm(uploadDirectory, { recursive: true, force: true })
+	}
+})
 
 const MINIMUM_PASSWORD_HASH_MEMORY_KIB = 8
 const MINIMUM_PASSWORD_HASH_TIME_COST = 1

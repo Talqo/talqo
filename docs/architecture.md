@@ -218,24 +218,11 @@ apps/web/src/
 
 ## E2E Tests
 
-```text
-apps/e2e/
-|-- package.json
-|-- tsconfig.json
-|-- playwright.config.ts             # testDir: "./tests"
-`-- tests/
-    |-- smoke.spec.ts
-    `-- <critical-journey>.spec.ts
-```
-
 - `apps/e2e` owns browser journeys. Specs describe critical user behavior.
-- E2E starts from the API-owned shared development seed in an isolated database. Specs create journey-specific permission profiles and mutable records through application boundaries and clean them up in their owning scope; the seed contains no browser-, retry-, or E2E-specific records.
-- Add auth setup or page objects only when repeated interaction justifies them.
-- Run one worker until each worker has an independent database. Browser contexts isolate browser state but do not isolate shared database state.
-- Exercise real web and API processes. Mock only external providers at their boundary; do not mock Talqo HTTP endpoints.
-- Prefer user-visible role, accessible name, and label selectors. Never synchronize with fixed sleeps.
-- Capture a trace on first retry and a screenshot on failure.
-- `bun run e2e` runs the noncached Chromium suite.
+- Parallel workers own isolated application state. Tests own their journey-specific data and cleanup.
+- The API owns baseline seed data; E2E-specific records belong to tests.
+- Exercise production builds through the real API. Mock only external providers, never Talqo endpoints.
+- Playwright owns test-environment setup and teardown.
 
 ## Naming And Exceptions
 

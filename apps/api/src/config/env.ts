@@ -61,7 +61,12 @@ const envSchema = z
 		TALQO_CHAT_GENERATION_TIMEOUT_SECONDS: positiveSafeInteger
 			.max(MAX_CHAT_GENERATION_TIMEOUT_SECONDS)
 			.default(DEFAULT_CHAT_GENERATION_TIMEOUT_SECONDS),
-		TALQO_API_PORT: z.coerce.number().int().positive().max(MAX_PORT).default(DEFAULT_API_PORT),
+		TALQO_API_PORT: z
+			.string()
+			.trim()
+			.min(1)
+			.pipe(z.coerce.number<string>().int().nonnegative().max(MAX_PORT))
+			.default(DEFAULT_API_PORT),
 		TALQO_SERVE_STATIC: z
 			.enum(["true", "false"])
 			.default("false")

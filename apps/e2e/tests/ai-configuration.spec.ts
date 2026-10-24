@@ -1,35 +1,29 @@
-import { expect, test } from "@playwright/test"
+import { expect } from "@playwright/test"
 
-import { logIn } from "./log-in"
+import { test } from "./application"
+import { ADMIN, openDashboard } from "./log-in"
 
-const ADMIN = { username: "admin", password: "admin123" }
-
-test.afterEach(async ({ request }) => {
-	const baseURL = process.env.TALQO_SEED_AI_BASE_URL
-	const apiKey = process.env.TALQO_SEED_AI_API_KEY
-	const textModel = process.env.TALQO_SEED_TEXT_MODEL
-	const embeddingModel = process.env.TALQO_SEED_EMBEDDING_MODEL
-	if (!baseURL || !apiKey || !textModel || !embeddingModel) {
-		throw new Error("TALQO_SEED_AI_* missing; scripts/test-e2e.ts provides it")
-	}
+test.afterEach(async ({ request, application }) => {
 	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
-	const current = (await (await request.get("/api/ai-provider-configuration")).json()) as { revision: number }
+	const response = await request.get("/api/ai-provider-configuration")
+	await expect(response).toBeOK()
+	const current = (await response.json()) as { revision: number }
 	await expect(
 		await request.put("/api/ai-provider-configuration", {
 			data: {
 				expectedRevision: current.revision,
 				text: {
 					providerId: "openai-compatible",
-					modelId: textModel,
+					modelId: "chat-model",
 					authMode: "static",
-					settings: { baseURL },
-					credentials: { apiKey },
+					settings: { baseURL: `${application.providerOrigin}/v1` },
+					credentials: { apiKey: "e2e-provider-key" },
 				},
 				embedding: {
 					providerId: "openai-compatible",
-					modelId: embeddingModel,
+					modelId: "embedding-model",
 					authMode: "static",
-					settings: { baseURL },
+					settings: { baseURL: `${application.providerOrigin}/v1` },
 					credentialSource: "text",
 				},
 			},
@@ -37,23 +31,22 @@ test.afterEach(async ({ request }) => {
 	).toBeOK()
 })
 
-test("granted operator configures text and embedding models", async ({ page }) => {
-	await logIn(page, ADMIN)
+test("granted operator configures text and embedding models", async ({ page, application }) => {
+	await openDashboard(page)
 	await page.getByRole("link", { name: "AI configuration" }).click()
 
 	const cards = page.locator("[data-slot=card]")
 	const textCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Text generation" }) })
 	const embeddingCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Embeddings" }) })
 	await expect(textCard.getByLabel("Provider")).toContainText("OpenAI-compatible")
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(`${application.providerOrigin}/v1`)
 	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
 	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
 	await textCard.getByRole("button", { name: "Replace", exact: true }).click()
 	await textCard.getByLabel("API key").fill("test-key")
 
 	await textCard.getByRole("button", { name: "Show model suggestions" }).click()
-	await page.getByRole("option", { name: "chat-model" }).click()
-	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
+	await page.getByRole("option", { name: "chat-model-next", exact: true }).click()
 
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
 	await page.getByRole("option", { name: "embedding-model", exact: true }).click()
@@ -63,15 +56,15 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await expect(page.getByText("Configuration saved")).toBeVisible()
 
 	await page.reload()
-	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model")
-	await expect(textCard.getByLabel("Base URL")).toHaveValue(process.env.TALQO_SEED_AI_BASE_URL ?? "")
+	await expect(textCard.getByLabel("Text model")).toHaveValue("chat-model-next")
+	await expect(textCard.getByLabel("Base URL")).toHaveValue(`${application.providerOrigin}/v1`)
 	await expect(embeddingCard.getByLabel("Embedding model")).toHaveValue("embedding-model")
 	await expect(textCard.getByRole("button", { name: "Replace", exact: true })).toBeVisible()
 	await expect(textCard.getByLabel("API key")).toHaveCount(0)
 
 	await expect(textCard.getByRole("button", { name: "Show model suggestions" })).toBeVisible()
 	await textCard.getByRole("button", { name: "Show model suggestions" }).click()
-	await expect(page.getByRole("option", { name: "chat-model" })).toBeVisible()
+	await expect(page.getByRole("option", { name: "chat-model-next", exact: true })).toBeVisible()
 	await page.keyboard.press("Escape")
 
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
@@ -81,8 +74,8 @@ test("granted operator configures text and embedding models", async ({ page }) =
 	await expect(page.getByText("The model list could not be loaded")).toHaveCount(0)
 })
 
-test("warns before changing the embedding model and allows cancelling", async ({ page }) => {
-	await logIn(page, ADMIN)
+test("embedding model changes require confirmation and survive reload", async ({ page }) => {
+	await openDashboard(page)
 	await page.getByRole("link", { name: "AI configuration" }).click()
 	const embeddingCard = page.locator("[data-slot=card]").filter({ has: page.getByText("Embeddings", { exact: true }) })
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
@@ -93,6 +86,10 @@ test("warns before changing the embedding model and allows cancelling", async ({
 	await expect(confirmation).toContainText("provider charges")
 	await confirmation.getByRole("button", { name: "Cancel" }).click()
 	await expect(page.getByLabel("Embedding model")).toHaveValue("embedding-model-next")
+	await page.reload()
+	await expect(page.getByLabel("Embedding model")).toHaveValue("embedding-model")
+	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
+	await page.getByRole("option", { name: "embedding-model-next", exact: true }).click()
 	await page.getByRole("button", { name: "Save configuration" }).click()
 	await confirmation.getByRole("button", { name: "Save and re-embed" }).click()
 	await expect(page.getByText("Configuration saved")).toBeVisible()

@@ -6,6 +6,19 @@ const APP_SECRET = Buffer.alloc(32, 7).toString("base64url")
 const DOCLING = "http://docling:5001"
 
 describe("parseEnv", () => {
+	it("allows an operating-system-assigned API port and rejects out-of-range ports", () => {
+		const base = {
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			TALQO_DOCLING_URL: DOCLING,
+			NODE_ENV: "production",
+		}
+		expect(parseEnv({ ...base, TALQO_API_PORT: "0" }).TALQO_API_PORT).toBe(0)
+		expect(() => parseEnv({ ...base, TALQO_API_PORT: "-1" })).toThrow(/TALQO_API_PORT/)
+		expect(() => parseEnv({ ...base, TALQO_API_PORT: "65536" })).toThrow(/TALQO_API_PORT/)
+		expect(() => parseEnv({ ...base, TALQO_API_PORT: "" })).toThrow(/TALQO_API_PORT/)
+	})
+
 	it("accepts a valid configuration and defaults the port", () => {
 		const env = parseEnv({
 			APP_SECRET,

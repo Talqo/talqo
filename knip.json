@@ -6,8 +6,8 @@
 	"ignoreDependencies": ["@playwright/cli"],
 	"workspaces": {
 		".": {
-			"entry": ["*.ts", "scripts/**/*.ts"],
-			"project": ["*.ts", "scripts/**/*.ts"]
+			"entry": ["*.ts"],
+			"project": ["*.ts"]
 		},
 		"apps/api": {
 			"entry": ["src/index.ts", "test-database.preload.ts"],

@@ -4,6 +4,7 @@ services:
     ports:
       - target: 5001
         host_ip: 127.0.0.1
+        published: "${TALQO_DOCLING_PORT:-5001}"
 
   postgres:
     image: pgvector/pgvector:0.8.6-pg18-trixie
@@ -12,7 +13,7 @@ services:
       POSTGRES_PASSWORD: talqo
       POSTGRES_USER: talqo
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       start_interval: 1s
       start_period: 5s
       interval: 10s
@@ -21,19 +22,21 @@ services:
     ports:
       - target: 5432
         host_ip: 127.0.0.1
+        published: "${TALQO_POSTGRES_PORT:-5432}"
     shm_size: 128mb
     volumes:
       - postgres-data:/var/lib/postgresql
 
   postgres-test:
     image: pgvector/pgvector:0.8.6-pg18-trixie
+    network_mode: bridge
     profiles: [test]
     environment:
       POSTGRES_DB: talqo
       POSTGRES_PASSWORD: talqo
       POSTGRES_USER: talqo
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       start_interval: 1s
       start_period: 5s
       interval: 10s
