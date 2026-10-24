@@ -107,7 +107,7 @@ describe("ConversationsPage", () => {
 
 		await renderPage()
 
-		expect(host.querySelector("[role=status]")?.textContent).toBe(t("conversations.empty"))
+		expect(host.querySelector("output")?.textContent).toBe(t("conversations.empty"))
 	})
 
 	test("groups conversations by day and shows their agent", async () => {
@@ -151,7 +151,7 @@ describe("ConversationsPage", () => {
 	test("asks for an agent instead of loading when every agent is deselected", async () => {
 		await renderPage({ agents: [] })
 
-		expect(host.querySelector("[role=status]")?.textContent).toBe(t("conversations.noAgentSelected"))
+		expect(host.querySelector("output")?.textContent).toBe(t("conversations.noAgentSelected"))
 		expect(requested.some((url) => url.startsWith("/api/conversations"))).toBe(false)
 	})
 

@@ -26,13 +26,12 @@ async function inviteMember(page: Page, username: string, password: string) {
 	const dialog = page.getByRole("dialog")
 	await dialog.getByRole("button", { name: "Create invitation" }).click()
 	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
-	const token = new URL(inviteUrl).searchParams.get("token")
-	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
+	expect(new URL(inviteUrl).searchParams.get("token")).toBeTruthy()
 	// The dialog is modal, so close it before reaching the header controls.
 	await page.keyboard.press("Escape")
 	await page.getByRole("button", { name: "Log out" }).click()
 
-	await page.goto(`/accept-invite?token=${token}`)
+	await page.goto(inviteUrl)
 	await page.getByLabel("Username").fill(username)
 	await page.getByLabel("Password", { exact: true }).fill(password)
 	await page.getByLabel("Confirm password").fill(password)
@@ -58,14 +57,13 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await dialog.getByRole("button", { name: "Create invitation" }).click()
 	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
 	expect(inviteUrl).toMatch(/^https?:\/\//)
-	const token = new URL(inviteUrl).searchParams.get("token")
-	if (!token) throw new Error(`Could not find an invitation token in URL: ${inviteUrl}`)
+	expect(new URL(inviteUrl).searchParams.get("token")).toBeTruthy()
 
 	const memberUsername = `member_${Date.now()}`
 	const memberPassword = "member-original-password"
 	createdMembers.push(memberUsername)
 
-	await page.goto(`/accept-invite?token=${token}`)
+	await page.goto(inviteUrl)
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
 	await page.getByLabel("Confirm password").fill(memberPassword)

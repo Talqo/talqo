@@ -34,7 +34,8 @@ export function LanguageSelect() {
 			}}
 		>
 			<SelectTrigger
-				className="hover:bg-muted dark:hover:bg-muted/50 w-auto justify-center gap-1.5 border-0 bg-transparent px-3.5 dark:bg-transparent [&>svg:last-child]:hidden"
+				variant="ghost"
+				showIndicator={false}
 				aria-label={`${t("header.language")}: ${dashboardLanguages[language]}`}
 			>
 				<Languages className="size-4" aria-hidden />

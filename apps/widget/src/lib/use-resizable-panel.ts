@@ -18,7 +18,7 @@ function clampPanelSize(width: number, height: number): { width: number; height:
 	}
 }
 
-export function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLDivElement | null>) {
+export function useResizablePanel(position: WidgetPosition | undefined, panelRef: RefObject<HTMLElement | null>) {
 	const [size, setSize] = useState<{ width: number; height: number } | null>(null)
 	const [resizable, setResizable] = useState(
 		() => typeof window !== "undefined" && window.matchMedia("(min-width: 640px) and (pointer: fine)").matches,

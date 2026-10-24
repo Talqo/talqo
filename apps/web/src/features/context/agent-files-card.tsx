@@ -84,7 +84,7 @@ function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) =>
 	const style = embeddingStatusStyles[file.embeddingStatus]
 	const { Icon } = style
 	return (
-		<p role="status" className={`flex items-center gap-1.5 text-xs ${style.className}`}>
+		<output className={`flex items-center gap-1.5 text-xs ${style.className}`}>
 			<Icon aria-hidden className={style.spin ? "size-3.5 animate-spin" : "size-3.5"} />
 			<span>
 				{t(embeddingStatusMessages[file.embeddingStatus])}
@@ -92,7 +92,7 @@ function EmbeddingStatusLine({ file, t }: { file: AgentFile; t: (key: string) =>
 					? ` · ${t(embeddingErrorMessages[file.embeddingError])}`
 					: ""}
 			</span>
-		</p>
+		</output>
 	)
 }
 
@@ -161,7 +161,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		}
 	}
 
-	function onDrop(event: React.DragEvent<HTMLDivElement>) {
+	function onDrop(event: React.DragEvent<HTMLButtonElement>) {
 		event.preventDefault()
 		setDragging(false)
 		void startBatch(event.dataTransfer.files)
@@ -246,155 +246,152 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					<CardDescription>{t("agentFiles.cardDescription", { maxSizeMB, formats })}</CardDescription>
 				)}
 			</CardHeader>
-			<CardContent className="space-y-4">
-				{canManage && (
-					<div
-						role="button"
-						tabIndex={uploadFile.isPending ? -1 : 0}
-						aria-disabled={uploadFile.isPending}
-						className={`flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed px-4 py-6 text-center transition-colors ${
-							dragging ? "border-primary bg-accent" : "border-input hover:border-ring hover:bg-accent/50"
-						} ${uploadFile.isPending ? "pointer-events-none opacity-60" : ""}`}
-						onClick={() => fileInputRef.current?.click()}
-						onKeyDown={(event) => {
-							if (event.key === "Enter" || event.key === " ") {
-								event.preventDefault()
-								fileInputRef.current?.click()
-							}
-						}}
-						onDragOver={(event) => {
-							event.preventDefault()
-							setDragging(true)
-						}}
-						onDragLeave={() => setDragging(false)}
-						onDrop={onDrop}
-					>
-						<input
-							ref={fileInputRef}
-							id="agent-file-input"
-							type="file"
-							accept={allowedExtensions?.join(",")}
-							multiple
-							className="sr-only"
-							disabled={uploadFile.isPending}
-							onChange={(event) => void startBatch(event.target.files)}
-						/>
-						{uploadFile.isPending ? (
-							<LoaderCircleIcon aria-hidden className="text-primary size-6 animate-spin" />
-						) : (
-							<Upload className="text-muted-foreground size-6" />
-						)}
-						<p className="text-sm font-medium">
-							{uploadFile.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
+			<CardContent>
+				<div className="space-y-4">
+					{canManage && (
+						<>
+							<input
+								ref={fileInputRef}
+								id="agent-file-input"
+								type="file"
+								accept={allowedExtensions?.join(",")}
+								multiple
+								hidden
+								disabled={uploadFile.isPending}
+								onChange={(event) => void startBatch(event.target.files)}
+							/>
+							<button
+								type="button"
+								disabled={uploadFile.isPending}
+								className={`flex min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed px-4 py-6 text-center transition-colors ${
+									dragging ? "border-primary bg-accent" : "border-input hover:border-ring hover:bg-accent/50"
+								} ${uploadFile.isPending ? "pointer-events-none opacity-60" : ""}`}
+								onClick={() => fileInputRef.current?.click()}
+								onDragOver={(event) => {
+									event.preventDefault()
+									setDragging(true)
+								}}
+								onDragLeave={() => setDragging(false)}
+								onDrop={onDrop}
+							>
+								{uploadFile.isPending ? (
+									<LoaderCircleIcon aria-hidden className="text-primary size-6 animate-spin" />
+								) : (
+									<Upload className="text-muted-foreground size-6" />
+								)}
+								<span className="text-sm font-medium">
+									{uploadFile.isPending ? t("agentFiles.uploading") : t("agentFiles.dropzone")}
+								</span>
+								{files.length === 0 && !filesQuery.isLoading && !filesQuery.isError && (
+									<span className="text-muted-foreground text-xs">{t("agentFiles.dropzoneHint")}</span>
+								)}
+							</button>
+						</>
+					)}
+					{fileError && (
+						<p role="alert" className="text-destructive text-xs">
+							{fileError}
 						</p>
-						{files.length === 0 && !filesQuery.isLoading && !filesQuery.isError && (
-							<p className="text-muted-foreground text-xs">{t("agentFiles.dropzoneHint")}</p>
-						)}
-					</div>
-				)}
-				{fileError && (
-					<p role="alert" className="text-destructive text-xs">
-						{fileError}
-					</p>
-				)}
-				{filesQuery.isLoading ? (
-					<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
-				) : filesQuery.isError ? (
-					<ProblemAlert error={filesQuery.error} onRetry={() => void filesQuery.refetch()} />
-				) : files.length === 0 ? (
-					// The dropzone already invites managers to upload; readers need to know the list is empty.
-					canManage ? null : (
-						<p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
-					)
-				) : (
-					<ul className="divide-border divide-y rounded-md border">
-						{files.map((file) => (
-							<li key={file.name} className="flex items-center gap-3 px-3 py-2">
-								<FileText className="text-muted-foreground size-4 shrink-0" />
-								<div className="min-w-0 flex-1">
-									<p className="truncate text-sm">{file.name}</p>
-									<p className="text-muted-foreground text-xs">
-										{formatBytes(file.sizeBytes)} · {formatDateTime(file.createdAt, language)}
-									</p>
-									<EmbeddingStatusLine file={file} t={t} />
-								</div>
-								<TooltipProvider>
-									{canManage && file.embeddingStatus === "failed" && (
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											disabled={retryingName === file.name}
-											onClick={() => void onRetry(file)}
-											aria-label={t("agentFiles.retry", { name: file.name })}
-										>
-											{retryingName === file.name ? (
-												<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
-											) : (
-												<RotateCcw className="size-4" />
-											)}
-											{t("agentFiles.retryAction")}
-										</Button>
-									)}
-									<Tooltip>
-										<TooltipTrigger
-											render={
-												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
-													disabled={downloadingName === file.name}
-													onClick={() => void onDownload(file)}
-													aria-label={t("agentFiles.download", { name: file.name })}
-												/>
-											}
-										>
-											<Download className="size-4" />
-										</TooltipTrigger>
-										<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
-									</Tooltip>
-									{canManage && (
-										<>
-											<Tooltip>
-												<TooltipTrigger
-													render={
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															onClick={() => openRename(file)}
-															aria-label={t("agentFiles.rename", { name: file.name })}
-														/>
-													}
-												>
-													<Pencil className="size-4" />
-												</TooltipTrigger>
-												<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
-											</Tooltip>
-											<Tooltip>
-												<TooltipTrigger
-													render={
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															disabled={deleteFile.isPending}
-															onClick={() => openDelete(file)}
-															aria-label={t("agentFiles.delete", { name: file.name })}
-														/>
-													}
-												>
-													<Trash2 className="size-4" />
-												</TooltipTrigger>
-												<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
-											</Tooltip>
-										</>
-									)}
-								</TooltipProvider>
-							</li>
-						))}
-					</ul>
-				)}
+					)}
+					{filesQuery.isLoading ? (
+						<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
+					) : filesQuery.isError ? (
+						<ProblemAlert error={filesQuery.error} onRetry={() => void filesQuery.refetch()} />
+					) : files.length === 0 ? (
+						// The dropzone already invites managers to upload; readers need to know the list is empty.
+						canManage ? null : (
+							<p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
+						)
+					) : (
+						<ul className="divide-border divide-y rounded-md border">
+							{files.map((file) => (
+								<li key={file.name} className="flex items-center gap-3 px-3 py-2">
+									<FileText className="text-muted-foreground size-4 shrink-0" />
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-sm">{file.name}</p>
+										<p className="text-muted-foreground text-xs">
+											{formatBytes(file.sizeBytes)} · {formatDateTime(file.createdAt, language)}
+										</p>
+										<EmbeddingStatusLine file={file} t={t} />
+									</div>
+									<TooltipProvider>
+										{canManage && file.embeddingStatus === "failed" && (
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												disabled={retryingName === file.name}
+												onClick={() => void onRetry(file)}
+												aria-label={t("agentFiles.retry", { name: file.name })}
+											>
+												{retryingName === file.name ? (
+													<LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
+												) : (
+													<RotateCcw className="size-4" />
+												)}
+												{t("agentFiles.retryAction")}
+											</Button>
+										)}
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														disabled={downloadingName === file.name}
+														onClick={() => void onDownload(file)}
+														aria-label={t("agentFiles.download", { name: file.name })}
+													/>
+												}
+											>
+												<Download className="size-4" />
+											</TooltipTrigger>
+											<TooltipContent>{t("agentFiles.downloadAction")}</TooltipContent>
+										</Tooltip>
+										{canManage && (
+											<>
+												<Tooltip>
+													<TooltipTrigger
+														render={
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																onClick={() => openRename(file)}
+																aria-label={t("agentFiles.rename", { name: file.name })}
+															/>
+														}
+													>
+														<Pencil className="size-4" />
+													</TooltipTrigger>
+													<TooltipContent>{t("agentFiles.renameAction")}</TooltipContent>
+												</Tooltip>
+												<Tooltip>
+													<TooltipTrigger
+														render={
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon"
+																disabled={deleteFile.isPending}
+																onClick={() => openDelete(file)}
+																aria-label={t("agentFiles.delete", { name: file.name })}
+															/>
+														}
+													>
+														<Trash2 className="size-4" />
+													</TooltipTrigger>
+													<TooltipContent>{t("agentFiles.deleteAction")}</TooltipContent>
+												</Tooltip>
+											</>
+										)}
+									</TooltipProvider>
+								</li>
+							))}
+						</ul>
+					)}
+				</div>
 			</CardContent>
 
 			<Dialog

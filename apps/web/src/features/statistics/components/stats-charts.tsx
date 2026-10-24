@@ -1,7 +1,7 @@
 import type { AgentDailyPoint, DailyStatsPoint } from "@/features/statistics/page-stats"
 
 import { useLanguage } from "@/lib/use-language"
-import { Card, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { useMemo } from "react"
 import { CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
@@ -63,9 +63,7 @@ export function StatsCards({ cards }: { cards: StatsCard[] }) {
 				<Card key={card.label}>
 					<CardHeader>
 						<CardDescription>{card.label}</CardDescription>
-						<CardTitle className="text-2xl">
-							{(card.format === "compact" ? compact : decimal).format(card.value)}
-						</CardTitle>
+						<p className="text-2xl font-medium">{(card.format === "compact" ? compact : decimal).format(card.value)}</p>
 					</CardHeader>
 				</Card>
 			))}

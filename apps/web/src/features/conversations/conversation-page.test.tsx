@@ -104,7 +104,7 @@ describe("ConversationPage", () => {
 		transcript = () => pending.promise
 
 		await renderPage()
-		expect(host.querySelector("[role=status]")?.textContent).toBe(t("conversations.loadingTranscript"))
+		expect(host.querySelector("output")?.textContent).toBe(t("conversations.loadingTranscript"))
 
 		await act(async () => pending.resolve(found()))
 		await settle()

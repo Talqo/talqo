@@ -90,28 +90,22 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				</h2>
 
 				{noAgentSelected ? (
-					<p className="text-muted-foreground" role="status">
-						{t("conversations.noAgentSelected")}
-					</p>
+					<output className="text-muted-foreground block">{t("conversations.noAgentSelected")}</output>
 				) : conversationsQuery.isPending ? (
-					<p className="text-muted-foreground" role="status">
-						{t("conversations.loading")}
-					</p>
+					<output className="text-muted-foreground block">{t("conversations.loading")}</output>
 				) : !result ? (
 					<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
 				) : result.conversations.length === 0 && page > 1 ? (
 					<div className="space-y-2">
-						<p className="text-muted-foreground" role="status">
-							{t("conversations.pageEmpty")}
-						</p>
+						<output className="text-muted-foreground block">{t("conversations.pageEmpty")}</output>
 						<Button variant="outline" onClick={() => goToPage(1)}>
 							{t("conversations.firstPage")}
 						</Button>
 					</div>
 				) : result.conversations.length === 0 ? (
-					<p className="text-muted-foreground" role="status">
+					<output className="text-muted-foreground block">
 						{search.agents ? t("conversations.emptyFiltered") : t("conversations.empty")}
-					</p>
+					</output>
 				) : (
 					<>
 						<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
