@@ -1,6 +1,6 @@
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
-import { parse, type AtRule, type Root } from "postcss"
+import { type AtRule, parse, type Root } from "postcss"
 import { defineConfig, type Plugin } from "vite"
 import cssInjectedByJs from "vite-plugin-css-injected-by-js"
 import svgr from "vite-plugin-svgr"

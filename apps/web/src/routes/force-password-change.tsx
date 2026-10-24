@@ -1,7 +1,7 @@
 import { getSession, useCompleteForcedPasswordChange } from "@/api/generated/identity/identity.ts"
 import {
-	forcedPasswordChangeSchema,
 	type ForcedPasswordChangeFormValues,
+	forcedPasswordChangeSchema,
 } from "@/features/authentication/change-password-schema.ts"
 import { AuthShell } from "@/features/authentication/components/auth-shell.tsx"
 import { getProblemMessage } from "@/lib/problem-message.ts"

@@ -1,5 +1,5 @@
 import type { Annotate } from "@/http/wide-event.ts"
-import type { CredentialEnvelope, createCredentialVault } from "@/lib/credential-vault.ts"
+import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential-vault.ts"
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -12,7 +12,7 @@ import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfi
 import { validateConfigurationInput } from "./ai-provider.configuration.ts"
 import { discoverModels as discoverProviderModels, type DiscoveryRequest } from "./ai-provider.discovery.ts"
 import { createProviderModel } from "./ai-provider.models.ts"
-import { type AiProviderId, PROVIDER_DEFINITIONS, getProviderDefinition } from "./ai-provider.registry.ts"
+import { type AiProviderId, getProviderDefinition, PROVIDER_DEFINITIONS } from "./ai-provider.registry.ts"
 
 export type { AiProviderId } from "./ai-provider.registry.ts"
 export type { StoredConfiguration } from "./ai-provider.types.ts"

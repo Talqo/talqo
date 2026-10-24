@@ -4,16 +4,16 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const Agent = zod.object({
-	id: zod.string(),
-	name: zod.string(),
-	systemPrompt: zod.string(),
-	wordBlacklist: zod.array(zod.string()),
-	createdAt: zod.iso.datetime({ offset: true }),
-	updatedAt: zod.iso.datetime({ offset: true }),
-})
+  "id": zod.string(),
+  "name": zod.string(),
+  "systemPrompt": zod.string(),
+  "wordBlacklist": zod.array(zod.string()),
+  "createdAt": zod.iso.datetime({"offset":true}),
+  "updatedAt": zod.iso.datetime({"offset":true})
+});
 
-export type Agent = zod.input<typeof Agent>
-export type AgentOutput = zod.output<typeof Agent>
+export type Agent = zod.input<typeof Agent>;
+export type AgentOutput = zod.output<typeof Agent>;

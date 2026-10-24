@@ -1,4 +1,4 @@
-import { MCP_ENV_VARIABLE_LIMIT, type EnvVariable } from "@/features/mcp/mcp-env-variables"
+import { type EnvVariable, MCP_ENV_VARIABLE_LIMIT } from "@/features/mcp/mcp-env-variables"
 import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"

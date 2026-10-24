@@ -1,4 +1,4 @@
-import { MCP_ARGUMENT_LIMIT, type ArgumentRow } from "@/features/mcp/mcp-arguments"
+import { type ArgumentRow, MCP_ARGUMENT_LIMIT } from "@/features/mcp/mcp-arguments"
 import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"

@@ -4,15 +4,16 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const createInvitationBodyRoleIdsItemMax = 128
+export const createInvitationBodyRoleIdsItemMax = 128;
 
-export const createInvitationBodyRoleIdsMax = 100
+export const createInvitationBodyRoleIdsMax = 100;
+
 
 export const CreateInvitationBody = zod.object({
-	roleIds: zod.array(zod.string().min(1).max(createInvitationBodyRoleIdsItemMax)).max(createInvitationBodyRoleIdsMax),
+  "roleIds": zod.array(zod.string().min(1).max(createInvitationBodyRoleIdsItemMax)).max(createInvitationBodyRoleIdsMax)
 })
 
-export type CreateInvitationBody = zod.input<typeof CreateInvitationBody>
-export type CreateInvitationBodyOutput = zod.output<typeof CreateInvitationBody>
+export type CreateInvitationBody = zod.input<typeof CreateInvitationBody>;
+export type CreateInvitationBodyOutput = zod.output<typeof CreateInvitationBody>;

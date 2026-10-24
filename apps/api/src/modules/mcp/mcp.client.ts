@@ -1,6 +1,5 @@
-import type { CredentialSecretMap, createCredentialVault } from "@/lib/credential-vault.ts"
-import type { MCPClient, MCPClientConfig } from "@ai-sdk/mcp"
-import type { ListToolsResult } from "@ai-sdk/mcp"
+import type { createCredentialVault, CredentialSecretMap } from "@/lib/credential-vault.ts"
+import type { ListToolsResult, MCPClient, MCPClientConfig } from "@ai-sdk/mcp"
 import type { ToolSet } from "ai"
 
 import { createMCPClient } from "@ai-sdk/mcp"

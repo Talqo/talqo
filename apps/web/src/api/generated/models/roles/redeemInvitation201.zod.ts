@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { User } from "../user.zod"
+import * as zod from 'zod';
+import { User } from '../user.zod';
 
 export const RedeemInvitation201 = zod.object({
-	user: User,
+  "user": User
 })
 
-export type RedeemInvitation201 = zod.input<typeof RedeemInvitation201>
-export type RedeemInvitation201Output = zod.output<typeof RedeemInvitation201>
+export type RedeemInvitation201 = zod.input<typeof RedeemInvitation201>;
+export type RedeemInvitation201Output = zod.output<typeof RedeemInvitation201>;

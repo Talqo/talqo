@@ -12,7 +12,7 @@ import {
 import { createRoute, z } from "@hono/zod-openapi"
 import { CREDENTIAL_MAX_LENGTH } from "@talqo/shared"
 
-import { GRANTABLE_PERMISSIONS, PERMISSIONS, Permission, ROLE_IDS_MAX, ROLE_NAME_MAX_LENGTH } from "./roles.service.ts"
+import { GRANTABLE_PERMISSIONS, Permission, PERMISSIONS, ROLE_IDS_MAX, ROLE_NAME_MAX_LENGTH } from "./roles.service.ts"
 
 const usernameSchema = z
 	.string()

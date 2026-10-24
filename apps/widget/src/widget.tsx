@@ -1,4 +1,4 @@
-import { createChatClient, type ChatClient, type ChatClientOptions } from "@talqo/sdk"
+import { type ChatClient, type ChatClientOptions, createChatClient } from "@talqo/sdk"
 import { createRoot, type Root } from "react-dom/client"
 
 import { ConnectedEmbeddedWidget } from "./embedded-widget"

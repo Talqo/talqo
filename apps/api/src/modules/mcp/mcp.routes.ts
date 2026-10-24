@@ -7,9 +7,9 @@ import {
 	deleteMcpServerRoute,
 	getMcpServerRoute,
 	listMcpServersRoute,
-	setMcpServerDisabledRoute,
 	serverDetailSchema,
 	serverListSchema,
+	setMcpServerDisabledRoute,
 	updateMcpServerRoute,
 } from "./mcp.contract.ts"
 import * as service from "./mcp.service.ts"

@@ -4,13 +4,14 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const renameAgentFileBodyNameMax = 255
+export const renameAgentFileBodyNameMax = 255;
+
 
 export const RenameAgentFileBody = zod.object({
-	name: zod.string().min(1).max(renameAgentFileBodyNameMax),
+  "name": zod.string().min(1).max(renameAgentFileBodyNameMax)
 })
 
-export type RenameAgentFileBody = zod.input<typeof RenameAgentFileBody>
-export type RenameAgentFileBodyOutput = zod.output<typeof RenameAgentFileBody>
+export type RenameAgentFileBody = zod.input<typeof RenameAgentFileBody>;
+export type RenameAgentFileBodyOutput = zod.output<typeof RenameAgentFileBody>;

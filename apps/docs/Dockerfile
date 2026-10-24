@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.3 AS pruner
+FROM oven/bun:1.4.4 AS pruner
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN bun install --global "turbo@$(bun -p 'require("./package.json").devDependenc
 COPY . .
 RUN turbo prune @talqo/docs --docker
 
-FROM oven/bun:1.4.3 AS build
+FROM oven/bun:1.4.4 AS build
 
 WORKDIR /app
 
@@ -16,13 +16,13 @@ COPY --from=pruner /app/out/json/ ./
 COPY bunfig.toml ./
 
 RUN --mount=type=cache,target=/root/.bun/install/cache \
-	bun install --frozen-lockfile
+	BUN_INSTALL_GLOBAL_STORE=0 bun install --frozen-lockfile
 
 COPY --from=pruner /app/out/full/ ./
 
 RUN bunx turbo run build --filter=@talqo/docs
 
-FROM oven/bun:1.4.3-slim AS runtime
+FROM oven/bun:1.4.4-slim AS runtime
 
 LABEL org.opencontainers.image.source="https://github.com/Talqo/talqo"
 

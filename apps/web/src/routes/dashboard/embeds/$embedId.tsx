@@ -3,11 +3,11 @@ import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
-	toAppearance,
-	toFormValues,
 	EMBED_FORM_DEFAULTS,
 	embedFormSchema,
 	type EmbedFormValues,
+	toAppearance,
+	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"

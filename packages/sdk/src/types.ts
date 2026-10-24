@@ -10,13 +10,7 @@ export type ChatConfiguration = {
 
 export type ChatMessageRole = "user" | "assistant"
 export type ChatMessageOutcome =
-	| "pending"
-	| "streaming"
-	| "completed"
-	| "failed"
-	| "cancelled"
-	| "blocked"
-	| "interrupted"
+	"pending" | "streaming" | "completed" | "failed" | "cancelled" | "blocked" | "interrupted"
 
 export type ChatMessage = {
 	readonly id: string

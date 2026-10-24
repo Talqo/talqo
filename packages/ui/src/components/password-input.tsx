@@ -4,7 +4,7 @@ import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
 import { cn } from "@talqo/ui/lib/utils"
 import { Eye, EyeOff } from "lucide-react"
-import { useState, type ComponentProps } from "react"
+import { type ComponentProps, useState } from "react"
 
 type PasswordInputProps = Omit<ComponentProps<"input">, "type"> & {
 	hideLabel: string
