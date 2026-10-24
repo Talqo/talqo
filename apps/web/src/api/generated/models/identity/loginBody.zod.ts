@@ -4,16 +4,17 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const loginBodyUsernameMax = 128
+export const loginBodyUsernameMax = 128;
 
-export const loginBodyPasswordMax = 128
+export const loginBodyPasswordMax = 128;
+
 
 export const LoginBody = zod.object({
-	username: zod.string().min(1).max(loginBodyUsernameMax),
-	password: zod.string().min(1).max(loginBodyPasswordMax),
+  "username": zod.string().min(1).max(loginBodyUsernameMax),
+  "password": zod.string().min(1).max(loginBodyPasswordMax)
 })
 
-export type LoginBody = zod.input<typeof LoginBody>
-export type LoginBodyOutput = zod.output<typeof LoginBody>
+export type LoginBody = zod.input<typeof LoginBody>;
+export type LoginBodyOutput = zod.output<typeof LoginBody>;

@@ -7,8 +7,8 @@ import {
 	invitationRole,
 	permissionGrant,
 	role,
-	rolePermission,
 	roleAgentPermission,
+	rolePermission,
 	userRole,
 } from "./roles.schema.ts"
 

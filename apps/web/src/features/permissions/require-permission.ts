@@ -4,8 +4,7 @@ import type { GetMyPermissions200 } from "@/api/generated/models/roles/getMyPerm
 import { useMatches } from "@tanstack/react-router"
 
 export type Permission =
-	| GetMyPermissions200["permissions"][number]
-	| ListAgents200["agents"][number]["permissions"][number]
+	GetMyPermissions200["permissions"][number] | ListAgents200["agents"][number]["permissions"][number]
 
 export type AccessGate = "open" | "pending" | "error" | "denied"
 

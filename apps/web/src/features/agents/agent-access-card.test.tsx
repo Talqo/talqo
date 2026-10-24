@@ -79,6 +79,16 @@ async function chooseObservers() {
 	await click(item)
 }
 
+async function confirmRemoval() {
+	await click(button(t("agentAccess.remove")))
+	const dialog = document.querySelector<HTMLElement>("[role=dialog]")
+	const confirm = [...(dialog?.querySelectorAll("button") ?? [])].find(
+		(element) => element.textContent?.trim() === t("agentAccess.remove"),
+	)
+	if (!confirm) throw new Error("Missing removal confirmation")
+	await click(confirm)
+}
+
 beforeEach(() => {
 	roles = [
 		{ id: "support", name: "Support", permissions: ["agents:read"] },
@@ -151,8 +161,8 @@ describe("AgentAccessCard", () => {
 		await click(button(t("agentAccess.save")))
 		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.permission-exceeds-own"))
 		failure = json({ code: "role-not-found", type: "https://docs.talqo.chat/problems#role-not-found" }, 404)
-		await click(button(t("agentAccess.remove")))
-		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.role-not-found"))
+		await confirmRemoval()
+		expect(document.querySelector("[role=dialog] [role=alert]")?.textContent).toContain(t("problems.role-not-found"))
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(mutations.map(({ method }) => method)).toEqual(["PUT", "DELETE"])
 	})
@@ -172,7 +182,7 @@ describe("AgentAccessCard", () => {
 		for (const key of protectedKeys) client.setQueryData(key, { private: true })
 		client.setQueryData(["/api/auth/session"], { user: "operator" })
 		effective = []
-		await click(button(t("agentAccess.remove")))
+		await confirmRemoval()
 		for (const key of protectedKeys) expect(client.getQueryData(key)).toBeUndefined()
 		expect(client.getQueryData(["/api/agents/agent/access"])).toBeDefined()
 		expect(client.getQueryData(["/api/auth/session"])).toEqual({ user: "operator" })

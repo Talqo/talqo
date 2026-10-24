@@ -613,7 +613,7 @@ export async function listConversations(
 	filter: { agentId?: string[]; page: number },
 	actorId: string,
 ): Promise<ConversationPage> {
-	const scope = await roles.requireAgentScope(actorId, roles.Permission.ConversationsRead)
+	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.ConversationsRead)
 	const agentIds =
 		scope === "all" ? filter.agentId : filter.agentId ? filter.agentId.filter((id) => scope.includes(id)) : scope
 	const { rows, total } = await repository.listConversations({
@@ -643,7 +643,7 @@ export async function getConversationTranscript(referenceId: string, actorId: st
 	await roles.requireAgentPermission(
 		actorId,
 		found.agentId,
-		roles.Permission.ConversationsRead,
+		roles.AgentPermission.ConversationsRead,
 		PROBLEM_CODES.CONVERSATION_NOT_FOUND,
 	)
 	return {

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import assert from "node:assert/strict"
 
 import { logIn } from "./log-in"
 
@@ -8,12 +9,12 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		agents: { id: string; name: string }[]
 	}
 	const agent = agents.find(({ name }) => name === "Website Assistant")
-	if (!agent) throw new Error("Missing seeded agent")
+	assert.ok(agent, "Missing seeded agent")
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
 		users: { id: string; username: string; roles: { id: string }[] }[]
 	}
 	const user = users.find(({ username }) => username === "user")
-	if (!user) throw new Error("Missing seeded operator")
+	assert.ok(user, "Missing seeded operator")
 	const name = `Reporting ${crypto.randomUUID()}`
 	const created = await page.request.post("/api/roles", { data: { name, permissions: [] } })
 	await expect(created).toBeOK()
@@ -62,8 +63,13 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		await expect(operator).toHaveURL("/dashboard/conversations")
 
 		await access.getByRole("switch", { name: "Delete agent", exact: true }).check()
-		page.once("dialog", (dialog) => dialog.accept())
 		await access.getByRole("button", { name: "Remove role access", exact: true }).click()
+		const confirmation = page.getByRole("dialog")
+		await expect(confirmation).toContainText(name)
+		await confirmation.getByRole("button", { name: "Cancel", exact: true }).click()
+		await expect(access.getByRole("button", { name, exact: true })).toBeVisible()
+		await access.getByRole("button", { name: "Remove role access", exact: true }).click()
+		await confirmation.getByRole("button", { name: "Remove role access", exact: true }).click()
 		await expect(access.getByRole("button", { name, exact: true })).toHaveCount(0)
 		await expect(addRole).toBeFocused()
 		await operator.reload()

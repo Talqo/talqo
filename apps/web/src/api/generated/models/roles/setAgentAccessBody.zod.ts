@@ -4,13 +4,11 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const SetAgentAccessBody = zod.object({
-	permissions: zod.array(
-		zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
-	),
+  "permissions": zod.array(zod.enum(['stats:read', 'conversations:read', 'agents:read', 'agents:manage', 'agents:delete']))
 })
 
-export type SetAgentAccessBody = zod.input<typeof SetAgentAccessBody>
-export type SetAgentAccessBodyOutput = zod.output<typeof SetAgentAccessBody>
+export type SetAgentAccessBody = zod.input<typeof SetAgentAccessBody>;
+export type SetAgentAccessBodyOutput = zod.output<typeof SetAgentAccessBody>;

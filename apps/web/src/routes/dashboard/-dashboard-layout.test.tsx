@@ -150,6 +150,12 @@ test("clears protected caches when discovery revokes access before the access re
 	if (!remove) throw new Error("Missing removal button")
 	await act(async () => remove.click())
 	await settle()
+	const confirm = [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
+		(button) => button.textContent === t("agentAccess.remove"),
+	)
+	if (!confirm) throw new Error("Missing removal confirmation")
+	await act(async () => confirm.click())
+	await settle()
 	await settle()
 	expect(accessSignal?.aborted).toBe(true)
 	for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()

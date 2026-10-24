@@ -4,22 +4,23 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
+import { ConversationSummary } from './conversationSummary.zod';
 
-import { ConversationSummary } from "./conversationSummary.zod"
+export const conversationListPageExclusiveMin = 0;
 
-export const conversationListPageExclusiveMin = 0
+export const conversationListPageSizeExclusiveMin = 0;
 
-export const conversationListPageSizeExclusiveMin = 0
+export const conversationListTotalMin = 0;
 
-export const conversationListTotalMin = 0
+
 
 export const ConversationList = zod.object({
-	conversations: zod.array(ConversationSummary),
-	page: zod.int().gt(conversationListPageExclusiveMin),
-	pageSize: zod.int().gt(conversationListPageSizeExclusiveMin),
-	total: zod.int().min(conversationListTotalMin),
-})
+  "conversations": zod.array(ConversationSummary),
+  "page": zod.int().gt(conversationListPageExclusiveMin),
+  "pageSize": zod.int().gt(conversationListPageSizeExclusiveMin),
+  "total": zod.int().min(conversationListTotalMin)
+});
 
-export type ConversationList = zod.input<typeof ConversationList>
-export type ConversationListOutput = zod.output<typeof ConversationList>
+export type ConversationList = zod.input<typeof ConversationList>;
+export type ConversationListOutput = zod.output<typeof ConversationList>;

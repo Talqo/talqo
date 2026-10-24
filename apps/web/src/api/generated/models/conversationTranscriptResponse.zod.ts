@@ -4,13 +4,12 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { ConversationTranscript } from "./conversationTranscript.zod"
+import * as zod from 'zod';
+import { ConversationTranscript } from './conversationTranscript.zod';
 
 export const ConversationTranscriptResponse = zod.object({
-	conversation: ConversationTranscript,
-})
+  "conversation": ConversationTranscript
+});
 
-export type ConversationTranscriptResponse = zod.input<typeof ConversationTranscriptResponse>
-export type ConversationTranscriptResponseOutput = zod.output<typeof ConversationTranscriptResponse>
+export type ConversationTranscriptResponse = zod.input<typeof ConversationTranscriptResponse>;
+export type ConversationTranscriptResponseOutput = zod.output<typeof ConversationTranscriptResponse>;

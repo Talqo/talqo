@@ -4,26 +4,15 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
-
-import { RoleSummary } from "../roleSummary.zod"
+import * as zod from 'zod';
+import { RoleSummary } from '../roleSummary.zod';
 
 export const GetAgentAccess200 = zod.object({
-	permissions: zod.array(
-		zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
-	),
-	roles: zod
-		.array(
-			RoleSummary.and(
-				zod.object({
-					permissions: zod.array(
-						zod.enum(["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]),
-					),
-				}),
-			),
-		)
-		.optional(),
+  "permissions": zod.array(zod.enum(['stats:read', 'conversations:read', 'agents:read', 'agents:manage', 'agents:delete'])),
+  "roles": zod.array(RoleSummary.and(zod.object({
+  "permissions": zod.array(zod.enum(['stats:read', 'conversations:read', 'agents:read', 'agents:manage', 'agents:delete']))
+}))).optional()
 })
 
-export type GetAgentAccess200 = zod.input<typeof GetAgentAccess200>
-export type GetAgentAccess200Output = zod.output<typeof GetAgentAccess200>
+export type GetAgentAccess200 = zod.input<typeof GetAgentAccess200>;
+export type GetAgentAccess200Output = zod.output<typeof GetAgentAccess200>;

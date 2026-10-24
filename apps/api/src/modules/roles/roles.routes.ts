@@ -7,6 +7,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 
 import {
+	agentAccessResponseSchema,
 	assignUserRolesRoute,
 	bootstrapAdminResponseSchema,
 	bootstrapAdminRoute,
@@ -15,6 +16,7 @@ import {
 	createRoleRoute,
 	deleteRoleRoute,
 	deleteUserRoute,
+	getAgentAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
 	grantablePermissionsResponseSchema,
@@ -24,17 +26,15 @@ import {
 	myPermissionsRoute,
 	redeemInvitationResponseSchema,
 	redeemInvitationRoute,
+	removeAgentAccessRoute,
 	resetUserPasswordRoute,
 	roleListResponseSchema,
 	roleResponseSchema,
+	setAgentAccessRoute,
 	setupStatusResponseSchema,
 	updateRoleRoute,
 	userListResponseSchema,
 	userRolesResponseSchema,
-	getAgentAccessRoute,
-	agentAccessResponseSchema,
-	setAgentAccessRoute,
-	removeAgentAccessRoute,
 } from "./roles.contract.ts"
 import * as service from "./roles.service.ts"
 

@@ -61,7 +61,7 @@ function utcDateKey(date: Date): string {
 // The sparse per-agent-day rows are the single source; totals, the dense daily axis, and the
 // per-agent breakdown are all derived from them so the views can never disagree.
 export async function getStatsOverview(query: StatsOverviewQuery, actorId: string): Promise<StatsOverview> {
-	const scope = await roles.requireAgentScope(actorId, roles.Permission.StatsRead)
+	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.StatsRead)
 	const since = query.days === "all" ? new Date(0) : new Date(Date.now() - (query.days - 1) * MILLISECONDS_PER_DAY)
 	since.setUTCHours(0, 0, 0, 0)
 	const activeCutoff = new Date(Date.now() - ACTIVE_CONVERSATION_WINDOW_MINUTES * MILLISECONDS_PER_MINUTE)

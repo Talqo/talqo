@@ -4,16 +4,14 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
 export const ListGrantablePermissions200 = zod.object({
-	permissions: zod.array(
-		zod.object({
-			permission: zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage"]),
-			implies: zod.array(zod.enum(["users:read", "users:manage", "roles:manage", "ai_provider:manage"])),
-		}),
-	),
+  "permissions": zod.array(zod.object({
+  "permission": zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage']),
+  "implies": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage']))
+}))
 })
 
-export type ListGrantablePermissions200 = zod.input<typeof ListGrantablePermissions200>
-export type ListGrantablePermissions200Output = zod.output<typeof ListGrantablePermissions200>
+export type ListGrantablePermissions200 = zod.input<typeof ListGrantablePermissions200>;
+export type ListGrantablePermissions200Output = zod.output<typeof ListGrantablePermissions200>;

@@ -4,17 +4,19 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-import * as zod from "zod"
+import * as zod from 'zod';
 
-export const conversationSummaryMessageCountMin = 0
+export const conversationSummaryMessageCountMin = 0;
+
+
 
 export const ConversationSummary = zod.object({
-	id: zod.string(),
-	agentId: zod.string(),
-	startedAt: zod.iso.datetime({ offset: true }),
-	messageCount: zod.int().min(conversationSummaryMessageCountMin),
-	preview: zod.string().nullable(),
-})
+  "id": zod.string(),
+  "agentId": zod.string(),
+  "startedAt": zod.iso.datetime({"offset":true}),
+  "messageCount": zod.int().min(conversationSummaryMessageCountMin),
+  "preview": zod.string().nullable()
+});
 
-export type ConversationSummary = zod.input<typeof ConversationSummary>
-export type ConversationSummaryOutput = zod.output<typeof ConversationSummary>
+export type ConversationSummary = zod.input<typeof ConversationSummary>;
+export type ConversationSummaryOutput = zod.output<typeof ConversationSummary>;
