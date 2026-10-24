@@ -8,12 +8,12 @@ import * as zod from 'zod';
 
 export const createRoleBodyNameMax = 64;
 
-export const createRoleBodyPermissionsMax = 7;
+export const createRoleBodyPermissionsMax = 4;
 
 
 export const CreateRoleBody = zod.object({
   "name": zod.string().min(1).max(createRoleBodyNameMax),
-  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:read', 'agents:manage', 'conversations:read'])).max(createRoleBodyPermissionsMax)
+  "permissions": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage'])).max(createRoleBodyPermissionsMax)
 })
 
 export type CreateRoleBody = zod.input<typeof CreateRoleBody>;

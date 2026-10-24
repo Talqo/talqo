@@ -38,35 +38,38 @@ function serveEmbedConfig(c: Context) {
 export const embedRoutes = new OpenAPIHono()
 	.openapi(listEmbedsRoute, async (c) => {
 		const { agentId } = c.req.valid("query")
-		return c.json(embedListResponseSchema.parse({ embeds: await service.listEmbeds(agentId) }), HTTP_STATUS.OK)
+		return c.json(
+			embedListResponseSchema.parse({ embeds: await service.listVisibleEmbeds(c.get("user").id, agentId) }),
+			HTTP_STATUS.OK,
+		)
 	})
 	.openapi(createEmbedRoute, async (c) => {
-		const embed = await service.createEmbed(c.req.valid("json"))
+		const embed = await service.createEmbed(c.req.valid("json"), c.get("user").id)
 		annotate(c, { "embed.id": embed.id, "agent.id": embed.agentId })
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.CREATED)
 	})
 	.openapi(getEmbedRoute, async (c) => {
-		const embed = await service.getEmbed(c.req.valid("param").embedId)
+		const embed = await service.getEmbed(c.req.valid("param").embedId, c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(updateEmbedRoute, async (c) => {
-		const embed = await service.updateEmbed(c.req.valid("param").embedId, c.req.valid("json"))
+		const embed = await service.updateEmbed(c.req.valid("param").embedId, c.req.valid("json"), c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(rotateEmbedTokenRoute, async (c) => {
-		const embed = await service.rotateEmbedToken(c.req.valid("param").embedId)
+		const embed = await service.rotateEmbedToken(c.req.valid("param").embedId, c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(disableEmbedRoute, async (c) => {
-		const embed = await service.disableEmbed(c.req.valid("param").embedId)
+		const embed = await service.disableEmbed(c.req.valid("param").embedId, c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(enableEmbedRoute, async (c) => {
-		const embed = await service.enableEmbed(c.req.valid("param").embedId)
+		const embed = await service.enableEmbed(c.req.valid("param").embedId, c.get("user").id)
 		return c.json(embedDetailResponseSchema.parse({ embed }), HTTP_STATUS.OK)
 	})
 	.openapi(deleteEmbedRoute, async (c) => {
-		await service.deleteEmbed(c.req.valid("param").embedId)
+		await service.deleteEmbed(c.req.valid("param").embedId, c.get("user").id)
 		return c.body(null, HTTP_STATUS.NO_CONTENT)
 	})
 

@@ -6,11 +6,13 @@ import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { hasMatchedRoute } from "@/http/route-match.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
+import * as agents from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { getCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 import { matchedRoutes } from "hono/route"
+import { z } from "zod"
 
 // Each contract spreads one `access.*` entry, which sets both its OpenAPI `security` and its
 // enforcement. `requireAccessPolicy` refuses any matched route without one, so access fails closed.
@@ -35,6 +37,7 @@ const allowPublic = policy(
 type SessionOptions = {
 	allowPendingPasswordChange?: boolean
 	permission?: roles.Permission
+	agentPermission?: roles.AgentPermission
 }
 
 function requireSession(options: SessionOptions) {
@@ -59,6 +62,14 @@ function requireSession(options: SessionOptions) {
 					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
 				}
 			}
+			const agentId = c.req.param("agentId")
+			if (agentId && !z.uuid().safeParse(agentId).success)
+				return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+			if (options.agentPermission) {
+				if (agentId) await roles.requireAgentPermission(session.user.id, agentId, options.agentPermission)
+				else await roles.requireAgentScope(session.user.id, options.agentPermission)
+			}
+			if (agentId) await agents.getAgent(agentId)
 
 			c.set("user", session.user)
 			return next()
@@ -96,6 +107,10 @@ export const access = {
 		middleware: requireSession(options),
 	}),
 	permission: permissionAccess,
+	agent: (permission: roles.AgentPermission): SessionAccess => ({
+		security: sessionSecurity,
+		middleware: requireSession({ agentPermission: permission }),
+	}),
 	chatBearer: { security: chatBearerSecurity, middleware: requireChatBearer },
 }
 

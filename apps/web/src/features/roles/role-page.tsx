@@ -35,7 +35,8 @@ export function RolePage({ roleId }: { roleId: string }) {
 			[],
 	)
 	const ownRoles = roles?.filter(({ id }) => ownRoleIds.has(id)) ?? []
-	const changeable = role && held && holdsAll(held, role.permissions)
+	const changeable =
+		role && held && holdsAll(held, role.permissions) && rolesQuery.data?.data.manageableRoleIds.includes(role.id)
 
 	return (
 		<div className="space-y-6">

@@ -23,16 +23,4 @@ export const PERMISSION_COPY: Record<GrantablePermission, PermissionCopy> = {
 		label: (t) => t("roles.permissionLabels.aiProviderManage"),
 		description: (t) => t("roles.permissionDescriptions.aiProviderManage"),
 	},
-	"agents:read": {
-		label: (t) => t("roles.permissionLabels.agentsRead"),
-		description: (t) => t("roles.permissionDescriptions.agentsRead"),
-	},
-	"agents:manage": {
-		label: (t) => t("roles.permissionLabels.agentsManage"),
-		description: (t) => t("roles.permissionDescriptions.agentsManage"),
-	},
-	"conversations:read": {
-		label: (t) => t("roles.permissionLabels.conversationsRead"),
-		description: (t) => t("roles.permissionDescriptions.conversationsRead"),
-	},
 }

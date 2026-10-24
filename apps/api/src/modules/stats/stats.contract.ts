@@ -1,7 +1,6 @@
 import { access } from "@/http/access.ts"
 import { problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 const STATS_MAX_DAYS = 365
@@ -49,7 +48,7 @@ export const statsOverviewRoute = createRoute({
 	path: "/",
 	operationId: "getStatsOverview",
 	tags: ["Stats"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.session(),
 	request: { query: statsQuerySchema },
 	responses: {
 		200: {

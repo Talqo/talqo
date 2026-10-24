@@ -1,4 +1,6 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { getListAgentsQueryKey } from "@/api/generated/agent/agent"
+import { getGetMyPermissionsQueryKey } from "@/api/generated/roles/roles"
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
@@ -13,7 +15,20 @@ import "./lib/i18n"
 
 applyTheme(getInitialTheme())
 
-const queryClient = new QueryClient()
+const FORBIDDEN_STATUS = 403
+const NOT_FOUND_STATUS = 404
+const queryClient = new QueryClient({
+	queryCache: new QueryCache({
+		onError(error, query) {
+			if (!("status" in error) || (error.status !== FORBIDDEN_STATUS && error.status !== NOT_FOUND_STATUS)) return
+			query.setState({ data: undefined })
+			if (query.queryKey[0] !== getListAgentsQueryKey()[0])
+				void queryClient.invalidateQueries({ queryKey: getListAgentsQueryKey() })
+			if (query.queryKey[0] !== getGetMyPermissionsQueryKey()[0])
+				void queryClient.invalidateQueries({ queryKey: getGetMyPermissionsQueryKey() })
+		},
+	}),
+})
 
 const router = createRouter({ routeTree, scrollRestoration: true })
 

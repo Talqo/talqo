@@ -32,7 +32,13 @@ const createAgentRequestSchema = agentInputSchema
 const updateAgentRequestSchema = agentInputSchema
 
 export const agentDetailResponseSchema = z.object({ agent: agentResponseSchema })
-export const agentListResponseSchema = z.object({ agents: z.array(agentResponseSchema) })
+export const agentListResponseSchema = z.object({
+	agents: z.array(
+		agentResponseSchema
+			.pick({ id: true, name: true, createdAt: true, updatedAt: true })
+			.extend({ permissions: z.array(z.enum(roles.AGENT_PERMISSIONS)) }),
+	),
+})
 
 const agentParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
@@ -53,9 +59,9 @@ export const listAgentsRoute = createRoute({
 	path: "/",
 	operationId: "listAgents",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.session(),
 	responses: {
-		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "All agents" },
+		200: { content: { "application/json": { schema: agentListResponseSchema } }, description: "Visible agents" },
 		401: authRequired,
 		403: forbidden,
 		500: serverError,
@@ -67,7 +73,7 @@ export const createAgentRoute = createRoute({
 	path: "/",
 	operationId: "createAgent",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.permission(roles.Permission.Admin),
 	request: {
 		body: { content: { "application/json": { schema: createAgentRequestSchema } }, required: true },
 	},
@@ -87,7 +93,7 @@ export const getAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "getAgent",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsRead),
+	...access.agent(roles.AgentPermission.AgentRead),
 	request: { params: agentParamsSchema },
 	responses: {
 		200: { content: { "application/json": { schema: agentDetailResponseSchema } }, description: "One agent" },
@@ -103,7 +109,7 @@ export const updateAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "updateAgent",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentManage),
 	request: {
 		params: agentParamsSchema,
 		body: { content: { "application/json": { schema: updateAgentRequestSchema } }, required: true },
@@ -125,7 +131,7 @@ export const deleteAgentRoute = createRoute({
 	path: "/{agentId}",
 	operationId: "deleteAgent",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.AgentsManage),
+	...access.agent(roles.AgentPermission.AgentDelete),
 	request: { params: agentParamsSchema },
 	responses: {
 		204: noContentResponse,

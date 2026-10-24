@@ -20,6 +20,7 @@ import {
 import { toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-stats"
 import { DEFAULT_STATS_DAYS, parseDaysParam, type StatsDays } from "@/features/statistics/ranges"
 import { getProblemMessage } from "@/lib/problem-message"
+import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
@@ -28,19 +29,16 @@ import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 const FORBIDDEN_STATUS = 403
-const CLIENT_ERROR_STATUS_MIN = 400
-const CLIENT_ERROR_STATUS_MAX = 499
 // The active-conversation card stays live without a manual refresh; one minute matches the
 // metric's own granularity.
 const STATS_REFRESH_MS = 60_000
-const DEFAULT_QUERY_RETRIES = 3
 
 export const Route = createFileRoute("/dashboard/")({
 	validateSearch: (search: Record<string, unknown>): { agents?: string[]; days?: StatsDays } => ({
 		agents: parseAgentsParam(search.agents),
 		days: parseDaysParam(search.days),
 	}),
-	beforeLoad: requirePermission("agents:read"),
+	beforeLoad: requirePermission("stats:read"),
 	component: DashboardIndexPage,
 })
 
@@ -50,19 +48,6 @@ function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
 		messages: t("dashboard.messages"),
 		tokens: t("dashboard.tokens"),
 	}
-}
-
-// 4xx responses never clear on retry, so a denied or rejected request fails fast instead of
-// burning the default retry backoff before the error state renders.
-function retryUnlessClientError(failureCount: number, error: { status?: number }): boolean {
-	if (
-		error.status !== undefined &&
-		error.status >= CLIENT_ERROR_STATUS_MIN &&
-		error.status <= CLIENT_ERROR_STATUS_MAX
-	) {
-		return false
-	}
-	return failureCount < DEFAULT_QUERY_RETRIES
 }
 
 function DashboardIndexPage() {
@@ -82,8 +67,8 @@ function DashboardIndexPage() {
 
 	const { error, isLoading } = statsQuery
 	const overview = statsQuery.data?.data.overview
-	const allAgents = agentsQuery.data?.data.agents
-	// The selection box covers every workspace agent; agents without activity simply add zero points.
+	const allAgents = agentsQuery.data?.data.agents.filter((agent) => agent.permissions.includes("stats:read"))
+	// Agents without activity still belong in the permitted statistics filter.
 	const allIds = useMemo(() => (allAgents ?? []).map((agent) => agent.id), [allAgents])
 	const agentLines = useMemo<AgentLine[]>(
 		() => (allAgents ?? []).map((agent, index) => ({ color: agentLineColor(index), id: agent.id, name: agent.name })),

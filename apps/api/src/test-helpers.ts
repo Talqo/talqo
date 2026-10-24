@@ -13,8 +13,25 @@ export async function testAdminId(): Promise<string> {
 	return (await roles.bootstrapAdmin({ username: uniqueUsername(), password: DEFAULT_PASSWORD })).id
 }
 
-export async function giveRole(userId: string, permissions: roles.GrantablePermission[]): Promise<void> {
+export async function giveRole(
+	userId: string,
+	permissions: (roles.GrantablePermission | roles.AgentPermission)[],
+	agentIds?: string[],
+): Promise<void> {
 	const adminId = await testAdminId()
-	const role = await roles.createRole({ name: `Test role ${crypto.randomUUID()}`, permissions }, adminId)
+	const globalPermissions = permissions.filter((permission): permission is roles.GrantablePermission =>
+		(roles.GRANTABLE_PERMISSIONS as readonly string[]).includes(permission),
+	)
+	const scopedPermissions = permissions.filter((permission): permission is roles.AgentPermission =>
+		(roles.AGENT_PERMISSIONS as readonly string[]).includes(permission),
+	)
+	const role = await roles.createRole(
+		{ name: `Test role ${crypto.randomUUID()}`, permissions: globalPermissions },
+		adminId,
+	)
+	if (scopedPermissions.length > 0) {
+		const ids = agentIds ?? (await sql<{ id: string }[]>`SELECT id FROM agent`).map(({ id }) => id)
+		await Promise.all(ids.map((agentId) => roles.setAgentAccess(adminId, agentId, role.id, scopedPermissions)))
+	}
 	await roles.assignRoles(userId, [role.id], adminId)
 }

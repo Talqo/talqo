@@ -2,7 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as service from "./agent.service.ts"
@@ -37,10 +37,7 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username), userId: admin.id }
 }
 
-async function createMemberSession(
-	grantedBy: string,
-	permissions: ("agents:read" | "agents:manage")[] = [],
-): Promise<string> {
+async function createMemberSession(grantedBy: string, permissions: roles.AgentPermission[] = []): Promise<string> {
 	const username = uniqueUsername()
 	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
@@ -227,7 +224,7 @@ describe("agent service interface", () => {
 		const fetched = await service.getAgent(created.id)
 		expect(fetched).toEqual(created)
 
-		const listed = await service.listAgents()
+		const listed = await service.listAgents(await testAdminId())
 		expect(listed.map((agent) => agent.id)).toEqual([created.id])
 
 		await service.deleteAgent(created.id)
@@ -270,20 +267,50 @@ describe("agent authorization", () => {
 
 	it("lets a manage-only operator read, because manage implies read", async () => {
 		const admin = await createAdminSession()
-		const manager = await createMemberSession(admin.userId, ["agents:manage"])
-		const created = await createJsonRequest(manager, "POST", "/api/agents", {
+		const created = await createJsonRequest(admin.cookie, "POST", "/api/agents", {
 			name: "Managed",
 			systemPrompt: "Prompt",
 			wordBlacklist: [],
 		})
 		expect(created.status).toBe(201)
+		const { agent } = (await created.json()) as AgentPayload
+		const manager = await createMemberSession(admin.userId, ["agents:manage"])
+		expect(
+			(
+				await createJsonRequest(manager, "POST", "/api/agents", {
+					name: "Forbidden",
+					systemPrompt: "No",
+					wordBlacklist: [],
+				})
+			).status,
+		).toBe(403)
+		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: manager } })).status).toBe(200)
 		expect((await app.request("/api/agents", { headers: { Cookie: manager } })).status).toBe(200)
+		expect(
+			(await app.request(`/api/agents/${agent.id}`, { method: "DELETE", headers: { Cookie: manager } })).status,
+		).toBe(403)
+		const deleter = await createMemberSession(admin.userId, ["agents:delete"])
+		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: deleter } })).status).toBe(200)
+		expect(
+			(
+				await createJsonRequest(deleter, "PUT", `/api/agents/${agent.id}`, {
+					name: "Forbidden edit",
+					systemPrompt: "No",
+					wordBlacklist: [],
+				})
+			).status,
+		).toBe(403)
+		expect(
+			(await app.request(`/api/agents/${agent.id}`, { method: "DELETE", headers: { Cookie: deleter } })).status,
+		).toBe(204)
 	})
 
-	it("denies all agent endpoints to an operator without agent grants", async () => {
+	it("returns an empty discovery list and denies creation without agent grants", async () => {
 		const admin = await createAdminSession()
 		const member = await createMemberSession(admin.userId)
-		expect((await app.request("/api/agents", { headers: { Cookie: member } })).status).toBe(403)
+		const response = await app.request("/api/agents", { headers: { Cookie: member } })
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ agents: [] })
 		expect(
 			(
 				await createJsonRequest(member, "POST", "/api/agents", {

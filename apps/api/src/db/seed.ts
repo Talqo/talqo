@@ -26,6 +26,7 @@ export async function seed(): Promise<void> {
 	await identity.seedUser()
 	await roles.seed()
 	await agent.seed()
+	await roles.seedAgentAccess(agent.SEED_AGENT_IDS)
 	await embed.seed()
 	await mcp.seed()
 	const seededAttempts = await conversation.seed()

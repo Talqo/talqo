@@ -7,6 +7,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
@@ -95,8 +96,18 @@ export function normalizeAgentInput(input: AgentInput): AgentInput {
 	return { name, systemPrompt, wordBlacklist }
 }
 
-export async function listAgents(): Promise<Agent[]> {
-	return (await repo.findAllWithWords()).map(toAgent)
+export async function listAgents(
+	actorId: string,
+): Promise<(Pick<Agent, "id" | "name" | "createdAt" | "updatedAt"> & { permissions: roles.AgentPermission[] })[]> {
+	const access = await roles.agentPermissionsById(actorId)
+	const agents = await repo.findAll(access === "all" ? "all" : [...access.keys()])
+	return agents.map(({ id, name, createdAt, updatedAt }) => ({
+		id,
+		name,
+		createdAt,
+		updatedAt,
+		permissions: access === "all" ? [...roles.AGENT_PERMISSIONS] : (access.get(id) ?? []),
+	}))
 }
 
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.

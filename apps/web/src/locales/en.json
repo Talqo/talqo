@@ -22,6 +22,31 @@
 		"saveProfile": "Save profile",
 		"subheading": "Manage your account settings and preferences."
 	},
+	"agentAccess": {
+		"addRole": "Add role",
+		"conversations": "Read conversations",
+		"deleteAgent": "Delete agent",
+		"descriptions": {
+			"conversations": "Read visitor conversations with this agent.",
+			"deleteAgent": "Permanently delete this agent and its history.",
+			"editConfiguration": "Change this agent's settings, knowledge base, connections, and embeds.",
+			"statistics": "View statistics and usage for this agent.",
+			"viewConfiguration": "View this agent's settings, knowledge base, connections, and embeds."
+		},
+		"editConfiguration": "Edit configuration",
+		"empty": "No roles have access. Add a role to grant permissions.",
+		"permissionsFor": "Permissions for {{role}}",
+		"remove": "Remove role access",
+		"removed": "Role access removed.",
+		"removePrompt": "Remove {{role}}'s access to this agent? Members may retain access through other roles. An authorized operator or admin can add the role again. If you lose access, ask them to restore it.",
+		"roles": "Role access and drafts",
+		"save": "Save permissions",
+		"saved": "Permissions saved.",
+		"statistics": "View statistics",
+		"title": "Access",
+		"useRemove": "To remove all permissions, choose Remove role access.",
+		"viewConfiguration": "View configuration"
+	},
 	"agentConfig": {
 		"backToAgents": "Back to agents",
 		"cancel": "Cancel",
@@ -36,7 +61,6 @@
 		"deletePrompt": "This permanently deletes {{name}} and all of its conversation and usage history. There is no undo.",
 		"deleteTitle": "Delete agent?",
 		"deleting": "Deleting…",
-		"heading": "Configure {{name}}",
 		"loading": "Loading agent…",
 		"notFound": "Agent not found. It may have been removed.",
 		"save": "Save changes",
@@ -372,6 +396,7 @@
 		"loading": "Loading…",
 		"nameLabel": "Name",
 		"noEmbeds": "No embeds yet. Create one to get an embed snippet.",
+		"noEmbedsReadOnly": "No embeds yet.",
 		"notFound": "Embed not found. It may have been removed.",
 		"openFullPreview": "Open full-screen preview",
 		"position": "Position",
@@ -547,28 +572,22 @@
 		"nameError": "Enter a name of up to {{max}} characters.",
 		"notYours": "You can only give access you have yourself.",
 		"permissionDescriptions": {
-			"agentsManage": "Create, change and delete agents, their knowledge, connections and website embeds.",
-			"agentsRead": "View agents, their knowledge, connections and website embeds.",
 			"aiProviderManage": "Choose the AI provider and models that agents use.",
-			"conversationsRead": "Read what visitors asked agents and how the agents answered.",
 			"rolesManage": "Create roles and choose who has them.",
 			"usersManage": "Invite users, reset their passwords and remove them.",
 			"usersRead": "View everyone who can sign in to this dashboard."
 		},
 		"permissionLabels": {
-			"agentsManage": "Manage agents",
-			"agentsRead": "See agents",
 			"aiProviderManage": "Configure AI",
-			"conversationsRead": "See conversations",
 			"rolesManage": "Manage roles",
 			"usersManage": "Manage users",
 			"usersRead": "See users"
 		},
-		"permissionsLegend": "What people with this role can do",
+		"permissionsLegend": "Workspace permissions",
 		"save": "Save changes",
 		"saved": "Changes saved.",
 		"saving": "Saving…",
-		"settingsDescription": "Choose what people with this role can do.",
+		"settingsDescription": "Choose workspace permissions. Agent access is managed on each agent's Configuration page.",
 		"subheading": "Group access into roles, then give roles to people.",
 		"unsaved": "You have unsaved changes."
 	},

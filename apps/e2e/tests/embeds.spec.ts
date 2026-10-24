@@ -17,6 +17,27 @@ async function createEmbed(page: Page, agentId: string) {
 	return embed
 }
 
+test("embed configuration waits for agent permissions before showing editable controls", async ({ page, agent }) => {
+	const embed = await createEmbed(page, agent.id)
+	const release = Promise.withResolvers<void>()
+	await page.route("**/api/agents", async (route) => {
+		await release.promise
+		await route.continue()
+	})
+	try {
+		const loaded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/embeds/${embed.id}`)
+		await page.goto(`/dashboard/embeds/${embed.id}`)
+		await loaded
+		await expect(page.locator("main").getByText("Loading…", { exact: true })).toBeVisible()
+		await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0)
+		release.resolve()
+		await expect(page.getByLabel("Name", { exact: true })).toBeEnabled()
+	} finally {
+		release.resolve()
+		await page.unroute("**/api/agents")
+	}
+})
+
 test("operator creates, names, and permanently deletes an embed", async ({ page, agent }) => {
 	const agentId = agent.id
 	await page.goto(`/dashboard/agent/${agentId}?tab=embeds`)
