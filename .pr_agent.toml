@@ -5,9 +5,6 @@ log_level = "INFO"
 output_run_details = true
 output_run_cost = false
 
-[litellm]
-extra_body = '{"thinking":{"type":"enabled"}}'
-
 [pr_reviewer]
 inline_key_issues = true
 require_estimate_effort_to_review = false
