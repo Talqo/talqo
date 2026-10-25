@@ -12,6 +12,7 @@ test("disabled command connections stay visible but cannot be added or enabled",
 	const legacy = page.getByTestId("mcp-server-card").filter({ hasText: "Shop inventory" })
 	await expect(legacy.getByText(/Command-based connections are disabled/)).toBeVisible()
 	await expect(legacy.getByRole("switch", { name: "Connection enabled", exact: true })).toBeDisabled()
+	await expect(legacy.getByRole("switch", { name: "Connection enabled", exact: true })).toBeChecked()
 	await expect(legacy.getByRole("button", { name: "Remove", exact: true })).toBeEnabled()
 	await legacy.getByRole("button", { name: "Edit", exact: true }).click()
 	const dialog = page.getByRole("dialog")

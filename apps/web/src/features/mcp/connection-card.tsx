@@ -159,7 +159,7 @@ export function ConnectionCard({
 					{canManage && (
 						<div className="flex items-center justify-between gap-2">
 							<Switch
-								checked={!server.isDisabled && !deploymentBlocked}
+								checked={!server.isDisabled}
 								disabled={setDisabled.isPending || deploymentBlocked}
 								onCheckedChange={(checked) =>
 									void guard(() =>
