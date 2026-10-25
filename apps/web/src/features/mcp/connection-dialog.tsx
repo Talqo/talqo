@@ -32,7 +32,7 @@ import { useTranslation } from "react-i18next"
 /** Problem details carry a code; the catalog turns it into something an operator can act on. */
 function apiError(caught: unknown, t: (key: string, options?: Record<string, number>) => string): string {
 	const code = (caught as { info?: { code?: string } }).info?.code
-	switch (code) {
+	switch (code ?? "") {
 		case "invalid-request":
 		case "malformed-json":
 			return t("mcp.errorAddress")
@@ -44,7 +44,6 @@ function apiError(caught: unknown, t: (key: string, options?: Record<string, num
 			return t("mcp.errorConflict")
 		case "mcp-stdio-disabled":
 			return t("mcp.stdioDisabled")
-		case undefined:
 		default:
 			return t("mcp.errorSave")
 	}
