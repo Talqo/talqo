@@ -10,8 +10,10 @@ const USERNAME_LIMIT = 10
 type CredentialOperation = <T>(network: string | null, username: string, operation: () => Promise<T>) => Promise<T>
 
 export class CredentialRateLimitError extends ApiError {
-	constructor() {
-		super(PROBLEM_CODES.AUTH_RATE_LIMITED, HTTP_STATUS.TOO_MANY_REQUESTS, undefined, { "Retry-After": "60" })
+	constructor(retryAfterSeconds = 60) {
+		super(PROBLEM_CODES.AUTH_RATE_LIMITED, HTTP_STATUS.TOO_MANY_REQUESTS, undefined, {
+			"Retry-After": String(retryAfterSeconds),
+		})
 	}
 }
 
@@ -27,7 +29,7 @@ export function createCredentialLimiter(): CredentialOperation {
 	}
 
 	return async (network, username, operation) => {
-		if (active >= MAX_CREDENTIAL_OPERATIONS) throw new CredentialRateLimitError()
+		if (active >= MAX_CREDENTIAL_OPERATIONS) throw new CredentialRateLimitError(1)
 		const now = Date.now()
 		if (now >= expiresAt) {
 			counters.clear()

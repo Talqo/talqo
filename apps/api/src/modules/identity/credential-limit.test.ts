@@ -18,7 +18,11 @@ describe("in-memory credential limits", () => {
 			// oxlint-disable-next-line no-await-in-loop -- successive attempts against one account.
 			await limit("network-a", "visitor", operation)
 		}
-		await expect(limit("network-b", "VISITOR", operation)).rejects.toBeInstanceOf(CredentialRateLimitError)
+		await expect(limit("network-b", "VISITOR", operation)).rejects.toMatchObject({
+			problemCode: "auth-rate-limited",
+			status: 429,
+			headers: { "Retry-After": "60" },
+		})
 		expect(calls).toBe(10)
 		setSystemTime(new Date("2026-10-25T12:01:00Z"))
 		await limit("network-a", "visitor", operation)
@@ -61,7 +65,11 @@ describe("in-memory credential limits", () => {
 		)
 		const settled = Promise.allSettled(pending)
 		try {
-			await expect(limit("network", "extra", async () => "unexpected")).rejects.toBeInstanceOf(CredentialRateLimitError)
+			await expect(limit("network", "extra", async () => "unexpected")).rejects.toMatchObject({
+				problemCode: "auth-rate-limited",
+				status: 429,
+				headers: { "Retry-After": "1" },
+			})
 		} finally {
 			release.resolve()
 			await settled

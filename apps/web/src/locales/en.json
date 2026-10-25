@@ -519,7 +519,7 @@
 		"agent-invalid": "The agent configuration is invalid.",
 		"agent-name-taken": "An agent with this name already exists.",
 		"agent-not-found": "The agent was not found.",
-		"auth-rate-limited": "Too many sign-in or account creation attempts. Wait one minute and try again.",
+		"auth-rate-limited": "Sign-in or account creation is temporarily limited. Wait briefly and try again.",
 		"authentication-required": "Please log in to continue.",
 		"configuration-conflict": "The configuration changed. Reload and try again.",
 		"conversation-not-found": "This conversation no longer exists.",

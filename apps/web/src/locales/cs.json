@@ -525,7 +525,7 @@
 		"agent-invalid": "Konfigurace agenta je neplatná.",
 		"agent-name-taken": "Agent s tímto názvem již existuje.",
 		"agent-not-found": "Agent nebyl nalezen.",
-		"auth-rate-limited": "Příliš mnoho pokusů o přihlášení nebo vytvoření účtu. Počkejte minutu a zkuste to znovu.",
+		"auth-rate-limited": "Přihlášení nebo vytvoření účtu je dočasně omezeno. Chvíli počkejte a zkuste to znovu.",
 		"authentication-required": "Pro pokračování se přihlaste.",
 		"configuration-conflict": "Konfigurace se změnila. Načtěte stránku znovu a akci opakujte.",
 		"conversation-not-found": "Tato konverzace už neexistuje.",

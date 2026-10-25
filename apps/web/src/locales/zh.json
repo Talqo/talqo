@@ -519,7 +519,7 @@
 		"agent-invalid": "智能体配置无效。",
 		"agent-name-taken": "已存在同名智能体。",
 		"agent-not-found": "未找到该智能体。",
-		"auth-rate-limited": "登录或创建账户的尝试次数过多。请等待一分钟后重试。",
+		"auth-rate-limited": "登录或创建账户暂时受限。请稍后重试。",
 		"authentication-required": "请先登录再继续。",
 		"configuration-conflict": "配置已更改，请重新加载后重试。",
 		"conversation-not-found": "此对话已不存在。",
