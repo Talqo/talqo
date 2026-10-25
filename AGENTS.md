@@ -55,6 +55,7 @@ bun run quality:fix      # any edit
 bun run typecheck        # any code edit
 bun run test             # changed behavior or its tests
 bun run test:integration # module, database, service, or route
+bun run boundaries:check # module imports
 bun run contracts:check  # API contract or generated client
 bun run e2e              # web, widget, SDK, or API request handling; never run on PRs
 bun run i18n:fix         # app locales or translated keys

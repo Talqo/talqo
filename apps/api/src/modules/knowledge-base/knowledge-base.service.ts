@@ -213,6 +213,8 @@ export async function removeAgentDir(agentId: string): Promise<void> {
 }
 
 const WORKER_INTERVAL_MS = 3_000
+// A hung embedding call would stall the strictly-serial ingestion worker, so it is bounded.
+const EMBEDDING_TIMEOUT_MS = 60_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
 const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
 
@@ -227,7 +229,9 @@ export async function upload(agentId: string, name: string, data: ArrayBuffer): 
 	try {
 		await repository.enqueue(agentId, name)
 	} catch (error) {
-		await remove(agentId, name)
+		await remove(agentId, name).catch((compensationError: unknown) =>
+			console.error("agent-file.upload.compensation_failed", { agentId, name, compensationError }),
+		)
 		throw error
 	}
 	return { ...stored, embeddingStatus: "pending", embeddingError: null }
@@ -260,8 +264,14 @@ export async function rename(agentId: string, oldName: string, newName: string):
 }
 
 export async function deleteFile(agentId: string, name: string): Promise<void> {
-	await remove(agentId, name)
+	// The row goes first: a failed unlink then leaves disk litter, not a ghost row that retries cannot delete.
 	await repository.remove(agentId, name)
+	try {
+		await unlink(join(agentDir(agentId), name))
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT")
+			console.error("agent-file.delete.unlink_failed", { agentId, name, error })
+	}
 }
 
 export async function retryEmbedding(agentId: string, name: string): Promise<void> {
@@ -290,6 +300,26 @@ async function recoverUploads(): Promise<void> {
 	/* eslint-enable no-await-in-loop */
 }
 
+// Reverse reconciliation: recoverUploads only re-enqueues files present on disk, so rows whose
+// backing file is gone must be removed here or they stay listed and block their unique name forever.
+export async function reconcileDanglingRows(): Promise<void> {
+	const rows = await repository.listAll()
+	const missing: { agentId: string; name: string }[] = []
+	await Promise.all(
+		rows.map(async (row) => {
+			try {
+				await stat(join(agentDir(row.agentId), row.name))
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
+				missing.push(row)
+			}
+		}),
+	)
+	if (!missing.length) return
+	await Promise.all(missing.map((row) => repository.remove(row.agentId, row.name)))
+	console.error("agent-file.recovery.dangling_rows_removed", { scanned: rows.length, removed: missing.length })
+}
+
 async function convert(job: repository.Job): Promise<string[]> {
 	try {
 		return await chunkFile(job.name, await get(job.agentId, job.name), env.TALQO_DOCLING_URL)
@@ -308,12 +338,13 @@ export async function runIngestion(): Promise<void> {
 		locked = result[0]?.acquired ?? false
 		if (!locked) return
 		await repository.recover()
+		await reconcileDanglingRows()
 		await recoverUploads()
 		/* eslint-disable no-await-in-loop -- each batch finishes before the next poll */
 		while (true) {
 			await connection`SELECT 1`
 			try {
-				const model = await aiProvider.prepareEmbeddingOperation()
+				const model = await aiProvider.prepareEmbeddingOperation({ timeoutMs: EMBEDDING_TIMEOUT_MS })
 				await repository.reindexChanged(model.key)
 				await processPendingFiles({
 					claim: async () => {

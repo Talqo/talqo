@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (2026-08-06)
+Superseded by ADR-0021 and ADR-0020 (2026-10-25)
 
 ## Context
 
@@ -15,3 +15,5 @@ Enforce authorization with one hand-rolled `can(user, grants, permission)` funct
 ## Consequences
 
 Zero new dependency surface and a small, fully auditable enforcement path for the BOLA-sensitive check that matters most. Revisit if a future FR needs authorization to depend on two or more simultaneous resource-relationship dimensions at once — that is when CASL's composability starts paying for itself.
+
+Amendment (2026-10-25): the principle stands — authorization remains hand-rolled, small, centralized, and framework-free — but the single `can` function grew into the `access.*` policy middleware in `src/http/access.ts` plus `roles.service.ts` authority functions (`requireAgentPermission`, `requireAgentScope`, `listEffectivePermissions`).

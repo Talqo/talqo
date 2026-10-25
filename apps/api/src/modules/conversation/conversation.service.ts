@@ -16,6 +16,7 @@ import { createBlacklistFilter } from "./blacklist.ts"
 import {
 	ConversationNotFoundError,
 	ConversationTooLongError,
+	EmbedDisabledError,
 	InvalidChatInputError,
 	ProviderUnavailableError,
 	SessionBusyError,
@@ -169,39 +170,25 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 }
 
 async function recordPendingUsage(pending: repository.PendingUsageFinalization): Promise<void> {
-	const normalized =
-		pending.inputTokens === null || pending.outputTokens === null
-			? {
-					inputTokens: pending.estimatedInputTokens,
-					outputTokens: usageService.estimateTokens(pending.assistantText),
-				}
-			: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
-	if (pending.inputTokens === null || pending.outputTokens === null) {
-		await repository.stageRecoveredUsageCandidate(
-			pending.generationAttemptId,
-			pending.outcome,
-			normalized.inputTokens,
-			normalized.outputTokens,
-		)
-	}
+	let usage: { inputTokens: number; outputTokens: number }
 	try {
-		await usageService.recordUsage({
-			generationAttemptId: pending.generationAttemptId,
-			agentId: pending.agentId,
-			conversationId: pending.conversationId,
-			provider: pending.provider,
-			model: pending.model,
-			outcome: pending.outcome,
-			...normalized,
-		})
+		usage = await usageService.recordRecoveredUsage(pending)
 	} catch (error) {
 		if (isForeignKeyViolation(error)) return
 		throw error
 	}
+	if (pending.inputTokens === null || pending.outputTokens === null) {
+		await repository.stageRecoveredUsageCandidate(
+			pending.generationAttemptId,
+			pending.outcome,
+			usage.inputTokens,
+			usage.outputTokens,
+		)
+	}
 	await repository.markUsageRecorded({
 		generationAttemptId: pending.generationAttemptId,
 		outcome: pending.outcome,
-		...normalized,
+		...usage,
 	})
 }
 
@@ -448,6 +435,7 @@ export function createConversationService(dependencies: Dependencies) {
 			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
+			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
 			const conversationId = requireUuid(
 				input.credential,
 				new SessionUnauthorizedError("A valid session credential is required"),
@@ -563,11 +551,26 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 }
 
-export {
-	getActiveConversationCountsByAgent,
-	getDailyConversationCountsByAgent,
-	getDailyMessageCountsByAgent,
-} from "./conversation.repository.ts"
+export async function getActiveConversationCountsByAgent(
+	cutoff: Date,
+	scope: readonly string[] | "all",
+): Promise<repository.AgentConversationCount[]> {
+	return repository.getActiveConversationCountsByAgent(cutoff, scope)
+}
+
+export async function getDailyConversationCountsByAgent(
+	since: Date,
+	scope: readonly string[] | "all",
+): Promise<repository.AgentDailyCount[]> {
+	return repository.getDailyConversationCountsByAgent(since, scope)
+}
+
+export async function getDailyMessageCountsByAgent(
+	since: Date,
+	scope: readonly string[] | "all",
+): Promise<repository.AgentDailyCount[]> {
+	return repository.getDailyMessageCountsByAgent(since, scope)
+}
 
 let defaultService: ReturnType<typeof createConversationService> | undefined
 

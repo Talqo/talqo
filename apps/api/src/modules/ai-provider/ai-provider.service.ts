@@ -53,19 +53,22 @@ export type PrepareTextOperationInput = {
 	messages: TextMessage[]
 	timeoutMs: number
 }
+export type ProviderUsage = {
+	cachedInputTokens?: number
+	inputTokens?: number
+	inputTokenDetails?: {
+		cacheReadTokens?: number
+		cacheWriteTokens?: number
+		noCacheTokens?: number
+	}
+	outputTokens?: number
+	outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
+	reasoningTokens?: number
+	totalTokens?: number
+}
 type RawGenerationEvent =
 	| { text: string; type: "text" }
-	| {
-			outcome: "cancelled" | "completed" | "failed" | "interrupted"
-			type: "finish"
-			usage: {
-				inputTokens?: number
-				inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number; noCacheTokens?: number }
-				outputTokens?: number
-				outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
-				totalTokens?: number
-			}
-	  }
+	| { outcome: "cancelled" | "completed" | "failed" | "interrupted"; type: "finish"; usage: ProviderUsage }
 type Generate = (input: {
 	instructions?: string
 	maxOutputTokens: number
@@ -81,6 +84,8 @@ type Generate = (input: {
 
 type ServiceDependencies = {
 	discover(input: DiscoveryRequest): Promise<string[]>
+	/** embed is injectable so tests can observe the call options, particularly the abort signal. */
+	embed?: typeof aiEmbed
 	generate?: Generate
 	repository: Repository
 	/** streamText is injectable so tests can observe the call options, particularly the step bound. */
@@ -319,7 +324,6 @@ function redact(configuration: StoredConfiguration | undefined, vault: Vault): R
 
 export function createAiProviderService(dependencies: ServiceDependencies) {
 	return {
-		repository: dependencies.repository,
 		getProviders() {
 			return PROVIDER_DEFINITIONS.map((provider) => ({
 				id: provider.id,
@@ -430,7 +434,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				credentials,
 			})
 		},
-		async prepareEmbeddingOperation() {
+		async prepareEmbeddingOperation(options?: { timeoutMs?: number }) {
 			const stored = await dependencies.repository.find()
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
@@ -448,14 +452,22 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					role: "embedding",
 					credentials,
 				}) as EmbeddingModelV4
+				const embed = dependencies.embed ?? aiEmbed
 				return {
 					key: embeddingKey(stored.embedding),
 					async embed(text: string) {
-						return (await aiEmbed({ model, value: text, maxRetries: 0 })).embedding
+						return (
+							await embed({
+								model,
+								value: text,
+								maxRetries: 0,
+								...(options?.timeoutMs === undefined ? {} : { abortSignal: AbortSignal.timeout(options.timeoutMs) }),
+							})
+						).embedding
 					},
 				}
-			} catch {
-				throw new UnusableConfigurationError("AI provider configuration is unusable")
+			} catch (cause) {
+				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause })
 			}
 		},
 		async prepareTextOperation(input: PrepareTextOperationInput) {
@@ -494,7 +506,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				}
 			} catch (error) {
 				if (error instanceof UnusableConfigurationError) throw error
-				throw new UnusableConfigurationError("AI provider configuration is unusable")
+				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause: error })
 			}
 		},
 	}
@@ -541,6 +553,8 @@ export async function prepareTextOperation(input: PrepareTextOperationInput) {
 	return (await getDefaultService()).prepareTextOperation(input)
 }
 
-export async function prepareEmbeddingOperation(): Promise<{ key: string; embed(text: string): Promise<number[]> }> {
-	return (await getDefaultService()).prepareEmbeddingOperation()
+export async function prepareEmbeddingOperation(options?: {
+	timeoutMs?: number
+}): Promise<{ key: string; embed(text: string): Promise<number[]> }> {
+	return (await getDefaultService()).prepareEmbeddingOperation(options)
 }

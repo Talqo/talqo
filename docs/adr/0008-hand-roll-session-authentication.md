@@ -15,3 +15,5 @@ Hand-roll session authentication in `identity` using `Bun.password` with argon2i
 ## Consequences
 
 The identity boundary stays small and dependency-free, with no signing secret because sessions use server-side token lookup. Talqo must maintain CSRF protection, cookie hardening, session rotation, and expiry cleanup. Adding SSO later requires separate OAuth support.
+
+Amendment (2026-10-25): invitation issuance/redemption and operator administration moved to the `roles` module; `identity` remains the password/session primitive layer. The Context claim that `identity` owns invite-only account creation is historical.

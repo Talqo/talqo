@@ -53,12 +53,14 @@ const input: SaveConfigurationInput = {
 function createMemoryService(
 	generate?: Parameters<typeof createAiProviderService>[0]["generate"],
 	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
+	embed?: Parameters<typeof createAiProviderService>[0]["embed"],
 ) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
 		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		generate,
 		streamText,
+		embed,
 		discover: async () => ["model-a"],
 		repository: {
 			find: async () => stored,
@@ -187,6 +189,47 @@ describe("AI provider service", () => {
 		const prepared = await service.prepareEmbeddingOperation()
 
 		expect(typeof prepared.embed).toBe("function")
+	})
+
+	it("applies the configured timeout to embedding calls", async () => {
+		const calls: { abortSignal?: AbortSignal; maxRetries?: number; value?: string }[] = []
+		const { service } = createMemoryService(undefined, undefined, ((options: {
+			abortSignal?: AbortSignal
+			maxRetries?: number
+			value: string
+		}) => {
+			calls.push(options)
+			return Promise.resolve({ embedding: [0.1] })
+		}) as never)
+		await service.saveConfiguration(input)
+
+		const bounded = await service.prepareEmbeddingOperation({ timeoutMs: 60_000 })
+		expect(await bounded.embed("hello")).toEqual([0.1])
+		expect(calls.length).toBe(1)
+		expect(calls[0]).toMatchObject({ value: "hello", maxRetries: 0 })
+		expect(calls[0]?.abortSignal).toBeInstanceOf(AbortSignal)
+		expect(calls[0]?.abortSignal?.aborted).toBe(false)
+
+		const unbounded = await service.prepareEmbeddingOperation()
+		await unbounded.embed("again")
+		expect(calls[1]).toMatchObject({ value: "again", maxRetries: 0 })
+		expect(calls[1]?.abortSignal).toBeUndefined()
+	})
+
+	it("chains the underlying failure as the cause when embedding preparation is unusable", async () => {
+		const { service, getStored } = createMemoryService()
+		await service.saveConfiguration(input)
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
+		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }
+
+		const failure = await service.prepareEmbeddingOperation().then(
+			() => undefined,
+			(error: unknown) => error,
+		)
+
+		expect(failure).toBeInstanceOf(UnusableConfigurationError)
+		expect((failure as UnusableConfigurationError).cause).toBeInstanceOf(Error)
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {
