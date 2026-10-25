@@ -13,6 +13,11 @@ const unreachableFetch: ModelDiscoveryFetch = async () => {
 	throw new Error("fetch must not be called for unsupported discovery")
 }
 
+function fetchUrl(input: string | URL | Request): string {
+	if (typeof input === "string") return input
+	return input instanceof URL ? input.href : input.url
+}
+
 describe("discoverModels", () => {
 	it("returns OpenAI model identifiers without classifying them", async () => {
 		const result = await discoverModels(
@@ -37,7 +42,7 @@ describe("discoverModels", () => {
 		const capturing: ModelDiscoveryFetch = async (url, init) => {
 			seen = {
 				headers: new Headers(init?.headers),
-				url: typeof url === "string" ? url : url instanceof URL ? url.href : url.url,
+				url: fetchUrl(url),
 			}
 			return googleFetcher(url, init)
 		}
@@ -54,7 +59,7 @@ describe("discoverModels", () => {
 	it("uses the configured OpenAI-compatible base URL", async () => {
 		let requestedUrl = ""
 		const fetcher: ModelDiscoveryFetch = async (input) => {
-			requestedUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			requestedUrl = fetchUrl(input)
 			return new Response(JSON.stringify({ data: [] }))
 		}
 
@@ -74,7 +79,7 @@ describe("discoverModels", () => {
 	it("rejects a non-HTTP provider endpoint before sending credentials", async () => {
 		let requestedUrl = ""
 		const fetcher: ModelDiscoveryFetch = async (input) => {
-			requestedUrl = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			requestedUrl = fetchUrl(input)
 			return new Response(JSON.stringify({ data: [] }))
 		}
 

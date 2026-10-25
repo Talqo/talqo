@@ -104,6 +104,22 @@ async function fetchJson(url: string, headers: Record<string, string>, fetcher: 
 	}
 }
 
+type DiscoverableProviderId = Exclude<AiProviderId, "google" | "azure" | "amazon-bedrock">
+
+function providerBaseUrl(providerId: DiscoverableProviderId, settings: Record<string, string>): string | undefined {
+	switch (providerId) {
+		case "openai":
+			return "https://api.openai.com/v1"
+		case "anthropic":
+			return "https://api.anthropic.com/v1"
+		case "mistral":
+			return settings.baseURL ?? "https://api.mistral.ai/v1"
+		case "openai-compatible":
+		default:
+			return settings.baseURL
+	}
+}
+
 export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDiscoveryFetch = fetch): Promise<string[]> {
 	if (
 		input.authMode === "deployment-identity" ||
@@ -125,14 +141,7 @@ export async function discoverModels(input: DiscoveryRequest, fetcher: ModelDisc
 		return googleResponseSchema.parse(response).models.map(({ name }) => name.replace(/^models\//, ""))
 	}
 
-	const baseURL =
-		input.providerId === "openai"
-			? "https://api.openai.com/v1"
-			: input.providerId === "anthropic"
-				? "https://api.anthropic.com/v1"
-				: input.providerId === "mistral"
-					? (input.settings.baseURL ?? "https://api.mistral.ai/v1")
-					: input.settings.baseURL
+	const baseURL = providerBaseUrl(input.providerId, input.settings)
 	if (!baseURL) throw new ModelDiscoveryError("provider-error", "Provider base URL is required")
 	try {
 		assertHttpBaseUrl(baseURL)
