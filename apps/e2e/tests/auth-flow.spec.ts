@@ -5,10 +5,9 @@ import { createInvitedMember } from "./invited-member"
 import { ADMIN, logIn, openDashboard } from "./log-in"
 
 const test = applicationTest.extend<{ member: { username: string; password: string } }>({
-	member: async ({ request }, use) => {
+	member: async ({ adminRequest: request }, use) => {
 		const member = { username: crypto.randomUUID().replaceAll("-", ""), password: "member-original-password" }
 		await use(member)
-		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 		const response = await request.get("/api/users")
 		await expect(response).toBeOK()
 		const { users } = (await response.json()) as { users: { id: string; username: string }[] }

@@ -73,4 +73,12 @@ Each variable below is available in `.env` and passed to the API by the Compose 
 
 The API rejects invalid values at startup. These controls apply per agent/network, not deployment-wide, and do not implement billing or token quotas.
 
+Chat acceptance reserves the daily allowance and concurrency slot before knowledge retrieval. Accepted retries do not repeat retrieval or consume another allowance. Disabled embeds cannot perform retrieval. If retrieved context exceeds the input limit, the accepted attempt fails without invoking the text provider.
+
+Login, initial setup, and invitation acceptance share in-memory limits of 300 attempts per minute per API process, 30 per client network, and 10 per username. Each API process allows at most four simultaneous credential operations. Counters reset on restart and are independent across API processes. Limits return `429` with `Retry-After`; they do not permanently lock accounts. Without a client address, the process-wide and username limits still apply.
+
 Configure `TALQO_TRUSTED_PROXY_CIDRS` only for proxies that actually terminate client connections. With no trusted proxy CIDRs, Talqo uses the direct peer address and ignores forwarding headers. Native IPv6 clients share a `/64` by default; this resists temporary-address churn but can make visitors on the same network share an allowance. A narrower grouping such as `/128` reduces sharing and increases bypass risk.
+
+## MCP servers
+
+Stdio MCP servers run operator-chosen commands as the API process, so grant agent editing only to people you trust with host-level access. Set `TALQO_MCP_ALLOW_STDIO` to `false` in `.env` and restart to reject new stdio connections and stop already-configured ones; HTTP MCP servers, including ones on internal addresses, work either way.

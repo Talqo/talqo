@@ -68,6 +68,7 @@ export const loginRoute = createRoute({
 		200: { content: { "application/json": { schema: userEnvelopeSchema } }, description: "Authenticated user" },
 		400: invalidRequest,
 		401: problemResponse([PROBLEM_CODES.INVALID_CREDENTIALS]),
+		429: problemResponse([PROBLEM_CODES.AUTH_RATE_LIMITED]),
 		413: payloadTooLargeResponse,
 		500: serverError,
 	},

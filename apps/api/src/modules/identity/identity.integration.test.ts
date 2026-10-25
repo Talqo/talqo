@@ -233,3 +233,24 @@ describe("identity", () => {
 		await expect(service.createUser({ username, password: DEFAULT_PASSWORD })).rejects.toThrow()
 	})
 })
+
+describe("credential throttling", () => {
+	it.each(["/api/auth/login", "/api/setup", "/api/invitations/redeem"])(
+		"returns a retryable problem from %s before password work",
+		async (path) => {
+			const username = uniqueUsername()
+			for (let attempt = 0; attempt < 10; attempt += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- fill the username allowance before the HTTP request.
+				await service.runCredentialOperation(null, username, async () => undefined)
+			}
+			const response = await app.request(path, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ username, password: "password123", token: "unused" }),
+			})
+			expect(response.status).toBe(429)
+			expect(response.headers.get("Retry-After")).toBe("60")
+			expect(await response.json()).toMatchObject({ code: "auth-rate-limited" })
+		},
+	)
+})

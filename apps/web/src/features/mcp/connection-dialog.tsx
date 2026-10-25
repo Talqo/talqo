@@ -40,7 +40,9 @@ function apiError(caught: unknown, t: (key: string, options?: Record<string, num
 				? t("mcp.errorDuplicateName")
 				: code === "configuration-conflict"
 					? t("mcp.errorConflict")
-					: t("mcp.errorSave")
+					: code === "mcp-stdio-disabled"
+						? t("mcp.stdioDisabled")
+						: t("mcp.errorSave")
 }
 
 function draftErrorText(reason: DraftReason, t: (key: string, options?: Record<string, number>) => string): string {
@@ -66,7 +68,15 @@ function draftFor(server?: McpServer): ConnectionDraft {
 	}
 }
 
-export function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpServer }) {
+export function ConnectionDialog({
+	agentId,
+	server,
+	stdioAllowed,
+}: {
+	agentId: string
+	server?: McpServer
+	stdioAllowed: boolean
+}) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const [open, setOpen] = useState(false)
@@ -80,11 +90,16 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
 	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
 	const pending = create.isPending || update.isPending
+	const stdioBlocked = draft.transport === "stdio" && !stdioAllowed
 	const set = (patch: Partial<ConnectionDraft>) => setDraft((current) => ({ ...current, ...patch }))
 	const failed = (caught: unknown) => setError(apiError(caught, t))
 
 	function onSubmit() {
 		setError(null)
+		if (stdioBlocked) {
+			setError(t("mcp.stdioDisabled"))
+			return
+		}
 		if (server) {
 			const result = toEditBody(draft, server)
 			if (!result.ok) {
@@ -162,7 +177,11 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="http">{t("mcp.transportHttp")}</SelectItem>
-								<SelectItem value="stdio">{t("mcp.transportStdio")}</SelectItem>
+								{(stdioAllowed || server?.transport === "stdio") && (
+									<SelectItem value="stdio" disabled={!stdioAllowed}>
+										{t("mcp.transportStdio")}
+									</SelectItem>
+								)}
 							</SelectContent>
 						</Select>
 					</div>
@@ -206,7 +225,7 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							)}
 						</>
 					) : (
-						<>
+						<fieldset disabled={stdioBlocked} className="space-y-3">
 							<div className="space-y-2">
 								<Label htmlFor="mcp-command">{t("mcp.command")}</Label>
 								<Input
@@ -219,8 +238,9 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							</div>
 							<McpArgumentsEditor args={draft.args} onChange={(args) => set({ args })} />
 							<McpEnvEditor env={draft.env} onChange={(env) => set({ env })} />
-						</>
+						</fieldset>
 					)}
+					{stdioBlocked && <p className="text-muted-foreground text-sm">{t("mcp.stdioDisabled")}</p>}
 					{error && (
 						<p role="alert" className="text-destructive text-xs">
 							{error}
@@ -230,7 +250,7 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 						<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
 							{t("common.cancel")}
 						</Button>
-						<Button type="submit" disabled={pending}>
+						<Button type="submit" disabled={pending || stdioBlocked}>
 							{pending ? t("mcp.saving") : server ? t("mcp.save") : t("mcp.add")}
 						</Button>
 					</DialogFooter>
