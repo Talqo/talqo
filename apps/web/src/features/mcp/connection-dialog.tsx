@@ -32,17 +32,22 @@ import { useTranslation } from "react-i18next"
 /** Problem details carry a code; the catalog turns it into something an operator can act on. */
 function apiError(caught: unknown, t: (key: string, options?: Record<string, number>) => string): string {
 	const code = (caught as { info?: { code?: string } }).info?.code
-	return code === "invalid-request" || code === "malformed-json"
-		? t("mcp.errorAddress")
-		: code === "invalid-mcp-server-name"
-			? t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
-			: code === "duplicate-mcp-server-name"
-				? t("mcp.errorDuplicateName")
-				: code === "configuration-conflict"
-					? t("mcp.errorConflict")
-					: code === "mcp-stdio-disabled"
-						? t("mcp.stdioDisabled")
-						: t("mcp.errorSave")
+	switch (code) {
+		case "invalid-request":
+		case "malformed-json":
+			return t("mcp.errorAddress")
+		case "invalid-mcp-server-name":
+			return t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
+		case "duplicate-mcp-server-name":
+			return t("mcp.errorDuplicateName")
+		case "configuration-conflict":
+			return t("mcp.errorConflict")
+		case "mcp-stdio-disabled":
+			return t("mcp.stdioDisabled")
+		case undefined:
+		default:
+			return t("mcp.errorSave")
+	}
 }
 
 function draftErrorText(reason: DraftReason, t: (key: string, options?: Record<string, number>) => string): string {
@@ -90,6 +95,7 @@ export function ConnectionDialog({
 	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
 	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
 	const pending = create.isPending || update.isPending
+	const actionLabel = server ? t("mcp.save") : t("mcp.add")
 	const stdioBlocked = draft.transport === "stdio" && !stdioAllowed
 	const set = (patch: Partial<ConnectionDraft>) => setDraft((current) => ({ ...current, ...patch }))
 	const failed = (caught: unknown) => setError(apiError(caught, t))
@@ -251,7 +257,7 @@ export function ConnectionDialog({
 							{t("common.cancel")}
 						</Button>
 						<Button type="submit" disabled={pending || stdioBlocked}>
-							{pending ? t("mcp.saving") : server ? t("mcp.save") : t("mcp.add")}
+							{pending ? t("mcp.saving") : actionLabel}
 						</Button>
 					</DialogFooter>
 				</form>
