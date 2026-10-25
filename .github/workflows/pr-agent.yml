@@ -1,6 +1,6 @@
 name: PR Agent
 
-on: # zizmor: ignore[dangerous-triggers] API-only; no PR code execution.
+on: # zizmor: ignore[dangerous-triggers] Checks out the trusted base branch only; no PR code execution.
   pull_request_target:
     types: [opened, reopened, ready_for_review, synchronize]
   issue_comment:
@@ -36,7 +36,13 @@ jobs:
       CONFIG__MODEL: openai/${{ vars.PR_AGENT_MODEL }}
       CONFIG__CUSTOM_MODEL_MAX_TOKENS: ${{ vars.PR_AGENT_CONTEXT_WINDOW }}
     steps:
+      - name: Checkout base branch for skills
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          persist-credentials: false
       - name: Run PR Agent
         uses: docker://pragent/pr-agent@sha256:80edef71baa3df28c129d858d4b53784abfc14704c235efb32b6c461d5399a6d # 0.48.0-github_action
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          SKILLS__PATHS: '["$GITHUB_WORKSPACE/.claude/skills/unslop", "$GITHUB_WORKSPACE/.claude/skills/ui-ux", "$GITHUB_WORKSPACE/.claude/skills/writing-tests"]'
