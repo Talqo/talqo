@@ -38,6 +38,17 @@ extra_instructions = """
 - Flag comment/docstring slop: non-obvious rationale only, max 2 lines. Style only for project rule or unslop; label Nitpick.
 """
 
+[pr_code_suggestions]
+max_number_of_calls = 20
+focus_only_on_problems = false
+extra_instructions = """
+- Approach first: put the fix in the owning module and respect module and package boundaries. Do not propose cross-file refactors.
+- Also fix operator-facing UX, query/render cost, test gaps, and contracts or docs the change makes wrong; do not propose exhaustive documentation.
+- Only suggest a change that is safe on the visible hunk; skip fixes that need unseen code or change unrelated behavior.
+- Prefer fewer lines and concepts when behavior and clarity hold. Preserve public contracts and unrelated behavior.
+- Do not propose new architecture or scale work without a demonstrated need. Project rules and established patterns take precedence over generic preferences. Only suggest style changes that violate a project rule or an unslop pattern.
+"""
+
 [github_action_config]
 auto_review = true
 auto_describe = false
