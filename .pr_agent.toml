@@ -8,6 +8,7 @@ restricted_mode = true
 log_level = "INFO"
 output_run_details = true
 output_run_cost = false
+persistent_inline_comments = true
 repo_context_files = ["AGENTS.md", "docs/architecture.md"]
 
 [litellm]
@@ -41,6 +42,7 @@ extra_instructions = """
 [pr_code_suggestions]
 max_number_of_calls = 20
 focus_only_on_problems = false
+committable_code_suggestions = true
 extra_instructions = """
 - Approach first: put the fix in the owning module and respect module and package boundaries. Do not propose cross-file refactors.
 - Also fix operator-facing UX, query/render cost, test gaps, and contracts or docs the change makes wrong; do not propose exhaustive documentation.
