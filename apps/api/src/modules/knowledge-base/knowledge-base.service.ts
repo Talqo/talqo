@@ -302,6 +302,14 @@ async function recoverUploads(): Promise<void> {
 // Reverse reconciliation: recoverUploads only re-enqueues files present on disk, so rows whose
 // backing file is gone must be removed here or they stay listed and block their unique name forever.
 export async function reconcileDanglingRows(): Promise<void> {
+	// Skip when the uploads root itself is missing (unmounted volume, wrong path):
+	// every stat would read ENOENT and the sweep would wipe the whole index.
+	try {
+		await stat(UPLOAD_DIR)
+	} catch {
+		console.error("agent-file.recovery.root_missing", { skipped: true })
+		return
+	}
 	const rows = await repository.listAll()
 	const missing: { agentId: string; name: string }[] = []
 	await Promise.all(

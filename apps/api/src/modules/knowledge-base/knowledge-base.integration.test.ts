@@ -6,7 +6,7 @@ import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test"
-import { readdir, readFile, rm, stat } from "node:fs/promises"
+import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
 
 import * as repository from "./knowledge-base.repository.ts"
@@ -187,6 +187,23 @@ describe("knowledge embeddings", () => {
 				).length,
 			).toBe(0)
 			expect(await searchKnowledge(owner.id, "question")).toEqual([])
+		} finally {
+			await agent.deleteAgent(owner.id)
+		}
+	})
+
+	it("skips the recovery sweep when the uploads root itself is missing", async () => {
+		const owner = await createOwner("Recovery")
+		try {
+			await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
+
+			await rm(UPLOAD_ROOT, { recursive: true, force: true })
+			await reconcileDanglingRows()
+			expect((await repository.statuses(owner.id)).has("guide.md")).toBe(true)
+
+			await mkdir(UPLOAD_ROOT, { recursive: true })
+			await reconcileDanglingRows()
+			expect(await repository.statuses(owner.id)).toEqual(new Map())
 		} finally {
 			await agent.deleteAgent(owner.id)
 		}
