@@ -1,8 +1,7 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"treatConfigHintsAsErrors": true,
-	// "check" is Bun's builtin typechecker (bun check), not a dependency.
-	"ignoreBinaries": ["actionlint", "fmt", "zizmor", "check"],
+	"ignoreBinaries": ["actionlint", "zizmor"],
 	"ignoreDependencies": ["@playwright/cli"],
 	"workspaces": {
 		".": {
