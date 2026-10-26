@@ -11,8 +11,6 @@ permissions:
 
 jobs:
   review:
-    # Auto-review member PRs only: update-branch carries the maintainer as sender.
-    # Commands: members only, on any PR.
     if: >-
       github.event.sender.type != 'Bot' &&
       (
