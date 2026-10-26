@@ -11,9 +11,13 @@ permissions:
 
 jobs:
   review:
+    # An update-branch event carries the maintainer as sender, so gate on the PR author.
     if: >-
       github.event.sender.type != 'Bot' &&
-      ((github.event_name == 'pull_request_target' && !github.event.pull_request.draft) ||
+      ((github.event_name == 'pull_request_target' &&
+      !github.event.pull_request.draft &&
+      github.event.pull_request.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)) ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
       (startsWith(github.event.comment.body, '/review') ||
