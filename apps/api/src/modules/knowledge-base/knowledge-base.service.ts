@@ -264,14 +264,13 @@ export async function rename(agentId: string, oldName: string, newName: string):
 }
 
 export async function deleteFile(agentId: string, name: string): Promise<void> {
-	// The row goes first: a failed unlink then leaves disk litter, not a ghost row that retries cannot delete.
-	await repository.remove(agentId, name)
+	// Unlink first: a failure other than ENOENT must surface, otherwise recoverUploads resurrects the file on restart. A DB failure leaves a ghost row that the startup sweep removes.
 	try {
 		await unlink(join(agentDir(agentId), name))
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT")
-			console.error("agent-file.delete.unlink_failed", { agentId, name, error })
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
 	}
+	await repository.remove(agentId, name)
 }
 
 export async function retryEmbedding(agentId: string, name: string): Promise<void> {

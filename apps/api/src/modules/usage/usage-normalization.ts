@@ -1,6 +1,16 @@
-import type { ProviderUsage } from "@/modules/ai-provider/ai-provider.service.ts"
-
-export type { ProviderUsage }
+export type ProviderUsage = {
+	cachedInputTokens?: number
+	inputTokens?: number
+	inputTokenDetails?: {
+		cacheReadTokens?: number
+		cacheWriteTokens?: number
+		noCacheTokens?: number
+	}
+	outputTokens?: number
+	outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
+	reasoningTokens?: number
+	totalTokens?: number
+}
 
 const APPROXIMATION_CHARACTERS_PER_TOKEN = 4
 

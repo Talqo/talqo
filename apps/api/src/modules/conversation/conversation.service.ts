@@ -170,25 +170,39 @@ function promptText(messages: aiProvider.TextMessage[]): string {
 }
 
 async function recordPendingUsage(pending: repository.PendingUsageFinalization): Promise<void> {
-	let usage: { inputTokens: number; outputTokens: number }
-	try {
-		usage = await usageService.recordRecoveredUsage(pending)
-	} catch (error) {
-		if (isForeignKeyViolation(error)) return
-		throw error
-	}
+	const normalized =
+		pending.inputTokens === null || pending.outputTokens === null
+			? {
+					inputTokens: pending.estimatedInputTokens,
+					outputTokens: usageService.estimateTokens(pending.assistantText),
+				}
+			: { inputTokens: pending.inputTokens, outputTokens: pending.outputTokens }
 	if (pending.inputTokens === null || pending.outputTokens === null) {
 		await repository.stageRecoveredUsageCandidate(
 			pending.generationAttemptId,
 			pending.outcome,
-			usage.inputTokens,
-			usage.outputTokens,
+			normalized.inputTokens,
+			normalized.outputTokens,
 		)
+	}
+	try {
+		await usageService.recordUsage({
+			generationAttemptId: pending.generationAttemptId,
+			agentId: pending.agentId,
+			conversationId: pending.conversationId,
+			provider: pending.provider,
+			model: pending.model,
+			outcome: pending.outcome,
+			...normalized,
+		})
+	} catch (error) {
+		if (isForeignKeyViolation(error)) return
+		throw error
 	}
 	await repository.markUsageRecorded({
 		generationAttemptId: pending.generationAttemptId,
 		outcome: pending.outcome,
-		...usage,
+		...normalized,
 	})
 }
 
@@ -551,26 +565,11 @@ export function createConversationService(dependencies: Dependencies) {
 	}
 }
 
-export async function getActiveConversationCountsByAgent(
-	cutoff: Date,
-	scope: readonly string[] | "all",
-): Promise<repository.AgentConversationCount[]> {
-	return repository.getActiveConversationCountsByAgent(cutoff, scope)
-}
-
-export async function getDailyConversationCountsByAgent(
-	since: Date,
-	scope: readonly string[] | "all",
-): Promise<repository.AgentDailyCount[]> {
-	return repository.getDailyConversationCountsByAgent(since, scope)
-}
-
-export async function getDailyMessageCountsByAgent(
-	since: Date,
-	scope: readonly string[] | "all",
-): Promise<repository.AgentDailyCount[]> {
-	return repository.getDailyMessageCountsByAgent(since, scope)
-}
+export {
+	getActiveConversationCountsByAgent,
+	getDailyConversationCountsByAgent,
+	getDailyMessageCountsByAgent,
+} from "./conversation.repository.ts"
 
 let defaultService: ReturnType<typeof createConversationService> | undefined
 

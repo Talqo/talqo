@@ -53,22 +53,19 @@ export type PrepareTextOperationInput = {
 	messages: TextMessage[]
 	timeoutMs: number
 }
-export type ProviderUsage = {
-	cachedInputTokens?: number
-	inputTokens?: number
-	inputTokenDetails?: {
-		cacheReadTokens?: number
-		cacheWriteTokens?: number
-		noCacheTokens?: number
-	}
-	outputTokens?: number
-	outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
-	reasoningTokens?: number
-	totalTokens?: number
-}
 type RawGenerationEvent =
 	| { text: string; type: "text" }
-	| { outcome: "cancelled" | "completed" | "failed" | "interrupted"; type: "finish"; usage: ProviderUsage }
+	| {
+			outcome: "cancelled" | "completed" | "failed" | "interrupted"
+			type: "finish"
+			usage: {
+				inputTokens?: number
+				inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number; noCacheTokens?: number }
+				outputTokens?: number
+				outputTokenDetails?: { reasoningTokens?: number; textTokens?: number }
+				totalTokens?: number
+			}
+	  }
 type Generate = (input: {
 	instructions?: string
 	maxOutputTokens: number
@@ -452,22 +449,22 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					role: "embedding",
 					credentials,
 				}) as EmbeddingModelV4
-				const embed = dependencies.embed ?? aiEmbed
 				return {
 					key: embeddingKey(stored.embedding),
 					async embed(text: string) {
 						return (
-							await embed({
+							await (dependencies.embed ?? aiEmbed)({
 								model,
 								value: text,
 								maxRetries: 0,
-								...(options?.timeoutMs === undefined ? {} : { abortSignal: AbortSignal.timeout(options.timeoutMs) }),
+								...(options?.timeoutMs ? { abortSignal: AbortSignal.timeout(options.timeoutMs) } : {}),
 							})
 						).embedding
 					},
 				}
-			} catch (cause) {
-				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause })
+			} catch (error) {
+				if (error instanceof UnusableConfigurationError) throw error
+				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause: error })
 			}
 		},
 		async prepareTextOperation(input: PrepareTextOperationInput) {

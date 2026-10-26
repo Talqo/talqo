@@ -4,10 +4,6 @@
 
 Implemented (2026-10-05).
 
-## Errata (2026-10-25)
-
-OAuth 2.1 was removed during implementation; the shipped HTTP auth modes are `none` and `headers`. The `oauth_*` columns, the `oauth/authorize` and `oauth/callback` routes, and the `mcp-authorization-server-changed` problem code referenced later in this document do not exist in the shipped schema or contracts.
-
 ## Goal and scope
 
 Let an operator give an agent access to external tools over MCP, so the agent can answer from live structured data — stock levels, orders, prices — instead of only from uploaded documents and its own context. Satisfies FR-2.18 and FR-2.19.
