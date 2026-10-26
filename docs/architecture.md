@@ -243,7 +243,7 @@ One wide event per API request, written to stdout as a single JSON line through 
 
 ## Boundary Enforcement
 
-- Module boundaries are not enforced anywhere automatically. They are project rules: follow them. `bun run boundaries:check` (`scripts/check-module-boundaries.mjs`) can verify them on demand — it fails on cross-module imports targeting anything but the other module's `<module>.service.ts` or `<module>.contract.ts`, on another module's `<module>.schema.ts` imported outside a `*.schema.ts` file, and on cycles in the runtime module dependency graph (service and contract imports). `import type` statements and test files are exempt; exceptions are recorded in `RECORDED_EXCEPTIONS` at the top of the script, and stale entries fail. It does not run in CI.
+- Module boundaries and cycles are project rules, not enforced by tooling or CI; hold them in review.
 - Schema files may import another module's schema only for foreign-key declarations; all runtime cross-module access goes through the target service.
 - Add packages only for measured cross-app reuse; do not pre-split modules or speculative shared code.
 
