@@ -249,7 +249,9 @@ describe("credential throttling", () => {
 				body: JSON.stringify({ username, password: "password123", token: "unused" }),
 			})
 			expect(response.status).toBe(429)
-			expect(response.headers.get("Retry-After")).toBe("60")
+			const retryAfter = Number(response.headers.get("Retry-After"))
+			expect(retryAfter).toBeGreaterThanOrEqual(1)
+			expect(retryAfter).toBeLessThanOrEqual(60)
 			expect(await response.json()).toMatchObject({ code: "auth-rate-limited" })
 		},
 	)

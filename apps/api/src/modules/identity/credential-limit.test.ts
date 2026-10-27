@@ -24,6 +24,10 @@ describe("in-memory credential limits", () => {
 			headers: { "Retry-After": "60" },
 		})
 		expect(calls).toBe(10)
+		setSystemTime(new Date("2026-10-25T12:00:59.001Z"))
+		await expect(limit("network-b", "VISITOR", operation)).rejects.toMatchObject({
+			headers: { "Retry-After": "1" },
+		})
 		setSystemTime(new Date("2026-10-25T12:01:00Z"))
 		await limit("network-a", "visitor", operation)
 		expect(calls).toBe(11)

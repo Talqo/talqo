@@ -2,6 +2,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 
 const WINDOW_MS = 60_000
+const SECOND_MS = 1_000
 const MAX_CREDENTIAL_OPERATIONS = 4
 const GLOBAL_LIMIT = 300
 const NETWORK_LIMIT = 30
@@ -10,7 +11,7 @@ const USERNAME_LIMIT = 10
 type CredentialOperation = <T>(network: string | null, username: string, operation: () => Promise<T>) => Promise<T>
 
 export class CredentialRateLimitError extends ApiError {
-	constructor(retryAfterSeconds = 60) {
+	constructor(retryAfterSeconds: number) {
 		super(PROBLEM_CODES.AUTH_RATE_LIMITED, HTTP_STATUS.TOO_MANY_REQUESTS, undefined, {
 			"Retry-After": String(retryAfterSeconds),
 		})
@@ -24,7 +25,7 @@ export function createCredentialLimiter(): CredentialOperation {
 
 	function consume(key: string, limit: number): void {
 		const count = counters.get(key) ?? 0
-		if (count >= limit) throw new CredentialRateLimitError()
+		if (count >= limit) throw new CredentialRateLimitError(Math.max(1, Math.ceil((expiresAt - Date.now()) / SECOND_MS)))
 		counters.set(key, count + 1)
 	}
 
