@@ -7,6 +7,7 @@ import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
 import { Button } from "@talqo/ui/components/button"
+import { Logo } from "@talqo/ui/components/logo"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useRouter } from "@tanstack/react-router"
 import { Bot, LayoutDashboard, LogOut, Menu, MessagesSquare, Settings2, User, Users, X } from "lucide-react"
@@ -166,7 +167,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
+				<div className="text-sidebar-foreground mb-6 flex items-center gap-2 px-3">
+					<Logo className="size-7" />
+					<span className="text-lg font-semibold tracking-tight">{t("common.appName")}</span>
+				</div>
+				<div className="text-sidebar-foreground mb-4 truncate px-3 text-sm font-semibold">{accountName}</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 			</aside>
 
@@ -182,6 +187,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
+						<Logo className="size-6 md:hidden" />
 						<span className="truncate text-sm font-semibold md:hidden">{accountName}</span>
 					</div>
 					<div className="flex items-center gap-2">

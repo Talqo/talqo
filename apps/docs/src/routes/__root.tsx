@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import logoUrl from "@talqo/ui/assets/logo.svg"
 import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router"
 import { RootProvider } from "fumadocs-ui/provider/tanstack"
 
@@ -12,6 +13,7 @@ export const Route = createRootRoute({
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
 			{ title: "Talqo Docs" },
 		],
+		links: [{ rel: "icon", type: "image/svg+xml", href: logoUrl }],
 	}),
 	component: Root,
 	notFoundComponent: NotFound,

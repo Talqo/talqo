@@ -1,14 +1,17 @@
 import { useMDXComponents } from "@/components/mdx"
 import { docs } from "@/lib/source"
+import logoUrl from "@talqo/ui/assets/logo.svg"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
 import { deserializePageTree } from "fumadocs-core/source/client"
 import { DocsLayout } from "fumadocs-ui/layouts/docs"
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page"
-import { Suspense, use } from "react"
+import { type CSSProperties, Suspense, use } from "react"
 
 const MAX_SLUGS = 32
 const MAX_SLUG_CHARACTERS = 256
+// A mask paints the logo in currentColor, so it follows the docs theme rather than the OS color scheme.
+const LOGO_MASK = { "--logo-mask": `url("${logoUrl}")` } as CSSProperties
 
 // Slugs arrive from the URL splat, so constrain shape and size before lookup.
 // Rejections are missing addresses, not server failures.
@@ -63,7 +66,21 @@ function Page() {
 	const { toc } = use(page.load())
 
 	return (
-		<DocsLayout tree={deserializePageTree(pageTree)} nav={{ title: "Talqo" }}>
+		<DocsLayout
+			tree={deserializePageTree(pageTree)}
+			nav={{
+				title: (
+					<>
+						<span
+							aria-hidden
+							className="inline-block size-6 shrink-0 bg-current mask-(--logo-mask) mask-contain mask-center mask-no-repeat"
+							style={LOGO_MASK}
+						/>
+						Talqo
+					</>
+				),
+			}}
+		>
 			<DocsPage toc={toc}>
 				<DocsTitle>{page.title}</DocsTitle>
 				<DocsDescription>{page.description}</DocsDescription>
