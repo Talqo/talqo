@@ -26,7 +26,7 @@
 	"errorStorageUnavailable": "Chat works in this tab, but cannot be restored after a reload.",
 	"errorTransport": "The connection to chat failed. Please try again.",
 	"greeting": "Hi there! How can I help you today?",
-	"initializing": "Loading chat...",
+	"initializing": "Loading chat…",
 	"messageLabel": "Message",
 	"newChat": "New chat",
 	"newChatTooltip": "Start a new chat and clear this conversation",
@@ -36,15 +36,15 @@
 	"outcomeCancelled": "Response cancelled",
 	"outcomeFailed": "Response failed",
 	"outcomeInterrupted": "Response interrupted",
-	"placeholder": "Type a message...",
-	"recovering": "Recovering response...",
+	"placeholder": "Type a message…",
+	"recovering": "Recovering response…",
 	"recoveryUnavailable": "Response recovery is unavailable. Partial content is shown.",
 	"retry": "Retry",
 	"retryAfter": "Try again after {{reset}}.",
 	"send": "Send",
 	"stopGenerating": "Stop generating",
-	"stopping": "Stopping...",
+	"stopping": "Stopping…",
 	"switchToDark": "Switch to dark theme",
 	"switchToLight": "Switch to light theme",
-	"toolRunning": "Checking live information..."
+	"toolRunning": "Checking live information…"
 }
