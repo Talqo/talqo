@@ -20,6 +20,7 @@ type Application = {
 export const test = base.extend<
 	{
 		localNetwork: void
+		language: void
 		agent: { id: string; name: string }
 	},
 	{ application: Application; stdioAllowed: boolean; adminRequest: APIRequestContext }
@@ -175,6 +176,19 @@ export const test = base.extend<
 			if (testInfo.status !== testInfo.expectedStatus)
 				await testInfo.attach("API log", { path: application.logPath, contentType: "text/plain" })
 			expect([...blockedOrigins], "Browser requests must stay inside the test environment").toEqual([])
+		},
+		{ auto: true },
+	],
+	language: [
+		async ({ context }, use) => {
+			await context.addInitScript(() => {
+				try {
+					localStorage.setItem("talqo-language", "en")
+				} catch {
+					// Opaque origins such as about:blank have no storage.
+				}
+			})
+			await use()
 		},
 		{ auto: true },
 	],

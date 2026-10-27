@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./chat-embed"
+import { web, widget } from "./i18n"
 import { openDashboard } from "./log-in"
 
 const WEBSITE_ASSISTANT_ID = "11111111-1111-4111-8111-111111111111"
@@ -10,12 +11,12 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 
 	// Chat through the real widget; the fake provider answers immediately.
 	await page.goto(widgetUrl)
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await page.getByRole("button", { name: widget("openChat") }).click()
 	const dialog = page.getByRole("dialog")
-	await dialog.getByRole("textbox", { name: "Message" }).fill("Record this turn")
-	await dialog.getByRole("button", { name: "Send" }).click()
+	await dialog.getByRole("textbox", { name: widget("messageLabel") }).fill("Record this turn")
+	await dialog.getByRole("button", { name: widget("send") }).click()
 	await expect(dialog.getByText("Recorded answer.", { exact: true })).toBeVisible()
-	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
+	await expect(dialog.getByRole("button", { name: widget("stopGenerating") })).toHaveCount(0)
 
 	// Log in through the real web app; the landing page must show the recorded statistics.
 	await openDashboard(page)
@@ -34,7 +35,7 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 
 	// Removing an agent from the filter hides it from the per-agent breakdown, and the
 	// selection moves into the URL so a filtered dashboard can be shared.
-	const agentFilter = page.getByRole("combobox", { name: "Agents", exact: true })
+	const agentFilter = page.getByRole("combobox", { name: web("dashboard.agentsLabel"), exact: true })
 	await agentFilter.click()
 	await page.getByRole("option", { name: "Website Assistant", exact: true }).click()
 	await page.keyboard.press("Escape")
@@ -43,27 +44,29 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 
 	// The quick action clears the whole selection.
 	await agentFilter.click()
-	await page.getByRole("button", { name: "Deselect all", exact: true }).click()
+	await page.getByRole("button", { name: web("dashboard.deselectAll"), exact: true }).click()
 	await page.keyboard.press("Escape")
-	await expect(page.getByText("No agents selected")).toBeVisible()
+	await expect(page.getByText(web("dashboard.noAgentsSelected"))).toBeVisible()
 
 	// A shared link opens exactly the filtered view; the other agents stay out.
 	await page.goto(`/dashboard?agents=${encodeURIComponent(JSON.stringify([WEBSITE_ASSISTANT_ID]))}`)
 	await expect(websiteAssistantRow).toBeVisible()
 	await expect(page.getByRole("row", { name: /^Product Advisor/ })).toHaveCount(0)
-	await expect(agentFilter).toContainText(/1 of \d+ agents/)
+	await expect(agentFilter).toContainText(
+		new RegExp(web("dashboard.agentsSelected", { selected: 1, total: "\\d+", count: 2 })),
+	)
 
 	// The time range selector narrows the whole page and rides in the shareable URL alongside
 	// the agent selection.
-	const rangeFilter = page.getByRole("combobox", { name: "Time range", exact: true })
+	const rangeFilter = page.getByRole("combobox", { name: web("dashboard.rangeLabel"), exact: true })
 	await rangeFilter.click()
-	await page.getByRole("option", { name: "7 days", exact: true }).click()
+	await page.getByRole("option", { name: web("dashboard.range7d"), exact: true }).click()
 	await expect(page).toHaveURL((url) => url.searchParams.get("days") === "7" && url.searchParams.has("agents"))
 	await page.reload()
-	await expect(rangeFilter).toContainText("7 days")
+	await expect(rangeFilter).toContainText(web("dashboard.range7d"))
 	await expect(websiteAssistantRow).toBeVisible()
 	await rangeFilter.click()
-	await page.getByRole("option", { name: "All time", exact: true }).click()
+	await page.getByRole("option", { name: web("dashboard.rangeAll"), exact: true }).click()
 	await expect(page).toHaveURL((url) => url.searchParams.get("days") === "all")
 	await expect(websiteAssistantRow).toBeVisible()
 })
