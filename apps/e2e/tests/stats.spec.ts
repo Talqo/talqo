@@ -37,7 +37,10 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 	// selection moves into the URL so a filtered dashboard can be shared.
 	const agentFilter = page.getByRole("combobox", { name: web("dashboard.agentsLabel"), exact: true })
 	await agentFilter.click()
-	await page.getByRole("option", { name: "Website Assistant", exact: true }).click()
+	const websiteOption = page.getByRole("option", { name: "Website Assistant", exact: true })
+	await expect(websiteOption).toBeVisible()
+	const agentCount = await page.getByRole("option").count()
+	await websiteOption.click()
 	await page.keyboard.press("Escape")
 	await expect(websiteAssistantRow).toHaveCount(0)
 	await expect(page).toHaveURL(/[?&]agents=/)
@@ -53,7 +56,7 @@ test("the agent filter and time range scope the dashboard and ride in the URL", 
 	await expect(websiteAssistantRow).toBeVisible()
 	await expect(page.getByRole("row", { name: /^Product Advisor/ })).toHaveCount(0)
 	await expect(agentFilter).toContainText(
-		new RegExp(web("dashboard.agentsSelected", { selected: 1, total: "\\d+", count: 2 })),
+		web("dashboard.agentsSelected", { selected: 1, total: agentCount, count: agentCount }),
 	)
 
 	// The time range selector narrows the whole page and rides in the shareable URL alongside
