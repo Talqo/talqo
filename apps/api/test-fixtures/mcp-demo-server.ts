@@ -83,7 +83,7 @@ function callTool(name: string, args: Record<string, unknown>) {
 		// The pid lets a test confirm the process really was stopped, rather than inferring it.
 		return text({
 			pid: process.pid,
-			env: Object.fromEntries(Object.entries(process.env).toSorted(([left], [right]) => left.localeCompare(right))),
+			env: { ...process.env },
 		})
 	}
 	return { content: [{ type: "text", text: `Unknown tool ${name}` }], isError: true }
