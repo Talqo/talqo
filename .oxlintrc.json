@@ -107,6 +107,12 @@
 			}
 		},
 		{
+			"files": ["**/*.ts"],
+			"rules": {
+				"no-nested-ternary": "error"
+			}
+		},
+		{
 			"files": ["apps/{web,widget,docs}/src/**/*.{ts,tsx}", "packages/ui/src/**/*.{ts,tsx}"],
 			"plugins": ["react"],
 			"rules": {
