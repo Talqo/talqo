@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./application"
-import { logIn } from "./log-in"
+import { openDashboard } from "./log-in"
 
 const OPERATOR = { username: "admin", password: "admin123" }
 const QUESTION = "Where is my order?"
@@ -45,8 +45,7 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 	await expect(chat).toBeOK()
 	expect(await chat.text()).toContain('"outcome":"completed"')
 
-	await logIn(page, OPERATOR)
-	await page.getByRole("link", { name: "Conversations" }).click()
+	await openDashboard(page, OPERATOR, "/dashboard/conversations")
 	const row = page.getByRole("link", { name: QUESTION })
 	await expect(row).toContainText(agentName)
 	await row.click()

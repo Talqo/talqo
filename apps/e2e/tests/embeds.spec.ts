@@ -1,11 +1,11 @@
 import { expect, type Page } from "@playwright/test"
 
 import { test } from "./application"
-import { openDashboard } from "./log-in"
+import { logInThroughApi } from "./log-in"
 import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 test.beforeEach(async ({ page }) => {
-	await openDashboard(page)
+	await logInThroughApi(page)
 })
 
 async function createEmbed(page: Page, agentId: string) {

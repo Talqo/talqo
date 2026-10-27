@@ -3,12 +3,17 @@ import assert from "node:assert/strict"
 
 import { test } from "./application"
 import { createInvitedMember } from "./invited-member"
-import { logIn } from "./log-in"
+import { ADMIN, logIn, logInThroughApi } from "./log-in"
 
-test("admin grants one agent's reporting access and removes it immediately", async ({ page, browser, agent }) => {
+test("admin grants one agent's reporting access and removes it immediately", async ({
+	page,
+	browser,
+	agent,
+	application,
+}) => {
 	const account = { username: crypto.randomUUID().replaceAll("-", ""), password: "reporting-test-password" }
 	await createInvitedMember(page.request, account)
-	await logIn(page, { username: "admin", password: "admin123" })
+	await logInThroughApi(page, ADMIN)
 	const { users } = (await (await page.request.get("/api/users")).json()) as {
 		users: { id: string; username: string; roles: { id: string }[] }[]
 	}
@@ -18,7 +23,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 	const created = await page.request.post("/api/roles", { data: { name, permissions: [] } })
 	await expect(created).toBeOK()
 	const { role } = (await created.json()) as { role: { id: string } }
-	const context = await browser.newContext({ baseURL: new URL(page.url()).origin })
+	const context = await browser.newContext({ baseURL: application.origin })
 	try {
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [role.id] } })).toBeOK()
 		await page.goto(`/dashboard/agent/${agent.id}`)

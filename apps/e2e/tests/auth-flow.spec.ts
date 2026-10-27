@@ -2,7 +2,7 @@ import { expect } from "@playwright/test"
 
 import { test as applicationTest } from "./application"
 import { createInvitedMember } from "./invited-member"
-import { ADMIN, logIn, openDashboard } from "./log-in"
+import { ADMIN, logIn, logOut, openDashboard } from "./log-in"
 
 const test = applicationTest.extend<{ member: { username: string; password: string } }>({
 	member: async ({ request }, use) => {
@@ -18,10 +18,7 @@ const test = applicationTest.extend<{ member: { username: string; password: stri
 })
 
 test("admin selects invitation roles and the member lands signed in with that access", async ({ page, member }) => {
-	await logIn(page, ADMIN)
-
-	await page.getByRole("link", { name: "Users" }).click()
-	await expect(page).toHaveURL("/dashboard/users")
+	await openDashboard(page, ADMIN, "/dashboard/users")
 	await page.getByRole("button", { name: "Invite a member" }).click()
 
 	const dialog = page.getByRole("dialog")
@@ -37,7 +34,7 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	const { username: memberUsername, password: memberPassword } = member
 
 	await page.keyboard.press("Escape")
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 	await page.goto(inviteUrl)
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
@@ -48,8 +45,7 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await expect(page.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
 
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
+	await logOut(page)
 	await page.goto("/dashboard/users")
 	await expect(page).toHaveURL("/login")
 })
@@ -61,9 +57,7 @@ test("an admin resets a member's password and forces them through a new one", as
 
 	await createInvitedMember(request, { username: memberUsername, password: originalPassword })
 
-	await openDashboard(page)
-	await page.getByRole("link", { name: "Users" }).click()
-	await expect(page).toHaveURL("/dashboard/users")
+	await openDashboard(page, ADMIN, "/dashboard/users")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
 	await expect(adminRow.getByRole("button", { name: "Reset password" })).toHaveCount(0)
@@ -77,7 +71,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await dialog.getByRole("button", { name: "Reset password" }).click()
 	await expect(page.getByText("Password reset.")).toBeVisible()
 	await expect(memberRow.getByText("Pending password change")).toBeVisible()
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(originalPassword)
@@ -98,7 +92,7 @@ test("an admin resets a member's password and forces them through a new one", as
 	await page.getByRole("button", { name: "Set new password" }).click()
 
 	await expect(page).toHaveURL("/dashboard/account")
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 	await logIn(page, { username: memberUsername, password: memberFinalPassword })
 })
 
@@ -106,8 +100,7 @@ test("an admin can delete a member but cannot delete their own account", async (
 	const { username: memberUsername, password: memberPassword } = member
 	await createInvitedMember(request, { username: memberUsername, password: memberPassword })
 
-	await openDashboard(page)
-	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await openDashboard(page, ADMIN, "/dashboard/account")
 	await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible()
 	await expect(page.getByRole("heading", { name: "Danger zone", exact: true })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
@@ -128,7 +121,7 @@ test("an admin can delete a member but cannot delete their own account", async (
 	await confirm.click()
 	await expect(dialog).toBeHidden()
 	await expect(memberRow).toHaveCount(0)
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 
 	await page.getByLabel("Username").fill(memberUsername)
 	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
@@ -140,8 +133,7 @@ test("an admin can delete a member but cannot delete their own account", async (
 test("a member cancels then deletes their own account from Account settings", async ({ page, request, member }) => {
 	const { username, password } = member
 	await createInvitedMember(request, member)
-	await logIn(page, { username, password })
-	await page.getByRole("link", { name: "Account", exact: true }).click()
+	await openDashboard(page, { username, password }, "/dashboard/account")
 	await page.getByRole("button", { name: "Delete account", exact: true }).click()
 	const dialog = page.getByRole("dialog")
 	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
