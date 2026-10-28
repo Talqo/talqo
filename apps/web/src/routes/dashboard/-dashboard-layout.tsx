@@ -197,7 +197,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					/>
 				)}
 
-				<main className="flex-1 px-6 py-12 md:py-20">
+				<main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-20">
 					{gate === "open" && children}
 					{gate === "pending" && <p className="text-muted-foreground">{t("auth.loading")}</p>}
 					{gate === "error" && (

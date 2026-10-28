@@ -159,7 +159,7 @@ function AccountPage() {
 	const session = useGetSession()
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
 			{session.isPending ? (
 				<p className="text-muted-foreground">{t("auth.loading")}</p>

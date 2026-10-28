@@ -154,15 +154,11 @@ function AgentConfigPage() {
 	}
 
 	if (isLoading || permissionsQuery.isPending) {
-		return (
-			<div className="mx-auto max-w-3xl">
-				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
-			</div>
-		)
+		return <p className="text-muted-foreground">{t("agentConfig.loading")}</p>
 	}
 	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
-			<div className="mx-auto max-w-3xl space-y-6">
+			<div className="space-y-6">
 				<BackLink t={t} />
 				<ProblemAlert
 					error={permissionsQuery.error ?? agentQuery.error}
@@ -179,7 +175,7 @@ function AgentConfigPage() {
 
 	if (!agent) {
 		return (
-			<div className="mx-auto max-w-3xl space-y-6">
+			<div className="space-y-6">
 				<BackLink t={t} />
 				<p className="text-muted-foreground">
 					{error?.status === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
@@ -189,7 +185,7 @@ function AgentConfigPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<BackLink t={t} />
 
 			<PageHeader title={agent.name} description={canManage ? t("agentConfig.subheading") : undefined} />

@@ -21,7 +21,6 @@ function UserManagement() {
 			onValueChange={(value) => {
 				void navigate({ to: value === "roles" ? "/dashboard/users/roles" : "/dashboard/users" })
 			}}
-			className="mx-auto max-w-3xl"
 		>
 			<div className="flex flex-col gap-6">
 				<TabsList aria-label={t("users.heading")}>
