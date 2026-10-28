@@ -24,9 +24,10 @@ export function resolveStaticDirs(source: Record<string, string | undefined> = p
 
 function fileResponse(file: string, cache: string | undefined, url: URL): Response {
 	const headers: Record<string, string> = {}
-	const control = cache === "versioned" ? (url.search ? IMMUTABLE_CACHE : undefined) : cache
-	if (control) {
-		headers["Cache-Control"] = control
+	if (cache === "versioned") {
+		if (url.search) headers["Cache-Control"] = IMMUTABLE_CACHE
+	} else if (cache) {
+		headers["Cache-Control"] = cache
 	}
 	return new Response(Bun.file(file), { headers })
 }

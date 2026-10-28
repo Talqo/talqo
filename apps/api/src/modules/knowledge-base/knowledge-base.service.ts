@@ -214,7 +214,7 @@ export async function removeAgentDir(agentId: string): Promise<void> {
 
 const WORKER_INTERVAL_MS = 3_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
-const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
+const WORKER_LOCK_KEY = Bun.hash("knowledge-base-ingestion") & 0x7fff_ffff_ffff_ffffn
 
 class FileNotRetryableError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {

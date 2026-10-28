@@ -399,14 +399,14 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{embeds.map((embed) => (
-						<Card key={embed.id} className="h-full">
+						<Card key={embed.id} variant="interactive" className="relative h-full">
 							<CardHeader>
 								<CardTitle>
 									<Link
 										to="/dashboard/embeds/$embedId"
 										params={{ embedId: embed.id }}
 										search={{ colorTab: undefined }}
-										className="hover:underline"
+										className="after:absolute after:inset-0"
 									>
 										{embed.name}
 									</Link>
@@ -430,7 +430,9 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 												: embed.appearance.language}
 										</span>
 									</div>
-									<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
+									<div className="relative z-10 w-fit">
+										<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
+									</div>
 								</div>
 							</CardContent>
 						</Card>

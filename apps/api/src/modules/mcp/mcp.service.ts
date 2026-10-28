@@ -235,7 +235,12 @@ export async function updateServer(
 	// A changed endpoint invalidates the snapshot; otherwise the operator's toggles are applied to it.
 	const changed = endpointChanged(existing, input)
 	annotate({ "mcp.endpoint_changed": changed })
-	const tools = changed ? [] : input.tools !== undefined ? applySelection(existing.tools, input.tools) : existing.tools
+	let tools = existing.tools
+	if (changed) {
+		tools = []
+	} else if (input.tools !== undefined) {
+		tools = applySelection(existing.tools, input.tools)
+	}
 	const saved = await repo.updateAtRevision(
 		serverId,
 		{ ...base, name: input.name.trim(), tools },

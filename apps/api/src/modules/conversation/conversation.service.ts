@@ -651,8 +651,10 @@ export async function listConversations(
 	actorId: string,
 ): Promise<ConversationPage> {
 	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.ConversationsRead)
-	const agentIds =
-		scope === "all" ? filter.agentId : filter.agentId ? filter.agentId.filter((id) => scope.includes(id)) : scope
+	let agentIds: string[] | undefined = scope === "all" ? undefined : scope
+	if (filter.agentId) {
+		agentIds = scope === "all" ? filter.agentId : filter.agentId.filter((id) => scope.includes(id))
+	}
 	const { rows, total } = await repository.listConversations({
 		agentIds,
 		limit: CONVERSATION_PAGE_SIZE,
