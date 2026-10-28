@@ -29,7 +29,7 @@ test("embed configuration waits for agent permissions before showing editable co
 		const loaded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/embeds/${embed.id}`)
 		await page.goto(`/dashboard/embeds/${embed.id}`)
 		await loaded
-		await expect(page.locator("main").getByText(web("embedSetup.loading"), { exact: true })).toBeVisible()
+		await expect(page.locator('main [data-slot="skeleton"]').first()).toBeVisible()
 		await expect(page.getByLabel(web("embedSetup.nameLabel"), { exact: true })).toHaveCount(0)
 		release.resolve()
 		await expect(page.getByLabel(web("embedSetup.nameLabel"), { exact: true })).toBeEnabled()

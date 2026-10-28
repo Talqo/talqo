@@ -2,6 +2,7 @@ import { getGetEmbedQueryKey, useGetEmbed } from "@/api/generated/embed/embed.ts
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import { toAppearance, toFormValues } from "@/features/embeds/embed-appearance-form"
 import { Button } from "@talqo/ui/components/button"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -40,7 +41,10 @@ function EmbedPreviewPage() {
 				{t("embedSetup.backToSetup")}
 			</Button>
 			{isLoading ? (
-				<p className="text-muted-foreground mt-4">{t("embedSetup.loading")}</p>
+				<div className="mt-4" aria-busy="true">
+					<output className="sr-only">{t("embedSetup.loading")}</output>
+					<Skeleton className="h-96 w-full" />
+				</div>
 			) : embed ? (
 				<WidgetPreview appearance={toAppearance(toFormValues(embed))} title={embed.name} previewKey={embed.id} />
 			) : (

@@ -6,10 +6,29 @@ import { useAccessError } from "@/features/permissions/use-access-error"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
+function RolesSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-3" aria-busy="true">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 3 }, (_, index) => (
+				<Card key={index}>
+					<CardContent>
+						<div className="flex flex-wrap items-center justify-between gap-2">
+							<Skeleton className="h-5 w-40 max-w-full" />
+							<Skeleton className="h-4 w-24" />
+						</div>
+					</CardContent>
+				</Card>
+			))}
+		</div>
+	)
+}
 
 export function RolesPage() {
 	const { t } = useTranslation()
@@ -58,7 +77,7 @@ export function RolesPage() {
 			{forbidden ? (
 				<AccessDenied />
 			) : rolesQuery.isPending ? (
-				<p className="text-muted-foreground">{t("roles.loading")}</p>
+				<RolesSkeleton label={t("roles.loading")} />
 			) : rolesQuery.isError || !roles ? (
 				<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
 			) : roles.length === 0 ? (

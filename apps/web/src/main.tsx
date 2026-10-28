@@ -5,6 +5,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
+import { PendingPage } from "./components/page-skeleton"
 import { LanguageProvider } from "./lib/use-language"
 import { applyTheme, getInitialTheme, ThemeProvider } from "./lib/use-theme"
 import { routeTree } from "./routeTree.gen"
@@ -30,7 +31,13 @@ const queryClient = new QueryClient({
 	}),
 })
 
-const router = createRouter({ routeTree, scrollRestoration: true })
+const router = createRouter({
+	routeTree,
+	scrollRestoration: true,
+	defaultPendingComponent: PendingPage,
+	// Show the skeleton only for route work slow enough to notice; fast navigations render directly.
+	defaultPendingMs: 150,
+})
 
 declare module "@tanstack/react-router" {
 	// eslint-disable-next-line typescript/consistent-type-definitions

@@ -8,6 +8,7 @@ import { nextDefaultName } from "@/lib/default-name"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useState } from "react"
@@ -20,6 +21,29 @@ export const Route = createFileRoute("/dashboard/agents")({
 
 const FORBIDDEN_STATUS = 403
 const CONFLICT_STATUS = 409
+
+function AgentsSkeleton({ label }: { label: string }) {
+	return (
+		<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 4 }, (_, index) => (
+				<Card key={index}>
+					<CardHeader>
+						<Skeleton className="h-5 w-40 max-w-full" />
+						<Skeleton className="h-3 w-32" />
+					</CardHeader>
+					<CardContent>
+						<div className="flex flex-wrap gap-4 border-t pt-3">
+							<Skeleton className="h-3 w-20" />
+							<Skeleton className="h-3 w-24" />
+							<Skeleton className="h-3 w-24" />
+						</div>
+					</CardContent>
+				</Card>
+			))}
+		</div>
+	)
+}
 
 function AgentsPage() {
 	const { t } = useTranslation()
@@ -81,7 +105,7 @@ function AgentsPage() {
 			)}
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("agents.loading")}</p>
+				<AgentsSkeleton label={t("agents.loading")} />
 			) : error ? (
 				<div className="space-y-2">
 					<p role="alert" className="text-destructive text-sm">

@@ -5,6 +5,7 @@ import { ProblemAlert } from "@/components/problem-alert"
 import { formatDateTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -41,7 +42,18 @@ export function ConversationPage({
 			</Button>
 
 			{query.isPending ? (
-				<output className="text-muted-foreground block">{t("conversations.loadingTranscript")}</output>
+				<div className="space-y-6" aria-busy="true">
+					<output className="sr-only">{t("conversations.loadingTranscript")}</output>
+					<div className="space-y-3">
+						<Skeleton className="h-8 w-56 max-w-full" />
+						<Skeleton className="h-4 w-80 max-w-full" />
+					</div>
+					<div className="space-y-4">
+						<Skeleton className="h-20 w-3/4" />
+						<Skeleton className="ml-auto h-20 w-3/4" />
+						<Skeleton className="h-20 w-3/4" />
+					</div>
+				</div>
 			) : !conversation || notFound ? (
 				<ProblemAlert error={query.error} onRetry={notFound ? undefined : () => void query.refetch()} />
 			) : (

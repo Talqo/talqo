@@ -23,6 +23,7 @@ import { getProblemMessage } from "@/lib/problem-message"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useMemo } from "react"
@@ -48,6 +49,49 @@ function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
 		messages: t("dashboard.messages"),
 		tokens: t("dashboard.tokens"),
 	}
+}
+
+function StatsSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-6" aria-busy="true">
+			<output className="sr-only">{label}</output>
+			<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+				<Skeleton className="h-9 w-44" />
+				<Skeleton className="h-9 w-32" />
+			</div>
+			<div className="grid gap-4 sm:grid-cols-3">
+				{Array.from({ length: 6 }, (_, index) => (
+					<Card key={index}>
+						<CardHeader>
+							<Skeleton className="h-4 w-28 max-w-full" />
+							<Skeleton className="mt-1 h-7 w-16" />
+						</CardHeader>
+					</Card>
+				))}
+			</div>
+			<Card>
+				<CardHeader>
+					<Skeleton className="h-5 w-40" />
+				</CardHeader>
+				<CardContent>
+					<Skeleton className="h-64 w-full" />
+				</CardContent>
+			</Card>
+			<Card>
+				<CardHeader>
+					<Skeleton className="h-5 w-48" />
+					<Skeleton className="h-4 w-80 max-w-full" />
+				</CardHeader>
+				<CardContent>
+					<div className="space-y-3">
+						{Array.from({ length: 5 }, (_, index) => (
+							<Skeleton key={index} className="h-8 w-full" />
+						))}
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+	)
 }
 
 function DashboardIndexPage() {
@@ -183,7 +227,7 @@ function DashboardIndexPage() {
 			<ProviderNoticeBanner />
 
 			{isLoading || agentsQuery.isLoading || !overview || !stats ? (
-				<p className="text-muted-foreground">{t("dashboard.loading")}</p>
+				<StatsSkeleton label={t("dashboard.loading")} />
 			) : allAgents?.length === 0 ? (
 				<div className="space-y-4">
 					<p className="text-muted-foreground">{t("dashboard.noAgents")}</p>

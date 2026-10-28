@@ -9,6 +9,7 @@ import { agentLineColor } from "@/features/statistics/components/stats-charts"
 import { formatDay, formatTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { keepPreviousData } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -94,7 +95,17 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				{noAgentSelected ? (
 					<output className="text-muted-foreground block">{t("conversations.noAgentSelected")}</output>
 				) : conversationsQuery.isPending ? (
-					<output className="text-muted-foreground block">{t("conversations.loading")}</output>
+					<div className="space-y-3" aria-busy="true">
+						<output className="sr-only">{t("conversations.loading")}</output>
+						<div className="divide-border divide-y rounded-md border">
+							{Array.from({ length: 4 }, (_, index) => (
+								<div key={index} className="space-y-2 px-4 py-3">
+									<Skeleton className="h-4 w-2/3 max-w-full" />
+									<Skeleton className="h-3 w-1/2 max-w-full" />
+								</div>
+							))}
+						</div>
+					</div>
 				) : !result ? (
 					<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
 				) : result.conversations.length === 0 && page > 1 ? (

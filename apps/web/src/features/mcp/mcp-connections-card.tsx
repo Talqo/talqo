@@ -1,6 +1,8 @@
 import { useListMcpServers } from "@/api/generated/mcp/mcp.ts"
 import { ConnectionCard } from "@/features/mcp/connection-card"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
+import { Card, CardContent, CardHeader } from "@talqo/ui/components/card"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useTranslation } from "react-i18next"
 
 export function McpConnectionsCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
@@ -17,7 +19,20 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 			</div>
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("mcp.loading")}</p>
+				<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+					<output className="sr-only">{t("mcp.loading")}</output>
+					{Array.from({ length: 2 }, (_, index) => (
+						<Card key={index}>
+							<CardHeader>
+								<Skeleton className="h-5 w-36 max-w-full" />
+								<Skeleton className="h-4 w-52 max-w-full" />
+							</CardHeader>
+							<CardContent>
+								<Skeleton className="h-8 w-full" />
+							</CardContent>
+						</Card>
+					))}
+				</div>
 			) : isError ? (
 				<p role="alert" className="text-destructive">
 					{t("mcp.loadFailed")}

@@ -14,6 +14,7 @@ import {
 	useSaveAiProviderConfiguration,
 } from "@/api/generated/ai-providers/ai-providers.ts"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
 import {
 	aiConfigurationFormSchema,
 	buildSaveInput,
@@ -432,7 +433,12 @@ export function AiConfigurationPage() {
 	const watchedTextRole = useWatch({ control, name: "text" })
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
-		return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>
+		return (
+			<div className="mx-auto max-w-3xl">
+				<output className="sr-only">{t("aiConfiguration.loading")}</output>
+				<PageSkeleton />
+			</div>
+		)
 	if (!providersQuery.data || !configuration)
 		return (
 			<p role="alert" className="text-destructive">

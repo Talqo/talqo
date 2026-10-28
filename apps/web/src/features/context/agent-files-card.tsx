@@ -27,6 +27,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -294,7 +295,18 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 						</p>
 					)}
 					{filesQuery.isLoading ? (
-						<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
+						<div className="divide-border divide-y rounded-md border" aria-busy="true">
+							<output className="sr-only">{t("agentFiles.loading")}</output>
+							{Array.from({ length: 3 }, (_, index) => (
+								<div key={index} className="flex items-center gap-3 px-3 py-2">
+									<Skeleton className="size-4 shrink-0" />
+									<div className="min-w-0 flex-1 space-y-2">
+										<Skeleton className="h-4 w-2/3 max-w-full" />
+										<Skeleton className="h-3 w-1/2 max-w-full" />
+									</div>
+								</div>
+							))}
+						</div>
 					) : filesQuery.isError ? (
 						<ProblemAlert error={filesQuery.error} onRetry={() => void filesQuery.refetch()} />
 					) : files.length === 0 ? (

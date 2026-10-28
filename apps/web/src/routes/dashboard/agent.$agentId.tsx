@@ -32,6 +32,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient } from "@tanstack/react-query"
@@ -62,6 +63,38 @@ export const Route = createFileRoute("/dashboard/agent/$agentId")({
 const CONFLICT_STATUS = 409
 const FORBIDDEN_STATUS = 403
 const NOT_FOUND_STATUS = 404
+
+function AgentConfigSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-6" aria-busy="true">
+			<output className="sr-only">{label}</output>
+			<div className="space-y-3">
+				<Skeleton className="h-8 w-48 max-w-full" />
+				<Skeleton className="h-4 w-64 max-w-full" />
+			</div>
+			<Skeleton className="h-9 w-80 max-w-full" />
+			<Card>
+				<CardHeader>
+					<Skeleton className="h-5 w-32" />
+					<Skeleton className="h-4 w-72 max-w-full" />
+				</CardHeader>
+				<CardContent>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Skeleton className="h-4 w-16" />
+							<Skeleton className="h-9 w-full" />
+						</div>
+						<div className="space-y-2">
+							<Skeleton className="h-4 w-24" />
+							<Skeleton className="h-32 w-full" />
+						</div>
+						<Skeleton className="h-9 w-28" />
+					</div>
+				</CardContent>
+			</Card>
+		</div>
+	)
+}
 
 function AgentConfigPage() {
 	const { t } = useTranslation()
@@ -154,7 +187,11 @@ function AgentConfigPage() {
 	}
 
 	if (isLoading || permissionsQuery.isPending) {
-		return <p className="text-muted-foreground">{t("agentConfig.loading")}</p>
+		return (
+			<div className="mx-auto max-w-3xl">
+				<AgentConfigSkeleton label={t("agentConfig.loading")} />
+			</div>
+		)
 	}
 	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
@@ -383,7 +420,22 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			)}
 
 			{isLoading ? (
-				<p className="text-muted-foreground">{t("embedSetup.loading")}</p>
+				<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+					<output className="sr-only">{t("embedSetup.loading")}</output>
+					{Array.from({ length: 2 }, (_, index) => (
+						<Card key={index}>
+							<CardHeader>
+								<Skeleton className="h-5 w-32 max-w-full" />
+							</CardHeader>
+							<CardContent>
+								<div className="space-y-3">
+									<Skeleton className="h-4 w-24" />
+									<Skeleton className="h-5 w-10" />
+								</div>
+							</CardContent>
+						</Card>
+					))}
+				</div>
 			) : isError ? (
 				<p role="alert" className="text-destructive">
 					{t("embedSetup.loadError")}
