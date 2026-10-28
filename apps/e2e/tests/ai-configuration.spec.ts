@@ -1,10 +1,9 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./application"
-import { ADMIN, openDashboard } from "./log-in"
+import { openDashboard } from "./log-in"
 
-test.afterEach(async ({ request, application }) => {
-	await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+test.afterEach(async ({ adminRequest: request, application }) => {
 	const response = await request.get("/api/ai-provider-configuration")
 	await expect(response).toBeOK()
 	const current = (await response.json()) as { revision: number }

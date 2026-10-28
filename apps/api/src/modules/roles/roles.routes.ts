@@ -1,3 +1,4 @@
+import { requestClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -60,7 +61,10 @@ export const rolesRoutes = new OpenAPIHono()
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
 	})
 	.openapi(bootstrapAdminRoute, async (c) => {
-		const user = await service.bootstrapAdmin(c.req.valid("json"))
+		const input = c.req.valid("json")
+		const user = await identity.runCredentialOperation(requestClientNetwork(c), input.username, () =>
+			service.bootstrapAdmin(input),
+		)
 		annotate(c, { "user.id": user.id })
 		// Set the session now: the setup page lands signed in without a second login round-trip.
 		const { token, expiresAt } = await identity.createSession(user.id)
@@ -78,7 +82,10 @@ const invitationRoutes = new OpenAPIHono()
 		)
 	})
 	.openapi(redeemInvitationRoute, async (c) => {
-		const user = await service.redeemInvitation(c.req.valid("json"))
+		const input = c.req.valid("json")
+		const user = await identity.runCredentialOperation(requestClientNetwork(c), input.username, () =>
+			service.redeemInvitation(input),
+		)
 		annotate(c, { "user.id": user.id })
 		// Set the session now: accepting an invitation lands the member signed in.
 		const { token, expiresAt } = await identity.createSession(user.id)

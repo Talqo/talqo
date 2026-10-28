@@ -94,6 +94,11 @@ export type loginResponse413 = {
   status: 413
 }
 
+export type loginResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
 export type loginResponse500 = {
   data: ProblemDetails
   status: 500
@@ -102,7 +107,7 @@ export type loginResponse500 = {
 export type loginResponseSuccess = (loginResponse200) & {
   headers: Headers;
 };
-export type loginResponseError = (loginResponse400 | loginResponse401 | loginResponse413 | loginResponse500) & {
+export type loginResponseError = (loginResponse400 | loginResponse401 | loginResponse413 | loginResponse429 | loginResponse500) & {
   headers: Headers;
 };
 

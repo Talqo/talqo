@@ -32,15 +32,21 @@ import { useTranslation } from "react-i18next"
 /** Problem details carry a code; the catalog turns it into something an operator can act on. */
 function apiError(caught: unknown, t: (key: string, options?: Record<string, number>) => string): string {
 	const code = (caught as { info?: { code?: string } }).info?.code
-	return code === "invalid-request" || code === "malformed-json"
-		? t("mcp.errorAddress")
-		: code === "invalid-mcp-server-name"
-			? t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
-			: code === "duplicate-mcp-server-name"
-				? t("mcp.errorDuplicateName")
-				: code === "configuration-conflict"
-					? t("mcp.errorConflict")
-					: t("mcp.errorSave")
+	switch (code ?? "") {
+		case "invalid-request":
+		case "malformed-json":
+			return t("mcp.errorAddress")
+		case "invalid-mcp-server-name":
+			return t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT })
+		case "duplicate-mcp-server-name":
+			return t("mcp.errorDuplicateName")
+		case "configuration-conflict":
+			return t("mcp.errorConflict")
+		case "mcp-stdio-disabled":
+			return t("mcp.stdioDisabled")
+		default:
+			return t("mcp.errorSave")
+	}
 }
 
 function draftErrorText(reason: DraftReason, t: (key: string, options?: Record<string, number>) => string): string {
@@ -66,7 +72,15 @@ function draftFor(server?: McpServer): ConnectionDraft {
 	}
 }
 
-export function ConnectionDialog({ agentId, server }: { agentId: string; server?: McpServer }) {
+export function ConnectionDialog({
+	agentId,
+	server,
+	stdioAllowed,
+}: {
+	agentId: string
+	server?: McpServer
+	stdioAllowed: boolean
+}) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const [open, setOpen] = useState(false)
@@ -80,11 +94,17 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 	const create = useCreateMcpServer({ mutation: { onSuccess: saved } })
 	const update = useUpdateMcpServer({ mutation: { onSuccess: saved } })
 	const pending = create.isPending || update.isPending
+	const actionLabel = server ? t("mcp.save") : t("mcp.add")
+	const stdioBlocked = draft.transport === "stdio" && !stdioAllowed
 	const set = (patch: Partial<ConnectionDraft>) => setDraft((current) => ({ ...current, ...patch }))
 	const failed = (caught: unknown) => setError(apiError(caught, t))
 
 	function onSubmit() {
 		setError(null)
+		if (stdioBlocked) {
+			setError(t("mcp.stdioDisabled"))
+			return
+		}
 		if (server) {
 			const result = toEditBody(draft, server)
 			if (!result.ok) {
@@ -162,7 +182,11 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="http">{t("mcp.transportHttp")}</SelectItem>
-								<SelectItem value="stdio">{t("mcp.transportStdio")}</SelectItem>
+								{(stdioAllowed || server?.transport === "stdio") && (
+									<SelectItem value="stdio" disabled={!stdioAllowed}>
+										{t("mcp.transportStdio")}
+									</SelectItem>
+								)}
 							</SelectContent>
 						</Select>
 					</div>
@@ -206,7 +230,7 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							)}
 						</>
 					) : (
-						<>
+						<fieldset disabled={stdioBlocked} className="space-y-3">
 							<div className="space-y-2">
 								<Label htmlFor="mcp-command">{t("mcp.command")}</Label>
 								<Input
@@ -219,8 +243,9 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 							</div>
 							<McpArgumentsEditor args={draft.args} onChange={(args) => set({ args })} />
 							<McpEnvEditor env={draft.env} onChange={(env) => set({ env })} />
-						</>
+						</fieldset>
 					)}
+					{stdioBlocked && <p className="text-muted-foreground text-sm">{t("mcp.stdioDisabled")}</p>}
 					{error && (
 						<p role="alert" className="text-destructive text-xs">
 							{error}
@@ -230,8 +255,8 @@ export function ConnectionDialog({ agentId, server }: { agentId: string; server?
 						<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
 							{t("common.cancel")}
 						</Button>
-						<Button type="submit" disabled={pending}>
-							{pending ? t("mcp.saving") : server ? t("mcp.save") : t("mcp.add")}
+						<Button type="submit" disabled={pending || stdioBlocked}>
+							{pending ? t("mcp.saving") : actionLabel}
 						</Button>
 					</DialogFooter>
 				</form>

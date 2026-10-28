@@ -174,6 +174,27 @@ afterEach(() => {
 })
 
 describe("conversation lifecycle", () => {
+	it("prunes expired allowance rows in bounded batches without deleting today's counters", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await sql`INSERT INTO conversation_daily_counter (agent_id, network_hash, day, count)
+			SELECT ${createdAgent.id}, 'expired-' || n::text, '2000-01-01', 1 FROM generate_series(1, 1001) AS n`
+		await sql`INSERT INTO conversation_daily_counter (agent_id, network_hash, day, count)
+			VALUES (${createdAgent.id}, 'preserved', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD'), 1)`
+		const instance = service()
+		const sent = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "hello",
+			networkHash: "network-a",
+		})
+		await sent.done
+		expect(
+			(await sql`SELECT count(*)::int AS count FROM conversation_daily_counter WHERE day = '2000-01-01'`)[0]?.count,
+		).toBe(1)
+		expect((await sql`SELECT count FROM conversation_daily_counter WHERE network_hash = 'preserved'`)[0]?.count).toBe(1)
+	})
+
 	it("creates a bearer-authenticated conversation and isolates history", async () => {
 		const { createdEmbed } = await fixture()
 		const first = service()
@@ -1365,6 +1386,128 @@ describe("conversation lifecycle", () => {
 })
 
 describe("chat retrieval", () => {
+	it("holds the existing concurrency slot while retrieval is pending", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service(["answer"], { concurrencyLimit: 1 })
+		const started = Promise.withResolvers<void>()
+		const release = Promise.withResolvers<string[]>()
+		const search = spyOn(knowledge, "searchKnowledge").mockImplementation(async () => {
+			started.resolve()
+			return release.promise
+		})
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "hello",
+				networkHash: "network-a",
+			})
+			try {
+				await started.promise
+				await expect(
+					instance.service.send({
+						embedToken: createdEmbed.embedToken,
+						credential: CREDENTIAL_2,
+						requestId: REQUEST_2,
+						text: "hello",
+						networkHash: "network-a",
+					}),
+				).rejects.toBeInstanceOf(ConcurrentGenerationLimitError)
+				expect(search).toHaveBeenCalledTimes(1)
+			} finally {
+				release.resolve([])
+				await sent.done
+			}
+		} finally {
+			search.mockRestore()
+		}
+	})
+
+	it("cancels retrieval and finalizes without charging text-provider usage", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const started = Promise.withResolvers<void>()
+		const search = spyOn(knowledge, "searchKnowledge").mockImplementation(async (_agentId, _text, signal) => {
+			if (!signal) throw new Error("Expected retrieval cancellation signal")
+			started.resolve()
+			return new Promise<string[]>((_resolve, reject) =>
+				signal.addEventListener("abort", () => reject(signal.reason), { once: true }),
+			)
+		})
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "hello",
+				networkHash: "network-a",
+			})
+			await started.promise
+			await instance.service.cancel(CREDENTIAL_1, sent.generationId)
+			await sent.done
+			expect(instance.prompts).toEqual([])
+			expect((await instance.service.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("cancelled")
+			expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(0)
+		} finally {
+			search.mockRestore()
+		}
+	})
+
+	it("finalizes oversized retrieved context without invoking the text provider", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["x".repeat(400_001)])
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "hello",
+				networkHash: "network-a",
+			})
+			await sent.done
+			expect(instance.prompts).toEqual([])
+			expect((await instance.service.getSession(CREDENTIAL_1)).messages.at(-1)?.outcome).toBe("failed")
+			expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(0)
+			expect((await sql`SELECT status, provider_invoked FROM generation_attempt`)[0]).toMatchObject({
+				status: "failed",
+				provider_invoked: false,
+			})
+		} finally {
+			search.mockRestore()
+		}
+	})
+
+	it("reserves the existing allowance before retrieval and skips retrieval for rejected requests and retries", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service(["answer"], { dailyLimit: 1 })
+		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue(["context"])
+		const input = {
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "hello",
+			networkHash: "network-a",
+		}
+		try {
+			const first = await instance.service.send(input)
+			await first.done
+			expect((await instance.service.send(input)).duplicate).toBe(true)
+			expect(search).toHaveBeenCalledTimes(1)
+			await expect(instance.service.send({ ...input, requestId: REQUEST_2 })).rejects.toBeInstanceOf(
+				DailyAllowanceExceededError,
+			)
+			expect(search).toHaveBeenCalledTimes(1)
+			await embed.disableEmbed(createdEmbed.id, await testAdminId())
+			search.mockClear()
+			await expect(instance.service.send({ ...input, requestId: REQUEST_3 })).rejects.toBeInstanceOf(EmbedDisabledError)
+			expect(search).not.toHaveBeenCalled()
+		} finally {
+			search.mockRestore()
+		}
+	})
+
 	it("injects retrieved chunks into the user message", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		const instance = service()

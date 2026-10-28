@@ -1,6 +1,28 @@
 // ipaddr.js owns parsing and CIDR math; the remainder is deployment-specific policy.
+import { env } from "@/config/env.ts"
+import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
+import { HTTP_STATUS } from "@/http/status.ts"
 import ipaddr from "ipaddr.js"
 import { createHmac } from "node:crypto"
+
+type ClientNetworkContext = {
+	env?: unknown
+	req: { header(name: string): string | undefined }
+}
+
+export function requestClientNetwork(context: ClientNetworkContext): string | null {
+	const bindings = context.env
+	const peer = bindings && typeof bindings === "object" && "peerAddress" in bindings ? bindings.peerAddress : undefined
+	const normalized = resolveClientNetwork(
+		typeof peer === "string" ? peer : undefined,
+		context.req.header("x-forwarded-for"),
+		env.TALQO_TRUSTED_PROXY_CIDRS,
+		env.TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH,
+	)
+	if (typeof peer === "string" && !normalized)
+		throw new ApiError(PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+	return normalized
+}
 
 function parseAddress(value: string): ipaddr.IPv4 | ipaddr.IPv6 {
 	const address = ipaddr.parse(value.trim())

@@ -33,12 +33,15 @@ export function ConnectionCard({
 	agentId,
 	canManage,
 	server,
+	stdioAllowed,
 }: {
 	agentId: string
 	canManage: boolean
 	server: McpServer
+	stdioAllowed: boolean
 }) {
 	const { t } = useTranslation()
+	const deploymentBlocked = server.transport === "stdio" && !stdioAllowed
 	const queryClient = useQueryClient()
 	const refresh = () => queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
 	const update = useUpdateMcpServer<UpdateMcpServerMutationError, { previous: ListMcpServersQueryResult | undefined }>({
@@ -119,13 +122,17 @@ export function ConnectionCard({
 							</Button>
 						)}
 					</div>
-					{!server.isWorking && (
-						<p role="alert" className="text-destructive text-xs">
-							{t("mcp.unreachable")}
-						</p>
+					{deploymentBlocked ? (
+						<p className="text-muted-foreground text-xs">{t("mcp.stdioDisabled")}</p>
+					) : (
+						!server.isWorking && (
+							<p role="alert" className="text-destructive text-xs">
+								{t("mcp.unreachable")}
+							</p>
+						)
 					)}
 					{expanded && (
-						<fieldset className="space-y-1">
+						<fieldset className="space-y-1" disabled={deploymentBlocked}>
 							<legend className="sr-only">{t("mcp.toolsLegend")}</legend>
 							{server.tools.map((tool) => (
 								<label key={tool.name} className="flex items-center gap-2 text-sm">
@@ -153,7 +160,7 @@ export function ConnectionCard({
 						<div className="flex items-center justify-between gap-2">
 							<Switch
 								checked={!server.isDisabled}
-								disabled={setDisabled.isPending}
+								disabled={setDisabled.isPending || deploymentBlocked}
 								onCheckedChange={(checked) =>
 									void guard(() =>
 										setDisabled.mutateAsync({
@@ -166,7 +173,7 @@ export function ConnectionCard({
 								aria-label={t("mcp.enabled")}
 							/>
 							<div className="flex items-center gap-1">
-								<ConnectionDialog key={server.id} agentId={agentId} server={server} />
+								<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
 								<Button
 									variant="destructive"
 									size="icon-sm"
