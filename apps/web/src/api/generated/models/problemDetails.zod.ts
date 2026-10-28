@@ -40,6 +40,9 @@ export const ProblemDetails = zod.union([zod.object({
   "code": zod.enum(['authentication-required']),
   "type": zod.enum(['https://docs.talqo.chat/problems#authentication-required'])
 }),zod.object({
+  "code": zod.enum(['auth-rate-limited']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#auth-rate-limited'])
+}),zod.object({
   "code": zod.enum(['chat-client-address-unavailable']),
   "type": zod.enum(['https://docs.talqo.chat/problems#chat-client-address-unavailable'])
 }),zod.object({
@@ -114,6 +117,9 @@ export const ProblemDetails = zod.union([zod.object({
 }),zod.object({
   "code": zod.enum(['mcp-server-not-found']),
   "type": zod.enum(['https://docs.talqo.chat/problems#mcp-server-not-found'])
+}),zod.object({
+  "code": zod.enum(['mcp-stdio-disabled']),
+  "type": zod.enum(['https://docs.talqo.chat/problems#mcp-stdio-disabled'])
 }),zod.object({
   "code": zod.enum(['model-discovery-unsupported']),
   "type": zod.enum(['https://docs.talqo.chat/problems#model-discovery-unsupported'])

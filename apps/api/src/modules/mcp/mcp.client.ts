@@ -2,6 +2,7 @@ import type { createCredentialVault, CredentialSecretMap } from "@/lib/credentia
 import type { ListToolsResult, MCPClient, MCPClientConfig } from "@ai-sdk/mcp"
 import type { ToolSet } from "ai"
 
+import { env } from "@/config/env.ts"
 import { createMCPClient } from "@ai-sdk/mcp"
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio"
 import { createHash } from "node:crypto"
@@ -57,6 +58,8 @@ export type McpConnectOptions = {
 function buildTransport(row: McpServerRow, options: McpConnectOptions): MCPClientConfig["transport"] {
 	const { vault } = options
 	if (row.transport === "stdio") {
+		// Write-time validation blocks new rows; this stops servers configured before the flag flipped.
+		if (!env.TALQO_MCP_ALLOW_STDIO) throw new Error("Stdio MCP servers are disabled on this deployment")
 		return new Experimental_StdioMCPTransport({
 			command: row.command!,
 			args: row.args,

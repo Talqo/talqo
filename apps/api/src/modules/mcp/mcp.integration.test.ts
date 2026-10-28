@@ -1,6 +1,7 @@
 import type { Annotation } from "@/http/wide-event.ts"
 
 import { app } from "@/app.ts"
+import { env } from "@/config/env.ts"
 import { db, sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
@@ -49,6 +50,14 @@ async function expectCheckViolation(insert: Promise<unknown>): Promise<void> {
 
 async function createAgent(name = `Shop assistant ${crypto.randomUUID().slice(0, 8)}`): Promise<string> {
 	return (await agent.createAgent({ name, systemPrompt: "You help shoppers.", wordBlacklist: [] })).id
+}
+
+/** Flips the deployment gate off for one test; the returned function restores the cached env getter. */
+function disableStdio(): () => void {
+	const descriptor = Object.getOwnPropertyDescriptor(env, "TALQO_MCP_ALLOW_STDIO")
+	if (!descriptor) throw new Error("env.TALQO_MCP_ALLOW_STDIO is not an own property")
+	Object.defineProperty(env, "TALQO_MCP_ALLOW_STDIO", { ...descriptor, get: () => false })
+	return () => Object.defineProperty(env, "TALQO_MCP_ALLOW_STDIO", descriptor)
 }
 
 beforeEach(async () => {
@@ -263,6 +272,76 @@ describe("mcp server lifecycle", () => {
 		expect(updated.headers).toEqual([{ name: "X-API-Key", hasValue: true }])
 		const [row] = await db.select({ headers: mcpServer.headers }).from(mcpServer).where(eq(mcpServer.id, created.id))
 		expect(Object.keys(row?.headers ?? {})).toEqual(["X-API-Key"])
+	})
+
+	describe("deployment stdio gate", () => {
+		it("rejects new stdio servers but keeps allowing internal HTTP servers", async () => {
+			const agentId = await createAgent()
+			const restore = disableStdio()
+			try {
+				await expect(
+					service.createServer(agentId, {
+						name: "Legacy tools",
+						transport: "stdio",
+						command: "talqo-does-not-exist",
+						args: ["-la"],
+					}),
+				).rejects.toBeInstanceOf(service.McpStdioDisabledError)
+
+				// Only stdio is gated; self-hosted MCPs on internal addresses are intended.
+				const created = await service.createServer(agentId, {
+					name: "Internal tools",
+					transport: "http",
+					url: "http://127.0.0.1:1/mcp",
+					authMode: "none",
+				})
+				expect(created.transport).toBe("http")
+			} finally {
+				restore()
+			}
+		})
+
+		it("never spawns servers configured before the gate was enabled", async () => {
+			const agentId = await createAgent()
+			const legacy = await service.createServer(agentId, {
+				name: "Legacy tools",
+				transport: "stdio",
+				command: "talqo-does-not-exist",
+				args: ["-la"],
+			})
+			// Only servers with a discovered tool snapshot are ever connected.
+			await db
+				.update(mcpServer)
+				.set({ tools: [{ name: "lookup", description: "", enabled: true }] })
+				.where(eq(mcpServer.id, legacy.id))
+			const cookie = await memberSession(["agents:read", "agents:manage"])
+
+			const restore = disableStdio()
+			const logged = spyOn(console, "error").mockImplementation(() => undefined)
+			try {
+				const response = await app.request(`/api/agents/${agentId}/mcp-servers`, { headers: { Cookie: cookie } })
+				expect(response.status).toBe(200)
+				expect(await response.json()).toMatchObject({
+					stdioAllowed: false,
+					servers: [{ id: legacy.id, isWorking: false }],
+				})
+				await expect(service.setServerDisabled(agentId, legacy.id, false)).rejects.toBeInstanceOf(
+					service.McpStdioDisabledError,
+				)
+				const opened = await service.openTools(agentId, new AbortController().signal)
+				try {
+					expect(opened.tools).toEqual({})
+					expect(opened.degradedServers).toBe(1)
+				} finally {
+					await opened.close()
+				}
+				const degraded = logged.mock.calls.map((call): unknown => call[1]).find(Boolean) as { error?: unknown }
+				expect(String(degraded.error)).toMatch(/disabled/)
+			} finally {
+				logged.mockRestore()
+				restore()
+			}
+		})
 	})
 
 	it("switches a connection from http to stdio and back", async () => {

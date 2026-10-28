@@ -1,18 +1,16 @@
 import { expect } from "@playwright/test"
 
 import { test as applicationTest } from "./application"
-import { ADMIN } from "./log-in"
 import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 export const test = applicationTest.extend<{
 	chatEmbed: { agentName: string; widgetUrl: string; providerControlOrigin: string }
 }>({
-	chatEmbed: async ({ request, application }, use) => {
+	chatEmbed: async ({ adminRequest: request, application }, use) => {
 		const agentName = `Chat ${crypto.randomUUID()}`
 		const systemPrompt = "You are the support assistant on our company website."
 		const providerControlOrigin = `${application.providerOrigin}/control`
 		await expect(await request.post(`${providerControlOrigin}/reset`)).toBeOK()
-		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 		const agentResponse = await request.post("/api/agents", {
 			data: {
 				name: agentName,

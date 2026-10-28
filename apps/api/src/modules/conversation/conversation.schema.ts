@@ -117,5 +117,8 @@ export const conversationDailyCounter = pgTable(
 		count: integer("count").notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
 	},
-	(table) => [uniqueIndex("conversation_daily_counter_unique_idx").on(table.agentId, table.networkHash, table.day)],
+	(table) => [
+		uniqueIndex("conversation_daily_counter_unique_idx").on(table.agentId, table.networkHash, table.day),
+		index("conversation_daily_counter_day_idx").on(table.day),
+	],
 )

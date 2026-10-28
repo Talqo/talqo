@@ -8,6 +8,8 @@ restricted_mode = true
 log_level = "INFO"
 output_run_details = true
 output_run_cost = false
+persistent_inline_comments = true
+repo_context_files = ["AGENTS.md", "docs/architecture.md"]
 
 [litellm]
 custom_llm_provider = "openai"
@@ -16,6 +18,10 @@ force_streaming_custom_llm_provider = "openai"
 [ignore]
 glob = ["**/*.lock", "**/*-lock.json", "**/openapi.json", "**/drizzle/meta/**", "**/*.gen.ts", "**/generated/**"]
 
+[skills]
+enabled = true
+max_skills_tokens = 10000
+
 [pr_reviewer]
 enable_large_pr_chunking = true
 max_number_of_calls = 20
@@ -23,17 +29,32 @@ num_max_findings = 100
 inline_key_issues = true
 require_estimate_effort_to_review = false
 enable_review_labels_effort = false
+final_update_message = false
 extra_instructions = """
-- Flag code that duplicates existing project utilities or established library functions; name the alternative when known.
-- Suggest simpler code when it preserves behavior and removes unnecessary abstractions, options, or duplicated logic.
-- Flag comments and docstrings that restate the code, narrate steps, or record changes; remove them rather than reword them. Keep only non-obvious rationale. Prefer one line, at most two unless correctness requires more.
-- Check consistency with surrounding code and project conventions; prefer established patterns over new ones.
+- Approach first: owning module, package boundaries, established patterns. A clean diff built wrong is still wrong.
+- Check UX, query/render cost, test quality, contracts/docs made wrong.
+- Flag needless abstraction, speculative options, duplicate validation, wrappers, unrelated changes, visible reimplementation.
+- No new architecture/docs/scale work without need. Prefer fewer lines and concepts when behavior and clarity hold. Say what is unverified; never claim a check ran.
+- Order by severity; issue_header: Bug, Security, Performance, UX, Maintainability, Nitpick. Two sentences, ~40 words: defect, consequence, trigger; no path, diff restatement, fix, or code.
+- Flag comment/docstring slop: non-obvious rationale only, max 2 lines. Style only for project rule or unslop; label Nitpick.
+"""
+
+[pr_code_suggestions]
+max_number_of_calls = 20
+focus_only_on_problems = false
+committable_code_suggestions = true
+extra_instructions = """
+- Approach first: put the fix in the owning module and respect module and package boundaries. Do not propose cross-file refactors.
+- Also fix operator-facing UX, query/render cost, test gaps, and contracts or docs the change makes wrong; do not propose exhaustive documentation.
+- Only suggest a change that is safe on the visible hunk; skip fixes that need unseen code or change unrelated behavior.
+- Prefer fewer lines and concepts when behavior and clarity hold. Preserve public contracts and unrelated behavior.
+- Do not propose new architecture or scale work without a demonstrated need. Project rules and established patterns take precedence over generic preferences. Only suggest style changes that violate a project rule or an unslop pattern.
 """
 
 [github_action_config]
 auto_review = true
 auto_describe = false
-auto_improve = false
+auto_improve = true
 pr_actions = ["opened", "reopened", "ready_for_review"]
 handle_push_trigger = true
-push_commands = ["/review"]
+push_commands = ["/review", "/improve"]
