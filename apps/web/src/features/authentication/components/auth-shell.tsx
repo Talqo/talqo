@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Logo } from "@talqo/ui/components/logo"
 import { useTranslation } from "react-i18next"
 
 type AuthShellProps = {
@@ -20,8 +21,8 @@ export function AuthShell({ children, description, title }: AuthShellProps) {
 				<ThemeToggle />
 			</div>
 			<div className="w-full max-w-md space-y-5">
-				<div className="flex items-center justify-center gap-2" aria-label={t("common.appName")}>
-					<span className="bg-primary size-2.5 rounded-full" />
+				<div className="flex items-center justify-center gap-2">
+					<Logo className="size-8" />
 					<span className="text-lg font-semibold tracking-tight">{t("common.appName")}</span>
 				</div>
 				<Card variant="elevated">

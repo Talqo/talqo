@@ -85,7 +85,7 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	)
 	await settle()
 	await settle()
-	return { host, queryClient }
+	return { host, queryClient, router }
 }
 
 test("keeps global navigation and the current page when agent discovery fails", async () => {
@@ -105,6 +105,47 @@ test("keeps global navigation and the current page when agent discovery fails", 
 	expect(links).toContain(t("nav.account"))
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("account.heading"))
 	expect(rendered.host.querySelector("[role=alert]")).not.toBeNull()
+})
+
+test("keeps the account name and log out in the sidebar footer", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const sidebar = rendered.host.querySelector("aside")
+	const header = rendered.host.querySelector("header")
+	const logout = [...rendered.host.querySelectorAll("button")].find(
+		(button) => button.textContent === t("header.logout"),
+	)
+	expect(sidebar?.textContent).toContain("Admin")
+	expect(logout && sidebar?.contains(logout)).toBe(true)
+	expect(header?.contains(logout ?? null)).toBe(false)
+})
+
+test("closes the mobile navigation on a same-page navigation", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	if (!toggle) throw new Error("Missing navigation toggle")
+	await act(async () => toggle.click())
+	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
+	await act(async () => rendered.router.navigate({ to: "/", hash: "filtered" }))
+	await settle()
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
 })
 
 test("clears protected caches when discovery revokes access before the access refetch completes", async () => {

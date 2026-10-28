@@ -6,7 +6,9 @@ import { ProblemAlert } from "@/components/problem-alert"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { accessGate, useRequiredPermission } from "@/features/permissions/require-permission"
+import { Avatar, AvatarFallback } from "@talqo/ui/components/avatar"
 import { Button } from "@talqo/ui/components/button"
+import { Logo } from "@talqo/ui/components/logo"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useRouter } from "@tanstack/react-router"
 import { Bot, LayoutDashboard, LogOut, Menu, MessagesSquare, Settings2, User, Users, X } from "lucide-react"
@@ -126,10 +128,24 @@ function LogoutButton() {
 	}
 
 	return (
-		<Button variant="ghost" onClick={handleLogout} disabled={logout.isPending}>
+		<Button variant="ghost" className="w-full justify-start" onClick={handleLogout} disabled={logout.isPending}>
 			<LogOut className="size-4" />
 			{t("header.logout")}
 		</Button>
+	)
+}
+
+function AccountFooter({ accountName }: { accountName: string }) {
+	return (
+		<div className="border-sidebar-border mt-4 flex flex-col gap-1 border-t pt-3">
+			<div className="text-sidebar-foreground flex min-w-0 items-center gap-2 px-3 py-1.5">
+				<Avatar aria-hidden>
+					<AvatarFallback>{accountName.slice(0, 1).toUpperCase()}</AvatarFallback>
+				</Avatar>
+				<span className="truncate text-sm font-medium">{accountName}</span>
+			</div>
+			<LogoutButton />
+		</div>
 	)
 }
 
@@ -148,8 +164,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	useEffect(
 		() =>
 			router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-				if (fromLocation?.pathname !== toLocation.pathname)
-					void client.invalidateQueries({ queryKey: getListAgentsQueryKey() })
+				setMobileOpen(false)
+				if (fromLocation?.pathname === toLocation.pathname) return
+				void client.invalidateQueries({ queryKey: getListAgentsQueryKey() })
 			}),
 		[router, client],
 	)
@@ -166,8 +183,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="bg-background text-foreground flex min-h-screen">
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 truncate px-3 text-sm font-semibold">{accountName}</div>
+				<div className="text-sidebar-foreground mb-6 flex items-center gap-2 px-3">
+					<Logo className="size-7" />
+					<span className="text-lg font-semibold tracking-tight">{t("common.appName")}</span>
+				</div>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
+				<AccountFooter accountName={accountName} />
 			</aside>
 
 			<div className="flex min-h-screen min-w-0 flex-1 flex-col">
@@ -179,23 +200,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 							className="md:hidden"
 							onClick={() => setMobileOpen((open) => !open)}
 							aria-label={t("header.toggleNavigation")}
+							aria-expanded={mobileOpen}
+							aria-controls="mobile-navigation"
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<span className="truncate text-sm font-semibold md:hidden">{accountName}</span>
+						<Logo className="size-6 md:hidden" />
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
 						<ThemeToggle />
-						<LogoutButton />
 					</div>
+					{mobileOpen && (
+						<div
+							id="mobile-navigation"
+							className="border-border bg-sidebar absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-b p-4 shadow-lg md:hidden"
+						>
+							<NavList className="flex flex-col gap-1" onNavigate={closeMobile} />
+							<AccountFooter accountName={accountName} />
+						</div>
+					)}
 				</header>
-				{mobileOpen && (
-					<NavList
-						className="border-border bg-sidebar flex flex-col gap-1 border-b p-4 md:hidden"
-						onNavigate={closeMobile}
-					/>
-				)}
 
 				<main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-20">
 					{gate === "open" && children}
