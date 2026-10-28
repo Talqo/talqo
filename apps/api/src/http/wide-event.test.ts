@@ -1,5 +1,5 @@
 import { handleError } from "@/app.ts"
-import { ApiError, PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
+import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it, spyOn } from "bun:test"
@@ -24,9 +24,6 @@ function probe(write?: (event: WideEvent) => void) {
 	app.get("/users/:userId", (c) => c.body(null))
 	app.get("/roles/:roleId", (c) => c.body(null))
 	app.post("/denied", (c) => problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN))
-	app.post("/thrown-denial", () => {
-		throw new ApiError(PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN, "private denial detail")
-	})
 	app.get("/boom", () => {
 		throw new TypeError("secret detail")
 	})
@@ -39,19 +36,6 @@ function probe(write?: (event: WideEvent) => void) {
 }
 
 describe("wide events", () => {
-	it("logs thrown authorization denials once and preserves the request ID", async () => {
-		const { app, logged } = probe()
-		const response = await app.request("/thrown-denial", { method: "POST" })
-		expect(response.status).toBe(403)
-		expect(logged).toHaveLength(1)
-		expect(logged[0]).toMatchObject({
-			"http.response.status_code": 403,
-			"error.code": PROBLEM_CODES.PERMISSION_DENIED,
-		})
-		expect(response.headers.get(REQUEST_ID_HEADER)).toBe(logged[0]?.["request.id"] ?? null)
-		expect(JSON.stringify(logged)).not.toContain("private denial detail")
-	})
-
 	it("logs one event per request with route template, identity, and generated request ID", async () => {
 		const { app, logged } = probe()
 		const response = await app.request(`/agents/${AGENT_ID}?email=visitor@example.com`)

@@ -1498,6 +1498,7 @@ describe("chat retrieval", () => {
 			await expect(instance.service.send({ ...input, requestId: REQUEST_2 })).rejects.toBeInstanceOf(
 				DailyAllowanceExceededError,
 			)
+			expect(search).toHaveBeenCalledTimes(1)
 			await embed.disableEmbed(createdEmbed.id, await testAdminId())
 			search.mockClear()
 			await expect(instance.service.send({ ...input, requestId: REQUEST_3 })).rejects.toBeInstanceOf(EmbedDisabledError)
