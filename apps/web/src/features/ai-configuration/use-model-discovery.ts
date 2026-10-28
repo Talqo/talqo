@@ -24,20 +24,23 @@ type DiscoveryResult = {
 	failed: boolean
 }
 
-export function useModelDiscovery(
-	context: DiscoveryContext & { storedCredentialRole: "text" | "embedding" },
-): ModelDiscoveryState {
-	const [result, setResult] = useState<DiscoveryResult | null>(null)
-	const [attempt, setAttempt] = useState(0)
-	const ready = isDiscoveryReady(context)
+type DiscoveryContextWithRole = DiscoveryContext & { storedCredentialRole: "text" | "embedding" }
+
+function discoveryRequest(context: DiscoveryContextWithRole): DiscoverAiProviderModelsMutationBody | null {
+	if (!isDiscoveryReady(context)) return null
 	const { provider, value, storedCredentialRole } = context
 	const { settings, credentials } = value
 	const connection = { providerId: provider.id, authMode: "static" as const, settings }
-	const nextRequest: DiscoverAiProviderModelsMutationBody | null = !ready
-		? null
-		: hasCompleteCredentials(provider, credentials)
-			? { ...connection, credentials: requiredCredentials(provider, credentials) }
-			: { ...connection, storedCredentialRole }
+	if (hasCompleteCredentials(provider, credentials)) {
+		return { ...connection, credentials: requiredCredentials(provider, credentials) }
+	}
+	return { ...connection, storedCredentialRole }
+}
+
+export function useModelDiscovery(context: DiscoveryContextWithRole): ModelDiscoveryState {
+	const [result, setResult] = useState<DiscoveryResult | null>(null)
+	const [attempt, setAttempt] = useState(0)
+	const nextRequest = discoveryRequest(context)
 	const signature = JSON.stringify(nextRequest)
 	const [active, setActive] = useState({ signature, request: nextRequest })
 	// Form controllers clone records on model edits; only connection changes restart discovery.

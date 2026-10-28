@@ -35,10 +35,15 @@ const APPEARANCE = {
 
 type FetchCall = { url: string; init: RequestInit | undefined }
 
+function requestUrl(input: string | URL | Request): string {
+	if (typeof input === "string") return input
+	return input instanceof URL ? input.href : input.url
+}
+
 function recordingFetch(responses: Response[]) {
 	const calls: FetchCall[] = []
 	const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
-		calls.push({ url: typeof input === "string" ? input : input instanceof URL ? input.href : input.url, init })
+		calls.push({ url: requestUrl(input), init })
 		const response = responses.shift()
 		if (!response) throw new Error("unexpected fetch")
 		return response

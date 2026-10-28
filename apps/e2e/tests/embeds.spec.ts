@@ -126,6 +126,7 @@ test("operator disables and re-enables an installed embed", async ({ page, agent
 	await expect(toggle).toBeChecked()
 	await toggle.click()
 	await expect(toggle).not.toBeChecked()
+	await expect(page).toHaveURL(`/dashboard/agent/${agentId}?tab=embeds`)
 	await page.reload()
 	await expect(toggle).not.toBeChecked()
 	await expect
@@ -153,6 +154,8 @@ test("operator disables and re-enables an installed embed", async ({ page, agent
 			return ((await response.json()) as { isAvailable: boolean }).isAvailable
 		})
 		.toBe(true)
+	await card.click({ position: { x: 10, y: 10 } })
+	await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
 })
 
 test("operator rotates an embed token and receives a working replacement snippet", async ({ page, agent }) => {
