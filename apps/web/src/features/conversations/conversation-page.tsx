@@ -42,7 +42,7 @@ export function ConversationPage({
 			</Button>
 
 			{query.isPending ? (
-				<div className="space-y-6" aria-busy="true">
+				<div className="space-y-6">
 					<output className="sr-only">{t("conversations.loadingTranscript")}</output>
 					<div className="space-y-3">
 						<Skeleton className="h-8 w-56 max-w-full" />

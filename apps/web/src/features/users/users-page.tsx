@@ -230,7 +230,7 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 
 function UsersSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-3" aria-busy="true">
+		<div className="space-y-3">
 			<output className="sr-only">{label}</output>
 			{Array.from({ length: 3 }, (_, index) => (
 				<Card key={index}>
@@ -300,7 +300,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 	return (
 		<div className="space-y-3">
 			{canManageRoles && rolesQuery.isPending ? (
-				<div className="space-y-2" aria-busy="true">
+				<div className="space-y-2">
 					<output className="sr-only">{t("roles.loading")}</output>
 					<Skeleton className="h-4 w-40 max-w-full" />
 				</div>

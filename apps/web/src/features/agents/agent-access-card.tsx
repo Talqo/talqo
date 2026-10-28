@@ -165,7 +165,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 			<CardContent>
 				<div className="space-y-4">
 					{query.isPending ? (
-						<div className="flex flex-wrap gap-2" aria-busy="true">
+						<div className="flex flex-wrap gap-2">
 							<output className="sr-only">{t("roles.loading")}</output>
 							{Array.from({ length: 3 }, (_, index) => (
 								<Skeleton key={index} className="h-control w-28" />

@@ -87,6 +87,10 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				)}
 			</div>
 
+			{!noAgentSelected && conversationsQuery.isPending ? (
+				<output className="sr-only">{t("conversations.loading")}</output>
+			) : null}
+
 			<section className="space-y-4" aria-busy={conversationsQuery.isFetching}>
 				<h2 ref={resultsHeading} tabIndex={-1} className="text-sm font-medium outline-none">
 					{result ? t("conversations.total", { count: result.total }) : t("conversations.listHeading")}
@@ -95,8 +99,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				{noAgentSelected ? (
 					<output className="text-muted-foreground block">{t("conversations.noAgentSelected")}</output>
 				) : conversationsQuery.isPending ? (
-					<div className="space-y-3" aria-busy="true">
-						<output className="sr-only">{t("conversations.loading")}</output>
+					<div className="space-y-3">
 						<div className="divide-border divide-y rounded-md border">
 							{Array.from({ length: 4 }, (_, index) => (
 								<div key={index} className="space-y-2 px-4 py-3">

@@ -41,7 +41,7 @@ function EmbedPreviewPage() {
 				{t("embedSetup.backToSetup")}
 			</Button>
 			{isLoading ? (
-				<div className="mt-4" aria-busy="true">
+				<div className="mt-4">
 					<output className="sr-only">{t("embedSetup.loading")}</output>
 					<Skeleton className="h-96 w-full" />
 				</div>

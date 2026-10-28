@@ -19,7 +19,7 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 			</div>
 
 			{isLoading ? (
-				<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+				<div className="grid gap-4 md:grid-cols-2">
 					<output className="sr-only">{t("mcp.loading")}</output>
 					{Array.from({ length: 2 }, (_, index) => (
 						<Card key={index}>

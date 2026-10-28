@@ -53,7 +53,7 @@ function metricLabels(t: (key: string) => string): Record<StatsMetric, string> {
 
 function StatsSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-6" aria-busy="true">
+		<div className="space-y-6">
 			<output className="sr-only">{label}</output>
 			<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
 				<Skeleton className="h-9 w-44" />

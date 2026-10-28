@@ -66,7 +66,7 @@ const NOT_FOUND_STATUS = 404
 
 function AgentConfigSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-6" aria-busy="true">
+		<div className="space-y-6">
 			<output className="sr-only">{label}</output>
 			<div className="space-y-3">
 				<Skeleton className="h-8 w-48 max-w-full" />
@@ -420,7 +420,7 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			)}
 
 			{isLoading ? (
-				<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+				<div className="grid gap-4 md:grid-cols-2">
 					<output className="sr-only">{t("embedSetup.loading")}</output>
 					{Array.from({ length: 2 }, (_, index) => (
 						<Card key={index}>

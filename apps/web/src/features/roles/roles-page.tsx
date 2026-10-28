@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next"
 
 function RolesSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-3" aria-busy="true">
+		<div className="space-y-3">
 			<output className="sr-only">{label}</output>
 			{Array.from({ length: 3 }, (_, index) => (
 				<Card key={index}>

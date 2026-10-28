@@ -96,7 +96,7 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	return (
 		<nav className={className}>
 			{query.isPending || agentsQuery.isPending ? (
-				<div className="space-y-1 px-3" aria-busy="true">
+				<div className="space-y-1 px-3">
 					<output className="sr-only">{t("auth.loading")}</output>
 					{Array.from({ length: 5 }, (_, index) => (
 						<Skeleton key={index} className="h-9 w-full" />

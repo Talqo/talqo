@@ -24,7 +24,7 @@ const CONFLICT_STATUS = 409
 
 function AgentsSkeleton({ label }: { label: string }) {
 	return (
-		<div className="grid gap-4 md:grid-cols-2" aria-busy="true">
+		<div className="grid gap-4 md:grid-cols-2">
 			<output className="sr-only">{label}</output>
 			{Array.from({ length: 4 }, (_, index) => (
 				<Card key={index}>

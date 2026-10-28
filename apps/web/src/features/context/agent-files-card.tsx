@@ -295,7 +295,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 						</p>
 					)}
 					{filesQuery.isLoading ? (
-						<div className="divide-border divide-y rounded-md border" aria-busy="true">
+						<div className="divide-border divide-y rounded-md border">
 							<output className="sr-only">{t("agentFiles.loading")}</output>
 							{Array.from({ length: 3 }, (_, index) => (
 								<div key={index} className="flex items-center gap-3 px-3 py-2">
