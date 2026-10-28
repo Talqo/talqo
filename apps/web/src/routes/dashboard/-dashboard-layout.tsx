@@ -164,8 +164,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	useEffect(
 		() =>
 			router.subscribe("onBeforeNavigate", ({ fromLocation, toLocation }) => {
-				if (fromLocation?.pathname === toLocation.pathname) return
 				setMobileOpen(false)
+				if (fromLocation?.pathname === toLocation.pathname) return
 				void client.invalidateQueries({ queryKey: getListAgentsQueryKey() })
 			}),
 		[router, client],
