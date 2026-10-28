@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./application"
-import { openDashboard } from "./log-in"
+import { ADMIN, openDashboard } from "./log-in"
 
 test.afterEach(async ({ adminRequest: request, application }) => {
 	const response = await request.get("/api/ai-provider-configuration")
