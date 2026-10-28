@@ -107,6 +107,27 @@ test("keeps global navigation and the current page when agent discovery fails", 
 	expect(rendered.host.querySelector("[role=alert]")).not.toBeNull()
 })
 
+test("keeps the account name and log out in the sidebar footer", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const sidebar = rendered.host.querySelector("aside")
+	const header = rendered.host.querySelector("header")
+	const logout = [...rendered.host.querySelectorAll("button")].find(
+		(button) => button.textContent === t("header.logout"),
+	)
+	expect(sidebar?.textContent).toContain("Admin")
+	expect(logout && sidebar?.contains(logout)).toBe(true)
+	expect(header?.contains(logout ?? null)).toBe(false)
+})
+
 test("clears protected caches when discovery revokes access before the access refetch completes", async () => {
 	let revoked = false
 	let accessSignal: AbortSignal | null | undefined
