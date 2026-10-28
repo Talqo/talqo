@@ -36,7 +36,7 @@ function SelectTrigger({
 			className={cn(
 				"border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 rounded-control pl-control-padding data-[size=default]:h-control data-[size=sm]:h-control-sm flex w-fit items-center justify-between gap-2 border bg-transparent pr-3 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 				variant === "ghost" &&
-					"hover:bg-muted dark:hover:bg-muted/50 justify-center gap-1.5 border-0 bg-transparent px-3.5 dark:bg-transparent",
+					"hover:bg-muted dark:hover:bg-muted/50 justify-center gap-1.5 border-0 bg-transparent px-3.5 font-medium dark:bg-transparent",
 				className,
 			)}
 			{...props}
