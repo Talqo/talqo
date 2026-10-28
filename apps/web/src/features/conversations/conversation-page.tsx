@@ -29,7 +29,7 @@ export function ConversationPage({
 	const agentName = agents?.find((agent) => agent.id === conversation?.agentId)?.name
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<Button
 				render={<Link to="/dashboard/conversations" search={listSearch} />}
 				nativeButton={false}

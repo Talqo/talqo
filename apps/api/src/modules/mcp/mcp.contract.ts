@@ -82,7 +82,7 @@ const serverResponseSchema = z
 	.openapi("McpServer")
 
 export const serverDetailSchema = z.object({ server: serverResponseSchema })
-export const serverListSchema = z.object({ servers: z.array(serverResponseSchema) })
+export const serverListSchema = z.object({ servers: z.array(serverResponseSchema), stdioAllowed: z.boolean() })
 
 const agentParamsSchema = z.object({
 	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
@@ -93,7 +93,7 @@ const serverParamsSchema = z.object({
 })
 
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
-const forbidden = problemResponse([PROBLEM_CODES.PERMISSION_DENIED])
+const forbidden = problemResponse([PROBLEM_CODES.PERMISSION_DENIED, PROBLEM_CODES.MCP_STDIO_DISABLED])
 const notFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.MCP_SERVER_NOT_FOUND])
 const serverError = problemResponse([PROBLEM_CODES.INTERNAL_SERVER_ERROR])
 const domain = {

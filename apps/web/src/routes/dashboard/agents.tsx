@@ -58,7 +58,7 @@ function AgentsPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-5xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader
 				title={t("agents.heading")}
 				description={t("agents.subheading")}

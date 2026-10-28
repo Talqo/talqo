@@ -20,6 +20,7 @@ import {
 } from "./conversation.schema.ts"
 
 const LEASE_MS = 15_000
+const DAILY_COUNTER_PRUNE_BATCH_SIZE = 1_000
 const DATABASE_NOW = sql`now()`
 const DATABASE_DAY = sql<string>`to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD')`
 const DATABASE_LEASE_EXPIRY = sql`now() + ${LEASE_MS} * interval '1 millisecond'`
@@ -362,10 +363,17 @@ export async function setAttribution(
 	provider: string,
 	model: string,
 	markInvoked = false,
+	estimatedInputTokens?: number,
 ): Promise<boolean> {
 	const rows = await db
 		.update(generationAttempt)
-		.set({ provider, model, ...(markInvoked ? { providerInvoked: true } : {}), updatedAt: DATABASE_NOW })
+		.set({
+			provider,
+			model,
+			...(markInvoked ? { providerInvoked: true } : {}),
+			...(estimatedInputTokens !== undefined ? { estimatedInputTokens } : {}),
+			updatedAt: DATABASE_NOW,
+		})
 		.where(and(leaseOwned(generationAttemptId, leaseToken), eq(generationAttempt.status, "running")))
 		.returning({ id: generationAttempt.id })
 	return rows.length === 1
@@ -426,13 +434,7 @@ export async function stageFinalization(input: {
 				usageOutputTokens: input.outputTokens,
 				updatedAt: DATABASE_NOW,
 			})
-			.where(
-				and(
-					leaseOwned(input.generationAttemptId, input.leaseToken),
-					eq(generationAttempt.status, "running"),
-					eq(generationAttempt.providerInvoked, true),
-				),
-			)
+			.where(and(leaseOwned(input.generationAttemptId, input.leaseToken), eq(generationAttempt.status, "running")))
 			.returning({ conversationId: generationAttempt.conversationId })
 		const finalized = rows[0]
 		if (!finalized) return false
@@ -548,8 +550,24 @@ export async function getActiveGenerationAttempt(conversationId: string): Promis
 export async function recoverExpiredGenerationAttempts(): Promise<void> {
 	return db.transaction(async (tx) => {
 		await interruptExpiredGenerationAttempts(tx)
-		await tx.delete(conversationDailyCounter).where(lt(conversationDailyCounter.day, DATABASE_DAY))
 	})
+}
+
+export async function pruneDailyCounters(): Promise<void> {
+	await db.delete(conversationDailyCounter).where(
+		and(
+			lt(conversationDailyCounter.day, DATABASE_DAY),
+			sql`(${conversationDailyCounter.agentId}, ${conversationDailyCounter.networkHash}, ${conversationDailyCounter.day}) IN (${db
+				.select({
+					agentId: conversationDailyCounter.agentId,
+					networkHash: conversationDailyCounter.networkHash,
+					day: conversationDailyCounter.day,
+				})
+				.from(conversationDailyCounter)
+				.where(lt(conversationDailyCounter.day, DATABASE_DAY))
+				.limit(DAILY_COUNTER_PRUNE_BATCH_SIZE)})`,
+		),
+	)
 }
 
 export type AgentDailyCount = {

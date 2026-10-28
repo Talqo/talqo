@@ -13,7 +13,10 @@ import {
 
 import type { User } from "./identity.repository.ts"
 
+import { createCredentialLimiter } from "./credential-limit.ts"
 import * as repo from "./identity.repository.ts"
+
+export const runCredentialOperation = createCredentialLimiter()
 
 // eslint-disable-next-line no-magic-numbers
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7

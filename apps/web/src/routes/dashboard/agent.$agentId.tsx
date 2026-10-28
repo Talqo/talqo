@@ -154,15 +154,11 @@ function AgentConfigPage() {
 	}
 
 	if (isLoading || permissionsQuery.isPending) {
-		return (
-			<div className="mx-auto max-w-3xl">
-				<p className="text-muted-foreground">{t("agentConfig.loading")}</p>
-			</div>
-		)
+		return <p className="text-muted-foreground">{t("agentConfig.loading")}</p>
 	}
 	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
-			<div className="mx-auto max-w-3xl space-y-6">
+			<div className="space-y-6">
 				<BackLink t={t} />
 				<ProblemAlert
 					error={permissionsQuery.error ?? agentQuery.error}
@@ -179,7 +175,7 @@ function AgentConfigPage() {
 
 	if (!agent) {
 		return (
-			<div className="mx-auto max-w-3xl space-y-6">
+			<div className="space-y-6">
 				<BackLink t={t} />
 				<p className="text-muted-foreground">
 					{error?.status === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
@@ -189,7 +185,7 @@ function AgentConfigPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<BackLink t={t} />
 
 			<PageHeader title={agent.name} description={canManage ? t("agentConfig.subheading") : undefined} />
@@ -399,14 +395,14 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{embeds.map((embed) => (
-						<Card key={embed.id} className="h-full">
+						<Card key={embed.id} variant="interactive" className="relative h-full">
 							<CardHeader>
 								<CardTitle>
 									<Link
 										to="/dashboard/embeds/$embedId"
 										params={{ embedId: embed.id }}
 										search={{ colorTab: undefined }}
-										className="hover:underline"
+										className="after:absolute after:inset-0"
 									>
 										{embed.name}
 									</Link>
@@ -430,7 +426,9 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 												: embed.appearance.language}
 										</span>
 									</div>
-									<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
+									<div className="relative z-10 w-fit">
+										<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
+									</div>
 								</div>
 							</CardContent>
 						</Card>

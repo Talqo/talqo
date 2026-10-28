@@ -8,7 +8,8 @@ import * as zod from 'zod';
 import { McpServer } from '../mcpServer.zod';
 
 export const ListMcpServers200 = zod.object({
-  "servers": zod.array(McpServer)
+  "servers": zod.array(McpServer),
+  "stdioAllowed": zod.boolean()
 })
 
 export type ListMcpServers200 = zod.input<typeof ListMcpServers200>;

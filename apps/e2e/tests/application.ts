@@ -1,8 +1,9 @@
-import { expect, test as base } from "@playwright/test"
+import { type APIRequestContext, expect, request as apiRequest, test as base } from "@playwright/test"
 import { $, type Subprocess } from "bun"
 import { mkdir, open } from "node:fs/promises"
 import path from "node:path"
 
+import { pinLanguage } from "./i18n"
 import { ADMIN } from "./log-in"
 import { createTestServer } from "./test-server"
 
@@ -20,12 +21,25 @@ type Application = {
 export const test = base.extend<
 	{
 		localNetwork: void
+		language: void
 		agent: { id: string; name: string }
 	},
-	{ application: Application }
+	{ application: Application; stdioAllowed: boolean; adminRequest: APIRequestContext }
 >({
-	agent: async ({ request }, use) => {
-		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+	stdioAllowed: [true, { scope: "worker", option: true }],
+	adminRequest: [
+		async ({ application }, use) => {
+			const request = await apiRequest.newContext({ baseURL: application.origin })
+			try {
+				await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+				await use(request)
+			} finally {
+				await request.dispose()
+			}
+		},
+		{ scope: "worker" },
+	],
+	agent: async ({ adminRequest: request }, use) => {
 		const name = `Agent ${crypto.randomUUID()}`
 		const response = await request.post("/api/agents", {
 			data: { name, systemPrompt: "Answer questions about our website.", wordBlacklist: ["Intercom"] },
@@ -61,7 +75,7 @@ export const test = base.extend<
 		await expect(await request.delete(`/api/agents/${id}`)).toBeOK()
 	},
 	application: [
-		async ({ browserName }, use, workerInfo) => {
+		async ({ browserName, stdioAllowed }, use, workerInfo) => {
 			const container = process.env.E2E_POSTGRES_CONTAINER
 			if (!container) throw new Error(`Playwright did not start PostgreSQL for ${browserName}`)
 			const database = `e2e_${workerInfo.workerIndex}`
@@ -88,6 +102,7 @@ export const test = base.extend<
 					TALQO_WEB_DIST: path.join(ROOT, "apps/web/dist"),
 					TALQO_WIDGET_DIST: path.join(ROOT, "apps/widget/dist"),
 					TALQO_CHAT_DAILY_MESSAGE_LIMIT: "3",
+					TALQO_MCP_ALLOW_STDIO: String(stdioAllowed),
 					TALQO_ALLOW_INSECURE_SEED: "true",
 					TALQO_DOCLING_URL: providerOrigin,
 					TALQO_SEED_AI_BASE_URL: `${providerOrigin}/v1`,
@@ -162,6 +177,13 @@ export const test = base.extend<
 			if (testInfo.status !== testInfo.expectedStatus)
 				await testInfo.attach("API log", { path: application.logPath, contentType: "text/plain" })
 			expect([...blockedOrigins], "Browser requests must stay inside the test environment").toEqual([])
+		},
+		{ auto: true },
+	],
+	language: [
+		async ({ context }, use) => {
+			await pinLanguage(context)
+			await use()
 		},
 		{ auto: true },
 	],

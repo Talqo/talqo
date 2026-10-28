@@ -1,14 +1,14 @@
 import { expect } from "@playwright/test"
 
 import { test as applicationTest } from "./application"
+import { web } from "./i18n"
 import { createInvitedMember } from "./invited-member"
-import { ADMIN, logIn, openDashboard } from "./log-in"
+import { ADMIN, logIn, logOut, openDashboard } from "./log-in"
 
 const test = applicationTest.extend<{ member: { username: string; password: string } }>({
-	member: async ({ request }, use) => {
+	member: async ({ adminRequest: request }, use) => {
 		const member = { username: crypto.randomUUID().replaceAll("-", ""), password: "member-original-password" }
 		await use(member)
-		await expect(await request.post("/api/auth/login", { data: ADMIN })).toBeOK()
 		const response = await request.get("/api/users")
 		await expect(response).toBeOK()
 		const { users } = (await response.json()) as { users: { id: string; username: string }[] }
@@ -18,38 +18,34 @@ const test = applicationTest.extend<{ member: { username: string; password: stri
 })
 
 test("admin selects invitation roles and the member lands signed in with that access", async ({ page, member }) => {
-	await logIn(page, ADMIN)
-
-	await page.getByRole("link", { name: "Users" }).click()
-	await expect(page).toHaveURL("/dashboard/users")
-	await page.getByRole("button", { name: "Invite a member" }).click()
+	await openDashboard(page, ADMIN, "/dashboard/users")
+	await page.getByRole("button", { name: web("auth.invitations.heading") }).click()
 
 	const dialog = page.getByRole("dialog")
-	await expect(dialog.getByRole("heading", { name: "Invite a member" })).toBeVisible()
+	await expect(dialog.getByRole("heading", { name: web("auth.invitations.heading") })).toBeVisible()
 	await expect(dialog.getByRole("checkbox", { name: "Default", exact: true })).toBeChecked()
 	await dialog.getByRole("checkbox", { name: "Default", exact: true }).uncheck()
 	await dialog.getByRole("checkbox", { name: "Support", exact: true }).check()
-	await dialog.getByRole("button", { name: "Create invitation" }).click()
-	const inviteUrl = await dialog.getByLabel("Invitation link:").inputValue()
+	await dialog.getByRole("button", { name: web("auth.invitations.create") }).click()
+	const inviteUrl = await dialog.getByLabel(web("auth.invitations.linkLabel")).inputValue()
 	expect(inviteUrl).toMatch(/^https?:\/\//)
 	expect(new URL(inviteUrl).searchParams.get("token")).toBeTruthy()
 
 	const { username: memberUsername, password: memberPassword } = member
 
 	await page.keyboard.press("Escape")
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 	await page.goto(inviteUrl)
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
-	await page.getByLabel("Confirm password").fill(memberPassword)
-	await page.getByRole("button", { name: "Create account" }).click()
+	await page.getByLabel(web("auth.credentialsForm.username")).fill(memberUsername)
+	await page.getByLabel(web("auth.credentialsForm.password"), { exact: true }).fill(memberPassword)
+	await page.getByLabel(web("auth.credentialsForm.confirmPassword")).fill(memberPassword)
+	await page.getByRole("button", { name: web("auth.acceptInvite.submit") }).click()
 
 	await expect(page).toHaveURL("/dashboard")
-	await expect(page.getByRole("link", { name: "Conversations", exact: true })).toBeVisible()
-	await expect(page.getByRole("link", { name: "Agents", exact: true })).toHaveCount(0)
+	await expect(page.getByRole("link", { name: web("nav.conversations"), exact: true })).toBeVisible()
+	await expect(page.getByRole("link", { name: web("nav.agents"), exact: true })).toHaveCount(0)
 
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
+	await logOut(page)
 	await page.goto("/dashboard/users")
 	await expect(page).toHaveURL("/login")
 })
@@ -61,44 +57,42 @@ test("an admin resets a member's password and forces them through a new one", as
 
 	await createInvitedMember(request, { username: memberUsername, password: originalPassword })
 
-	await openDashboard(page)
-	await page.getByRole("link", { name: "Users" }).click()
-	await expect(page).toHaveURL("/dashboard/users")
+	await openDashboard(page, ADMIN, "/dashboard/users")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Reset password" })).toHaveCount(0)
+	await expect(adminRow.getByRole("button", { name: web("users.resetPassword") })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
-	await expect(memberRow.getByText("Pending password change")).toHaveCount(0)
-	await memberRow.getByRole("button", { name: "Reset password" }).click()
+	await expect(memberRow.getByText(web("users.pendingChange"))).toHaveCount(0)
+	await memberRow.getByRole("button", { name: web("users.resetPassword") }).click()
 	const dialog = page.getByRole("dialog")
-	await dialog.getByLabel("New password", { exact: true }).fill(adminResetPassword)
-	await dialog.getByLabel("Confirm new password").fill(adminResetPassword)
-	await dialog.getByRole("button", { name: "Reset password" }).click()
-	await expect(page.getByText("Password reset.")).toBeVisible()
-	await expect(memberRow.getByText("Pending password change")).toBeVisible()
-	await page.getByRole("button", { name: "Log out" }).click()
+	await dialog.getByLabel(web("account.newPassword"), { exact: true }).fill(adminResetPassword)
+	await dialog.getByLabel(web("account.confirmNewPassword")).fill(adminResetPassword)
+	await dialog.getByRole("button", { name: web("users.resetPassword") }).click()
+	await expect(page.getByText(web("users.resetSuccess"))).toBeVisible()
+	await expect(memberRow.getByText(web("users.pendingChange"))).toBeVisible()
+	await logOut(page)
 
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(originalPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+	await page.getByLabel(web("auth.credentialsForm.username")).fill(memberUsername)
+	await page.getByLabel(web("auth.credentialsForm.password"), { exact: true }).fill(originalPassword)
+	await page.getByRole("button", { name: web("auth.login.submit") }).click()
 	await expect(page.getByRole("alert")).toBeVisible()
 	await expect(page).toHaveURL("/login")
 
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(adminResetPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+	await page.getByLabel(web("auth.credentialsForm.username")).fill(memberUsername)
+	await page.getByLabel(web("auth.credentialsForm.password"), { exact: true }).fill(adminResetPassword)
+	await page.getByRole("button", { name: web("auth.login.submit") }).click()
 	await expect(page).toHaveURL("/force-password-change")
 
 	await page.goto("/dashboard/agents")
 	await expect(page).toHaveURL("/force-password-change")
 
-	await page.getByLabel("New password", { exact: true }).fill(memberFinalPassword)
-	await page.getByLabel("Confirm new password").fill(memberFinalPassword)
-	await page.getByRole("button", { name: "Set new password" }).click()
+	await page.getByLabel(web("account.newPassword"), { exact: true }).fill(memberFinalPassword)
+	await page.getByLabel(web("account.confirmNewPassword")).fill(memberFinalPassword)
+	await page.getByRole("button", { name: web("auth.forcePasswordChange.submit") }).click()
 
 	await expect(page).toHaveURL("/dashboard/account")
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 	await logIn(page, { username: memberUsername, password: memberFinalPassword })
 })
 
@@ -106,33 +100,32 @@ test("an admin can delete a member but cannot delete their own account", async (
 	const { username: memberUsername, password: memberPassword } = member
 	await createInvitedMember(request, { username: memberUsername, password: memberPassword })
 
-	await openDashboard(page)
-	await page.getByRole("link", { name: "Account", exact: true }).click()
-	await expect(page.getByRole("heading", { name: "Account", exact: true })).toBeVisible()
-	await expect(page.getByRole("heading", { name: "Danger zone", exact: true })).toHaveCount(0)
-	await expect(page.getByRole("button", { name: "Delete account", exact: true })).toHaveCount(0)
-	await page.getByRole("link", { name: "Users" }).click()
+	await openDashboard(page, ADMIN, "/dashboard/account")
+	await expect(page.getByRole("heading", { name: web("account.heading"), exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: web("account.dangerZone"), exact: true })).toHaveCount(0)
+	await expect(page.getByRole("button", { name: web("account.deleteAccount"), exact: true })).toHaveCount(0)
+	await page.getByRole("link", { name: web("nav.users") }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0)
+	await expect(adminRow.getByRole("button", { name: web("users.delete"), exact: true })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
-	await memberRow.getByRole("button", { name: "Delete", exact: true }).click()
+	await memberRow.getByRole("button", { name: web("users.delete"), exact: true }).click()
 	const dialog = page.getByRole("dialog")
-	const confirm = dialog.getByRole("button", { name: "Delete user" })
+	const confirm = dialog.getByRole("button", { name: web("users.deleteConfirm") })
 	await expect(confirm).toBeEnabled()
-	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+	await dialog.getByRole("button", { name: web("common.cancel"), exact: true }).click()
 	await expect(memberRow).toBeVisible()
-	await memberRow.getByRole("button", { name: "Delete", exact: true }).click()
+	await memberRow.getByRole("button", { name: web("users.delete"), exact: true }).click()
 	await confirm.click()
 	await expect(dialog).toBeHidden()
 	await expect(memberRow).toHaveCount(0)
-	await page.getByRole("button", { name: "Log out" }).click()
+	await logOut(page)
 
-	await page.getByLabel("Username").fill(memberUsername)
-	await page.getByLabel("Password", { exact: true }).fill(memberPassword)
-	await page.getByRole("button", { name: "Log in" }).click()
+	await page.getByLabel(web("auth.credentialsForm.username")).fill(memberUsername)
+	await page.getByLabel(web("auth.credentialsForm.password"), { exact: true }).fill(memberPassword)
+	await page.getByRole("button", { name: web("auth.login.submit") }).click()
 	await expect(page.getByRole("alert")).toBeVisible()
 	await expect(page).toHaveURL("/login")
 })
@@ -140,15 +133,14 @@ test("an admin can delete a member but cannot delete their own account", async (
 test("a member cancels then deletes their own account from Account settings", async ({ page, request, member }) => {
 	const { username, password } = member
 	await createInvitedMember(request, member)
-	await logIn(page, { username, password })
-	await page.getByRole("link", { name: "Account", exact: true }).click()
-	await page.getByRole("button", { name: "Delete account", exact: true }).click()
+	await openDashboard(page, { username, password }, "/dashboard/account")
+	await page.getByRole("button", { name: web("account.deleteAccount"), exact: true }).click()
 	const dialog = page.getByRole("dialog")
-	await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+	await dialog.getByRole("button", { name: web("common.cancel"), exact: true }).click()
 	await expect(dialog).toBeHidden()
 	await expect(page).toHaveURL("/dashboard/account")
-	await page.getByRole("button", { name: "Delete account", exact: true }).click()
-	await dialog.getByRole("button", { name: "Delete account", exact: true }).click()
+	await page.getByRole("button", { name: web("account.deleteAccount"), exact: true }).click()
+	await dialog.getByRole("button", { name: web("account.deleteAccount"), exact: true }).click()
 	await expect(page).toHaveURL("/login")
 	await page.goto("/dashboard/account")
 	await expect(page).toHaveURL("/login")

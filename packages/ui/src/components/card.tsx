@@ -4,7 +4,7 @@ import * as React from "react"
 const cardVariants = {
 	default: "",
 	elevated: "shadow-sm",
-	interactive: "transition-colors group-hover:bg-muted/50 group-focus-visible:ring-ring",
+	interactive: "transition-colors hover:bg-muted/50 group-focus-visible:ring-ring",
 	destructive: "ring-destructive",
 } as const
 

@@ -57,6 +57,11 @@ export class InvalidMcpServerNameError extends ApiError {
 		super(PROBLEM_CODES.INVALID_MCP_SERVER_NAME, HTTP_STATUS.BAD_REQUEST, message, undefined, options)
 	}
 }
+export class McpStdioDisabledError extends ApiError {
+	constructor(message?: string, options?: ErrorOptions) {
+		super(PROBLEM_CODES.MCP_STDIO_DISABLED, HTTP_STATUS.FORBIDDEN, message, undefined, options)
+	}
+}
 
 /** The open connection that conversation holds for one generation. */
 export type OpenTools = OpenToolsResult & { degradedServers: number }
@@ -86,7 +91,7 @@ function toView(row: McpServerRow): McpServerView {
 		env: secretNames(row.env),
 		tools: row.tools,
 		toolCount: row.tools.length,
-		isWorking: row.tools.length > 0,
+		isWorking: row.tools.length > 0 && (row.transport !== "stdio" || env.TALQO_MCP_ALLOW_STDIO),
 		isDisabled: row.isDisabled,
 		revision: row.revision,
 	}
@@ -97,6 +102,8 @@ function assertValid(input: McpCreateInput): void {
 		throw new InvalidMcpServerNameError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
 	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
+	if (input.transport === "stdio" && !env.TALQO_MCP_ALLOW_STDIO)
+		throw new McpStdioDisabledError("Stdio MCP servers are disabled on this deployment (TALQO_MCP_ALLOW_STDIO=false)")
 	if (input.transport !== "http") return
 	let url: URL
 	try {
@@ -255,6 +262,7 @@ export async function setServerDisabled(
 	isDisabled: boolean,
 ): Promise<McpServerView> {
 	const row = await ownedRow(agentId, serverId)
+	if (!isDisabled && row.transport === "stdio" && !env.TALQO_MCP_ALLOW_STDIO) throw new McpStdioDisabledError()
 	return toView((await repo.update(serverId, { isDisabled })) ?? row)
 }
 
