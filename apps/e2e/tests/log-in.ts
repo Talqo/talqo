@@ -1,5 +1,7 @@
 import { expect, type Page } from "@playwright/test"
 
+import { web } from "./i18n"
+
 export const ADMIN = { username: "admin", password: "admin123" }
 export const MEMBER = { username: "user", password: "user1234" }
 
@@ -14,14 +16,14 @@ export async function openDashboard(page: Page, account = ADMIN, path = "/dashbo
 }
 
 export async function logOut(page: Page): Promise<void> {
-	await page.getByRole("button", { name: "Log out" }).click()
+	await page.getByRole("button", { name: web("header.logout") }).click()
 	await expect(page).toHaveURL("/login")
 }
 
 export async function logIn(page: Page, account = ADMIN): Promise<void> {
 	if (new URL(page.url()).pathname !== "/login") await page.goto("/login")
-	await page.getByLabel("Username").fill(account.username)
-	await page.getByLabel("Password", { exact: true }).fill(account.password)
-	await page.getByRole("button", { name: "Log in" }).click()
+	await page.getByLabel(web("auth.credentialsForm.username")).fill(account.username)
+	await page.getByLabel(web("auth.credentialsForm.password"), { exact: true }).fill(account.password)
+	await page.getByRole("button", { name: web("auth.login.submit") }).click()
 	await expect(page).toHaveURL(/\/dashboard(?:\/[^?]*)?(?:\?.*)?$/)
 }

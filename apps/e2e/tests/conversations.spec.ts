@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./application"
+import { web } from "./i18n"
 import { openDashboard } from "./log-in"
 
 const OPERATOR = { username: "admin", password: "admin123" }
@@ -50,11 +51,11 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 	await expect(row).toContainText(agentName)
 	await row.click()
 
-	await expect(page.getByRole("heading", { name: "Conversation", exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: web("conversations.heading"), exact: true })).toBeVisible()
 	await expect(page.getByText(QUESTION, { exact: true })).toBeVisible()
 	await expect(page.locator("strong", { hasText: "tomorrow" })).toBeVisible()
 
-	await page.getByRole("button", { name: "Back to conversations" }).click()
+	await page.getByRole("button", { name: web("conversations.backToConversations") }).click()
 	await expect(page).toHaveURL("/dashboard/conversations")
 	await expect(page.getByRole("link", { name: QUESTION })).toBeVisible()
 })

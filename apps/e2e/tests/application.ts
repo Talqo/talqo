@@ -3,6 +3,7 @@ import { $, type Subprocess } from "bun"
 import { mkdir, open } from "node:fs/promises"
 import path from "node:path"
 
+import { pinLanguage } from "./i18n"
 import { ADMIN } from "./log-in"
 import { createTestServer } from "./test-server"
 
@@ -20,6 +21,7 @@ type Application = {
 export const test = base.extend<
 	{
 		localNetwork: void
+		language: void
 		agent: { id: string; name: string }
 	},
 	{ application: Application; stdioAllowed: boolean; adminRequest: APIRequestContext }
@@ -175,6 +177,13 @@ export const test = base.extend<
 			if (testInfo.status !== testInfo.expectedStatus)
 				await testInfo.attach("API log", { path: application.logPath, contentType: "text/plain" })
 			expect([...blockedOrigins], "Browser requests must stay inside the test environment").toEqual([])
+		},
+		{ auto: true },
+	],
+	language: [
+		async ({ context }, use) => {
+			await pinLanguage(context)
+			await use()
 		},
 		{ auto: true },
 	],
