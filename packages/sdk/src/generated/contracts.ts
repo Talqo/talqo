@@ -79,6 +79,9 @@ export type ProblemDetails = {
   code: 'authentication-required';
   type: 'https://docs.talqo.chat/problems#authentication-required';
 } | {
+  code: 'auth-rate-limited';
+  type: 'https://docs.talqo.chat/problems#auth-rate-limited';
+} | {
   code: 'chat-client-address-unavailable';
   type: 'https://docs.talqo.chat/problems#chat-client-address-unavailable';
 } | {
@@ -153,6 +156,9 @@ export type ProblemDetails = {
 } | {
   code: 'mcp-server-not-found';
   type: 'https://docs.talqo.chat/problems#mcp-server-not-found';
+} | {
+  code: 'mcp-stdio-disabled';
+  type: 'https://docs.talqo.chat/problems#mcp-stdio-disabled';
 } | {
   code: 'model-discovery-unsupported';
   type: 'https://docs.talqo.chat/problems#model-discovery-unsupported';

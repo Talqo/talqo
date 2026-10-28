@@ -7,12 +7,13 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 	const { t } = useTranslation()
 	const { data, isLoading, isError } = useListMcpServers(agentId)
 	const servers = data?.data.servers ?? []
+	const stdioAllowed = data?.data.stdioAllowed === true
 
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">{t("mcp.panelDescription")}</p>
-				{canManage && <ConnectionDialog agentId={agentId} />}
+				{canManage && data && <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} />}
 			</div>
 
 			{isLoading ? (
@@ -26,7 +27,13 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{servers.map((server) => (
-						<ConnectionCard key={server.id} agentId={agentId} server={server} canManage={canManage} />
+						<ConnectionCard
+							key={server.id}
+							agentId={agentId}
+							server={server}
+							canManage={canManage}
+							stdioAllowed={stdioAllowed}
+						/>
 					))}
 				</div>
 			)}

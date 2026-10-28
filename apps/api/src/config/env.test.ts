@@ -38,6 +38,7 @@ describe("parseEnv", () => {
 		expect(env.TALQO_CHAT_MAX_OUTPUT_TOKENS).toBe(16_384)
 		expect(env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS).toBe(120)
 		expect(env.TALQO_SERVE_STATIC).toBe(false)
+		expect(env.TALQO_MCP_ALLOW_STDIO).toBe(true)
 		expect(env.TALQO_WEB_DIST).toBeUndefined()
 		expect(env.TALQO_WIDGET_DIST).toBeUndefined()
 	})
@@ -68,6 +69,18 @@ describe("parseEnv", () => {
 				TALQO_SERVE_STATIC: "yes",
 			}),
 		).toThrow(/TALQO_SERVE_STATIC/)
+	})
+
+	it("parses the stdio MCP switch and rejects invalid values", () => {
+		const base = {
+			APP_SECRET,
+			DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+			TALQO_DOCLING_URL: DOCLING,
+			NODE_ENV: "production",
+		}
+		expect(parseEnv({ ...base, TALQO_MCP_ALLOW_STDIO: "false" }).TALQO_MCP_ALLOW_STDIO).toBe(false)
+		expect(parseEnv({ ...base, TALQO_MCP_ALLOW_STDIO: "true" }).TALQO_MCP_ALLOW_STDIO).toBe(true)
+		expect(() => parseEnv({ ...base, TALQO_MCP_ALLOW_STDIO: "0" })).toThrow(/TALQO_MCP_ALLOW_STDIO/)
 	})
 
 	it("parses chat policy and trusted proxy CIDRs", () => {

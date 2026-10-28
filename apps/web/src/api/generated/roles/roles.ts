@@ -665,6 +665,11 @@ export type bootstrapAdminResponse413 = {
   status: 413
 }
 
+export type bootstrapAdminResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
 export type bootstrapAdminResponse500 = {
   data: ProblemDetails
   status: 500
@@ -673,7 +678,7 @@ export type bootstrapAdminResponse500 = {
 export type bootstrapAdminResponseSuccess = (bootstrapAdminResponse201) & {
   headers: Headers;
 };
-export type bootstrapAdminResponseError = (bootstrapAdminResponse400 | bootstrapAdminResponse409 | bootstrapAdminResponse413 | bootstrapAdminResponse500) & {
+export type bootstrapAdminResponseError = (bootstrapAdminResponse400 | bootstrapAdminResponse409 | bootstrapAdminResponse413 | bootstrapAdminResponse429 | bootstrapAdminResponse500) & {
   headers: Headers;
 };
 
@@ -931,6 +936,11 @@ export type redeemInvitationResponse413 = {
   status: 413
 }
 
+export type redeemInvitationResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
 export type redeemInvitationResponse500 = {
   data: ProblemDetails
   status: 500
@@ -939,7 +949,7 @@ export type redeemInvitationResponse500 = {
 export type redeemInvitationResponseSuccess = (redeemInvitationResponse201) & {
   headers: Headers;
 };
-export type redeemInvitationResponseError = (redeemInvitationResponse400 | redeemInvitationResponse409 | redeemInvitationResponse413 | redeemInvitationResponse500) & {
+export type redeemInvitationResponseError = (redeemInvitationResponse400 | redeemInvitationResponse409 | redeemInvitationResponse413 | redeemInvitationResponse429 | redeemInvitationResponse500) & {
   headers: Headers;
 };
 

@@ -268,6 +268,28 @@
               "code": {
                 "type": "string",
                 "enum": [
+                  "auth-rate-limited"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#auth-rate-limited"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
                   "chat-client-address-unavailable"
                 ]
               },
@@ -803,6 +825,28 @@
                 "type": "string",
                 "enum": [
                   "https://docs.talqo.chat/problems#mcp-server-not-found"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "mcp-stdio-disabled"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#mcp-stdio-disabled"
                 ]
               }
             },
@@ -3093,6 +3137,16 @@
               }
             }
           },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Problem response. Codes: internal-server-error.",
             "content": {
@@ -3956,6 +4010,16 @@
               }
             }
           },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Problem response. Codes: internal-server-error.",
             "content": {
@@ -4173,6 +4237,16 @@
           },
           "413": {
             "description": "Problem response. Codes: payload-too-large.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7971,10 +8045,14 @@
                       "items": {
                         "$ref": "#/components/schemas/McpServer"
                       }
+                    },
+                    "stdioAllowed": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
-                    "servers"
+                    "servers",
+                    "stdioAllowed"
                   ]
                 }
               }
@@ -8001,7 +8079,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8201,7 +8279,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8322,7 +8400,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8572,7 +8650,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8676,7 +8754,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8799,7 +8877,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -1,3 +1,4 @@
+import { env } from "@/config/env.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate, annotator } from "@/http/wide-event.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -20,7 +21,7 @@ import * as service from "./mcp.service.ts"
 const serversRoutes = new OpenAPIHono()
 	.openapi(listMcpServersRoute, async (c) => {
 		const servers = await service.listServers(c.req.valid("param").agentId)
-		return c.json(serverListSchema.parse({ servers }), HTTP_STATUS.OK)
+		return c.json(serverListSchema.parse({ servers, stdioAllowed: env.TALQO_MCP_ALLOW_STDIO }), HTTP_STATUS.OK)
 	})
 	.openapi(createMcpServerRoute, async (c) => {
 		const { agentId } = c.req.valid("param")

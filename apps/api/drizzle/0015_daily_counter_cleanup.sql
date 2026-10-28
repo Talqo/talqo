@@ -1,0 +1,1 @@
+CREATE INDEX "conversation_daily_counter_day_idx" ON "conversation_daily_counter" USING btree ("day");
