@@ -1,3 +1,5 @@
+import type { BrowserContext } from "@playwright/test"
+
 import { createInstance, type i18n as I18nInstance, type ResourceLanguage } from "i18next"
 import { readFileSync } from "node:fs"
 import path from "node:path"
@@ -26,6 +28,16 @@ function create(name: string, translation: ResourceLanguage): I18nInstance {
 function translate(instance: I18nInstance, key: string, values?: Values): string {
 	if (!instance.exists(key, values)) throw new Error(`Missing translation key: ${key}`)
 	return instance.t(key, values)
+}
+
+export async function pinLanguage(context: BrowserContext): Promise<void> {
+	await context.addInitScript(() => {
+		try {
+			localStorage.setItem("talqo-language", "en")
+		} catch {
+			// Opaque origins such as about:blank have no storage.
+		}
+	})
 }
 
 /** Expected dashboard labels, resolved from the catalog the app ships. */

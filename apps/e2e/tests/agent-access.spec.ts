@@ -2,7 +2,7 @@ import { expect } from "@playwright/test"
 import assert from "node:assert/strict"
 
 import { test } from "./application"
-import { web } from "./i18n"
+import { pinLanguage, web } from "./i18n"
 import { createInvitedMember } from "./invited-member"
 import { ADMIN, logIn, logInThroughApi } from "./log-in"
 
@@ -25,6 +25,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 	await expect(created).toBeOK()
 	const { role } = (await created.json()) as { role: { id: string } }
 	const context = await browser.newContext({ baseURL: application.origin })
+	await pinLanguage(context)
 	try {
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [role.id] } })).toBeOK()
 		await page.goto(`/dashboard/agent/${agent.id}`)

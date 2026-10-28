@@ -3,6 +3,7 @@ import { $, type Subprocess } from "bun"
 import { mkdir, open } from "node:fs/promises"
 import path from "node:path"
 
+import { pinLanguage } from "./i18n"
 import { ADMIN } from "./log-in"
 import { createTestServer } from "./test-server"
 
@@ -181,13 +182,7 @@ export const test = base.extend<
 	],
 	language: [
 		async ({ context }, use) => {
-			await context.addInitScript(() => {
-				try {
-					localStorage.setItem("talqo-language", "en")
-				} catch {
-					// Opaque origins such as about:blank have no storage.
-				}
-			})
+			await pinLanguage(context)
 			await use()
 		},
 		{ auto: true },
