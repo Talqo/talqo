@@ -67,7 +67,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader title={t("conversations.listHeading")} description={t("conversations.listDescription")} />
 
 			<div className="flex flex-wrap items-center gap-4">

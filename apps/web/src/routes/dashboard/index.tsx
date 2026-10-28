@@ -146,7 +146,7 @@ function DashboardIndexPage() {
 
 	if (error?.status === FORBIDDEN_STATUS || agentsQuery.error?.status === FORBIDDEN_STATUS) {
 		return (
-			<div className="mx-auto max-w-5xl space-y-6">
+			<div className="space-y-6">
 				<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
 				<AccessDenied />
 			</div>
@@ -155,7 +155,7 @@ function DashboardIndexPage() {
 
 	if (error || agentsQuery.error) {
 		return (
-			<div className="mx-auto max-w-5xl space-y-6">
+			<div className="space-y-6">
 				<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
 				<div className="space-y-2">
 					<p role="alert" className="text-destructive text-sm">
@@ -177,7 +177,7 @@ function DashboardIndexPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-5xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
 
 			<ProviderNoticeBanner />
