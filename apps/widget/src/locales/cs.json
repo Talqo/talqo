@@ -18,7 +18,7 @@
 	"errorMalformedJson": "Služba chatu obdržela neplatná data požadavku.",
 	"errorPayloadTooLarge": "Tato zpráva je příliš velká.",
 	"errorProvider": "Odpověď se nepodařilo dokončit. Zkuste to prosím znovu.",
-	"errorRequestConflict": "Tento požadavek se neslučuje s dřívější zprávou.",
+	"errorRequestConflict": "Tato zpráva už byla odeslána v jiné podobě.",
 	"errorRequestFailed": "Požadavek chatu selhal.",
 	"errorResetFailed": "Nový chat se nepodařilo zahájit. Aktuální konverzace zůstala zachována.",
 	"errorSessionBusy": "V této konverzaci již probíhá odpověď.",
