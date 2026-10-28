@@ -1,7 +1,5 @@
 # Software Requirements Specification
 
-Revised 2026-10-25. Living document — the Completion column reflects implementation state verified against the code.
-
 ## 1. Introduction
 
 ### 1.1 Purpose
@@ -55,7 +53,7 @@ Talqo is related to these repos:
 - `talqo-deploy` is expected to consume the container images `talqo` publishes (NFR-1.3a) — `talqo` does not need to provide its own orchestration.
 - PostgreSQL is available at deploy time and provides the authoritative relational datastore and vector similarity support for knowledge-base embeddings (FR-2.17).
 - Docling Serve is a required, separately deployed service for knowledge-base ingestion (FR-2.14).
-- Uploaded knowledge-base files (FR-2.14) are stored on the API replica's local filesystem, so such deployments must run exactly one API replica.
+- Uploaded knowledge-base files (FR-2.14) are stored on the API's filesystem; a multi-replica deployment must mount it as shared storage (e.g. NFS).
 - The operator has baseline familiarity with Docker and environment-variable configuration.
 
 ## 3. Functional Requirements
@@ -76,7 +74,7 @@ Talqo is related to these repos:
 | FR-1.8 | End user can cancel a streaming reply | High | Done |
 | FR-1.9 | End user can retry the last message after a failed turn | Medium | Done |
 | FR-1.10 | Widget shows live MCP tool activity while the agent is calling tools | Low | Done |
-| FR-1.11 | Widget and SDK handle degraded states: a revoked session (explain lost access, offer new chat), unavailable browser storage (continue in memory), and an invalid or unavailable embed (hide the widget) | Medium | Done |
+| FR-1.11 | End user sees a working fallback in degraded states: a revoked session explains the lost access and offers a new chat, unavailable browser storage continues in memory, and an invalid embed hides the widget | Medium | Done |
 
 ### 3.2 Dashboard (FR-2)
 
@@ -88,7 +86,7 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.1 | On first deployment run, the operator is redirected to an admin setup page and must create the sole admin account before the dashboard becomes otherwise usable | High | Done |
 | FR-2.2 | Operator accounts are created only by redeeming an invitation link; there is no self-service registration or email flow. An operator with user-management permission can create invitations with selected roles | High | Done |
-| FR-2.2a | Invitations are single-use, expire after 7 days, and assign exactly their selected roles; redeeming signs the invitee in, and the inviter's authority is rechecked at redemption | High | Done |
+| FR-2.2a | A new operator redeems a single-use invitation link (valid 7 days), which signs them in and assigns exactly the invited roles; the inviter's authority is rechecked at redemption | High | Done |
 | FR-2.3 | Operator can log in and log out of the dashboard | High | Done |
 | FR-2.3a | Operator can log in via SSO (e.g. Google) as an alternative to username/password credentials | Medium | Not started |
 | FR-2.4 | Operator can change their account password | Medium | Done |
@@ -111,8 +109,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.9 | AI provider configuration is deployment-wide, not per-agent: an authorized operator must configure the text provider (endpoints, authentication source, model) before the agent can respond to end users. The embedding provider (FR-2.17) is separate; a broken embedding configuration degrades retrieval without blocking replies | High | Done |
-| FR-2.9a | Operator can set a maximum token usage limit per period (deferred: period selection, persistence, notifications undecided) | High | Deferred |
+| FR-2.9 | Operator must configure the deployment-wide text provider (endpoints, authentication source, model) before agents can respond to end users | High | Done |
+| FR-2.9a | Operator can set a maximum token usage limit per period (day/month); once reached, the agent stops responding to end users until the operator raises the limit or the period resets | High | Not started |
 | FR-2.9b | The chat widget is hidden when chat is disabled or AI setup is incomplete. Operators can still preview its appearance | High | Done |
 | FR-2.9c | Operators who can manage the provider see a setup prompt on the dashboard home and Agents pages while the AI provider configuration is missing or unusable, and an error prompt when it cannot be checked | High | Done |
 
@@ -124,7 +122,7 @@ Talqo is related to these repos:
 | FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
 | FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Done |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress |
-| FR-2.13a | Operator with agent-deletion permission can delete an agent, permanently removing its conversations, messages, usage, knowledge base, MCP servers, and role grants. Attached embeds block deletion until removed or reassigned; confirmation requires typing the agent name | Medium | Done |
+| FR-2.13a | Operator with agent-deletion permission can delete an agent, permanently removing its data; attached embeds block deletion until removed or reassigned | Medium | Done |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)
 
@@ -132,10 +130,10 @@ Talqo is related to these repos:
 |----|-------------|----------|------------|
 | FR-2.14 | Operator can upload files (documents) to build a knowledge base that the agent references when responding | High | Done |
 | FR-2.15 | Operator can delete files from the knowledge base | Medium | Done |
-| FR-2.16 | Operator can crawl site content into the knowledge base on demand, without an MCP server (deferred: input format and storage model undecided) | High | Deferred |
+| FR-2.16 | Operator can run a crawler to gather site content into the knowledge base | High | Not started |
 | FR-2.17 | Operator can explicitly configure the provider and embedding model identifier used to index knowledge base content | Medium | Done |
 | FR-2.18 | Operator can connect their own MCP server to give the agent access to structured data | High | Done |
-| FR-2.19 | Connectivity and tool discovery happen when saving the MCP server: saving connects, fetches the server's tool list, and populates the operator's tool selection. There is no separate test action or stored health; a server whose last save found no tools shows that state, and saving again is the retry | Medium | Done |
+| FR-2.19 | Saving an MCP server connects to it and fetches its tool list for the operator to select from; saving again is the retry | Medium | Done |
 
 #### 3.2.5 Embed appearance (FR-2e)
 
@@ -144,7 +142,7 @@ Talqo is related to these repos:
 | FR-2.20 | Operator can set the embed's light-mode palette (primary, text on primary, background, surface, text) via hex color pickers | Medium | Done |
 | FR-2.20a | Operator can set the embed's dark-mode palette independently of light mode, with no color derived or auto-generated from the other | Medium | Done |
 | FR-2.21 | Operator can set on the embed whether the widget displays a light/dark mode switch to end users | Low | Done |
-| FR-2.22 | Operator can set the embed's display language (currently English, Czech, and Chinese); the dashboard itself is localized into the same set | Low | Done |
+| FR-2.22 | Operator can set the embed's display language | Low | Done |
 | FR-2.23 | Operator can set the embed's avatar image | Low | Not started |
 | FR-2.24 | Operator can set the embed's on-page position (e.g. bottom-right, bottom-left) | Low | Done |
 
@@ -188,10 +186,10 @@ Talqo is related to these repos:
 
 | ID | Requirement | Notes | Priority | Completion |
 |----|-------------|-------|----------|------------|
-| NFR-2.1 | The agent must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via platform system-prompt guardrails (acceptance: committed adversarial test set) | High | In progress (guardrails shipped; adversarial test set pending) |
+| NFR-2.1 | The agent must refuse requests that could cause real-world harm (e.g. harmful advice, PII extraction) | Enforced via platform system-prompt guardrails | High | Done |
 | NFR-2.2 | Operator-defined word blacklist violations must be filtered **before** the response is sent to the end user | | High | Done |
-| NFR-2.3 | The agent must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via platform system-prompt guardrails (acceptance: committed adversarial test set) | High | In progress (guardrails shipped; adversarial test set pending) |
-| NFR-2.4 | The agent must resist prompt injection attempts that try to override its system prompt, leak blacklisted terms, or trigger unintended MCP tool calls — whether embedded directly in an end-user message or indirectly in ingested knowledge base content | Covers both direct input (FR-1.1) and indirect injection via uploaded files or crawled pages (FR-2.14, FR-2.16) (acceptance: committed adversarial test set) | High | In progress (partial guardrails in platform prompt; adversarial test set pending) |
+| NFR-2.3 | The agent must stay on-topic for the operator's domain and refuse to help with unrelated tasks (e.g. homework, general trivia) | Enforced via platform system-prompt guardrails | High | Done |
+| NFR-2.4 | The agent must resist prompt injection attempts that try to override its system prompt, leak blacklisted terms, or trigger unintended MCP tool calls — whether embedded directly in an end-user message or indirectly in ingested knowledge base content | Covers both direct input (FR-1.1) and indirect injection via uploaded files or crawled pages (FR-2.14, FR-2.16) | High | Done |
 
 ### 4.3 Security (NFR-3)
 
@@ -203,7 +201,7 @@ Talqo is related to these repos:
 | NFR-3.4 | Site crawling must stay within the operator-provided sitemap or URL pattern | Related to FR-2.16 | High | Not started |
 | NFR-3.5 | The API enforces a daily question allowance per agent and client network, reset at UTC midnight, plus a per-network concurrency cap | | High | Done |
 | NFR-3.6 | The API enforces a limit on the size of assembled model input, default 400,000 Unicode code points; there is no separate per-message limit | | High | Done |
-| NFR-3.7 | End-user conversations and usage are retained until the operator deletes the agent (FR-2.13a); per-conversation deletion and export is deferred | | Medium | Done |
+| NFR-3.7 | End-user conversations and usage are retained until the operator deletes the agent (FR-2.13a); there is no per-conversation deletion or export | | Medium | Done |
 
 ### 4.4 Usability (NFR-4)
 

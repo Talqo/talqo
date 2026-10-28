@@ -13,7 +13,6 @@ erDiagram
     INVITATION
     INVITATION_ROLE
     PERMISSION_GRANT
-    %% AUDIT_LOG is planned; no audit module or table exists yet.
     AUDIT_LOG
 
     AGENT
@@ -21,7 +20,6 @@ erDiagram
     BLACKLIST_WORD
 
     MCP_SERVER
-    %% AI_PROVIDER_CONFIG is a deployment-wide singleton; no agent relationship.
     AI_PROVIDER_CONFIG
 
     CONVERSATION

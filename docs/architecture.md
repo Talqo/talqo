@@ -107,7 +107,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - Synchronous service dependencies remain acyclic by default. The module that owns the user-visible operation orchestrates calls to other module services.
 - Cross-module transactions are not passed through service APIs. If an invariant truly requires atomic writes across owners, record the exception and orchestration owner before implementation.
 - Cross-owner foreign keys may enforce deletion invariants without granting runtime write ownership: agent deletion removes associated chat and usage data, while embed deletion preserves retained conversations.
-- Recorded exception: `conversation`'s acceptance transaction reads and row-locks `EMBED` inside the advisory-locked write, because embed validity, access version, and the disabled flag must hold atomically at acceptance and transactions cannot flow through service APIs. A second recorded read is `conversation`'s `findConversationById` repository join on `EMBED` (id and access version), which session authentication (`getSession`/`cancel`) uses to validate the chat credential. Both accesses are read-only and are the only two permitted cross-module table reads; `conversation` (the send-operation owner) is the orchestration owner.
+- Recorded exception: `conversation` reads `EMBED` directly, read-only, in exactly two places: the row-lock inside its acceptance transaction (embed validity, access version, and disabled flag must hold atomically at acceptance) and the join that validates the chat credential. These are the only permitted cross-module table reads.
 
 ### Contracts And Routes
 
@@ -124,7 +124,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 - `<module>.repository.ts` contains persistence operations for owned data. Services own invariants, sequencing, and application errors.
 - `src/db/client.ts` owns connection construction and lifecycle. Modules consume the configured client; they do not create pools.
 - The source-file module owns original files, ingestion state, and chunk vectors; its service coordinates their lifecycle. The API process polls durable pending files, holds one PostgreSQL advisory lock across the deployment, and embeds one file and one chunk at a time. Failed files require an explicit retry; provider/model/connection changes requeue them.
-- The `roles` module owns the admin grant, roles, global permissions, per-agent role permissions, role assignments, the invitation credential (token hash, expiry, redemption), first-run setup/bootstrap, and operator administration (password reset, operator deletion). Every access-management write runs under the deployment-wide access lock with fresh authority rechecks, including rechecking the inviter's current authority at invitation acceptance.
+- The `roles` module owns the admin grant, roles, global permissions, per-agent role permissions, role assignments, the invitation credential (token hash, expiry, redemption), first-run setup/bootstrap, and operator administration (password reset, operator deletion). Every access-management write runs under the deployment-wide access lock with fresh authority rechecks.
 - Drizzle configuration discovers distributed module schemas and emits one ordered application migration history under root `drizzle/`.
 - Edit owned schema source, generate migrations centrally, inspect generated SQL, and apply migrations through the centralized lifecycle.
 - Never hand-edit Drizzle metadata or an applied/shared migration. Correct it with a new migration. Use Drizzle's supported custom migration workflow when generated SQL cannot express an intentional change.
@@ -225,13 +225,7 @@ apps/web/src/
 
 ## Observability
 
-One wide event per API request, written to stdout as a single JSON line through pino ([ADR-0019](adr/0019-emit-wide-events-with-pino.md)). Before adding a field, run this checklist:
-
-- Emit one event per request; for SSE routes, wrap the stream in `deferWideEvent` so the event is written at stream settlement and covers the whole stream.
-- Log derived IDs, counts, and enums only — never raw paths, headers, IP addresses, conversation credentials, or message text.
-- A new ID-bearing route param needs a `ROUTE_ID_FIELDS` entry in `apps/api/src/http/wide-event.ts`, or its requests log no ID.
-- The destination is capped and asynchronous; a full buffer drops lines and the next written line reports the count in `log.dropped`.
-- Annotate through the `Annotate` helper, not ad-hoc log calls.
+One wide event per API request, written to stdout as a single JSON line through pino ([ADR-0019](adr/0019-emit-wide-events-with-pino.md)). Events carry derived IDs, counts, and enums only — never raw paths, headers, IP addresses, credentials, or message text.
 
 ## Naming And Exceptions
 
