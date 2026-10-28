@@ -82,7 +82,7 @@
 		"namePlaceholder": "客服智能体",
 		"nameRequired": "名称为必填项。",
 		"systemPrompt": "系统提示词",
-		"systemPromptPlaceholder": "你是一名乐于助人的客服助手…",
+		"systemPromptPlaceholder": "你是一名乐于助人的客服助手...",
 		"systemPromptRequired": "系统提示词为必填项。",
 		"wordBlacklist": "屏蔽词"
 	},

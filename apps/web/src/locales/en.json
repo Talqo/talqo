@@ -82,7 +82,7 @@
 		"namePlaceholder": "Support Agent",
 		"nameRequired": "Name is required.",
 		"systemPrompt": "System prompt",
-		"systemPromptPlaceholder": "You are a helpful customer support assistant…",
+		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
 		"systemPromptRequired": "System prompt is required.",
 		"wordBlacklist": "Word blacklist"
 	},
@@ -462,7 +462,7 @@
 		"errorDuplicateName": "This agent already has a connection with that name.",
 		"errorName": "Give the connection a name.",
 		"errorNameAscii": "Use only letters without accents, numbers, spaces, and simple symbols.",
-		"errorNameLength": "Keep the name to {{limit}} characters or fewer.",
+		"errorNameLength": "Use {{limit}} characters or fewer.",
 		"errorSave": "The connection could not be saved.",
 		"errorSecret": "Enter both the name and the value.",
 		"headerName": "Header name",

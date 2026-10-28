@@ -82,7 +82,7 @@
 		"namePlaceholder": "Zákaznická podpora",
 		"nameRequired": "Název je povinný.",
 		"systemPrompt": "Systémový prompt",
-		"systemPromptPlaceholder": "Jsi nápomocný asistent zákaznické podpory…",
+		"systemPromptPlaceholder": "Jsi nápomocný asistent zákaznické podpory...",
 		"systemPromptRequired": "Systémový prompt je povinný.",
 		"wordBlacklist": "Zakázaná slova"
 	},
