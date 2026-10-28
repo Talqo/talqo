@@ -68,6 +68,10 @@ import type {
 } from '../models/roles/getMyPermissions200.zod';
 
 import type {
+  GetMyRoles200
+} from '../models/roles/getMyRoles200.zod';
+
+import type {
   GetSetupStatus200
 } from '../models/roles/getSetupStatus200.zod';
 
@@ -1174,6 +1178,142 @@ export function useGetMyPermissions<TData = Awaited<ReturnType<typeof getMyPermi
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetMyPermissionsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type getMyRolesResponse200 = {
+  data: GetMyRoles200
+  status: 200
+}
+
+export type getMyRolesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMyRolesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getMyRolesResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type getMyRolesResponseSuccess = (getMyRolesResponse200) & {
+  headers: Headers;
+};
+export type getMyRolesResponseError = (getMyRolesResponse401 | getMyRolesResponse403 | getMyRolesResponse500) & {
+  headers: Headers;
+};
+
+export const getGetMyRolesUrl = () => {
+
+
+
+
+  return `/api/me/roles`
+}
+
+export const getMyRoles = async ( options?: RequestInit): Promise<getMyRolesResponseSuccess> => {
+
+  const res = await fetch(getGetMyRolesUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: getMyRolesResponseError['data'], status?: number} = new globalThis.Error();
+    const data : getMyRolesResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: getMyRolesResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getMyRolesResponseSuccess
+}
+
+
+
+
+
+export const getGetMyRolesQueryKey = () => {
+    return [
+    `/api/me/roles`
+    ] as const;
+    }
+
+
+export const getGetMyRolesQueryOptions = <TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyRolesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyRoles>>> = ({ signal }) => getMyRoles({ signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyRolesQueryResult = NonNullable<Awaited<ReturnType<typeof getMyRoles>>>
+export type GetMyRolesQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyRoles>>,
+          TError,
+          Awaited<ReturnType<typeof getMyRoles>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyRoles>>,
+          TError,
+          Awaited<ReturnType<typeof getMyRoles>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyRolesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

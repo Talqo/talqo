@@ -135,6 +135,23 @@ export const myPermissionsRoute = createRoute({
 	},
 })
 
+export const myRolesRoute = createRoute({
+	method: "get",
+	path: "/me/roles",
+	operationId: "getMyRoles",
+	tags: ["Roles"],
+	...access.session(),
+	responses: {
+		200: {
+			content: { "application/json": { schema: userRolesResponseSchema } },
+			description: "Roles assigned to the current operator",
+		},
+		401: authRequired,
+		403: passwordRequired,
+		500: serverError,
+	},
+})
+
 const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
 })

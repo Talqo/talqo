@@ -729,6 +729,20 @@ describe("effective permissions", () => {
 		expect(await afterGrant.json()).toEqual({ permissions: ["ai_provider:manage"] })
 	})
 
+	it("lists the current operator's assigned roles", async () => {
+		const member = await createMember()
+		const role = await createRole([])
+		await assignRoles(member.id, [role.id])
+		const { token } = await identity.createSession(member.id)
+
+		const response = await app.request("/api/me/roles", {
+			headers: { Cookie: `${identity.SESSION_COOKIE}=${token}` },
+		})
+
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual({ roles: [{ id: role.id, name: role.name }] })
+	})
+
 	it("authorizes through an assigned role, including implied permissions", async () => {
 		const member = await createMember()
 		await assignRoles(member.id, [(await createRole(["users:manage"])).id])
