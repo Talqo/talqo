@@ -434,10 +434,10 @@ export function AiConfigurationPage() {
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
 		return (
-			<div className="mx-auto max-w-3xl">
+			<>
 				<output className="sr-only">{t("aiConfiguration.loading")}</output>
 				<PageSkeleton />
-			</div>
+			</>
 		)
 	if (!providersQuery.data || !configuration)
 		return (

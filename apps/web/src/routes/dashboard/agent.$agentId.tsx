@@ -187,11 +187,7 @@ function AgentConfigPage() {
 	}
 
 	if (isLoading || permissionsQuery.isPending) {
-		return (
-			<div className="mx-auto max-w-3xl">
-				<AgentConfigSkeleton label={t("agentConfig.loading")} />
-			</div>
-		)
+		return <AgentConfigSkeleton label={t("agentConfig.loading")} />
 	}
 	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
