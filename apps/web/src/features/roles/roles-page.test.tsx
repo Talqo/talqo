@@ -230,6 +230,20 @@ describe("role management", () => {
 		expect(nameInput().value).toBe("New role 2")
 	})
 
+	test("shows the role name as a heading and keeps long names fully available", async () => {
+		const fullName = `Support ${"with-a-very-long-name-".repeat(8)}`
+		roles = [{ id: "support", name: fullName, permissions: [], memberCount: 3 }]
+		await renderPage()
+
+		const card = host.querySelector<HTMLElement>("[data-role-id='support']")?.closest("[data-slot='card']")
+		const heading = card?.querySelector("[data-slot='card-title']")
+		const label = heading?.querySelector("span")
+		expect(heading?.tagName).toBe("H2")
+		expect(heading?.textContent).toBe(fullName)
+		expect(label?.getAttribute("title")).toBe(fullName)
+		expect(label?.className).toContain("truncate")
+	})
+
 	test("opens a role by clicking its row", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 0 }]
 		await renderPage()

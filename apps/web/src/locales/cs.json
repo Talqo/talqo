@@ -497,6 +497,8 @@
 		"save": "Uložit změny",
 		"saving": "Ukládání…",
 		"showTools": "Zobrazit nástroje",
+		"statusConnected": "Připojeno",
+		"statusUnreachable": "Nedostupné",
 		"stdioDisabled": "Správce hostingu zakázal připojení spouštěná příkazem. Použijte připojení HTTP.",
 		"toolsAvailable": "Dostupné nástroje: {{toolCount}}",
 		"toolsLegend": "Nástroje, které smí tento agent používat",

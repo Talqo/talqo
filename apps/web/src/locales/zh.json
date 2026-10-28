@@ -491,6 +491,8 @@
 		"save": "保存更改",
 		"saving": "正在保存…",
 		"showTools": "显示工具",
+		"statusConnected": "已连接",
+		"statusUnreachable": "无法连接",
 		"stdioDisabled": "托管管理员已禁用基于命令的连接。请改用 HTTP 连接。",
 		"toolsAvailable": "可用工具：{{toolCount}} 个",
 		"toolsLegend": "该智能体可用的工具",

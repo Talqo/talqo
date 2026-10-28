@@ -12,7 +12,7 @@ import {
 import { connectionSummary, toggledBody } from "@/features/mcp/connection-body"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import {
 	Dialog,
 	DialogContent,
@@ -101,16 +101,25 @@ export function ConnectionCard({
 	return (
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
-				<CardTitle>
-					<span className="flex items-center gap-2">
-						<span
-							aria-hidden="true"
-							className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
-						/>
-						<span className="truncate">{server.name}</span>
+				<CardTitle level={2} className="min-w-0">
+					<span className="block truncate" title={server.name}>
+						{server.name}
 					</span>
 				</CardTitle>
-				<p className="text-muted-foreground truncate font-mono text-sm">{connectionSummary(server)}</p>
+				<CardDescription>
+					<div className="min-w-0 space-y-1">
+						<span className="block truncate font-mono" title={connectionSummary(server)}>
+							{connectionSummary(server)}
+						</span>
+						<span className="flex items-center gap-1.5">
+							<span
+								aria-hidden="true"
+								className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
+							/>
+							{server.isWorking ? t("mcp.statusConnected") : t("mcp.statusUnreachable")}
+						</span>
+					</div>
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-3">

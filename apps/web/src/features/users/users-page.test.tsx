@@ -292,6 +292,15 @@ describe("UsersPage", () => {
 		expect(buttonNames(host)).toEqual([])
 	})
 
+	test("shows each user name as a card heading", async () => {
+		users = [user("helper")]
+		await renderPage()
+
+		const heading = card("helper").querySelector("[data-slot='card-title']")
+		expect(heading?.tagName).toBe("H2")
+		expect(heading?.textContent).toBe("helper")
+	})
+
 	test("offers user actions only for users whose access the operator holds", async () => {
 		myPermissions = ["users:read", "users:manage"]
 		users = [user("reader"), user("editor", { canManage: false })]

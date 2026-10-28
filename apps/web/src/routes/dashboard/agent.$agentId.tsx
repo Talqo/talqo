@@ -22,6 +22,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { CardLink } from "@talqo/ui/components/card-link"
 import {
 	Dialog,
 	DialogContent,
@@ -422,10 +423,11 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 						<Card key={index}>
 							<CardHeader>
 								<Skeleton className="h-5 w-32 max-w-full" />
+								<Skeleton className="h-4 w-24" />
 							</CardHeader>
 							<CardContent>
-								<div className="space-y-3">
-									<Skeleton className="h-4 w-24" />
+								<div className="flex items-center justify-between gap-2">
+									<Skeleton className="h-4 w-28" />
 									<Skeleton className="h-5 w-10" />
 								</div>
 							</CardContent>
@@ -445,40 +447,43 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 					{embeds.map((embed) => (
 						<Card key={embed.id} variant="interactive" className="relative h-full">
 							<CardHeader>
-								<CardTitle>
-									<Link
-										to="/dashboard/embeds/$embedId"
-										params={{ embedId: embed.id }}
-										search={{ colorTab: undefined }}
-										className="after:absolute after:inset-0"
-									>
+								<CardTitle level={2} className="min-w-0">
+									<span className="block truncate" title={embed.name}>
 										{embed.name}
-									</Link>
+									</span>
 								</CardTitle>
+								<CardDescription>
+									{isSupportedLanguage(embed.appearance.language)
+										? supportedLanguages[embed.appearance.language]
+										: embed.appearance.language}
+								</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<div className="space-y-3">
-									<div className="flex items-center justify-between gap-2">
-										<div className="flex items-center gap-1.5" aria-hidden="true">
-											{LIGHT_PALETTE_KEYS.map((key) => (
-												<span
-													key={key}
-													className="size-4 rounded-full border"
-													style={{ backgroundColor: embed.appearance.light[key] }}
-												/>
-											))}
-										</div>
-										<span className="text-muted-foreground text-sm">
-											{isSupportedLanguage(embed.appearance.language)
-												? supportedLanguages[embed.appearance.language]
-												: embed.appearance.language}
-										</span>
+								<div className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-1.5" aria-hidden="true">
+										{LIGHT_PALETTE_KEYS.map((key) => (
+											<span
+												key={key}
+												className="size-4 rounded-full border"
+												style={{ backgroundColor: embed.appearance.light[key] }}
+											/>
+										))}
 									</div>
 									<div className="relative z-10 w-fit">
 										<EmbedEnabledSwitch embed={embed} disabled={!canManage} />
 									</div>
 								</div>
 							</CardContent>
+							<CardLink
+								render={
+									<Link
+										to="/dashboard/embeds/$embedId"
+										params={{ embedId: embed.id }}
+										search={{ colorTab: undefined }}
+									/>
+								}
+								aria-label={embed.name}
+							/>
 						</Card>
 					))}
 				</div>
