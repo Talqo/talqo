@@ -1,13 +1,8 @@
-import { expect, type Page } from "@playwright/test"
+import { expect } from "@playwright/test"
 
 import { test } from "./application"
 import { createInvitedMember } from "./invited-member"
-import { ADMIN, logIn, openDashboard } from "./log-in"
-
-async function logOut(page: Page) {
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
-}
+import { ADMIN, logIn, logOut, openDashboard } from "./log-in"
 
 test("an admin gives an invited operator a role and the dashboard follows it", async ({ page, request, agent }) => {
 	const roleName = `Editors${Date.now()}`.padEnd(64, "a")
@@ -17,8 +12,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		await createInvitedMember(request, operator)
 
 		await test.step("the admin creates a role that can manage agents", async () => {
-			await openDashboard(page)
-			await page.getByRole("link", { name: "Users", exact: true }).click()
+			await openDashboard(page, ADMIN, "/dashboard/users")
 			await page.getByRole("tab", { name: "Roles", exact: true }).click()
 			await page.getByRole("button", { name: "Create role" }).click()
 			await expect(page).toHaveURL(/\/dashboard\/users\/roles\/[^/]+$/)
@@ -50,8 +44,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		})
 
 		await test.step("the admin assigns the role on the Users page", async () => {
-			await openDashboard(page)
-			await page.getByRole("link", { name: "Users", exact: true }).click()
+			await openDashboard(page, ADMIN, "/dashboard/users")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
 			await operatorCard.getByRole("button", { name: "Edit roles" }).click()
 			const dialog = page.getByRole("dialog")
@@ -89,8 +82,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		})
 
 		await test.step("the admin removes the operator and the role", async () => {
-			await openDashboard(page)
-			await page.getByRole("link", { name: "Users", exact: true }).click()
+			await openDashboard(page, ADMIN, "/dashboard/users")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
 			await operatorCard.getByRole("button", { name: "Delete", exact: true }).click()
 			const deleteUser = page.getByRole("dialog")

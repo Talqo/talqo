@@ -4,16 +4,15 @@ import { readFile } from "node:fs/promises"
 
 import { test } from "./application"
 import { createInvitedMember } from "./invited-member"
-import { ADMIN, logIn, MEMBER, openDashboard } from "./log-in"
+import { ADMIN, logIn, logOut, MEMBER, openDashboard } from "./log-in"
 import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 test("manager creates, configures, and deletes an agent through the real API", async ({ page }) => {
 	const agentName = `Docs ${crypto.randomUUID()}`
 	let createdAgentId: string | undefined
 	try {
-		await openDashboard(page)
+		await openDashboard(page, ADMIN, "/dashboard/agents")
 
-		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible()
 
 		await page.getByRole("button", { name: "Create agent" }).click()
@@ -102,12 +101,11 @@ test("a read-only operator can inspect agents but finds no management controls",
 		})
 		await expect(upload).toBeOK()
 		filePath = `/api/agents/${agent.id}/files/reader-guide.md`
-		await openDashboard(page, viewer)
+		await openDashboard(page, viewer, "/dashboard/agents")
 
 		await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
 		await expect(page.getByRole("link", { name: "Users", exact: true })).toHaveCount(0)
 
-		await page.getByRole("link", { name: "Agents", exact: true }).click()
 		await expect(page.getByRole("button", { name: "Create agent" })).toHaveCount(0)
 		await expect(page.getByRole("link", { name: /Product Advisor/ })).toHaveCount(0)
 		await page.goto(`/dashboard/agent/${hidden.id}`)
@@ -185,8 +183,7 @@ test("switching accounts does not reuse cached agent permissions", async ({ page
 	await logIn(page)
 	await expect(page.getByRole("link", { name: "Agents", exact: true })).toBeVisible()
 
-	await page.getByRole("button", { name: "Log out" }).click()
-	await expect(page).toHaveURL("/login")
+	await logOut(page)
 
 	const permissionsRequested = Promise.withResolvers<void>()
 	const releasePermissions = Promise.withResolvers<void>()

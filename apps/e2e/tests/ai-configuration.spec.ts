@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./application"
-import { openDashboard } from "./log-in"
+import { ADMIN, openDashboard } from "./log-in"
 
 test.afterEach(async ({ adminRequest: request, application }) => {
 	const response = await request.get("/api/ai-provider-configuration")
@@ -31,8 +31,7 @@ test.afterEach(async ({ adminRequest: request, application }) => {
 })
 
 test("granted operator configures text and embedding models", async ({ page, application }) => {
-	await openDashboard(page)
-	await page.getByRole("link", { name: "AI configuration" }).click()
+	await openDashboard(page, ADMIN, "/dashboard/ai-configuration")
 
 	const cards = page.locator("[data-slot=card]")
 	const textCard = cards.filter({ has: page.locator("[data-slot=card-title]", { hasText: "Text generation" }) })
@@ -74,8 +73,7 @@ test("granted operator configures text and embedding models", async ({ page, app
 })
 
 test("embedding model changes require confirmation and survive reload", async ({ page }) => {
-	await openDashboard(page)
-	await page.getByRole("link", { name: "AI configuration" }).click()
+	await openDashboard(page, ADMIN, "/dashboard/ai-configuration")
 	const embeddingCard = page.locator("[data-slot=card]").filter({ has: page.getByText("Embeddings", { exact: true }) })
 	await embeddingCard.getByRole("button", { name: "Show model suggestions" }).click()
 	await page.getByRole("option", { name: "embedding-model-next" }).click()

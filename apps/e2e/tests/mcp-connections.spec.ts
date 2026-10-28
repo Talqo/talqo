@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test"
 
 import { test } from "./application"
-import { openDashboard } from "./log-in"
+import { ADMIN, logInThroughApi } from "./log-in"
 
 async function openToolsTab(page: Page, agentId: string) {
 	await page.goto(`/dashboard/agent/${agentId}?tab=mcp`)
@@ -17,8 +17,8 @@ async function removeConnection(page: Page, name: string) {
 }
 
 test("operator adds an unavailable http connection, edits it, and removes it", async ({ page, application, agent }) => {
-	await openDashboard(page)
 	const agentId = agent.id
+	await logInThroughApi(page, ADMIN)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_http_${Date.now()}`
@@ -47,8 +47,8 @@ test("operator adds an unavailable http connection, edits it, and removes it", a
 })
 
 test("operator adds a stdio connection with tools and the toggle survives reload", async ({ page, agent }) => {
-	await openDashboard(page)
 	const agentId = agent.id
+	await logInThroughApi(page, ADMIN)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_stdio_${Date.now()}`
@@ -85,8 +85,8 @@ test("operator adds a stdio connection with tools and the toggle survives reload
 })
 
 test("a stored header survives an edit that leaves its value blank", async ({ page, application, agent }) => {
-	await openDashboard(page)
 	const agentId = agent.id
+	await logInThroughApi(page, ADMIN)
 	await openToolsTab(page, agentId)
 
 	const name = `e2e_secret_${Date.now()}`
