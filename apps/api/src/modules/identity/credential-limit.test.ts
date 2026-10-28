@@ -24,6 +24,11 @@ describe("in-memory credential limits", () => {
 			headers: { "Retry-After": "60" },
 		})
 		expect(calls).toBe(10)
+		for (let attempt = 0; attempt < 300; attempt += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- rejected usernames must not consume other counters.
+			await expect(limit(`network-${attempt}`, "visitor", operation)).rejects.toBeInstanceOf(CredentialRateLimitError)
+		}
+		expect(await limit("network-a", "other-visitor", async () => "allowed")).toBe("allowed")
 		setSystemTime(new Date("2026-10-25T12:00:59.001Z"))
 		await expect(limit("network-b", "VISITOR", operation)).rejects.toMatchObject({
 			headers: { "Retry-After": "1" },
@@ -39,9 +44,12 @@ describe("in-memory credential limits", () => {
 			// oxlint-disable-next-line no-await-in-loop -- exercise successive accounts from one network.
 			await limit("network", `visitor-${attempt}`, async () => undefined)
 		}
-		await expect(limit("network", "new-visitor", async () => undefined)).rejects.toBeInstanceOf(
-			CredentialRateLimitError,
-		)
+		for (let attempt = 0; attempt < 300; attempt += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- a blocked network must not exhaust the global allowance.
+			await expect(limit("network", `blocked-${attempt}`, async () => undefined)).rejects.toBeInstanceOf(
+				CredentialRateLimitError,
+			)
+		}
 		expect(await limit("other-network", "new-visitor", async () => "allowed")).toBe("allowed")
 	})
 

@@ -23,12 +23,6 @@ export function createCredentialLimiter(): CredentialOperation {
 	let expiresAt = 0
 	let active = 0
 
-	function consume(key: string, limit: number): void {
-		const count = counters.get(key) ?? 0
-		if (count >= limit) throw new CredentialRateLimitError(Math.max(1, Math.ceil((expiresAt - Date.now()) / SECOND_MS)))
-		counters.set(key, count + 1)
-	}
-
 	return async (network, username, operation) => {
 		if (active >= MAX_CREDENTIAL_OPERATIONS) throw new CredentialRateLimitError(1)
 		const now = Date.now()
@@ -36,10 +30,15 @@ export function createCredentialLimiter(): CredentialOperation {
 			counters.clear()
 			expiresAt = (Math.floor(now / WINDOW_MS) + 1) * WINDOW_MS
 		}
-		// The global check comes first, bounding this map to 601 keys per window.
-		consume("global", GLOBAL_LIMIT)
-		if (network) consume(`network:${network}`, NETWORK_LIMIT)
-		consume(`username:${username.toLowerCase()}`, USERNAME_LIMIT)
+		const budgets: [string, number][] = [["global", GLOBAL_LIMIT]]
+		if (network) budgets.push([`network:${network}`, NETWORK_LIMIT])
+		budgets.push([`username:${username.toLowerCase()}`, USERNAME_LIMIT])
+		for (const [key, limit] of budgets) {
+			if ((counters.get(key) ?? 0) >= limit)
+				throw new CredentialRateLimitError(Math.max(1, Math.ceil((expiresAt - now) / SECOND_MS)))
+		}
+		// Only accepted attempts add keys, bounding this map to 601 entries per window.
+		for (const [key] of budgets) counters.set(key, (counters.get(key) ?? 0) + 1)
 		active += 1
 		try {
 			return await operation()
