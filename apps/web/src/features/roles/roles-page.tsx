@@ -84,7 +84,7 @@ export function RolesPage() {
 			) : (
 				<div className="space-y-3">
 					{roles.map((role) => (
-						<Card key={role.id} variant="interactive" className="relative h-full">
+						<Card key={role.id} variant="interactive" className="relative">
 							<CardHeader>
 								<CardTitle level={2} className="min-w-0">
 									<span className="block truncate" title={role.name}>

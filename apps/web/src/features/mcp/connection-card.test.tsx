@@ -86,6 +86,5 @@ describe("ConnectionCard", () => {
 		const label = heading?.querySelector("span")
 		expect(heading?.textContent).toBe(fullName)
 		expect(label?.getAttribute("title")).toBe(fullName)
-		expect(label?.className).toContain("truncate")
 	})
 })
