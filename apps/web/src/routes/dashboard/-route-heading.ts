@@ -2,10 +2,6 @@ import { type RefObject, useEffect, useRef } from "react"
 
 const TITLE_SEPARATOR = " · "
 
-/**
- * Keeps the document title aligned with the page heading and focuses it on route changes.
- * The observer covers headings that appear after data loads.
- */
 export function useRouteHeading(pathname: string, main: RefObject<HTMLElement | null>, appName: string) {
 	const previousPath = useRef(pathname)
 
