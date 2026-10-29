@@ -21,7 +21,7 @@ function Bubble({ align = "start", className, ...props }: ComponentProps<"div"> 
 			data-slot="bubble"
 			data-align={align}
 			className={cn(
-				"tw:flex tw:w-fit tw:max-w-[80%] tw:min-w-0 tw:flex-col tw:gap-1 tw:data-[align=end]:self-end",
+				"tw:group/bubble tw:flex tw:w-fit tw:max-w-[80%] tw:min-w-0 tw:flex-col tw:gap-1 tw:data-[align=end]:self-end",
 				className,
 			)}
 			{...props}
