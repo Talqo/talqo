@@ -432,9 +432,12 @@ function WidgetChat({
 					<div
 						ref={scrollRef}
 						onScroll={handleTranscriptScroll}
+						role="log"
+						aria-live="off"
+						aria-label={t("transcriptLabel")}
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
-						<BubbleGroup aria-label={t("transcriptLabel")}>
+						<BubbleGroup>
 							{messages.length === 0 && activity === "idle" && (
 								<Bubble align="start">
 									<span className="tw:sr-only">{t("agentLabel")}</span>

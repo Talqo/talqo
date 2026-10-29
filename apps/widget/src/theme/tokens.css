@@ -1,13 +1,6 @@
 /*
- * Five operator inputs per scheme (light and dark), each explicit. Dark is never derived
- * from light. Every other token maps straight to one of the five. Only the border,
- * input-border, and muted-foreground scrims use alpha, and only against transparent, so
- * no hue or tone shifts. Destructive is an accessibility accent, not an operator input;
- * the light and dark values are fixed to keep error text at 4.5:1 on plain and tinted
- * surfaces.
- *
- * Never register these with @property: the build strips @property rules and fails if any
- * survive (vite.config.ts), and color-mix() needs textual substitution here.
+ * Five operator colors per scheme, each explicit. Destructive is fixed for 4.5:1 error text.
+ * Do not use @property here: the build strips it and color-mix needs literal values.
  */
 .talqo-widget {
 	--talqo-primary-input: #1a7f4b;
@@ -32,7 +25,7 @@
 	--talqo-input-border: color-mix(in srgb, var(--talqo-text-input) 55%, transparent);
 	--talqo-muted-foreground: color-mix(in srgb, var(--talqo-text-input) 65%, transparent);
 
-	--talqo-destructive: #b42318;
+	--talqo-destructive: #c10007; /* red-700: red-600 is 4.01:1 on the alert tint. */
 
 	--talqo-radius-item: 9999px;
 	--talqo-radius-control: 9999px;
@@ -43,5 +36,5 @@
 }
 
 .talqo-widget[data-scheme="dark"] {
-	--talqo-destructive: #ff8a8e;
+	--talqo-destructive: #fb2c36;
 }

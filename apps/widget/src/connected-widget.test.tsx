@@ -380,7 +380,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(announcement()?.textContent).toBe("Response complete.")
 	})
 
-	test("labels transcript items by role in a named list", async () => {
+	test("labels transcript items by role in a silent named log", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,
 			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Hi", "completed")],
@@ -388,8 +388,10 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
-		expect(host.querySelector("ul[data-slot='bubble-group']")?.getAttribute("aria-label")).toBe("Conversation")
-		const items = [...host.querySelectorAll("li[data-slot='bubble']")]
+		const log = host.querySelector("[role='log']")
+		expect(log?.getAttribute("aria-label")).toBe("Conversation")
+		expect(log?.getAttribute("aria-live")).toBe("off")
+		const items = [...host.querySelectorAll("[data-slot='bubble']")]
 		const user = items.find((element) => element.textContent?.includes("Hello"))
 		const agent = items.find((element) => element.textContent?.includes("Hi"))
 		expect(user?.textContent ?? "").toContain("You")
