@@ -167,7 +167,6 @@ test("clears protected caches when discovery revokes access before the access re
 	let revoked = false
 	let accessSignal: AbortSignal | null | undefined
 	const accessResponse = Promise.withResolvers<Response>()
-	spyOn(window, "confirm").mockReturnValue(true)
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		if (init?.method === "DELETE") {
@@ -206,7 +205,7 @@ test("clears protected caches when discovery revokes access before the access re
 	if (!remove) throw new Error("Missing removal button")
 	await act(async () => remove.click())
 	await settle()
-	const confirm = [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
+	const confirm = [...document.querySelectorAll<HTMLButtonElement>("[role=alertdialog] button")].find(
 		(button) => button.textContent === t("agentAccess.remove"),
 	)
 	if (!confirm) throw new Error("Missing removal confirmation")

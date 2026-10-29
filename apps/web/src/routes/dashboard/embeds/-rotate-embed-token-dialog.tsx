@@ -1,24 +1,11 @@
-import {
-	getGetEmbedQueryKey,
-	getListEmbedsQueryKey,
-	type RotateEmbedTokenMutationError,
-	useRotateEmbedToken,
-} from "@/api/generated/embed/embed.ts"
+import { getGetEmbedQueryKey, getListEmbedsQueryKey, useRotateEmbedToken } from "@/api/generated/embed/embed.ts"
+import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import { useQueryClient } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-
-const NOT_FOUND_STATUS = 404
 
 export function RotateEmbedTokenDialog({ embedId }: { embedId: string }) {
 	const { t } = useTranslation()
@@ -40,39 +27,41 @@ export function RotateEmbedTokenDialog({ embedId }: { embedId: string }) {
 			await rotateToken.mutateAsync({ embedId })
 			setOpen(false)
 		} catch (caught) {
-			setError(
-				(caught as RotateEmbedTokenMutationError).status === NOT_FOUND_STATUS
-					? t("embedSetup.notFound")
-					: t("embedSetup.rotateTokenFailed"),
-			)
+			setError(getProblemMessage(caught, t, t("embedSetup.rotateTokenFailed")))
 		}
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<Button variant="outline" onClick={() => setOpen(true)}>
+		<>
+			<Button
+				variant="outline"
+				onClick={() => {
+					setError(null)
+					rotateToken.reset()
+					setOpen(true)
+				}}
+			>
 				<RefreshCw className="size-4" />
 				{t("embedSetup.rotateToken")}
 			</Button>
-			<DialogContent closeLabel={t("common.close")}>
-				<DialogHeader>
-					<DialogTitle>{t("embedSetup.rotateTokenTitle")}</DialogTitle>
-					<DialogDescription>{t("embedSetup.rotateTokenWarning")}</DialogDescription>
-				</DialogHeader>
-				{error && (
-					<p role="alert" className="text-destructive text-sm">
-						{error}
-					</p>
-				)}
-				<DialogFooter>
-					<Button variant="outline" onClick={() => setOpen(false)}>
-						{t("embedSetup.cancel")}
-					</Button>
-					<Button variant="destructive" disabled={rotateToken.isPending} onClick={onConfirm}>
-						{rotateToken.isPending ? t("embedSetup.rotating") : t("embedSetup.rotateToken")}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={(next: boolean) => {
+					setOpen(next)
+					if (!next) {
+						setError(null)
+						rotateToken.reset()
+					}
+				}}
+				title={t("embedSetup.rotateTokenTitle")}
+				description={t("embedSetup.rotateTokenWarning")}
+				cancelLabel={t("embedSetup.cancel")}
+				confirmLabel={t("embedSetup.rotateToken")}
+				pendingLabel={t("embedSetup.rotating")}
+				pending={rotateToken.isPending}
+				error={error ?? undefined}
+				onConfirm={() => void onConfirm()}
+			/>
+		</>
 	)
 }

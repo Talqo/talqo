@@ -1,18 +1,10 @@
 import type { Role } from "@/api/generated/models/role.zod"
 
 import { useDeleteRole } from "@/api/generated/roles/roles.ts"
-import { ProblemAlert } from "@/components/problem-alert"
+import { getProblemMessage } from "@/lib/problem-message"
 import { DEFAULT_ROLE_ID } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import { useNavigate } from "@tanstack/react-router"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -40,7 +32,6 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 	const isDefault = role.id === DEFAULT_ROLE_ID
 
 	function handleOpenChange(next: boolean) {
-		if (isDeleting) return
 		setOpen(next)
 		if (!next) deleteRole.reset()
 	}
@@ -52,36 +43,43 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
+		<>
 			<div className="max-w-sm space-y-2">
-				<DialogTrigger
-					render={
-						<Button
-							type="button"
-							variant="destructive"
-							disabled={disabled || isDeleting || isDefault}
-							aria-describedby={isDefault ? `${role.id}-delete-description` : undefined}
-						/>
-					}
+				<Button
+					type="button"
+					variant="destructive"
+					disabled={disabled || isDeleting || isDefault}
+					aria-describedby={isDefault ? `${role.id}-delete-description` : undefined}
+					onClick={() => {
+						deleteRole.reset()
+						setOpen(true)
+					}}
 				>
 					<Trash2 className="size-4" />
 					{t("roles.delete")}
-				</DialogTrigger>
+				</Button>
 				{isDefault ? (
 					<p id={`${role.id}-delete-description`} className="text-muted-foreground text-sm">
 						{t("problems.default-role-delete-not-allowed")}
 					</p>
 				) : null}
 			</div>
-			<DialogContent closeLabel={t("common.close")}>
-				<DialogHeader>
-					<DialogTitle>{t("roles.deleteTitle", { name: role.name })}</DialogTitle>
-					<DialogDescription>
-						{role.memberCount > 0
-							? t("roles.deleteDescription", { people: role.memberCount })
-							: t("roles.deleteDescriptionUnused")}
-					</DialogDescription>
-				</DialogHeader>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={handleOpenChange}
+				title={t("roles.deleteTitle", { name: role.name })}
+				description={
+					role.memberCount > 0
+						? t("roles.deleteDescription", { people: role.memberCount })
+						: t("roles.deleteDescriptionUnused")
+				}
+				cancelLabel={t("roles.cancel")}
+				confirmLabel={t("roles.deleteConfirm")}
+				pendingLabel={t("roles.deleting")}
+				pending={isDeleting}
+				error={deleteRole.error ? getProblemMessage(deleteRole.error, t, t("roles.deleteFailed")) : undefined}
+				onConfirm={() => deleteRole.mutate({ roleId: role.id })}
+			>
 				<p className="text-muted-foreground text-sm">
 					{role.memberCount > 0 ? t("roles.deleteRecovery") : t("roles.deleteRecoveryUnused")}
 				</p>
@@ -90,16 +88,7 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 						{t("roles.lockoutWarningDelete")}
 					</p>
 				) : null}
-				<ProblemAlert error={deleteRole.error} />
-				<DialogFooter>
-					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
-						{t("roles.cancel")}
-					</Button>
-					<Button variant="destructive" disabled={isDeleting} onClick={() => deleteRole.mutate({ roleId: role.id })}>
-						{isDeleting ? t("roles.deleting") : t("roles.deleteConfirm")}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			</ConfirmDialog>
+		</>
 	)
 }

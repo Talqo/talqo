@@ -1,7 +1,6 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import {
-	type DeleteMcpServerMutationError,
 	getListMcpServersQueryKey,
 	type ListMcpServersQueryResult,
 	type UpdateMcpServerMutationError,
@@ -11,17 +10,11 @@ import {
 } from "@/api/generated/mcp/mcp.ts"
 import { connectionSummary, toggledBody } from "@/features/mcp/connection-body"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
+import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardName } from "@talqo/ui/components/card-name"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
@@ -92,10 +85,19 @@ export function ConnectionCard({
 			await action()
 		} catch (caught) {
 			setError(
-				(caught as UpdateMcpServerMutationError | DeleteMcpServerMutationError).status === NOT_FOUND_STATUS
+				(caught as UpdateMcpServerMutationError).status === NOT_FOUND_STATUS
 					? t("mcp.notFound")
 					: t("mcp.actionFailed"),
 			)
+		}
+	}
+
+	async function removeServer(): Promise<void> {
+		try {
+			await remove.mutateAsync({ agentId, serverId: server.id })
+			setConfirmOpen(false)
+		} catch {
+			// ConfirmDialog renders the mutation error; guard() would duplicate it in the card.
 		}
 	}
 
@@ -199,43 +201,24 @@ export function ConnectionCard({
 						)}
 					</div>
 
-					<Dialog
+					<ConfirmDialog
 						open={confirmOpen}
 						onOpenChange={(next) => {
-							if (remove.isPending) return
 							setConfirmOpen(next)
-							if (!next) setError(null)
+							if (!next) {
+								setError(null)
+								remove.reset()
+							}
 						}}
-					>
-						<DialogContent closeLabel={t("common.close")}>
-							<DialogHeader>
-								<DialogTitle>{t("mcp.removeTitle")}</DialogTitle>
-								<DialogDescription>{t("mcp.removePrompt", { name: server.name })}</DialogDescription>
-							</DialogHeader>
-							{error && (
-								<p role="alert" className="text-destructive text-sm">
-									{error}
-								</p>
-							)}
-							<DialogFooter>
-								<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-									{t("common.cancel")}
-								</Button>
-								<Button
-									variant="destructive"
-									disabled={remove.isPending}
-									onClick={() =>
-										void guard(async () => {
-											await remove.mutateAsync({ agentId, serverId: server.id })
-											setConfirmOpen(false)
-										})
-									}
-								>
-									{remove.isPending ? t("mcp.removing") : t("mcp.removeConfirm")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+						title={t("mcp.removeTitle")}
+						description={t("mcp.removePrompt", { name: server.name })}
+						cancelLabel={t("common.cancel")}
+						confirmLabel={t("mcp.removeConfirm")}
+						pendingLabel={t("mcp.removing")}
+						pending={remove.isPending}
+						error={remove.error ? getProblemMessage(remove.error, t, t("mcp.actionFailed")) : undefined}
+						onConfirm={() => void removeServer()}
+					/>
 				</div>
 			</CardContent>
 		</Card>

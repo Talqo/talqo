@@ -33,7 +33,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await expect(page.getByRole("heading", { name: roleName, exact: true })).toBeVisible()
 			await page.setViewportSize({ width: 1280, height: 800 })
 			await page.getByRole("link", { name: web("roles.back") }).click()
-			await expect(page.locator("[data-role-id]", { hasText: roleName })).toContainText(
+			await expect(page.locator("[data-slot='card']", { hasText: roleName })).toContainText(
 				web("roles.members", { people: 0 }),
 			)
 		})
@@ -88,16 +88,16 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await openDashboard(page, ADMIN, "/dashboard/users")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
 			await operatorCard.getByRole("button", { name: web("users.delete"), exact: true }).click()
-			const deleteUser = page.getByRole("dialog")
+			const deleteUser = page.getByRole("alertdialog")
 			await deleteUser.getByRole("button", { name: web("users.deleteConfirm"), exact: true }).click()
 			await expect(operatorCard).toHaveCount(0)
 
 			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
-			const roleCard = page.locator("[data-role-id]", { hasText: roleName })
+			const roleCard = page.locator("[data-slot='card']", { hasText: roleName })
 			await roleCard.click()
 			await page.getByRole("button", { name: web("roles.delete"), exact: true }).click()
 			await page
-				.getByRole("dialog")
+				.getByRole("alertdialog")
 				.getByRole("button", { name: web("roles.deleteConfirm") })
 				.click()
 			await expect(page).toHaveURL("/dashboard/users/roles")

@@ -10,24 +10,18 @@ import {
 } from "@/api/generated/roles/roles"
 import { ProblemAlert } from "@/components/problem-alert"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
+import { getProblemMessage } from "@/lib/problem-message"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
-import { Link, useBlocker } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -61,7 +55,15 @@ function expanded(permissions: readonly Permission[]): Permission[] {
 	)
 }
 
-export function AgentAccessCard({ agentId, permissions }: { agentId: string; permissions: readonly Permission[] }) {
+export function AgentAccessCard({
+	agentId,
+	onDirtyChange,
+	permissions,
+}: {
+	agentId: string
+	onDirtyChange?: (dirty: boolean) => void
+	permissions: readonly Permission[]
+}) {
 	const { t } = useTranslation()
 	const query = useGetAgentAccess(agentId, { query: { retry: retryUnlessClientError } })
 	const client = useQueryClient()
@@ -80,11 +82,10 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 	const values = selected ? expanded(drafts[selected.id] ?? selected.permissions) : []
 	const pending = save.isPending || remove.isPending
 	const dirty = roles.some(({ id }) => drafts[id] !== undefined)
-	useBlocker({
-		shouldBlockFn: ({ current, next }) =>
-			current.pathname !== next.pathname && dirty && !window.confirm(t("roles.leavePrompt")),
-		enableBeforeUnload: dirty,
-	})
+	useEffect(() => {
+		onDirtyChange?.(dirty)
+		return () => onDirtyChange?.(false)
+	}, [dirty, onDirtyChange])
 	useEffect(() => {
 		if (notice === "removed" && !pending) addRoleButton.current?.focus()
 	}, [notice, pending])
@@ -238,6 +239,9 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									</SelectContent>
 								</Select>
 							</fieldset>
+							{notice === "removed" && (
+								<output className="text-muted-foreground block text-sm">{t("agentAccess.removed")}</output>
+							)}
 							{roles.length === 0 && (
 								<Link to="/dashboard/users/roles" className="text-primary underline">
 									{t("roles.create")}
@@ -289,74 +293,60 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 									{selected.permissions.length > 0 && values.length === 0 && (
 										<output className="text-muted-foreground block text-sm">{t("agentAccess.useRemove")}</output>
 									)}
-									<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-										{selected.permissions.length > 0 ? (
-											<Dialog
-												open={confirmRemoveOpen}
-												onOpenChange={(open) => {
-													if (pending) return
-													setConfirmRemoveOpen(open)
-													remove.reset()
-												}}
-											>
-												<DialogTrigger
-													render={
-														<Button
-															variant="destructive"
-															disabled={
-																pending || selected.permissions.some((permission) => !permissions.includes(permission))
-															}
-														/>
-													}
-												>
-													{t("agentAccess.remove")}
-												</DialogTrigger>
-												<DialogContent closeLabel={t("common.close")}>
-													<DialogHeader>
-														<DialogTitle>{t("agentAccess.remove")}</DialogTitle>
-														<DialogDescription>
-															{t("agentAccess.removePrompt", { role: selected.name })}
-														</DialogDescription>
-													</DialogHeader>
-													<ProblemAlert error={remove.error} />
-													<DialogFooter>
-														<Button variant="outline" disabled={pending} onClick={() => setConfirmRemoveOpen(false)}>
-															{t("agentConfig.cancel")}
-														</Button>
-														<Button variant="destructive" disabled={pending} onClick={onRemove}>
-															{t("agentAccess.remove")}
-														</Button>
-													</DialogFooter>
-												</DialogContent>
-											</Dialog>
-										) : (
+									{selected.permissions.length > 0 ? (
+										<div className="flex justify-end pt-2">
 											<Button
-												variant="outline"
-												className="ml-auto"
+												variant="destructive"
+												disabled={
+													pending || selected.permissions.some((permission) => !permissions.includes(permission))
+												}
 												onClick={() => {
-													clearDraft(selected.id)
-													setSelectedId(undefined)
+													remove.reset()
+													setConfirmRemoveOpen(true)
 												}}
 											>
-												{t("agentConfig.cancel")}
+												{t("agentAccess.remove")}
 											</Button>
-										)}
-										<Button
-											className={selected.permissions.length > 0 ? "ml-auto" : undefined}
-											onClick={onSave}
-											disabled={pending || !drafts[selected.id] || values.length === 0}
-										>
+										</div>
+									) : null}
+									<FormActions
+										discard={
+											selected.permissions.length === 0 ? (
+												<Button
+													variant="outline"
+													onClick={() => {
+														clearDraft(selected.id)
+														setSelectedId(undefined)
+													}}
+												>
+													{t("agentConfig.cancel")}
+												</Button>
+											) : undefined
+										}
+										status={notice === "saved" ? t("agentAccess.saved") : undefined}
+									>
+										<Button onClick={onSave} disabled={pending || !drafts[selected.id] || values.length === 0}>
 											{save.isPending ? t("roles.saving") : t("agentAccess.save")}
 										</Button>
-									</div>
+									</FormActions>
+									<ConfirmDialog
+										open={confirmRemoveOpen}
+										onOpenChange={(open) => {
+											setConfirmRemoveOpen(open)
+											if (!open) remove.reset()
+										}}
+										title={t("agentAccess.remove")}
+										description={t("agentAccess.removePrompt", { role: selected.name })}
+										cancelLabel={t("agentConfig.cancel")}
+										confirmLabel={t("agentAccess.remove")}
+										pendingLabel={t("roles.deleting")}
+										pending={pending}
+										error={remove.error ? getProblemMessage(remove.error, t, t("auth.errorFallback")) : undefined}
+										onConfirm={onRemove}
+									/>
 								</fieldset>
 							) : (
 								<p className="text-muted-foreground text-sm">{t("agentAccess.empty")}</p>
-							)}
-							{notice && (
-								<output className="text-muted-foreground block text-sm">
-									{notice === "saved" ? t("agentAccess.saved") : t("agentAccess.removed")}
-								</output>
 							)}
 						</>
 					)}

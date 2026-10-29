@@ -11,6 +11,7 @@ await import("@/lib/i18n")
 
 const { AiConfigurationPage } = await import("./ai-configuration-page")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { createRouter, createRootRoute, createMemoryHistory, RouterProvider } = await import("@tanstack/react-router")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
@@ -72,10 +73,12 @@ async function type(element: HTMLInputElement, text: string) {
 }
 
 async function renderPage() {
+	const route = createRootRoute({ component: () => <AiConfigurationPage /> })
+	const router = createRouter({ routeTree: route, history: createMemoryHistory() })
 	await act(async () =>
 		root.render(
 			<QueryClientProvider client={queryClient}>
-				<AiConfigurationPage />
+				<RouterProvider router={router} />
 			</QueryClientProvider>,
 		),
 	)

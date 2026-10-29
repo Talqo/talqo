@@ -10,11 +10,13 @@ import { ProblemAlert } from "@/components/problem-alert"
 import { DeleteAccountCard } from "@/features/account/delete-account-card"
 import { ChangePasswordForm } from "@/features/authentication/components/change-password-form.tsx"
 import { getProblemMessage } from "@/lib/problem-message.ts"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard.tsx"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Skeleton } from "@talqo/ui/components/skeleton"
@@ -76,11 +78,13 @@ function UsernameForm({ username }: { username: string }) {
 		register,
 		handleSubmit,
 		reset,
+		setFocus,
 		formState: { errors, isDirty },
 	} = useForm<UsernameFormValues>({
 		resolver: zodResolver(usernameSchema),
 		defaultValues: { username },
 	})
+	const dirtyGuard = useDirtyFormGuard(isDirty)
 
 	// Follow external username changes (e.g. after a successful save) without clobbering edits.
 	useEffect(() => {
@@ -105,7 +109,7 @@ function UsernameForm({ username }: { username: string }) {
 	}
 
 	return (
-		<form className="space-y-4 border-t pt-6" onSubmit={handleSubmit(onValid)}>
+		<form className="space-y-4 border-t pt-6" onSubmit={handleSubmit(onValid, () => setFocus("username"))}>
 			<div className="space-y-2">
 				<Label htmlFor="account-username">{t("account.username")}</Label>
 				<Input
@@ -131,10 +135,12 @@ function UsernameForm({ username }: { username: string }) {
 					{serverError}
 				</p>
 			)}
-			{saved && <output className="text-muted-foreground block text-sm">{t("account.usernameSaved")}</output>}
-			<Button type="submit" disabled={updateUser.isPending || !isDirty}>
-				{t("account.saveUsername")}
-			</Button>
+			<FormActions status={saved && !isDirty ? t("account.usernameSaved") : undefined}>
+				<Button type="submit" disabled={updateUser.isPending || !isDirty}>
+					{updateUser.isPending ? t("account.savingUsername") : t("account.saveUsername")}
+				</Button>
+			</FormActions>
+			{dirtyGuard}
 		</form>
 	)
 }
@@ -173,9 +179,10 @@ function PasswordSection() {
 				error={error}
 				onSubmit={handleSubmit}
 				submitLabel={t("account.changePassword")}
+				pendingLabel={t("account.changingPassword")}
+				status={saved ? t("account.passwordSaved") : undefined}
 				submitting={changePassword.isPending}
 			/>
-			{saved && <output className="text-muted-foreground block text-sm">{t("account.passwordSaved")}</output>}
 		</section>
 	)
 }
@@ -223,6 +230,7 @@ function ProfileCardSkeleton({ label }: { label: string }) {
 function AccountPage() {
 	const { t } = useTranslation()
 	const session = useGetSession()
+	const username = session.data?.data.user?.username
 
 	return (
 		<div className="space-y-6">
@@ -230,9 +238,9 @@ function AccountPage() {
 			{session.isPending ? (
 				<ProfileCardSkeleton label={t("auth.loading")} />
 			) : (
-				<AccountSettingsCard username={session.data?.data.user?.username ?? ""} />
+				<AccountSettingsCard username={username ?? ""} />
 			)}
-			<DeleteAccountCard />
+			{username ? <DeleteAccountCard username={username} /> : null}
 		</div>
 	)
 }
