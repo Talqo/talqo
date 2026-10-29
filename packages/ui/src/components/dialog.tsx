@@ -8,13 +8,6 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
 	return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-const CloseLabelContext = React.createContext("Close")
-
-// The UI package carries no translations. The app supplies the localized label once.
-function DialogCloseLabelProvider({ label, children }: { label: string; children: React.ReactNode }) {
-	return <CloseLabelContext.Provider value={label}>{children}</CloseLabelContext.Provider>
-}
-
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
 	return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
@@ -44,11 +37,12 @@ function DialogContent({
 	className,
 	children,
 	showCloseButton = true,
+	closeLabel = "Close",
 	...props
 }: DialogPrimitive.Popup.Props & {
 	showCloseButton?: boolean
+	closeLabel?: string
 }) {
-	const closeLabel = React.useContext(CloseLabelContext)
 	return (
 		<DialogPortal>
 			<DialogOverlay />
@@ -125,7 +119,6 @@ function DialogDescription({ className, ...props }: DialogPrimitive.Description.
 export {
 	Dialog,
 	DialogClose,
-	DialogCloseLabelProvider,
 	DialogContent,
 	DialogDescription,
 	DialogFooter,

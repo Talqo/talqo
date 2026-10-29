@@ -108,7 +108,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger render={<Button variant="outline" />}>{t("users.resetPassword")}</DialogTrigger>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("users.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
 					<DialogDescription>{t("users.resetDialogDescription")}</DialogDescription>
@@ -207,7 +207,7 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 				<Trash2 className="size-4" />
 				{t("users.delete")}
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
 					<DialogDescription>{t("users.deletePrompt", { username: targetUser.username })}</DialogDescription>
@@ -440,7 +440,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
-			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
 				</DialogHeader>

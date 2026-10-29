@@ -667,7 +667,7 @@ export function AiConfigurationPage() {
 					if (!open && !save.isPending) setPendingSave(null)
 				}}
 			>
-				<DialogContent>
+				<DialogContent closeLabel={t("common.close")}>
 					<DialogHeader>
 						<DialogTitle>{t("aiConfiguration.reembedTitle")}</DialogTitle>
 						<DialogDescription>{t("aiConfiguration.reembedWarning")}</DialogDescription>

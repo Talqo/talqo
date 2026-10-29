@@ -17,7 +17,6 @@ const { ThemeProvider } = await import("@/lib/use-theme")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRootRoute, createRoute, createRouter, createMemoryHistory, RouterProvider, Outlet } =
 	await import("@tanstack/react-router")
-const { Dialog, DialogContent, DialogTitle } = await import("@talqo/ui/components/dialog")
 const { PageHeader } = await import("@/components/page-header")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
@@ -286,19 +285,4 @@ test("closes the mobile navigation when the page outside it is pressed", async (
 
 	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
 	expect(document.activeElement).toBe(toggle)
-})
-
-test("localizes the shared dialog close label", async () => {
-	mockSignedInAdmin()
-	await renderPage(
-		<Dialog open>
-			<DialogContent>
-				<DialogTitle>{t("account.heading")}</DialogTitle>
-			</DialogContent>
-		</Dialog>,
-	)
-	await settle()
-
-	const close = document.querySelector("[data-slot=dialog-close]")
-	expect(close?.textContent).toContain(t("common.close"))
 })

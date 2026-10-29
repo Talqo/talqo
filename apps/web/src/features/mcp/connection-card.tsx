@@ -207,7 +207,7 @@ export function ConnectionCard({
 							if (!next) setError(null)
 						}}
 					>
-						<DialogContent>
+						<DialogContent closeLabel={t("common.close")}>
 							<DialogHeader>
 								<DialogTitle>{t("mcp.removeTitle")}</DialogTitle>
 								<DialogDescription>{t("mcp.removePrompt", { name: server.name })}</DialogDescription>

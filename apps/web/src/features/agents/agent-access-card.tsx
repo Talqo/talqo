@@ -311,7 +311,7 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 												>
 													{t("agentAccess.remove")}
 												</DialogTrigger>
-												<DialogContent>
+												<DialogContent closeLabel={t("common.close")}>
 													<DialogHeader>
 														<DialogTitle>{t("agentAccess.remove")}</DialogTitle>
 														<DialogDescription>

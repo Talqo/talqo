@@ -317,7 +317,7 @@ function AgentConfigPage() {
 											<Trash2 className="size-4" />
 											{t("agentConfig.deleteAgent")}
 										</Button>
-										<DialogContent>
+										<DialogContent closeLabel={t("common.close")}>
 											<DialogHeader>
 												<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
 												<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>

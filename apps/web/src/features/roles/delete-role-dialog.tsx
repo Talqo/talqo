@@ -73,7 +73,7 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 					</p>
 				) : null}
 			</div>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("roles.deleteTitle", { name: role.name })}</DialogTitle>
 					<DialogDescription>

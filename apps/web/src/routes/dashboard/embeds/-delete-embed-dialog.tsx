@@ -74,7 +74,7 @@ export function DeleteEmbedDialog({ embed }: { embed: DeleteTarget }) {
 				<Trash2 className="size-4" />
 				{t("embedSetup.deleteEmbed")}
 			</Button>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("embedSetup.deleteTitle")}</DialogTitle>
 					<DialogDescription>{t("embedSetup.deletePrompt", { name: embed.name })}</DialogDescription>
