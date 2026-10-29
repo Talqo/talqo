@@ -25,7 +25,7 @@ export function McpEnvEditor({
 		<div className="space-y-2">
 			<Label>{title}</Label>
 			{env.map((variable, index) => (
-				<div key={variable.id} className="flex gap-2">
+				<div key={variable.id} className="flex flex-col gap-2 sm:flex-row">
 					<Input
 						value={variable.name}
 						placeholder={nameLabel}
@@ -45,6 +45,7 @@ export function McpEnvEditor({
 						type="button"
 						variant="ghost"
 						size="icon"
+						className="self-end sm:self-auto"
 						aria-label={
 							kind === "headers"
 								? t("mcp.removeHeader", { name: variable.name.trim() || index + 1 })

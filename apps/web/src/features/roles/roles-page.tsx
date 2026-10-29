@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
+import { UsersRolesSwitcher } from "@/features/users/users-roles-switcher"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
@@ -73,6 +74,7 @@ export function RolesPage() {
 					) : null
 				}
 			/>
+			<UsersRolesSwitcher />
 			{!forbidden ? <ProblemAlert error={createRole.error} /> : null}
 			{forbidden ? (
 				<AccessDenied />

@@ -281,6 +281,7 @@
 	"common": {
 		"appName": "Talqo",
 		"cancel": "取消",
+		"close": "关闭",
 		"hidePassword": "隐藏密码",
 		"retry": "重试",
 		"showPassword": "显示密码"
@@ -291,7 +292,6 @@
 		"empty": "暂无对话。访客与智能体聊天后，对话会显示在这里。",
 		"emptyFiltered": "没有符合这些筛选条件的对话。",
 		"firstPage": "前往第一页",
-		"heading": "对话",
 		"listDescription": "查看访客向你的智能体问了什么，以及智能体是如何回答的。",
 		"listHeading": "对话",
 		"loading": "正在加载对话…",
@@ -432,6 +432,7 @@
 	"header": {
 		"language": "语言",
 		"logout": "退出登录",
+		"skipToContent": "跳到主要内容",
 		"toDarkTheme": "切换到深色主题",
 		"toggleNavigation": "切换导航",
 		"toLightTheme": "切换到浅色主题"
@@ -635,6 +636,7 @@
 		"roleNotYours": "此角色包含你没有的访问权限，因此你无法分配或移除它。",
 		"saveRoles": "保存角色",
 		"savingRoles": "正在保存…",
-		"subheading": "查看谁可以登录、他们拥有哪些角色，并管理他们的账户。"
+		"subheading": "查看谁可以登录、他们拥有哪些角色，并管理他们的账户。",
+		"switcherLabel": "用户和角色"
 	}
 }

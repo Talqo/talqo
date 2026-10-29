@@ -73,7 +73,7 @@ export function EditUserRolesDialog({
 				<Pencil className="size-4" />
 				{t("users.editRoles")}
 			</DialogTrigger>
-			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("users.editRolesTitle", { username: targetUser.username })}</DialogTitle>
 					<DialogDescription>{t("users.editRolesDescription")}</DialogDescription>

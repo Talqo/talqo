@@ -1,5 +1,5 @@
 import { changeLanguage } from "i18next"
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 import { type DashboardLanguage, isDashboardLanguage } from "./languages"
 
@@ -26,6 +26,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 		window.localStorage.setItem(STORAGE_KEY, next)
 		void changeLanguage(next)
 	}, [])
+
+	useEffect(() => {
+		document.documentElement.lang = language
+	}, [language])
 
 	const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage])
 	return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>

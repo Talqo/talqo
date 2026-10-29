@@ -412,7 +412,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					if (!open) setRenameTarget(null)
 				}}
 			>
-				<DialogContent>
+				<DialogContent closeLabel={t("common.close")}>
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.renameTitle")}</DialogTitle>
 						<DialogDescription>{t("agentFiles.renameDescription")}</DialogDescription>
@@ -454,7 +454,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					if (!open) setDeleteTarget(null)
 				}}
 			>
-				<DialogContent>
+				<DialogContent closeLabel={t("common.close")}>
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
 						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>

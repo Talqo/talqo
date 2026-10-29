@@ -54,7 +54,7 @@ export function RotateEmbedTokenDialog({ embedId }: { embedId: string }) {
 				<RefreshCw className="size-4" />
 				{t("embedSetup.rotateToken")}
 			</Button>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("embedSetup.rotateTokenTitle")}</DialogTitle>
 					<DialogDescription>{t("embedSetup.rotateTokenWarning")}</DialogDescription>

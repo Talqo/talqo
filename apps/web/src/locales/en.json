@@ -281,6 +281,7 @@
 	"common": {
 		"appName": "Talqo",
 		"cancel": "Cancel",
+		"close": "Close",
 		"hidePassword": "Hide password",
 		"retry": "Try again",
 		"showPassword": "Show password"
@@ -291,7 +292,6 @@
 		"empty": "No conversations yet. They appear here after visitors chat with an agent.",
 		"emptyFiltered": "No conversations match these filters.",
 		"firstPage": "Go to the first page",
-		"heading": "Conversation",
 		"listDescription": "Read what visitors asked your agents and how they answered.",
 		"listHeading": "Conversations",
 		"loading": "Loading conversations…",
@@ -432,6 +432,7 @@
 	"header": {
 		"language": "Language",
 		"logout": "Log out",
+		"skipToContent": "Skip to content",
 		"toDarkTheme": "Switch to dark theme",
 		"toggleNavigation": "Toggle navigation",
 		"toLightTheme": "Switch to light theme"
@@ -635,6 +636,7 @@
 		"roleNotYours": "This role includes access you don't have, so you can't give or remove it.",
 		"saveRoles": "Save roles",
 		"savingRoles": "Saving…",
-		"subheading": "See who can sign in, what roles they have, and manage their accounts."
+		"subheading": "See who can sign in, what roles they have, and manage their accounts.",
+		"switcherLabel": "Users and roles"
 	}
 }
