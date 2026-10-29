@@ -103,8 +103,8 @@ export function ConnectionCard({
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
 				<CardName>{server.name}</CardName>
-				<CardDescription>
-					<div className="min-w-0 space-y-1">
+				<CardDescription className="min-w-0">
+					<div className="space-y-1">
 						<span className="block truncate font-mono" title={connectionSummary(server)}>
 							{connectionSummary(server)}
 						</span>

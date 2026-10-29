@@ -314,7 +314,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 						<CardHeader>
 							<CardName>{user.username}</CardName>
 							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
-								<CardDescription>
+								<CardDescription className="min-w-0">
 									<div className="flex flex-wrap items-center gap-2">
 										{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
 										{user.roles.map((role) => (
