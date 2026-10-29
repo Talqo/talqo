@@ -6,6 +6,7 @@ import {
 	useListUsers,
 } from "@/api/generated/roles/roles"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
@@ -47,7 +48,10 @@ export function RolePage({ roleId }: { roleId: string }) {
 			{forbidden ? (
 				<AccessDenied />
 			) : queries.some(({ isPending }) => isPending) ? (
-				<p className="text-muted-foreground">{t("roles.loading")}</p>
+				<>
+					<output className="sr-only">{t("roles.loading")}</output>
+					<PageSkeleton />
+				</>
 			) : queries.some(({ isError }) => isError) || !roles || !catalog || !held ? (
 				<ProblemAlert
 					error={queries.find(({ isError }) => isError)?.error}

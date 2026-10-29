@@ -24,6 +24,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@talqo/ui/components/select"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useBlocker } from "@tanstack/react-router"
@@ -164,7 +165,12 @@ export function AgentAccessCard({ agentId, permissions }: { agentId: string; per
 			<CardContent>
 				<div className="space-y-4">
 					{query.isPending ? (
-						<output>{t("roles.loading")}</output>
+						<div className="flex flex-wrap gap-2">
+							<output className="sr-only">{t("roles.loading")}</output>
+							{Array.from({ length: 3 }, (_, index) => (
+								<Skeleton key={index} className="h-control w-28" />
+							))}
+						</div>
 					) : query.isError ? (
 						<ProblemAlert error={query.error} onRetry={() => void query.refetch()} />
 					) : (

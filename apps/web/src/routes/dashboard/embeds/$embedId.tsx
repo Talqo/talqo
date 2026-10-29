@@ -1,6 +1,7 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
@@ -237,7 +238,12 @@ function EmbedDetailPage() {
 	}
 
 	if (isLoading || agentsQuery.isPending) {
-		return <p className="text-muted-foreground">{t("embedSetup.loading")}</p>
+		return (
+			<>
+				<output className="sr-only">{t("embedSetup.loading")}</output>
+				<PageSkeleton />
+			</>
+		)
 	}
 	if (isError || !embed) {
 		return <p className="text-muted-foreground">{t("embedSetup.notFound")}</p>

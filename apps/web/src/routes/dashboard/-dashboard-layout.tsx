@@ -1,6 +1,7 @@
 import { getListAgentsQueryKey, useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetSession, useLogout } from "@/api/generated/identity/identity.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { LanguageSelect, ThemeToggle } from "@/components/preferences-controls"
 import { ProblemAlert } from "@/components/problem-alert"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
@@ -9,6 +10,7 @@ import { accessGate, useRequiredPermission } from "@/features/permissions/requir
 import { Avatar, AvatarFallback } from "@talqo/ui/components/avatar"
 import { Button } from "@talqo/ui/components/button"
 import { Logo } from "@talqo/ui/components/logo"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate, useRouter } from "@tanstack/react-router"
 import { Bot, LayoutDashboard, LogOut, Menu, MessagesSquare, Settings2, User, Users, X } from "lucide-react"
@@ -93,8 +95,18 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 	const agentsQuery = useListAgents()
 	return (
 		<nav className={className}>
-			{(query.isPending || agentsQuery.isPending) && (
-				<output className="text-muted-foreground block px-3 text-sm">{t("auth.loading")}</output>
+			{query.isPending || agentsQuery.isPending ? (
+				<div className="space-y-1 px-3">
+					<output className="sr-only">{t("auth.loading")}</output>
+					{Array.from({ length: 5 }, (_, index) => (
+						<Skeleton key={index} className="h-9 w-full" />
+					))}
+				</div>
+			) : (
+				allowedNavItems(
+					query.data?.data.permissions ?? [],
+					agentsQuery.isSuccess ? agentsQuery.data.data.agents : [],
+				).map((item) => <NavLink key={item.to} item={item} onNavigate={onNavigate} />)
 			)}
 			{(query.isError || agentsQuery.isError) && (
 				<ProblemAlert
@@ -105,12 +117,6 @@ function NavList({ className, onNavigate }: { className: string; onNavigate: () 
 					}}
 				/>
 			)}
-			{allowedNavItems(
-				query.data?.data.permissions ?? [],
-				agentsQuery.isSuccess ? agentsQuery.data.data.agents : [],
-			).map((item) => (
-				<NavLink key={item.to} item={item} onNavigate={onNavigate} />
-			))}
 		</nav>
 	)
 }
@@ -224,7 +230,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 				<main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-20">
 					{gate === "open" && children}
-					{gate === "pending" && <p className="text-muted-foreground">{t("auth.loading")}</p>}
+					{gate === "pending" && (
+						<>
+							<output className="sr-only">{t("auth.loading")}</output>
+							<PageSkeleton />
+						</>
+					)}
 					{gate === "error" && (
 						<ProblemAlert
 							error={permissionsQuery.error ?? agentsQuery.error}

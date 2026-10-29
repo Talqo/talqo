@@ -14,6 +14,7 @@ import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
@@ -154,6 +155,27 @@ function PasswordCard() {
 	)
 }
 
+function ProfileCardSkeleton({ label }: { label: string }) {
+	return (
+		<Card>
+			<CardHeader>
+				<Skeleton className="h-5 w-24" />
+				<Skeleton className="h-4 w-64 max-w-full" />
+			</CardHeader>
+			<CardContent>
+				<output className="sr-only">{label}</output>
+				<div className="space-y-4">
+					<div className="space-y-2">
+						<Skeleton className="h-4 w-16" />
+						<Skeleton className="h-9 w-full" />
+					</div>
+					<Skeleton className="h-9 w-32" />
+				</div>
+			</CardContent>
+		</Card>
+	)
+}
+
 function AccountPage() {
 	const { t } = useTranslation()
 	const session = useGetSession()
@@ -162,7 +184,7 @@ function AccountPage() {
 		<div className="space-y-6">
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
 			{session.isPending ? (
-				<p className="text-muted-foreground">{t("auth.loading")}</p>
+				<ProfileCardSkeleton label={t("auth.loading")} />
 			) : (
 				<ProfileCard name={session.data?.data.user?.username ?? ""} />
 			)}

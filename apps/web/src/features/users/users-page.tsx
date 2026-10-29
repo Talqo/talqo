@@ -37,6 +37,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Check, Copy, Pencil, Trash2, UserPlus } from "lucide-react"
@@ -227,6 +228,31 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	)
 }
 
+function UsersSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-3">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 3 }, (_, index) => (
+				<Card key={index}>
+					<CardContent>
+						<div className="space-y-4">
+							<div className="flex flex-wrap items-center gap-2">
+								<Skeleton className="h-5 w-32 max-w-full" />
+								<Skeleton className="h-5 w-16" />
+								<Skeleton className="h-5 w-20" />
+							</div>
+							<div className="flex flex-wrap items-center gap-3">
+								<Skeleton className="h-9 w-28" />
+								<Skeleton className="h-9 w-28" />
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			))}
+		</div>
+	)
+}
+
 function UsersList({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -249,7 +275,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 	}
 
 	if (usersQuery.isPending || session.isPending) {
-		return <p className="text-muted-foreground">{t("users.loading")}</p>
+		return <UsersSkeleton label={t("users.loading")} />
 	}
 
 	if (usersQuery.isError || session.isError) {
@@ -274,7 +300,10 @@ function UsersList({ held }: { held: readonly string[] }) {
 	return (
 		<div className="space-y-3">
 			{canManageRoles && rolesQuery.isPending ? (
-				<output className="text-muted-foreground block text-sm">{t("roles.loading")}</output>
+				<div className="space-y-2">
+					<output className="sr-only">{t("roles.loading")}</output>
+					<Skeleton className="h-4 w-40 max-w-full" />
+				</div>
 			) : null}
 			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
 			{users.map((user) => {
