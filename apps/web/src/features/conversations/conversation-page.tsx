@@ -14,6 +14,14 @@ import type { ConversationsSearch } from "./conversations-search"
 
 import { Transcript } from "./transcript"
 
+const PREVIEW_LIMIT = 80
+
+function previewOf(text: string | undefined): string | undefined {
+	const trimmed = text?.trim()
+	if (!trimmed) return undefined
+	return trimmed.length > PREVIEW_LIMIT ? `${trimmed.slice(0, PREVIEW_LIMIT)}…` : trimmed
+}
+
 export function ConversationPage({
 	conversationId,
 	listSearch,
@@ -28,7 +36,7 @@ export function ConversationPage({
 	const conversation = query.data?.data.conversation
 	const notFound = query.error?.info?.code === "conversation-not-found"
 	const agentName = agents?.find((agent) => agent.id === conversation?.agentId)?.name
-	const preview = conversation?.messages.find((message) => message.role === "user")?.text
+	const preview = previewOf(conversation?.messages.find((message) => message.role === "user")?.text)
 
 	return (
 		<div className="space-y-6">

@@ -250,6 +250,23 @@ test("titles and focuses the page heading on route changes", async () => {
 	expect(document.activeElement).toBe(heading)
 })
 
+test("leaves focus alone when the heading changes after navigation", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<PageHeader title={t("account.heading")} />)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	const heading = rendered.host.querySelector("h1")
+	if (!toggle || !heading) throw new Error("Missing navigation toggle or heading")
+	toggle.focus()
+
+	await act(async () => {
+		heading.textContent = t("nav.users")
+	})
+	await settle()
+
+	expect(document.title).toBe(`${t("nav.users")} · Talqo`)
+	expect(document.activeElement).toBe(toggle)
+})
+
 test("focuses the first mobile link, closes on Escape, and returns focus to the toggle", async () => {
 	mockSignedInAdmin()
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)

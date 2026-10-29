@@ -4,13 +4,13 @@ const TITLE_SEPARATOR = " · "
 
 export function useRouteHeading(pathname: string, main: RefObject<HTMLElement | null>, appName: string) {
 	const previousPath = useRef(pathname)
+	const seenHeading = useRef<HTMLElement | null>(null)
 
 	useEffect(() => {
 		const element = main.current
 		if (!element) return undefined
-		const focusOnRender = previousPath.current !== pathname
+		let pendingFocus = previousPath.current !== pathname
 		previousPath.current = pathname
-		let focusedHeading: HTMLElement | null = null
 
 		const sync = () => {
 			const heading = element.querySelector<HTMLElement>("h1")
@@ -18,11 +18,12 @@ export function useRouteHeading(pathname: string, main: RefObject<HTMLElement | 
 			const text = heading.textContent?.trim()
 			const title = text ? `${text}${TITLE_SEPARATOR}${appName}` : appName
 			if (document.title !== title) document.title = title
-			// A transition can swap the heading node; move focus to the replacement.
-			if (focusOnRender && heading !== focusedHeading) {
+			// The previous page's heading stays mounted during a transition; skip it.
+			if (pendingFocus && heading !== seenHeading.current) {
 				heading.focus()
-				focusedHeading = heading
+				pendingFocus = false
 			}
+			seenHeading.current = heading
 		}
 
 		sync()

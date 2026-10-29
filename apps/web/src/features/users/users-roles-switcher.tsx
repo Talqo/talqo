@@ -9,6 +9,7 @@ const ACTIVE_LINK_PROPS = { className: "bg-background text-foreground shadow-sm"
 export function UsersRolesSwitcher() {
 	const { t } = useTranslation()
 	const canManageRoles = useGetMyPermissions().data?.data.permissions.includes("roles:manage") ?? false
+	if (!canManageRoles) return null
 
 	return (
 		<nav
