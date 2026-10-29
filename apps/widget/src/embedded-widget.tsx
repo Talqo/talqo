@@ -18,6 +18,7 @@ import {
 	type FormEvent,
 	type KeyboardEvent,
 	memo,
+	type MouseEvent as ReactMouseEvent,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -177,7 +178,7 @@ function WidgetChat({
 	const announcementId = useRef(0)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
-	const { size, resizable, startResize, resizeBy, resizing } = useResizablePanel(position, panelRef)
+	const { size, resizable, startResize, resizeBy, toggleExpanded, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
@@ -218,7 +219,7 @@ function WidgetChat({
 		}
 	}, [open])
 
-	// The transcript itself is a list, not a live region: announce terminal outcomes only.
+	// The transcript is a silent log: announce terminal outcomes only.
 	useEffect(() => {
 		const next = new Map<string, ChatMessage["outcome"]>()
 		let terminalText: string | undefined
@@ -306,6 +307,11 @@ function WidgetChat({
 	}
 
 	function handleResizeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+		if (event.key === "Enter" || event.key === " ") {
+			event.preventDefault()
+			toggleExpanded()
+			return
+		}
 		const horizontalStep = position === "bottom-left" ? RESIZE_STEP_PX : -RESIZE_STEP_PX
 		let widthDelta = 0
 		let heightDelta = 0
@@ -322,6 +328,14 @@ function WidgetChat({
 		}
 		event.preventDefault()
 		resizeBy(widthDelta, heightDelta)
+	}
+
+	function handleDialogClick(event: ReactMouseEvent<HTMLDialogElement>) {
+		if (event.target !== event.currentTarget) return
+		const rect = event.currentTarget.getBoundingClientRect()
+		const outside =
+			event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom
+		if (outside) setOpen(false)
 	}
 
 	async function handleRetry() {
@@ -356,6 +370,7 @@ function WidgetChat({
 		>
 			{open && (
 				// Anchored 4.75rem above the viewport bottom (offset + launcher + gap); max-h keeps 1rem above.
+				// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop dismissal is pointer-only; Escape handles keyboard.
 				<dialog
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
@@ -364,6 +379,7 @@ function WidgetChat({
 						panelPositionClasses[position],
 					)}
 					style={panelStyle}
+					onClick={handleDialogClick}
 					onCancel={(event) => {
 						event.preventDefault()
 						setOpen(false)
@@ -373,7 +389,8 @@ function WidgetChat({
 						<button
 							type="button"
 							data-testid="resize-corner"
-							aria-label={t("resizeChat")}
+							aria-label={size ? t("resetChatSize") : t("expandChat")}
+							aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
 							onPointerDown={startResize}
 							onKeyDown={handleResizeKeyDown}
 							className={cn(

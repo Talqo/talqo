@@ -54,6 +54,10 @@
 	cursor: pointer;
 }
 
+.talqo-widget dialog::backdrop {
+	background: transparent;
+}
+
 .talqo-widget .talqo-scrollbar {
 	scrollbar-color: color-mix(in srgb, var(--talqo-muted-foreground) 55%, transparent) transparent;
 	scrollbar-width: thin;

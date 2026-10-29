@@ -152,6 +152,23 @@ describe("dialog semantics", () => {
 		expect(container.querySelector("dialog")).toBeNull()
 		expect(document.activeElement).toBe(launcher)
 	})
+
+	test("closes when the backdrop is clicked and keeps panel clicks open", async () => {
+		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)
+		const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")
+		if (!launcher) throw new Error("launcher not rendered")
+
+		await act(async () => launcher.click())
+		const dialog = container.querySelector("dialog")
+		if (!dialog) throw new Error("panel not rendered")
+
+		await act(async () => container.querySelector("h2")?.dispatchEvent(new MouseEvent("click", { bubbles: true })))
+		expect(container.querySelector("dialog")?.open).toBe(true)
+
+		await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 4, clientY: 4 })))
+		expect(container.querySelector("dialog")).toBeNull()
+		expect(document.activeElement).toBe(launcher)
+	})
 })
 
 const originalMatchMedia = window.matchMedia
@@ -300,7 +317,7 @@ describe("EmbeddedWidget resize", () => {
 		dialog.getBoundingClientRect = () =>
 			({ left: 500, right: 820, top: 116, bottom: 500, width: 320, height: 384 }) as DOMRect
 
-		const handle = host.querySelector<HTMLButtonElement>("button[aria-label='Resize chat']")
+		const handle = host.querySelector<HTMLButtonElement>("[data-testid='resize-corner']")
 		expect(handle).not.toBeNull()
 		act(() => handle?.focus())
 
@@ -313,6 +330,26 @@ describe("EmbeddedWidget resize", () => {
 			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))
 		})
 		expect(panel()?.style.height).toBe("408px")
+	})
+
+	test("expands and resets the panel from the resize button", async () => {
+		await openChat()
+		const handle = host.querySelector<HTMLButtonElement>("[data-testid='resize-corner']")
+		expect(handle?.getAttribute("aria-label")).toBe("Expand chat")
+
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+		})
+		expect(panel()?.style.width).toBe("448px")
+		expect(panel()?.style.height).toBe("560px")
+		expect(handle?.getAttribute("aria-label")).toBe("Reset chat size")
+
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }))
+		})
+		expect(panel()?.style.width).toBe("")
+		expect(panel()?.style.height).toBe("")
+		expect(handle?.getAttribute("aria-label")).toBe("Expand chat")
 	})
 
 	test("closing and reopening keeps the custom size", async () => {

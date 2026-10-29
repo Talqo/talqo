@@ -8,6 +8,8 @@ const MIN_HEIGHT = 320
 const RESIZE_MARGIN = 32
 // Excludes the launcher row and preserves top clearance.
 const RESIZE_HEIGHT_MARGIN = 92
+const EXPANDED_WIDTH = 448
+const EXPANDED_HEIGHT = 560
 
 function clampPanelSize(width: number, height: number): { width: number; height: number } {
 	return {
@@ -34,6 +36,10 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		query.addEventListener("change", onChange)
 		return () => query.removeEventListener("change", onChange)
 	}, [])
+
+	function toggleExpanded() {
+		setSize((current) => (current ? null : clampPanelSize(EXPANDED_WIDTH, EXPANDED_HEIGHT)))
+	}
 
 	function resizeBy(widthDelta: number, heightDelta: number) {
 		const rect = panelRef.current?.getBoundingClientRect()
@@ -73,5 +79,5 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		window.addEventListener("pointercancel", handleEnd)
 	}
 
-	return { size, resizable, startResize, resizeBy, resizing }
+	return { size, resizable, startResize, resizeBy, toggleExpanded, resizing }
 }
