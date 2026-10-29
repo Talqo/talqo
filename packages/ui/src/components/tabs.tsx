@@ -16,7 +16,7 @@ function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive
 }
 
 const tabsListVariants = cva(
-	"group/tabs-list inline-flex w-fit max-w-full items-center justify-start overflow-x-auto rounded-control p-1 text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
+	"group/tabs-list [&::-webkit-scrollbar]:hidden [scrollbar-width:none] inline-flex w-fit max-w-full items-center justify-start overflow-x-auto rounded-control p-1 text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
 	{
 		variants: {
 			variant: {

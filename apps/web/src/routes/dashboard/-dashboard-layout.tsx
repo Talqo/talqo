@@ -264,7 +264,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 							id="mobile-navigation"
 							className="border-border bg-sidebar absolute inset-x-0 top-full z-30 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-b p-4 shadow-lg md:hidden"
 						>
-							<NavList className="flex flex-col gap-1" onNavigate={closeMobile} />
+							<NavList className="flex flex-col gap-1" onNavigate={closeMobileAndRestoreFocus} />
 							<AccountFooter accountName={accountName} />
 						</div>
 					)}

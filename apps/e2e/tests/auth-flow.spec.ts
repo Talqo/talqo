@@ -162,4 +162,9 @@ test("mobile navigation focuses the panel, closes on Escape, and restores the to
 	await expect(panel).toBeHidden()
 	await expect(toggle).toHaveAttribute("aria-expanded", "false")
 	await expect(toggle).toBeFocused()
+
+	await toggle.click()
+	await panel.getByRole("link", { name: web("nav.dashboard") }).click()
+	await expect(panel).toBeHidden()
+	await expect(toggle).toBeFocused()
 })
