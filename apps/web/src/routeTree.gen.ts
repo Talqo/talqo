@@ -20,7 +20,6 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAccountRouteImport } from './routes/dashboard/account'
 import { Route as DashboardAgentsRouteImport } from './routes/dashboard/agents'
 import { Route as DashboardAiConfigurationRouteImport } from './routes/dashboard/ai-configuration'
-import { Route as DashboardUsersRouteRouteImport } from './routes/dashboard/users/route'
 import { Route as DashboardAgentAgentIdRouteImport } from './routes/dashboard/agent.$agentId'
 import { Route as DashboardConversationsIndexRouteImport } from './routes/dashboard/conversations/index'
 import { Route as DashboardConversationsConversationIdRouteImport } from './routes/dashboard/conversations/$conversationId'
@@ -86,11 +85,6 @@ const DashboardAiConfigurationRoute =
     path: '/ai-configuration',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
-const DashboardUsersRouteRoute = DashboardUsersRouteRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => DashboardRouteRoute,
-} as any)
 const DashboardAgentAgentIdRoute = DashboardAgentAgentIdRouteImport.update({
   id: '/agent/$agentId',
   path: '/agent/$agentId',
@@ -114,15 +108,15 @@ const DashboardEmbedsEmbedIdRoute = DashboardEmbedsEmbedIdRouteImport.update({
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardUsersRouteRoute,
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => DashboardRouteRoute,
 } as any)
 const DashboardUsersRolesRouteRoute =
   DashboardUsersRolesRouteRouteImport.update({
-    id: '/roles',
-    path: '/roles',
-    getParentRoute: () => DashboardUsersRouteRoute,
+    id: '/users/roles',
+    path: '/users/roles',
+    getParentRoute: () => DashboardRouteRoute,
   } as any)
 const DashboardUsersRolesIndexRoute =
   DashboardUsersRolesIndexRouteImport.update({
@@ -145,7 +139,6 @@ export interface FileRoutesByFullPath {
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
-  '/dashboard/users': typeof DashboardUsersRouteRouteWithChildren
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
@@ -187,7 +180,6 @@ export interface FileRoutesById {
   '/force-password-change': typeof ForcePasswordChangeRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
-  '/dashboard/users': typeof DashboardUsersRouteRouteWithChildren
   '/dashboard/account': typeof DashboardAccountRoute
   '/dashboard/agents': typeof DashboardAgentsRoute
   '/dashboard/ai-configuration': typeof DashboardAiConfigurationRoute
@@ -211,7 +203,6 @@ export interface FileRouteTypes {
     | '/force-password-change'
     | '/login'
     | '/setup'
-    | '/dashboard/users'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
@@ -252,7 +243,6 @@ export interface FileRouteTypes {
     | '/force-password-change'
     | '/login'
     | '/setup'
-    | '/dashboard/users'
     | '/dashboard/account'
     | '/dashboard/agents'
     | '/dashboard/ai-configuration'
@@ -356,13 +346,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAiConfigurationRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
-    '/dashboard/users': {
-      id: '/dashboard/users'
-      path: '/users'
-      fullPath: '/dashboard/users'
-      preLoaderRoute: typeof DashboardUsersRouteRouteImport
-      parentRoute: typeof DashboardRouteRoute
-    }
     '/dashboard/agent/$agentId': {
       id: '/dashboard/agent/$agentId'
       path: '/agent/$agentId'
@@ -393,17 +376,17 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/users/': {
       id: '/dashboard/users/'
-      path: '/'
+      path: '/users'
       fullPath: '/dashboard/users/'
       preLoaderRoute: typeof DashboardUsersIndexRouteImport
-      parentRoute: typeof DashboardUsersRouteRoute
+      parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/users/roles': {
       id: '/dashboard/users/roles'
-      path: '/roles'
+      path: '/users/roles'
       fullPath: '/dashboard/users/roles'
       preLoaderRoute: typeof DashboardUsersRolesRouteRouteImport
-      parentRoute: typeof DashboardUsersRouteRoute
+      parentRoute: typeof DashboardRouteRoute
     }
     '/dashboard/users/roles/': {
       id: '/dashboard/users/roles/'
@@ -438,42 +421,31 @@ const DashboardUsersRolesRouteRouteWithChildren =
     DashboardUsersRolesRouteRouteChildren,
   )
 
-interface DashboardUsersRouteRouteChildren {
-  DashboardUsersRolesRouteRoute: typeof DashboardUsersRolesRouteRouteWithChildren
-  DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute
-}
-
-const DashboardUsersRouteRouteChildren: DashboardUsersRouteRouteChildren = {
-  DashboardUsersRolesRouteRoute: DashboardUsersRolesRouteRouteWithChildren,
-  DashboardUsersIndexRoute: DashboardUsersIndexRoute,
-}
-
-const DashboardUsersRouteRouteWithChildren =
-  DashboardUsersRouteRoute._addFileChildren(DashboardUsersRouteRouteChildren)
-
 interface DashboardRouteRouteChildren {
-  DashboardUsersRouteRoute: typeof DashboardUsersRouteRouteWithChildren
   DashboardAccountRoute: typeof DashboardAccountRoute
   DashboardAgentsRoute: typeof DashboardAgentsRoute
   DashboardAiConfigurationRoute: typeof DashboardAiConfigurationRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardUsersRolesRouteRoute: typeof DashboardUsersRolesRouteRouteWithChildren
   DashboardAgentAgentIdRoute: typeof DashboardAgentAgentIdRoute
   DashboardConversationsConversationIdRoute: typeof DashboardConversationsConversationIdRoute
   DashboardEmbedsEmbedIdRoute: typeof DashboardEmbedsEmbedIdRoute
   DashboardConversationsIndexRoute: typeof DashboardConversationsIndexRoute
+  DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
-  DashboardUsersRouteRoute: DashboardUsersRouteRouteWithChildren,
   DashboardAccountRoute: DashboardAccountRoute,
   DashboardAgentsRoute: DashboardAgentsRoute,
   DashboardAiConfigurationRoute: DashboardAiConfigurationRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardUsersRolesRouteRoute: DashboardUsersRolesRouteRouteWithChildren,
   DashboardAgentAgentIdRoute: DashboardAgentAgentIdRoute,
   DashboardConversationsConversationIdRoute:
     DashboardConversationsConversationIdRoute,
   DashboardEmbedsEmbedIdRoute: DashboardEmbedsEmbedIdRoute,
   DashboardConversationsIndexRoute: DashboardConversationsIndexRoute,
+  DashboardUsersIndexRoute: DashboardUsersIndexRoute,
 }
 
 const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
