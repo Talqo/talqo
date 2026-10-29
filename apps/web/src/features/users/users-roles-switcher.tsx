@@ -6,9 +6,6 @@ const LINK_CLASS =
 	"rounded-item focus-visible:ring-ring/50 hover:text-foreground h-control-sm inline-flex items-center px-3 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-3"
 const ACTIVE_LINK_PROPS = { className: "bg-background text-foreground shadow-sm" }
 
-/**
- * Each view is its own page, so these are links rather than tabs.
- */
 export function UsersRolesSwitcher() {
 	const { t } = useTranslation()
 	const canManageRoles = useGetMyPermissions().data?.data.permissions.includes("roles:manage") ?? false

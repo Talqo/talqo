@@ -18,7 +18,7 @@ export function useRouteHeading(pathname: string, main: RefObject<HTMLElement | 
 			const text = heading.textContent?.trim()
 			const title = text ? `${text}${TITLE_SEPARATOR}${appName}` : appName
 			if (document.title !== title) document.title = title
-			// The old heading can still be mounted during a transition; refocus when it is replaced.
+			// A transition can swap the heading node; move focus to the replacement.
 			if (focusOnRender && heading !== focusedHeading) {
 				heading.focus()
 				focusedHeading = heading
