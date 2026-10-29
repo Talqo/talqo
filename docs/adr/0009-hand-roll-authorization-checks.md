@@ -6,11 +6,11 @@ Accepted (2026-08-06)
 
 ## Context
 
-The platform must enforce per-user and per-agent permission grants on every route. CASL (`@casl/ability`) is actively maintained and could express this, but its value is composable rules across multiple simultaneous conditions, subjects, and fields — more than this grant model needs. A dependency's cost should match actual requirement complexity, not speculative future need.
+Talqo must enforce per-user and per-agent permission grants on every route. CASL (`@casl/ability`) is actively maintained and could express this, but its value is composable rules across multiple simultaneous conditions, subjects, and fields — more than this grant model needs. A dependency's cost should match actual requirement complexity, not speculative future need.
 
 ## Decision
 
-Enforce authorization with hand-rolled checks; no external authorization library. Routes declare their access policy through `access.*` helpers, and the `roles` service evaluates authority (`requireAgentPermission`, `requireAgentScope`, `listEffectivePermissions`).
+Enforce authorization with hand-rolled checks: routes declare their access policy through `access.*` helpers, and the `roles` service evaluates authority (`requireAgentPermission`, `requireAgentScope`, `listEffectivePermissions`).
 
 ## Consequences
 

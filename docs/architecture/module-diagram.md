@@ -51,6 +51,13 @@ graph LR
     stats --> usage
     stats --> agent
     stats --> roles
+
+    roles --> audit
+    agent --> audit
+    mcp --> audit
+    ai_provider --> audit
+    usage --> audit
+    conversation --> audit
 ```
 
 `identity` and `audit` are leaves: they never call another module. `audit` only ever receives calls (a write sink for activity log entries). `conversation` orchestrates sending messages. `stats` owns no tables: it composes the operator statistics read model from other modules' services. Separately, `knowledge-base` owns source-file lifecycle and serial ingestion, calling the configured embedding provider.

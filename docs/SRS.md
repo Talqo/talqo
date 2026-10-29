@@ -102,7 +102,7 @@ Talqo is related to these repos:
 | FR-2.7 | Operator can embed the widget on their website via a script tag (framework-independence constraint: NFR-1.1) | High | Done |
 | FR-2.8 | Operator can rotate an embed's public token, which takes effect immediately: the old token stops working and existing chat sessions under that embed are revoked | Medium | Done |
 | FR-2.8a | Operator with manage permission on an agent can create, edit, and enable or disable its embeds; an agent can serve multiple embeds | Medium | Done |
-| FR-2.8b | Operator can reassign an embed to another agent, which requires manage permission on both agents and revokes its chat sessions | Medium | Done |
+| FR-2.8b | Operator can reassign an embed to another agent, which requires manage permission on both agents and revokes its chat sessions | Medium | Not started |
 | FR-2.8c | Operator can delete an embed, which revokes its end-user sessions while preserving the conversations | Medium | Done |
 
 #### 3.2.2 API configuration (FR-2b)
