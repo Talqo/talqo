@@ -38,8 +38,8 @@
 			}
 		},
 		"packages/ui": {
-			"entry": ["src/components/*.tsx", "src/lib/*.ts"],
-			"project": ["src/**/*.{ts,tsx,css}"]
+			"entry": ["i18next.config.ts", "src/components/*.tsx", "src/lib/*.ts"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
 		}
 	}
 }

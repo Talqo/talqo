@@ -10,6 +10,7 @@
 		"./assets/*": "./src/assets/*"
 	},
 	"scripts": {
+		"i18n": "i18next-cli lint --quiet",
 		"typecheck": "bun check"
 	},
 	"dependencies": {
@@ -29,6 +30,7 @@
 		"@talqo/typescript-config": "workspace:*",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
+		"i18next-cli": "1.80.4",
 		"shadcn": "4.22.1",
 		"tailwindcss": "4.3.3",
 		"typescript": "7.0.2",

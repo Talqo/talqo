@@ -33,16 +33,10 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
 	)
 }
 
-function DialogContent({
-	className,
-	children,
-	showCloseButton = true,
-	closeLabel = "Close",
-	...props
-}: DialogPrimitive.Popup.Props & {
-	showCloseButton?: boolean
-	closeLabel?: string
-}) {
+type DialogContentProps = DialogPrimitive.Popup.Props &
+	({ showCloseButton: false; closeLabel?: string } | { showCloseButton?: boolean; closeLabel: string })
+
+function DialogContent({ className, children, showCloseButton = true, closeLabel, ...props }: DialogContentProps) {
 	return (
 		<DialogPortal>
 			<DialogOverlay />
@@ -73,14 +67,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
 	return <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
 }
 
-function DialogFooter({
-	className,
-	showCloseButton = false,
-	children,
-	...props
-}: React.ComponentProps<"div"> & {
-	showCloseButton?: boolean
-}) {
+function DialogFooter({ className, children, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="dialog-footer"
@@ -88,7 +75,6 @@ function DialogFooter({
 			{...props}
 		>
 			{children}
-			{showCloseButton && <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>}
 		</div>
 	)
 }

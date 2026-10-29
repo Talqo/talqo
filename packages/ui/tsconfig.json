@@ -5,5 +5,5 @@
 			"@talqo/ui/*": ["./src/*"]
 		}
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx"]
+	"include": ["src/**/*.ts", "src/**/*.tsx", "i18next.config.ts"]
 }
