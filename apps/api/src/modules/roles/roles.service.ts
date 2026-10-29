@@ -185,6 +185,10 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
 }
 
+export async function listAssignedRoles(userId: string): Promise<RoleSummary[]> {
+	return repo.findRolesOfUser(userId)
+}
+
 export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
 	const held = new Set(permissions)
 	if (held.has(AgentPermission.AgentManage) || held.has(AgentPermission.AgentDelete))

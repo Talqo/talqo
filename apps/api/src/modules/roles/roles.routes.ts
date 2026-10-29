@@ -25,6 +25,7 @@ import {
 	listRolesRoute,
 	myPermissionsResponseSchema,
 	myPermissionsRoute,
+	myRolesRoute,
 	redeemInvitationResponseSchema,
 	redeemInvitationRoute,
 	removeAgentAccessRoute,
@@ -98,6 +99,10 @@ rolesRoutes.route("/invitations", invitationRoutes)
 rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 	const permissions = await service.listEffectivePermissions(c.get("user").id)
 	return c.json(myPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
+})
+rolesRoutes.openapi(myRolesRoute, async (c) => {
+	const roles = await service.listAssignedRoles(c.get("user").id)
+	return c.json(userRolesResponseSchema.parse({ roles }), HTTP_STATUS.OK)
 })
 
 const userRoutes = new OpenAPIHono()
