@@ -217,3 +217,19 @@ test("switching accounts does not reuse cached agent permissions", async ({ page
 	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("link", { name: web("nav.agents"), exact: true })).toHaveCount(0)
 })
+
+test("agent tabs scroll inside their strip at 320px", async ({ page, agent }) => {
+	await page.setViewportSize({ width: 320, height: 720 })
+	await openDashboard(page, ADMIN, `/dashboard/agent/${agent.id}`)
+
+	const strip = page.getByRole("tablist")
+	await expect(strip).toBeVisible()
+	await expect(page.getByRole("tab", { name: web("agentConfig.tabConfiguration") })).toBeVisible()
+
+	const { clientWidth, scrollWidth } = await page.evaluate(() => ({
+		clientWidth: document.documentElement.clientWidth,
+		scrollWidth: document.documentElement.scrollWidth,
+	}))
+	expect(scrollWidth).toBeLessThanOrEqual(clientWidth)
+	expect(await strip.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+})
