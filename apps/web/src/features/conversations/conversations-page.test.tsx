@@ -185,6 +185,16 @@ describe("ConversationsPage", () => {
 		expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 2, total: 2, count: 2 }))
 	})
 
+	test("loads the first page when the URL filter is reconciled", async () => {
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
+
+		await renderPage({ agents: [REMOVED_ID], page: 2 })
+		await settle()
+
+		expect(requested).toContain("/api/conversations?page=1")
+		expect(requested.some((url) => url.includes("page=2"))).toBe(false)
+	})
+
 	test("offers a retry when loading fails", async () => {
 		let attempts = 0
 		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => {

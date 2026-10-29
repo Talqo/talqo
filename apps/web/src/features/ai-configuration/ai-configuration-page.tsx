@@ -91,7 +91,11 @@ function authModeLabel(mode: AiProviderAuthMode, t: (key: string) => string): st
 }
 
 function focusFirstInvalidModel(errors: FieldErrors<AiConfigurationFormValues>): void {
-	document.getElementById(errors.text?.modelId ? "text-model" : "embedding-model")?.focus()
+	if (errors.text?.modelId) {
+		document.getElementById("text-model")?.focus()
+		return
+	}
+	if (errors.embedding?.modelId) document.getElementById("embedding-model")?.focus()
 }
 
 function RequiredMark() {

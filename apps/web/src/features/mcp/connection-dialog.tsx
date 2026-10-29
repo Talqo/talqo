@@ -56,6 +56,7 @@ type DraftField = "name" | "url" | "command" | "headers" | "env"
 
 type DraftError = {
 	field?: DraftField
+	focusId?: string
 	message: string
 	/** The secret row the operator has to fix, when `field` is a secret list. */
 	rowId?: string
@@ -69,20 +70,23 @@ function draftFailure(
 ): DraftError {
 	switch (reason) {
 		case "nameRequired":
-			return { field: "name", message: t("mcp.errorName") }
+			return { field: "name", focusId: "mcp-name", message: t("mcp.errorName") }
 		case "nameAscii":
-			return { field: "name", message: t("mcp.errorNameAscii") }
+			return { field: "name", focusId: "mcp-name", message: t("mcp.errorNameAscii") }
 		case "nameTooLong":
-			return { field: "name", message: t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT }) }
+			return { field: "name", focusId: "mcp-name", message: t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT }) }
 		case "addressRequired":
-			return { field: "url", message: t("mcp.errorAddress") }
+			return { field: "url", focusId: "mcp-url", message: t("mcp.errorAddress") }
 		case "commandRequired":
-			return { field: "command", message: t("mcp.errorCommand") }
+			return { field: "command", focusId: "mcp-command", message: t("mcp.errorCommand") }
 		case "secretRequired": {
+			const field = draft.transport === "http" ? "headers" : "env"
 			const rows = draft.transport === "http" ? draft.headers : draft.env
+			const row = invalidSecretRow(rows, requireSecretValue)
 			return {
-				field: draft.transport === "http" ? "headers" : "env",
-				rowId: invalidSecretRow(rows, requireSecretValue)?.id,
+				field,
+				focusId: row ? `mcp-${field}-${row.id}-${row.name.trim() ? "value" : "name"}` : undefined,
+				rowId: row?.id,
 				message: t("mcp.errorSecret"),
 			}
 		}
@@ -96,9 +100,7 @@ function fieldErrorId(field: DraftField): string {
 }
 
 function focusField(failure: DraftError): void {
-	if (!failure.field) return
-	const id = failure.rowId ? `mcp-${failure.field}-${failure.rowId}-name` : `mcp-${failure.field}`
-	document.getElementById(id)?.focus()
+	if (failure.focusId) document.getElementById(failure.focusId)?.focus()
 }
 
 function FieldError({ field, message }: { field: DraftField; message: string }) {
@@ -254,6 +256,7 @@ export function ConnectionDialog({
 							}}
 							onValueChange={(value) => {
 								if (value === null) return
+								setError(null)
 								set({ transport: value })
 							}}
 						>
@@ -299,6 +302,7 @@ export function ConnectionDialog({
 									}}
 									onValueChange={(value) => {
 										if (value === null) return
+										setError(null)
 										set({ authMode: value })
 									}}
 								>

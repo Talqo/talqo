@@ -135,6 +135,27 @@ describe("ConnectionDialog", () => {
 		expect(document.activeElement).toBe(name)
 	})
 
+	test("focuses the empty secret value instead of its filled name", async () => {
+		await renderDialog()
+		await click(button(t("mcp.add")))
+		await click(element("#mcp-auth"))
+		const headers = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+			(option) => option.textContent === t("mcp.authHeaders"),
+		)
+		if (!headers) throw new Error("headers option not rendered")
+		await click(headers)
+		await click(button(t("mcp.addHeader")))
+
+		await type(element<HTMLInputElement>("#mcp-name"), "Stock")
+		await type(element<HTMLInputElement>("#mcp-url"), "https://example.test/mcp")
+		await type(element<HTMLInputElement>(`[aria-label="${t("mcp.headerName")}"]`), "X-API-Key")
+		await click(element('form button[type="submit"]'))
+
+		const value = element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`)
+		expect(document.activeElement?.id).toBe(value.id)
+		expect(value.getAttribute("aria-invalid")).toBe("true")
+	})
+
 	test("marks the name and connection details as required", async () => {
 		await renderDialog()
 		await click(button(t("mcp.add")))

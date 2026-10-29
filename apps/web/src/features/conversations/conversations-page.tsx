@@ -64,7 +64,8 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	const agentNames = new Map(agentLines.map((line) => [line.id, line.name]))
 	const readableIds = useMemo(() => agentLines.map((line) => line.id), [agentLines])
 	const agentsLoaded = agentsQuery.data !== undefined
-	const effectiveAgents = reconcileAgentIds(search.agents, readableIds)
+	const effectiveAgents = useMemo(() => reconcileAgentIds(search.agents, readableIds), [search.agents, readableIds])
+	const filterChanged = effectiveAgents !== search.agents
 	const noAgentSelected = effectiveAgents?.length === 0
 	// A filtered URL waits for the agent list instead of querying unreadable IDs first.
 	const awaitingAgents = agentsQuery.isPending && (search.agents?.length ?? 0) > 0
@@ -75,7 +76,7 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	}, [agentsLoaded, effectiveAgents, onSearchChange, search])
 
 	const conversationsQuery = useListConversations(
-		{ agentId: effectiveAgents, page },
+		{ agentId: effectiveAgents, page: filterChanged ? 1 : page },
 		{ query: { enabled: !noAgentSelected && !awaitingAgents, placeholderData: keepPreviousData } },
 	)
 	const result = conversationsQuery.data?.data
