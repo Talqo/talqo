@@ -11,7 +11,6 @@ import {
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
-import { UsersRolesSwitcher } from "@/components/users-roles-switcher"
 import { type ResetPasswordFormValues, resetPasswordSchema } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl } from "@/features/authentication/invitation.ts"
@@ -48,6 +47,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { EditUserRolesDialog } from "./edit-user-roles-dialog"
+import { UsersRolesSwitcher } from "./users-roles-switcher"
 
 const NOT_FOUND_STATUS = 404
 
