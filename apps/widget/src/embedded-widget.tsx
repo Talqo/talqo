@@ -11,6 +11,7 @@ import {
 	type WidgetScheme,
 	type WidgetSchemeInput,
 } from "@talqo/shared/widget-appearance"
+import logoUrl from "@talqo/ui/assets/logo.svg"
 import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
 import {
@@ -27,7 +28,6 @@ import {
 } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
-import ChatIcon from "./assets/icons/chat.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
 import NewChatIcon from "./assets/icons/new-chat.svg?react"
@@ -59,6 +59,8 @@ export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
 type ColorScheme = "light" | "dark"
 
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+// Inlining the SVG would leak its favicon <style> into the host page; a mask paints it in currentColor instead.
+const LOGO_MASK = { "--talqo-logo": `url("${logoUrl}")` } as CSSProperties
 
 // Unchanged messages keep object identity through the SDK, so memo skips most rows per delta.
 const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: ChatMessage }) {
@@ -504,7 +506,11 @@ function WidgetChat({
 				aria-haspopup="dialog"
 				className="tw:flex tw:size-12 tw:items-center tw:justify-center tw:rounded-full tw:bg-primary tw:text-primary-foreground tw:shadow-lg tw:transition-transform tw:hover:scale-105"
 			>
-				<ChatIcon aria-hidden="true" />
+				<span
+					aria-hidden="true"
+					className="tw:size-7 tw:bg-current tw:mask-(--talqo-logo) tw:mask-contain tw:mask-center tw:mask-no-repeat"
+					style={LOGO_MASK}
+				/>
 			</button>
 		</div>
 	)
