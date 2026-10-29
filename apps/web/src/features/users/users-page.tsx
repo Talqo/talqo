@@ -11,6 +11,7 @@ import {
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
+import { UsersRolesSwitcher } from "@/components/users-roles-switcher"
 import { type ResetPasswordFormValues, resetPasswordSchema } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
 import { buildInvitationUrl } from "@/features/authentication/invitation.ts"
@@ -514,6 +515,7 @@ export function UsersPage() {
 				description={t("users.subheading")}
 				actions={held.includes("users:manage") ? <InviteMemberDialog held={held} /> : null}
 			/>
+			<UsersRolesSwitcher />
 			<UsersList held={held} />
 		</div>
 	)

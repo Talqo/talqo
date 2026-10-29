@@ -23,14 +23,14 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={id}>{label}</Label>
-			<div className="flex items-center gap-2">
+			<div className="flex flex-wrap items-center gap-2">
 				<input
 					id={id}
 					type="color"
 					disabled={readOnly}
 					value={isHexColor(value) ? value : "#000000"}
 					onChange={(event) => onChange(event.target.value)}
-					className="h-control rounded-control w-12 cursor-pointer border bg-transparent p-1"
+					className="h-control rounded-control border-input-border w-12 cursor-pointer border bg-transparent p-1"
 				/>
 				<Input
 					readOnly={readOnly}
@@ -43,7 +43,9 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 				/>
 				{ratio !== undefined && !passes && (
 					// A warning, not a gate: the brand color is the operator's to choose.
-					<Badge variant="destructive">{t("embedSetup.contrastWarning")}</Badge>
+					<Badge variant="destructive" className="w-full sm:w-auto">
+						{t("embedSetup.contrastWarning")}
+					</Badge>
 				)}
 			</div>
 			{!isHexColor(value) && <p className="text-destructive text-xs">{t("embedSetup.colorInvalid")}</p>}

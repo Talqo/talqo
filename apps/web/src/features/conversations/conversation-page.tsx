@@ -28,6 +28,7 @@ export function ConversationPage({
 	const conversation = query.data?.data.conversation
 	const notFound = query.error?.info?.code === "conversation-not-found"
 	const agentName = agents?.find((agent) => agent.id === conversation?.agentId)?.name
+	const preview = conversation?.messages.find((message) => message.role === "user")?.text
 
 	return (
 		<div className="space-y-6">
@@ -59,7 +60,7 @@ export function ConversationPage({
 			) : (
 				<>
 					<PageHeader
-						title={t("conversations.heading")}
+						title={preview ?? agentName ?? t("conversations.unknownAgent")}
 						description={t("conversations.startedAt", {
 							date: formatDateTime(conversation.startedAt, language),
 							agent: agentName ?? t("conversations.unknownAgent"),

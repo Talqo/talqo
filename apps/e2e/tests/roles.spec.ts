@@ -14,7 +14,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 
 		await test.step("the admin creates a role that can manage agents", async () => {
 			await openDashboard(page, ADMIN, "/dashboard/users")
-			await page.getByRole("tab", { name: web("roles.heading"), exact: true }).click()
+			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
 			await page.getByRole("button", { name: web("roles.create") }).click()
 			await expect(page).toHaveURL(/\/dashboard\/users\/roles\/[^/]+$/)
 			createdRoleId = new URL(page.url()).pathname.split("/").pop()
@@ -92,7 +92,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await deleteUser.getByRole("button", { name: web("users.deleteConfirm"), exact: true }).click()
 			await expect(operatorCard).toHaveCount(0)
 
-			await page.getByRole("tab", { name: web("roles.heading"), exact: true }).click()
+			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
 			const roleCard = page.locator("[data-role-id]", { hasText: roleName })
 			await roleCard.click()
 			await page.getByRole("button", { name: web("roles.delete"), exact: true }).click()

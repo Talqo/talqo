@@ -92,7 +92,11 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 			) : null}
 
 			<section className="space-y-4" aria-busy={conversationsQuery.isFetching}>
-				<h2 ref={resultsHeading} tabIndex={-1} className="text-sm font-medium outline-none">
+				<h2
+					ref={resultsHeading}
+					tabIndex={-1}
+					className="focus-visible:ring-ring/50 rounded-sm text-sm font-medium outline-none focus-visible:ring-3"
+				>
 					{result ? t("conversations.total", { count: result.total }) : t("conversations.listHeading")}
 				</h2>
 

@@ -1,6 +1,7 @@
 import { getListRolesQueryKey, useCreateRole, useListRoles } from "@/api/generated/roles/roles"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
+import { UsersRolesSwitcher } from "@/components/users-roles-switcher"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
 import { nextDefaultName } from "@/lib/default-name"
@@ -73,6 +74,7 @@ export function RolesPage() {
 					) : null
 				}
 			/>
+			<UsersRolesSwitcher />
 			{!forbidden ? <ProblemAlert error={createRole.error} /> : null}
 			{forbidden ? (
 				<AccessDenied />

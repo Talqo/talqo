@@ -31,7 +31,7 @@ function FieldInput({
 			<Autocomplete.Input id={id} placeholder={placeholder} render={<Input trailingAction />} />
 			<Autocomplete.Trigger
 				aria-label={triggerLabel}
-				className="text-muted-foreground hover:text-foreground size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none"
+				className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none focus-visible:ring-3"
 			>
 				{loading ? <LoaderCircleIcon className="size-4 animate-spin" /> : <ChevronsUpDownIcon className="size-4" />}
 			</Autocomplete.Trigger>

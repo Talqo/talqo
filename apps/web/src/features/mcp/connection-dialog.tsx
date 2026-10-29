@@ -147,7 +147,7 @@ export function ConnectionDialog({
 					</>
 				)}
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>{server ? t("mcp.editTitle") : t("mcp.addTitle")}</DialogTitle>
 					<DialogDescription>{server ? t("mcp.editDescription") : t("mcp.addDescription")}</DialogDescription>

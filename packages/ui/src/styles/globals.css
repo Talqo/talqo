@@ -27,6 +27,7 @@
 	--color-success: var(--success);
 	--color-border: var(--border);
 	--color-input: var(--input);
+	--color-input-border: var(--input-border);
 	--color-ring: var(--ring);
 	--color-sidebar: var(--sidebar);
 	--color-sidebar-foreground: var(--sidebar-foreground);
@@ -60,6 +61,7 @@
 }
 
 :root {
+	color-scheme: light;
 	--color-green-50: oklch(0.97 0.02 150);
 	--color-green-100: oklch(0.94 0.04 150);
 	--color-green-200: oklch(0.89 0.07 150);
@@ -139,6 +141,8 @@
 	--destructive-foreground: var(--color-neutral-50);
 	--border: var(--color-neutral-200);
 	--input: var(--color-neutral-200);
+	/* WCAG 1.4.11: the control boundary must reach 3:1 against card and background. */
+	--input-border: oklch(0.62 0 0);
 	--ring: var(--color-green-500);
 	--sidebar: var(--color-neutral-50);
 	--sidebar-foreground: var(--color-neutral-950);
@@ -157,6 +161,7 @@
 }
 
 .dark {
+	color-scheme: dark;
 	--background: oklch(0.13 0 0);
 	--foreground: var(--color-neutral-50);
 	--card: var(--color-neutral-900);
@@ -176,6 +181,7 @@
 	--destructive-foreground: var(--color-neutral-50);
 	--border: var(--color-neutral-800);
 	--input: var(--color-neutral-800);
+	--input-border: oklch(0.55 0 0);
 	--ring: var(--color-green-500);
 	--sidebar: var(--color-neutral-900);
 	--sidebar-foreground: var(--color-neutral-50);

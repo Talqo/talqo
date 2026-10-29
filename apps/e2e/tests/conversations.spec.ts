@@ -51,8 +51,8 @@ test("operator finds a visitor conversation from the sidebar and reads it", asyn
 	await expect(row).toContainText(agentName)
 	await row.click()
 
-	await expect(page.getByRole("heading", { name: web("conversations.heading"), exact: true })).toBeVisible()
-	await expect(page.getByText(QUESTION, { exact: true })).toBeVisible()
+	await expect(page.getByRole("heading", { name: QUESTION, exact: true })).toBeVisible()
+	await expect(page.getByRole("list").getByText(QUESTION, { exact: true })).toBeVisible()
 	await expect(page.locator("strong", { hasText: "tomorrow" })).toBeVisible()
 
 	await page.getByRole("button", { name: web("conversations.backToConversations") }).click()

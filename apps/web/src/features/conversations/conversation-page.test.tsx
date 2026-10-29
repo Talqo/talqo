@@ -109,6 +109,7 @@ describe("ConversationPage", () => {
 		await act(async () => pending.resolve(found()))
 		await settle()
 
+		expect(host.querySelector("h1")?.textContent).toBe("Where is my order?")
 		expect(host.textContent).toContain("Where is my order?")
 		expect(host.textContent).toContain(AGENT.name)
 	})

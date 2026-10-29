@@ -16,7 +16,7 @@ function Tabs({ className, orientation = "horizontal", ...props }: TabsPrimitive
 }
 
 const tabsListVariants = cva(
-	"group/tabs-list inline-flex w-fit items-center justify-center rounded-control p-1 text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
+	"group/tabs-list inline-flex w-fit max-w-full items-center justify-start overflow-x-auto rounded-control p-1 text-muted-foreground group-data-horizontal/tabs:h-control group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
 	{
 		variants: {
 			variant: {
@@ -63,7 +63,14 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
 	return (
-		<TabsPrimitive.Panel data-slot="tabs-content" className={cn("flex-1 text-sm outline-none", className)} {...props} />
+		<TabsPrimitive.Panel
+			data-slot="tabs-content"
+			className={cn(
+				"focus-visible:ring-ring/50 flex-1 rounded-sm text-sm outline-none focus-visible:ring-3",
+				className,
+			)}
+			{...props}
+		/>
 	)
 }
 
