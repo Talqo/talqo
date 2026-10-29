@@ -1,4 +1,5 @@
 {
+	"agentLabel": "Agent",
 	"agentResponding": "Agent is responding",
 	"chatUnavailable": "This chat isn't available right now.",
 	"closeChat": "Close chat",
@@ -8,7 +9,7 @@
 	"errorConcurrencyLimit": "Too many responses are being generated on this network. Try again shortly.",
 	"errorContextLimit": "This conversation exceeds the model context limit. Start a new chat to continue.",
 	"errorConversationTooLong": "This conversation is full. Start a new chat to continue.",
-	"errorDailyAllowance": "This network's daily message allowance has been reached. It resets {{reset}}.",
+	"errorDailyAllowance": "This network's daily message allowance has been reached.",
 	"errorEmbedDisabled": "This chat is currently disabled.",
 	"errorEmbedNotFound": "This chat embed is unavailable or invalid.",
 	"errorInputIncompatible": "This message is incompatible with the configured model.",
@@ -30,7 +31,6 @@
 	"messageLabel": "Message",
 	"newChat": "New chat",
 	"newChatTooltip": "Start a new chat and clear this conversation",
-	"nextUtcDay": "at the next UTC day",
 	"openChat": "Open chat",
 	"outcomeBlocked": "Response blocked",
 	"outcomeCancelled": "Response cancelled",
@@ -39,6 +39,8 @@
 	"placeholder": "Type a message…",
 	"recovering": "Recovering response…",
 	"recoveryUnavailable": "Response recovery is unavailable. Partial content is shown.",
+	"resizeChat": "Resize chat",
+	"responseComplete": "Response complete.",
 	"retry": "Retry",
 	"retryAfter": "Try again after {{reset}}.",
 	"send": "Send",
@@ -46,5 +48,7 @@
 	"stopping": "Stopping…",
 	"switchToDark": "Switch to dark theme",
 	"switchToLight": "Switch to light theme",
-	"toolRunning": "Checking live information…"
+	"transcriptLabel": "Conversation",
+	"usingTool": "Using a tool…",
+	"youLabel": "You"
 }

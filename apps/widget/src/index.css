@@ -28,6 +28,7 @@
 	--color-destructive: var(--talqo-destructive);
 	--color-border: var(--talqo-border);
 	--color-input: var(--talqo-input);
+	--color-input-border: var(--talqo-input-border);
 	--color-ring: var(--talqo-ring);
 	--radius-item: var(--talqo-radius-item);
 	--radius-control: var(--talqo-radius-control);

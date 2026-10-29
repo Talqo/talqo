@@ -35,7 +35,7 @@ import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
 import SendIcon from "./assets/icons/send.svg?react"
 import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
-import { errorText, outcomeText, ResponseIndicator } from "./components/chat-feedback"
+import { errorText, formatResetTime, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
 import { mergeAppearance } from "./lib/embed-config"
 import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
@@ -66,6 +66,7 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 	const awaitingText = message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
 	return (
 		<Bubble align={message.role === "user" ? "end" : "start"}>
+			<span className="tw:sr-only">{message.role === "user" ? t("youLabel") : t("agentLabel")}</span>
 			{(awaitingText || message.text.length > 0) && (
 				<BubbleContent variant={message.role === "user" ? "default" : "muted"}>
 					{awaitingText ? (
@@ -104,6 +105,17 @@ const positionClasses: Record<WidgetPosition, string> = {
 	"bottom-left": "tw:fixed tw:bottom-4 tw:left-4 tw:items-start",
 }
 
+// showModal() moves the panel into the top layer, so it no longer inherits the launcher wrapper's position.
+const panelPositionClasses: Record<WidgetPosition, string> = {
+	"bottom-right": "tw:right-4 tw:bottom-[4.75rem] tw:left-auto tw:top-auto",
+	"bottom-left": "tw:bottom-[4.75rem] tw:left-4 tw:right-auto tw:top-auto",
+}
+
+const headerControlClasses =
+	"tw:flex tw:size-10 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none tw:sm:size-8"
+
+const RESIZE_STEP_PX = 24
+
 function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
 	return {
 		primary: isHexColor(input?.primary) ? input.primary : fallback.primary,
@@ -130,25 +142,6 @@ function resolveAppearance(appearance: WidgetAppearanceInput | undefined): Widge
 	}
 }
 
-function trapFocus(event: KeyboardEvent<HTMLElement>, container: HTMLElement | null) {
-	if (event.key !== "Tab" || !container) {
-		return
-	}
-	const focusable = container.querySelectorAll<HTMLElement>("button, input")
-	const first = focusable.item(0)
-	const last = focusable.item(focusable.length - 1)
-	if (!first || !last) {
-		return
-	}
-	if (event.shiftKey && document.activeElement === first) {
-		event.preventDefault()
-		last.focus()
-	} else if (!event.shiftKey && document.activeElement === last) {
-		event.preventDefault()
-		first.focus()
-	}
-}
-
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
 const EMPTY_TOOLS: readonly ActiveTool[] = []
 
@@ -167,10 +160,11 @@ function WidgetChat({
 	snapshot?: ChatSnapshot
 	client?: ChatClient
 }) {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const [open, setOpen] = useState(false)
 	const [draft, setDraft] = useState("")
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
+	const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDialogElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -179,13 +173,16 @@ function WidgetChat({
 	const wasOpen = useRef(false)
 	const scrollRef = useRef<HTMLDivElement>(null)
 	const stickToBottomRef = useRef(true)
+	const announcedOutcomes = useRef(new Map<string, ChatMessage["outcome"]>())
+	const announcementId = useRef(0)
 	const prefersDark = usePrefersDark()
 	const position = appearance.position
-	const { size, resizable, startResize, resizing } = useResizablePanel(position, panelRef)
+	const { size, resizable, startResize, resizeBy, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
-	const disabled = snapshot ? !snapshot.actions.includes("send") : false
+	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
+	const composerDisabled = snapshot !== undefined && (activity === "loading" || activity === "blocked")
 	const visibleError = snapshot?.error
 	const canStartNewChat = snapshot?.actions.includes("new-chat") === true
 
@@ -203,9 +200,39 @@ function WidgetChat({
 	useEffect(() => {
 		if (wasOpen.current && !open) {
 			launcherRef.current?.focus()
+			setAnnouncement(null)
 		}
 		wasOpen.current = open
 	}, [open])
+
+	useLayoutEffect(() => {
+		if (!open) return undefined
+		const dialog = panelRef.current
+		if (!dialog) return undefined
+		if (!dialog.open) dialog.showModal()
+		inputRef.current?.focus()
+		return () => {
+			if (dialog.open) dialog.close()
+		}
+	}, [open])
+
+	// The transcript itself is a list, not a live region: announce terminal outcomes only.
+	useEffect(() => {
+		const next = new Map<string, ChatMessage["outcome"]>()
+		let terminalText: string | undefined
+		for (const message of messages) {
+			if (message.role !== "assistant") continue
+			next.set(message.id, message.outcome)
+			if (announcedOutcomes.current.get(message.id) === "streaming" && message.outcome !== "streaming") {
+				terminalText = message.outcome === "completed" ? t("responseComplete") : outcomeText(message.outcome, t)
+			}
+		}
+		announcedOutcomes.current = next
+		if (open && terminalText) {
+			announcementId.current += 1
+			setAnnouncement({ id: announcementId.current, text: terminalText })
+		}
+	}, [messages, open, t])
 
 	const scrollToBottom = useCallback(() => {
 		const element = scrollRef.current
@@ -243,11 +270,12 @@ function WidgetChat({
 	async function handleSend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		const text = draft.trim()
-		if (!text || disabled || !client) {
+		if (!text || !sendAvailable || !client) {
 			return
 		}
 		pendingSend.current = { draft, acceptedMessageId: snapshot?.acceptedMessageId }
 		stickToBottomRef.current = true
+		inputRef.current?.focus()
 		try {
 			await client.sendMessage(text)
 		} catch {
@@ -267,11 +295,31 @@ function WidgetChat({
 	}
 
 	async function handleCancel() {
+		inputRef.current?.focus()
 		try {
 			await client?.cancelResponse()
 		} catch {
 			// The SDK snapshot owns cancellation recovery and errors.
 		}
+	}
+
+	function handleResizeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+		const horizontalStep = position === "bottom-left" ? RESIZE_STEP_PX : -RESIZE_STEP_PX
+		let widthDelta = 0
+		let heightDelta = 0
+		if (event.key === "ArrowLeft") {
+			widthDelta = -horizontalStep
+		} else if (event.key === "ArrowRight") {
+			widthDelta = horizontalStep
+		} else if (event.key === "ArrowUp") {
+			heightDelta = RESIZE_STEP_PX
+		} else if (event.key === "ArrowDown") {
+			heightDelta = -RESIZE_STEP_PX
+		} else {
+			return
+		}
+		event.preventDefault()
+		resizeBy(widthDelta, heightDelta)
 	}
 
 	async function handleRetry() {
@@ -302,36 +350,37 @@ function WidgetChat({
 			)}
 			style={paletteStyle}
 			data-scheme={scheme}
+			lang={appearance.language}
 		>
 			{open && (
-				// max-h leaves room below for the launcher row plus a top clearance:
-				// 16px offset + 12px gap + 48px launcher + 16px clearance = 5.75rem.
+				// Anchored 4.75rem above the viewport bottom (offset + launcher + gap); max-h keeps 1rem above.
 				<dialog
-					open
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
-					className="tw:group tw:relative tw:m-0 tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100vh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-overlay tw:border tw:border-border tw:bg-background tw:p-0 tw:text-foreground tw:shadow-lg"
+					className={cn(
+						"tw:group tw:fixed tw:m-0 tw:flex tw:h-96 tw:w-80 tw:max-h-[calc(100dvh-5.75rem)] tw:max-w-[calc(100vw-2rem)] tw:flex-col tw:overflow-hidden tw:rounded-overlay tw:border tw:border-border tw:bg-background tw:p-0 tw:text-foreground tw:shadow-lg",
+						panelPositionClasses[position],
+					)}
 					style={panelStyle}
-					onKeyDown={(event) => {
-						if (event.key === "Escape") {
-							setOpen(false)
-						} else {
-							trapFocus(event, panelRef.current)
-						}
+					onCancel={(event) => {
+						event.preventDefault()
+						setOpen(false)
 					}}
 				>
 					{resizable && (
-						<div
-							aria-hidden="true"
+						<button
+							type="button"
 							data-testid="resize-corner"
+							aria-label={t("resizeChat")}
+							onPointerDown={startResize}
+							onKeyDown={handleResizeKeyDown}
 							className={cn(
-								"tw:absolute tw:z-10 tw:size-6 tw:transition-opacity",
+								"tw:absolute tw:z-10 tw:size-6 tw:rounded-control tw:transition-opacity tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none",
 								position === "bottom-left"
 									? "tw:-top-1.5 tw:-right-1.5 tw:cursor-nesw-resize"
 									: "tw:-top-1.5 tw:-left-1.5 tw:cursor-nwse-resize",
-								resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100",
+								resizing ? "tw:opacity-100" : "tw:opacity-0 tw:group-hover:opacity-100 tw:focus-visible:opacity-100",
 							)}
-							onPointerDown={startResize}
 						>
 							<ResizeGripIcon
 								aria-hidden="true"
@@ -341,7 +390,7 @@ function WidgetChat({
 									resizing ? "tw:text-primary" : "tw:text-muted-foreground",
 								)}
 							/>
-						</div>
+						</button>
 					)}
 					<header className="tw:flex tw:items-center tw:justify-between tw:border-border tw:border-b tw:px-4 tw:py-3.5">
 						<h2 className="tw:font-semibold tw:text-sm">{title ?? t("defaultTitle")}</h2>
@@ -353,7 +402,7 @@ function WidgetChat({
 									disabled={!canStartNewChat}
 									aria-label={t("newChat")}
 									title={t("newChatTooltip")}
-									className="tw:mr-1 tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:disabled:opacity-50"
+									className={cn(headerControlClasses, "tw:mr-1 tw:disabled:opacity-50")}
 								>
 									<NewChatIcon aria-hidden="true" />
 								</button>
@@ -363,7 +412,7 @@ function WidgetChat({
 									type="button"
 									onClick={() => setVisitorScheme(scheme === "dark" ? "light" : "dark")}
 									aria-label={scheme === "dark" ? t("switchToLight") : t("switchToDark")}
-									className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+									className={headerControlClasses}
 								>
 									{scheme === "dark" ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
 								</button>
@@ -372,7 +421,7 @@ function WidgetChat({
 								type="button"
 								onClick={() => setOpen(false)}
 								aria-label={t("closeChat")}
-								className="tw:flex tw:size-6 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground"
+								className={headerControlClasses}
 							>
 								<CloseIcon aria-hidden="true" />
 							</button>
@@ -383,9 +432,10 @@ function WidgetChat({
 						onScroll={handleTranscriptScroll}
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
-						<BubbleGroup>
+						<BubbleGroup aria-label={t("transcriptLabel")}>
 							{messages.length === 0 && activity === "idle" && (
 								<Bubble align="start">
+									<span className="tw:sr-only">{t("agentLabel")}</span>
 									<BubbleContent variant="muted">{t("greeting")}</BubbleContent>
 								</Bubble>
 							)}
@@ -395,7 +445,7 @@ function WidgetChat({
 							{activeTools.length > 0 && (
 								<Bubble align="start">
 									<BubbleContent variant="muted">
-										<ResponseIndicator label={t("toolRunning")} />
+										<ResponseIndicator label={t("usingTool")} />
 									</BubbleContent>
 								</Bubble>
 							)}
@@ -406,60 +456,67 @@ function WidgetChat({
 									</BubbleContent>
 								</Bubble>
 							)}
-							{activity === "loading" && <p className="tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>}
-							{activity === "recovering" && <p className="tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>}
-							{snapshot?.notices.includes("recovery-unavailable") && (
-								<p
-									role="alert"
-									className="tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
-								>
-									{t("recoveryUnavailable")}
-								</p>
-							)}
-							{snapshot?.notices.includes("storage-unavailable") && (
-								<output className="tw:block tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm">
-									{t("errorStorageUnavailable")}
-								</output>
-							)}
-							{visibleError && (
-								<div
-									role="alert"
-									className="tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
-								>
-									<p>{errorText(visibleError, t)}</p>
-									{visibleError.retryAt && (
-										<time dateTime={visibleError.retryAt}>
-											{t("retryAfter", {
-												reset: new Date(visibleError.retryAt).toLocaleString(),
-											})}
-										</time>
-									)}
-									{visibleError.retriable === true && (
-										<button
-											type="button"
-											onClick={() => void handleRetry()}
-											disabled={!snapshot?.actions.includes("retry")}
-											aria-label={t("retry")}
-											className="tw:rounded-control tw:border tw:border-destructive tw:px-3 tw:py-2 tw:text-destructive tw:disabled:opacity-50"
-										>
-											{t("retry")}
-										</button>
-									)}
-									{visibleError.newChatAvailable && (
-										<button
-											type="button"
-											onClick={() => void handleNewChat()}
-											disabled={!canStartNewChat}
-											aria-label={t("newChat")}
-											className="tw:rounded-control tw:bg-primary tw:px-3 tw:py-2 tw:text-primary-foreground tw:disabled:opacity-50"
-										>
-											{t("newChat")}
-										</button>
-									)}
-								</div>
-							)}
 						</BubbleGroup>
+						{activity === "loading" && (
+							<p className="tw:mt-2 tw:text-muted-foreground tw:text-sm">{t("initializing")}</p>
+						)}
+						{activity === "recovering" && (
+							<p className="tw:mt-2 tw:text-muted-foreground tw:text-sm">{t("recovering")}</p>
+						)}
+						{snapshot?.notices.includes("recovery-unavailable") && (
+							<p
+								role="alert"
+								className="tw:mt-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+							>
+								{t("recoveryUnavailable")}
+							</p>
+						)}
+						{snapshot?.notices.includes("storage-unavailable") && (
+							<output className="tw:mt-2 tw:block tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm">
+								{t("errorStorageUnavailable")}
+							</output>
+						)}
+						{visibleError && (
+							<div
+								role="alert"
+								className="tw:mt-2 tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
+							>
+								<p>{errorText(visibleError, t)}</p>
+								{visibleError.retryAt && (
+									<time dateTime={visibleError.retryAt}>
+										{t("retryAfter", {
+											reset: formatResetTime(visibleError.retryAt, i18n.language),
+										})}
+									</time>
+								)}
+								{visibleError.retriable === true && (
+									<button
+										type="button"
+										onClick={() => void handleRetry()}
+										disabled={!snapshot?.actions.includes("retry")}
+										aria-label={t("retry")}
+										className="tw:rounded-control tw:border tw:border-destructive tw:px-3 tw:py-2 tw:text-destructive tw:disabled:opacity-50"
+									>
+										{t("retry")}
+									</button>
+								)}
+								{visibleError.newChatAvailable && (
+									<button
+										type="button"
+										onClick={() => void handleNewChat()}
+										disabled={!canStartNewChat}
+										aria-label={t("newChat")}
+										className="tw:rounded-control tw:bg-primary tw:px-3 tw:py-2 tw:text-primary-foreground tw:disabled:opacity-50"
+									>
+										{t("newChat")}
+									</button>
+								)}
+							</div>
+						)}
 					</div>
+					<output data-testid="announcement" aria-live="polite" className="tw:sr-only">
+						{announcement && <span key={announcement.id}>{announcement.text}</span>}
+					</output>
 					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">
 						<input
 							ref={inputRef}
@@ -468,9 +525,8 @@ function WidgetChat({
 							onChange={(event) => setDraft(event.target.value)}
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
-							autoFocus
-							disabled={disabled}
-							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:disabled:opacity-50"
+							disabled={composerDisabled}
+							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input-border tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:disabled:opacity-50"
 						/>
 						{snapshot?.actions.includes("stop") || activity === "stopping" ? (
 							<button
@@ -486,7 +542,7 @@ function WidgetChat({
 							<button
 								type="submit"
 								aria-label={t("send")}
-								disabled={disabled || draft.trim().length === 0}
+								disabled={!sendAvailable || draft.trim().length === 0}
 								className="tw:flex tw:size-control tw:shrink-0 tw:items-center tw:justify-center tw:rounded-control tw:bg-primary tw:text-primary-foreground tw:transition-colors tw:hover:bg-primary/90 tw:disabled:opacity-50"
 							>
 								<SendIcon aria-hidden="true" />

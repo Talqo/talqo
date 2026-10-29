@@ -1,6 +1,6 @@
 import type { Root } from "react-dom/client"
 
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
 await import("./test-setup")
 
@@ -120,6 +120,41 @@ describe("title", () => {
 			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
 		})
 		expect(container.querySelector("h2")?.textContent).toBe("Marketing site")
+	})
+})
+
+describe("language", () => {
+	test("sets lang on the widget root from the resolved language", () => {
+		const root = widgetRoot(render(<EmbeddedWidget appearance={{ language: "cs" }} />))
+		expect(root.getAttribute("lang")).toBe("cs")
+	})
+
+	test("falls back to en for an unsupported language", () => {
+		const root = widgetRoot(render(<EmbeddedWidget appearance={{ language: "fr" }} />))
+		expect(root.getAttribute("lang")).toBe("en")
+	})
+})
+
+describe("dialog semantics", () => {
+	test("opens modally, focuses the composer, and returns focus to the launcher on Escape", async () => {
+		const showModal = spyOn(HTMLDialogElement.prototype, "showModal")
+		try {
+			const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)
+			const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")
+			if (!launcher) throw new Error("launcher not rendered")
+
+			await act(async () => launcher.click())
+			const dialog = container.querySelector("dialog")
+			expect(showModal).toHaveBeenCalledTimes(1)
+			expect(dialog?.open).toBe(true)
+			expect(document.activeElement).toBe(container.querySelector("input[aria-label='Message']"))
+
+			await act(async () => dialog?.dispatchEvent(new Event("cancel", { cancelable: true })))
+			expect(container.querySelector("dialog")).toBeNull()
+			expect(document.activeElement).toBe(launcher)
+		} finally {
+			showModal.mockRestore()
+		}
 	})
 })
 
@@ -260,6 +295,28 @@ describe("EmbeddedWidget resize", () => {
 		// width: 1024-32=992; height: 768-92=676 (launcher row + top clearance).
 		expect(panel()?.style.width).toBe("992px")
 		expect(panel()?.style.height).toBe("676px")
+	})
+
+	test("resizes from the keyboard without dragging", async () => {
+		await openChat()
+		const dialog = panel()
+		if (!dialog) throw new Error("panel not found")
+		dialog.getBoundingClientRect = () =>
+			({ left: 500, right: 820, top: 116, bottom: 500, width: 320, height: 384 }) as DOMRect
+
+		const handle = host.querySelector<HTMLButtonElement>("button[aria-label='Resize chat']")
+		expect(handle).not.toBeNull()
+		act(() => handle?.focus())
+
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }))
+		})
+		expect(panel()?.style.width).toBe("344px")
+
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))
+		})
+		expect(panel()?.style.height).toBe("408px")
 	})
 
 	test("closing and reopening keeps the custom size", async () => {

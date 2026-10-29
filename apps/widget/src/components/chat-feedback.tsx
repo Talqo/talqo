@@ -8,10 +8,7 @@ const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {
 	"malformed-json": (t) => t("errorMalformedJson"),
 	"chat-client-address-unavailable": (t) => t("errorClientAddressUnavailable"),
 	"chat-conversation-too-long": (t) => t("errorConversationTooLong"),
-	"chat-daily-allowance-exceeded": (t, error) =>
-		t("errorDailyAllowance", {
-			reset: error.retryAt ? new Date(error.retryAt).toLocaleString() : t("nextUtcDay"),
-		}),
+	"chat-daily-allowance-exceeded": (t) => t("errorDailyAllowance"),
 	"chat-concurrency-limit": (t) => t("errorConcurrencyLimit"),
 	"chat-session-busy": (t) => t("errorSessionBusy"),
 	"chat-request-conflict": (t) => t("errorRequestConflict"),
@@ -42,6 +39,10 @@ const outcomeKeys = {
 	blocked: "outcomeBlocked",
 	interrupted: "outcomeInterrupted",
 } as const satisfies Partial<Record<ChatMessage["outcome"], string>>
+
+export function formatResetTime(iso: string, language: string): string {
+	return new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso))
+}
 
 export function outcomeText(outcome: ChatMessage["outcome"], t: Translate): string | undefined {
 	if (!(outcome in outcomeKeys)) return undefined

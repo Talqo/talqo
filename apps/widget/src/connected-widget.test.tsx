@@ -134,6 +134,10 @@ function transcript(): HTMLElement {
 	return element
 }
 
+function announcement(): Element | null {
+	return host.querySelector("[data-testid='announcement']")
+}
+
 function mockScrollMetrics(element: HTMLElement, metrics: { scrollHeight: number; clientHeight: number }) {
 	Object.defineProperty(element, "scrollHeight", { configurable: true, get: () => metrics.scrollHeight })
 	Object.defineProperty(element, "clientHeight", { configurable: true, get: () => metrics.clientHeight })
@@ -241,7 +245,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
-		const indicator = host.querySelector<HTMLOutputElement>("output")
+		const indicator = host.querySelector<HTMLOutputElement>("[data-slot='bubble-content'] output")
 		expect(indicator?.textContent).toBe("Agent is responding")
 
 		await act(async () =>
@@ -251,7 +255,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "streaming")],
 			}),
 		)
-		expect(host.querySelectorAll("output")).toHaveLength(1)
+		expect(host.querySelectorAll("[data-slot='bubble-content'] output")).toHaveLength(1)
 
 		await act(async () =>
 			store.setSnapshot({
@@ -260,7 +264,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
 			}),
 		)
-		expect(host.querySelector("output")).toBeNull()
+		expect(host.querySelector("[data-slot='bubble-content'] output")).toBeNull()
 		expect(host.textContent).toContain("Answer")
 	})
 
@@ -310,6 +314,105 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(input().value).toBe("keep this")
 		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, acceptedMessageId: "recovered-user" }))
 		expect(input().value).toBe("")
+	})
+
+	test("keeps the composer editable and focused while the agent responds", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			activity: "responding",
+			actions: ["stop", "new-chat"],
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(input().disabled).toBe(false)
+		expect(document.activeElement).toBe(input())
+		expect(host.querySelector("button[aria-label='Stop generating']")).not.toBeNull()
+
+		await draft("next thought")
+		expect(input().value).toBe("next thought")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				activity: "responding",
+				actions: ["stop", "new-chat"],
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part two", "streaming")],
+			}),
+		)
+		expect(input().value).toBe("next thought")
+		expect(document.activeElement).toBe(input())
+
+		await submit()
+		expect(store.calls.sends).toEqual([])
+		expect(input().value).toBe("next thought")
+	})
+
+	test("announces a completed response, not each streamed delta", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			activity: "responding",
+			actions: ["stop", "new-chat"],
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(announcement()?.textContent).toBe("")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				activity: "responding",
+				actions: ["stop", "new-chat"],
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part two", "streaming")],
+			}),
+		)
+		expect(announcement()?.textContent).toBe("")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part two", "completed")],
+			}),
+		)
+		expect(announcement()?.textContent).toBe("Response complete.")
+	})
+
+	test("labels transcript items by role in a named list", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Hi", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.querySelector("ul[data-slot='bubble-group']")?.getAttribute("aria-label")).toBe("Conversation")
+		const items = [...host.querySelectorAll("li[data-slot='bubble']")]
+		const user = items.find((element) => element.textContent?.includes("Hello"))
+		const agent = items.find((element) => element.textContent?.includes("Hi"))
+		expect(user?.textContent ?? "").toContain("You")
+		expect(agent?.textContent ?? "").toContain("Agent")
+	})
+
+	test("shows one daily allowance reset formatted in the widget language", async () => {
+		const retryAt = "2026-09-13T00:00:00Z"
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			error: error("chat-daily-allowance-exceeded", { retryAt }),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} appearance={{ language: "cs" }} />)
+		await act(async () => {})
+		await openChat()
+
+		const expected = new Intl.DateTimeFormat("cs", { dateStyle: "medium", timeStyle: "short" }).format(
+			new Date(retryAt),
+		)
+		const time = host.querySelector("time")
+		expect(time?.dateTime).toBe(retryAt)
+		expect(time?.textContent).toBe(`Zkuste to znovu po ${expected}.`)
+		expect(host.textContent?.match(/Zkuste to znovu po/g)).toHaveLength(1)
 	})
 
 	test("offers new chat for any conversation, preserving draft and focusing after success", async () => {

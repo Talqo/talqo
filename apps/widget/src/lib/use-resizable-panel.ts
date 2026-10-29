@@ -35,7 +35,16 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		return () => query.removeEventListener("change", onChange)
 	}, [])
 
-	function startResize(event: ReactPointerEvent<HTMLDivElement>) {
+	function resizeBy(widthDelta: number, heightDelta: number) {
+		const rect = panelRef.current?.getBoundingClientRect()
+		if (!rect) return
+		setSize((current) => {
+			const base = current ?? { width: rect.width, height: rect.height }
+			return clampPanelSize(base.width + widthDelta, base.height + heightDelta)
+		})
+	}
+
+	function startResize(event: ReactPointerEvent<HTMLElement>) {
 		if (event.pointerType === "touch" || !panelRef.current) return
 		event.preventDefault()
 		setResizing(true)
@@ -64,5 +73,5 @@ export function useResizablePanel(position: WidgetPosition | undefined, panelRef
 		window.addEventListener("pointercancel", handleEnd)
 	}
 
-	return { size, resizable, startResize, resizing }
+	return { size, resizable, startResize, resizeBy, resizing }
 }
