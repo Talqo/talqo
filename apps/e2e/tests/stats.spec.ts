@@ -21,10 +21,16 @@ test("a recorded chat appears in the dashboard statistics after login", async ({
 	// Log in through the real web app; the landing page must show the recorded statistics.
 	await openDashboard(page)
 	const agentRow = page.getByRole("row", { name: new RegExp(`^${agentName}`) })
-	await expect(agentRow).toBeVisible()
-	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("1")
-	await expect(agentRow.getByRole("cell").nth(2)).toHaveText("2")
-	await expect(agentRow.getByRole("cell").nth(3)).toHaveText("18")
+	await expect(agentRow.getByRole("rowheader")).toHaveText(agentName)
+	await expect(agentRow.getByRole("cell").nth(0)).toHaveText("1")
+	await expect(agentRow.getByRole("cell").nth(1)).toHaveText("2")
+	await expect(agentRow.getByRole("cell").nth(2)).toHaveText("18")
+
+	const lastUpdated = page.getByText(web("dashboard.lastUpdated")).locator("time")
+	await expect(lastUpdated).toHaveText(/\d{1,2}:\d{2}/)
+	const updatedAtAttribute = await lastUpdated.getAttribute("datetime")
+	expect(updatedAtAttribute).not.toBeNull()
+	expect(Date.now() - Date.parse(updatedAtAttribute ?? "")).toBeLessThan(60_000)
 })
 
 test("the agent filter and time range scope the dashboard and ride in the URL", async ({ page }) => {

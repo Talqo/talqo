@@ -19,14 +19,22 @@ const agentLineColors = [
 	"var(--chart-4)",
 	"var(--chart-5)",
 ] as const
+const agentLineDashPatterns = [undefined, "6 3", "2 3", "8 3 2 3", "1 4"] as const
 const totalLineColor = "var(--muted-foreground)"
 
 export function agentLineColor(index: number): string {
 	return agentLineColors[index % agentLineColors.length] ?? "var(--chart-1)"
 }
 
+// Vary the dash pattern every five agents so repeated colors stay distinguishable.
+export function agentLineDashPattern(index: number): string | undefined {
+	const patternIndex = Math.floor(index / agentLineColors.length) % agentLineDashPatterns.length
+	return agentLineDashPatterns[patternIndex]
+}
+
 export type AgentLine = {
 	color: string
+	dash?: string
 	id: string
 	name: string
 }
@@ -55,7 +63,7 @@ export type StatsCard = {
 // Averages read best with one fraction digit, while counts round compactly.
 export function StatsCards({ cards }: { cards: StatsCard[] }) {
 	const { language } = useLanguage()
-	const compact = useMemo(() => new Intl.NumberFormat(language, { notation: "compact" }), [language])
+	const compact = useCompactNumber()
 	const decimal = useMemo(() => new Intl.NumberFormat(language, { maximumFractionDigits: 1 }), [language])
 	return (
 		<div className="grid gap-4 sm:grid-cols-3">
@@ -113,7 +121,13 @@ function MetricChart({
 
 	return (
 		<ResponsiveContainer width="100%" height={280}>
-			<ComposedChart data={rows} margin={{ top: 8, right: 8, left: 8 }} title={chartTitle} desc={chartDescription}>
+			<ComposedChart
+				accessibilityLayer
+				data={rows}
+				margin={{ top: 8, right: 8, left: 8 }}
+				title={chartTitle}
+				desc={chartDescription}
+			>
 				<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
 				<XAxis
 					dataKey="date"
@@ -156,6 +170,7 @@ function MetricChart({
 					stroke={totalLineColor}
 					strokeWidth={1}
 					strokeDasharray="4 4"
+					legendType="plainline"
 					dot={false}
 				/>
 				{agentLines.map((line) => (
@@ -166,6 +181,8 @@ function MetricChart({
 						name={line.name}
 						stroke={line.color}
 						strokeWidth={2}
+						strokeDasharray={line.dash}
+						legendType="plainline"
 						dot={false}
 					/>
 				))}

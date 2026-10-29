@@ -10,6 +10,7 @@ import { RangeFilter } from "@/features/statistics/components/range-filter"
 import {
 	type AgentLine,
 	agentLineColor,
+	agentLineDashPattern,
 	DailyStatsChart,
 	type StatsCard,
 	StatsCards,
@@ -19,8 +20,10 @@ import {
 } from "@/features/statistics/components/stats-charts"
 import { toAgentDailyPoints, toSelectedStats } from "@/features/statistics/page-stats"
 import { DEFAULT_STATS_DAYS, parseDaysParam, type StatsDays } from "@/features/statistics/ranges"
+import { formatTime } from "@/lib/format-date"
 import { getProblemMessage } from "@/lib/problem-message"
 import { retryUnlessClientError } from "@/lib/query-retry"
+import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { Skeleton } from "@talqo/ui/components/skeleton"
@@ -106,8 +109,9 @@ function DashboardIndexPage() {
 		{ query: { refetchInterval: STATS_REFRESH_MS, retry: retryUnlessClientError } },
 	)
 	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
-	const labels = metricLabels(t)
+	const labels = useMemo(() => metricLabels(t), [t])
 	const compactNumber = useCompactNumber()
+	const { language } = useLanguage()
 
 	const { error, isLoading } = statsQuery
 	const overview = statsQuery.data?.data.overview
@@ -115,7 +119,13 @@ function DashboardIndexPage() {
 	// Agents without activity still belong in the permitted statistics filter.
 	const allIds = useMemo(() => (allAgents ?? []).map((agent) => agent.id), [allAgents])
 	const agentLines = useMemo<AgentLine[]>(
-		() => (allAgents ?? []).map((agent, index) => ({ color: agentLineColor(index), id: agent.id, name: agent.name })),
+		() =>
+			(allAgents ?? []).map((agent, index) => ({
+				color: agentLineColor(index),
+				dash: agentLineDashPattern(index),
+				id: agent.id,
+				name: agent.name,
+			})),
 		[allAgents],
 	)
 	const selection = search.agents
@@ -142,28 +152,32 @@ function DashboardIndexPage() {
 	)
 	const dailyPoints = useMemo(() => (overview ? toAgentDailyPoints(overview) : []), [overview])
 	const stats = useMemo(() => (overview ? toSelectedStats(overview, selectedIds) : undefined), [overview, selectedIds])
-	const cards = useMemo<StatsCard[]>(() => {
-		if (!overview || !stats) return []
-		const cardLabels = metricLabels(t)
+	const updatedAt = new Date(statsQuery.dataUpdatedAt).toISOString()
+	const cardGroups = useMemo<{ primary: StatsCard[]; secondary: StatsCard[] }>(() => {
+		if (!overview || !stats) return { primary: [], secondary: [] }
 		const activeByAgent = new Map(overview.active.map((row) => [row.agentId, row.conversations]))
 		const activeTotal = selectedIds.reduce((sum, id) => sum + (activeByAgent.get(id) ?? 0), 0)
-		const perConversation = (numerator: number) => (stats.conversations === 0 ? 0 : numerator / stats.conversations)
-		return [
-			{ format: "compact", label: cardLabels.conversations, value: stats.conversations },
-			{ format: "compact", label: cardLabels.messages, value: stats.messages },
-			{ format: "compact", label: cardLabels.tokens, value: stats.tokens },
-			{
-				format: "compact",
-				label: t("dashboard.recentMinutes", {
-					metric: t("dashboard.activeConversations"),
-					minutes: overview.activeWindowMinutes,
-				}),
-				value: activeTotal,
-			},
-			{ format: "decimal", label: t("dashboard.messagesPerConversation"), value: perConversation(stats.messages) },
-			{ format: "compact", label: t("dashboard.tokensPerConversation"), value: perConversation(stats.tokens) },
-		]
-	}, [overview, stats, selectedIds, t])
+		const perConversation = (value: number) => (stats.conversations === 0 ? 0 : value / stats.conversations)
+		return {
+			primary: [
+				{ format: "compact", label: labels.conversations, value: stats.conversations },
+				{ format: "compact", label: labels.messages, value: stats.messages },
+				{
+					format: "compact",
+					label: t("dashboard.recentMinutes", {
+						metric: t("dashboard.activeConversations"),
+						minutes: overview.activeWindowMinutes,
+					}),
+					value: activeTotal,
+				},
+			],
+			secondary: [
+				{ format: "compact", label: labels.tokens, value: stats.tokens },
+				{ format: "decimal", label: t("dashboard.messagesPerConversation"), value: perConversation(stats.messages) },
+				{ format: "decimal", label: t("dashboard.tokensPerConversation"), value: perConversation(stats.tokens) },
+			],
+		}
+	}, [overview, stats, selectedIds, labels, t])
 	// The breakdown table reads the server's own per-agent totals; only the zero rows for
 	// selected agents without activity are filled client-side.
 	const serverAgentTotals = useMemo(
@@ -245,13 +259,22 @@ function DashboardIndexPage() {
 					<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
 						<AgentFilter agentLines={agentLines} selectedIds={selectedIds} onChange={setSelection} />
 						<RangeFilter days={days} onChange={setRange} />
+						<p className="text-muted-foreground ms-auto text-sm">
+							{t("dashboard.lastUpdated")} <time dateTime={updatedAt}>{formatTime(updatedAt, language)}</time>
+						</p>
 					</div>
 
 					{selectedIds.length === 0 ? (
 						<p className="text-muted-foreground">{t("dashboard.noAgentsSelected")}</p>
 					) : (
 						<>
-							<StatsCards cards={cards} />
+							<StatsCards cards={cardGroups.primary} />
+							<section className="space-y-3" aria-labelledby="dashboard-usage-details">
+								<h2 id="dashboard-usage-details" className="text-muted-foreground text-sm font-medium">
+									{t("dashboard.usageDetails")}
+								</h2>
+								<StatsCards cards={cardGroups.secondary} />
+							</section>
 
 							<Card>
 								<CardHeader>
@@ -294,7 +317,7 @@ function DashboardIndexPage() {
 											<tbody>
 												{breakdownAgents.map((agent) => (
 													<tr key={agent.id} className="border-b last:border-0">
-														<td className="py-2 font-medium">
+														<th scope="row" className="py-2 text-left font-medium">
 															<span className="flex items-center gap-2">
 																<span
 																	aria-hidden
@@ -303,7 +326,7 @@ function DashboardIndexPage() {
 																/>
 																{agent.name}
 															</span>
-														</td>
+														</th>
 														<td className="py-2 text-right tabular-nums">
 															{compactNumber.format(agent.conversations)}
 														</td>
