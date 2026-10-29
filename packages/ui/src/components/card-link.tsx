@@ -1,8 +1,7 @@
 import { useRender } from "@base-ui/react/use-render"
 import { cn } from "@talqo/ui/lib/utils"
 
-// Stretches over the nearest positioned card so the whole card is one link target. Interactive
-// children stay clickable by rendering above it with `relative z-10`.
+// Requires a positioned card; interactive children need relative z-10.
 function CardLink({ className, render, ...props }: useRender.ComponentProps<"a">) {
 	return useRender({
 		defaultTagName: "a",
