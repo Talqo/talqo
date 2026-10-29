@@ -118,8 +118,8 @@ export function ConnectionCard({
 					</div>
 				</CardDescription>
 			</CardHeader>
-			<CardContent>
-				<div className="space-y-3">
+			<CardContent className="flex flex-1 flex-col">
+				<div className="flex flex-1 flex-col gap-3">
 					<div className="flex items-center justify-between gap-2">
 						<p className="text-muted-foreground text-xs">{t("mcp.toolsAvailable", { toolCount: server.toolCount })}</p>
 						{server.tools.length > 0 && (
@@ -162,40 +162,42 @@ export function ConnectionCard({
 						</fieldset>
 					)}
 
-					{canManage && (
-						<div className="flex items-center justify-between gap-2">
-							<Switch
-								checked={!server.isDisabled}
-								disabled={setDisabled.isPending || deploymentBlocked}
-								onCheckedChange={(checked) =>
-									void guard(() =>
-										setDisabled.mutateAsync({
-											agentId,
-											serverId: server.id,
-											action: checked ? "enable" : "disable",
-										}),
-									)
-								}
-								aria-label={t("mcp.enabled")}
-							/>
-							<div className="flex items-center gap-1">
-								<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
-								<Button
-									variant="destructive"
-									size="icon-sm"
-									onClick={() => setConfirmOpen(true)}
-									aria-label={t("mcp.remove")}
-								>
-									<Trash2 className="size-4" />
-								</Button>
+					<div className="mt-auto space-y-3">
+						{error && (
+							<p role="alert" className="text-destructive text-xs">
+								{error}
+							</p>
+						)}
+						{canManage && (
+							<div className="flex items-center justify-between gap-2">
+								<Switch
+									checked={!server.isDisabled}
+									disabled={setDisabled.isPending || deploymentBlocked}
+									onCheckedChange={(checked) =>
+										void guard(() =>
+											setDisabled.mutateAsync({
+												agentId,
+												serverId: server.id,
+												action: checked ? "enable" : "disable",
+											}),
+										)
+									}
+									aria-label={t("mcp.enabled")}
+								/>
+								<div className="flex items-center gap-1">
+									<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
+									<Button
+										variant="destructive"
+										size="icon-sm"
+										onClick={() => setConfirmOpen(true)}
+										aria-label={t("mcp.remove")}
+									>
+										<Trash2 className="size-4" />
+									</Button>
+								</div>
 							</div>
-						</div>
-					)}
-					{error && (
-						<p role="alert" className="text-destructive text-xs">
-							{error}
-						</p>
-					)}
+						)}
+					</div>
 
 					<Dialog
 						open={confirmOpen}
