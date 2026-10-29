@@ -23,6 +23,7 @@ import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
+import { CardName } from "@talqo/ui/components/card-name"
 import {
 	Dialog,
 	DialogContent,
@@ -447,11 +448,7 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 					{embeds.map((embed) => (
 						<Card key={embed.id} variant="interactive" className="relative h-full">
 							<CardHeader>
-								<CardTitle level={2} className="min-w-0">
-									<span className="block truncate" title={embed.name}>
-										{embed.name}
-									</span>
-								</CardTitle>
+								<CardName>{embed.name}</CardName>
 								<CardDescription>
 									{isSupportedLanguage(embed.appearance.language)
 										? supportedLanguages[embed.appearance.language]

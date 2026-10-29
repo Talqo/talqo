@@ -25,7 +25,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { DEFAULT_ROLE_ID, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
 import {
 	Dialog,
 	DialogContent,
@@ -311,11 +312,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 				return (
 					<Card key={user.id} data-user-id={user.id}>
 						<CardHeader>
-							<CardTitle level={2} className="min-w-0">
-								<span className="block truncate" title={user.username}>
-									{user.username}
-								</span>
-							</CardTitle>
+							<CardName>{user.username}</CardName>
 							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
 								<CardDescription>
 									<div className="flex flex-wrap items-center gap-2">

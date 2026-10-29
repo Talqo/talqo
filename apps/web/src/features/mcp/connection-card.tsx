@@ -12,7 +12,8 @@ import {
 import { connectionSummary, toggledBody } from "@/features/mcp/connection-body"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
 import {
 	Dialog,
 	DialogContent,
@@ -101,11 +102,7 @@ export function ConnectionCard({
 	return (
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
-				<CardTitle level={2} className="min-w-0">
-					<span className="block truncate" title={server.name}>
-						{server.name}
-					</span>
-				</CardTitle>
+				<CardName>{server.name}</CardName>
 				<CardDescription>
 					<div className="min-w-0 space-y-1">
 						<span className="block truncate font-mono" title={connectionSummary(server)}>

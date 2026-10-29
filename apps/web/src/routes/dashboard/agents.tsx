@@ -7,8 +7,9 @@ import { requirePermission } from "@/features/permissions/require-permission"
 import { nextDefaultName } from "@/lib/default-name"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
+import { CardName } from "@talqo/ui/components/card-name"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
@@ -123,11 +124,7 @@ function AgentsPage() {
 					{agents.map((agent) => (
 						<Card key={agent.id} variant="interactive" className="relative h-full">
 							<CardHeader>
-								<CardTitle level={2} className="min-w-0">
-									<span className="block truncate" title={agent.name}>
-										{agent.name}
-									</span>
-								</CardTitle>
+								<CardName>{agent.name}</CardName>
 								<CardDescription>
 									{t("agents.updated", {
 										date: new Date(agent.updatedAt).toLocaleDateString(language, {

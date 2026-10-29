@@ -5,8 +5,9 @@ import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
+import { CardName } from "@talqo/ui/components/card-name"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -86,11 +87,7 @@ export function RolesPage() {
 					{roles.map((role) => (
 						<Card key={role.id} variant="interactive" className="relative">
 							<CardHeader>
-								<CardTitle level={2} className="min-w-0">
-									<span className="block truncate" title={role.name}>
-										{role.name}
-									</span>
-								</CardTitle>
+								<CardName>{role.name}</CardName>
 								<CardDescription>{t("roles.members", { people: role.memberCount })}</CardDescription>
 							</CardHeader>
 							<CardLink
