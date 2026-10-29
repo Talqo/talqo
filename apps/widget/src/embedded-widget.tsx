@@ -18,7 +18,7 @@ import {
 	type FormEvent,
 	type KeyboardEvent,
 	memo,
-	type MouseEvent as ReactMouseEvent,
+	type PointerEvent as ReactPointerEvent,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -183,7 +183,7 @@ function WidgetChat({
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
 	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
-	const composerDisabled = snapshot !== undefined && (activity === "loading" || activity === "blocked")
+	const composerDisabled = snapshot !== undefined && activity === "blocked"
 	const visibleError = snapshot?.error
 	const retryAt = visibleError?.retryAt
 	const resetTime = retryAt ? formatResetTime(retryAt, i18n.language) : undefined
@@ -307,11 +307,6 @@ function WidgetChat({
 	}
 
 	function handleResizeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-		if (event.key === "Enter" || event.key === " ") {
-			event.preventDefault()
-			toggleExpanded()
-			return
-		}
 		const horizontalStep = position === "bottom-left" ? RESIZE_STEP_PX : -RESIZE_STEP_PX
 		let widthDelta = 0
 		let heightDelta = 0
@@ -330,7 +325,7 @@ function WidgetChat({
 		resizeBy(widthDelta, heightDelta)
 	}
 
-	function handleDialogClick(event: ReactMouseEvent<HTMLDialogElement>) {
+	function handleDialogClick(event: ReactPointerEvent<HTMLDialogElement>) {
 		if (event.target !== event.currentTarget) return
 		const rect = event.currentTarget.getBoundingClientRect()
 		const outside =
@@ -370,7 +365,6 @@ function WidgetChat({
 		>
 			{open && (
 				// Anchored 4.75rem above the viewport bottom (offset + launcher + gap); max-h keeps 1rem above.
-				// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop dismissal is pointer-only; Escape handles keyboard.
 				<dialog
 					aria-label={title ?? t("defaultTitle")}
 					ref={panelRef}
@@ -379,7 +373,7 @@ function WidgetChat({
 						panelPositionClasses[position],
 					)}
 					style={panelStyle}
-					onClick={handleDialogClick}
+					onPointerDown={handleDialogClick}
 					onCancel={(event) => {
 						event.preventDefault()
 						setOpen(false)
@@ -393,6 +387,9 @@ function WidgetChat({
 							aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
 							onPointerDown={startResize}
 							onKeyDown={handleResizeKeyDown}
+							onClick={(event) => {
+								if (event.detail === 0) toggleExpanded()
+							}}
 							className={cn(
 								"tw:absolute tw:z-10 tw:size-6 tw:rounded-control tw:transition-opacity tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none",
 								position === "bottom-left"

@@ -153,7 +153,7 @@ describe("dialog semantics", () => {
 		expect(document.activeElement).toBe(launcher)
 	})
 
-	test("closes when the backdrop is clicked and keeps panel clicks open", async () => {
+	test("closes when the backdrop is pressed and keeps panel presses open", async () => {
 		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)
 		const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")
 		if (!launcher) throw new Error("launcher not rendered")
@@ -162,10 +162,14 @@ describe("dialog semantics", () => {
 		const dialog = container.querySelector("dialog")
 		if (!dialog) throw new Error("panel not rendered")
 
-		await act(async () => container.querySelector("h2")?.dispatchEvent(new MouseEvent("click", { bubbles: true })))
+		await act(async () =>
+			container.querySelector("h2")?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })),
+		)
 		expect(container.querySelector("dialog")?.open).toBe(true)
 
-		await act(async () => dialog.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 4, clientY: 4 })))
+		await act(async () =>
+			dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 4, clientY: 4 })),
+		)
 		expect(container.querySelector("dialog")).toBeNull()
 		expect(document.activeElement).toBe(launcher)
 	})
@@ -338,14 +342,19 @@ describe("EmbeddedWidget resize", () => {
 		expect(handle?.getAttribute("aria-label")).toBe("Expand chat")
 
 		await act(async () => {
-			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+			handle?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }))
 		})
 		expect(panel()?.style.width).toBe("448px")
 		expect(panel()?.style.height).toBe("560px")
 		expect(handle?.getAttribute("aria-label")).toBe("Reset chat size")
 
 		await act(async () => {
-			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }))
+			handle?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }))
+		})
+		expect(panel()?.style.width).toBe("448px")
+
+		await act(async () => {
+			handle?.dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 }))
 		})
 		expect(panel()?.style.width).toBe("")
 		expect(panel()?.style.height).toBe("")

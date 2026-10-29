@@ -571,12 +571,14 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(input().disabled).toBe(false)
 	})
 
-	test("renders a loading state while initializing", async () => {
+	test("keeps the composer editable and focused while initializing", async () => {
 		const store = fakeClient({ ...READY_SNAPSHOT, activity: "loading", actions: [] })
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 		expect(host.textContent).toContain("Loading chat")
-		expect(input().disabled).toBe(true)
+		expect(input().disabled).toBe(false)
+		expect(document.activeElement).toBe(input())
+		expect(host.querySelector<HTMLButtonElement>("form button[type='submit']")?.disabled).toBe(true)
 	})
 
 	test("renders outcome labels for failed, blocked, and interrupted turns", async () => {
