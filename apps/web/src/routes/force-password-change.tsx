@@ -49,12 +49,14 @@ function ForcePasswordChangePage() {
 
 	return (
 		<AuthShell title={t("auth.forcePasswordChange.heading")} description={t("auth.forcePasswordChange.description")}>
-			<form className="space-y-4" onSubmit={handleSubmit(onValid)}>
+			<form className="space-y-4" noValidate onSubmit={handleSubmit(onValid)}>
+				<p className="text-muted-foreground text-xs">{t("auth.requiredNote")}</p>
 				<div className="space-y-2">
 					<Label htmlFor="new-password">{t("account.newPassword")}</Label>
 					<PasswordInput
 						id="new-password"
 						autoComplete="new-password"
+						required
 						aria-invalid={errors.newPassword ? true : undefined}
 						aria-describedby={errors.newPassword ? "new-password-error" : undefined}
 						hideLabel={t("common.hidePassword")}
@@ -72,6 +74,7 @@ function ForcePasswordChangePage() {
 					<PasswordInput
 						id="confirm-new-password"
 						autoComplete="new-password"
+						required
 						aria-invalid={errors.confirmPassword ? true : undefined}
 						aria-describedby={errors.confirmPassword ? "confirm-new-password-error" : undefined}
 						hideLabel={t("common.hidePassword")}
@@ -89,8 +92,10 @@ function ForcePasswordChangePage() {
 						{error}
 					</p>
 				) : null}
-				<Button type="submit" disabled={completeForcedPasswordChange.isPending}>
-					{t("auth.forcePasswordChange.submit")}
+				<Button className="w-full" size="lg" type="submit" disabled={completeForcedPasswordChange.isPending}>
+					{completeForcedPasswordChange.isPending
+						? t("auth.forcePasswordChange.pending")
+						: t("auth.forcePasswordChange.submit")}
 				</Button>
 			</form>
 		</AuthShell>

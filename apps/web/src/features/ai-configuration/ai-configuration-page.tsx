@@ -41,10 +41,10 @@ import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
-import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { LockIcon, PencilLineIcon } from "lucide-react"
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
-import { Controller, useForm, useWatch } from "react-hook-form"
+import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
@@ -90,6 +90,18 @@ function authModeLabel(mode: AiProviderAuthMode, t: (key: string) => string): st
 	return mode === "static" ? t("aiConfiguration.auth.static") : t("aiConfiguration.auth.deploymentIdentity")
 }
 
+function focusFirstInvalidModel(errors: FieldErrors<AiConfigurationFormValues>): void {
+	document.getElementById(errors.text?.modelId ? "text-model" : "embedding-model")?.focus()
+}
+
+function RequiredMark() {
+	return (
+		<span aria-hidden="true" className="text-muted-foreground">
+			*
+		</span>
+	)
+}
+
 function ProviderSelect({
 	id,
 	providers,
@@ -113,7 +125,7 @@ function ProviderSelect({
 			}}
 			disabled={disabled}
 		>
-			<SelectTrigger id={id} className="w-full">
+			<SelectTrigger id={id} className="w-full" aria-required="true">
 				<SelectValue>
 					{(providerId: AiProviderId) => {
 						const provider = providers.find((item) => item.id === providerId)
@@ -151,6 +163,7 @@ function ModelField({
 	stored,
 	storedCredentialRole,
 	disabled = false,
+	invalid = false,
 }: {
 	modelRole: "text" | "embedding"
 	label: string
@@ -161,14 +174,18 @@ function ModelField({
 	stored: RedactedRoleConfiguration | null
 	storedCredentialRole: "text" | "embedding"
 	disabled?: boolean
+	invalid?: boolean
 }) {
 	const { t } = useTranslation()
 	const context: DiscoveryContext = { provider, value, stored }
 	const discovery = useModelDiscovery({ ...context, storedCredentialRole })
 	const refreshWithStoredCredentials = storedCredentialsMatch(context)
+	const errorId = `${role}-model-error`
 	return (
 		<div className="space-y-2">
-			<Label htmlFor={`${role}-model`}>{label}</Label>
+			<Label htmlFor={`${role}-model`}>
+				{label} <RequiredMark />
+			</Label>
 			<ModelAutocomplete
 				id={`${role}-model`}
 				value={modelId}
@@ -176,9 +193,17 @@ function ModelField({
 				models={discovery.models}
 				loading={discovery.loading}
 				disabled={disabled}
+				required={!disabled}
+				invalid={invalid}
+				describedBy={invalid ? errorId : undefined}
 				emptyLabel={t("aiConfiguration.discovery.noResults")}
 				triggerLabel={t("aiConfiguration.discovery.showModels")}
 			/>
+			{invalid && (
+				<p id={errorId} role="alert" className="text-destructive text-xs">
+					{t("aiConfiguration.fields.modelRequired")}
+				</p>
+			)}
 			{discovery.failed && (
 				<p className="text-muted-foreground text-xs">
 					{refreshWithStoredCredentials
@@ -244,7 +269,9 @@ function ConnectionFields({
 	return (
 		<>
 			<div className="space-y-2">
-				<Label htmlFor={`${role}-provider`}>{t("aiConfiguration.fields.provider")}</Label>
+				<Label htmlFor={`${role}-provider`}>
+					{t("aiConfiguration.fields.provider")} <RequiredMark />
+				</Label>
 				<ProviderSelect
 					id={`${role}-provider`}
 					providers={providers}
@@ -279,17 +306,23 @@ function ConnectionFields({
 				</div>
 			)}
 
-			{provider.settingFields.map((field) => (
-				<div className="space-y-2" key={field}>
-					<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
-					<Input
-						id={`${role}-${field}`}
-						value={value.settings[field] ?? ""}
-						disabled={disabled}
-						onChange={(event) => onChange({ ...value, settings: { ...value.settings, [field]: event.target.value } })}
-					/>
-				</div>
-			))}
+			{provider.settingFields.map((field) => {
+				const required = provider.requiredSettingFields.includes(field)
+				return (
+					<div className="space-y-2" key={field}>
+						<Label htmlFor={`${role}-${field}`}>
+							{fieldLabel(field, t)} {required && <RequiredMark />}
+						</Label>
+						<Input
+							id={`${role}-${field}`}
+							value={value.settings[field] ?? ""}
+							disabled={disabled}
+							required={required}
+							onChange={(event) => onChange({ ...value, settings: { ...value.settings, [field]: event.target.value } })}
+						/>
+					</div>
+				)
+			})}
 
 			{value.authMode === "static" && !disabled && (
 				<CredentialsSection modelRole={role} provider={provider} value={value} onChange={onChange} stored={stored} />
@@ -380,9 +413,10 @@ function RoleFields(props: {
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
+	invalid?: boolean
 }) {
 	const { t } = useTranslation()
-	const { modelRole: role, value, onChange, providers, stored, disabled = false } = props
+	const { modelRole: role, value, onChange, providers, stored, disabled = false, invalid = false } = props
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
 	if (!provider) return null
 
@@ -399,6 +433,7 @@ function RoleFields(props: {
 				stored={stored}
 				storedCredentialRole={role}
 				disabled={disabled}
+				invalid={invalid}
 			/>
 		</div>
 	)
@@ -515,10 +550,11 @@ export function AiConfigurationPage() {
 					{t("aiConfiguration.unusableWarning")}
 				</p>
 			)}
-			<form onSubmit={handleSubmit(onValid)} className="space-y-6">
+			<form onSubmit={handleSubmit(onValid, focusFirstInvalidModel)} className="space-y-6" noValidate>
+				<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("aiConfiguration.textTitle")}</CardTitle>
+						<CardTitle level={2}>{t("aiConfiguration.textTitle")}</CardTitle>
 						<CardDescription>{t("aiConfiguration.textDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -527,6 +563,8 @@ export function AiConfigurationPage() {
 							name="text"
 							render={({ field }) => (
 								<RoleFields
+									// Remounts on a saved configuration, so "Replace" returns to the stored credentials.
+									key={configuration.revision}
 									modelRole="text"
 									value={field.value}
 									onChange={(next) => {
@@ -536,6 +574,7 @@ export function AiConfigurationPage() {
 									providers={providers}
 									stored={configuration.text}
 									drafts={drafts}
+									invalid={Boolean(errors.text?.modelId)}
 								/>
 							)}
 						/>
@@ -544,7 +583,7 @@ export function AiConfigurationPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("aiConfiguration.embeddingTitle")}</CardTitle>
+						<CardTitle level={2}>{t("aiConfiguration.embeddingTitle")}</CardTitle>
 						<CardDescription>{t("aiConfiguration.embeddingDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -603,42 +642,50 @@ export function AiConfigurationPage() {
 												})
 											}}
 										>
-											<TabsList>
+											<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>
 												<TabsTrigger value="same" disabled={!canReuse}>
 													{t("aiConfiguration.tabs.sameProvider")}
 												</TabsTrigger>
 												<TabsTrigger value="different">{t("aiConfiguration.tabs.differentProvider")}</TabsTrigger>
 											</TabsList>
+											<TabsContent value="same">
+												{textProvider && (
+													<div className="space-y-4">
+														<p className="text-muted-foreground flex items-center gap-2 text-sm">
+															<ProviderBrand providerId={textProvider.id} />
+															{t("aiConfiguration.sameProviderNote")}
+														</p>
+														<ModelField
+															modelRole="embedding"
+															label={t("aiConfiguration.fields.embeddingModel")}
+															modelId={field.value.modelId}
+															onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
+															provider={textProvider}
+															value={textRole}
+															stored={configuration.text}
+															storedCredentialRole="text"
+															invalid={Boolean(errors.embedding?.modelId)}
+														/>
+													</div>
+												)}
+											</TabsContent>
+											<TabsContent value="different">
+												{sameProvider ? null : (
+													<RoleFields
+														key={configuration.revision}
+														modelRole="embedding"
+														value={field.value}
+														onChange={field.onChange}
+														providers={embeddingProviders}
+														stored={configuration.embedding}
+														drafts={drafts}
+														invalid={Boolean(errors.embedding?.modelId)}
+													/>
+												)}
+											</TabsContent>
 										</Tabs>
 										{!canReuse && (
 											<p className="text-muted-foreground text-xs">{t("aiConfiguration.sameProviderUnavailable")}</p>
-										)}
-										{sameProvider && textProvider ? (
-											<div className="space-y-4">
-												<p className="text-muted-foreground flex items-center gap-2 text-sm">
-													<ProviderBrand providerId={textProvider.id} />
-													{t("aiConfiguration.sameProviderNote")}
-												</p>
-												<ModelField
-													modelRole="embedding"
-													label={t("aiConfiguration.fields.embeddingModel")}
-													modelId={field.value.modelId}
-													onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
-													provider={textProvider}
-													value={textRole}
-													stored={configuration.text}
-													storedCredentialRole="text"
-												/>
-											</div>
-										) : (
-											<RoleFields
-												modelRole="embedding"
-												value={field.value}
-												onChange={field.onChange}
-												providers={embeddingProviders}
-												stored={configuration.embedding}
-												drafts={drafts}
-											/>
 										)}
 									</div>
 								)

@@ -121,9 +121,12 @@ export type UpdateResult = { ok: true; body: UpdateMcpServerBody } | { ok: false
  * Rows are added empty, so untouched rows never block saving. A value without a name goes nowhere
  * on either path; a name without a value only blocks creating, where there is nothing stored to keep.
  */
+export function invalidSecretRow(rows: EnvVariable[], requireSecretValue: boolean): EnvVariable | undefined {
+	return rows.find(({ name, value }) => (name.trim() ? requireSecretValue && !value : Boolean(value)))
+}
+
 function secretRefused(rows: EnvVariable[], requireSecretValue: boolean): boolean {
-	if (rows.some(({ name, value }) => !name.trim() && value)) return true
-	return requireSecretValue && rows.some(({ name, value }) => name.trim() && !value)
+	return invalidSecretRow(rows, requireSecretValue) !== undefined
 }
 
 function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {

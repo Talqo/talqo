@@ -265,7 +265,7 @@ function AgentConfigPage() {
 					<div className="space-y-6">
 						<Card>
 							<CardHeader>
-								<CardTitle>{t("agentConfig.cardTitle")}</CardTitle>
+								<CardTitle level={2}>{t("agentConfig.cardTitle")}</CardTitle>
 								{canManage && <CardDescription>{t("agentConfig.cardDescription")}</CardDescription>}
 							</CardHeader>
 							<CardContent>

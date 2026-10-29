@@ -18,6 +18,7 @@ type CredentialsFormProps = {
 	invitationRegistration?: boolean
 	onSubmit: (input: CredentialsFormValues) => Promise<void> | void
 	passwordAutoComplete?: "current-password" | "new-password"
+	pendingLabel?: string
 	requireConfirmation?: boolean
 	submitLabel: string
 	submitting: boolean
@@ -28,6 +29,7 @@ export function CredentialsForm({
 	invitationRegistration = false,
 	onSubmit,
 	passwordAutoComplete = "new-password",
+	pendingLabel,
 	requireConfirmation = false,
 	submitLabel,
 	submitting,
@@ -50,13 +52,17 @@ export function CredentialsForm({
 	return (
 		<form
 			className="space-y-4"
+			// Keep the native required semantics while the schema controls the messages.
+			noValidate
 			onSubmit={handleSubmit((input) => onSubmit({ password: input.password, username: input.username }))}
 		>
+			<p className="text-muted-foreground text-xs">{t("auth.requiredNote")}</p>
 			<div className="space-y-2">
 				<Label htmlFor="username">{t("auth.credentialsForm.username")}</Label>
 				<Input
 					id="username"
 					autoComplete="username"
+					required
 					aria-invalid={errors.username ? true : undefined}
 					aria-describedby={errors.username ? "username-error" : undefined}
 					{...register("username")}
@@ -72,6 +78,7 @@ export function CredentialsForm({
 				<PasswordInput
 					id="password"
 					autoComplete={passwordAutoComplete}
+					required
 					aria-invalid={errors.password ? true : undefined}
 					aria-describedby={errors.password ? "password-error" : undefined}
 					hideLabel={t("common.hidePassword")}
@@ -90,6 +97,7 @@ export function CredentialsForm({
 					<PasswordInput
 						id="confirmPassword"
 						autoComplete="new-password"
+						required
 						aria-invalid={errors.confirmPassword ? true : undefined}
 						aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
 						hideLabel={t("common.hidePassword")}
@@ -109,7 +117,7 @@ export function CredentialsForm({
 				</p>
 			) : null}
 			<Button className="w-full" size="lg" type="submit" disabled={submitting}>
-				{submitLabel}
+				{submitting ? (pendingLabel ?? submitLabel) : submitLabel}
 			</Button>
 		</form>
 	)

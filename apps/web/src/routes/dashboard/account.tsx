@@ -193,7 +193,7 @@ function AccountSettingsCard({ username }: { username: string }) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>{t("account.settings")}</CardTitle>
+				<CardTitle level={2}>{t("account.settings")}</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="space-y-6">

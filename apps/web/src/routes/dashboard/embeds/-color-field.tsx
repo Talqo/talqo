@@ -19,6 +19,10 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 	const comparable = isHexColor(value) && against !== undefined && isHexColor(against)
 	const ratio = comparable ? contrastRatio(value, against) : undefined
 	const passes = ratio !== undefined && ratio >= CONTRAST_AA_NORMAL
+	const invalid = !isHexColor(value)
+	const errorId = `${id}-error`
+	const contrastId = `${id}-contrast`
+	const describedBy = invalid ? errorId : contrastId
 
 	return (
 		<div className="space-y-2">
@@ -33,22 +37,30 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 					className="h-control rounded-control border-input-border w-12 cursor-pointer border bg-transparent p-1"
 				/>
 				<Input
+					id={`${id}-hex`}
 					readOnly={readOnly}
 					value={value}
 					onChange={(event) => onChange(event.target.value)}
 					font="mono"
 					className="w-28"
 					aria-label={t("embedSetup.hexValue", { label })}
-					aria-invalid={isHexColor(value) ? undefined : true}
+					aria-invalid={invalid}
+					aria-describedby={describedBy}
 				/>
-				{ratio !== undefined && !passes && (
-					// A warning, not a gate: the brand color is the operator's to choose.
-					<Badge variant="destructive" className="w-full sm:w-auto">
-						{t("embedSetup.contrastWarning")}
-					</Badge>
-				)}
+				<div id={contrastId} aria-live="polite" className="w-full sm:w-auto">
+					{ratio !== undefined && !passes && (
+						// A warning, not a gate: the brand color is the operator's to choose.
+						<Badge variant="destructive" className="w-full sm:w-auto">
+							{t("embedSetup.contrastWarning")}
+						</Badge>
+					)}
+				</div>
 			</div>
-			{!isHexColor(value) && <p className="text-destructive text-xs">{t("embedSetup.colorInvalid")}</p>}
+			{invalid && (
+				<p id={errorId} role="alert" className="text-destructive text-xs">
+					{t("embedSetup.colorInvalid")}
+				</p>
+			)}
 		</div>
 	)
 }
