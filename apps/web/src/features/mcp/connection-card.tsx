@@ -12,7 +12,8 @@ import {
 import { connectionSummary, toggledBody } from "@/features/mcp/connection-body"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
 import {
 	Dialog,
 	DialogContent,
@@ -101,19 +102,24 @@ export function ConnectionCard({
 	return (
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
-				<CardTitle>
-					<span className="flex items-center gap-2">
-						<span
-							aria-hidden="true"
-							className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
-						/>
-						<span className="truncate">{server.name}</span>
-					</span>
-				</CardTitle>
-				<p className="text-muted-foreground truncate font-mono text-sm">{connectionSummary(server)}</p>
+				<CardName>{server.name}</CardName>
+				<CardDescription className="min-w-0">
+					<div className="space-y-1">
+						<span className="block truncate font-mono" title={connectionSummary(server)}>
+							{connectionSummary(server)}
+						</span>
+						<span className="flex items-center gap-1.5">
+							<span
+								aria-hidden="true"
+								className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
+							/>
+							{server.isWorking ? t("mcp.statusConnected") : t("mcp.statusUnreachable")}
+						</span>
+					</div>
+				</CardDescription>
 			</CardHeader>
-			<CardContent>
-				<div className="space-y-3">
+			<CardContent className="flex flex-1 flex-col">
+				<div className="flex flex-1 flex-col gap-3">
 					<div className="flex items-center justify-between gap-2">
 						<p className="text-muted-foreground text-xs">{t("mcp.toolsAvailable", { toolCount: server.toolCount })}</p>
 						{server.tools.length > 0 && (
@@ -156,40 +162,42 @@ export function ConnectionCard({
 						</fieldset>
 					)}
 
-					{canManage && (
-						<div className="flex items-center justify-between gap-2">
-							<Switch
-								checked={!server.isDisabled}
-								disabled={setDisabled.isPending || deploymentBlocked}
-								onCheckedChange={(checked) =>
-									void guard(() =>
-										setDisabled.mutateAsync({
-											agentId,
-											serverId: server.id,
-											action: checked ? "enable" : "disable",
-										}),
-									)
-								}
-								aria-label={t("mcp.enabled")}
-							/>
-							<div className="flex items-center gap-1">
-								<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
-								<Button
-									variant="destructive"
-									size="icon-sm"
-									onClick={() => setConfirmOpen(true)}
-									aria-label={t("mcp.remove")}
-								>
-									<Trash2 className="size-4" />
-								</Button>
+					<div className="mt-auto space-y-3">
+						{error && (
+							<p role="alert" className="text-destructive text-xs">
+								{error}
+							</p>
+						)}
+						{canManage && (
+							<div className="flex items-center justify-between gap-2">
+								<Switch
+									checked={!server.isDisabled}
+									disabled={setDisabled.isPending || deploymentBlocked}
+									onCheckedChange={(checked) =>
+										void guard(() =>
+											setDisabled.mutateAsync({
+												agentId,
+												serverId: server.id,
+												action: checked ? "enable" : "disable",
+											}),
+										)
+									}
+									aria-label={t("mcp.enabled")}
+								/>
+								<div className="flex items-center gap-1">
+									<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
+									<Button
+										variant="destructive"
+										size="icon-sm"
+										onClick={() => setConfirmOpen(true)}
+										aria-label={t("mcp.remove")}
+									>
+										<Trash2 className="size-4" />
+									</Button>
+								</div>
 							</div>
-						</div>
-					)}
-					{error && (
-						<p role="alert" className="text-destructive text-xs">
-							{error}
-						</p>
-					)}
+						)}
+					</div>
 
 					<Dialog
 						open={confirmOpen}

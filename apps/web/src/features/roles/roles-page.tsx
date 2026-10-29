@@ -5,7 +5,9 @@ import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent } from "@talqo/ui/components/card"
+import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardLink } from "@talqo/ui/components/card-link"
+import { CardName } from "@talqo/ui/components/card-name"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
@@ -18,12 +20,10 @@ function RolesSkeleton({ label }: { label: string }) {
 			<output className="sr-only">{label}</output>
 			{Array.from({ length: 3 }, (_, index) => (
 				<Card key={index}>
-					<CardContent>
-						<div className="flex flex-wrap items-center justify-between gap-2">
-							<Skeleton className="h-5 w-40 max-w-full" />
-							<Skeleton className="h-4 w-24" />
-						</div>
-					</CardContent>
+					<CardHeader>
+						<Skeleton className="h-5 w-40 max-w-full" />
+						<Skeleton className="h-4 w-24" />
+					</CardHeader>
 				</Card>
 			))}
 		</div>
@@ -85,26 +85,18 @@ export function RolesPage() {
 			) : (
 				<div className="space-y-3">
 					{roles.map((role) => (
-						<Link
-							key={role.id}
-							to="/dashboard/users/roles/$roleId"
-							params={{ roleId: role.id }}
-							className="group rounded-surface focus-visible:ring-ring block outline-none focus-visible:ring-2"
-							data-role-id={role.id}
-						>
-							<Card variant="interactive">
-								<CardContent>
-									<div className="flex flex-wrap items-center justify-between gap-2">
-										<span className="min-w-0 flex-1 truncate font-medium" title={role.name}>
-											{role.name}
-										</span>
-										<span className="text-muted-foreground shrink-0 text-sm">
-											{t("roles.members", { people: role.memberCount })}
-										</span>
-									</div>
-								</CardContent>
-							</Card>
-						</Link>
+						<Card key={role.id} variant="interactive" className="relative">
+							<CardHeader>
+								<CardName>{role.name}</CardName>
+								<CardDescription>{t("roles.members", { people: role.memberCount })}</CardDescription>
+							</CardHeader>
+							<CardLink
+								render={
+									<Link to="/dashboard/users/roles/$roleId" params={{ roleId: role.id }} data-role-id={role.id} />
+								}
+								aria-label={role.name}
+							/>
+						</Card>
 					))}
 				</div>
 			)}

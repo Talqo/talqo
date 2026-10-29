@@ -25,7 +25,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { DEFAULT_ROLE_ID, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
 import {
 	Dialog,
 	DialogContent,
@@ -234,17 +235,17 @@ function UsersSkeleton({ label }: { label: string }) {
 			<output className="sr-only">{label}</output>
 			{Array.from({ length: 3 }, (_, index) => (
 				<Card key={index}>
+					<CardHeader>
+						<Skeleton className="h-5 w-32 max-w-full" />
+						<div className="flex flex-wrap items-center gap-2">
+							<Skeleton className="h-5 w-16" />
+							<Skeleton className="h-5 w-20" />
+						</div>
+					</CardHeader>
 					<CardContent>
-						<div className="space-y-4">
-							<div className="flex flex-wrap items-center gap-2">
-								<Skeleton className="h-5 w-32 max-w-full" />
-								<Skeleton className="h-5 w-16" />
-								<Skeleton className="h-5 w-20" />
-							</div>
-							<div className="flex flex-wrap items-center gap-3">
-								<Skeleton className="h-9 w-28" />
-								<Skeleton className="h-9 w-28" />
-							</div>
+						<div className="flex flex-wrap items-center gap-3">
+							<Skeleton className="h-9 w-28" />
+							<Skeleton className="h-9 w-28" />
 						</div>
 					</CardContent>
 				</Card>
@@ -310,20 +311,24 @@ function UsersList({ held }: { held: readonly string[] }) {
 				const exceedsOperator = !user.canManage
 				return (
 					<Card key={user.id} data-user-id={user.id}>
+						<CardHeader>
+							<CardName>{user.username}</CardName>
+							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
+								<CardDescription className="min-w-0">
+									<div className="flex flex-wrap items-center gap-2">
+										{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+										{user.roles.map((role) => (
+											<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+												<span className="max-w-48 truncate">{role.name}</span>
+											</Badge>
+										))}
+										{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+									</div>
+								</CardDescription>
+							)}
+						</CardHeader>
 						<CardContent>
 							<div className="space-y-4">
-								<div className="flex min-w-0 flex-wrap items-center gap-2">
-									<span className="max-w-full truncate font-medium" title={user.username}>
-										{user.username}
-									</span>
-									{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
-									{user.roles.map((role) => (
-										<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
-											<span className="max-w-48 truncate">{role.name}</span>
-										</Badge>
-									))}
-									{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
-								</div>
 								<div className="flex flex-wrap items-center gap-3">
 									{confirmedUserId === user.id && (
 										<output className="text-primary text-xs">{t("users.resetSuccess")}</output>

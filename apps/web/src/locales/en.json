@@ -493,6 +493,8 @@
 		"save": "Save changes",
 		"saving": "Saving…",
 		"showTools": "Show tools",
+		"statusConnected": "Connected",
+		"statusUnreachable": "Unreachable",
 		"stdioDisabled": "Command-based connections are disabled by your hosting administrator. Use an HTTP connection instead.",
 		"toolsAvailable": "Tools available: {{toolCount}}",
 		"toolsLegend": "Tools this agent may use",

@@ -32,7 +32,7 @@ export function AgentCardSummary({ agentId }: { agentId: string }) {
 	const isError = files.isError || connections.isError || embeds.isError
 
 	return (
-		<div className="space-y-2 border-t pt-3">
+		<div className="space-y-2">
 			<div className="flex flex-wrap gap-x-4 gap-y-1">
 				<Metric
 					icon={FileText}
