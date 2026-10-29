@@ -8,8 +8,9 @@ function customProperty(name: string): string | undefined {
 	return new RegExp(String.raw`--talqo-${name}-input:\s*(#[0-9a-fA-F]{6});`).exec(css)?.[1]
 }
 
-function contrastToken(name: string): string | undefined {
-	return new RegExp(String.raw`--talqo-${name}:\s*(#[0-9a-fA-F]{6});`).exec(css)?.[1]
+function baseDestructiveToken(): string | undefined {
+	const block = /\.talqo-widget\s*\{([\s\S]*?)\}/.exec(css)?.[1]
+	return block ? /--talqo-destructive:\s*(#[0-9a-fA-F]{6});/.exec(block)?.[1] : undefined
 }
 
 function channels(hex: string): [number, number, number] {
@@ -59,7 +60,7 @@ describe("tokens.css seed colors", () => {
 
 describe("accessible widget colors", () => {
 	test("destructive text reaches 4.5:1 on plain and tinted light backgrounds", () => {
-		const destructive = contrastToken("destructive")
+		const destructive = baseDestructiveToken()
 		if (!destructive) throw new Error("destructive token missing")
 		expect(contrast(destructive, DEFAULT_LIGHT_SCHEME.background)).toBeGreaterThanOrEqual(4.5)
 		expect(contrast(destructive, tint(destructive, DEFAULT_LIGHT_SCHEME.background, 0.1))).toBeGreaterThanOrEqual(4.5)
@@ -76,12 +77,15 @@ describe("accessible widget colors", () => {
 	})
 
 	test("input border reaches 3:1 against the light and dark input surfaces", () => {
-		const border = /--talqo-input-border:\s*color-mix\(in srgb, var\(--talqo-text-input\) 55%, transparent\)/.test(css)
-		expect(border).toBe(true)
+		const match = /--talqo-input-border:\s*color-mix\(in srgb, var\(--talqo-text-input\) (\d+)%, transparent\)/.exec(
+			css,
+		)
+		const amount = match?.[1] ? Number(match[1]) / 100 : undefined
+		if (amount === undefined) throw new Error("input border token missing")
 
-		// The 55% text scrim composites over the input surface.
+		// The text scrim composites over the input surface.
 		for (const scheme of [DEFAULT_LIGHT_SCHEME, DEFAULT_DARK_SCHEME]) {
-			const mixed = tint(scheme.text, scheme.surface, 0.55)
+			const mixed = tint(scheme.text, scheme.surface, amount)
 			expect(contrast(mixed, scheme.surface)).toBeGreaterThanOrEqual(3)
 		}
 	})

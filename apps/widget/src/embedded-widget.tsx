@@ -184,6 +184,8 @@ function WidgetChat({
 	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
 	const composerDisabled = snapshot !== undefined && (activity === "loading" || activity === "blocked")
 	const visibleError = snapshot?.error
+	const retryAt = visibleError?.retryAt
+	const resetTime = retryAt ? formatResetTime(retryAt, i18n.language) : undefined
 	const canStartNewChat = snapshot?.actions.includes("new-chat") === true
 
 	useEffect(() => {
@@ -209,10 +211,10 @@ function WidgetChat({
 		if (!open) return undefined
 		const dialog = panelRef.current
 		if (!dialog) return undefined
-		if (!dialog.open) dialog.showModal()
+		dialog.showModal()
 		inputRef.current?.focus()
 		return () => {
-			if (dialog.open) dialog.close()
+			dialog.close()
 		}
 	}, [open])
 
@@ -482,13 +484,7 @@ function WidgetChat({
 								className="tw:mt-2 tw:flex tw:flex-col tw:items-start tw:gap-2 tw:rounded-surface tw:bg-destructive/10 tw:p-3 tw:text-destructive tw:text-sm"
 							>
 								<p>{errorText(visibleError, t)}</p>
-								{visibleError.retryAt && (
-									<time dateTime={visibleError.retryAt}>
-										{t("retryAfter", {
-											reset: formatResetTime(visibleError.retryAt, i18n.language),
-										})}
-									</time>
-								)}
+								{resetTime && retryAt && <time dateTime={retryAt}>{t("retryAfter", { reset: resetTime })}</time>}
 								{visibleError.retriable === true && (
 									<button
 										type="button"
@@ -514,7 +510,7 @@ function WidgetChat({
 							</div>
 						)}
 					</div>
-					<output data-testid="announcement" aria-live="polite" className="tw:sr-only">
+					<output data-testid="announcement" className="tw:sr-only">
 						{announcement && <span key={announcement.id}>{announcement.text}</span>}
 					</output>
 					<form onSubmit={handleSend} className="tw:flex tw:items-center tw:gap-2 tw:border-border tw:border-t tw:p-4">

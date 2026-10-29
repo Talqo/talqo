@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef } from "react"
+import type { ComponentProps } from "react"
 
 import { cn } from "@talqo/ui/lib/utils"
 
@@ -9,7 +9,7 @@ const bubbleContentVariants = {
 
 type BubbleVariant = keyof typeof bubbleContentVariants
 
-function BubbleGroup({ className, ...props }: ComponentPropsWithoutRef<"ul">) {
+function BubbleGroup({ className, ...props }: ComponentProps<"ul">) {
 	return (
 		<ul
 			data-slot="bubble-group"
@@ -19,11 +19,7 @@ function BubbleGroup({ className, ...props }: ComponentPropsWithoutRef<"ul">) {
 	)
 }
 
-function Bubble({
-	align = "start",
-	className,
-	...props
-}: ComponentPropsWithoutRef<"li"> & { align?: "start" | "end" }) {
+function Bubble({ align = "start", className, ...props }: ComponentProps<"li"> & { align?: "start" | "end" }) {
 	return (
 		<li
 			data-slot="bubble"
@@ -41,7 +37,7 @@ function BubbleContent({
 	variant = "default",
 	className,
 	...props
-}: ComponentPropsWithoutRef<"div"> & { variant?: BubbleVariant }) {
+}: ComponentProps<"div"> & { variant?: BubbleVariant }) {
 	return (
 		<div
 			data-slot="bubble-content"

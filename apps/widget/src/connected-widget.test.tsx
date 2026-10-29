@@ -415,6 +415,18 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.textContent?.match(/Zkuste to znovu po/g)).toHaveLength(1)
 	})
 
+	test("omits the reset line when retryAt is not a date", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			error: error("chat-daily-allowance-exceeded", { retryAt: "raw-retry-value" }),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).toContain("daily message allowance")
+		expect(host.querySelector("time")).toBeNull()
+	})
+
 	test("offers new chat for any conversation, preserving draft and focusing after success", async () => {
 		const store = fakeClient({ ...READY_SNAPSHOT, messages: [message("u1", "user", "History", "completed")] })
 		store.onNewChat(async () => store.setSnapshot(READY_SNAPSHOT))

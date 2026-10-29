@@ -137,24 +137,20 @@ describe("language", () => {
 
 describe("dialog semantics", () => {
 	test("opens modally, focuses the composer, and returns focus to the launcher on Escape", async () => {
-		const showModal = spyOn(HTMLDialogElement.prototype, "showModal")
-		try {
-			const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)
-			const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")
-			if (!launcher) throw new Error("launcher not rendered")
+		using showModal = spyOn(HTMLDialogElement.prototype, "showModal")
+		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)
+		const launcher = container.querySelector<HTMLButtonElement>("button[aria-haspopup='dialog']")
+		if (!launcher) throw new Error("launcher not rendered")
 
-			await act(async () => launcher.click())
-			const dialog = container.querySelector("dialog")
-			expect(showModal).toHaveBeenCalledTimes(1)
-			expect(dialog?.open).toBe(true)
-			expect(document.activeElement).toBe(container.querySelector("input[aria-label='Message']"))
+		await act(async () => launcher.click())
+		const dialog = container.querySelector("dialog")
+		expect(showModal).toHaveBeenCalledTimes(1)
+		expect(dialog?.open).toBe(true)
+		expect(document.activeElement).toBe(container.querySelector("input[aria-label='Message']"))
 
-			await act(async () => dialog?.dispatchEvent(new Event("cancel", { cancelable: true })))
-			expect(container.querySelector("dialog")).toBeNull()
-			expect(document.activeElement).toBe(launcher)
-		} finally {
-			showModal.mockRestore()
-		}
+		await act(async () => dialog?.dispatchEvent(new Event("cancel", { cancelable: true })))
+		expect(container.querySelector("dialog")).toBeNull()
+		expect(document.activeElement).toBe(launcher)
 	})
 })
 
