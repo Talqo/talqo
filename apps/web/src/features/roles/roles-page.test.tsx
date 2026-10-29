@@ -235,13 +235,18 @@ describe("role management", () => {
 		roles = [{ id: "support", name: fullName, permissions: [], memberCount: 3 }]
 		await renderPage()
 
-		const card = host.querySelector<HTMLElement>("[data-role-id='support']")?.closest("[data-slot='card']")
+		const link = host.querySelector<HTMLAnchorElement>("[data-role-id='support']")
+		if (!link) throw new Error("role link not rendered")
+		const card = link.closest<HTMLElement>("[data-slot='card']")
 		const heading = card?.querySelector("[data-slot='card-title']")
 		const label = heading?.querySelector("span")
 		expect(heading?.tagName).toBe("H2")
 		expect(heading?.textContent).toBe(fullName)
 		expect(label?.getAttribute("title")).toBe(fullName)
 		expect(label?.className).toContain("truncate")
+		expect(card?.querySelectorAll("a")).toHaveLength(1)
+		await act(async () => link.focus())
+		expect(document.activeElement).toBe(link)
 	})
 
 	test("opens a role by clicking its row", async () => {
