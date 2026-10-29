@@ -11,7 +11,9 @@ import {
 	toAppearance,
 	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
+import { embedNotFound } from "@/features/embeds/load-failure"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { retryUnlessClientError } from "@/lib/query-retry"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
@@ -159,9 +161,17 @@ function EmbedDetailPage() {
 	const { colorTab = "light" } = Route.useSearch()
 	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
-	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
+	const {
+		data: embedResponse,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useGetEmbed(embedId, {
+		query: { retry: retryUnlessClientError },
+	})
 	const embed = embedResponse?.data.embed
-	const agentsQuery = useListAgents()
+	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
 	const permissions = agentsQuery.data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
@@ -241,6 +251,13 @@ function EmbedDetailPage() {
 		)
 	}
 
+	const backToAgents = (
+		<Button render={<Link to="/dashboard/agents" />} nativeButton={false} variant="ghost" className="-ml-2">
+			<ArrowLeft className="size-4" />
+			{t("agentConfig.backToAgents")}
+		</Button>
+	)
+
 	if (isLoading || agentsQuery.isPending) {
 		return (
 			<>
@@ -250,10 +267,24 @@ function EmbedDetailPage() {
 		)
 	}
 	if (isError || !embed) {
-		return <p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+		return (
+			<div className="space-y-6">
+				{backToAgents}
+				{embedNotFound(error) ? (
+					<p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+				) : (
+					<ProblemAlert error={error} fallback={t("embedSetup.detailLoadError")} onRetry={() => void refetch()} />
+				)}
+			</div>
+		)
 	}
 	if (agentsQuery.isError) {
-		return <ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
+		return (
+			<div className="space-y-6">
+				{backToAgents}
+				<ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
+			</div>
+		)
 	}
 
 	return (

@@ -1,28 +1,26 @@
-import { type CreateAgentMutationError, useCreateAgent, useListAgents } from "@/api/generated/agent/agent.ts"
+import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { ProblemAlert } from "@/components/problem-alert"
 import { AgentCardSummary } from "@/features/agents/agent-card-summary"
+import { useCreateAgentFlow } from "@/features/agents/use-create-agent-flow"
 import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { requirePermission } from "@/features/permissions/require-permission"
-import { nextDefaultName } from "@/lib/default-name"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
 import { CardName } from "@talqo/ui/components/card-name"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
-import { useState } from "react"
+import { Bot, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/dashboard/agents")({
 	beforeLoad: requirePermission("agents:read"),
 	component: AgentsPage,
 })
-
-const FORBIDDEN_STATUS = 403
-const CONFLICT_STATUS = 409
 
 function AgentsSkeleton({ label }: { label: string }) {
 	return (
@@ -51,37 +49,17 @@ function AgentsPage() {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
 	const navigate = useNavigate()
-	const { data, error, isLoading, refetch, isFetching } = useListAgents()
+	const { data, error, isLoading, refetch } = useListAgents()
 	const agents = data?.data.agents.filter((agent) => agent.permissions.includes("agents:read"))
-	const createAgent = useCreateAgent()
-	const [createError, setCreateError] = useState<string | null>(null)
-
 	const canManage = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
-
-	async function handleCreate() {
-		setCreateError(null)
-		try {
-			const result = await createAgent.mutateAsync({
-				data: {
-					name: nextDefaultName(agents?.map((agent) => agent.name) ?? [], t("agents.defaultName")),
-					systemPrompt: t("agents.defaultSystemPrompt"),
-					wordBlacklist: [],
-				},
-			})
-			const agent = result.data.agent
+	const { create, pending, failure } = useCreateAgentFlow({
+		names: agents?.map((agent) => agent.name) ?? [],
+		refreshNames: refetch,
+		onCreated: async (agentId) => {
 			await refetch()
-			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId: agent.id }, search: { tab: undefined } })
-		} catch (caught) {
-			const status = (caught as CreateAgentMutationError).status
-			setCreateError(
-				status === FORBIDDEN_STATUS
-					? t("agents.manageForbidden")
-					: status === CONFLICT_STATUS
-						? t("agents.nameConflict")
-						: t("agents.createFailed"),
-			)
-		}
-	}
+			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId }, search: { tab: undefined } })
+		},
+	})
 
 	return (
 		<div className="space-y-6">
@@ -90,35 +68,36 @@ function AgentsPage() {
 				description={t("agents.subheading")}
 				actions={
 					canManage ? (
-						<Button onClick={handleCreate} disabled={createAgent.isPending}>
+						<Button onClick={() => void create()} disabled={pending}>
 							<Plus className="size-4" />
-							{createAgent.isPending ? t("agents.creating") : t("agents.create")}
+							{pending ? t("agents.creating") : t("agents.create")}
 						</Button>
 					) : undefined
 				}
 			/>
 
-			<ProviderNoticeBanner />
+			<ProblemAlert message={failure?.message} onRetry={failure?.retryable ? () => void create() : undefined} />
 
-			{createError && (
-				<p role="alert" className="text-destructive text-sm">
-					{createError}
-				</p>
-			)}
+			<ProviderNoticeBanner />
 
 			{isLoading ? (
 				<AgentsSkeleton label={t("agents.loading")} />
 			) : error ? (
-				<div className="space-y-2">
-					<p role="alert" className="text-destructive text-sm">
-						{t("agents.loadFailed")}
-					</p>
-					<Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-						{t("agents.retry")}
-					</Button>
-				</div>
+				<ProblemAlert error={error} fallback={t("agents.loadFailed")} onRetry={() => void refetch()} />
 			) : !agents?.length ? (
-				<p className="text-muted-foreground">{t("agents.empty")}</p>
+				<EmptyState
+					icon={Bot}
+					title={t("agents.emptyTitle")}
+					description={canManage ? t("agents.emptyDescriptionManager") : t("agents.emptyDescriptionReader")}
+					actions={
+						canManage ? (
+							<Button onClick={() => void create()} disabled={pending}>
+								<Plus className="size-4" />
+								{pending ? t("agents.creating") : t("agents.create")}
+							</Button>
+						) : undefined
+					}
+				/>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{agents.map((agent) => (

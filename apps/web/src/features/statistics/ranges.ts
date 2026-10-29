@@ -16,6 +16,14 @@ export type StatsDays = (typeof STATS_RANGE_PRESETS)[number]
 
 export const DEFAULT_STATS_DAYS: StatsDays = 30
 
+export const STATS_RANGE_LABELS = {
+	"7": "dashboard.range7d",
+	"30": "dashboard.range30d",
+	"183": "dashboard.range6m",
+	"365": "dashboard.range1y",
+	all: "dashboard.rangeAll",
+} as const satisfies Record<`${StatsDays}`, string>
+
 export function parseDaysParam(value: unknown): StatsDays | undefined {
 	const coerced = typeof value === "string" && /^\d+$/.test(value) ? Number(value) : value
 	return STATS_RANGE_PRESETS.find((preset) => preset === coerced)

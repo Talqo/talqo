@@ -15,6 +15,7 @@ import {
 } from "@/api/generated/ai-providers/ai-providers.ts"
 import { PageHeader } from "@/components/page-header"
 import { PageSkeleton } from "@/components/page-skeleton"
+import { ProblemAlert } from "@/components/problem-alert"
 import {
 	aiConfigurationFormSchema,
 	buildSaveInput,
@@ -526,11 +527,19 @@ export function AiConfigurationPage() {
 				<PageSkeleton />
 			</>
 		)
-	if (!providersQuery.data || !configuration)
+	if (providersQuery.isError || configurationQuery.isError || !providersQuery.data || !configuration)
 		return (
-			<p role="alert" className="text-destructive">
-				{t("aiConfiguration.loadError")}
-			</p>
+			<div className="space-y-6">
+				<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
+				<ProblemAlert
+					error={providersQuery.error ?? configurationQuery.error}
+					fallback={t("aiConfiguration.loadError")}
+					onRetry={() => {
+						void providersQuery.refetch()
+						void configurationQuery.refetch()
+					}}
+				/>
+			</div>
 		)
 
 	const storedEmbedding = configuration.embedding

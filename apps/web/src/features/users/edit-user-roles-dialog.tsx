@@ -97,7 +97,7 @@ export function EditUserRolesDialog({
 						{t("users.lockoutWarning")}
 					</p>
 				) : null}
-				<ProblemAlert error={assignRoles.error} className="bg-destructive/10 rounded-surface p-surface-padding" />
+				<ProblemAlert error={assignRoles.error} />
 				<DialogFooter>
 					<Button variant="outline" disabled={isSaving} onClick={() => handleOpenChange(false)}>
 						{t("users.cancel")}

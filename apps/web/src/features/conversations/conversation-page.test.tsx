@@ -66,7 +66,7 @@ async function renderPage() {
 }
 
 function alertText(): string | null | undefined {
-	return host.querySelector("[role=alert]")?.textContent
+	return host.querySelector("[role=alert] p")?.textContent
 }
 
 beforeEach(() => {

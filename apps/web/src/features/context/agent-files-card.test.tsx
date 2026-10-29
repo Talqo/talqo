@@ -94,6 +94,7 @@ describe("AgentFilesCard for a read-only operator", () => {
 	test("says there are no files yet instead of showing an empty card", async () => {
 		await renderCard()
 
-		expect(host.textContent).toContain(t("agentFiles.empty"))
+		expect(host.textContent).toContain(t("agentFiles.emptyTitle"))
+		expect(host.textContent).toContain(t("agentFiles.emptyDescriptionReader"))
 	})
 })
