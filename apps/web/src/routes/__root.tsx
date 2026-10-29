@@ -1,4 +1,4 @@
-import { logoUrl } from "@talqo/ui/components/logo"
+import logoUrl from "@talqo/ui/assets/logo.svg"
 import { createRootRoute, Outlet } from "@tanstack/react-router"
 
 export const Route = createRootRoute({

@@ -21,4 +21,4 @@ function Logo({ className, style, ...props }: ComponentProps<"span">) {
 	)
 }
 
-export { Logo, logoUrl }
+export { Logo }
