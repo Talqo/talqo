@@ -41,16 +41,16 @@ export async function findAgentPermissionsOfRoles(
 	return db.select().from(roleAgentPermission).where(inArray(roleAgentPermission.roleId, roleIds))
 }
 
-export async function findAgentRolePermissions(agentId: string): Promise<{ roleId: string; permission: string }[]> {
+export async function findRoleAgentPermissions(roleId: string, agentId: string): Promise<{ permission: string }[]> {
 	return db
-		.select({ roleId: roleAgentPermission.roleId, permission: roleAgentPermission.permission })
+		.select({ permission: roleAgentPermission.permission })
 		.from(roleAgentPermission)
-		.where(eq(roleAgentPermission.agentId, agentId))
+		.where(and(eq(roleAgentPermission.roleId, roleId), eq(roleAgentPermission.agentId, agentId)))
 }
 
-export async function replaceAgentRolePermissions(
-	agentId: string,
+export async function replaceRoleAgentPermissions(
 	roleId: string,
+	agentId: string,
 	permissions: readonly string[],
 ): Promise<void> {
 	await db.transaction(async (tx) => {

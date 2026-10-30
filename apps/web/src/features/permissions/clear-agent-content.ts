@@ -7,7 +7,7 @@ export function clearAgentContent(client: QueryClient): void {
 			const path = queryKey[0]
 			if (typeof path !== "string") return false
 			return (
-				(path.startsWith("/api/agents/") && !path.endsWith("/access")) ||
+				path.startsWith("/api/agents/") ||
 				["/api/embeds", "/api/conversations", "/api/stats"].some(
 					(prefix) => path === prefix || path.startsWith(`${prefix}/`),
 				)

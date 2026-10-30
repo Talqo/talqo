@@ -10,7 +10,7 @@ await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { DashboardLayout } = await import("./-dashboard-layout")
-const { AgentAccessCard } = await import("@/features/agents/agent-access-card")
+const { RoleAccessCard } = await import("@/features/roles/role-access-card")
 const { requirePermission } = await import("@/features/permissions/require-permission")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { ThemeProvider } = await import("@/lib/use-theme")
@@ -163,10 +163,10 @@ test("closes the mobile navigation on a same-page navigation", async () => {
 	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
 })
 
-test("clears protected caches when discovery revokes access before the access refetch completes", async () => {
+test("clears protected caches when access is revoked before the role refetch completes", async () => {
 	let revoked = false
 	let accessSignal: AbortSignal | null | undefined
-	const accessResponse = Promise.withResolvers<Response>()
+	const roleResponse = Promise.withResolvers<Response>()
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		if (init?.method === "DELETE") {
@@ -176,20 +176,26 @@ test("clears protected caches when discovery revokes access before the access re
 		if (url.endsWith("/api/agents"))
 			return json({ agents: revoked ? [] : [{ id: "agent", permissions: ["agents:read"] }] })
 		if (url.endsWith("/api/me/permissions")) return json({ permissions: ["roles:manage", "users:read"] })
-		if (url.endsWith("/access")) {
+		if (url.endsWith("/api/roles/role/agents")) {
 			if (revoked) {
 				accessSignal = init?.signal
-				return accessResponse.promise
+				return roleResponse.promise
 			}
 			return json({
-				permissions: ["agents:read"],
-				roles: [{ id: "role", name: "Support", permissions: ["agents:read"] }],
+				agents: [
+					{
+						id: "agent",
+						name: "Agent",
+						permissions: ["agents:read"],
+						rolePermissions: ["agents:read"],
+					},
+				],
 			})
 		}
 		return json({ user: { username: "Operator" } })
 	}) as typeof fetch)
 	const { host: container, queryClient } = await renderPage(
-		<AgentAccessCard agentId="agent" permissions={["agents:read"]} />,
+		<RoleAccessCard roleId="role" onDirtyChange={() => {}} />,
 		"agents:read",
 	)
 	const protectedKeys = [
@@ -215,7 +221,7 @@ test("clears protected caches when discovery revokes access before the access re
 	expect(accessSignal?.aborted).toBe(true)
 	for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
 	expect(container.querySelector("h1")?.textContent).toBe(t("nav.users"))
-	await act(async () => accessResponse.resolve(json({ code: "agent-not-found" }, 404)))
+	await act(async () => roleResponse.resolve(json({ agents: [] })))
 })
 
 test("reflects the stored dashboard language on the document", async () => {

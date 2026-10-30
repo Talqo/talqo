@@ -34,7 +34,8 @@
 		"usernameSaved": "用户名已保存。"
 	},
 	"agentAccess": {
-		"addRole": "添加角色",
+		"addAgent": "添加智能体",
+		"agents": "拥有访问权限的智能体",
 		"conversations": "阅读对话",
 		"deleteAgent": "删除智能体",
 		"descriptions": {
@@ -45,17 +46,18 @@
 			"viewConfiguration": "查看此智能体的设置、知识库、连接和嵌入。"
 		},
 		"editConfiguration": "编辑配置",
-		"empty": "没有角色拥有访问权限。请添加角色并设置权限。",
-		"permissionsFor": "“{{role}}”的权限",
-		"remove": "移除角色访问权限",
-		"removed": "角色访问权限已移除。",
-		"removePrompt": "移除“{{role}}”对此智能体的访问权限？成员可能仍可通过其他角色访问。有权限的用户或管理员可以重新添加此角色。如果你失去访问权限，请联系他们恢复。",
-		"roles": "拥有访问权限的角色",
+		"empty": "此角色没有智能体访问权限。请添加智能体并设置权限。",
+		"loading": "正在加载智能体…",
+		"noAgents": "没有你可以管理访问权限的智能体。",
+		"permissionsFor": "“{{agent}}”的权限",
+		"remove": "移除智能体访问权限",
+		"removed": "智能体访问权限已移除。",
+		"removePrompt": "从此角色中移除“{{agent}}”？拥有此角色的人将失去该角色对此智能体的访问权限，除非其他角色也授予了该权限。有权限的用户或管理员可以重新添加此智能体。如果你失去访问权限，请联系他们恢复。",
 		"save": "保存权限",
 		"saved": "权限已保存。",
 		"statistics": "查看统计数据",
-		"title": "访问权限",
-		"useRemove": "要移除所有权限，请选择移除角色访问权限。",
+		"title": "智能体访问权限",
+		"useRemove": "要移除所有权限，请选择移除智能体访问权限。",
 		"viewConfiguration": "查看配置"
 	},
 	"agentConfig": {
@@ -606,7 +608,7 @@
 	"roles": {
 		"back": "返回角色列表",
 		"cancel": "取消",
-		"cannotChange": "此角色包含你自己没有的访问权限，因此你无法更改它。",
+		"cannotChange": "此角色包含你自己没有的访问权限，因此你无法更改它的名称或工作区权限。",
 		"create": "创建角色",
 		"creating": "正在创建…",
 		"dangerDescription": "删除角色是永久性的，并会移除该角色授予所有拥有者的访问权限。",
@@ -649,7 +651,7 @@
 		"save": "保存更改",
 		"saved": "更改已保存。",
 		"saving": "正在保存…",
-		"settingsDescription": "选择工作区权限。智能体访问权限在各智能体的配置页面中管理。",
+		"settingsDescription": "选择工作区权限，并为该角色授予智能体访问权限。",
 		"subheading": "将访问权限归入角色，然后把角色分配给他人。",
 		"unsaved": "你有未保存的更改。"
 	},

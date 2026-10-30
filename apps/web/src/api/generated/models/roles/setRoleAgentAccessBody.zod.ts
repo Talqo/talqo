@@ -6,9 +6,9 @@
  */
 import * as zod from 'zod';
 
-export const SetAgentAccessBody = zod.object({
+export const SetRoleAgentAccessBody = zod.object({
   "permissions": zod.array(zod.enum(['stats:read', 'conversations:read', 'agents:read', 'agents:manage', 'agents:delete']))
 })
 
-export type SetAgentAccessBody = zod.input<typeof SetAgentAccessBody>;
-export type SetAgentAccessBodyOutput = zod.output<typeof SetAgentAccessBody>;
+export type SetRoleAgentAccessBody = zod.input<typeof SetRoleAgentAccessBody>;
+export type SetRoleAgentAccessBodyOutput = zod.output<typeof SetRoleAgentAccessBody>;

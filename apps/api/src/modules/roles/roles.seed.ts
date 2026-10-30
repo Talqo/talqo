@@ -39,22 +39,25 @@ export const hasAdmin = repo.adminGrantExists
 export async function seedAgentAccess(agentIds: readonly string[]): Promise<void> {
 	await repo.withAccessLock(async () => {
 		const roles = await repo.findRoles()
+		const desired = SEED_ROLES.filter(({ agentPermissions }) => agentPermissions.length > 0).map(
+			({ id, name, agentPermissions }) => {
+				const role =
+					roles.find((candidate) => candidate.id === id) ??
+					roles.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
+				if (!role) throw new Error(`seedAgentAccess: missing role ${name}`)
+				return { roleId: role.id, permissions: agentPermissions }
+			},
+		)
+		const existing = Map.groupBy(
+			await repo.findAgentPermissionsOfRoles(desired.map(({ roleId }) => roleId)),
+			({ agentId }) => agentId,
+		)
 		await Promise.all(
-			agentIds.map(async (agentId) => {
-				const existing = await repo.findAgentRolePermissions(agentId)
-				await Promise.all(
-					SEED_ROLES.filter(({ agentPermissions }) => agentPermissions.length > 0)
-						.map(({ id, name, agentPermissions }) => {
-							const role =
-								roles.find((candidate) => candidate.id === id) ??
-								roles.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
-							if (!role) throw new Error(`seedAgentAccess: missing role ${name}`)
-							return { roleId: role.id, permissions: agentPermissions }
-						})
-						.filter(({ roleId }) => !existing.some((grant) => grant.roleId === roleId))
-						.map(({ roleId, permissions }) => repo.replaceAgentRolePermissions(agentId, roleId, permissions)),
-				)
-			}),
+			agentIds.flatMap((agentId) =>
+				desired
+					.filter(({ roleId }) => !existing.get(agentId)?.some((grant) => grant.roleId === roleId))
+					.map(({ roleId, permissions }) => repo.replaceRoleAgentPermissions(roleId, agentId, permissions)),
+			),
 		)
 	})
 }
