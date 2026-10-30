@@ -109,7 +109,18 @@ describe("ConversationsPage", () => {
 
 		await renderPage()
 
-		expect(host.querySelector("output")?.textContent).toBe(t("conversations.empty"))
+		expect(host.textContent).toContain(t("conversations.emptyTitle"))
+		expect(host.textContent).toContain(t("conversations.emptyDescription"))
+	})
+
+	test("explains an empty filtered list without dropping the agent filter", async () => {
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => list([])
+
+		await renderPage({ agents: [DOCS.id] })
+
+		expect(host.textContent).toContain(t("conversations.emptyFilteredTitle"))
+		expect(host.textContent).toContain(t("conversations.emptyFilteredDescription"))
+		expect(host.textContent).toContain(t("dashboard.agentsLabel"))
 	})
 
 	test("groups conversations by day and shows their agent", async () => {
@@ -217,7 +228,7 @@ describe("ConversationsPage", () => {
 		}
 
 		await renderPage({ agents: [DOCS.id] })
-		expect(host.querySelector("[role=alert]")?.textContent).toBe(t("problems.internal-server-error"))
+		expect(host.querySelector("[role=alert] p")?.textContent).toBe(t("problems.internal-server-error"))
 
 		await act(async () => button(t("common.retry")).click())
 		await settle()

@@ -138,10 +138,12 @@ export function ConnectionDialog({
 	agentId,
 	server,
 	stdioAllowed,
+	disabled = false,
 }: {
 	agentId: string
 	server?: McpServer
 	stdioAllowed: boolean
+	disabled?: boolean
 }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -203,7 +205,7 @@ export function ConnectionDialog({
 					server ? (
 						<Button variant="ghost" size="icon-sm" aria-label={t("mcp.edit")} />
 					) : (
-						<Button disabled={create.isPending} />
+						<Button disabled={disabled || create.isPending} />
 					)
 				}
 			>

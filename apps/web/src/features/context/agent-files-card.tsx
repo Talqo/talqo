@@ -26,6 +26,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@talqo/ui/components/dialog"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Skeleton } from "@talqo/ui/components/skeleton"
@@ -313,7 +314,11 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 					) : files.length === 0 ? (
 						// The dropzone already invites managers to upload; readers need to know the list is empty.
 						canManage ? null : (
-							<p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
+							<EmptyState
+								icon={FileText}
+								title={t("agentFiles.emptyTitle")}
+								description={t("agentFiles.emptyDescriptionReader")}
+							/>
 						)
 					) : (
 						<ul className="divide-border divide-y rounded-md border">

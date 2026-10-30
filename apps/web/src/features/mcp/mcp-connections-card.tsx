@@ -1,13 +1,16 @@
 import { useListMcpServers } from "@/api/generated/mcp/mcp.ts"
+import { ProblemAlert } from "@/components/problem-alert"
 import { ConnectionCard } from "@/features/mcp/connection-card"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
 import { Card, CardContent, CardHeader } from "@talqo/ui/components/card"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Skeleton } from "@talqo/ui/components/skeleton"
+import { Wrench } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 export function McpConnectionsCard({ agentId, canManage }: { agentId: string; canManage: boolean }) {
 	const { t } = useTranslation()
-	const { data, isLoading, isError } = useListMcpServers(agentId)
+	const { data, isLoading, isError, error, refetch } = useListMcpServers(agentId)
 	const servers = data?.data.servers ?? []
 	const stdioAllowed = data?.data.stdioAllowed === true
 
@@ -15,7 +18,8 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">{t("mcp.panelDescription")}</p>
-				{canManage && data && <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} />}
+				{/* Add waits for the list: it carries the allowed transports. */}
+				{canManage && <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} disabled={!data} />}
 			</div>
 
 			{isLoading ? (
@@ -34,11 +38,13 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 					))}
 				</div>
 			) : isError ? (
-				<p role="alert" className="text-destructive">
-					{t("mcp.loadFailed")}
-				</p>
+				<ProblemAlert error={error} fallback={t("mcp.loadFailed")} onRetry={() => void refetch()} />
 			) : !servers.length ? (
-				<p className="text-muted-foreground">{t("mcp.none")}</p>
+				<EmptyState
+					icon={Wrench}
+					title={t("mcp.emptyTitle")}
+					description={canManage ? t("mcp.emptyDescriptionManager") : t("mcp.emptyDescriptionReader")}
+				/>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{servers.map((server) => (

@@ -21,6 +21,7 @@ import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { nextDefaultName } from "@/lib/default-name"
 import { getProblemMessage } from "@/lib/problem-message"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -31,6 +32,7 @@ import { CardLink } from "@talqo/ui/components/card-link"
 import { CardName } from "@talqo/ui/components/card-name"
 import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
@@ -39,7 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/t
 import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, CodeXml, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { type FieldErrors, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -423,14 +425,18 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 	const { t } = useTranslation()
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
-	const { data: embedsResponse, isLoading, isError } = useListEmbeds({ agentId })
+	const { data: embedsResponse, isLoading, isError, error, refetch } = useListEmbeds({ agentId })
 	const embeds = embedsResponse?.data.embeds
 	const createEmbed = useCreateEmbed()
 
 	async function onCreate() {
 		try {
 			const result = await createEmbed.mutateAsync({
-				data: { name: t("embedSetup.defaultName"), agentId, appearance: EMBED_FORM_DEFAULTS },
+				data: {
+					name: nextDefaultName(embeds?.map((embed) => embed.name) ?? [], t("embedSetup.defaultName")),
+					agentId,
+					appearance: EMBED_FORM_DEFAULTS,
+				},
 			})
 			await navigate({
 				to: "/dashboard/embeds/$embedId",
@@ -455,11 +461,7 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 					</Button>
 				)}
 			</div>
-			{createEmbed.isError && (
-				<p role="alert" className="text-destructive text-sm">
-					{t("embedSetup.createError")}
-				</p>
-			)}
+			{createEmbed.isError && <ProblemAlert message={t("embedSetup.createError")} onRetry={() => void onCreate()} />}
 
 			{isLoading ? (
 				<div className="grid gap-4 md:grid-cols-2">
@@ -480,13 +482,21 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 					))}
 				</div>
 			) : isError ? (
-				<p role="alert" className="text-destructive">
-					{t("embedSetup.loadError")}
-				</p>
+				<ProblemAlert error={error} fallback={t("embedSetup.loadError")} onRetry={() => void refetch()} />
 			) : !embeds?.length ? (
-				<p className="text-muted-foreground">
-					{canManage ? t("embedSetup.noEmbeds") : t("embedSetup.noEmbedsReadOnly")}
-				</p>
+				<EmptyState
+					icon={CodeXml}
+					title={t("embedSetup.emptyTitle")}
+					description={canManage ? t("embedSetup.emptyDescriptionManager") : t("embedSetup.emptyDescriptionReader")}
+					actions={
+						canManage ? (
+							<Button onClick={onCreate} disabled={createEmbed.isPending}>
+								<Plus className="size-4" />
+								{createEmbed.isPending ? t("embedSetup.creating") : t("embedSetup.createEmbed")}
+							</Button>
+						) : undefined
+					}
+				/>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">
 					{embeds.map((embed) => (

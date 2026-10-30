@@ -237,6 +237,8 @@ function AccountPage() {
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
 			{session.isPending ? (
 				<ProfileCardSkeleton label={t("auth.loading")} />
+			) : session.isError || !session.data?.data.user ? (
+				<ProblemAlert message={t("account.loadFailed")} onRetry={() => void session.refetch()} />
 			) : (
 				<AccountSettingsCard username={username ?? ""} />
 			)}

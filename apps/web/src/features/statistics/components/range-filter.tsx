@@ -1,16 +1,8 @@
-import { parseDaysParam, STATS_RANGE_PRESETS, type StatsDays } from "@/features/statistics/ranges"
+import { parseDaysParam, STATS_RANGE_LABELS, STATS_RANGE_PRESETS, type StatsDays } from "@/features/statistics/ranges"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { useTranslation } from "react-i18next"
 
 import { usePreserveScrollOnOpen } from "./use-preserve-scroll-on-open"
-
-const rangeLabels = {
-	"7": "dashboard.range7d",
-	"30": "dashboard.range30d",
-	"183": "dashboard.range6m",
-	"365": "dashboard.range1y",
-	all: "dashboard.rangeAll",
-} as const satisfies Record<`${StatsDays}`, string>
 
 export function RangeFilter({ days, onChange }: { days: StatsDays; onChange: (days: StatsDays) => void }) {
 	const { t } = useTranslation()
@@ -34,12 +26,12 @@ export function RangeFilter({ days, onChange }: { days: StatsDays; onChange: (da
 					onPointerDownCapture={capturePreOpenScroll}
 					onKeyDownCapture={capturePreOpenScroll}
 				>
-					<SelectValue>{t(rangeLabels[`${days}`])}</SelectValue>
+					<SelectValue>{t(STATS_RANGE_LABELS[`${days}`])}</SelectValue>
 				</SelectTrigger>
 				<SelectContent align="start">
 					{STATS_RANGE_PRESETS.map((preset) => (
 						<SelectItem key={`${preset}`} value={`${preset}`}>
-							{t(rangeLabels[`${preset}`])}
+							{t(STATS_RANGE_LABELS[`${preset}`])}
 						</SelectItem>
 					))}
 				</SelectContent>

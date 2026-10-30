@@ -9,10 +9,11 @@ import { Button } from "@talqo/ui/components/button"
 import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
 import { CardName } from "@talqo/ui/components/card-name"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
+import { Plus, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 function RolesSkeleton({ label }: { label: string }) {
@@ -41,6 +42,10 @@ export function RolesPage() {
 			onSuccess: async ({ data }) => {
 				await queryClient.invalidateQueries({ queryKey: getListRolesQueryKey() })
 				await navigate({ to: "/dashboard/users/roles/$roleId", params: { roleId: data.role.id } })
+			},
+			onError: (error) => {
+				// A taken name means the cached list is stale; refresh it so Retry proposes a free one.
+				if (error.info?.code === "role-name-taken") void rolesQuery.refetch()
 			},
 		},
 	})
@@ -75,7 +80,7 @@ export function RolesPage() {
 				}
 			/>
 			<UsersRolesSwitcher />
-			{!forbidden ? <ProblemAlert error={createRole.error} /> : null}
+			{!forbidden ? <ProblemAlert error={createRole.error} onRetry={onCreate} /> : null}
 			{forbidden ? (
 				<AccessDenied />
 			) : rolesQuery.isPending ? (
@@ -83,7 +88,17 @@ export function RolesPage() {
 			) : rolesQuery.isError || !roles ? (
 				<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
 			) : roles.length === 0 ? (
-				<p className="text-muted-foreground">{t("roles.empty")}</p>
+				<EmptyState
+					icon={ShieldCheck}
+					title={t("roles.emptyTitle")}
+					description={t("roles.emptyDescription")}
+					actions={
+						<Button onClick={onCreate} disabled={createRole.isPending}>
+							<Plus className="size-4" />
+							{createRole.isPending ? t("roles.creating") : t("roles.create")}
+						</Button>
+					}
+				/>
 			) : (
 				<div className="space-y-3">
 					{roles.map((role) => (

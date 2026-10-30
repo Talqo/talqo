@@ -9,10 +9,11 @@ import { agentLineColor } from "@/features/statistics/components/stats-charts"
 import { formatDay, formatTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { keepPreviousData } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react"
 import { useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -139,16 +140,24 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				) : !result ? (
 					<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
 				) : result.conversations.length === 0 && page > 1 ? (
-					<div className="space-y-2">
-						<output className="text-muted-foreground block">{t("conversations.pageEmpty")}</output>
-						<Button variant="outline" onClick={() => goToPage(1)}>
-							{t("conversations.firstPage")}
-						</Button>
-					</div>
+					<EmptyState
+						icon={MessagesSquare}
+						title={t("conversations.pageEmptyTitle")}
+						description={t("conversations.pageEmptyDescription")}
+						actions={
+							<Button variant="outline" onClick={() => goToPage(1)}>
+								{t("conversations.firstPage")}
+							</Button>
+						}
+					/>
 				) : result.conversations.length === 0 ? (
-					<output className="text-muted-foreground block">
-						{effectiveAgents ? t("conversations.emptyFiltered") : t("conversations.empty")}
-					</output>
+					<EmptyState
+						icon={MessagesSquare}
+						title={effectiveAgents ? t("conversations.emptyFilteredTitle") : t("conversations.emptyTitle")}
+						description={
+							effectiveAgents ? t("conversations.emptyFilteredDescription") : t("conversations.emptyDescription")
+						}
+					/>
 				) : (
 					<>
 						<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
