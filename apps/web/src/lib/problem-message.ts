@@ -31,6 +31,7 @@ const PROBLEM_TRANSLATORS: Partial<Record<ProblemCode, (translate: Translate) =>
 	"invalid-invitation": (t) => t("problems.invalid-invitation"),
 	"invalid-request": (t) => t("problems.invalid-request"),
 	"malformed-json": (t) => t("problems.malformed-json"),
+	"mcp-server-not-found": (t) => t("problems.mcp-server-not-found"),
 	"mcp-stdio-disabled": (t) => t("problems.mcp-stdio-disabled"),
 	"model-discovery-unsupported": (t) => t("problems.model-discovery-unsupported"),
 	"password-change-not-required": (t) => t("problems.password-change-not-required"),

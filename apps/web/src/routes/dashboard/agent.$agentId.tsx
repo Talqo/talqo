@@ -10,28 +10,30 @@ import { useGetAgentAccess, useGetMyPermissions } from "@/api/generated/roles/ro
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AgentAccessCard } from "@/features/agents/agent-access-card"
-import { agentFormSchema, type AgentFormValues } from "@/features/agents/agent-schema"
+import {
+	AGENT_NAME_MAX_LENGTH,
+	agentFormSchema,
+	type AgentFormValues,
+	SYSTEM_PROMPT_MAX_LENGTH,
+} from "@/features/agents/agent-schema"
 import { BlacklistTermsEditor } from "@/features/agents/components/blacklist-terms-editor"
 import { AgentFilesCard } from "@/features/context/agent-files-card"
 import { EMBED_FORM_DEFAULTS } from "@/features/embeds/embed-appearance-form"
 import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { getProblemMessage } from "@/lib/problem-message"
 import { retryUnlessClientError } from "@/lib/query-retry"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
 import { CardName } from "@talqo/ui/components/card-name"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
+import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Skeleton } from "@talqo/ui/components/skeleton"
@@ -41,7 +43,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ArrowLeft, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { type FieldErrors, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { EmbedEnabledSwitch } from "./-embed-enabled-switch"
@@ -118,12 +120,15 @@ function AgentConfigPage() {
 	const [saved, setSaved] = useState(false)
 	const [formError, setFormError] = useState<string | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
-	const [confirmation, setConfirmation] = useState("")
-	const [confirmOpen, setConfirmOpen] = useState(false)
+	const [deleteOpen, setDeleteOpen] = useState(false)
+	const [accessDirty, setAccessDirty] = useState(false)
 
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const canDelete = permissions?.includes("agents:delete") ?? false
 	const canManageAccess = canRead && (globalPermissions?.includes("roles:manage") ?? false)
+	const embedsQuery = useListEmbeds({ agentId }, { query: { enabled: canDelete } })
+	const embedCount = embedsQuery.data?.data.embeds.length ?? 0
+	const embedsBlockDeletion = embedsQuery.isPending || embedCount > 0
 	const client = useQueryClient()
 	useEffect(() => {
 		if (permissionsQuery.error?.status === NOT_FOUND_STATUS || (permissionsQuery.data && !canRead)) {
@@ -136,7 +141,9 @@ function AgentConfigPage() {
 		register,
 		handleSubmit,
 		reset,
-		formState: { errors },
+		setFocus,
+		control,
+		formState: { errors, isDirty },
 	} = useForm<AgentFormValues>({
 		resolver: zodResolver(agentFormSchema),
 		defaultValues: { name: "", systemPrompt: "" },
@@ -147,18 +154,31 @@ function AgentConfigPage() {
 			reset({ name: agent.name, systemPrompt: agent.systemPrompt })
 		}
 	}, [agent, reset])
-	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : (agent?.wordBlacklist ?? [])
+	const savedTerms = agent?.wordBlacklist ?? []
+	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : savedTerms
+	const termsChanged = terms.length !== savedTerms.length || terms.some((term, index) => term !== savedTerms[index])
+	const dirty = isDirty || termsChanged
+	const dirtyGuard = useDirtyFormGuard(dirty || accessDirty)
+	const nameValue = useWatch({ control, name: "name" })
+	const promptValue = useWatch({ control, name: "systemPrompt" })
+
+	function onInvalid(formErrors: FieldErrors<AgentFormValues>) {
+		setFocus(formErrors.name ? "name" : "systemPrompt")
+	}
 
 	async function onValid(values: AgentFormValues) {
 		if (!canManage) return
 		setFormError(null)
 		setSaved(false)
 		try {
-			await updateAgent.mutateAsync({
+			const result = await updateAgent.mutateAsync({
 				agentId,
 				data: { name: values.name, systemPrompt: values.systemPrompt, wordBlacklist: terms },
 			})
+			const updated = result.data.agent
+			reset({ name: updated.name, systemPrompt: updated.systemPrompt })
 			await agentQuery.refetch()
+			setEditedTerms(null)
 			setSaved(true)
 		} catch (caught) {
 			const status = (caught as UpdateAgentMutationError).status
@@ -178,13 +198,14 @@ function AgentConfigPage() {
 		setDeleteError(null)
 		try {
 			await deleteAgent.mutateAsync({ agentId })
-			await navigate({ to: "/dashboard/agents" })
+			await navigate({ to: "/dashboard/agents", ignoreBlocker: true })
 		} catch (caught) {
-			setDeleteError(
-				(caught as DeleteAgentMutationError).status === NOT_FOUND_STATUS
-					? t("agentConfig.wasDeleted")
-					: t("agents.deleteFailed"),
-			)
+			if ((caught as DeleteAgentMutationError).status === NOT_FOUND_STATUS) {
+				setDeleteError(t("agentConfig.wasDeleted"))
+			} else {
+				setDeleteError(getProblemMessage(caught, t, t("agents.deleteFailed")))
+				void embedsQuery.refetch()
+			}
 		}
 	}
 
@@ -224,6 +245,7 @@ function AgentConfigPage() {
 			<BackLink t={t} />
 
 			<PageHeader title={agent.name} description={canManage ? t("agentConfig.subheading") : undefined} />
+			{dirtyGuard}
 
 			<Tabs
 				value={tab}
@@ -247,7 +269,7 @@ function AgentConfigPage() {
 								{canManage && <CardDescription>{t("agentConfig.cardDescription")}</CardDescription>}
 							</CardHeader>
 							<CardContent>
-								<form onSubmit={handleSubmit(onValid)} className="space-y-4">
+								<form onSubmit={handleSubmit(onValid, onInvalid)} className="space-y-4">
 									{formError && (
 										<p role="alert" className="text-destructive text-sm">
 											{formError}
@@ -260,9 +282,22 @@ function AgentConfigPage() {
 											placeholder={t("agentFields.namePlaceholder")}
 											readOnly={!canManage}
 											aria-invalid={errors.name ? true : undefined}
+											aria-describedby={`config-name-limit${errors.name ? " config-name-error" : ""}`}
 											{...register("name", { onChange: () => setSaved(false) })}
 										/>
-										{errors.name && <p className="text-destructive text-xs">{t("agentFields.nameRequired")}</p>}
+										<p id="config-name-limit" className="text-muted-foreground text-xs">
+											{t("agentFields.characterLimit", {
+												used: nameValue.length,
+												max: AGENT_NAME_MAX_LENGTH,
+											})}
+										</p>
+										{errors.name && (
+											<p id="config-name-error" className="text-destructive text-xs" role="alert">
+												{errors.name.type === "too_big"
+													? t("agentFields.nameTooLong", { max: AGENT_NAME_MAX_LENGTH })
+													: t("agentFields.nameRequired")}
+											</p>
+										)}
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="config-system-prompt">{t("agentFields.systemPrompt")}</Label>
@@ -272,10 +307,21 @@ function AgentConfigPage() {
 											rows={5}
 											readOnly={!canManage}
 											aria-invalid={errors.systemPrompt ? true : undefined}
+											aria-describedby={`config-system-prompt-limit${errors.systemPrompt ? " config-system-prompt-error" : ""}`}
 											{...register("systemPrompt", { onChange: () => setSaved(false) })}
 										/>
+										<p id="config-system-prompt-limit" className="text-muted-foreground text-xs">
+											{t("agentFields.characterLimit", {
+												used: promptValue.length,
+												max: SYSTEM_PROMPT_MAX_LENGTH,
+											})}
+										</p>
 										{errors.systemPrompt && (
-											<p className="text-destructive text-xs">{t("agentFields.systemPromptRequired")}</p>
+											<p id="config-system-prompt-error" className="text-destructive text-xs" role="alert">
+												{errors.systemPrompt.type === "too_big"
+													? t("agentFields.systemPromptTooLong", { max: SYSTEM_PROMPT_MAX_LENGTH })
+													: t("agentFields.systemPromptRequired")}
+											</p>
 										)}
 									</div>
 									<div className="space-y-2">
@@ -291,73 +337,85 @@ function AgentConfigPage() {
 										/>
 									</div>
 									{canManage && (
-										<div className="flex items-center gap-3 pt-2">
-											<Button type="submit" disabled={updateAgent.isPending}>
+										<FormActions status={saved && !dirty ? t("agentConfig.saved") : undefined}>
+											<Button type="submit" disabled={updateAgent.isPending || !dirty}>
 												{updateAgent.isPending ? t("agentConfig.saving") : t("agentConfig.save")}
 											</Button>
-											{saved && <output className="text-muted-foreground text-sm">{t("agentConfig.saved")}</output>}
-										</div>
+										</FormActions>
 									)}
 								</form>
 							</CardContent>
 						</Card>
 						{canManageAccess && permissions && (
-							<AgentAccessCard key={agentId} agentId={agentId} permissions={permissions} />
+							<AgentAccessCard
+								key={agentId}
+								agentId={agentId}
+								onDirtyChange={setAccessDirty}
+								permissions={permissions}
+							/>
 						)}
 
 						{canDelete && (
-							<Card variant="destructive">
-								<CardHeader>
-									<CardTitle>{t("agentConfig.dangerZone")}</CardTitle>
-									<CardDescription>{t("agentConfig.dangerDescription")}</CardDescription>
-								</CardHeader>
-								<CardContent>
-									<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-										<Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+							<DangerZone title={t("agentConfig.dangerZone")}>
+								<DangerZoneRow
+									title={t("agentConfig.deleteAgent")}
+									description={
+										<>
+											<p>{t("agentConfig.dangerDescription")}</p>
+											{embedCount > 0 ? (
+												<p className="text-destructive">
+													{t("agentConfig.deleteBlockedByEmbeds", { count: embedCount })}{" "}
+													<Link
+														to="/dashboard/agent/$agentId"
+														params={{ agentId }}
+														search={{ tab: "embeds" }}
+														className="underline underline-offset-2"
+													>
+														{t("agentConfig.manageEmbeds")}
+													</Link>
+												</p>
+											) : null}
+										</>
+									}
+									action={
+										<Button
+											variant="destructive"
+											disabled={embedsBlockDeletion}
+											onClick={() => {
+												deleteAgent.reset()
+												setDeleteError(null)
+												setDeleteOpen(true)
+											}}
+										>
 											<Trash2 className="size-4" />
 											{t("agentConfig.deleteAgent")}
 										</Button>
-										<DialogContent closeLabel={t("common.close")}>
-											<DialogHeader>
-												<DialogTitle>{t("agentConfig.deleteTitle")}</DialogTitle>
-												<DialogDescription>{t("agentConfig.deletePrompt", { name: agent.name })}</DialogDescription>
-											</DialogHeader>
-											{deleteError && (
-												<p role="alert" className="text-destructive text-sm">
-													{deleteError}
-												</p>
-											)}
-											<div className="space-y-2">
-												<Label htmlFor="delete-confirm">
-													<span className="sr-only">{t("agentConfig.confirmLabel", { name: agent.name })}</span>
-												</Label>
-												<Input
-													id="delete-confirm"
-													value={confirmation}
-													onChange={(event) => setConfirmation(event.target.value)}
-													placeholder={agent.name}
-													autoComplete="off"
-												/>
-												<p className="text-muted-foreground text-xs">
-													{t("agentConfig.confirmHelp", { name: agent.name })}
-												</p>
-											</div>
-											<DialogFooter>
-												<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-													{t("agentConfig.cancel")}
-												</Button>
-												<Button
-													variant="destructive"
-													disabled={confirmation !== agent.name || deleteAgent.isPending}
-													onClick={onConfirmDelete}
-												>
-													{deleteAgent.isPending ? t("agentConfig.deleting") : t("agentConfig.deleteConfirm")}
-												</Button>
-											</DialogFooter>
-										</DialogContent>
-									</Dialog>
-								</CardContent>
-							</Card>
+									}
+								/>
+								<ConfirmDialog
+									open={deleteOpen}
+									onOpenChange={(next) => {
+										setDeleteOpen(next)
+										if (!next) {
+											setDeleteError(null)
+											deleteAgent.reset()
+										}
+									}}
+									title={t("agentConfig.deleteTitle")}
+									description={t("agentConfig.deletePrompt", { name: agent.name })}
+									cancelLabel={t("agentConfig.cancel")}
+									confirmLabel={t("agentConfig.deleteConfirm")}
+									pendingLabel={t("agentConfig.deleting")}
+									pending={deleteAgent.isPending}
+									error={deleteError ?? undefined}
+									typeToConfirm={{
+										value: agent.name,
+										label: t("agentConfig.confirmLabel", { name: agent.name }),
+										placeholder: agent.name,
+									}}
+									onConfirm={() => void onConfirmDelete()}
+								/>
+							</DangerZone>
 						)}
 					</div>
 				</TabsContent>

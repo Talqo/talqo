@@ -1,7 +1,8 @@
-import { cn } from "@talqo/ui/lib/utils"
-import * as React from "react"
+import type { ComponentProps } from "react"
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+import { cn } from "@talqo/ui/lib/utils"
+
+function Skeleton({ className, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="skeleton"

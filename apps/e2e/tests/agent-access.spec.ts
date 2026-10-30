@@ -74,7 +74,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 
 		await access.getByRole("switch", { name: web("agentAccess.deleteAgent"), exact: true }).check()
 		await access.getByRole("button", { name: web("agentAccess.remove"), exact: true }).click()
-		const confirmation = page.getByRole("dialog")
+		const confirmation = page.getByRole("alertdialog")
 		await expect(confirmation).toContainText(name)
 		await confirmation.getByRole("button", { name: web("common.cancel"), exact: true }).click()
 		await expect(access.getByRole("button", { name, exact: true })).toBeVisible()
@@ -82,6 +82,7 @@ test("admin grants one agent's reporting access and removes it immediately", asy
 		await confirmation.getByRole("button", { name: web("agentAccess.remove"), exact: true }).click()
 		await expect(access.getByRole("button", { name, exact: true })).toHaveCount(0)
 		await expect(addRole).toBeFocused()
+		await expect(access.getByRole("status")).toHaveText(web("agentAccess.removed"))
 		await operator.reload()
 		await expect(operator).toHaveURL("/dashboard/account")
 		await expect(operator.getByRole("link", { name: web("nav.dashboard"), exact: true })).toHaveCount(0)

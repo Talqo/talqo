@@ -1,9 +1,10 @@
 "use client"
 
+import type { ComponentProps, ReactNode } from "react"
+
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@talqo/ui/lib/utils"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
-import * as React from "react"
 
 const Select = SelectPrimitive.Root
 
@@ -65,7 +66,7 @@ function SelectContent({
 	...props
 }: SelectPrimitive.Popup.Props &
 	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"> & {
-		header?: React.ReactNode
+		header?: ReactNode
 	}) {
 	return (
 		<SelectPrimitive.Portal>
@@ -138,7 +139,7 @@ function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Prop
 	)
 }
 
-function SelectScrollUpButton({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
+function SelectScrollUpButton({ className, ...props }: ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
 	return (
 		<SelectPrimitive.ScrollUpArrow
 			data-slot="select-scroll-up-button"
@@ -153,7 +154,7 @@ function SelectScrollUpButton({ className, ...props }: React.ComponentProps<type
 	)
 }
 
-function SelectScrollDownButton({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
+function SelectScrollDownButton({ className, ...props }: ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
 	return (
 		<SelectPrimitive.ScrollDownArrow
 			data-slot="select-scroll-down-button"

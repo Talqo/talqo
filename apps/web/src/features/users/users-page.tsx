@@ -27,6 +27,7 @@ import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardName } from "@talqo/ui/components/card-name"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import {
 	Dialog,
 	DialogContent,
@@ -68,13 +69,18 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 		formState: { errors },
 	} = useForm<ResetPasswordFormValues>({ resolver: zodResolver(resetPasswordSchema) })
 
+	function close() {
+		setOpen(false)
+		reset()
+		resetUserPassword.reset()
+		setError(null)
+		setCopied(false)
+	}
+
 	function handleOpenChange(next: boolean) {
-		setOpen(next)
-		if (!next) {
-			reset()
-			setError(null)
-			setCopied(false)
-		}
+		if (resetUserPassword.isPending) return
+		if (next) setOpen(true)
+		else close()
 	}
 
 	function handleGenerate() {
@@ -99,7 +105,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 		try {
 			await resetUserPassword.mutateAsync({ userId: targetUser.id, data: { newPassword: values.newPassword } })
 			onReset(targetUser.id)
-			handleOpenChange(false)
+			close()
 		} catch (caught) {
 			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
@@ -163,8 +169,16 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 						</p>
 					) : null}
 					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							disabled={resetUserPassword.isPending}
+							onClick={() => handleOpenChange(false)}
+						>
+							{t("users.cancel")}
+						</Button>
 						<Button type="submit" disabled={resetUserPassword.isPending}>
-							{t("users.resetPassword")}
+							{resetUserPassword.isPending ? t("users.resetting") : t("users.resetPassword")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -178,12 +192,13 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const isDeleting = deleteUser.isPending
 
 	function handleOpenChange(next: boolean) {
-		if (isDeleting) return
 		setOpen(next)
-		if (!next) setError(null)
+		if (!next) {
+			setError(null)
+			deleteUser.reset()
+		}
 	}
 
 	async function onConfirm() {
@@ -202,31 +217,24 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" />}>
+		<>
+			<Button variant="destructive" onClick={() => setOpen(true)}>
 				<Trash2 className="size-4" />
 				{t("users.delete")}
-			</DialogTrigger>
-			<DialogContent closeLabel={t("common.close")}>
-				<DialogHeader>
-					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
-					<DialogDescription>{t("users.deletePrompt", { username: targetUser.username })}</DialogDescription>
-				</DialogHeader>
-				{error && (
-					<p role="alert" className="text-destructive text-sm">
-						{error}
-					</p>
-				)}
-				<DialogFooter>
-					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
-						{t("users.cancel")}
-					</Button>
-					<Button variant="destructive" disabled={isDeleting} onClick={onConfirm}>
-						{isDeleting ? t("users.deleting") : t("users.deleteConfirm")}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			</Button>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={handleOpenChange}
+				title={t("users.deleteTitle")}
+				description={t("users.deletePrompt", { username: targetUser.username })}
+				cancelLabel={t("users.cancel")}
+				confirmLabel={t("users.deleteConfirm")}
+				pendingLabel={t("users.deleting")}
+				pending={deleteUser.isPending}
+				error={error ?? undefined}
+				onConfirm={() => void onConfirm()}
+			/>
+		</>
 	)
 }
 

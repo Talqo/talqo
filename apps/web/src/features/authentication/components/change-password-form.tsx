@@ -5,28 +5,44 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Label } from "@talqo/ui/components/label"
 import { PasswordInput } from "@talqo/ui/components/password-input"
-import { useForm } from "react-hook-form"
+import { type FieldErrors, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type ChangePasswordFormProps = {
 	error: string | null
 	onSubmit: (input: ChangePasswordFormValues) => Promise<void> | void
 	submitLabel: string
+	pendingLabel?: string
+	status?: string
 	submitting: boolean
 }
 
-export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }: ChangePasswordFormProps) {
+export function ChangePasswordForm({
+	error,
+	onSubmit,
+	submitLabel,
+	pendingLabel,
+	status,
+	submitting,
+}: ChangePasswordFormProps) {
 	const { t } = useTranslation()
 	const {
 		register,
 		handleSubmit,
-		formState: { errors },
+		setFocus,
+		formState: { errors, isDirty },
 	} = useForm<ChangePasswordFormValues>({ resolver: zodResolver(changePasswordSchema) })
+	const firstInvalid = (formErrors: FieldErrors<ChangePasswordFormValues>) => {
+		if (formErrors.currentPassword) setFocus("currentPassword")
+		else if (formErrors.newPassword) setFocus("newPassword")
+		else setFocus("confirmPassword")
+	}
 
 	return (
-		<form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
+		<form className="space-y-4" onSubmit={handleSubmit(onSubmit, firstInvalid)}>
 			<div className="space-y-2">
 				<Label htmlFor="current-password">{t("account.currentPassword")}</Label>
 				<PasswordInput
@@ -83,9 +99,11 @@ export function ChangePasswordForm({ error, onSubmit, submitLabel, submitting }:
 					{error}
 				</p>
 			) : null}
-			<Button type="submit" disabled={submitting}>
-				{submitLabel}
-			</Button>
+			<FormActions status={isDirty ? undefined : status}>
+				<Button type="submit" disabled={submitting || !isDirty}>
+					{submitting ? (pendingLabel ?? submitLabel) : submitLabel}
+				</Button>
+			</FormActions>
 		</form>
 	)
 }

@@ -1,8 +1,9 @@
+import type { ComponentProps } from "react"
+
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { Button } from "@talqo/ui/components/button"
 import { cn } from "@talqo/ui/lib/utils"
 import { XIcon } from "lucide-react"
-import * as React from "react"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
 	return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -63,11 +64,11 @@ function DialogContent({ className, children, showCloseButton = true, closeLabel
 	)
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({ className, ...props }: ComponentProps<"div">) {
 	return <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
 }
 
-function DialogFooter({ className, children, ...props }: React.ComponentProps<"div">) {
+function DialogFooter({ className, children, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="dialog-footer"

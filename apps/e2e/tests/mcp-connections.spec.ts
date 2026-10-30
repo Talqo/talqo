@@ -12,7 +12,7 @@ async function openToolsTab(page: Page, agentId: string) {
 async function removeConnection(page: Page, name: string) {
 	const card = page.getByTestId("mcp-server-card").filter({ hasText: name })
 	await card.getByRole("button", { name: web("mcp.remove"), exact: true }).click()
-	const confirm = page.getByRole("dialog")
+	const confirm = page.getByRole("alertdialog")
 	await confirm.getByRole("button", { name: web("mcp.removeConfirm") }).click()
 	await expect(page.getByText(name)).toHaveCount(0)
 }

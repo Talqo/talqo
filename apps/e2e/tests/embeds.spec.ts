@@ -51,7 +51,12 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 	const { embed } = (await created.json()) as { embed: { id: string } }
 	await expect(page).toHaveURL(`/dashboard/embeds/${embed.id}`)
 
-	await page.getByLabel(web("embedSetup.nameLabel"), { exact: true }).fill("Customer help")
+	const name = page.getByLabel(web("embedSetup.nameLabel"), { exact: true })
+	await name.fill("")
+	await page.getByRole("button", { name: web("embedSetup.save") }).click()
+	await expect(page.getByText(web("embedSetup.nameRequired"))).toBeVisible()
+	await expect(name).toBeFocused()
+	await name.fill("Customer help")
 	const saved = page.waitForResponse(
 		(response) =>
 			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embed.id}`,
@@ -65,8 +70,9 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 	await preview.getByRole("button", { name: widget("openChat") }).click()
 	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Customer help")
 
+	await name.fill("Unsaved rename")
 	await page.getByRole("button", { name: web("embedSetup.deleteEmbed") }).click()
-	const dialog = page.getByRole("dialog", { name: web("embedSetup.deleteTitle") })
+	const dialog = page.getByRole("alertdialog", { name: web("embedSetup.deleteTitle") })
 	const confirm = dialog.getByRole("button", { name: web("embedSetup.deleteConfirm") })
 	await expect(confirm).toBeDisabled()
 	await dialog.getByPlaceholder("Customer help").fill("Customer help typo")
@@ -165,7 +171,7 @@ test("operator rotates an embed token and receives a working replacement snippet
 	const tokenInput = page.getByLabel(web("embedSetup.embedToken"), { exact: true })
 	await expect(tokenInput).toHaveValue(embed.embedToken)
 	await page.getByRole("button", { name: web("embedSetup.rotateToken") }).click()
-	const dialog = page.getByRole("dialog", { name: web("embedSetup.rotateTokenTitle") })
+	const dialog = page.getByRole("alertdialog", { name: web("embedSetup.rotateTokenTitle") })
 	await dialog.getByRole("button", { name: web("embedSetup.rotateToken") }).click()
 	await expect(dialog).toBeHidden()
 	await expect(tokenInput).not.toHaveValue(embed.embedToken)

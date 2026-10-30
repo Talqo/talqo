@@ -1,7 +1,8 @@
-import { cn } from "@talqo/ui/lib/utils"
-import * as React from "react"
+import type { ComponentProps } from "react"
 
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+import { cn } from "@talqo/ui/lib/utils"
+
+function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 	return (
 		<textarea
 			data-slot="textarea"

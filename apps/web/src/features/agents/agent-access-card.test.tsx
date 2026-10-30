@@ -81,7 +81,7 @@ async function chooseObservers() {
 
 async function confirmRemoval() {
 	await click(button(t("agentAccess.remove")))
-	const dialog = document.querySelector<HTMLElement>("[role=dialog]")
+	const dialog = document.querySelector<HTMLElement>("[role=alertdialog]")
 	const confirm = [...(dialog?.querySelectorAll("button") ?? [])].find(
 		(element) => element.textContent?.trim() === t("agentAccess.remove"),
 	)
@@ -98,7 +98,6 @@ beforeEach(() => {
 	mutations = []
 	failure = undefined
 	refreshResponse = undefined
-	spyOn(window, "confirm").mockReturnValue(true)
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
@@ -162,7 +161,9 @@ describe("AgentAccessCard", () => {
 		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.permission-exceeds-own"))
 		failure = json({ code: "role-not-found", type: "https://docs.talqo.chat/problems#role-not-found" }, 404)
 		await confirmRemoval()
-		expect(document.querySelector("[role=dialog] [role=alert]")?.textContent).toContain(t("problems.role-not-found"))
+		expect(document.querySelector("[role=alertdialog] [role=alert]")?.textContent).toContain(
+			t("problems.role-not-found"),
+		)
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(mutations.map(({ method }) => method)).toEqual(["PUT", "DELETE"])
 	})

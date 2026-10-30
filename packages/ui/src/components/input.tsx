@@ -1,6 +1,7 @@
+import type { ComponentProps } from "react"
+
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "@talqo/ui/lib/utils"
-import * as React from "react"
 
 function Input({
 	className,
@@ -8,7 +9,7 @@ function Input({
 	font = "default",
 	trailingAction = false,
 	...props
-}: React.ComponentProps<"input"> & { font?: "default" | "mono"; trailingAction?: boolean }) {
+}: ComponentProps<"input"> & { font?: "default" | "mono"; trailingAction?: boolean }) {
 	return (
 		<InputPrimitive
 			type={type}

@@ -46,6 +46,13 @@
 		"no-restricted-imports": [
 			"error",
 			{
+				"paths": [
+					{
+						"name": "react",
+						"importNames": ["*"],
+						"message": "Replace `import * as React` with named imports: runtime APIs (`import { useId } from \"react\"`) and types (`import type { ReactNode } from \"react\"`)."
+					}
+				],
 				"patterns": [
 					{
 						"group": ["../**"],
@@ -244,6 +251,11 @@
 							{
 								"name": "lucide-react",
 								"message": "The embed bundle must stay lean: import icons from src/assets/icons via vite-plugin-svgr instead."
+							},
+							{
+								"name": "react",
+								"importNames": ["*"],
+								"message": "Replace `import * as React` with named imports: runtime APIs (`import { useId } from \"react\"`) and types (`import type { ReactNode } from \"react\"`)."
 							}
 						],
 						"patterns": [

@@ -3,22 +3,15 @@ import { useGetMyPermissions } from "@/api/generated/roles/roles"
 import { ProblemAlert } from "@/components/problem-alert"
 import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@talqo/ui/components/dialog"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
+import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
+import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-export function DeleteAccountCard() {
+export function DeleteAccountCard({ username }: { username: string }) {
 	const { t } = useTranslation()
 	const permissions = useGetMyPermissions()
 	const isAdmin = permissions.data?.data.permissions.includes("admin") ?? false
@@ -28,54 +21,54 @@ export function DeleteAccountCard() {
 		mutation: {
 			onSuccess: async () => {
 				queryClient.clear()
-				await navigate({ to: "/login" })
+				await navigate({ to: "/login", ignoreBlocker: true })
 			},
 		},
 	})
 	const [open, setOpen] = useState(false)
 
+	if (permissions.isPending || isAdmin) return null
+
 	function handleOpenChange(next: boolean) {
-		if (deleteAccount.isPending) return
 		setOpen(next)
 		if (!next) deleteAccount.reset()
 	}
 
-	if (permissions.isPending || isAdmin) return null
-
 	return (
-		<Card variant="destructive">
-			<CardHeader>
-				<CardTitle>{t("account.dangerZone")}</CardTitle>
-				{permissions.isSuccess ? <CardDescription>{t("account.dangerDescription")}</CardDescription> : null}
-			</CardHeader>
-			<CardContent>
-				{permissions.isError ? (
+		<DangerZone title={t("account.dangerZone")}>
+			{permissions.isError ? (
+				<div className="py-4">
 					<ProblemAlert error={permissions.error} onRetry={() => void permissions.refetch()} />
-				) : (
-					<Dialog open={open} onOpenChange={handleOpenChange}>
-						<DialogTrigger render={<Button variant="destructive" />}>{t("account.deleteAccount")}</DialogTrigger>
-						<DialogContent showCloseButton={false}>
-							<DialogHeader>
-								<DialogTitle>{t("account.deleteTitle")}</DialogTitle>
-								<DialogDescription>{t("account.deletePrompt")}</DialogDescription>
-							</DialogHeader>
-							{deleteAccount.error ? (
-								<p role="alert" className="text-destructive text-sm">
-									{getProblemMessage(deleteAccount.error, t, t("account.deleteFailed"))}
-								</p>
-							) : null}
-							<DialogFooter>
-								<Button variant="outline" disabled={deleteAccount.isPending} onClick={() => handleOpenChange(false)}>
-									{t("account.cancel")}
-								</Button>
-								<Button variant="destructive" disabled={deleteAccount.isPending} onClick={() => deleteAccount.mutate()}>
-									{deleteAccount.isPending ? t("account.deleting") : t("account.deleteAccount")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
-				)}
-			</CardContent>
-		</Card>
+				</div>
+			) : (
+				<DangerZoneRow
+					title={t("account.deleteAccount")}
+					description={t("account.dangerDescription")}
+					action={
+						<Button variant="destructive" onClick={() => setOpen(true)}>
+							<Trash2 className="size-4" />
+							{t("account.deleteAccount")}
+						</Button>
+					}
+				/>
+			)}
+			<ConfirmDialog
+				open={open}
+				onOpenChange={handleOpenChange}
+				title={t("account.deleteTitle")}
+				description={t("account.deletePrompt")}
+				cancelLabel={t("account.cancel")}
+				confirmLabel={t("account.deleteAccount")}
+				pendingLabel={t("account.deleting")}
+				pending={deleteAccount.isPending}
+				error={deleteAccount.error ? getProblemMessage(deleteAccount.error, t, t("account.deleteFailed")) : undefined}
+				typeToConfirm={{
+					value: username,
+					label: t("account.confirmLabel", { username }),
+					placeholder: username,
+				}}
+				onConfirm={() => deleteAccount.mutate()}
+			/>
+		</DangerZone>
 	)
 }

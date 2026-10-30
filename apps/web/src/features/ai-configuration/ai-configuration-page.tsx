@@ -25,6 +25,7 @@ import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplet
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
 import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
 import { getProblemMessage } from "@/lib/problem-message.ts"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -36,6 +37,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@talqo/ui/components/dialog"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -416,11 +418,12 @@ export function AiConfigurationPage() {
 		reset,
 		setValue,
 		getValues,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm<AiConfigurationFormValues>({
 		resolver: zodResolver(aiConfigurationFormSchema),
 		defaultValues: configurationToFormValues({ revision: 0, health: "unconfigured", text: null, embedding: null }),
 	})
+	const dirtyGuard = useDirtyFormGuard(isDirty)
 
 	// Depend on the response body, not the envelope: its `headers` makes the envelope new on every refetch.
 	const configuration = configurationQuery.data?.data
@@ -654,13 +657,13 @@ export function AiConfigurationPage() {
 						{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
 					</p>
 				)}
-				<div className="flex items-center gap-3">
-					<Button type="submit" disabled={save.isPending}>
+				<FormActions status={saved && !isDirty ? t("aiConfiguration.saved") : undefined}>
+					<Button type="submit" disabled={save.isPending || !isDirty}>
 						{save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.save")}
 					</Button>
-					{saved && <output className="text-muted-foreground text-sm">{t("aiConfiguration.saved")}</output>}
-				</div>
+				</FormActions>
 			</form>
+			{dirtyGuard}
 			<Dialog
 				open={pendingSave !== null}
 				onOpenChange={(open) => {

@@ -17,6 +17,7 @@ import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import {
 	Dialog,
 	DialogContent,
@@ -384,7 +385,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 														render={
 															<Button
 																type="button"
-																variant="ghost"
+																variant="destructive"
 																size="icon"
 																disabled={deleteFile.isPending}
 																onClick={() => openDelete(file)}
@@ -409,7 +410,10 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			<Dialog
 				open={renameTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setRenameTarget(null)
+					if (!open && !renameFile.isPending) {
+						setRenameTarget(null)
+						setRenameError(null)
+					}
 				}}
 			>
 				<DialogContent closeLabel={t("common.close")}>
@@ -440,43 +444,46 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							</p>
 						)}
 						<DialogFooter>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={renameFile.isPending}
+								onClick={() => {
+									setRenameTarget(null)
+									setRenameError(null)
+								}}
+							>
+								{t("common.cancel")}
+							</Button>
 							<Button type="submit" disabled={renameFile.isPending || !renameValue.trim()}>
-								{t("agentFiles.renameSave")}
+								{renameFile.isPending ? t("agentFiles.renaming") : t("agentFiles.renameSave")}
 							</Button>
 						</DialogFooter>
 					</form>
 				</DialogContent>
 			</Dialog>
 
-			<Dialog
+			<ConfirmDialog
 				open={deleteTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null)
+					if (open) return
+					setDeleteTarget(null)
+					setDeleteError(null)
+					deleteFile.reset()
 				}}
+				title={t("agentFiles.deleteTitle")}
+				description={t("agentFiles.deletePrompt")}
+				cancelLabel={t("common.cancel")}
+				confirmLabel={t("agentFiles.deleteConfirm")}
+				pendingLabel={t("agentFiles.deleting")}
+				pending={deleteFile.isPending}
+				error={deleteError ?? undefined}
+				onConfirm={() => void onConfirmDelete()}
 			>
-				<DialogContent closeLabel={t("common.close")}>
-					<DialogHeader>
-						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
-						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>
-					</DialogHeader>
-					<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
-						{deleteTarget?.name}
-					</p>
-					{deleteError && (
-						<p role="alert" className="text-destructive text-xs">
-							{deleteError}
-						</p>
-					)}
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setDeleteTarget(null)}>
-							{t("agentFiles.deleteCancel")}
-						</Button>
-						<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
-							{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
+					{deleteTarget?.name}
+				</p>
+			</ConfirmDialog>
 		</Card>
 	)
 }

@@ -1,6 +1,7 @@
 import type { Role } from "@/api/generated/models/role.zod"
 import type { Root } from "react-dom/client"
 
+import { createRoleBodyNameMax } from "@/api/generated/models/roles/createRoleBody.zod"
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
@@ -164,7 +165,7 @@ async function save() {
 }
 
 function dialog(): HTMLElement {
-	const found = document.querySelector<HTMLElement>("[role='dialog']")
+	const found = document.querySelector<HTMLElement>("[role='alertdialog']")
 	if (!found) throw new Error("dialog not open")
 	return found
 }
@@ -218,7 +219,7 @@ describe("role management", () => {
 		})
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles/new-role")
 		expect(nameInput().value).toBe("New role")
-		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("chooses a free default name and lists names and people without permission summaries", async () => {
@@ -255,7 +256,7 @@ describe("role management", () => {
 		if (!row) throw new Error("role link not rendered")
 		await click(row)
 		expect(nameInput().value).toBe("Support")
-		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("shows creation errors without navigating away", async () => {
@@ -396,26 +397,30 @@ describe("role management", () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		await type(nameInput(), "Draft")
-		const confirm = spyOn(window, "confirm").mockReturnValue(false)
 		await act(async () => {
 			void router.navigate({ to: "/dashboard/users/roles" })
 		})
 		await settle()
-		expect(confirm).toHaveBeenCalledWith(t("roles.leavePrompt"))
+		expect(dialog().textContent).toContain(t("common.discardTitle"))
+		await click(button(t("common.keepEditing"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles/support")
 		expect(nameInput().value).toBe("Draft")
-		confirm.mockReturnValue(true)
 		await act(async () => {
 			void router.navigate({ to: "/dashboard/users/roles" })
 		})
 		await settle()
+		await click(button(t("common.discardChanges"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 	})
 
-	test("confirms deletion with recovery instructions and returns to the role list", async () => {
+	test("moves deletion into a danger zone below the form", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 3 }]
 		await renderPage("support")
 		await type(nameInput(), "Unsaved name")
+		const dangerZone = host.querySelector("section[aria-labelledby]")
+		expect(dangerZone?.textContent).toContain(t("roles.dangerZone"))
+		expect(dangerZone?.textContent).toContain(t("roles.delete"))
+		expect(host.querySelector("form")?.textContent).not.toContain(t("roles.delete"))
 		await click(button(t("roles.delete"), host))
 		expect(dialog().textContent).toContain(t("roles.deleteDescription", { people: 3 }))
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))
@@ -435,12 +440,13 @@ describe("role management", () => {
 		expect(host.textContent).toContain(t("problems.role-name-taken"))
 	})
 
-	test("disables saving while the name is invalid", async () => {
+	test("keeps saving enabled for an invalid dirty form so submit reveals field errors", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		await type(nameInput(), "")
+		expect(button(t("roles.save"), host).disabled).toBe(false)
 		await save()
-		expect(button(t("roles.save"), host).disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.nameError", { max: createRoleBodyNameMax }))
 		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 
