@@ -110,6 +110,31 @@ export async function listAgents(
 	}))
 }
 
+export async function listAgentsForRole(
+	actorId: string,
+	roleId: string,
+): Promise<
+	{
+		id: string
+		name: string
+		permissions: roles.AgentPermission[]
+		rolePermissions: roles.AgentPermission[]
+	}[]
+> {
+	const [agents, roleGrants] = await Promise.all([listAgents(actorId), roles.listAgentGrantsOfRole(roleId)])
+	const grants = Map.groupBy(roleGrants, ({ agentId }) => agentId)
+	return agents
+		.filter(({ permissions }) => permissions.includes(roles.AgentPermission.AgentRead))
+		.map(({ id, name, permissions }) => ({
+			id,
+			name,
+			permissions,
+			rolePermissions: roles.AGENT_PERMISSIONS.filter((permission) =>
+				grants.get(id)?.some((grant) => grant.permission === permission),
+			),
+		}))
+}
+
 // TODO(audit): record create/update/delete in AUDIT_LOG once the audit module exists.
 
 export async function getAgent(id: string): Promise<Agent> {

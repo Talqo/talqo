@@ -3,13 +3,12 @@ import {
 	type UpdateAgentMutationError,
 	useDeleteAgent,
 	useGetAgent,
+	useListAgents,
 	useUpdateAgent,
 } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
-import { useGetAgentAccess, useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
-import { AgentAccessCard } from "@/features/agents/agent-access-card"
 import {
 	AGENT_NAME_MAX_LENGTH,
 	agentFormSchema,
@@ -23,7 +22,6 @@ import { McpConnectionsCard } from "@/features/mcp/mcp-connections-card"
 import { clearAgentContent } from "@/features/permissions/clear-agent-content"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { getProblemMessage } from "@/lib/problem-message"
-import { retryUnlessClientError } from "@/lib/query-retry"
 import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
@@ -106,13 +104,12 @@ function AgentConfigPage() {
 	const { agentId } = Route.useParams()
 	const { tab = "configuration" } = Route.useSearch()
 	const setTab = Route.useNavigate()
-	const globalPermissions = useGetMyPermissions().data?.data.permissions
-	const permissionsQuery = useGetAgentAccess(agentId, { query: { retry: retryUnlessClientError } })
-	const permissions = permissionsQuery.data?.data.permissions
+	const agentsQuery = useListAgents()
+	const permissions = agentsQuery.data?.data.agents.find(({ id }) => id === agentId)?.permissions
 	const canRead = permissions?.includes("agents:read") ?? false
 	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })
 	const agent = agentQuery.data?.data.agent
-	const { error, isLoading } = agentQuery
+	const { error } = agentQuery
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
 
@@ -121,21 +118,19 @@ function AgentConfigPage() {
 	const [formError, setFormError] = useState<string | null>(null)
 	const [deleteError, setDeleteError] = useState<string | null>(null)
 	const [deleteOpen, setDeleteOpen] = useState(false)
-	const [accessDirty, setAccessDirty] = useState(false)
 
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const canDelete = permissions?.includes("agents:delete") ?? false
-	const canManageAccess = canRead && (globalPermissions?.includes("roles:manage") ?? false)
 	const embedsQuery = useListEmbeds({ agentId }, { query: { enabled: canDelete } })
 	const embedCount = embedsQuery.data?.data.embeds.length ?? 0
 	const embedsBlockDeletion = embedsQuery.isPending || embedCount > 0
 	const client = useQueryClient()
 	useEffect(() => {
-		if (permissionsQuery.error?.status === NOT_FOUND_STATUS || (permissionsQuery.data && !canRead)) {
+		if (agentsQuery.data && !canRead) {
 			clearAgentContent(client)
 			void navigate({ to: "/dashboard/agents", replace: true, ignoreBlocker: true })
 		}
-	}, [permissionsQuery.error, permissionsQuery.data, canRead, client, navigate])
+	}, [agentsQuery.data, canRead, client, navigate])
 
 	const {
 		register,
@@ -158,7 +153,7 @@ function AgentConfigPage() {
 	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : savedTerms
 	const termsChanged = terms.length !== savedTerms.length || terms.some((term, index) => term !== savedTerms[index])
 	const dirty = isDirty || termsChanged
-	const dirtyGuard = useDirtyFormGuard(dirty || accessDirty)
+	const dirtyGuard = useDirtyFormGuard(dirty)
 	const nameValue = useWatch({ control, name: "name" })
 	const promptValue = useWatch({ control, name: "systemPrompt" })
 
@@ -209,17 +204,17 @@ function AgentConfigPage() {
 		}
 	}
 
-	if (isLoading || permissionsQuery.isPending) {
+	if (agentsQuery.isPending || (canRead && agentQuery.isPending)) {
 		return <AgentConfigSkeleton label={t("agentConfig.loading")} />
 	}
-	if (permissionsQuery.isError || (canRead && agentQuery.isError)) {
+	if (agentsQuery.isError || (canRead && agentQuery.isError)) {
 		return (
 			<div className="space-y-6">
 				<BackLink t={t} />
 				<ProblemAlert
-					error={permissionsQuery.error ?? agentQuery.error}
+					error={agentsQuery.error ?? agentQuery.error}
 					onRetry={() => {
-						void permissionsQuery.refetch()
+						if (agentsQuery.isError) void agentsQuery.refetch()
 						if (canRead) void agentQuery.refetch()
 					}}
 				/>
@@ -346,15 +341,6 @@ function AgentConfigPage() {
 								</form>
 							</CardContent>
 						</Card>
-						{canManageAccess && permissions && (
-							<AgentAccessCard
-								key={agentId}
-								agentId={agentId}
-								onDirtyChange={setAccessDirty}
-								permissions={permissions}
-							/>
-						)}
-
 						{canDelete && (
 							<DangerZone title={t("agentConfig.dangerZone")}>
 								<DangerZoneRow

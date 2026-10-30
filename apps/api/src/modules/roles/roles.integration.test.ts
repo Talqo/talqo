@@ -115,7 +115,7 @@ describe("agent-scoped access", () => {
 	it("rechecks scoped authority after a queued revocation wins the management lock", async () => {
 		const { admin, a, role, operator } = await agentAccessFixture()
 		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage"] }, admin)
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:manage"])
 		const target = await service.createRole({ name: "Queued target", permissions: [] }, admin)
 		const entered = Promise.withResolvers<void>()
 		const release = Promise.withResolvers<void>()
@@ -124,25 +124,23 @@ describe("agent-scoped access", () => {
 			await release.promise
 		})
 		await entered.promise
-		const revoke = service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		const revoke = service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		const attempted = service
-			.setAgentAccess(operator.id, a.id, target.id, ["agents:manage"])
+			.setRoleAgentAccess(operator.id, target.id, a.id, ["agents:manage"])
 			.catch((error: unknown) => error)
 		release.resolve()
 		await held
 		await revoke
 		expect(await attempted).toMatchObject({ problemCode: "permission-exceeds-own" })
-		expect(
-			(await service.listAgentAccess(admin, a.id)).roles?.find((entry) => entry.id === target.id)?.permissions,
-		).toEqual([])
+		expect(await service.listAgentGrantsOfRole(target.id)).toEqual([])
 	})
 
 	it("keeps grants scoped to existing agents and combines roles additively", async () => {
 		const { admin, a, b, role, operator } = await agentAccessFixture()
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
-		await service.setAgentAccess(admin, b.id, role.id, ["stats:read", "agents:delete"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:manage"])
+		await service.setRoleAgentAccess(admin, role.id, b.id, ["stats:read", "agents:delete"])
 		const observer = await service.createRole({ name: "Observers", permissions: [] }, admin)
-		await service.setAgentAccess(admin, a.id, observer.id, ["conversations:read"])
+		await service.setRoleAgentAccess(admin, observer.id, a.id, ["conversations:read"])
 		await service.assignRoles(operator.id, [role.id, observer.id], admin)
 		expect(await service.listEffectivePermissions(operator.id)).toEqual([])
 		expect(await service.listAgentPermissions(operator.id, a.id)).toEqual([
@@ -162,7 +160,7 @@ describe("agent-scoped access", () => {
 
 	it("discovers names without exposing configuration and denies nested resources on another agent", async () => {
 		const { admin, a, b, role, cookie, operator } = await agentAccessFixture()
-		await service.setAgentAccess(admin, a.id, role.id, ["stats:read"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["stats:read"])
 		const response = await app.request("/api/agents", { headers: { Cookie: cookie } })
 		expect(await response.json()).toMatchObject({ agents: [{ id: a.id, permissions: ["stats:read"] }] })
 		const discovery = await agents.listAgents(operator.id)
@@ -177,64 +175,93 @@ describe("agent-scoped access", () => {
 	it("bounds grant additions, removals and implication changes by the caller's authority", async () => {
 		const { admin, a, b, role, operator } = await agentAccessFixture()
 		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage"] }, admin)
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		const target = await service.createRole({ name: "Target", permissions: [] }, admin)
-		await service.setAgentAccess(operator.id, a.id, target.id, ["agents:read"])
-		await expect(service.setAgentAccess(operator.id, a.id, target.id, ["agents:manage"])).rejects.toMatchObject({
+		await service.setRoleAgentAccess(operator.id, target.id, a.id, ["agents:read"])
+		await expect(service.setRoleAgentAccess(operator.id, target.id, a.id, ["agents:manage"])).rejects.toMatchObject({
 			problemCode: "permission-exceeds-own",
 		})
-		await service.setAgentAccess(admin, a.id, target.id, ["agents:manage"])
-		await expect(service.setAgentAccess(operator.id, a.id, target.id, ["agents:read"])).rejects.toMatchObject({
+		await service.setRoleAgentAccess(admin, target.id, a.id, ["agents:manage"])
+		await expect(service.setRoleAgentAccess(operator.id, target.id, a.id, ["agents:read"])).rejects.toMatchObject({
 			problemCode: "permission-exceeds-own",
 		})
-		await expect(service.setAgentAccess(operator.id, a.id, target.id, [])).rejects.toMatchObject({
+		await expect(service.setRoleAgentAccess(operator.id, target.id, a.id, [])).rejects.toMatchObject({
 			problemCode: "permission-exceeds-own",
 		})
-		await expect(service.setAgentAccess(operator.id, b.id, target.id, ["agents:read"])).rejects.toMatchObject({
+		await expect(service.setRoleAgentAccess(operator.id, target.id, b.id, ["agents:read"])).rejects.toMatchObject({
 			status: 404,
 		})
 	})
 
-	it("returns effective access and reveals role grants only to configuration access managers", async () => {
-		const { admin, a, b, role, cookie } = await agentAccessFixture()
-		const get = (agentId: string) => app.request(`/api/agents/${agentId}/access`, { headers: { Cookie: cookie } })
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
-		expect(await (await get(a.id)).json()).toEqual({ permissions: ["agents:read"] })
+	it("returns effective permissions for a visible agent", async () => {
+		const { admin, a, b, role, operator, cookie } = await agentAccessFixture()
+		const get = (agentId: string) => app.request(`/api/agents/${agentId}`, { headers: { Cookie: cookie } })
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
+		expect((await get(a.id)).status).toBe(200)
 		expect((await get(b.id)).status).toBe(404)
 
-		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage"] }, admin)
-		const manager = await get(a.id)
-		expect(manager.status).toBe(200)
-		expect(await manager.json()).toEqual({
-			permissions: ["agents:read"],
-			roles: [{ id: role.id, name: role.name, permissions: ["agents:read"] }],
-		})
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["stats:read"])
+		expect(await service.listAgentPermissions(operator.id, a.id)).toEqual(["stats:read"])
+		expect((await get(a.id)).status).toBe(403)
+	})
 
-		await service.setAgentAccess(admin, a.id, role.id, ["stats:read"])
-		expect(await (await get(a.id)).json()).toEqual({ permissions: ["stats:read"] })
+	it("lists a role's agents within the caller's agent visibility", async () => {
+		const { admin, a, b, role, operator, cookie } = await agentAccessFixture()
+		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage"] }, admin)
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:manage"])
+		const observer = await service.createRole({ name: "Observer", permissions: [] }, admin)
+		await service.setRoleAgentAccess(admin, observer.id, b.id, ["agents:read"])
+		await service.assignRoles(operator.id, [role.id, observer.id], admin)
+
+		const response = await call(cookie, "GET", `/roles/${role.id}/agents`)
+		expect(response.status).toBe(200)
+		const body = (await response.json()) as { agents: unknown[] }
+		expect(body.agents).toEqual([
+			{
+				id: a.id,
+				name: "Agent A",
+				permissions: ["agents:read", "agents:manage"],
+				rolePermissions: ["agents:manage"],
+			},
+			{ id: b.id, name: "Agent B", permissions: ["agents:read"], rolePermissions: [] },
+		])
+
+		const hidden = await service.createRole({ name: "Hidden", permissions: [] }, admin)
+		const privateAgent = await agents.createAgent({ name: "Private", systemPrompt: "Private", wordBlacklist: [] })
+		await service.setRoleAgentAccess(admin, hidden.id, privateAgent.id, ["agents:read"])
+		const hiddenBody = (await (await call(cookie, "GET", `/roles/${hidden.id}/agents`)).json()) as {
+			agents: { id: string }[]
+		}
+		expect(hiddenBody.agents.map(({ id }) => id)).toEqual([a.id, b.id])
+
+		await expectCode(await call(cookie, "GET", `/roles/${crypto.randomUUID()}/agents`), 404, "role-not-found")
 	})
 
 	it("validates access replacements over HTTP and removes grants only through DELETE", async () => {
 		const { admin, a, role } = await agentAccessFixture()
 		const { token } = await identity.createSession(admin)
 		const cookie = `${identity.SESSION_COOKIE}=${token}`
-		const path = `/agents/${a.id}/access/${role.id}`
+		const path = `/roles/${role.id}/agents/${a.id}`
 		expect((await call(cookie, "PUT", path, { permissions: ["agents:read"] })).status).toBe(204)
 		for (const permissions of [[], ["agents:read", "agents:read"], ["unknown"]]) {
 			// oxlint-disable-next-line no-await-in-loop -- each invalid replacement must preserve the saved grant.
 			await expectCode(await call(cookie, "PUT", path, { permissions }), 400, "invalid-request")
 		}
-		expect(await repo.findAgentRolePermissions(a.id)).toEqual([{ roleId: role.id, permission: "agents:read" }])
+		expect(await repo.findRoleAgentPermissions(role.id, a.id)).toEqual([{ permission: "agents:read" }])
 		expect((await call(cookie, "DELETE", path)).status).toBe(204)
-		expect(await repo.findAgentRolePermissions(a.id)).toEqual([])
+		expect(await repo.findRoleAgentPermissions(role.id, a.id)).toEqual([])
 		const missing = crypto.randomUUID()
-		await expectCode(await call(cookie, "GET", `/agents/${missing}/access`), 404, "agent-not-found")
 		await expectCode(
-			await call(cookie, "PUT", `/agents/${missing}/access/${role.id}`, { permissions: ["agents:read"] }),
+			await call(cookie, "PUT", `/roles/${role.id}/agents/${missing}`, { permissions: ["agents:read"] }),
 			404,
 			"agent-not-found",
 		)
-		await expectCode(await call(cookie, "DELETE", `/agents/${missing}/access/${role.id}`), 404, "agent-not-found")
+		await expectCode(await call(cookie, "DELETE", `/roles/${role.id}/agents/${missing}`), 404, "agent-not-found")
+		await expectCode(
+			await call(cookie, "PUT", `/roles/${missing}/agents/${a.id}`, { permissions: ["agents:read"] }),
+			404,
+			"role-not-found",
+		)
 		await expectCode(await call(cookie, "GET", `/agents/${missing}/mcp-servers`), 404, "agent-not-found")
 	})
 
@@ -245,8 +272,8 @@ describe("agent-scoped access", () => {
 		await seed.seed()
 		await seed.seedAgentAccess([agent.id])
 		expect(
-			(await repo.findAgentRolePermissions(agent.id))
-				.filter(({ roleId }) => roleId === support.id)
+			(await repo.findAgentPermissionsOfRoles([support.id]))
+				.filter(({ agentId }) => agentId === agent.id)
 				.map(({ permission }) => permission)
 				.toSorted(),
 		).toEqual(["conversations:read", "stats:read"])
@@ -255,9 +282,9 @@ describe("agent-scoped access", () => {
 	it("prevents escalation through membership, role deletion, password reset and operator deletion", async () => {
 		const { admin, a, b, role, operator } = await agentAccessFixture()
 		await service.updateRole(role.id, { name: role.name, permissions: ["roles:manage", "users:manage"] }, admin)
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:manage"])
 		const powerful = await service.createRole({ name: "Other agent editors", permissions: [] }, admin)
-		await service.setAgentAccess(admin, b.id, powerful.id, ["agents:manage"])
+		await service.setRoleAgentAccess(admin, powerful.id, b.id, ["agents:manage"])
 		const target = await createMember()
 		await service.assignRoles(target.id, [powerful.id], admin)
 		await expect(service.assignRoles(operator.id, [role.id, powerful.id], operator.id)).rejects.toMatchObject({
@@ -282,12 +309,12 @@ describe("agent-scoped access", () => {
 
 	it("revokes the next request without ending the session and cascades removed agents", async () => {
 		const { admin, a, role, operator, cookie } = await agentAccessFixture()
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		const get = () => app.request(`/api/agents/${a.id}`, { headers: { Cookie: cookie } })
 		expect((await get()).status).toBe(200)
-		await service.setAgentAccess(admin, a.id, role.id, [])
+		await service.setRoleAgentAccess(admin, role.id, a.id, [])
 		expect((await get()).status).toBe(404)
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		await agents.deleteAgent(a.id)
 		expect(await service.listAgentPermissions(operator.id, a.id)).toEqual([])
 	})
@@ -404,26 +431,26 @@ describe("invitations", () => {
 		await service.assignRoles(operator.id, [role.id], admin)
 		const { token: sessionToken } = await identity.createSession(operator.id)
 		const cookie = `${identity.SESSION_COOKIE}=${sessionToken}`
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:manage"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:manage"])
 		const target = await createRole([])
-		await service.setAgentAccess(admin, b.id, target.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, target.id, b.id, ["agents:read"])
 		await expectCode(
 			await call(cookie, "POST", "/invitations", { roleIds: [target.id] }),
 			403,
 			"permission-exceeds-own",
 		)
-		await service.setAgentAccess(admin, b.id, target.id, [])
-		await service.setAgentAccess(admin, a.id, target.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, target.id, b.id, [])
+		await service.setRoleAgentAccess(admin, target.id, a.id, ["agents:read"])
 		const response = await call(cookie, "POST", "/invitations", { roleIds: [target.id] })
 		expect(response.status).toBe(201)
 		const { token } = (await response.json()) as { token: string }
-		await service.setAgentAccess(admin, a.id, role.id, [])
+		await service.setRoleAgentAccess(admin, role.id, a.id, [])
 		const username = uniqueUsername()
 		await expect(service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })).rejects.toMatchObject({
 			problemCode: "invalid-invitation",
 		})
 		expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
-		await service.setAgentAccess(admin, a.id, role.id, ["agents:read"])
+		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		const joined = await service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })
 		expect(await service.listAgentPermissions(joined.id, a.id)).toEqual(["agents:read"])
 		expect(await service.listAgentPermissions(joined.id, b.id)).toEqual([])

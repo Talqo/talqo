@@ -132,7 +132,9 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
 	await expect(dialog.getByText("Cancellation partial output remains", { exact: true })).toBeVisible()
 	await dialog.getByRole("button", { name: widget("stopGenerating") }).click()
-	await expect(dialog.getByText(widget("outcomeCancelled"), { exact: true })).toBeVisible()
+	await expect(
+		dialog.getByRole("log", { name: widget("transcriptLabel") }).getByText(widget("outcomeCancelled"), { exact: true }),
+	).toBeVisible()
 	await expect(dialog.getByRole("button", { name: widget("stopGenerating") })).toHaveCount(0)
 
 	const oldCredential = await page.evaluate(() => {

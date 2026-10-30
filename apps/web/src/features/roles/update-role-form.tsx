@@ -4,7 +4,6 @@ import { createRoleBodyNameMax } from "@/api/generated/models/roles/createRoleBo
 import { useUpdateRole } from "@/api/generated/roles/roles"
 import { ProblemAlert } from "@/components/problem-alert"
 import { useAccessError } from "@/features/permissions/use-access-error"
-import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
@@ -33,12 +32,14 @@ export function UpdateRoleForm({
 	catalog,
 	disabled,
 	heldPermissions,
+	onDirtyChange,
 	ownRoles,
 	role,
 }: {
 	catalog: PermissionCatalog
 	disabled: boolean
 	heldPermissions: readonly string[]
+	onDirtyChange: (dirty: boolean) => void
 	ownRoles: readonly Role[]
 	role: Role
 }) {
@@ -59,7 +60,8 @@ export function UpdateRoleForm({
 		resolver: zodResolver(roleFormSchema),
 		defaultValues: toRoleFormValues(role),
 	})
-	const dirtyGuard = useDirtyFormGuard(isDirty)
+	useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange])
+	useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 	// Background refreshes must not replace an unfinished edit.
 	useEffect(() => {
 		if (!isDirty) reset(toRoleFormValues(role))
@@ -211,7 +213,6 @@ export function UpdateRoleForm({
 					/>
 				</DangerZone>
 			) : null}
-			{dirtyGuard}
 		</div>
 	)
 }
