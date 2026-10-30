@@ -185,6 +185,18 @@ describe("ConversationsPage", () => {
 		expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 2, total: 2, count: 2 }))
 	})
 
+	test("keeps a saved filter when the agent list cannot be loaded", async () => {
+		responses["/api/agents"] = () =>
+			json({ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" }, 500)
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => list([])
+
+		await renderPage({ agents: [DOCS.id] })
+		await settle()
+
+		expect(requested).toContain(`/api/conversations?agentId=${DOCS.id}&page=1`)
+		expect(requested).not.toContain("/api/conversations?page=1")
+	})
+
 	test("loads the first page when the URL filter is reconciled", async () => {
 		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
 

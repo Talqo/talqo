@@ -20,9 +20,11 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 	const ratio = comparable ? contrastRatio(value, against) : undefined
 	const passes = ratio !== undefined && ratio >= CONTRAST_AA_NORMAL
 	const invalid = !isHexColor(value)
+	const showContrast = ratio !== undefined && !passes
 	const errorId = `${id}-error`
 	const contrastId = `${id}-contrast`
-	const describedBy = invalid ? errorId : contrastId
+	const invalidId = invalid ? errorId : undefined
+	const describedBy = invalidId ?? (showContrast ? contrastId : undefined)
 
 	return (
 		<div className="space-y-2">
@@ -47,8 +49,8 @@ export function ColorField({ against, id, label, onChange, readOnly, value }: Co
 					aria-invalid={invalid}
 					aria-describedby={describedBy}
 				/>
-				<div id={contrastId} aria-live="polite" className="w-full sm:w-auto">
-					{ratio !== undefined && !passes && (
+				<div id={contrastId} aria-live="polite" className={showContrast ? "w-full sm:w-auto" : "sr-only"}>
+					{showContrast && (
 						// A warning, not a gate: the brand color is the operator's to choose.
 						<Badge variant="destructive" className="w-full sm:w-auto">
 							{t("embedSetup.contrastWarning")}

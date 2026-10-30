@@ -189,6 +189,7 @@
 			"authentication": "Ověření",
 			"baseURL": "Základní URL",
 			"embeddingModel": "Embeddingový model",
+			"fieldRequired": "Toto pole je povinné.",
 			"modelRequired": "Zadejte nebo vyberte model.",
 			"project": "Projekt",
 			"provider": "Poskytovatel",

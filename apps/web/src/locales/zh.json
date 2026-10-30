@@ -187,6 +187,7 @@
 			"authentication": "身份验证",
 			"baseURL": "基础 URL",
 			"embeddingModel": "嵌入模型",
+			"fieldRequired": "此字段为必填项。",
 			"modelRequired": "请输入或选择模型。",
 			"project": "项目",
 			"provider": "提供商",

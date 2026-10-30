@@ -48,6 +48,7 @@ import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form
 import { useTranslation } from "react-i18next"
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
+type MissingField = { field: string; kind: "credential" | "setting"; role: "text" | "embedding" }
 
 function settingsKey(settings: Record<string, string>): string {
 	return JSON.stringify(Object.entries(settings).toSorted(([a], [b]) => a.localeCompare(b)))
@@ -230,6 +231,8 @@ function ConnectionFields({
 	stored,
 	drafts,
 	disabled = false,
+	credentialRevision,
+	missing,
 }: {
 	modelRole: "text" | "embedding"
 	value: RoleValue
@@ -238,6 +241,8 @@ function ConnectionFields({
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
+	credentialRevision: number
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
@@ -312,6 +317,8 @@ function ConnectionFields({
 
 			{provider.settingFields.map((field) => {
 				const required = provider.requiredSettingFields.includes(field)
+				const invalid =
+					required && missing?.kind === "setting" && missing.field === field && !value.settings[field]?.trim()
 				return (
 					<div className="space-y-2" key={field}>
 						<Label htmlFor={`${role}-${field}`}>
@@ -322,14 +329,29 @@ function ConnectionFields({
 							value={value.settings[field] ?? ""}
 							disabled={disabled}
 							required={required}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? `${role}-${field}-error` : undefined}
 							onChange={(event) => onChange({ ...value, settings: { ...value.settings, [field]: event.target.value } })}
 						/>
+						{invalid && (
+							<p id={`${role}-${field}-error`} role="alert" className="text-destructive text-xs">
+								{t("aiConfiguration.fields.fieldRequired")}
+							</p>
+						)}
 					</div>
 				)
 			})}
 
 			{value.authMode === "static" && !disabled && (
-				<CredentialsSection modelRole={role} provider={provider} value={value} onChange={onChange} stored={stored} />
+				<CredentialsSection
+					key={credentialRevision}
+					modelRole={role}
+					provider={provider}
+					value={value}
+					onChange={onChange}
+					stored={stored}
+					missing={missing}
+				/>
 			)}
 		</>
 	)
@@ -341,15 +363,20 @@ function CredentialsSection({
 	value,
 	onChange,
 	stored,
+	missing,
 }: {
 	modelRole: "text" | "embedding"
 	provider: ProviderMetadata
 	value: RoleValue
 	onChange: (value: RoleValue) => void
 	stored: RedactedRoleConfiguration | null
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
 	const configured = storedCredentialsMatch({ provider, value, stored })
+	const storedCredentials =
+		stored !== null && stored.hasCredentials && stored.providerId === provider.id && stored.authMode === value.authMode
+	const drafting = Object.values(value.credentials).some((credential) => credential.trim())
 	const [replacingContext, setReplacingContext] = useState<string | null>(null)
 	const contextSignature = useMemo(
 		() => JSON.stringify([value.providerId, value.authMode, value.settings, provider.id]),
@@ -391,20 +418,35 @@ function CredentialsSection({
 					</button>
 				</p>
 			)}
-			{provider.credentialFields.map((field) => (
-				<div className="space-y-2" key={field}>
-					<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
-					<Input
-						id={`${role}-${field}`}
-						type="password"
-						autoComplete="off"
-						value={value.credentials[field] ?? ""}
-						onChange={(event) =>
-							onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
-						}
-					/>
-				</div>
-			))}
+			{provider.credentialFields.map((field) => {
+				const required = (!storedCredentials || drafting) && provider.requiredCredentialFields.includes(field)
+				const invalid =
+					required && missing?.kind === "credential" && missing.field === field && !value.credentials[field]?.trim()
+				return (
+					<div className="space-y-2" key={field}>
+						<Label htmlFor={`${role}-${field}`}>
+							{fieldLabel(field, t)} {required && <RequiredMark />}
+						</Label>
+						<Input
+							id={`${role}-${field}`}
+							type="password"
+							autoComplete="off"
+							required={required}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? `${role}-${field}-error` : undefined}
+							value={value.credentials[field] ?? ""}
+							onChange={(event) =>
+								onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
+							}
+						/>
+						{invalid && (
+							<p id={`${role}-${field}-error`} role="alert" className="text-destructive text-xs">
+								{t("aiConfiguration.fields.fieldRequired")}
+							</p>
+						)}
+					</div>
+				)
+			})}
 		</>
 	)
 }
@@ -417,7 +459,9 @@ function RoleFields(props: {
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
+	credentialRevision: number
 	invalid?: boolean
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
 	const { modelRole: role, value, onChange, providers, stored, disabled = false, invalid = false } = props
@@ -450,6 +494,7 @@ export function AiConfigurationPage() {
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
+	const [missingField, setMissingField] = useState<MissingField | null>(null)
 	const drafts = useRef(new Map<string, RoleValue>())
 	const {
 		control,
@@ -489,8 +534,34 @@ export function AiConfigurationPage() {
 		)
 
 	const storedEmbedding = configuration.embedding
+	const storedText = configuration.text
 	const providers = providersQuery.data.data.providers
 	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
+
+	function findMissingField(values: AiConfigurationFormValues): MissingField | undefined {
+		for (const role of ["text", "embedding"] as const) {
+			if (role === "embedding" && values.embedding.credentialSource === "text") continue
+			const roleValues = values[role]
+			const provider = providers.find((item) => item.id === roleValues.providerId)
+			if (!provider) continue
+			const missingSetting = provider.requiredSettingFields.find((field) => !roleValues.settings[field]?.trim())
+			if (missingSetting) return { field: missingSetting, kind: "setting", role }
+			if (roleValues.authMode !== "static") continue
+			const stored = role === "text" ? storedText : storedEmbedding
+			const storedCredentials =
+				stored !== null &&
+				stored.hasCredentials &&
+				stored.providerId === provider.id &&
+				stored.authMode === roleValues.authMode
+			const drafting = Object.values(roleValues.credentials).some((credential) => credential.trim())
+			if (storedCredentials && !drafting) continue
+			const missingCredential = provider.requiredCredentialFields.find(
+				(field) => !roleValues.credentials[field]?.trim(),
+			)
+			if (missingCredential) return { field: missingCredential, kind: "credential", role }
+		}
+		return undefined
+	}
 
 	async function saveConfiguration(values: AiConfigurationFormValues) {
 		setSaved(false)
@@ -505,6 +576,13 @@ export function AiConfigurationPage() {
 	}
 
 	async function onValid(values: AiConfigurationFormValues) {
+		const missing = findMissingField(values)
+		if (missing) {
+			setMissingField(missing)
+			document.getElementById(`${missing.role}-${missing.field}`)?.focus()
+			return
+		}
+		setMissingField(null)
 		if (
 			storedEmbedding &&
 			(storedEmbedding.providerId !== values.embedding.providerId ||
@@ -567,8 +645,6 @@ export function AiConfigurationPage() {
 							name="text"
 							render={({ field }) => (
 								<RoleFields
-									// Remounts on a saved configuration, so "Replace" returns to the stored credentials.
-									key={configuration.revision}
 									modelRole="text"
 									value={field.value}
 									onChange={(next) => {
@@ -578,7 +654,9 @@ export function AiConfigurationPage() {
 									providers={providers}
 									stored={configuration.text}
 									drafts={drafts}
+									credentialRevision={configuration.revision}
 									invalid={Boolean(errors.text?.modelId)}
+									missing={missingField?.role === "text" ? missingField : undefined}
 								/>
 							)}
 						/>
@@ -676,14 +754,15 @@ export function AiConfigurationPage() {
 											<TabsContent value="different">
 												{sameProvider ? null : (
 													<RoleFields
-														key={configuration.revision}
 														modelRole="embedding"
 														value={field.value}
 														onChange={field.onChange}
 														providers={embeddingProviders}
 														stored={configuration.embedding}
 														drafts={drafts}
+														credentialRevision={configuration.revision}
 														invalid={Boolean(errors.embedding?.modelId)}
+														missing={missingField?.role === "embedding" ? missingField : undefined}
 													/>
 												)}
 											</TabsContent>

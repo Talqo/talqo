@@ -187,6 +187,7 @@
 			"authentication": "Authentication",
 			"baseURL": "Base URL",
 			"embeddingModel": "Embedding model",
+			"fieldRequired": "This field is required.",
 			"modelRequired": "Enter or choose a model.",
 			"project": "Project",
 			"provider": "Provider",

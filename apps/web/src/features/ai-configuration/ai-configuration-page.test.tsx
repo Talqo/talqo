@@ -170,6 +170,20 @@ describe("AiConfigurationPage", () => {
 		expect(document.activeElement).toBe(model)
 	})
 
+	test("associates a missing required setting with its field and focuses it", async () => {
+		await renderPage()
+		const baseUrl = baseUrlInput()
+		await type(baseUrl, "")
+		await submit()
+		await settle()
+
+		const error = host.querySelector<HTMLElement>("#text-baseURL-error")
+		expect(error?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(baseUrl.getAttribute("aria-invalid")).toBe("true")
+		expect(baseUrl.getAttribute("aria-describedby")).toBe("text-baseURL-error")
+		expect(document.activeElement?.id).toBe("text-baseURL")
+	})
+
 	test("marks providers and models as required", async () => {
 		await renderPage()
 
