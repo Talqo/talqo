@@ -6074,8 +6074,7 @@
                         "type": "string",
                         "enum": [
                           "en",
-                          "cs",
-                          "zh"
+                          "cs"
                         ]
                       }
                     },
@@ -6387,8 +6386,7 @@
                         "type": "string",
                         "enum": [
                           "en",
-                          "cs",
-                          "zh"
+                          "cs"
                         ]
                       }
                     },
