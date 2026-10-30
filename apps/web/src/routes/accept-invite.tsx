@@ -50,6 +50,7 @@ function AcceptInvitePage() {
 				error={error}
 				invitationRegistration={true}
 				onSubmit={handleSubmit}
+				pendingLabel={t("auth.acceptInvite.pending")}
 				requireConfirmation={true}
 				submitLabel={t("auth.acceptInvite.submit")}
 				submitting={redeemInvitation.isPending}

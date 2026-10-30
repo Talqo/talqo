@@ -172,20 +172,23 @@ export function ConnectionCard({
 						)}
 						{canManage && (
 							<div className="flex items-center justify-between gap-2">
-								<Switch
-									checked={!server.isDisabled}
-									disabled={setDisabled.isPending || deploymentBlocked}
-									onCheckedChange={(checked) =>
-										void guard(() =>
-											setDisabled.mutateAsync({
-												agentId,
-												serverId: server.id,
-												action: checked ? "enable" : "disable",
-											}),
-										)
-									}
-									aria-label={t("mcp.enabled")}
-								/>
+								<div className="flex items-center gap-2">
+									<Switch
+										checked={!server.isDisabled}
+										disabled={setDisabled.isPending || deploymentBlocked}
+										onCheckedChange={(checked) =>
+											void guard(() =>
+												setDisabled.mutateAsync({
+													agentId,
+													serverId: server.id,
+													action: checked ? "enable" : "disable",
+												}),
+											)
+										}
+										aria-label={t("mcp.enabledFor", { name: server.name })}
+									/>
+									<span className="text-muted-foreground text-sm">{t("mcp.enabled")}</span>
+								</div>
 								<div className="flex items-center gap-1">
 									<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
 									<Button

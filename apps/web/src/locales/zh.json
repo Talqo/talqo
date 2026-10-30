@@ -26,7 +26,7 @@
 		"saveUsername": "保存用户名",
 		"savingUsername": "正在保存…",
 		"settings": "账户设置",
-		"subheading": "您的用户名、密码和角色。",
+		"subheading": "管理你的登录名、密码和账户。",
 		"username": "用户名",
 		"usernameDescription": "用于登录。",
 		"usernameInvalid": "用户名必须为 {{min}}-{{max}} 个字符，且只能包含字母、数字、下划线和连字符。",
@@ -80,7 +80,7 @@
 		"saving": "正在保存…",
 		"subheading": "更新智能体的名称、行为、知识文件和嵌入。",
 		"tabConfiguration": "配置",
-		"tabContext": "上下文",
+		"tabContext": "知识库",
 		"tabEmbeds": "嵌入",
 		"tabMcp": "工具",
 		"wasDeleted": "该智能体已在别处被删除。请返回列表查看最新状态。"
@@ -91,9 +91,9 @@
 		"namePlaceholder": "客服智能体",
 		"nameRequired": "名称为必填项。",
 		"nameTooLong": "名称不能超过 {{max}} 个字符。",
-		"systemPrompt": "系统提示词",
+		"systemPrompt": "指令",
 		"systemPromptPlaceholder": "你是一名乐于助人的客服助手...",
-		"systemPromptRequired": "系统提示词为必填项。",
+		"systemPromptRequired": "指令为必填项。",
 		"systemPromptTooLong": "指令不能超过 {{max}} 个字符。",
 		"wordBlacklist": "屏蔽词"
 	},
@@ -178,6 +178,7 @@
 			"unavailableStored": "无法使用已保存的连接刷新模型列表。请重新输入凭据或重试。"
 		},
 		"embeddingDescription": "选择用于生成知识向量嵌入的模型。",
+		"embeddingSourceLabel": "嵌入连接",
 		"embeddingTitle": "向量嵌入",
 		"fields": {
 			"accessKeyId": "访问密钥 ID",
@@ -186,6 +187,8 @@
 			"authentication": "身份验证",
 			"baseURL": "基础 URL",
 			"embeddingModel": "嵌入模型",
+			"fieldRequired": "此字段为必填项。",
+			"modelRequired": "请输入或选择模型。",
 			"project": "项目",
 			"provider": "提供商",
 			"region": "区域",
@@ -234,6 +237,7 @@
 			"description": "设置登录凭据以加入此 Talqo 工作区。",
 			"heading": "完成你的账户设置",
 			"missingToken": "此邀请链接缺少令牌。",
+			"pending": "正在创建账户…",
 			"submit": "创建账户"
 		},
 		"credentialsForm": {
@@ -246,8 +250,9 @@
 		},
 		"errorFallback": "出了点问题，请重试。",
 		"forcePasswordChange": {
-			"description": "请先设置新密码才能继续。",
+			"description": "请先选择新密码再继续。",
 			"heading": "设置新密码",
+			"pending": "正在修改密码…",
 			"submit": "设置新密码"
 		},
 		"invitations": {
@@ -263,28 +268,31 @@
 		},
 		"loading": "正在加载…",
 		"login": {
-			"description": "使用你的 Talqo 登录凭据继续。",
+			"description": "使用你的 Talqo 用户名和密码继续。",
 			"heading": "登录",
+			"pending": "正在登录…",
 			"submit": "登录"
 		},
+		"requiredNote": "所有字段均为必填项。",
 		"setup": {
 			"description": "这是 Talqo 首次运行。请创建唯一的管理员账户以继续。",
 			"heading": "创建管理员账户",
+			"pending": "正在创建账户…",
 			"submit": "创建管理员账户"
 		}
 	},
 	"blacklist": {
 		"added": "已将 {{word}} 加入屏蔽词。",
 		"addTerm": "添加",
-		"count": "已用 {{used}} / {{limit}} 个词条",
-		"duplicateError": "“{{word}}”已在屏蔽词列表中。",
+		"count": "已屏蔽 {{used}} / {{limit}} 个词",
+		"duplicateError": "“{{word}}”已被屏蔽。",
 		"emptyError": "请先输入词语或短语。",
-		"help": "屏蔽这些确切的词语（不区分大小写）。只匹配字面词语，不匹配相关含义。",
-		"limitError": "屏蔽词最多 {{limit}} 个。",
+		"help": "回答中包含这些确切词语时会停止。匹配不区分大小写。",
+		"limitError": "最多可屏蔽 {{limit}} 个词。",
 		"removed": "已将 {{word}} 从屏蔽词中移除。",
 		"removeTerm": "移除 {{word}}",
 		"termPlaceholder": "要屏蔽的词语或短语",
-		"termsLabel": "屏蔽词条"
+		"termsLabel": "屏蔽词"
 	},
 	"common": {
 		"appName": "Talqo",
@@ -295,6 +303,7 @@
 		"discardTitle": "放弃未保存的更改？",
 		"hidePassword": "隐藏密码",
 		"keepEditing": "继续编辑",
+		"requiredHint": "* 必填",
 		"retry": "重试",
 		"showPassword": "显示密码"
 	},
@@ -405,6 +414,7 @@
 		"embedDescription": "将此代码粘贴到网站 HTML 的 </body> 标签之前。外观更改会自动生效，无需重新复制。",
 		"embedDisabledNote": "此嵌入已停用：已安装的聊天组件不会显示，新消息也会被拒绝。",
 		"embedEnabled": "启用嵌入",
+		"embedEnabledFor": "{{name}} 的嵌入已启用",
 		"embedToken": "嵌入令牌",
 		"embedTokenDescription": "此嵌入代码中的公开标识符。它会出现在网站源代码中，并非机密。",
 		"enableEmbedFailed": "无法启用嵌入。请重试。",
@@ -451,14 +461,14 @@
 	},
 	"mcp": {
 		"actionFailed": "无法保存该更改。",
-		"add": "添加连接",
+		"add": "添加工具连接",
 		"addArgument": "添加",
-		"addDescription": "粘贴服务器地址，或启动服务器所需的命令。保存后会测试连接。",
+		"addDescription": "粘贴服务器地址，或启动服务器的命令。保存后会测试连接。",
 		"addEnv": "添加",
 		"addHeader": "添加",
 		"adding": "正在添加…",
 		"address": "服务器地址",
-		"addTitle": "添加连接",
+		"addTitle": "添加工具连接",
 		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "参数",
 		"argumentsCount": "已添加 {{used}} / {{limit}} 个参数",
@@ -468,8 +478,9 @@
 		"command": "命令",
 		"edit": "编辑",
 		"editDescription": "修改地址、命令或凭据。保存时会重新获取工具列表。",
-		"editTitle": "编辑连接",
-		"enabled": "连接已启用",
+		"editTitle": "编辑工具连接",
+		"enabled": "已启用",
+		"enabledFor": "{{name}} 的连接已启用",
 		"envCount": "已添加 {{used}} / {{limit}} 个变量",
 		"envName": "变量名",
 		"envValue": "变量值",
@@ -488,7 +499,7 @@
 		"headersCount": "已添加 {{used}} / {{limit}} 个请求头",
 		"headerValue": "请求头值",
 		"hideTools": "隐藏工具",
-		"kind": "类型",
+		"kind": "连接类型",
 		"loadFailed": "无法加载连接。",
 		"loading": "正在加载连接…",
 		"name": "名称",
@@ -501,7 +512,7 @@
 		"removeEnv": "移除环境变量 {{name}}",
 		"removeHeader": "移除请求头 {{name}}",
 		"removePrompt": "这会删除 {{name}} 及其保存的密钥，且无法撤销。",
-		"removeTitle": "移除此连接？",
+		"removeTitle": "移除此工具连接？",
 		"removing": "正在移除…",
 		"save": "保存更改",
 		"saving": "正在保存…",
@@ -511,8 +522,8 @@
 		"stdioDisabled": "托管管理员已禁用基于命令的连接。请改用 HTTP 连接。",
 		"toolsAvailable": "可用工具：{{toolCount}} 个",
 		"toolsLegend": "该智能体可用的工具",
-		"transportHttp": "http",
-		"transportStdio": "stdio",
+		"transportHttp": "网址（HTTP）",
+		"transportStdio": "命令（stdio）",
 		"unreachable": "无法连接该服务器。"
 	},
 	"nav": {

@@ -35,6 +35,7 @@ function LoginPage() {
 				error={error}
 				onSubmit={handleSubmit}
 				passwordAutoComplete="current-password"
+				pendingLabel={t("auth.login.pending")}
 				submitLabel={t("auth.login.submit")}
 				submitting={login.isPending}
 			/>

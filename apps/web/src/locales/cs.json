@@ -26,7 +26,7 @@
 		"saveUsername": "Uložit uživatelské jméno",
 		"savingUsername": "Ukládání…",
 		"settings": "Nastavení účtu",
-		"subheading": "Vaše uživatelské jméno, heslo a role.",
+		"subheading": "Spravujte své přihlašovací jméno, heslo a účet.",
 		"username": "Uživatelské jméno",
 		"usernameDescription": "Používá se pro přihlášení.",
 		"usernameInvalid": "Uživatelské jméno musí mít {{min}}-{{max}} znaků a obsahovat pouze písmena, čísla, podtržítka a pomlčky.",
@@ -82,7 +82,7 @@
 		"saving": "Ukládání…",
 		"subheading": "Aktualizujte název, chování, znalostní soubory a integrace agenta.",
 		"tabConfiguration": "Nastavení",
-		"tabContext": "Kontext",
+		"tabContext": "Znalosti",
 		"tabEmbeds": "Integrace",
 		"tabMcp": "Nástroje",
 		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na seznam agentů, kde uvidíte aktuální stav."
@@ -93,11 +93,11 @@
 		"namePlaceholder": "Zákaznická podpora",
 		"nameRequired": "Název je povinný.",
 		"nameTooLong": "Název může mít nejvýše {{max}} znaků.",
-		"systemPrompt": "Systémový prompt",
+		"systemPrompt": "Pokyny",
 		"systemPromptPlaceholder": "Jsi nápomocný asistent zákaznické podpory...",
-		"systemPromptRequired": "Systémový prompt je povinný.",
+		"systemPromptRequired": "Pokyny jsou povinné.",
 		"systemPromptTooLong": "Pokyny mohou mít nejvýše {{max}} znaků.",
-		"wordBlacklist": "Zakázaná slova"
+		"wordBlacklist": "Blokovaná slova"
 	},
 	"agentFiles": {
 		"cardDescription": "Podporované typy: {{formats}}. Maximálně {{maxSizeMB}} MB na soubor.",
@@ -180,6 +180,7 @@
 			"unavailableStored": "Seznam modelů se nepodařilo obnovit s uloženým připojením. Zadejte přihlašovací údaje znovu, nebo akci zopakujte."
 		},
 		"embeddingDescription": "Vyberte model pro vytváření embeddingů ze znalostních souborů.",
+		"embeddingSourceLabel": "Připojení pro embeddingy",
 		"embeddingTitle": "Embeddingy",
 		"fields": {
 			"accessKeyId": "ID přístupového klíče",
@@ -188,6 +189,8 @@
 			"authentication": "Ověření",
 			"baseURL": "Základní URL",
 			"embeddingModel": "Embeddingový model",
+			"fieldRequired": "Toto pole je povinné.",
+			"modelRequired": "Zadejte nebo vyberte model.",
 			"project": "Projekt",
 			"provider": "Poskytovatel",
 			"region": "Region",
@@ -236,6 +239,7 @@
 			"description": "Zvolte si přihlašovací údaje a připojte se k tomuto pracovnímu prostoru Talqo.",
 			"heading": "Dokončete nastavení účtu",
 			"missingToken": "Tomuto pozvánkovému odkazu chybí token.",
+			"pending": "Vytváření účtu…",
 			"submit": "Vytvořit účet"
 		},
 		"credentialsForm": {
@@ -248,8 +252,9 @@
 		},
 		"errorFallback": "Něco se pokazilo. Zkuste to prosím znovu.",
 		"forcePasswordChange": {
-			"description": "Před pokračováním musíte nastavit nové heslo.",
+			"description": "Než budete pokračovat, zvolte si nové heslo.",
 			"heading": "Nastavit nové heslo",
+			"pending": "Změna hesla…",
 			"submit": "Nastavit nové heslo"
 		},
 		"invitations": {
@@ -265,28 +270,31 @@
 		},
 		"loading": "Načítání…",
 		"login": {
-			"description": "Pokračujte pomocí svých přihlašovacích údajů Talqo.",
+			"description": "Pokračujte svým uživatelským jménem a heslem Talqo.",
 			"heading": "Přihlášení",
+			"pending": "Přihlašování…",
 			"submit": "Přihlásit se"
 		},
+		"requiredNote": "Všechna pole jsou povinná.",
 		"setup": {
 			"description": "Toto je první spuštění Talqo. Pro pokračování vytvořte jediný účet správce.",
 			"heading": "Vytvořit účet správce",
+			"pending": "Vytváření účtu…",
 			"submit": "Vytvořit účet správce"
 		}
 	},
 	"blacklist": {
-		"added": "{{word}} bylo přidáno mezi zakázaná slova.",
+		"added": "{{word}} bylo přidáno mezi blokovaná slova.",
 		"addTerm": "Přidat",
-		"count": "{{used}} z {{limit}} položek",
-		"duplicateError": "„{{word}}“ už je mezi zakázanými slovy.",
+		"count": "{{used}} z {{limit}} blokovaných slov",
+		"duplicateError": "„{{word}}“ už je blokované.",
 		"emptyError": "Nejprve zadejte slovo nebo frázi.",
-		"help": "Blokuje přesně tato slova (bez ohledu na velikost písmen). Porovnává doslovné znění, ne význam.",
-		"limitError": "Seznam zakázaných slov může mít nejvýše {{limit}} položek.",
-		"removed": "{{word}} bylo odebráno ze zakázaných slov.",
+		"help": "Odpovědi se zastaví, když obsahují přesně tato slova. Na velikosti písmen nezáleží.",
+		"limitError": "Můžete blokovat nejvýše {{limit}} slov.",
+		"removed": "{{word}} bylo odebráno z blokovaných slov.",
 		"removeTerm": "Odebrat {{word}}",
 		"termPlaceholder": "Slovo nebo fráze k blokování",
-		"termsLabel": "Zakázaná slova"
+		"termsLabel": "Blokovaná slova"
 	},
 	"common": {
 		"appName": "Talqo",
@@ -297,6 +305,7 @@
 		"discardTitle": "Zahodit neuložené změny?",
 		"hidePassword": "Skrýt heslo",
 		"keepEditing": "Pokračovat v úpravách",
+		"requiredHint": "* Povinné",
 		"retry": "Zkusit znovu",
 		"showPassword": "Zobrazit heslo"
 	},
@@ -317,7 +326,7 @@
 		"nextPage": "Další",
 		"noAgentSelected": "Vyberte alespoň jednoho agenta, abyste viděli jeho konverzace.",
 		"noPreview": "Bez zprávy návštěvníka",
-		"outcomeBlocked": "Zastaveno: odpověď obsahovala slovo ze seznamu zakázaných slov.",
+		"outcomeBlocked": "Zastaveno: odpověď obsahovala blokované slovo.",
 		"outcomeCancelled": "Návštěvník tuto odpověď zastavil.",
 		"outcomeFailed": "Agent nedokázal odpovědět.",
 		"outcomeInterrupted": "Odpověď byla přerušena.",
@@ -413,6 +422,7 @@
 		"embedDescription": "Vložte tento úryvek na svém webu před uzavírací značku </body>. Změny vzhledu se projeví bez opětovného kopírování.",
 		"embedDisabledNote": "Tato integrace je vypnutá: nainstalovaný chat se nezobrazuje a nové zprávy jsou odmítány.",
 		"embedEnabled": "Integrace zapnutá",
+		"embedEnabledFor": "Integrace zapnutá pro {{name}}",
 		"embedToken": "Token integrace",
 		"embedTokenDescription": "Veřejný identifikátor obsažený v kódu této integrace. Objevuje se ve zdrojovém kódu webu a není tajný.",
 		"enableEmbedFailed": "Integraci se nepodařilo zapnout. Zkuste to znovu.",
@@ -459,14 +469,14 @@
 	},
 	"mcp": {
 		"actionFailed": "Tuto změnu se nepodařilo uložit.",
-		"add": "Přidat připojení",
+		"add": "Přidat připojení nástrojů",
 		"addArgument": "Přidat",
-		"addDescription": "Vložte adresu serveru nebo příkaz, který ho spustí. Uložením jej otestujete.",
+		"addDescription": "Vložte adresu serveru nebo příkaz, který ho spustí. Uložením připojení otestujete.",
 		"addEnv": "Přidat",
 		"addHeader": "Přidat",
 		"adding": "Přidávání…",
 		"address": "Adresa serveru",
-		"addTitle": "Přidat připojení",
+		"addTitle": "Přidat připojení nástrojů",
 		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "Argumenty",
 		"argumentsCount": "Přidáno {{used}} z {{limit}} argumentů",
@@ -476,8 +486,9 @@
 		"command": "Příkaz",
 		"edit": "Upravit",
 		"editDescription": "Změňte adresu, příkaz nebo přihlašovací údaje. Nástroje se při uložení znovu načtou.",
-		"editTitle": "Upravit připojení",
-		"enabled": "Připojení je zapnuté",
+		"editTitle": "Upravit připojení nástrojů",
+		"enabled": "Zapnuto",
+		"enabledFor": "Připojení zapnuto pro {{name}}",
 		"envCount": "Přidáno {{used}} z {{limit}} proměnných",
 		"envName": "Název proměnné",
 		"envValue": "Hodnota proměnné",
@@ -496,7 +507,7 @@
 		"headersCount": "Přidáno {{used}} z {{limit}} hlaviček",
 		"headerValue": "Hodnota hlavičky",
 		"hideTools": "Skrýt nástroje",
-		"kind": "Typ",
+		"kind": "Typ připojení",
 		"loadFailed": "Připojení se nepodařilo načíst.",
 		"loading": "Načítání připojení…",
 		"name": "Název",
@@ -509,7 +520,7 @@
 		"removeEnv": "Odebrat proměnnou prostředí {{name}}",
 		"removeHeader": "Odebrat hlavičku {{name}}",
 		"removePrompt": "Tím smažete {{name}} i uložené tajné údaje. Nelze vzít zpět.",
-		"removeTitle": "Odebrat toto připojení?",
+		"removeTitle": "Odebrat toto připojení nástrojů?",
 		"removing": "Odebírání…",
 		"save": "Uložit změny",
 		"saving": "Ukládání…",
@@ -519,8 +530,8 @@
 		"stdioDisabled": "Správce hostingu zakázal připojení spouštěná příkazem. Použijte připojení HTTP.",
 		"toolsAvailable": "Dostupné nástroje: {{toolCount}}",
 		"toolsLegend": "Nástroje, které smí tento agent používat",
-		"transportHttp": "http",
-		"transportStdio": "stdio",
+		"transportHttp": "Webová adresa (HTTP)",
+		"transportStdio": "Příkaz (stdio)",
 		"unreachable": "Server tohoto připojení neodpovídá."
 	},
 	"nav": {

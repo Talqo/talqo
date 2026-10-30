@@ -91,16 +91,16 @@ export function BlacklistTermsEditor({
 			{value.length > 0 && (
 				<ul className="flex flex-wrap gap-1" aria-label={t("blacklist.termsLabel")}>
 					{value.map((term) => (
-						<Badge key={term} variant="outline" render={<li />}>
+						<Badge key={term} variant="outline" render={<li />} className="overflow-visible">
 							{term}
 							{!disabled && (
 								<button
 									type="button"
 									onClick={() => handleRemove(term)}
 									aria-label={t("blacklist.removeTerm", { word: term })}
-									className="hover:text-destructive -mr-0.5 ml-1 rounded-full"
+									className="hover:text-destructive focus-visible:ring-ring -mr-1.5 ml-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
 								>
-									<X className="size-3" />
+									<X className="size-3" aria-hidden="true" />
 								</button>
 							)}
 						</Badge>

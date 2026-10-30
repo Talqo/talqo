@@ -26,7 +26,7 @@
 		"saveUsername": "Save username",
 		"savingUsername": "Saving…",
 		"settings": "Account settings",
-		"subheading": "Your username, password, and roles.",
+		"subheading": "Manage your sign-in name, password, and account.",
 		"username": "Username",
 		"usernameDescription": "Use this to sign in.",
 		"usernameInvalid": "Username must be {{min}}-{{max}} characters and contain only letters, numbers, underscores, and hyphens.",
@@ -80,7 +80,7 @@
 		"saving": "Saving…",
 		"subheading": "Update the agent's name, behavior, knowledge files, and embeds.",
 		"tabConfiguration": "Configuration",
-		"tabContext": "Context",
+		"tabContext": "Knowledge",
 		"tabEmbeds": "Embeds",
 		"tabMcp": "Tools",
 		"wasDeleted": "This agent was deleted elsewhere. Go back to the list for the current state."
@@ -91,11 +91,11 @@
 		"namePlaceholder": "Support Agent",
 		"nameRequired": "Name is required.",
 		"nameTooLong": "Name must be {{max}} characters or fewer.",
-		"systemPrompt": "System prompt",
+		"systemPrompt": "Instructions",
 		"systemPromptPlaceholder": "You are a helpful customer support assistant...",
-		"systemPromptRequired": "System prompt is required.",
+		"systemPromptRequired": "Instructions are required.",
 		"systemPromptTooLong": "Instructions must be {{max}} characters or fewer.",
-		"wordBlacklist": "Word blacklist"
+		"wordBlacklist": "Blocked words"
 	},
 	"agentFiles": {
 		"cardDescription": "Accepted types: {{formats}}. Max {{maxSizeMB}} MB per file.",
@@ -178,6 +178,7 @@
 			"unavailableStored": "The model list could not be refreshed with the saved connection. Re-enter the credentials or try again."
 		},
 		"embeddingDescription": "Choose the model used to create knowledge embeddings.",
+		"embeddingSourceLabel": "Embedding connection",
 		"embeddingTitle": "Embeddings",
 		"fields": {
 			"accessKeyId": "Access key ID",
@@ -186,6 +187,8 @@
 			"authentication": "Authentication",
 			"baseURL": "Base URL",
 			"embeddingModel": "Embedding model",
+			"fieldRequired": "This field is required.",
+			"modelRequired": "Enter or choose a model.",
 			"project": "Project",
 			"provider": "Provider",
 			"region": "Region",
@@ -234,6 +237,7 @@
 			"description": "Choose your credentials to join this Talqo workspace.",
 			"heading": "Complete your account",
 			"missingToken": "This invitation link is missing its token.",
+			"pending": "Creating account…",
 			"submit": "Create account"
 		},
 		"credentialsForm": {
@@ -246,8 +250,9 @@
 		},
 		"errorFallback": "Something went wrong. Please try again.",
 		"forcePasswordChange": {
-			"description": "You must set a new password before continuing.",
+			"description": "Choose a new password before you continue.",
 			"heading": "Set a new password",
+			"pending": "Changing password…",
 			"submit": "Set new password"
 		},
 		"invitations": {
@@ -263,28 +268,31 @@
 		},
 		"loading": "Loading…",
 		"login": {
-			"description": "Use your Talqo credentials to continue.",
-			"heading": "Log in",
-			"submit": "Log in"
+			"description": "Use your Talqo username and password to continue.",
+			"heading": "Sign in",
+			"pending": "Signing in…",
+			"submit": "Sign in"
 		},
+		"requiredNote": "All fields are required.",
 		"setup": {
 			"description": "This is the first time Talqo has run. Create the sole admin account to continue.",
 			"heading": "Create the admin account",
+			"pending": "Creating account…",
 			"submit": "Create admin account"
 		}
 	},
 	"blacklist": {
-		"added": "{{word}} added to the blacklist.",
+		"added": "{{word}} added to blocked words.",
 		"addTerm": "Add",
-		"count": "{{used}} of {{limit}} terms used",
-		"duplicateError": "\"{{word}}\" is already on the blacklist.",
+		"count": "{{used}} of {{limit}} words blocked",
+		"duplicateError": "\"{{word}}\" is already blocked.",
 		"emptyError": "Enter a word or phrase first.",
-		"help": "Blocks these exact words (case-insensitive). Matches literal words, not related meanings.",
-		"limitError": "The blacklist allows at most {{limit}} terms.",
-		"removed": "{{word}} removed from the blacklist.",
+		"help": "Answers stop when they contain these exact words. Matching ignores case.",
+		"limitError": "You can block up to {{limit}} words.",
+		"removed": "{{word}} removed from blocked words.",
 		"removeTerm": "Remove {{word}}",
 		"termPlaceholder": "Word or phrase to block",
-		"termsLabel": "Blacklisted terms"
+		"termsLabel": "Blocked words"
 	},
 	"common": {
 		"appName": "Talqo",
@@ -295,6 +303,7 @@
 		"discardTitle": "Discard unsaved changes?",
 		"hidePassword": "Hide password",
 		"keepEditing": "Keep editing",
+		"requiredHint": "* Required",
 		"retry": "Try again",
 		"showPassword": "Show password"
 	},
@@ -313,7 +322,7 @@
 		"nextPage": "Next",
 		"noAgentSelected": "Select at least one agent to see its conversations.",
 		"noPreview": "No visitor message",
-		"outcomeBlocked": "Stopped: the answer contained a word from the word blacklist.",
+		"outcomeBlocked": "Stopped: the answer contained a blocked word.",
 		"outcomeCancelled": "The visitor stopped this answer.",
 		"outcomeFailed": "The agent could not answer.",
 		"outcomeInterrupted": "This answer was interrupted.",
@@ -405,6 +414,7 @@
 		"embedDescription": "Paste this snippet before the closing body tag of your site. Appearance changes apply without re-copying it.",
 		"embedDisabledNote": "This embed is disabled: the installed chat renders nothing and new messages are rejected.",
 		"embedEnabled": "Embed enabled",
+		"embedEnabledFor": "Embed enabled for {{name}}",
 		"embedToken": "Embed token",
 		"embedTokenDescription": "Public identifier carried by this embed's snippet. It appears in your site's page source and is not a secret.",
 		"enableEmbedFailed": "Could not enable the embed. Try again.",
@@ -451,14 +461,14 @@
 	},
 	"mcp": {
 		"actionFailed": "That change could not be saved.",
-		"add": "Add connection",
+		"add": "Add tool connection",
 		"addArgument": "Add",
-		"addDescription": "Paste a server address, or the command that starts one. Test it by saving.",
+		"addDescription": "Paste the server address, or the command that starts one. Save to test it.",
 		"addEnv": "Add",
 		"addHeader": "Add",
 		"adding": "Adding…",
 		"address": "Server address",
-		"addTitle": "Add a connection",
+		"addTitle": "Add a tool connection",
 		"argumentPlaceholder": "@shop/inventory-server",
 		"arguments": "Arguments",
 		"argumentsCount": "{{used}} of {{limit}} arguments added",
@@ -468,8 +478,9 @@
 		"command": "Command",
 		"edit": "Edit",
 		"editDescription": "Change the address, command, or credentials. Tools are rediscovered when you save.",
-		"editTitle": "Edit connection",
-		"enabled": "Connection enabled",
+		"editTitle": "Edit tool connection",
+		"enabled": "Enabled",
+		"enabledFor": "Connection enabled for {{name}}",
 		"envCount": "{{used}} of {{limit}} variables added",
 		"envName": "Variable name",
 		"envValue": "Variable value",
@@ -488,7 +499,7 @@
 		"headersCount": "{{used}} of {{limit}} headers added",
 		"headerValue": "Header value",
 		"hideTools": "Hide tools",
-		"kind": "Type",
+		"kind": "Connection type",
 		"loadFailed": "Connections could not be loaded.",
 		"loading": "Loading connections…",
 		"name": "Name",
@@ -501,7 +512,7 @@
 		"removeEnv": "Remove environment variable {{name}}",
 		"removeHeader": "Remove header {{name}}",
 		"removePrompt": "This deletes {{name}} and the secrets stored with it. There is no undo.",
-		"removeTitle": "Remove this connection?",
+		"removeTitle": "Remove this tool connection?",
 		"removing": "Removing…",
 		"save": "Save changes",
 		"saving": "Saving…",
@@ -511,8 +522,8 @@
 		"stdioDisabled": "Command-based connections are disabled by your hosting administrator. Use an HTTP connection instead.",
 		"toolsAvailable": "Tools available: {{toolCount}}",
 		"toolsLegend": "Tools this agent may use",
-		"transportHttp": "http",
-		"transportStdio": "stdio",
+		"transportHttp": "Web address (HTTP)",
+		"transportStdio": "Command (stdio)",
 		"unreachable": "This connection could not be reached."
 	},
 	"nav": {

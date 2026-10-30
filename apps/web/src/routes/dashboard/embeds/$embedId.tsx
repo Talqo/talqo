@@ -298,7 +298,7 @@ function EmbedDetailPage() {
 			<div className="grid items-start gap-6 lg:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("embedSetup.appearance")}</CardTitle>
+						<CardTitle level={2}>{t("embedSetup.appearance")}</CardTitle>
 						<CardDescription>{t("embedSetup.appearanceDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
