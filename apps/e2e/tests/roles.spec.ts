@@ -22,7 +22,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await page.getByRole("button", { name: web("roles.save") }).click()
 			await expect(page.getByText(web("roles.saved"), { exact: true })).toBeVisible()
 			await expect(
-				await page.request.put(`/api/agents/${agent.id}/access/${createdRoleId}`, {
+				await page.request.put(`/api/roles/${createdRoleId}/agents/${agent.id}`, {
 					data: { permissions: ["agents:manage"] },
 				}),
 			).toBeOK()

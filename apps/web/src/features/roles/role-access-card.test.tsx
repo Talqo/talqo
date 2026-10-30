@@ -1,4 +1,4 @@
-import type { GetAgentAccess200 } from "@/api/generated/models/roles/getAgentAccess200.zod"
+import type { ListRoleAgents200 } from "@/api/generated/models/roles/listRoleAgents200.zod"
 import type { Root } from "react-dom/client"
 
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
@@ -8,17 +8,18 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const { AgentAccessCard } = await import("./agent-access-card")
+const { RoleAccessCard } = await import("./role-access-card")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createMemoryHistory, RouterProvider } = await import("@tanstack/react-router")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
 
-type Permission = GetAgentAccess200["permissions"][number]
+type Agent = ListRoleAgents200["agents"][number]
+type Permission = Agent["permissions"][number]
 const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
-let roles: NonNullable<GetAgentAccess200["roles"]>
-let effective: Permission[]
+let agents: Agent[]
+let dirtyCalls: boolean[]
 let mutations: { method: string; body?: string }[]
 let failure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
@@ -36,8 +37,17 @@ async function settle() {
 	})
 }
 
+function agentAt(index: number): Agent {
+	const agent = agents[index]
+	if (!agent) throw new Error(`Missing agent ${index}`)
+	return agent
+}
+
 async function render(permissions: Permission[] = ALL) {
-	const route = createRootRoute({ component: () => <AgentAccessCard agentId="agent" permissions={permissions} /> })
+	agents[0] = { ...agentAt(0), permissions }
+	const route = createRootRoute({
+		component: () => <RoleAccessCard roleId="role" onDirtyChange={(dirty) => dirtyCalls.push(dirty)} />,
+	})
 	const router = createRouter({ routeTree: route, history: createMemoryHistory() })
 	await act(async () =>
 		root.render(
@@ -56,8 +66,8 @@ function button(name: string): HTMLButtonElement {
 	return found
 }
 
-function permissionSwitch(permission: Permission): HTMLButtonElement {
-	const found = document.getElementById(`access-agent-${permission}`)
+function permissionSwitch(permission: Permission, agentId = "support"): HTMLButtonElement {
+	const found = document.getElementById(`access-role-${agentId}-${permission}`)
 	if (!(found instanceof HTMLButtonElement) || found.getAttribute("role") !== "switch")
 		throw new Error(`Missing switch ${permission}`)
 	return found
@@ -68,14 +78,14 @@ async function click(element: HTMLElement) {
 	await settle()
 }
 
-async function chooseObservers() {
+async function chooseAgent(name: string) {
 	const trigger = host.querySelector<HTMLElement>("[role=combobox]")
-	if (!trigger) throw new Error("Missing role picker")
+	if (!trigger) throw new Error("Missing agent picker")
 	await click(trigger)
 	const item = [...document.querySelectorAll<HTMLElement>("[role=option]")].find(
-		(element) => element.textContent?.trim() === "Observers",
+		(element) => element.textContent?.trim() === name,
 	)
-	if (!item) throw new Error("Missing Observers option")
+	if (!item) throw new Error(`Missing ${name} option`)
 	await click(item)
 }
 
@@ -90,27 +100,32 @@ async function confirmRemoval() {
 }
 
 beforeEach(() => {
-	roles = [
-		{ id: "support", name: "Support", permissions: ["agents:read"] },
-		{ id: "observers", name: "Observers", permissions: [] },
+	agents = [
+		{
+			id: "support",
+			name: "Support bot",
+			permissions: ALL,
+			rolePermissions: ["agents:read"],
+		},
+		{ id: "observers", name: "Observers bot", permissions: ALL, rolePermissions: [] },
 	]
-	effective = ALL
+	dirtyCalls = []
 	mutations = []
 	failure = undefined
 	refreshResponse = undefined
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
-		if (method === "GET") return refreshResponse ?? json({ permissions: effective, roles })
+		if (method === "GET") return refreshResponse ?? json({ agents })
 		mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
 		if (failure) return failure
-		const selected = roles.find((role) => url.endsWith(`/${role.id}`))
-		if (!selected) throw new Error("Unknown role")
-		if (method === "DELETE") selected.permissions = []
+		const selected = agents.find((agent) => url.endsWith(`/agents/${agent.id}`))
+		if (!selected) throw new Error("Unknown agent")
+		if (method === "DELETE") selected.rolePermissions = []
 		else {
 			if (typeof init?.body !== "string") throw new Error("Missing body")
 			const body = JSON.parse(init.body) as { permissions: Permission[] }
-			selected.permissions = body.permissions
+			selected.rolePermissions = body.permissions
 		}
 		return new Response(null, { status: 204 })
 	}) as typeof fetch)
@@ -127,7 +142,7 @@ afterEach(async () => {
 	mock.restore()
 })
 
-describe("AgentAccessCard", () => {
+describe("RoleAccessCard", () => {
 	test("directs an empty existing grant to removal instead of Save", async () => {
 		await render()
 		await click(permissionSwitch("agents:read"))
@@ -137,15 +152,15 @@ describe("AgentAccessCard", () => {
 		expect(mutations).toEqual([])
 	})
 
-	test("reconciles deleted roles and their drafts when access is refreshed", async () => {
-		roles[1] = { id: "observers", name: "Observers", permissions: ["stats:read"] }
+	test("reconciles deleted agents and their drafts when access is refreshed", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
 		await render()
 		await click(permissionSwitch("conversations:read"))
-		roles = roles.filter(({ id }) => id !== "support")
+		agents = agents.filter(({ id }) => id !== "support")
 		await act(async () => client.refetchQueries())
 		await settle()
-		expect(button("Observers").getAttribute("aria-pressed")).toBe("true")
-		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("true")
+		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("true")
 		expect(host.textContent).not.toContain(t("agentAccess.empty"))
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
 	})
@@ -181,23 +196,25 @@ describe("AgentAccessCard", () => {
 			["/api/embeds/embed"],
 		]
 		for (const key of protectedKeys) client.setQueryData(key, { private: true })
+		client.setQueryData(["/api/agents"], { agents: [] })
 		client.setQueryData(["/api/auth/session"], { user: "operator" })
-		effective = []
+		agents[0] = { ...agentAt(0), permissions: [] }
 		await confirmRemoval()
 		for (const key of protectedKeys) expect(client.getQueryData(key)).toBeUndefined()
-		expect(client.getQueryData(["/api/agents/agent/access"])).toBeDefined()
+		expect(client.getQueryData(["/api/agents"])).toEqual({ agents: [] })
 		expect(client.getQueryData(["/api/auth/session"])).toEqual({ user: "operator" })
 	})
-	test("preserves each role's draft while showing only the selected role's permissions", async () => {
-		roles[1] = { id: "observers", name: "Observers", permissions: ["stats:read"] }
+
+	test("preserves each agent's draft while showing only the selected agent's permissions", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
 		await render()
 		await click(permissionSwitch("agents:manage"))
 		expect(permissionSwitch("agents:read").disabled).toBe(true)
 		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.editConfiguration") }))
-		await click(button("Observers"))
-		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
-		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("false")
-		await click(button("Support"))
+		await click(button("Observers bot"))
+		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("agents:manage", "observers").getAttribute("aria-checked")).toBe("false")
+		await click(button("Support bot"))
 		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("true")
 		await click(permissionSwitch("agents:manage"))
 		await click(permissionSwitch("agents:delete"))
@@ -206,16 +223,16 @@ describe("AgentAccessCard", () => {
 		expect(mutations).toEqual([])
 	})
 
-	test("keeps a new role selected when its last draft permission is switched off", async () => {
+	test("keeps a new agent selected when its last draft permission is switched off", async () => {
 		await render()
-		await chooseObservers()
-		await click(permissionSwitch("stats:read"))
-		await click(permissionSwitch("stats:read"))
-		expect(button("Observers").getAttribute("aria-pressed")).toBe("true")
+		await chooseAgent("Observers bot")
+		await click(permissionSwitch("stats:read", "observers"))
+		await click(permissionSwitch("stats:read", "observers"))
+		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("true")
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
-		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("false")
+		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("false")
 		await click(button(t("agentConfig.cancel")))
-		expect(host.textContent).not.toContain(t("agentAccess.permissionsFor", { role: "Observers" }))
+		expect(host.textContent).not.toContain(t("agentAccess.permissionsFor", { agent: "Observers bot" }))
 		expect(mutations).toEqual([])
 	})
 
@@ -228,7 +245,7 @@ describe("AgentAccessCard", () => {
 		expect(button(t("roles.saving")).disabled).toBe(true)
 		expect(permissionSwitch("stats:read").disabled).toBe(true)
 		expect(button(t("agentAccess.remove")).disabled).toBe(true)
-		await act(async () => refreshed.resolve(json({ permissions: effective, roles })))
+		await act(async () => refreshed.resolve(json({ agents })))
 		await settle()
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.textContent).toContain(t("agentAccess.saved"))
@@ -246,7 +263,15 @@ describe("AgentAccessCard", () => {
 		await click(button(t("agentAccess.save")))
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
-		await chooseObservers()
+		await chooseAgent("Observers bot")
 		expect(host.querySelector("[role=alert]")).toBeNull()
+	})
+
+	test("clears the dirty flag when the card unmounts", async () => {
+		await render()
+		await click(permissionSwitch("stats:read"))
+		expect(dirtyCalls.at(-1)).toBe(true)
+		await act(async () => root.render(null))
+		expect(dirtyCalls.at(-1)).toBe(false)
 	})
 })

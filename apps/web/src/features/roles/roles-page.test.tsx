@@ -27,9 +27,12 @@ const GRANTABLE = [
 const EVERYTHING = ["admin", ...GRANTABLE.map(({ permission }) => permission)]
 const ME = { id: "me", username: "operator", mustChangePassword: false }
 
+type RoleAgent = { id: string; name: string; permissions: string[]; rolePermissions: string[] }
+
 let myPermissions: string[]
 let myRoleIds: string[]
 let roles: Role[]
+let roleAgents: Record<string, RoleAgent[]>
 let createFailure: Response | undefined
 let updateFailure: Response | undefined
 let usersResponse: Promise<Response> | undefined
@@ -79,6 +82,10 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		const role = { id: "new-role", memberCount: 0, ...body }
 		roles.push(role)
 		return json({ role }, 201)
+	}
+	if (url.startsWith("/api/roles/") && url.endsWith("/agents")) {
+		const roleId = url.slice("/api/roles/".length, -"/agents".length)
+		return json({ agents: roleAgents[roleId] ?? [] })
 	}
 	const id = url.slice("/api/roles/".length)
 	if (url.startsWith("/api/roles/") && method === "DELETE") {
@@ -174,6 +181,7 @@ beforeEach(() => {
 	myPermissions = EVERYTHING
 	myRoleIds = []
 	roles = []
+	roleAgents = {}
 	createFailure = undefined
 	updateFailure = undefined
 	usersResponse = undefined
@@ -347,6 +355,39 @@ describe("role management", () => {
 		expect(button(t("roles.save"), host).disabled).toBe(true)
 	})
 
+	test("lists the agents this role gives access to", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		roleAgents = {
+			support: [
+				{
+					id: "agent-a",
+					name: "Agent A",
+					permissions: ["agents:read", "agents:manage"],
+					rolePermissions: ["agents:manage"],
+				},
+				{
+					id: "agent-b",
+					name: "Agent B",
+					permissions: ["agents:read", "stats:read"],
+					rolePermissions: ["stats:read"],
+				},
+			],
+		}
+		await renderPage("support")
+		expect(host.textContent).toContain("Agent A")
+		expect(host.textContent).toContain(t("agentAccess.editConfiguration"))
+		expect(host.textContent).toContain("Agent B")
+	})
+
+	test("explains when a role gives no agents access", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		roleAgents = {
+			support: [{ id: "agent-a", name: "Agent A", permissions: ["agents:read"], rolePermissions: [] }],
+		}
+		await renderPage("support")
+		expect(host.textContent).toContain(t("agentAccess.empty"))
+	})
+
 	test("preserves unsaved changes on background refresh and can discard them", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
@@ -357,6 +398,22 @@ describe("role management", () => {
 		await click(button(t("roles.discard"), host))
 		expect(nameInput().value).toBe("Support")
 		expect(button(t("roles.save"), host).disabled).toBe(true)
+	})
+
+	test("stops blocking navigation when the edited role disappears", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+		await type(nameInput(), "Draft")
+		roles = []
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(host.textContent).toContain(t("problems.role-not-found"))
+		await act(async () => {
+			void router.navigate({ to: "/dashboard/users/roles" })
+		})
+		await settle()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 	})
 
 	test("keeps the editor unavailable until saved access has refreshed", async () => {

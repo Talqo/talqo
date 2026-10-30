@@ -103,10 +103,10 @@ test("a read-only operator can inspect agents but finds no management controls",
 		const hidden = agents.find(({ name }) => name === "Product Advisor")
 		assert(hidden, "Missing reporting-only agent")
 		await expect(
-			await page.request.put(`/api/agents/${hidden.id}/access/${roleId}`, { data: { permissions: ["stats:read"] } }),
+			await page.request.put(`/api/roles/${roleId}/agents/${hidden.id}`, { data: { permissions: ["stats:read"] } }),
 		).toBeOK()
 		await expect(
-			await page.request.put(`/api/agents/${agent.id}/access/${roleId}`, { data: { permissions: ["agents:read"] } }),
+			await page.request.put(`/api/roles/${roleId}/agents/${agent.id}`, { data: { permissions: ["agents:read"] } }),
 		).toBeOK()
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [roleId] } })).toBeOK()
 		const embedResponse = await page.request.post("/api/embeds", {

@@ -31,7 +31,7 @@ export async function giveRole(
 	)
 	if (scopedPermissions.length > 0) {
 		const ids = agentIds ?? (await sql<{ id: string }[]>`SELECT id FROM agent`).map(({ id }) => id)
-		await Promise.all(ids.map((agentId) => roles.setAgentAccess(adminId, agentId, role.id, scopedPermissions)))
+		await Promise.all(ids.map((agentId) => roles.setRoleAgentAccess(adminId, role.id, agentId, scopedPermissions)))
 	}
 	await roles.assignRoles(userId, [role.id], adminId)
 }
