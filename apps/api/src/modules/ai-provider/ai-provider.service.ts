@@ -81,8 +81,6 @@ type Generate = (input: {
 
 type ServiceDependencies = {
 	discover(input: DiscoveryRequest): Promise<string[]>
-	/** embed is injectable so tests can observe the call options, particularly the abort signal. */
-	embed?: typeof aiEmbed
 	generate?: Generate
 	repository: Repository
 	/** streamText is injectable so tests can observe the call options, particularly the step bound. */
@@ -453,7 +451,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 					key: embeddingKey(stored.embedding),
 					async embed(text: string) {
 						return (
-							await (dependencies.embed ?? aiEmbed)({
+							await aiEmbed({
 								model,
 								value: text,
 								maxRetries: 0,

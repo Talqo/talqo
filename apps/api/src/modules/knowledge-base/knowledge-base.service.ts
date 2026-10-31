@@ -299,11 +299,8 @@ async function recoverUploads(): Promise<void> {
 	/* eslint-enable no-await-in-loop */
 }
 
-// Reverse reconciliation: recoverUploads only re-enqueues files present on disk, so rows whose
-// backing file is gone must be removed here or they stay listed and block their unique name forever.
 export async function reconcileDanglingRows(): Promise<void> {
-	// Skip when the uploads root itself is missing (unmounted volume, wrong path):
-	// every stat would read ENOENT and the sweep would wipe the whole index.
+	// A missing uploads root means unreadable storage: every stat would read ENOENT and the sweep would wipe the index.
 	try {
 		await stat(UPLOAD_DIR)
 	} catch {

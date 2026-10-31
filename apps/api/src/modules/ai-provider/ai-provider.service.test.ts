@@ -1,6 +1,6 @@
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, mock } from "bun:test"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration } from "./ai-provider.service.ts"
@@ -13,6 +13,16 @@ import {
 } from "./ai-provider.service.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
+
+const actualAi = await import("ai")
+const embedCalls: Parameters<typeof actualAi.embed>[0][] = []
+await mock.module("ai", () => ({
+	...actualAi,
+	embed: async (options: Parameters<typeof actualAi.embed>[0]) => {
+		embedCalls.push(options)
+		return { embedding: [] } as never
+	},
+}))
 
 const azureInput = (settings: Record<string, string>): SaveConfigurationInput => ({
 	expectedRevision: 0,
@@ -53,12 +63,10 @@ const input: SaveConfigurationInput = {
 function createMemoryService(
 	generate?: Parameters<typeof createAiProviderService>[0]["generate"],
 	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
-	embed?: Parameters<typeof createAiProviderService>[0]["embed"],
 ) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
 		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
-		embed,
 		generate,
 		streamText,
 		discover: async () => ["model-a"],
@@ -192,18 +200,16 @@ describe("AI provider service", () => {
 	})
 
 	it("passes an abort signal to the embedding call only when a timeout is set", async () => {
-		const calls: { maxRetries?: number; abortSignal?: AbortSignal }[] = []
-		const { service } = createMemoryService(undefined, undefined, async (options) => {
-			calls.push(options)
-			return { embedding: [] } as never
-		})
+		const { service } = createMemoryService()
 		await service.saveConfiguration(input)
+		const callsBefore = embedCalls.length
 
 		const timed = await service.prepareEmbeddingOperation({ timeoutMs: 60_000 })
 		await timed.embed("hello")
 		const untimed = await service.prepareEmbeddingOperation()
 		await untimed.embed("hello")
 
+		const calls = embedCalls.slice(callsBefore)
 		expect(calls[0]).toMatchObject({ maxRetries: 0 })
 		expect(calls[0]?.abortSignal).toBeInstanceOf(AbortSignal)
 		expect(calls[1]?.abortSignal).toBeUndefined()
