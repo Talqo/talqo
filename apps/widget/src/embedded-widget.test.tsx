@@ -136,6 +136,22 @@ describe("language", () => {
 })
 
 describe("dialog semantics", () => {
+	test("opens the panel from the start when the preview asks for it", () => {
+		using showModal = spyOn(HTMLDialogElement.prototype, "showModal")
+		const container = render(<EmbeddedWidget defaultOpen />)
+
+		expect(container.querySelector("dialog")?.open).toBe(true)
+		expect(container.querySelector("button[aria-haspopup='dialog']")?.getAttribute("aria-expanded")).toBe("true")
+		// Modal focus would trap Tab inside the dashboard's preview frame.
+		expect(showModal).not.toHaveBeenCalled()
+	})
+
+	test("starts collapsed for an embed", () => {
+		const container = render(<EmbeddedWidget />)
+
+		expect(container.querySelector("dialog")).toBeNull()
+	})
+
 	test("opens modally, focuses the composer, and returns focus to the launcher on Escape", async () => {
 		using showModal = spyOn(HTMLDialogElement.prototype, "showModal")
 		const container = render(<EmbeddedWidget appearance={{ theme: "light" }} />)

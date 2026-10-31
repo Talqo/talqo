@@ -51,6 +51,8 @@ export type EmbeddedWidgetProps = {
 	forcedScheme?: ColorScheme
 	/** Preview-only: mirrors the deployment's reply availability without an SDK client. */
 	isAvailable?: boolean
+	/** Preview-only: shows the chat panel instead of just the launcher. */
+	defaultOpen?: boolean
 }
 
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
@@ -153,23 +155,28 @@ const STICKY_SCROLL_THRESHOLD_PX = 48
 function WidgetChat({
 	title,
 	appearance,
+	defaultOpen,
 	forcedScheme,
 	snapshot,
 	client,
 }: {
 	title?: string
 	appearance: WidgetAppearance
+	defaultOpen?: boolean
 	forcedScheme?: ColorScheme
 	snapshot?: ChatSnapshot
 	client?: ChatClient
 }) {
 	const { t, i18n } = useTranslation()
-	const [open, setOpen] = useState(false)
+	const [open, setOpen] = useState(defaultOpen ?? false)
 	const [draft, setDraft] = useState("")
 	const [visitorScheme, setVisitorScheme] = useState<ColorScheme | null>(null)
 	const [announcement, setAnnouncement] = useState<{ id: number; text: string } | null>(null)
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDialogElement>(null)
+	// The preview opens without modal focus: trapping Tab inside the dashboard's frame would
+	// strand keyboard users in the widget.
+	const openWithoutFocus = useRef(defaultOpen === true)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const draftRef = useRef("")
 	const pendingSend = useRef<{ draft: string; acceptedMessageId: string | undefined } | undefined>(undefined)
@@ -214,8 +221,15 @@ function WidgetChat({
 		if (!open) return undefined
 		const dialog = panelRef.current
 		if (!dialog) return undefined
-		dialog.showModal()
-		inputRef.current?.focus()
+		if (openWithoutFocus.current) {
+			openWithoutFocus.current = false
+			dialog.show()
+			// Chrome still focuses the dialog's first control; hand focus back to the dashboard.
+			window.parent.focus()
+		} else {
+			dialog.showModal()
+			inputRef.current?.focus()
+		}
 		return () => {
 			dialog.close()
 		}
@@ -585,7 +599,7 @@ function WidgetChat({
 	)
 }
 
-export function EmbeddedWidget({ title, appearance, forcedScheme, isAvailable }: EmbeddedWidgetProps) {
+export function EmbeddedWidget({ title, appearance, defaultOpen, forcedScheme, isAvailable }: EmbeddedWidgetProps) {
 	const resolved = resolveAppearance(appearance)
 	const [i18n] = useState(() => createWidgetI18n(resolved.language))
 
@@ -597,7 +611,7 @@ export function EmbeddedWidget({ title, appearance, forcedScheme, isAvailable }:
 
 	return (
 		<I18nextProvider i18n={i18n}>
-			<WidgetChat title={title} appearance={resolved} forcedScheme={forcedScheme} />
+			<WidgetChat title={title} appearance={resolved} defaultOpen={defaultOpen} forcedScheme={forcedScheme} />
 		</I18nextProvider>
 	)
 }
