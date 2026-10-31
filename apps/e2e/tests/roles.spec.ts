@@ -46,7 +46,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await logOut(page)
 		})
 
-		await test.step("the admin assigns the role on the Users page", async () => {
+		await test.step("the admin assigns the role on the Team page", async () => {
 			await openDashboard(page, ADMIN, "/dashboard/users")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
 			await operatorCard.getByRole("button", { name: web("users.editRoles") }).click()
@@ -69,7 +69,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await openDashboard(page, operator)
 			await expect(page.getByRole("link", { name: web("nav.agents"), exact: true })).toBeVisible()
 			await expect(page.getByRole("link", { name: web("nav.aiConfiguration"), exact: true })).toHaveCount(0)
-			await expect(page.getByRole("link", { name: web("nav.users"), exact: true })).toHaveCount(0)
+			await expect(page.getByRole("link", { name: web("nav.team"), exact: true })).toHaveCount(0)
 
 			await page.getByRole("link", { name: web("nav.agents"), exact: true }).click()
 			await expect(page.getByRole("button", { name: web("agents.create") })).toHaveCount(0)

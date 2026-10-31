@@ -553,7 +553,7 @@
 		"aiConfiguration": "AI configuration",
 		"conversations": "Conversations",
 		"dashboard": "Dashboard",
-		"users": "Users"
+		"team": "Team"
 	},
 	"permissions": {
 		"accessDeniedBody": "An admin can grant you access; ask them if you need this page.",
@@ -670,7 +670,7 @@
 		"editRolesDescription": "Choose the roles this user has. They get every access their roles give.",
 		"editRolesTitle": "Roles for {{username}}",
 		"generate": "Generate",
-		"heading": "Users",
+		"heading": "Team",
 		"loading": "Loading users…",
 		"lockoutWarning": "After saving, you won't be able to manage roles. Ask an admin if you need access again.",
 		"noRoles": "There are no roles yet. Create one on the Roles page first.",
@@ -686,6 +686,6 @@
 		"saveRoles": "Save roles",
 		"savingRoles": "Saving…",
 		"subheading": "See who can sign in, what roles they have, and manage their accounts.",
-		"switcherLabel": "Users and roles"
+		"switcherLabel": "Team and roles"
 	}
 }

@@ -553,7 +553,7 @@
 		"aiConfiguration": "AI 配置",
 		"conversations": "对话",
 		"dashboard": "仪表盘",
-		"users": "用户"
+		"team": "团队"
 	},
 	"permissions": {
 		"accessDeniedBody": "如需访问此页面，请联系管理员为你授权。",
@@ -670,7 +670,7 @@
 		"editRolesDescription": "选择此用户拥有的角色。用户将获得其角色提供的所有访问权限。",
 		"editRolesTitle": "{{username}} 的角色",
 		"generate": "生成",
-		"heading": "用户",
+		"heading": "团队",
 		"loading": "正在加载用户…",
 		"lockoutWarning": "保存后，你将无法管理角色。如需再次获得访问权限，请联系管理员。",
 		"noRoles": "还没有角色。请先在“角色”页面创建一个。",
@@ -686,6 +686,6 @@
 		"saveRoles": "保存角色",
 		"savingRoles": "正在保存…",
 		"subheading": "查看谁可以登录、他们拥有哪些角色，并管理他们的账户。",
-		"switcherLabel": "用户和角色"
+		"switcherLabel": "团队和角色"
 	}
 }

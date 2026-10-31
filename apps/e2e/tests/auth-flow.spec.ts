@@ -104,7 +104,7 @@ test("an admin can delete a member but cannot delete their own account", async (
 	await expect(page.getByRole("heading", { name: web("account.heading"), exact: true })).toBeVisible()
 	await expect(page.getByRole("heading", { name: web("account.dangerZone"), exact: true })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: web("account.deleteAccount"), exact: true })).toHaveCount(0)
-	await page.getByRole("link", { name: web("nav.users") }).click()
+	await page.getByRole("link", { name: web("nav.team") }).click()
 	await expect(page).toHaveURL("/dashboard/users")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
