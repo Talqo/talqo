@@ -682,7 +682,6 @@
 		"loading": "Načítání uživatelů…",
 		"lockoutWarning": "Po uložení nebudete moci spravovat role. Pokud budete přístup znovu potřebovat, požádejte správce.",
 		"noRoles": "Zatím žádné role neexistují. Nejprve jednu vytvořte na stránce Role.",
-		"ownAccountHint": "Svůj účet tu nemůžete smazat. Heslo si změníte na stránce",
 		"pendingChange": "Čeká na změnu hesla",
 		"resetDialogDescription": "Nastavte nové heslo pro tento účet.",
 		"resetDialogTitle": "Resetovat heslo pro {{username}}",

@@ -41,7 +41,6 @@ import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
 import { Check, Copy, Pencil, Trash2, UserPlus } from "lucide-react"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -367,14 +366,6 @@ function UsersList({ held }: { held: readonly string[] }) {
 										</>
 									) : null}
 								</div>
-								{canManageUsers && user.id === currentUserId ? (
-									<p className="text-muted-foreground text-xs">
-										{t("users.ownAccountHint")}{" "}
-										<Link to="/dashboard/account" className="underline">
-											{t("nav.account")}
-										</Link>
-									</p>
-								) : null}
 							</div>
 						</CardContent>
 					</Card>

@@ -674,7 +674,6 @@
 		"loading": "Loading users…",
 		"lockoutWarning": "After saving, you won't be able to manage roles. Ask an admin if you need access again.",
 		"noRoles": "There are no roles yet. Create one on the Roles page first.",
-		"ownAccountHint": "You can't delete yourself here. To change your password, open",
 		"pendingChange": "Pending password change",
 		"resetDialogDescription": "Set a new password for this account.",
 		"resetDialogTitle": "Reset password for {{username}}",
