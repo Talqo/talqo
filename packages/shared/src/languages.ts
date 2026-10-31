@@ -1,7 +1,6 @@
 export const supportedLanguages = {
 	en: "English",
 	cs: "Čeština",
-	zh: "中文",
 } as const
 
 export type SupportedLanguage = keyof typeof supportedLanguages

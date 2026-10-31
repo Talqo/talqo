@@ -41,7 +41,7 @@ export const CreateEmbedBody = zod.object({
   "position": zod.enum(['bottom-right', 'bottom-left']),
   "theme": zod.enum(['system', 'light', 'dark']),
   "themeToggle": zod.boolean(),
-  "language": zod.enum(['en', 'cs', 'zh'])
+  "language": zod.enum(['en', 'cs'])
 })
 })
 
