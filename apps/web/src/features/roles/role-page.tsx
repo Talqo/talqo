@@ -18,12 +18,14 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { RoleAccessCard } from "./role-access-card"
+import { RoleDangerZone } from "./role-danger-zone"
 import { holdsAll } from "./role-form"
 import { UpdateRoleForm } from "./update-role-form"
 
 export function RolePage({ roleId }: { roleId: string }) {
 	const { t } = useTranslation()
 	const [roleDirty, setRoleDirty] = useState(false)
+	const [roleSaving, setRoleSaving] = useState(false)
 	const [accessDirty, setAccessDirty] = useState(false)
 	const dirty = roleDirty || accessDirty
 	const dirtyGuard = useDirtyFormGuard(dirty)
@@ -81,8 +83,12 @@ export function RolePage({ roleId }: { roleId: string }) {
 						ownRoles={ownRoles}
 						disabled={!changeable}
 						onDirtyChange={setRoleDirty}
+						onSavingChange={setRoleSaving}
 					/>
 					<RoleAccessCard roleId={role.id} onDirtyChange={setAccessDirty} />
+					{changeable ? (
+						<RoleDangerZone role={role} heldPermissions={held} ownRoles={ownRoles} disabled={roleSaving} />
+					) : null}
 				</>
 			)}
 			{dirtyGuard}
