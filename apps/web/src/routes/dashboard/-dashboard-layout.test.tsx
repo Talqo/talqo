@@ -88,7 +88,7 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	const users = createRoute({
 		getParentRoute: () => route,
 		path: "/dashboard/users",
-		component: () => <h1>{t("nav.users")}</h1>,
+		component: () => <h1>{t("nav.team")}</h1>,
 	})
 	const router = createRouter({ routeTree: route.addChildren([page, account, users]), history: createMemoryHistory() })
 	await act(async () =>
@@ -115,7 +115,7 @@ test("keeps global navigation and the current page when agent discovery fails", 
 	}) as typeof fetch)
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
 	const links = [...rendered.host.querySelectorAll("nav a")].map((link) => link.textContent)
-	expect(links).toContain(t("nav.users"))
+	expect(links).toContain(t("nav.team"))
 	expect(links).toContain(t("nav.aiConfiguration"))
 	expect(links).toContain(t("nav.account"))
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("account.heading"))
@@ -220,7 +220,7 @@ test("clears protected caches when access is revoked before the role refetch com
 	await settle()
 	expect(accessSignal?.aborted).toBe(true)
 	for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
-	expect(container.querySelector("h1")?.textContent).toBe(t("nav.users"))
+	expect(container.querySelector("h1")?.textContent).toBe(t("nav.team"))
 	await act(async () => roleResponse.resolve(json({ agents: [] })))
 })
 
@@ -250,8 +250,8 @@ test("titles and focuses the page heading on route changes", async () => {
 	await settle()
 
 	const heading = rendered.host.querySelector("h1")
-	expect(heading?.textContent).toBe(t("nav.users"))
-	expect(document.title).toBe(`${t("nav.users")} · Talqo`)
+	expect(heading?.textContent).toBe(t("nav.team"))
+	expect(document.title).toBe(`${t("nav.team")} · Talqo`)
 	expect(document.activeElement).toBe(heading)
 })
 
@@ -264,11 +264,11 @@ test("leaves focus alone when the heading changes after navigation", async () =>
 	toggle.focus()
 
 	await act(async () => {
-		heading.textContent = t("nav.users")
+		heading.textContent = t("nav.team")
 	})
 	await settle()
 
-	expect(document.title).toBe(`${t("nav.users")} · Talqo`)
+	expect(document.title).toBe(`${t("nav.team")} · Talqo`)
 	expect(document.activeElement).toBe(toggle)
 })
 

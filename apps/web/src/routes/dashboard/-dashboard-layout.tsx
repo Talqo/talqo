@@ -46,7 +46,7 @@ const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
 	"/dashboard/conversations": "nav.conversations",
-	"/dashboard/users": "nav.users",
+	"/dashboard/users": "nav.team",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>
