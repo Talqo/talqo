@@ -1,6 +1,6 @@
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, mock } from "bun:test"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration } from "./ai-provider.service.ts"
@@ -13,6 +13,16 @@ import {
 } from "./ai-provider.service.ts"
 
 const APP_SECRET = Buffer.alloc(32, 5).toString("base64url")
+
+const actualAi = await import("ai")
+const embedCalls: Parameters<typeof actualAi.embed>[0][] = []
+await mock.module("ai", () => ({
+	...actualAi,
+	embed: async (options: Parameters<typeof actualAi.embed>[0]) => {
+		embedCalls.push(options)
+		return { embedding: [] } as never
+	},
+}))
 
 const azureInput = (settings: Record<string, string>): SaveConfigurationInput => ({
 	expectedRevision: 0,
@@ -187,6 +197,25 @@ describe("AI provider service", () => {
 		const prepared = await service.prepareEmbeddingOperation()
 
 		expect(typeof prepared.embed).toBe("function")
+	})
+
+	it("passes the caller's abort signal, or the configured timeout, to the embedding call", async () => {
+		const { service } = createMemoryService()
+		await service.saveConfiguration(input)
+		const callsBefore = embedCalls.length
+
+		const timed = await service.prepareEmbeddingOperation({ timeoutMs: 60_000 })
+		await timed.embed("hello")
+		const untimed = await service.prepareEmbeddingOperation()
+		await untimed.embed("hello")
+		const callerSignal = AbortSignal.abort()
+		await timed.embed("hello", callerSignal)
+
+		const calls = embedCalls.slice(callsBefore)
+		expect(calls[0]).toMatchObject({ maxRetries: 0 })
+		expect(calls[0]?.abortSignal).toBeInstanceOf(AbortSignal)
+		expect(calls[1]?.abortSignal).toBeUndefined()
+		expect(calls[2]?.abortSignal).toBe(callerSignal)
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {

@@ -6,11 +6,11 @@ Accepted (2026-08-05)
 
 ## Context
 
-The `identity` module needs invite-only account creation, password administration, and session login without owning roles. Better Auth was considered, but its supported administration plugin adds a conflicting role model; avoiding that plugin requires undocumented internal APIs. A small first-party implementation fits the existing module boundary but makes Talqo responsible for session security.
+Talqo needs session login, password administration, and invite-only account creation. Better Auth was considered, but its supported administration plugin adds a conflicting role model; avoiding that plugin requires undocumented internal APIs. A small first-party implementation fits the existing module boundary but makes Talqo responsible for session security.
 
 ## Decision
 
-Hand-roll session authentication in `identity` using `Bun.password` with argon2id, opaque high-entropy tokens whose SHA-256 hashes are stored in PostgreSQL, and hardened cookies through `hono/cookie`.
+Hand-roll authentication in `identity`: `Bun.password` with argon2id, opaque high-entropy tokens whose SHA-256 hashes are stored in PostgreSQL, and hardened cookies through `hono/cookie`. Invitation issuance/redemption and operator administration live in `roles`, which owns "who can do what."
 
 ## Consequences
 

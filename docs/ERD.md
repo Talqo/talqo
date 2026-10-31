@@ -41,12 +41,12 @@ erDiagram
     INVITATION ||--o{ INVITATION_ROLE : includes
     ROLE ||--o{ INVITATION_ROLE : "selected through"
     USER ||--o{ PERMISSION_GRANT : holds
+    USER |o--o{ PERMISSION_GRANT : "grants (granted_by)"
     USER ||--o{ AUDIT_LOG : performs
 
     AGENT ||--o{ EMBED : serves
     AGENT ||--o{ BLACKLIST_WORD : defines
     AGENT ||--o{ MCP_SERVER : configures
-    AGENT ||--o{ AI_PROVIDER_CONFIG : configures
     AGENT ||--o{ AGENT_FILE : owns
     AGENT_FILE ||--o{ AGENT_FILE_CHUNK : contains
 
@@ -57,4 +57,6 @@ erDiagram
     CONVERSATION ||--o{ MESSAGE : includes
     GENERATION_ATTEMPT ||--|{ MESSAGE : produces
     GENERATION_ATTEMPT ||--o| USAGE_RECORD : records
+    AGENT ||--o{ USAGE_RECORD : attributes
+    CONVERSATION ||--o{ USAGE_RECORD : attributes
 ```

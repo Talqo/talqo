@@ -2,7 +2,7 @@
 
 Talqo is a modular monolith: one API process (`apps/api`), one PostgreSQL database. Business capabilities live in modules under `apps/api/src/modules/<module>`, each owning its own tables and exposing behavior only through a service. Modules call each other's services directly (in-process), never each other's repositories or tables.
 
-We want a **small, explicit, acyclic** dependency graph: every arrow below is a real service call, there are no cycles, and most modules have at most one outgoing dependency (on `roles`).
+We want a **small, explicit, acyclic** dependency graph: every arrow below is a real service call, and most modules have at most one outgoing dependency (on `roles`).
 
 ## Module Dependency Graph
 
@@ -35,13 +35,9 @@ graph LR
 
     agent --> roles
     agent --> knowledge_base
-    embed --> agent
     embed --> roles
     embed --> ai_provider
-    ai_provider --> roles
-    mcp --> roles
     knowledge_base --> ai_provider
-    usage --> roles
 
     conversation --> embed
     conversation --> agent
@@ -49,10 +45,12 @@ graph LR
     conversation --> mcp
     conversation --> usage
     conversation --> roles
+    conversation --> knowledge_base
 
     stats --> conversation
     stats --> usage
     stats --> agent
+    stats --> roles
 
     roles --> audit
     agent --> audit
@@ -69,14 +67,14 @@ graph LR
 | Module | Owns (tables) | Responsibility |
 |---|---|---|
 | `identity` | `USER`, `SESSION` | Who a person is: login credentials and active sessions. No knowledge of roles. |
-| `roles` | `ROLE`, `ROLE_PERMISSION`, `USER_ROLE`, `INVITATION`, `INVITATION_ROLE`, `PERMISSION_GRANT` | Roles and their assignments, the single admin grant, and the invite flow — owns "who can do what." |
+| `roles` | `ROLE`, `ROLE_PERMISSION`, `ROLE_AGENT_PERMISSION`, `USER_ROLE`, `INVITATION`, `INVITATION_ROLE`, `PERMISSION_GRANT` | Roles and their assignments, the single admin grant, and the invite flow — owns "who can do what." |
 | `agent` | `AGENT`, `BLACKLIST_WORD` | Deployment-owned agent branding, persona, and content policy. |
 | `embed` | `EMBED` | Embeddable surfaces: appearance, public embed token, and the agent each one serves. One agent serves many embeds. |
-| `ai-provider` | `AI_PROVIDER_CONFIG` | Per-agent model-provider credentials and model selection. |
-| `mcp` | `MCP_SERVER` | Per-agent tool-server integrations over Streamable HTTP or stdio, with encrypted credentials, OAuth, and tool resolution during chat. One agent serves many connections. |
+| `ai-provider` | `AI_PROVIDER_CONFIG` | Deployment-wide model-provider credentials and model selection (a singleton, not per agent). |
+| `mcp` | `MCP_SERVER` | Per-agent tool-server integrations over Streamable HTTP or stdio, with encrypted credentials and tool resolution during chat. One agent serves many connections. |
 | `knowledge-base` | `agent_file`, `agent_file_chunk`; original uploads on disk | Agent source-file lifecycle, durable serial ingestion, Docling conversion/chunking, and per-agent pgvector storage, and chat retrieval. |
 | `conversation` | `CONVERSATION`, `GENERATION_ATTEMPT`, `MESSAGE`, `CONVERSATION_DAILY_COUNTER` | Chat runtime; orchestrates a reply using agent config, knowledge retrieval, and the AI provider. Serves operators read-only transcripts by an operator-facing ID, never the visitor credential. |
-| `usage` | `USAGE_RECORD` | Meters tokens/cost per generation attempt; limit enforcement lives in `conversation`. |
+| `usage` | `USAGE_RECORD` | Meters tokens per generation attempt; limit enforcement lives in `conversation`. |
 | `stats` | No tables. Reads from `conversation`, `usage`, `agent` | Operator statistics at `GET /api/stats`. |
 | `audit` | `AUDIT_LOG` | Sink module: records actions performed by other modules. No outgoing dependencies. |
 
