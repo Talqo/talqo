@@ -46,7 +46,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await logOut(page)
 		})
 
-		await test.step("the admin assigns the role on the Users page", async () => {
+		await test.step("the admin assigns the role on the Teammates page", async () => {
 			await openDashboard(page, ADMIN, "/dashboard/users")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
 			await operatorCard.getByRole("button", { name: web("users.editRoles") }).click()
