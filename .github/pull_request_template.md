@@ -11,7 +11,7 @@ Also include related tickets/issues here.
 
 ## Demo
 
-<!-- For UI features or interaction changes, attach a video of the "How to test" flow with visible actions and readable pacing. Simple UI fixes do not require a video; use labeled before/after screenshots when useful. For PRs without UI changes, remove this section and do not create a video. -->
+<!-- Any UI change requires either a video of the "How to test" flow with visible actions and readable pacing or labeled before/after screenshots. For PRs without UI changes, remove this section. -->
 
 ## Checklist
 
