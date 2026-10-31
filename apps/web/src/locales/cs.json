@@ -561,7 +561,7 @@
 		"aiConfiguration": "Konfigurace AI",
 		"conversations": "Konverzace",
 		"dashboard": "Přehled",
-		"users": "Uživatelé"
+		"users": "Kolegové"
 	},
 	"permissions": {
 		"accessDeniedBody": "Pokud tuto stránku potřebujete, požádejte správce o přístup.",
@@ -678,7 +678,7 @@
 		"editRolesDescription": "Vyberte role, které má tento uživatel. Získá veškerý přístup, který jeho role dávají.",
 		"editRolesTitle": "Role uživatele {{username}}",
 		"generate": "Vygenerovat",
-		"heading": "Uživatelé",
+		"heading": "Kolegové",
 		"loading": "Načítání uživatelů…",
 		"lockoutWarning": "Po uložení nebudete moci spravovat role. Pokud budete přístup znovu potřebovat, požádejte správce.",
 		"noRoles": "Zatím žádné role neexistují. Nejprve jednu vytvořte na stránce Role.",
@@ -694,6 +694,6 @@
 		"saveRoles": "Uložit role",
 		"savingRoles": "Ukládání…",
 		"subheading": "Zobrazte, kdo se může přihlásit, jaké má role, a spravujte jejich účty.",
-		"switcherLabel": "Uživatelé a role"
+		"switcherLabel": "Kolegové a role"
 	}
 }
