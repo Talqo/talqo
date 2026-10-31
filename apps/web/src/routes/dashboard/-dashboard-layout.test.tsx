@@ -10,13 +10,14 @@ await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { DashboardLayout } = await import("./-dashboard-layout")
-const { AgentAccessCard } = await import("@/features/agents/agent-access-card")
+const { RoleAccessCard } = await import("@/features/roles/role-access-card")
 const { requirePermission } = await import("@/features/permissions/require-permission")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { ThemeProvider } = await import("@/lib/use-theme")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRootRoute, createRoute, createRouter, createMemoryHistory, RouterProvider, Outlet } =
 	await import("@tanstack/react-router")
+const { PageHeader } = await import("@/components/page-header")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
@@ -30,6 +31,8 @@ afterEach(async () => {
 	host?.remove()
 	client?.clear()
 	mock.restore()
+	window.localStorage.removeItem("talqo-language")
+	document.documentElement.lang = "en"
 })
 
 function json(body: unknown, status = 200): Response {
@@ -40,6 +43,18 @@ async function settle() {
 	await act(async () => {
 		await new Promise((resolve) => setTimeout(resolve, 0))
 	})
+}
+
+function mockSignedInAdmin() {
+	return spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin", "users:read", "roles:manage"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
 }
 
 async function renderPage(content: ReactNode, permission?: Permission) {
@@ -85,7 +100,7 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	)
 	await settle()
 	await settle()
-	return { host, queryClient }
+	return { host, queryClient, router }
 }
 
 test("keeps global navigation and the current page when agent discovery fails", async () => {
@@ -107,11 +122,51 @@ test("keeps global navigation and the current page when agent discovery fails", 
 	expect(rendered.host.querySelector("[role=alert]")).not.toBeNull()
 })
 
-test("clears protected caches when discovery revokes access before the access refetch completes", async () => {
+test("keeps the account name and log out in the sidebar footer", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const sidebar = rendered.host.querySelector("aside")
+	const header = rendered.host.querySelector("header")
+	const logout = [...rendered.host.querySelectorAll("button")].find(
+		(button) => button.textContent === t("header.logout"),
+	)
+	expect(sidebar?.textContent).toContain("Admin")
+	expect(logout && sidebar?.contains(logout)).toBe(true)
+	expect(header?.contains(logout ?? null)).toBe(false)
+})
+
+test("closes the mobile navigation on a same-page navigation", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["admin"] }
+				: { user: { username: "Admin", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	if (!toggle) throw new Error("Missing navigation toggle")
+	await act(async () => toggle.click())
+	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
+	await act(async () => rendered.router.navigate({ to: "/", hash: "filtered" }))
+	await settle()
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
+})
+
+test("clears protected caches when access is revoked before the role refetch completes", async () => {
 	let revoked = false
 	let accessSignal: AbortSignal | null | undefined
-	const accessResponse = Promise.withResolvers<Response>()
-	spyOn(window, "confirm").mockReturnValue(true)
+	const roleResponse = Promise.withResolvers<Response>()
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		if (init?.method === "DELETE") {
@@ -121,20 +176,26 @@ test("clears protected caches when discovery revokes access before the access re
 		if (url.endsWith("/api/agents"))
 			return json({ agents: revoked ? [] : [{ id: "agent", permissions: ["agents:read"] }] })
 		if (url.endsWith("/api/me/permissions")) return json({ permissions: ["roles:manage", "users:read"] })
-		if (url.endsWith("/access")) {
+		if (url.endsWith("/api/roles/role/agents")) {
 			if (revoked) {
 				accessSignal = init?.signal
-				return accessResponse.promise
+				return roleResponse.promise
 			}
 			return json({
-				permissions: ["agents:read"],
-				roles: [{ id: "role", name: "Support", permissions: ["agents:read"] }],
+				agents: [
+					{
+						id: "agent",
+						name: "Agent",
+						permissions: ["agents:read"],
+						rolePermissions: ["agents:read"],
+					},
+				],
 			})
 		}
 		return json({ user: { username: "Operator" } })
 	}) as typeof fetch)
 	const { host: container, queryClient } = await renderPage(
-		<AgentAccessCard agentId="agent" permissions={["agents:read"]} />,
+		<RoleAccessCard roleId="role" onDirtyChange={() => {}} />,
 		"agents:read",
 	)
 	const protectedKeys = [
@@ -150,7 +211,7 @@ test("clears protected caches when discovery revokes access before the access re
 	if (!remove) throw new Error("Missing removal button")
 	await act(async () => remove.click())
 	await settle()
-	const confirm = [...document.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find(
+	const confirm = [...document.querySelectorAll<HTMLButtonElement>("[role=alertdialog] button")].find(
 		(button) => button.textContent === t("agentAccess.remove"),
 	)
 	if (!confirm) throw new Error("Missing removal confirmation")
@@ -160,5 +221,90 @@ test("clears protected caches when discovery revokes access before the access re
 	expect(accessSignal?.aborted).toBe(true)
 	for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
 	expect(container.querySelector("h1")?.textContent).toBe(t("nav.users"))
-	await act(async () => accessResponse.resolve(json({ code: "agent-not-found" }, 404)))
+	await act(async () => roleResponse.resolve(json({ agents: [] })))
+})
+
+test("reflects the stored dashboard language on the document", async () => {
+	window.localStorage.setItem("talqo-language", "cs")
+	mockSignedInAdmin()
+	await renderPage(<h1>{t("account.heading")}</h1>)
+	expect(document.documentElement.lang).toBe("cs")
+})
+
+test("offers a skip link that targets the main region", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const skip = rendered.host.querySelector<HTMLAnchorElement>(`a[href="#dashboard-main"]`)
+	expect(skip?.textContent).toBe(t("header.skipToContent"))
+	expect(rendered.host.querySelector("main#dashboard-main")).not.toBeNull()
+})
+
+test("titles and focuses the page heading on route changes", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<PageHeader title={t("account.heading")} />)
+	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("account.heading"))
+	expect(document.title).toBe(`${t("account.heading")} · Talqo`)
+
+	await act(async () => rendered.router.navigate({ to: "/dashboard/users" }))
+	await settle()
+	await settle()
+
+	const heading = rendered.host.querySelector("h1")
+	expect(heading?.textContent).toBe(t("nav.users"))
+	expect(document.title).toBe(`${t("nav.users")} · Talqo`)
+	expect(document.activeElement).toBe(heading)
+})
+
+test("leaves focus alone when the heading changes after navigation", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<PageHeader title={t("account.heading")} />)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	const heading = rendered.host.querySelector("h1")
+	if (!toggle || !heading) throw new Error("Missing navigation toggle or heading")
+	toggle.focus()
+
+	await act(async () => {
+		heading.textContent = t("nav.users")
+	})
+	await settle()
+
+	expect(document.title).toBe(`${t("nav.users")} · Talqo`)
+	expect(document.activeElement).toBe(toggle)
+})
+
+test("focuses the first mobile link, closes on Escape, and returns focus to the toggle", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	if (!toggle) throw new Error("Missing navigation toggle")
+
+	await act(async () => toggle.click())
+	const firstLink = rendered.host.querySelector("#mobile-navigation a")
+	expect(toggle.getAttribute("aria-expanded")).toBe("true")
+	expect(document.activeElement).toBe(firstLink)
+
+	await act(async () => {
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+	})
+
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
+	expect(toggle.getAttribute("aria-expanded")).toBe("false")
+	expect(document.activeElement).toBe(toggle)
+})
+
+test("closes the mobile navigation when the page outside it is pressed", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	if (!toggle) throw new Error("Missing navigation toggle")
+
+	await act(async () => toggle.click())
+	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
+
+	await act(async () => {
+		document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }))
+	})
+
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
+	expect(document.activeElement).toBe(toggle)
 })

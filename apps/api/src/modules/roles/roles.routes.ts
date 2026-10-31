@@ -1,13 +1,14 @@
+import { requestClientNetwork } from "@/http/client-network.ts"
 import { PROBLEM_CODES, problemResponse } from "@/http/problem.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
+import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 
 import {
-	agentAccessResponseSchema,
 	assignUserRolesRoute,
 	bootstrapAdminResponseSchema,
 	bootstrapAdminRoute,
@@ -16,21 +17,23 @@ import {
 	createRoleRoute,
 	deleteRoleRoute,
 	deleteUserRoute,
-	getAgentAccessRoute,
 	getSetupStatusRoute,
 	getUsersRoute,
 	grantablePermissionsResponseSchema,
 	listGrantablePermissionsRoute,
+	listRoleAgentsRoute,
 	listRolesRoute,
 	myPermissionsResponseSchema,
 	myPermissionsRoute,
+	myRolesRoute,
 	redeemInvitationResponseSchema,
 	redeemInvitationRoute,
-	removeAgentAccessRoute,
+	removeRoleAgentAccessRoute,
 	resetUserPasswordRoute,
+	roleAgentsResponseSchema,
 	roleListResponseSchema,
 	roleResponseSchema,
-	setAgentAccessRoute,
+	setRoleAgentAccessRoute,
 	setupStatusResponseSchema,
 	updateRoleRoute,
 	userListResponseSchema,
@@ -39,28 +42,15 @@ import {
 import * as service from "./roles.service.ts"
 
 export const rolesRoutes = new OpenAPIHono()
-	.openapi(getAgentAccessRoute, async (c) => {
-		return c.json(
-			agentAccessResponseSchema.parse(await service.listAgentAccess(c.get("user").id, c.req.valid("param").agentId)),
-			HTTP_STATUS.OK,
-		)
-	})
-	.openapi(setAgentAccessRoute, async (c) => {
-		const { agentId, roleId } = c.req.valid("param")
-		await service.setAgentAccess(c.get("user").id, agentId, roleId, c.req.valid("json").permissions)
-		return c.body(null, HTTP_STATUS.NO_CONTENT)
-	})
-	.openapi(removeAgentAccessRoute, async (c) => {
-		const { agentId, roleId } = c.req.valid("param")
-		await service.setAgentAccess(c.get("user").id, agentId, roleId, [])
-		return c.body(null, HTTP_STATUS.NO_CONTENT)
-	})
 	.openapi(getSetupStatusRoute, async (c) => {
 		const needsSetup = !(await service.hasAdmin())
 		return c.json(setupStatusResponseSchema.parse({ needsSetup }), HTTP_STATUS.OK)
 	})
 	.openapi(bootstrapAdminRoute, async (c) => {
-		const user = await service.bootstrapAdmin(c.req.valid("json"))
+		const input = c.req.valid("json")
+		const user = await identity.runCredentialOperation(requestClientNetwork(c), input.username, () =>
+			service.bootstrapAdmin(input),
+		)
 		annotate(c, { "user.id": user.id })
 		// Set the session now: the setup page lands signed in without a second login round-trip.
 		const { token, expiresAt } = await identity.createSession(user.id)
@@ -78,7 +68,10 @@ const invitationRoutes = new OpenAPIHono()
 		)
 	})
 	.openapi(redeemInvitationRoute, async (c) => {
-		const user = await service.redeemInvitation(c.req.valid("json"))
+		const input = c.req.valid("json")
+		const user = await identity.runCredentialOperation(requestClientNetwork(c), input.username, () =>
+			service.redeemInvitation(input),
+		)
 		annotate(c, { "user.id": user.id })
 		// Set the session now: accepting an invitation lands the member signed in.
 		const { token, expiresAt } = await identity.createSession(user.id)
@@ -91,6 +84,10 @@ rolesRoutes.route("/invitations", invitationRoutes)
 rolesRoutes.openapi(myPermissionsRoute, async (c) => {
 	const permissions = await service.listEffectivePermissions(c.get("user").id)
 	return c.json(myPermissionsResponseSchema.parse({ permissions }), HTTP_STATUS.OK)
+})
+rolesRoutes.openapi(myRolesRoute, async (c) => {
+	const roles = await service.listAssignedRoles(c.get("user").id)
+	return c.json(userRolesResponseSchema.parse({ roles }), HTTP_STATUS.OK)
 })
 
 const userRoutes = new OpenAPIHono()
@@ -135,6 +132,23 @@ rolesRoutes.openapi(listRolesRoute, async (c) => {
 		}),
 		HTTP_STATUS.OK,
 	)
+})
+
+rolesRoutes.openapi(listRoleAgentsRoute, async (c) => {
+	const agents = await agent.listAgentsForRole(c.get("user").id, c.req.valid("param").roleId)
+	return c.json(roleAgentsResponseSchema.parse({ agents }), HTTP_STATUS.OK)
+})
+
+rolesRoutes.openapi(setRoleAgentAccessRoute, async (c) => {
+	const { agentId, roleId } = c.req.valid("param")
+	await service.setRoleAgentAccess(c.get("user").id, roleId, agentId, c.req.valid("json").permissions)
+	return c.body(null, HTTP_STATUS.NO_CONTENT)
+})
+
+rolesRoutes.openapi(removeRoleAgentAccessRoute, async (c) => {
+	const { agentId, roleId } = c.req.valid("param")
+	await service.setRoleAgentAccess(c.get("user").id, roleId, agentId, [])
+	return c.body(null, HTTP_STATUS.NO_CONTENT)
 })
 
 rolesRoutes.openapi(createRoleRoute, async (c) => {

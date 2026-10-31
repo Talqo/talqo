@@ -33,23 +33,14 @@ function problem(code: string, status: number): Response {
 	return json({ code, type: `${PROBLEM_TYPE}${code}` }, status)
 }
 
-const found = () =>
-	json({
-		conversation: {
-			id: CONVERSATION_ID,
-			agentId: AGENT.id,
-			startedAt: "2026-10-01T10:00:00.000Z",
-			messages: [
-				{
-					id: "1",
-					role: "user",
-					text: "Where is my order?",
-					outcome: "completed",
-					createdAt: "2026-10-01T10:00:00.000Z",
-				},
-			],
-		},
-	})
+const conversationWith = (text: string) => ({
+	id: CONVERSATION_ID,
+	agentId: AGENT.id,
+	startedAt: "2026-10-01T10:00:00.000Z",
+	messages: [{ id: "1", role: "user", text, outcome: "completed", createdAt: "2026-10-01T10:00:00.000Z" }],
+})
+
+const found = () => json({ conversation: conversationWith("Where is my order?") })
 
 async function settle() {
 	await act(async () => {
@@ -75,7 +66,7 @@ async function renderPage() {
 }
 
 function alertText(): string | null | undefined {
-	return host.querySelector("[role=alert]")?.textContent
+	return host.querySelector("[role=alert] p")?.textContent
 }
 
 beforeEach(() => {
@@ -109,8 +100,25 @@ describe("ConversationPage", () => {
 		await act(async () => pending.resolve(found()))
 		await settle()
 
+		expect(host.querySelector("h1")?.textContent).toBe("Where is my order?")
 		expect(host.textContent).toContain("Where is my order?")
 		expect(host.textContent).toContain(AGENT.name)
+	})
+
+	test("falls back to the agent when the first message is blank", async () => {
+		transcript = async () => json({ conversation: conversationWith("   ") })
+
+		await renderPage()
+
+		expect(host.querySelector("h1")?.textContent).toBe(AGENT.name)
+	})
+
+	test("bounds a long first message in the heading", async () => {
+		transcript = async () => json({ conversation: conversationWith("a".repeat(200)) })
+
+		await renderPage()
+
+		expect(host.querySelector("h1")?.textContent).toBe(`${"a".repeat(80)}…`)
 	})
 
 	test("returns to the list page the operator came from", async () => {

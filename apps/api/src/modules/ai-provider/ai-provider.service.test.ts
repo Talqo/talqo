@@ -199,7 +199,7 @@ describe("AI provider service", () => {
 		expect(typeof prepared.embed).toBe("function")
 	})
 
-	it("passes an abort signal to the embedding call only when a timeout is set", async () => {
+	it("passes the caller's abort signal, or the configured timeout, to the embedding call", async () => {
 		const { service } = createMemoryService()
 		await service.saveConfiguration(input)
 		const callsBefore = embedCalls.length
@@ -208,11 +208,14 @@ describe("AI provider service", () => {
 		await timed.embed("hello")
 		const untimed = await service.prepareEmbeddingOperation()
 		await untimed.embed("hello")
+		const callerSignal = AbortSignal.abort()
+		await timed.embed("hello", callerSignal)
 
 		const calls = embedCalls.slice(callsBefore)
 		expect(calls[0]).toMatchObject({ maxRetries: 0 })
 		expect(calls[0]?.abortSignal).toBeInstanceOf(AbortSignal)
 		expect(calls[1]?.abortSignal).toBeUndefined()
+		expect(calls[2]?.abortSignal).toBe(callerSignal)
 	})
 
 	it("streams only the configured text model with retries disabled and normalized usage", async () => {

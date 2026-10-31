@@ -60,12 +60,12 @@ import type {
 } from '../models/roles/createRoleBody.zod';
 
 import type {
-  GetAgentAccess200
-} from '../models/roles/getAgentAccess200.zod';
-
-import type {
   GetMyPermissions200
 } from '../models/roles/getMyPermissions200.zod';
+
+import type {
+  GetMyRoles200
+} from '../models/roles/getMyRoles200.zod';
 
 import type {
   GetSetupStatus200
@@ -74,6 +74,10 @@ import type {
 import type {
   ListGrantablePermissions200
 } from '../models/roles/listGrantablePermissions200.zod';
+
+import type {
+  ListRoleAgents200
+} from '../models/roles/listRoleAgents200.zod';
 
 import type {
   ListRoles200
@@ -96,8 +100,8 @@ import type {
 } from '../models/roles/resetUserPasswordBody.zod';
 
 import type {
-  SetAgentAccessBody
-} from '../models/roles/setAgentAccessBody.zod';
+  SetRoleAgentAccessBody
+} from '../models/roles/setRoleAgentAccessBody.zod';
 
 import type {
   UpdateRole200
@@ -126,400 +130,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type getAgentAccessResponse200 = {
-  data: GetAgentAccess200
-  status: 200
-}
-
-export type getAgentAccessResponse401 = {
-  data: ProblemDetails
-  status: 401
-}
-
-export type getAgentAccessResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type getAgentAccessResponse404 = {
-  data: ProblemDetails
-  status: 404
-}
-
-export type getAgentAccessResponse500 = {
-  data: ProblemDetails
-  status: 500
-}
-
-export type getAgentAccessResponseSuccess = (getAgentAccessResponse200) & {
-  headers: Headers;
-};
-export type getAgentAccessResponseError = (getAgentAccessResponse401 | getAgentAccessResponse403 | getAgentAccessResponse404 | getAgentAccessResponse500) & {
-  headers: Headers;
-};
-
-export const getGetAgentAccessUrl = (agentId: string,) => {
-
-
-
-
-  return `/api/agents/${agentId}/access`
-}
-
-export const getAgentAccess = async (agentId: string, options?: RequestInit): Promise<getAgentAccessResponseSuccess> => {
-
-  const res = await fetch(getGetAgentAccessUrl(agentId),
-  {
-      credentials: 'include',
-    ...options,
-    method: 'GET'
-
-
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  if (!res.ok) {
-
-    const err: globalThis.Error & {info?: getAgentAccessResponseError['data'], status?: number} = new globalThis.Error();
-    const data : getAgentAccessResponseError['data'] = body ? JSON.parse(body) : {}
-    err.info = data;
-    err.status = res.status;
-    throw err;
-  }
-  const data: getAgentAccessResponseSuccess['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as getAgentAccessResponseSuccess
-}
-
-
-
-
-
-export const getGetAgentAccessQueryKey = (agentId: string,) => {
-    return [
-    `/api/agents/${agentId}/access`
-    ] as const;
-    }
-
-
-export const getGetAgentAccessQueryOptions = <TData = Awaited<ReturnType<typeof getAgentAccess>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData>>, fetch?: RequestInit}
-) => {
-
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetAgentAccessQueryKey(agentId);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentAccess>>> = ({ signal }) => getAgentAccess(agentId, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetAgentAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentAccess>>>
-export type GetAgentAccessQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
-
-
-export function useGetAgentAccess<TData = Awaited<ReturnType<typeof getAgentAccess>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
- agentId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentAccess>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentAccess>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAgentAccess<TData = Awaited<ReturnType<typeof getAgentAccess>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
- agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentAccess>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentAccess>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAgentAccess<TData = Awaited<ReturnType<typeof getAgentAccess>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
- agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetAgentAccess<TData = Awaited<ReturnType<typeof getAgentAccess>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
- agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgentAccess>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetAgentAccessQueryOptions(agentId,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-export type setAgentAccessResponse204 = {
-  data: void
-  status: 204
-}
-
-export type setAgentAccessResponse400 = {
-  data: ProblemDetails
-  status: 400
-}
-
-export type setAgentAccessResponse401 = {
-  data: ProblemDetails
-  status: 401
-}
-
-export type setAgentAccessResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type setAgentAccessResponse404 = {
-  data: ProblemDetails
-  status: 404
-}
-
-export type setAgentAccessResponse500 = {
-  data: ProblemDetails
-  status: 500
-}
-
-export type setAgentAccessResponseSuccess = (setAgentAccessResponse204) & {
-  headers: Headers;
-};
-export type setAgentAccessResponseError = (setAgentAccessResponse400 | setAgentAccessResponse401 | setAgentAccessResponse403 | setAgentAccessResponse404 | setAgentAccessResponse500) & {
-  headers: Headers;
-};
-
-export const getSetAgentAccessUrl = (agentId: string,
-    roleId: string,) => {
-
-
-
-
-  return `/api/agents/${agentId}/access/${roleId}`
-}
-
-export const setAgentAccess = async (agentId: string,
-    roleId: string,
-    setAgentAccessBody: SetAgentAccessBody, options?: RequestInit): Promise<setAgentAccessResponseSuccess> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getSetAgentAccessUrl(agentId,roleId),
-  {
-      credentials: 'include',
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(setAgentAccessBody)
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  if (!res.ok) {
-
-    const err: globalThis.Error & {info?: setAgentAccessResponseError['data'], status?: number} = new globalThis.Error();
-    const data : setAgentAccessResponseError['data'] = body ? JSON.parse(body) : {}
-    err.info = data;
-    err.status = res.status;
-    throw err;
-  }
-  const data: setAgentAccessResponseSuccess['data'] = body ? JSON.parse(body) : undefined
-  return { data, status: res.status, headers: res.headers } as setAgentAccessResponseSuccess
-}
-
-
-
-
-
-export const getSetAgentAccessMutationKey = () => ['setAgentAccess'] as const;
-
-export const getSetAgentAccessMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAgentAccess>>, TError,SetAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof setAgentAccess>>, TError,SetAgentAccessMutationVariables, TContext> => {
-
-const mutationKey = getSetAgentAccessMutationKey();
-const {mutation: mutationOptions, fetch: fetchOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, fetch: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAgentAccess>>, SetAgentAccessMutationVariables> = (props) => {
-          const {agentId,roleId,data} = props ?? {};
-
-          return  setAgentAccess(agentId,roleId,data,fetchOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type SetAgentAccessMutationResult = NonNullable<Awaited<ReturnType<typeof setAgentAccess>>>
-    export type SetAgentAccessMutationBody = SetAgentAccessBody
-    export type SetAgentAccessMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
-    export type SetAgentAccessMutationVariables = {agentId: string;roleId: string;data: SetAgentAccessBody}
-
-    export const useSetAgentAccess = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAgentAccess>>, TError,SetAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof setAgentAccess>>,
-        TError,
-        SetAgentAccessMutationVariables,
-        TContext
-      > => {
-      return useMutation(getSetAgentAccessMutationOptions(options), queryClient);
-    }
-    export type removeAgentAccessResponse204 = {
-  data: void
-  status: 204
-}
-
-export type removeAgentAccessResponse401 = {
-  data: ProblemDetails
-  status: 401
-}
-
-export type removeAgentAccessResponse403 = {
-  data: ProblemDetails
-  status: 403
-}
-
-export type removeAgentAccessResponse404 = {
-  data: ProblemDetails
-  status: 404
-}
-
-export type removeAgentAccessResponse500 = {
-  data: ProblemDetails
-  status: 500
-}
-
-export type removeAgentAccessResponseSuccess = (removeAgentAccessResponse204) & {
-  headers: Headers;
-};
-export type removeAgentAccessResponseError = (removeAgentAccessResponse401 | removeAgentAccessResponse403 | removeAgentAccessResponse404 | removeAgentAccessResponse500) & {
-  headers: Headers;
-};
-
-export const getRemoveAgentAccessUrl = (agentId: string,
-    roleId: string,) => {
-
-
-
-
-  return `/api/agents/${agentId}/access/${roleId}`
-}
-
-export const removeAgentAccess = async (agentId: string,
-    roleId: string, options?: RequestInit): Promise<removeAgentAccessResponseSuccess> => {
-
-  const res = await fetch(getRemoveAgentAccessUrl(agentId,roleId),
-  {
-      credentials: 'include',
-    ...options,
-    method: 'DELETE'
-
-
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  if (!res.ok) {
-
-    const err: globalThis.Error & {info?: removeAgentAccessResponseError['data'], status?: number} = new globalThis.Error();
-    const data : removeAgentAccessResponseError['data'] = body ? JSON.parse(body) : {}
-    err.info = data;
-    err.status = res.status;
-    throw err;
-  }
-  const data: removeAgentAccessResponseSuccess['data'] = body ? JSON.parse(body) : undefined
-  return { data, status: res.status, headers: res.headers } as removeAgentAccessResponseSuccess
-}
-
-
-
-
-
-export const getRemoveAgentAccessMutationKey = () => ['removeAgentAccess'] as const;
-
-export const getRemoveAgentAccessMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgentAccess>>, TError,RemoveAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
-): UseMutationOptions<Awaited<ReturnType<typeof removeAgentAccess>>, TError,RemoveAgentAccessMutationVariables, TContext> => {
-
-const mutationKey = getRemoveAgentAccessMutationKey();
-const {mutation: mutationOptions, fetch: fetchOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, fetch: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeAgentAccess>>, RemoveAgentAccessMutationVariables> = (props) => {
-          const {agentId,roleId} = props ?? {};
-
-          return  removeAgentAccess(agentId,roleId,fetchOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type RemoveAgentAccessMutationResult = NonNullable<Awaited<ReturnType<typeof removeAgentAccess>>>
-
-    export type RemoveAgentAccessMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
-    export type RemoveAgentAccessMutationVariables = {agentId: string;roleId: string}
-
-    export const useRemoveAgentAccess = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAgentAccess>>, TError,RemoveAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof removeAgentAccess>>,
-        TError,
-        RemoveAgentAccessMutationVariables,
-        TContext
-      > => {
-      return useMutation(getRemoveAgentAccessMutationOptions(options), queryClient);
-    }
-    export type getSetupStatusResponse200 = {
+export type getSetupStatusResponse200 = {
   data: GetSetupStatus200
   status: 200
 }
@@ -665,6 +276,11 @@ export type bootstrapAdminResponse413 = {
   status: 413
 }
 
+export type bootstrapAdminResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
 export type bootstrapAdminResponse500 = {
   data: ProblemDetails
   status: 500
@@ -673,7 +289,7 @@ export type bootstrapAdminResponse500 = {
 export type bootstrapAdminResponseSuccess = (bootstrapAdminResponse201) & {
   headers: Headers;
 };
-export type bootstrapAdminResponseError = (bootstrapAdminResponse400 | bootstrapAdminResponse409 | bootstrapAdminResponse413 | bootstrapAdminResponse500) & {
+export type bootstrapAdminResponseError = (bootstrapAdminResponse400 | bootstrapAdminResponse409 | bootstrapAdminResponse413 | bootstrapAdminResponse429 | bootstrapAdminResponse500) & {
   headers: Headers;
 };
 
@@ -931,6 +547,11 @@ export type redeemInvitationResponse413 = {
   status: 413
 }
 
+export type redeemInvitationResponse429 = {
+  data: ProblemDetails
+  status: 429
+}
+
 export type redeemInvitationResponse500 = {
   data: ProblemDetails
   status: 500
@@ -939,7 +560,7 @@ export type redeemInvitationResponse500 = {
 export type redeemInvitationResponseSuccess = (redeemInvitationResponse201) & {
   headers: Headers;
 };
-export type redeemInvitationResponseError = (redeemInvitationResponse400 | redeemInvitationResponse409 | redeemInvitationResponse413 | redeemInvitationResponse500) & {
+export type redeemInvitationResponseError = (redeemInvitationResponse400 | redeemInvitationResponse409 | redeemInvitationResponse413 | redeemInvitationResponse429 | redeemInvitationResponse500) & {
   headers: Headers;
 };
 
@@ -1164,6 +785,142 @@ export function useGetMyPermissions<TData = Awaited<ReturnType<typeof getMyPermi
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetMyPermissionsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type getMyRolesResponse200 = {
+  data: GetMyRoles200
+  status: 200
+}
+
+export type getMyRolesResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type getMyRolesResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type getMyRolesResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type getMyRolesResponseSuccess = (getMyRolesResponse200) & {
+  headers: Headers;
+};
+export type getMyRolesResponseError = (getMyRolesResponse401 | getMyRolesResponse403 | getMyRolesResponse500) & {
+  headers: Headers;
+};
+
+export const getGetMyRolesUrl = () => {
+
+
+
+
+  return `/api/me/roles`
+}
+
+export const getMyRoles = async ( options?: RequestInit): Promise<getMyRolesResponseSuccess> => {
+
+  const res = await fetch(getGetMyRolesUrl(),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: getMyRolesResponseError['data'], status?: number} = new globalThis.Error();
+    const data : getMyRolesResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: getMyRolesResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getMyRolesResponseSuccess
+}
+
+
+
+
+
+export const getGetMyRolesQueryKey = () => {
+    return [
+    `/api/me/roles`
+    ] as const;
+    }
+
+
+export const getGetMyRolesQueryOptions = <TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyRolesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyRoles>>> = ({ signal }) => getMyRoles({ signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyRolesQueryResult = NonNullable<Awaited<ReturnType<typeof getMyRoles>>>
+export type GetMyRolesQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyRoles>>,
+          TError,
+          Awaited<ReturnType<typeof getMyRoles>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyRoles>>,
+          TError,
+          Awaited<ReturnType<typeof getMyRoles>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyRolesQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1978,6 +1735,399 @@ const {mutation: mutationOptions, fetch: fetchOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateRoleMutationOptions(options), queryClient);
+    }
+    export type listRoleAgentsResponse200 = {
+  data: ListRoleAgents200
+  status: 200
+}
+
+export type listRoleAgentsResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type listRoleAgentsResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type listRoleAgentsResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type listRoleAgentsResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type listRoleAgentsResponseSuccess = (listRoleAgentsResponse200) & {
+  headers: Headers;
+};
+export type listRoleAgentsResponseError = (listRoleAgentsResponse401 | listRoleAgentsResponse403 | listRoleAgentsResponse404 | listRoleAgentsResponse500) & {
+  headers: Headers;
+};
+
+export const getListRoleAgentsUrl = (roleId: string,) => {
+
+
+
+
+  return `/api/roles/${roleId}/agents`
+}
+
+export const listRoleAgents = async (roleId: string, options?: RequestInit): Promise<listRoleAgentsResponseSuccess> => {
+
+  const res = await fetch(getListRoleAgentsUrl(roleId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: listRoleAgentsResponseError['data'], status?: number} = new globalThis.Error();
+    const data : listRoleAgentsResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: listRoleAgentsResponseSuccess['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as listRoleAgentsResponseSuccess
+}
+
+
+
+
+
+export const getListRoleAgentsQueryKey = (roleId: string,) => {
+    return [
+    `/api/roles/${roleId}/agents`
+    ] as const;
+    }
+
+
+export const getListRoleAgentsQueryOptions = <TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>>, fetch?: RequestInit}
+) => {
+
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRoleAgentsQueryKey(roleId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoleAgents>>> = ({ signal }) => listRoleAgents(roleId, { signal, ...fetchOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: roleId !== null && roleId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListRoleAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listRoleAgents>>>
+export type ListRoleAgentsQueryError = globalThis.Error & { info?: ProblemDetails; status?: number }
+
+
+export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ roleId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRoleAgents>>,
+          TError,
+          Awaited<ReturnType<typeof listRoleAgents>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listRoleAgents>>,
+          TError,
+          Awaited<ReturnType<typeof listRoleAgents>>
+        > , 'initialData'
+      >, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
+ roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>>, fetch?: RequestInit}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListRoleAgentsQueryOptions(roleId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type setRoleAgentAccessResponse204 = {
+  data: void
+  status: 204
+}
+
+export type setRoleAgentAccessResponse400 = {
+  data: ProblemDetails
+  status: 400
+}
+
+export type setRoleAgentAccessResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type setRoleAgentAccessResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type setRoleAgentAccessResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type setRoleAgentAccessResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type setRoleAgentAccessResponseSuccess = (setRoleAgentAccessResponse204) & {
+  headers: Headers;
+};
+export type setRoleAgentAccessResponseError = (setRoleAgentAccessResponse400 | setRoleAgentAccessResponse401 | setRoleAgentAccessResponse403 | setRoleAgentAccessResponse404 | setRoleAgentAccessResponse500) & {
+  headers: Headers;
+};
+
+export const getSetRoleAgentAccessUrl = (roleId: string,
+    agentId: string,) => {
+
+
+
+
+  return `/api/roles/${roleId}/agents/${agentId}`
+}
+
+export const setRoleAgentAccess = async (roleId: string,
+    agentId: string,
+    setRoleAgentAccessBody: SetRoleAgentAccessBody, options?: RequestInit): Promise<setRoleAgentAccessResponseSuccess> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+const res = await fetch(getSetRoleAgentAccessUrl(roleId,agentId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setRoleAgentAccessBody)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: setRoleAgentAccessResponseError['data'], status?: number} = new globalThis.Error();
+    const data : setRoleAgentAccessResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: setRoleAgentAccessResponseSuccess['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as setRoleAgentAccessResponseSuccess
+}
+
+
+
+
+
+export const getSetRoleAgentAccessMutationKey = () => ['setRoleAgentAccess'] as const;
+
+export const getSetRoleAgentAccessMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setRoleAgentAccess>>, TError,SetRoleAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof setRoleAgentAccess>>, TError,SetRoleAgentAccessMutationVariables, TContext> => {
+
+const mutationKey = getSetRoleAgentAccessMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setRoleAgentAccess>>, SetRoleAgentAccessMutationVariables> = (props) => {
+          const {roleId,agentId,data} = props ?? {};
+
+          return  setRoleAgentAccess(roleId,agentId,data,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetRoleAgentAccessMutationResult = NonNullable<Awaited<ReturnType<typeof setRoleAgentAccess>>>
+    export type SetRoleAgentAccessMutationBody = SetRoleAgentAccessBody
+    export type SetRoleAgentAccessMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type SetRoleAgentAccessMutationVariables = {roleId: string;agentId: string;data: SetRoleAgentAccessBody}
+
+    export const useSetRoleAgentAccess = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setRoleAgentAccess>>, TError,SetRoleAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setRoleAgentAccess>>,
+        TError,
+        SetRoleAgentAccessMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetRoleAgentAccessMutationOptions(options), queryClient);
+    }
+    export type removeRoleAgentAccessResponse204 = {
+  data: void
+  status: 204
+}
+
+export type removeRoleAgentAccessResponse401 = {
+  data: ProblemDetails
+  status: 401
+}
+
+export type removeRoleAgentAccessResponse403 = {
+  data: ProblemDetails
+  status: 403
+}
+
+export type removeRoleAgentAccessResponse404 = {
+  data: ProblemDetails
+  status: 404
+}
+
+export type removeRoleAgentAccessResponse500 = {
+  data: ProblemDetails
+  status: 500
+}
+
+export type removeRoleAgentAccessResponseSuccess = (removeRoleAgentAccessResponse204) & {
+  headers: Headers;
+};
+export type removeRoleAgentAccessResponseError = (removeRoleAgentAccessResponse401 | removeRoleAgentAccessResponse403 | removeRoleAgentAccessResponse404 | removeRoleAgentAccessResponse500) & {
+  headers: Headers;
+};
+
+export const getRemoveRoleAgentAccessUrl = (roleId: string,
+    agentId: string,) => {
+
+
+
+
+  return `/api/roles/${roleId}/agents/${agentId}`
+}
+
+export const removeRoleAgentAccess = async (roleId: string,
+    agentId: string, options?: RequestInit): Promise<removeRoleAgentAccessResponseSuccess> => {
+
+  const res = await fetch(getRemoveRoleAgentAccessUrl(roleId,agentId),
+  {
+      credentials: 'include',
+    ...options,
+    method: 'DELETE'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+
+    const err: globalThis.Error & {info?: removeRoleAgentAccessResponseError['data'], status?: number} = new globalThis.Error();
+    const data : removeRoleAgentAccessResponseError['data'] = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: removeRoleAgentAccessResponseSuccess['data'] = body ? JSON.parse(body) : undefined
+  return { data, status: res.status, headers: res.headers } as removeRoleAgentAccessResponseSuccess
+}
+
+
+
+
+
+export const getRemoveRoleAgentAccessMutationKey = () => ['removeRoleAgentAccess'] as const;
+
+export const getRemoveRoleAgentAccessMutationOptions = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeRoleAgentAccess>>, TError,RemoveRoleAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
+): UseMutationOptions<Awaited<ReturnType<typeof removeRoleAgentAccess>>, TError,RemoveRoleAgentAccessMutationVariables, TContext> => {
+
+const mutationKey = getRemoveRoleAgentAccessMutationKey();
+const {mutation: mutationOptions, fetch: fetchOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, fetch: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeRoleAgentAccess>>, RemoveRoleAgentAccessMutationVariables> = (props) => {
+          const {roleId,agentId} = props ?? {};
+
+          return  removeRoleAgentAccess(roleId,agentId,fetchOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveRoleAgentAccessMutationResult = NonNullable<Awaited<ReturnType<typeof removeRoleAgentAccess>>>
+
+    export type RemoveRoleAgentAccessMutationError = globalThis.Error & { info?: ProblemDetails; status?: number }
+    export type RemoveRoleAgentAccessMutationVariables = {roleId: string;agentId: string}
+
+    export const useRemoveRoleAgentAccess = <TError = globalThis.Error & { info?: ProblemDetails; status?: number },
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeRoleAgentAccess>>, TError,RemoveRoleAgentAccessMutationVariables, TContext>, fetch?: RequestInit}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeRoleAgentAccess>>,
+        TError,
+        RemoveRoleAgentAccessMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveRoleAgentAccessMutationOptions(options), queryClient);
     }
     export type updateRoleResponse200 = {
   data: UpdateRole200

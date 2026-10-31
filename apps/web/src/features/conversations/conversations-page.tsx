@@ -9,10 +9,12 @@ import { agentLineColor } from "@/features/statistics/components/stats-charts"
 import { formatDay, formatTime } from "@/lib/format-date"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
+import { EmptyState } from "@talqo/ui/components/empty-state"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { keepPreviousData } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { useMemo, useRef } from "react"
+import { ChevronLeft, ChevronRight, MessagesSquare } from "lucide-react"
+import { useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { ConversationsSearch } from "./conversations-search"
@@ -23,6 +25,14 @@ type Props = {
 }
 
 type DayGroup = { day: string; conversations: ConversationSummary[] }
+
+/** Drops unreadable IDs. Undefined means all agents; an unchanged selection keeps its reference. */
+function reconcileAgentIds(requested: string[] | undefined, readableIds: string[]): string[] | undefined {
+	if (requested === undefined || requested.length === 0) return requested
+	const valid = requested.filter((id) => readableIds.includes(id))
+	if (valid.length === requested.length) return requested
+	return valid.length === 0 ? undefined : valid
+}
 
 function groupByDay(conversations: ConversationSummary[], language: string): DayGroup[] {
 	const groups: DayGroup[] = []
@@ -53,10 +63,25 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 		[agentsQuery.data],
 	)
 	const agentNames = new Map(agentLines.map((line) => [line.id, line.name]))
-	const noAgentSelected = search.agents?.length === 0
+	const readableIds = useMemo(() => agentLines.map((line) => line.id), [agentLines])
+	const agentsLoaded = agentsQuery.data !== undefined
+	const effectiveAgents = useMemo(
+		() => (agentsLoaded ? reconcileAgentIds(search.agents, readableIds) : search.agents),
+		[agentsLoaded, search.agents, readableIds],
+	)
+	const filterChanged = effectiveAgents !== search.agents
+	const noAgentSelected = effectiveAgents?.length === 0
+	// A filtered URL waits for the agent list instead of querying unreadable IDs first.
+	const awaitingAgents = agentsQuery.isPending && (search.agents?.length ?? 0) > 0
+
+	useEffect(() => {
+		if (!agentsLoaded || effectiveAgents === search.agents) return
+		onSearchChange({ ...search, agents: effectiveAgents, page: undefined })
+	}, [agentsLoaded, effectiveAgents, onSearchChange, search])
+
 	const conversationsQuery = useListConversations(
-		{ agentId: search.agents, page },
-		{ query: { enabled: !noAgentSelected, placeholderData: keepPreviousData } },
+		{ agentId: effectiveAgents, page: filterChanged ? 1 : page },
+		{ query: { enabled: !noAgentSelected && !awaitingAgents, placeholderData: keepPreviousData } },
 	)
 	const result = conversationsQuery.data?.data
 	const pageCount = result ? Math.max(1, Math.ceil(result.total / result.pageSize)) : 1
@@ -67,14 +92,14 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader title={t("conversations.listHeading")} description={t("conversations.listDescription")} />
 
 			<div className="flex flex-wrap items-center gap-4">
 				{agentLines.length > 0 && (
 					<AgentFilter
 						agentLines={agentLines}
-						selectedIds={search.agents ?? agentLines.map((line) => line.id)}
+						selectedIds={effectiveAgents ?? readableIds}
 						onChange={(ids) =>
 							onSearchChange({
 								...search,
@@ -86,28 +111,53 @@ export function ConversationsPage({ search, onSearchChange }: Props) {
 				)}
 			</div>
 
+			{!noAgentSelected && conversationsQuery.isPending ? (
+				<output className="sr-only">{t("conversations.loading")}</output>
+			) : null}
+
 			<section className="space-y-4" aria-busy={conversationsQuery.isFetching}>
-				<h2 ref={resultsHeading} tabIndex={-1} className="text-sm font-medium outline-none">
+				<h2
+					ref={resultsHeading}
+					tabIndex={-1}
+					className="focus-visible:ring-ring/50 rounded-sm text-sm font-medium outline-none focus-visible:ring-3"
+				>
 					{result ? t("conversations.total", { count: result.total }) : t("conversations.listHeading")}
 				</h2>
 
 				{noAgentSelected ? (
 					<output className="text-muted-foreground block">{t("conversations.noAgentSelected")}</output>
 				) : conversationsQuery.isPending ? (
-					<output className="text-muted-foreground block">{t("conversations.loading")}</output>
+					<div className="space-y-3">
+						<div className="divide-border divide-y rounded-md border">
+							{Array.from({ length: 4 }, (_, index) => (
+								<div key={index} className="space-y-2 px-4 py-3">
+									<Skeleton className="h-4 w-2/3 max-w-full" />
+									<Skeleton className="h-3 w-1/2 max-w-full" />
+								</div>
+							))}
+						</div>
+					</div>
 				) : !result ? (
 					<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />
 				) : result.conversations.length === 0 && page > 1 ? (
-					<div className="space-y-2">
-						<output className="text-muted-foreground block">{t("conversations.pageEmpty")}</output>
-						<Button variant="outline" onClick={() => goToPage(1)}>
-							{t("conversations.firstPage")}
-						</Button>
-					</div>
+					<EmptyState
+						icon={MessagesSquare}
+						title={t("conversations.pageEmptyTitle")}
+						description={t("conversations.pageEmptyDescription")}
+						actions={
+							<Button variant="outline" onClick={() => goToPage(1)}>
+								{t("conversations.firstPage")}
+							</Button>
+						}
+					/>
 				) : result.conversations.length === 0 ? (
-					<output className="text-muted-foreground block">
-						{search.agents ? t("conversations.emptyFiltered") : t("conversations.empty")}
-					</output>
+					<EmptyState
+						icon={MessagesSquare}
+						title={effectiveAgents ? t("conversations.emptyFilteredTitle") : t("conversations.emptyTitle")}
+						description={
+							effectiveAgents ? t("conversations.emptyFilteredDescription") : t("conversations.emptyDescription")
+						}
+					/>
 				) : (
 					<>
 						<ProblemAlert error={conversationsQuery.error} onRetry={() => void conversationsQuery.refetch()} />

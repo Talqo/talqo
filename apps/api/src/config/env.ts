@@ -71,6 +71,10 @@ const envSchema = z
 			.enum(["true", "false"])
 			.default("false")
 			.transform((value) => value === "true"),
+		TALQO_MCP_ALLOW_STDIO: z
+			.enum(["true", "false"])
+			.default("true")
+			.transform((value) => value === "true"),
 		TALQO_UPLOAD_DIR: z.string().min(1).optional(),
 		TALQO_WEB_DIST: z.string().min(1).optional(),
 		TALQO_WIDGET_DIST: z.string().min(1).optional(),
@@ -136,6 +140,9 @@ export const env: Env = {
 	},
 	get TALQO_SERVE_STATIC() {
 		return load().TALQO_SERVE_STATIC
+	},
+	get TALQO_MCP_ALLOW_STDIO() {
+		return load().TALQO_MCP_ALLOW_STDIO
 	},
 	get TALQO_UPLOAD_DIR() {
 		return load().TALQO_UPLOAD_DIR

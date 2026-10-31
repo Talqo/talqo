@@ -1,9 +1,10 @@
 "use client"
 
+import type { ComponentProps, ReactNode } from "react"
+
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@talqo/ui/lib/utils"
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
-import * as React from "react"
 
 const Select = SelectPrimitive.Root
 
@@ -34,9 +35,9 @@ function SelectTrigger({
 			data-slot="select-trigger"
 			data-size={size}
 			className={cn(
-				"border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 rounded-control pl-control-padding data-[size=default]:h-control data-[size=sm]:h-control-sm flex w-fit items-center justify-between gap-2 border bg-transparent pr-3 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				"border-input-border focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 rounded-control pl-control-padding data-[size=default]:h-control data-[size=sm]:h-control-sm flex w-fit items-center justify-between gap-2 border bg-transparent pr-3 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 				variant === "ghost" &&
-					"hover:bg-muted dark:hover:bg-muted/50 justify-center gap-1.5 border-0 bg-transparent px-3.5 dark:bg-transparent",
+					"hover:bg-muted dark:hover:bg-muted/50 justify-center gap-1.5 border-0 bg-transparent px-3.5 font-medium dark:bg-transparent",
 				className,
 			)}
 			{...props}
@@ -65,7 +66,7 @@ function SelectContent({
 	...props
 }: SelectPrimitive.Popup.Props &
 	Pick<SelectPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"> & {
-		header?: React.ReactNode
+		header?: ReactNode
 	}) {
 	return (
 		<SelectPrimitive.Portal>
@@ -138,7 +139,7 @@ function SelectSeparator({ className, ...props }: SelectPrimitive.Separator.Prop
 	)
 }
 
-function SelectScrollUpButton({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
+function SelectScrollUpButton({ className, ...props }: ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
 	return (
 		<SelectPrimitive.ScrollUpArrow
 			data-slot="select-scroll-up-button"
@@ -153,7 +154,7 @@ function SelectScrollUpButton({ className, ...props }: React.ComponentProps<type
 	)
 }
 
-function SelectScrollDownButton({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
+function SelectScrollDownButton({ className, ...props }: ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
 	return (
 		<SelectPrimitive.ScrollDownArrow
 			data-slot="select-scroll-down-button"

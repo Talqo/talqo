@@ -25,7 +25,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { DEFAULT_ROLE_ID, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent } from "@talqo/ui/components/card"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import {
 	Dialog,
 	DialogContent,
@@ -37,6 +39,7 @@ import {
 } from "@talqo/ui/components/dialog"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Check, Copy, Pencil, Trash2, UserPlus } from "lucide-react"
@@ -45,6 +48,7 @@ import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { EditUserRolesDialog } from "./edit-user-roles-dialog"
+import { UsersRolesSwitcher } from "./users-roles-switcher"
 
 const NOT_FOUND_STATUS = 404
 
@@ -65,13 +69,18 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 		formState: { errors },
 	} = useForm<ResetPasswordFormValues>({ resolver: zodResolver(resetPasswordSchema) })
 
+	function close() {
+		setOpen(false)
+		reset()
+		resetUserPassword.reset()
+		setError(null)
+		setCopied(false)
+	}
+
 	function handleOpenChange(next: boolean) {
-		setOpen(next)
-		if (!next) {
-			reset()
-			setError(null)
-			setCopied(false)
-		}
+		if (resetUserPassword.isPending) return
+		if (next) setOpen(true)
+		else close()
 	}
 
 	function handleGenerate() {
@@ -96,7 +105,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 		try {
 			await resetUserPassword.mutateAsync({ userId: targetUser.id, data: { newPassword: values.newPassword } })
 			onReset(targetUser.id)
-			handleOpenChange(false)
+			close()
 		} catch (caught) {
 			setError(getProblemMessage(caught, t, t("auth.errorFallback")))
 		}
@@ -105,7 +114,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger render={<Button variant="outline" />}>{t("users.resetPassword")}</DialogTrigger>
-			<DialogContent>
+			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
 					<DialogTitle>{t("users.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
 					<DialogDescription>{t("users.resetDialogDescription")}</DialogDescription>
@@ -160,8 +169,16 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 						</p>
 					) : null}
 					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							disabled={resetUserPassword.isPending}
+							onClick={() => handleOpenChange(false)}
+						>
+							{t("users.cancel")}
+						</Button>
 						<Button type="submit" disabled={resetUserPassword.isPending}>
-							{t("users.resetPassword")}
+							{resetUserPassword.isPending ? t("users.resetting") : t("users.resetPassword")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -175,12 +192,13 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const isDeleting = deleteUser.isPending
 
 	function handleOpenChange(next: boolean) {
-		if (isDeleting) return
 		setOpen(next)
-		if (!next) setError(null)
+		if (!next) {
+			setError(null)
+			deleteUser.reset()
+		}
 	}
 
 	async function onConfirm() {
@@ -199,31 +217,49 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="destructive" />}>
+		<>
+			<Button variant="destructive" onClick={() => setOpen(true)}>
 				<Trash2 className="size-4" />
 				{t("users.delete")}
-			</DialogTrigger>
-			<DialogContent>
-				<DialogHeader>
-					<DialogTitle>{t("users.deleteTitle")}</DialogTitle>
-					<DialogDescription>{t("users.deletePrompt", { username: targetUser.username })}</DialogDescription>
-				</DialogHeader>
-				{error && (
-					<p role="alert" className="text-destructive text-sm">
-						{error}
-					</p>
-				)}
-				<DialogFooter>
-					<Button variant="outline" disabled={isDeleting} onClick={() => handleOpenChange(false)}>
-						{t("users.cancel")}
-					</Button>
-					<Button variant="destructive" disabled={isDeleting} onClick={onConfirm}>
-						{isDeleting ? t("users.deleting") : t("users.deleteConfirm")}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			</Button>
+			<ConfirmDialog
+				open={open}
+				onOpenChange={handleOpenChange}
+				title={t("users.deleteTitle")}
+				description={t("users.deletePrompt", { username: targetUser.username })}
+				cancelLabel={t("users.cancel")}
+				confirmLabel={t("users.deleteConfirm")}
+				pendingLabel={t("users.deleting")}
+				pending={deleteUser.isPending}
+				error={error ?? undefined}
+				onConfirm={() => void onConfirm()}
+			/>
+		</>
+	)
+}
+
+function UsersSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-3">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 3 }, (_, index) => (
+				<Card key={index}>
+					<CardHeader>
+						<Skeleton className="h-5 w-32 max-w-full" />
+						<div className="flex flex-wrap items-center gap-2">
+							<Skeleton className="h-5 w-16" />
+							<Skeleton className="h-5 w-20" />
+						</div>
+					</CardHeader>
+					<CardContent>
+						<div className="flex flex-wrap items-center gap-3">
+							<Skeleton className="h-9 w-28" />
+							<Skeleton className="h-9 w-28" />
+						</div>
+					</CardContent>
+				</Card>
+			))}
+		</div>
 	)
 }
 
@@ -249,7 +285,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 	}
 
 	if (usersQuery.isPending || session.isPending) {
-		return <p className="text-muted-foreground">{t("users.loading")}</p>
+		return <UsersSkeleton label={t("users.loading")} />
 	}
 
 	if (usersQuery.isError || session.isError) {
@@ -274,27 +310,34 @@ function UsersList({ held }: { held: readonly string[] }) {
 	return (
 		<div className="space-y-3">
 			{canManageRoles && rolesQuery.isPending ? (
-				<output className="text-muted-foreground block text-sm">{t("roles.loading")}</output>
+				<div className="space-y-2">
+					<output className="sr-only">{t("roles.loading")}</output>
+					<Skeleton className="h-4 w-40 max-w-full" />
+				</div>
 			) : null}
 			{canManageRoles ? <ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} /> : null}
 			{users.map((user) => {
 				const exceedsOperator = !user.canManage
 				return (
 					<Card key={user.id} data-user-id={user.id}>
+						<CardHeader>
+							<CardName>{user.username}</CardName>
+							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
+								<CardDescription className="min-w-0">
+									<div className="flex flex-wrap items-center gap-2">
+										{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+										{user.roles.map((role) => (
+											<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
+												<span className="max-w-48 truncate">{role.name}</span>
+											</Badge>
+										))}
+										{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+									</div>
+								</CardDescription>
+							)}
+						</CardHeader>
 						<CardContent>
 							<div className="space-y-4">
-								<div className="flex min-w-0 flex-wrap items-center gap-2">
-									<span className="max-w-full truncate font-medium" title={user.username}>
-										{user.username}
-									</span>
-									{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
-									{user.roles.map((role) => (
-										<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
-											<span className="max-w-48 truncate">{role.name}</span>
-										</Badge>
-									))}
-									{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
-								</div>
 								<div className="flex flex-wrap items-center gap-3">
 									{confirmedUserId === user.id && (
 										<output className="text-primary text-xs">{t("users.resetSuccess")}</output>
@@ -405,7 +448,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 				<UserPlus className="size-4" />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
-			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("auth.invitations.heading")}</DialogTitle>
 				</DialogHeader>
@@ -474,12 +517,13 @@ export function UsersPage() {
 	const held = useGetMyPermissions().data?.data.permissions ?? []
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader
 				title={t("users.heading")}
 				description={t("users.subheading")}
 				actions={held.includes("users:manage") ? <InviteMemberDialog held={held} /> : null}
 			/>
+			<UsersRolesSwitcher />
 			<UsersList held={held} />
 		</div>
 	)

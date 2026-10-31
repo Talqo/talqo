@@ -9,10 +9,14 @@ export function McpEnvEditor({
 	env,
 	onChange,
 	kind = "env",
+	invalidRowId,
+	errorId,
 }: {
 	env: EnvVariable[]
 	onChange: (env: EnvVariable[]) => void
 	kind?: "env" | "headers"
+	invalidRowId?: string
+	errorId?: string
 }) {
 	const { t } = useTranslation()
 	const set = (id: string, patch: Partial<EnvVariable>) =>
@@ -20,42 +24,53 @@ export function McpEnvEditor({
 	const title = kind === "headers" ? t("mcp.headers") : t("mcp.envVariables")
 	const nameLabel = kind === "headers" ? t("mcp.headerName") : t("mcp.envName")
 	const valueLabel = kind === "headers" ? t("mcp.headerValue") : t("mcp.envValue")
+	const idPrefix = kind === "headers" ? "mcp-headers" : "mcp-env"
 
 	return (
 		<div className="space-y-2">
 			<Label>{title}</Label>
-			{env.map((variable, index) => (
-				<div key={variable.id} className="flex gap-2">
-					<Input
-						value={variable.name}
-						placeholder={nameLabel}
-						aria-label={nameLabel}
-						autoComplete="off"
-						onChange={(event) => set(variable.id, { name: event.target.value })}
-					/>
-					<Input
-						value={variable.value}
-						type="password"
-						placeholder={valueLabel}
-						aria-label={valueLabel}
-						autoComplete="off"
-						onChange={(event) => set(variable.id, { value: event.target.value })}
-					/>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						aria-label={
-							kind === "headers"
-								? t("mcp.removeHeader", { name: variable.name.trim() || index + 1 })
-								: t("mcp.removeEnv", { name: variable.name.trim() || index + 1 })
-						}
-						onClick={() => onChange(env.filter((candidate) => candidate.id !== variable.id))}
-					>
-						<X className="size-4" />
-					</Button>
-				</div>
-			))}
+			{env.map((variable, index) => {
+				const invalid = variable.id === invalidRowId
+				return (
+					<div key={variable.id} className="flex flex-col gap-2 sm:flex-row">
+						<Input
+							id={`${idPrefix}-${variable.id}-name`}
+							value={variable.name}
+							placeholder={nameLabel}
+							aria-label={nameLabel}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? errorId : undefined}
+							autoComplete="off"
+							onChange={(event) => set(variable.id, { name: event.target.value })}
+						/>
+						<Input
+							id={`${idPrefix}-${variable.id}-value`}
+							value={variable.value}
+							type="password"
+							placeholder={valueLabel}
+							aria-label={valueLabel}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? errorId : undefined}
+							autoComplete="off"
+							onChange={(event) => set(variable.id, { value: event.target.value })}
+						/>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							className="self-end sm:self-auto"
+							aria-label={
+								kind === "headers"
+									? t("mcp.removeHeader", { name: variable.name.trim() || index + 1 })
+									: t("mcp.removeEnv", { name: variable.name.trim() || index + 1 })
+							}
+							onClick={() => onChange(env.filter((candidate) => candidate.id !== variable.id))}
+						>
+							<X className="size-4" />
+						</Button>
+					</div>
+				)
+			})}
 			<div className="flex items-center gap-2">
 				<Button
 					type="button"

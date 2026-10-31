@@ -73,7 +73,7 @@ export function EditUserRolesDialog({
 				<Pencil className="size-4" />
 				{t("users.editRoles")}
 			</DialogTrigger>
-			<DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{t("users.editRolesTitle", { username: targetUser.username })}</DialogTitle>
 					<DialogDescription>{t("users.editRolesDescription")}</DialogDescription>
@@ -97,7 +97,7 @@ export function EditUserRolesDialog({
 						{t("users.lockoutWarning")}
 					</p>
 				) : null}
-				<ProblemAlert error={assignRoles.error} className="bg-destructive/10 rounded-surface p-surface-padding" />
+				<ProblemAlert error={assignRoles.error} />
 				<DialogFooter>
 					<Button variant="outline" disabled={isSaving} onClick={() => handleOpenChange(false)}>
 						{t("users.cancel")}

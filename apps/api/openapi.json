@@ -268,6 +268,28 @@
               "code": {
                 "type": "string",
                 "enum": [
+                  "auth-rate-limited"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#auth-rate-limited"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
                   "chat-client-address-unavailable"
                 ]
               },
@@ -803,6 +825,28 @@
                 "type": "string",
                 "enum": [
                   "https://docs.talqo.chat/problems#mcp-server-not-found"
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "mcp-stdio-disabled"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "https://docs.talqo.chat/problems#mcp-stdio-disabled"
                 ]
               }
             },
@@ -3093,6 +3137,16 @@
               }
             }
           },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Problem response. Codes: internal-server-error.",
             "content": {
@@ -3518,324 +3572,6 @@
         }
       }
     },
-    "/api/agents/{agentId}/access": {
-      "get": {
-        "operationId": "getAgentAccess",
-        "tags": [
-          "Roles"
-        ],
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true,
-            "name": "agentId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Effective permissions, with role grants for access managers",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "permissions": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "enum": [
-                          "stats:read",
-                          "conversations:read",
-                          "agents:read",
-                          "agents:manage",
-                          "agents:delete"
-                        ]
-                      }
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "allOf": [
-                          {
-                            "$ref": "#/components/schemas/RoleSummary"
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "permissions": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "enum": [
-                                    "stats:read",
-                                    "conversations:read",
-                                    "agents:read",
-                                    "agents:manage",
-                                    "agents:delete"
-                                  ]
-                                }
-                              }
-                            },
-                            "required": [
-                              "permissions"
-                            ]
-                          }
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "permissions"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Problem response. Codes: authentication-required.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Problem response. Codes: password-change-required, permission-denied.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Problem response. Codes: agent-not-found.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Problem response. Codes: internal-server-error.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/agents/{agentId}/access/{roleId}": {
-      "put": {
-        "operationId": "setAgentAccess",
-        "tags": [
-          "Roles"
-        ],
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true,
-            "name": "agentId",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true,
-            "name": "roleId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "permissions": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "stats:read",
-                        "conversations:read",
-                        "agents:read",
-                        "agents:manage",
-                        "agents:delete"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "permissions"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "No content"
-          },
-          "400": {
-            "description": "Problem response. Codes: invalid-request, malformed-json.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Problem response. Codes: authentication-required.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Problem response. Codes: agent-not-found, role-not-found.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Problem response. Codes: internal-server-error.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "removeAgentAccess",
-        "tags": [
-          "Roles"
-        ],
-        "security": [
-          {
-            "SessionCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true,
-            "name": "agentId",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1
-            },
-            "required": true,
-            "name": "roleId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No content"
-          },
-          "401": {
-            "description": "Problem response. Codes: authentication-required.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Problem response. Codes: agent-not-found, role-not-found.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Problem response. Codes: internal-server-error.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/setup": {
       "get": {
         "operationId": "getSetupStatus",
@@ -3948,6 +3684,16 @@
           },
           "413": {
             "description": "Problem response. Codes: payload-too-large.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -4181,6 +3927,16 @@
               }
             }
           },
+          "429": {
+            "description": "Problem response. Codes: auth-rate-limited.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Problem response. Codes: internal-server-error.",
             "content": {
@@ -4229,6 +3985,72 @@
                   },
                   "required": [
                     "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/roles": {
+      "get": {
+        "operationId": "getMyRoles",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Roles assigned to the current operator",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RoleSummary"
+                      }
+                    }
+                  },
+                  "required": [
+                    "roles"
                   ]
                 }
               }
@@ -4834,6 +4656,323 @@
           },
           "413": {
             "description": "Problem response. Codes: payload-too-large.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roles/{roleId}/agents": {
+      "get": {
+        "operationId": "listRoleAgents",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agents the caller can manage, with this role's grants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "stats:read",
+                                "conversations:read",
+                                "agents:read",
+                                "agents:manage",
+                                "agents:delete"
+                              ]
+                            }
+                          },
+                          "rolePermissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "stats:read",
+                                "conversations:read",
+                                "agents:read",
+                                "agents:manage",
+                                "agents:delete"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "permissions",
+                          "rolePermissions"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "agents"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: role-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roles/{roleId}/agents/{agentId}": {
+      "put": {
+        "operationId": "setRoleAgentAccess",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "stats:read",
+                        "conversations:read",
+                        "agents:read",
+                        "agents:manage",
+                        "agents:delete"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "permissions"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "400": {
+            "description": "Problem response. Codes: invalid-request, malformed-json.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: agent-not-found, role-not-found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Problem response. Codes: internal-server-error.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "removeRoleAgentAccess",
+        "tags": [
+          "Roles"
+        ],
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "agentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "description": "Problem response. Codes: authentication-required.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Problem response. Codes: password-change-required, permission-denied, permission-exceeds-own.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Problem response. Codes: agent-not-found, role-not-found.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5935,8 +6074,7 @@
                         "type": "string",
                         "enum": [
                           "en",
-                          "cs",
-                          "zh"
+                          "cs"
                         ]
                       }
                     },
@@ -6248,8 +6386,7 @@
                         "type": "string",
                         "enum": [
                           "en",
-                          "cs",
-                          "zh"
+                          "cs"
                         ]
                       }
                     },
@@ -7971,10 +8108,14 @@
                       "items": {
                         "$ref": "#/components/schemas/McpServer"
                       }
+                    },
+                    "stdioAllowed": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
-                    "servers"
+                    "servers",
+                    "stdioAllowed"
                   ]
                 }
               }
@@ -8001,7 +8142,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8201,7 +8342,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8322,7 +8463,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8572,7 +8713,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8676,7 +8817,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8799,7 +8940,7 @@
             }
           },
           "403": {
-            "description": "Problem response. Codes: permission-denied.",
+            "description": "Problem response. Codes: permission-denied, mcp-stdio-disabled.",
             "content": {
               "application/problem+json": {
                 "schema": {

@@ -4,7 +4,7 @@ Status: Approved (2026-10-20).
 
 ## Outcome
 
-Operators belong to roles. Each role receives explicit permissions on individual agents. Operators configure these permissions on the agent's existing configuration page, immediately above its deletion danger zone.
+Operators belong to roles. Each role receives explicit permissions on individual agents. Operators configure these permissions on the role's detail page, below its name and workspace permissions.
 
 Replace global agent permissions outright. There is no compatibility layer, automatic backfill, ownership exception, all-agents grant, inheritance, deny rule, role ordering, or direct operator grant. Admin always has full access and is the only operator who can create agents.
 
@@ -24,7 +24,7 @@ Remove the current implications from conversation reading to configuration readi
 
 Any agent permission makes its ID and name available to the relevant dashboard sections. Agent discovery returns summaries and effective permissions, not system prompts or other configuration. The Agents sidebar entry, list, and individual configuration pages require `agents:read`. Statistics-only and conversation-only operators use Dashboard and Conversations instead, without fetching configuration. Agent deletion includes viewing so its confirmation is reachable on the configuration page.
 
-The agent page checks its effective permissions before fetching configuration. Without configuration viewing, redirect away without mounting protected queries. Without editing, show selectable read-only text, allow inspection of tabs and downloads, disable state-changing switches, and hide mutation controls. The heading is the agent's name. Show access management and the deletion danger zone only with their respective permissions. Do not add statistics or conversation shortcuts to this page.
+The agent page checks its effective permissions before fetching configuration. Without configuration viewing, redirect away without mounting protected queries. Without editing, show selectable read-only text, allow inspection of tabs and downloads, disable state-changing switches, and hide mutation controls. The heading is the agent's name. Show the deletion danger zone only with its permission. Do not show role access management or add statistics or conversation shortcuts to this page.
 
 Permissions from all assigned roles combine additively for the same agent. Permissions never cross agent boundaries. Editing does not imply statistics, transcripts, deletion, or access administration.
 
@@ -81,14 +81,14 @@ The roles service exposes global permissions, effective permissions for an agent
 Proposed endpoints:
 
 - `GET /agents`: visible agent summaries with effective agent permissions. No configuration fields.
-- `GET /me/permissions`: global permissions only. Update consumers rather than retaining the old response semantics for agent access.
-- `GET /agents/{agentId}/access`: the caller's effective permissions, available when the agent is visible. Include roles and their explicit grants only when the caller holds `roles:manage` and scoped `agents:read`.
-- `PUT /agents/{agentId}/access/{roleId}`: atomically replace this role's grants on this agent. Requires at least one effective permission; empty sets use removal instead.
-- `DELETE /agents/{agentId}/access/{roleId}`: remove this role's grants immediately after authorization. Does not delete the role.
+- `GET /me/permissions`: global permissions only.
+- `GET /roles/{roleId}/agents`: agents the caller can view, with the caller's effective permissions and this role's grants. Admin sees every agent.
+- `PUT /roles/{roleId}/agents/{agentId}`: atomically replace this role's grants on this agent. Requires at least one effective permission; empty sets use removal instead.
+- `DELETE /roles/{roleId}/agents/{agentId}`: remove this role's grants immediately after authorization. Does not delete the role or the agent.
 
-The roles module owns access-management contracts and routes, composed at these paths by the application. Reads return only information needed for this agent. Do not expose other agents' grants to populate its picker.
+The roles module owns access-management contracts and routes, composed at these paths by the application. Reads return only agents the caller can view, so a role's grants on other agents stay hidden.
 
-Use the visible-agent summary query for sidebar capability checks and agent pickers. Do not request permissions separately for every listed agent. The access endpoint supports direct agent URLs without first loading the entire list. Admin status comes from global permissions, including when the agent list is empty.
+Use the visible-agent summary query for sidebar capability checks and agent pickers. Do not request permissions separately for every listed agent. Admin status comes from global permissions, including when the agent list is empty.
 
 Authentication failures remain 401. Missing capability on a visible agent is 403. A resource outside the caller's visible agents returns the same 404 as a nonexistent resource. Filter collection data before pagination, counts, and aggregation. Use existing RFC 9457 error handling; unknown permissions and duplicate request entries fail validation.
 
@@ -117,23 +117,23 @@ Direct URLs enforce the same requirements. After sign-in or loss of the current 
 
 Do not add push updates or permission polling. Revalidate access on navigation and window focus using the existing query infrastructure. If a protected request reports lost access or a missing resource, discard its protected cached data and refresh the access summary before choosing a permitted destination. A sidebar cached in another browser can remain visible until revalidation; it never authorizes the next API request. Query failures show a retry state rather than treating an unknown permission set as either full access or confirmed denial.
 
-### Role permission editor
+### Role agent access editor
 
-Place Access inside the existing Configuration tab, immediately above the deletion danger zone. Do not create an Access tab. Show the section only to operators with global role management and scoped configuration viewing, including admin.
+Place Agent access on the role detail page, below the role name and workspace permissions. Show it only to operators with global role management. The agent page has no access editor.
 
-The section contains a keyboard-accessible list of assigned roles, an "Add role" control with a plus icon, and one selected role's permission switches below. Match the Roles editor's divided rows, descriptions, and right-aligned switches. The selected role provides visible context; identify it in a screen-reader-only fieldset legend rather than repeating it as a heading. Do not render every role's permissions in the list or an admin access notice. Align Save to the right and keep removal separate on the left.
+The section contains a keyboard-accessible list of agents this role grants access to, an "Add agent" control with a plus icon, and one selected agent's permission switches below. Match the role editor's divided rows, descriptions, and right-aligned switches. The selected agent provides visible context; identify it in a screen-reader-only fieldset legend rather than repeating it as a heading. Do not render every agent's permissions in the list or an admin access notice. Align Save to the right and keep removal separate on the left. List only agents the caller can view, and only offer permissions the caller holds on that agent.
 
-Adding a role opens its empty draft. Exclude roles already assigned or already drafted from the picker. Nothing is granted until Save succeeds. Save applies the selected role only. Switching roles preserves drafts locally; leaving the page with dirty drafts offers discard confirmation. Show the implied viewing permission when editing is selected and prevent contradictory switch states.
+Adding an agent opens its empty draft. Exclude agents already assigned or already drafted from the picker. Nothing is granted until Save succeeds. Save applies the selected agent only. Switching agents preserves drafts locally; leaving the page with dirty drafts offers discard confirmation. Show the implied viewing permission when editing is selected and prevent contradictory switch states.
 
-Save requires at least one selected permission. With none selected, a new draft cannot be saved; an existing assignment directs the operator to Remove role access. This keeps permission changes from silently invoking the immediate-removal operation.
+Save requires at least one selected permission. With none selected, a new draft cannot be saved; an existing assignment directs the operator to Remove agent access. This keeps permission changes from silently invoking the immediate-removal operation.
 
-Place "Remove role access" beside Save for persisted assignments. Confirm in plain language that members lose this role's access to this agent, but may retain access through other roles. Confirmation sends DELETE immediately, independently of Save. After success, remove that role and its draft from the section. Cancelling or a failed request preserves the draft and saved state. Unsaved additions have Cancel rather than a destructive removal action.
+Place "Remove agent access" beside Save for persisted assignments. Confirm in plain language that people lose this role's access to the agent, but may retain access through other roles. Confirmation sends DELETE immediately, independently of Save. After success, remove that agent and its draft from the section. Cancelling or a failed request preserves the draft and saved state. Unsaved additions have Cancel rather than a destructive removal action.
 
-Recovery uses the existing Add role flow to grant access again, subject to fresh authorization. Do not add a separate undo protocol. After self-revocation, clear protected cached content and navigate to an accessible page; recovery requires another authorized operator or admin.
+Recovery uses the existing Add agent flow to grant access again, subject to fresh authorization. Do not add a separate undo protocol. After self-revocation, clear protected cached content; recovery requires another authorized operator or admin.
 
 Disable permission changes outside the caller's authority. Remove is unavailable if any removed permission exceeds their authority. Save and Remove are mutually exclusive while a mutation for that assignment is pending, so a delayed Save cannot recreate access just removed in the same editor. Keep operation-specific feedback, inline recoverable errors, focus handling, accessible labels, and empty/loading states. Refresh effective access after each successful mutation. Do not add permanent explanatory paragraphs about permission combination; explain it contextually when needed, including removal confirmation.
 
-The existing role editor manages names and global permissions only. Agent access is edited in the agent section. Do not add a second grant editor or an effective-access inspection feature in this change.
+Operators edit names, workspace permissions, and agent access on the role detail page. Do not add a second grant editor or an effective-access inspection feature.
 
 ## Implementation plan
 
@@ -155,6 +155,6 @@ Use pure tests for implication expansion, scoped union, and authority comparison
 - Direct IDs, nested resource IDs, embed reassignment, transcript reads, pagination, empty scopes, and analytics aggregates do not bypass agent boundaries. Public chat behavior remains unchanged.
 - Role replacement is atomic, deletion cascades remove grants, invalid input fails, and re-adding a removed role uses fresh authorization.
 
-Component tests cover selected-role editing, drafts across selection changes, implication controls, empty selections, selected-role Save, immediate confirmed removal, mutually exclusive mutations, failed mutations, re-adding a role, and inaccessible actions. Verify that reporting-only operators cannot enter configuration pages and that read-only operators can inspect but not change settings. Navigation tests cover each capability independently, no accessible agents, agents without activity, admin with no agents, query errors, and landing-page fallback. E2E covers admin assigning access through the new section, a restricted operator seeing and using only their allowed dashboard sections, and revocation denying their next request and updating navigation on revalidation. Reuse existing journey setup and mock external providers only at their boundaries.
+Component tests cover selected-agent editing, drafts across selection changes, implication controls, empty selections, selected-agent Save, immediate confirmed removal, mutually exclusive mutations, failed mutations, re-adding an agent, and inaccessible actions. Verify that reporting-only operators cannot enter configuration pages and that read-only operators can inspect but not change settings. Navigation tests cover each capability independently, no accessible agents, agents without activity, admin with no agents, query errors, and landing-page fallback. E2E covers admin assigning access through the new section, a restricted operator seeing and using only their allowed dashboard sections, and revocation denying their next request and updating navigation on revalidation. Reuse existing journey setup and mock external providers only at their boundaries.
 
 Run focused checks first, followed by `bun run quality:fix`, `bun run typecheck`, `bun run test`, `bun run test:integration`, `bun run e2e`, `bun run contracts:check`, and `bun run i18n:fix`. Run `bun run actions:check` only if workflows change. Inspect the final diff for compatibility branches, redundant checks, and accidental unrelated edits.

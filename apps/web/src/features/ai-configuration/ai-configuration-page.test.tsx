@@ -11,6 +11,7 @@ await import("@/lib/i18n")
 
 const { AiConfigurationPage } = await import("./ai-configuration-page")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { createRouter, createRootRoute, createMemoryHistory, RouterProvider } = await import("@tanstack/react-router")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
@@ -72,14 +73,28 @@ async function type(element: HTMLInputElement, text: string) {
 }
 
 async function renderPage() {
+	const route = createRootRoute({ component: () => <AiConfigurationPage /> })
+	const router = createRouter({ routeTree: route, history: createMemoryHistory() })
 	await act(async () =>
 		root.render(
 			<QueryClientProvider client={queryClient}>
-				<AiConfigurationPage />
+				<RouterProvider router={router} />
 			</QueryClientProvider>,
 		),
 	)
 	await settle()
+}
+
+function button(label: string): HTMLButtonElement {
+	const found = [...host.querySelectorAll("button")].find((element) => element.textContent === label)
+	if (!found) throw new Error(`button ${label} not rendered`)
+	return found
+}
+
+function submit() {
+	return act(async () =>
+		host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+	)
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -131,12 +146,64 @@ describe("AiConfigurationPage", () => {
 		await renderPage()
 
 		await type(baseUrlInput(), "https://saved.example/v1/")
-		await act(async () =>
-			host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
-		)
+		await submit()
 		await settle()
 
 		expect(host.textContent).toContain(t("aiConfiguration.saved"))
 		expect(baseUrlInput().value).toBe("https://saved.example/v1")
+	})
+
+	test("associates a missing model with its field and focuses it", async () => {
+		await renderPage()
+		const model = host.querySelector<HTMLInputElement>("#text-model")
+		if (!model) throw new Error("text model input not rendered")
+
+		await type(model, "")
+		await submit()
+		await settle()
+
+		const error = host.querySelector<HTMLElement>("#text-model-error")
+		expect(error?.textContent).toBe(t("aiConfiguration.fields.modelRequired"))
+		expect(error?.getAttribute("role")).toBe("alert")
+		expect(model.getAttribute("aria-invalid")).toBe("true")
+		expect(model.getAttribute("aria-describedby")).toBe("text-model-error")
+		expect(document.activeElement).toBe(model)
+	})
+
+	test("associates a missing required setting with its field and focuses it", async () => {
+		await renderPage()
+		const baseUrl = baseUrlInput()
+		await type(baseUrl, "")
+		await submit()
+		await settle()
+
+		const error = host.querySelector<HTMLElement>("#text-baseURL-error")
+		expect(error?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(baseUrl.getAttribute("aria-invalid")).toBe("true")
+		expect(baseUrl.getAttribute("aria-describedby")).toBe("text-baseURL-error")
+		expect(document.activeElement?.id).toBe("text-baseURL")
+	})
+
+	test("marks providers and models as required", async () => {
+		await renderPage()
+
+		expect(host.querySelector("#text-provider")?.getAttribute("aria-required")).toBe("true")
+		expect(host.querySelector("#text-model")?.hasAttribute("required")).toBe(true)
+		expect(host.textContent).toContain(t("common.requiredHint"))
+	})
+
+	test("returns Replace mode to the saved credentials after a successful save", async () => {
+		await renderPage()
+		await act(async () => button(t("aiConfiguration.replaceCredentials")).click())
+		await settle()
+
+		const apiKey = host.querySelector<HTMLInputElement>("#text-apiKey")
+		if (!apiKey) throw new Error("credential input not rendered")
+		await type(apiKey, "sk-new")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-apiKey")).toBeNull()
+		expect(host.textContent).toContain(t("aiConfiguration.savedCredentials"))
 	})
 })

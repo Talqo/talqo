@@ -185,6 +185,10 @@ export async function listEffectivePermissions(userId: string): Promise<Permissi
 	return effectivePermissions(await repo.findPermissionsForUsers([userId]))
 }
 
+export async function listAssignedRoles(userId: string): Promise<RoleSummary[]> {
+	return repo.findRolesOfUser(userId)
+}
+
 export function effectiveAgentPermissions(permissions: readonly string[]): AgentPermission[] {
 	const held = new Set(permissions)
 	if (held.has(AgentPermission.AgentManage) || held.has(AgentPermission.AgentDelete))
@@ -254,34 +258,15 @@ function holdsScopedPermissions(
 	)
 }
 
-export type AgentAccess = {
-	permissions: AgentPermission[]
-	roles?: { id: string; name: string; permissions: AgentPermission[] }[]
+export async function listAgentGrantsOfRole(roleId: string): Promise<{ agentId: string; permission: string }[]> {
+	await requireRole(roleId)
+	return repo.findAgentPermissionsOfRoles([roleId])
 }
 
-export async function listAgentAccess(actorId: string, agentId: string): Promise<AgentAccess> {
-	const permissions = await listAgentPermissions(actorId, agentId)
-	if (permissions.length === 0) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-	const globalPermissions = await listEffectivePermissions(actorId)
-	if (!permissions.includes(AgentPermission.AgentRead) || !globalPermissions.includes(Permission.RolesManage))
-		return { permissions }
-	const [roles, grants] = await Promise.all([repo.findRoles(), repo.findAgentRolePermissions(agentId)])
-	return {
-		permissions,
-		roles: roles.map(({ id, name }) => ({
-			id,
-			name,
-			permissions: AGENT_PERMISSIONS.filter((permission) =>
-				grants.some((grant) => grant.roleId === id && grant.permission === permission),
-			),
-		})),
-	}
-}
-
-export async function setAgentAccess(
+export async function setRoleAgentAccess(
 	actorId: string,
-	agentId: string,
 	roleId: string,
+	agentId: string,
 	permissions: AgentPermission[],
 ): Promise<void> {
 	assertUnique(permissions, "Agent permissions")
@@ -290,10 +275,9 @@ export async function setAgentAccess(
 	await repo.withAccessLock(async () => {
 		await managementPermissions(actorId, Permission.RolesManage)
 		await requireAgentPermission(actorId, agentId, AgentPermission.AgentRead)
-		await getRole(roleId)
-		const rows = await repo.findAgentRolePermissions(agentId)
+		await requireRole(roleId)
 		const before = effectiveAgentPermissions(
-			rows.filter((grant) => grant.roleId === roleId).map((grant) => grant.permission),
+			(await repo.findRoleAgentPermissions(roleId, agentId)).map(({ permission }) => permission),
 		)
 		const after = effectiveAgentPermissions(permissions)
 		const changed = [
@@ -310,7 +294,7 @@ export async function setAgentAccess(
 				(!permissions.includes(AgentPermission.AgentManage) && !permissions.includes(AgentPermission.AgentDelete)),
 		)
 		try {
-			await repo.replaceAgentRolePermissions(agentId, roleId, normalized)
+			await repo.replaceRoleAgentPermissions(roleId, agentId, normalized)
 		} catch (error) {
 			if (isForeignKeyViolation(error)) throw new ApiError(PROBLEM_CODES.AGENT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
 			throw error
@@ -428,9 +412,14 @@ async function toRoles(rows: repo.Role[]): Promise<Role[]> {
 	}))
 }
 
-async function getRole(id: string): Promise<Role> {
+async function requireRole(id: string): Promise<repo.Role> {
 	const row = await repo.findRoleById(id)
-	if (!row) throw new RoleNotFoundError(`getRole: role ${id} not found`)
+	if (!row) throw new RoleNotFoundError(`role ${id} not found`)
+	return row
+}
+
+async function getRole(id: string): Promise<Role> {
+	const row = await requireRole(id)
 	const [permissions, counts] = await Promise.all([permissionsOfRoles([id]), repo.countMembersByRole([id])])
 	return { id: row.id, name: row.name, permissions, memberCount: counts[0]?.memberCount ?? 0 }
 }

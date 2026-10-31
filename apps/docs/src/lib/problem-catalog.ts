@@ -10,6 +10,13 @@ export type ProblemDefinition = {
 
 export const PROBLEMS = [
 	{
+		code: "auth-rate-limited",
+		title: "Account request limit reached",
+		status: "429",
+		meaning: "Sign-in or account creation exceeded the request budget or concurrent password operation limit.",
+		guidance: "Wait for the Retry-After interval before trying again.",
+	},
+	{
 		code: "admin-deletion-not-allowed",
 		title: "Admin deletion not allowed",
 		status: "403",
@@ -232,6 +239,13 @@ export const PROBLEMS = [
 		status: "404",
 		meaning: "This connection no longer belongs to the agent.",
 		guidance: "Refresh the list; it may have been deleted in another tab.",
+	},
+	{
+		code: "mcp-stdio-disabled",
+		title: "Command-run connections disabled",
+		status: "403",
+		meaning: "This deployment does not allow stdio MCP connections, which run commands on the API host.",
+		guidance: "Use an HTTP connection instead, or ask the hosting operator about TALQO_MCP_ALLOW_STDIO.",
 	},
 
 	{

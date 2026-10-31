@@ -7,10 +7,11 @@ import { useAccessError } from "@/features/permissions/use-access-error"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
+import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Switch } from "@talqo/ui/components/switch"
-import { useBlocker } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -31,12 +32,14 @@ export function UpdateRoleForm({
 	catalog,
 	disabled,
 	heldPermissions,
+	onDirtyChange,
 	ownRoles,
 	role,
 }: {
 	catalog: PermissionCatalog
 	disabled: boolean
 	heldPermissions: readonly string[]
+	onDirtyChange: (dirty: boolean) => void
 	ownRoles: readonly Role[]
 	role: Role
 }) {
@@ -50,16 +53,15 @@ export function UpdateRoleForm({
 		register,
 		handleSubmit,
 		reset,
+		setFocus,
 		setValue,
-		formState: { errors, isDirty, isValid },
+		formState: { errors, isDirty },
 	} = useForm<RoleFormValues>({
 		resolver: zodResolver(roleFormSchema),
 		defaultValues: toRoleFormValues(role),
 	})
-	useBlocker({
-		shouldBlockFn: () => isDirty && !window.confirm(t("roles.leavePrompt")),
-		enableBeforeUnload: isDirty,
-	})
+	useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange])
+	useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 	// Background refreshes must not replace an unfinished edit.
 	useEffect(() => {
 		if (!isDirty) reset(toRoleFormValues(role))
@@ -97,87 +99,76 @@ export function UpdateRoleForm({
 	}
 
 	return (
-		<form onSubmit={handleSubmit(onValid)} className="space-y-6">
-			<Card>
-				<CardContent>
-					<div className="space-y-5">
-						<div className="space-y-2">
-							<Label htmlFor={`${idPrefix}-name`}>{t("roles.name")}</Label>
-							<Input
-								id={`${idPrefix}-name`}
-								type="text"
-								autoComplete="off"
-								disabled={disabled || isSaving}
-								aria-invalid={errors.name ? true : undefined}
-								aria-describedby={errors.name ? `${idPrefix}-name-error` : undefined}
-								{...register("name")}
-							/>
-							{errors.name ? (
-								<p id={`${idPrefix}-name-error`} className="text-destructive text-xs" role="alert">
-									{t("roles.nameError", { max: createRoleBodyNameMax })}
+		<div className="space-y-6">
+			<form onSubmit={handleSubmit(onValid, () => setFocus("name"))}>
+				<Card>
+					<CardContent>
+						<div className="space-y-5">
+							<div className="space-y-2">
+								<Label htmlFor={`${idPrefix}-name`}>{t("roles.name")}</Label>
+								<Input
+									id={`${idPrefix}-name`}
+									type="text"
+									autoComplete="off"
+									disabled={disabled || isSaving}
+									aria-invalid={errors.name ? true : undefined}
+									aria-describedby={errors.name ? `${idPrefix}-name-error` : undefined}
+									{...register("name")}
+								/>
+								{errors.name ? (
+									<p id={`${idPrefix}-name-error`} className="text-destructive text-xs" role="alert">
+										{t("roles.nameError", { max: createRoleBodyNameMax })}
+									</p>
+								) : null}
+							</div>
+							<fieldset className="divide-y" disabled={disabled || isSaving}>
+								<legend className="pb-2 text-sm font-medium">{t("roles.permissionsLegend")}</legend>
+								{catalog.map(({ permission }) => {
+									const includedBy = included.get(permission)
+									const notHeld = !heldPermissions.includes(permission)
+									const id = `${idPrefix}-${permission.replace(/[:_]/g, "-")}`
+									const copy = PERMISSION_COPY[permission]
+									const hint = includedBy
+										? t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
+										: notHeld
+											? t("roles.notYours")
+											: null
+									return (
+										<div key={permission} className="flex items-start justify-between gap-6 py-4">
+											<div className="space-y-1">
+												<Label htmlFor={id}>{copy.label(t)}</Label>
+												<p id={`${id}-description`} className="text-muted-foreground text-sm">
+													{copy.description(t)}
+													{hint ? <span className="block">{hint}</span> : null}
+												</p>
+											</div>
+											<Switch
+												render={<button type="button" aria-label={copy.label(t)} />}
+												nativeButton
+												id={id}
+												className="mt-0.5"
+												checked={selected.includes(permission) || includedBy !== undefined}
+												disabled={disabled || isSaving || notHeld || includedBy !== undefined}
+												aria-describedby={`${id}-description`}
+												onCheckedChange={() => toggle(permission)}
+											/>
+										</div>
+									)
+								})}
+							</fieldset>
+							{locksOut ? (
+								<p
+									className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm"
+									role="alert"
+								>
+									{t("roles.lockoutWarningEdit")}
 								</p>
 							) : null}
-						</div>
-						<fieldset className="divide-y" disabled={disabled || isSaving}>
-							<legend className="pb-2 text-sm font-medium">{t("roles.permissionsLegend")}</legend>
-							{catalog.map(({ permission }) => {
-								const includedBy = included.get(permission)
-								const notHeld = !heldPermissions.includes(permission)
-								const id = `${idPrefix}-${permission.replace(/[:_]/g, "-")}`
-								const copy = PERMISSION_COPY[permission]
-								const hint = includedBy
-									? t("roles.includedWith", { permission: PERMISSION_COPY[includedBy].label(t) })
-									: notHeld
-										? t("roles.notYours")
-										: null
-								return (
-									<div key={permission} className="flex items-start justify-between gap-6 py-4">
-										<div className="space-y-1">
-											<Label htmlFor={id}>{copy.label(t)}</Label>
-											<p id={`${id}-description`} className="text-muted-foreground text-sm">
-												{copy.description(t)}
-												{hint ? <span className="block">{hint}</span> : null}
-											</p>
-										</div>
-										<Switch
-											render={<button type="button" aria-label={copy.label(t)} />}
-											nativeButton
-											id={id}
-											className="mt-0.5"
-											checked={selected.includes(permission) || includedBy !== undefined}
-											disabled={disabled || isSaving || notHeld || includedBy !== undefined}
-											aria-describedby={`${id}-description`}
-											onCheckedChange={() => toggle(permission)}
-										/>
-									</div>
-								)
-							})}
-						</fieldset>
-						{locksOut ? (
-							<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
-								{t("roles.lockoutWarningEdit")}
-							</p>
-						) : null}
-						<ProblemAlert error={updateRole.error} />
-						{!disabled ? (
-							<>
-								{isDirty || saved ? (
-									<output className="text-muted-foreground block text-sm">
-										{isDirty ? t("roles.unsaved") : t("roles.saved")}
-									</output>
-								) : null}
-								<div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-									<DeleteRoleDialog
-										role={role}
-										disabled={isSaving}
-										locksOut={losesRoleManagement({
-											heldPermissions,
-											rolesBefore: ownRoles,
-											rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
-										})}
-									/>
-									<div className="ml-auto flex flex-wrap gap-2">
-										{isDirty ? (
+							<ProblemAlert error={updateRole.error} />
+							{!disabled ? (
+								<FormActions
+									discard={
+										isDirty ? (
 											<Button
 												type="button"
 												variant="outline"
@@ -190,17 +181,38 @@ export function UpdateRoleForm({
 											>
 												{t("roles.discard")}
 											</Button>
-										) : null}
-										<Button type="submit" disabled={isSaving || !isDirty || !isValid}>
-											{isSaving ? t("roles.saving") : t("roles.save")}
-										</Button>
-									</div>
-								</div>
-							</>
-						) : null}
-					</div>
-				</CardContent>
-			</Card>
-		</form>
+										) : undefined
+									}
+									status={isDirty ? t("roles.unsaved") : saved ? t("roles.saved") : undefined}
+								>
+									<Button type="submit" disabled={isSaving || !isDirty}>
+										{isSaving ? t("roles.saving") : t("roles.save")}
+									</Button>
+								</FormActions>
+							) : null}
+						</div>
+					</CardContent>
+				</Card>
+			</form>
+			{!disabled ? (
+				<DangerZone title={t("roles.dangerZone")}>
+					<DangerZoneRow
+						title={t("roles.delete")}
+						description={t("roles.dangerDescription")}
+						action={
+							<DeleteRoleDialog
+								role={role}
+								disabled={isSaving}
+								locksOut={losesRoleManagement({
+									heldPermissions,
+									rolesBefore: ownRoles,
+									rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
+								})}
+							/>
+						}
+					/>
+				</DangerZone>
+			) : null}
+		</div>
 	)
 }

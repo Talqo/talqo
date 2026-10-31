@@ -1,6 +1,7 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { getGetEmbedQueryKey, getListEmbedsQueryKey, useGetEmbed, useUpdateEmbed } from "@/api/generated/embed/embed.ts"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { WidgetPreview } from "@/features/embeds/components/widget-preview"
 import {
@@ -10,12 +11,17 @@ import {
 	toAppearance,
 	toFormValues,
 } from "@/features/embeds/embed-appearance-form"
+import { embedNotFound } from "@/features/embeds/load-failure"
 import { requirePermission } from "@/features/permissions/require-permission"
+import { retryUnlessClientError } from "@/lib/query-retry"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { isSupportedLanguage, supportedLanguages } from "@talqo/shared/languages"
 import { isWidgetPosition, isWidgetTheme, WIDGET_POSITIONS, WIDGET_THEMES } from "@talqo/shared/widget-appearance"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
@@ -155,9 +161,17 @@ function EmbedDetailPage() {
 	const { colorTab = "light" } = Route.useSearch()
 	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
-	const { data: embedResponse, isLoading, isError } = useGetEmbed(embedId)
+	const {
+		data: embedResponse,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useGetEmbed(embedId, {
+		query: { retry: retryUnlessClientError },
+	})
 	const embed = embedResponse?.data.embed
-	const agentsQuery = useListAgents()
+	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
 	const permissions = agentsQuery.data?.data.agents.find((agent) => agent.id === embed?.agentId)?.permissions
 	const canManage = permissions?.includes("agents:manage") ?? false
 	const updateEmbed = useUpdateEmbed({
@@ -171,7 +185,7 @@ function EmbedDetailPage() {
 	const [copied, setCopied] = useState(false)
 	const copyTimeout = useRef<number | undefined>(undefined)
 
-	const { register, handleSubmit, reset, control, formState } = useForm<EmbedFormValues>({
+	const { register, handleSubmit, reset, control, setFocus, formState } = useForm<EmbedFormValues>({
 		resolver: zodResolver(embedFormSchema),
 		// `values` lands one render after mount; without defaults the selects mount uncontrolled.
 		defaultValues: { name: "", ...EMBED_FORM_DEFAULTS },
@@ -179,6 +193,7 @@ function EmbedDetailPage() {
 		values: embed ? toFormValues(embed) : undefined,
 		resetOptions: { keepDirtyValues: true },
 	})
+	const dirtyGuard = useDirtyFormGuard(formState.isDirty)
 
 	useEffect(() => {
 		return () => window.clearTimeout(copyTimeout.current)
@@ -236,18 +251,44 @@ function EmbedDetailPage() {
 		)
 	}
 
+	const backToAgents = (
+		<Button render={<Link to="/dashboard/agents" />} nativeButton={false} variant="ghost" className="-ml-2">
+			<ArrowLeft className="size-4" />
+			{t("agentConfig.backToAgents")}
+		</Button>
+	)
+
 	if (isLoading || agentsQuery.isPending) {
-		return <p className="text-muted-foreground">{t("embedSetup.loading")}</p>
+		return (
+			<>
+				<output className="sr-only">{t("embedSetup.loading")}</output>
+				<PageSkeleton />
+			</>
+		)
 	}
 	if (isError || !embed) {
-		return <p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+		return (
+			<div className="space-y-6">
+				{backToAgents}
+				{embedNotFound(error) ? (
+					<p className="text-muted-foreground">{t("embedSetup.notFound")}</p>
+				) : (
+					<ProblemAlert error={error} fallback={t("embedSetup.detailLoadError")} onRetry={() => void refetch()} />
+				)}
+			</div>
+		)
 	}
 	if (agentsQuery.isError) {
-		return <ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
+		return (
+			<div className="space-y-6">
+				{backToAgents}
+				<ProblemAlert error={agentsQuery.error} onRetry={() => void agentsQuery.refetch()} />
+			</div>
+		)
 	}
 
 	return (
-		<div className="mx-auto max-w-5xl space-y-6">
+		<div className="space-y-6">
 			<Button
 				render={<Link to="/dashboard/agent/$agentId" params={{ agentId: embed.agentId }} search={{ tab: "embeds" }} />}
 				nativeButton={false}
@@ -259,6 +300,7 @@ function EmbedDetailPage() {
 			</Button>
 
 			<PageHeader title={embed.name} description={t("embedSetup.detailSubheading")} />
+			{dirtyGuard}
 
 			<Card>
 				<CardHeader>
@@ -287,11 +329,11 @@ function EmbedDetailPage() {
 			<div className="grid items-start gap-6 lg:grid-cols-2">
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("embedSetup.appearance")}</CardTitle>
+						<CardTitle level={2}>{t("embedSetup.appearance")}</CardTitle>
 						<CardDescription>{t("embedSetup.appearanceDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<form onSubmit={handleSubmit(onValid)} className="space-y-4">
+						<form onSubmit={handleSubmit(onValid, () => setFocus("name"))} className="space-y-4">
 							<fieldset className="space-y-4">
 								<div className="space-y-2">
 									<Label htmlFor="widget-name">{t("embedSetup.nameLabel")}</Label>
@@ -299,8 +341,14 @@ function EmbedDetailPage() {
 										id="widget-name"
 										readOnly={!canManage}
 										aria-invalid={formState.errors.name ? true : undefined}
+										aria-describedby={formState.errors.name ? "widget-name-error" : undefined}
 										{...register("name")}
 									/>
+									{formState.errors.name && (
+										<p id="widget-name-error" className="text-destructive text-xs" role="alert">
+											{t("embedSetup.nameRequired")}
+										</p>
+									)}
 								</div>
 
 								<p className="text-muted-foreground text-xs">{t("embedSetup.colorsHelp")}</p>
@@ -444,15 +492,11 @@ function EmbedDetailPage() {
 								</p>
 							)}
 							{canManage && (
-								<div className="flex items-center gap-3 pt-2">
-									<Button type="submit" disabled={updateEmbed.isPending}>
+								<FormActions status={updateEmbed.isSuccess && !formState.isDirty ? t("embedSetup.saved") : undefined}>
+									<Button type="submit" disabled={updateEmbed.isPending || !formState.isDirty}>
 										{updateEmbed.isPending ? t("embedSetup.saving") : t("embedSetup.save")}
 									</Button>
-									{/* `isSuccess` never clears on its own; the save resets the form, so a new edit drops it. */}
-									{updateEmbed.isSuccess && !formState.isDirty && (
-										<span className="text-muted-foreground text-sm">{t("embedSetup.saved")}</span>
-									)}
-								</div>
+								</FormActions>
 							)}
 						</form>
 					</CardContent>
@@ -502,30 +546,35 @@ function EmbedDetailPage() {
 			</div>
 
 			{canManage && (
-				<Card variant="destructive">
-					<CardHeader>
-						<CardTitle>{t("embedSetup.dangerZone")}</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<div className="divide-y">
-							<div className="space-y-1 pb-4">
-								<Label htmlFor="embed-token">{t("embedSetup.embedToken")}</Label>
-								<p className="text-muted-foreground text-sm">{t("embedSetup.embedTokenDescription")}</p>
-								<Input id="embed-token" value={embed.embedToken} readOnly font="mono" className="mt-2" />
-								<div className="flex justify-end pt-2">
+				<>
+					<Card>
+						<CardHeader>
+							<CardTitle>{t("embedSetup.embedToken")}</CardTitle>
+							<CardDescription>{t("embedSetup.embedTokenDescription")}</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<div className="space-y-3">
+								<Input
+									id="embed-token"
+									value={embed.embedToken}
+									readOnly
+									font="mono"
+									aria-label={t("embedSetup.embedToken")}
+								/>
+								<div className="flex justify-end">
 									<RotateEmbedTokenDialog embedId={embedId} />
 								</div>
 							</div>
-							<div className="flex flex-wrap items-center gap-3 pt-4">
-								<div className="min-w-60 flex-1 space-y-1">
-									<p className="text-sm font-medium">{t("embedSetup.deleteEmbed")}</p>
-									<p className="text-muted-foreground text-sm">{t("embedSetup.dangerDescription")}</p>
-								</div>
-								<DeleteEmbedDialog embed={embed} />
-							</div>
-						</div>
-					</CardContent>
-				</Card>
+						</CardContent>
+					</Card>
+					<DangerZone title={t("embedSetup.dangerZone")}>
+						<DangerZoneRow
+							title={t("embedSetup.deleteEmbed")}
+							description={t("embedSetup.dangerDescription")}
+							action={<DeleteEmbedDialog embed={embed} />}
+						/>
+					</DangerZone>
+				</>
 			)}
 		</div>
 	)

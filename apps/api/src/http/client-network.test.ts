@@ -1,10 +1,28 @@
+import { env } from "@/config/env.ts"
 import { describe, expect, it } from "bun:test"
 
-import { hashClientNetwork, resolveClientNetwork } from "./client-network.ts"
+import { hashClientNetwork, requestClientNetwork, resolveClientNetwork } from "./client-network.ts"
 
 const SECRET = Buffer.alloc(32, 9).toString("base64url")
 
 describe("client network resolution", () => {
+	it("rejects malformed trusted forwarding metadata instead of treating the network as unavailable", () => {
+		const descriptor = Object.getOwnPropertyDescriptor(env, "TALQO_TRUSTED_PROXY_CIDRS")
+		if (!descriptor) throw new Error("Expected the trusted proxy configuration")
+		Object.defineProperty(env, "TALQO_TRUSTED_PROXY_CIDRS", { ...descriptor, get: () => ["10.0.0.0/8"] })
+		try {
+			expect(() =>
+				requestClientNetwork({ env: { peerAddress: "10.0.0.1" }, req: { header: () => "garbage, 203.0.113.1" } }),
+			).toThrow("invalid-request")
+			expect(requestClientNetwork({ env: { peerAddress: "198.51.100.1" }, req: { header: () => "garbage" } })).toBe(
+				"198.51.100.1/32",
+			)
+			expect(requestClientNetwork({ req: { header: () => undefined } })).toBeNull()
+		} finally {
+			Object.defineProperty(env, "TALQO_TRUSTED_PROXY_CIDRS", descriptor)
+		}
+	})
+
 	it("normalizes IPv4, mapped IPv6, and native IPv6 prefixes", () => {
 		expect(resolveClientNetwork("192.0.2.4", undefined, [], 64)).toBe("192.0.2.4/32")
 		expect(resolveClientNetwork("::ffff:192.0.2.4", undefined, [], 64)).toBe("192.0.2.4/32")

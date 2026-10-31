@@ -19,6 +19,8 @@ const { t } = await import("i18next")
 
 const SHOP = { id: "11111111-1111-4111-8111-111111111111", name: "Shop helper", permissions: ["conversations:read"] }
 const DOCS = { id: "22222222-2222-4222-8222-222222222222", name: "Docs helper", permissions: ["conversations:read"] }
+const HIDDEN = { id: "33333333-3333-4333-8333-333333333333", name: "Hidden helper", permissions: [] }
+const REMOVED_ID = "44444444-4444-4444-8444-444444444444"
 
 function summary(id: string, startedAt: string, overrides: Record<string, unknown> = {}) {
 	return {
@@ -107,7 +109,18 @@ describe("ConversationsPage", () => {
 
 		await renderPage()
 
-		expect(host.querySelector("output")?.textContent).toBe(t("conversations.empty"))
+		expect(host.textContent).toContain(t("conversations.emptyTitle"))
+		expect(host.textContent).toContain(t("conversations.emptyDescription"))
+	})
+
+	test("explains an empty filtered list without dropping the agent filter", async () => {
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => list([])
+
+		await renderPage({ agents: [DOCS.id] })
+
+		expect(host.textContent).toContain(t("conversations.emptyFilteredTitle"))
+		expect(host.textContent).toContain(t("conversations.emptyFilteredDescription"))
+		expect(host.textContent).toContain(t("dashboard.agentsLabel"))
 	})
 
 	test("groups conversations by day and shows their agent", async () => {
@@ -155,6 +168,56 @@ describe("ConversationsPage", () => {
 		expect(requested.some((url) => url.startsWith("/api/conversations"))).toBe(false)
 	})
 
+	test("keeps only agents the operator can still read when the URL names others", async () => {
+		responses["/api/agents"] = () => json({ agents: [SHOP, DOCS, HIDDEN] })
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () =>
+			list([summary("a", "2026-10-02T10:00:00.000Z", { agentId: DOCS.id })])
+
+		await renderPage({ agents: [HIDDEN.id, DOCS.id] })
+		await settle()
+
+		expect(requested).toContain(`/api/conversations?agentId=${DOCS.id}&page=1`)
+		expect(requested.some((url) => url.includes(HIDDEN.id))).toBe(false)
+		expect(host.querySelector("a")?.getAttribute("href")).toBe(
+			`/dashboard/conversations/a?agents=${encodeURIComponent(JSON.stringify([DOCS.id]))}`,
+		)
+		expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 1, total: 2, count: 2 }))
+	})
+
+	test("falls back to all agents when the URL names only removed ones", async () => {
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
+
+		await renderPage({ agents: [REMOVED_ID] })
+		await settle()
+
+		expect(requested).toContain("/api/conversations?page=1")
+		expect(requested.some((url) => url.includes(REMOVED_ID))).toBe(false)
+		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
+		expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 2, total: 2, count: 2 }))
+	})
+
+	test("keeps a saved filter when the agent list cannot be loaded", async () => {
+		responses["/api/agents"] = () =>
+			json({ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" }, 500)
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => list([])
+
+		await renderPage({ agents: [DOCS.id] })
+		await settle()
+
+		expect(requested).toContain(`/api/conversations?agentId=${DOCS.id}&page=1`)
+		expect(requested).not.toContain("/api/conversations?page=1")
+	})
+
+	test("loads the first page when the URL filter is reconciled", async () => {
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
+
+		await renderPage({ agents: [REMOVED_ID], page: 2 })
+		await settle()
+
+		expect(requested).toContain("/api/conversations?page=1")
+		expect(requested.some((url) => url.includes("page=2"))).toBe(false)
+	})
+
 	test("offers a retry when loading fails", async () => {
 		let attempts = 0
 		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => {
@@ -165,7 +228,7 @@ describe("ConversationsPage", () => {
 		}
 
 		await renderPage({ agents: [DOCS.id] })
-		expect(host.querySelector("[role=alert]")?.textContent).toBe(t("problems.internal-server-error"))
+		expect(host.querySelector("[role=alert] p")?.textContent).toBe(t("problems.internal-server-error"))
 
 		await act(async () => button(t("common.retry")).click())
 		await settle()

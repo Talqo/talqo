@@ -449,13 +449,13 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				}) as EmbeddingModelV4
 				return {
 					key: embeddingKey(stored.embedding),
-					async embed(text: string) {
+					async embed(text: string, signal?: AbortSignal) {
 						return (
 							await aiEmbed({
 								model,
 								value: text,
 								maxRetries: 0,
-								...(options?.timeoutMs ? { abortSignal: AbortSignal.timeout(options.timeoutMs) } : {}),
+								abortSignal: signal ?? (options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined),
 							})
 						).embedding
 					},
@@ -550,6 +550,6 @@ export async function prepareTextOperation(input: PrepareTextOperationInput) {
 
 export async function prepareEmbeddingOperation(options?: {
 	timeoutMs?: number
-}): Promise<{ key: string; embed(text: string): Promise<number[]> }> {
+}): Promise<{ key: string; embed(text: string, signal?: AbortSignal): Promise<number[]> }> {
 	return (await getDefaultService()).prepareEmbeddingOperation(options)
 }

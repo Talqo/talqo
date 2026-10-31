@@ -1,6 +1,7 @@
 import type { Role } from "@/api/generated/models/role.zod"
 import type { Root } from "react-dom/client"
 
+import { createRoleBodyNameMax } from "@/api/generated/models/roles/createRoleBody.zod"
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
@@ -26,9 +27,12 @@ const GRANTABLE = [
 const EVERYTHING = ["admin", ...GRANTABLE.map(({ permission }) => permission)]
 const ME = { id: "me", username: "operator", mustChangePassword: false }
 
+type RoleAgent = { id: string; name: string; permissions: string[]; rolePermissions: string[] }
+
 let myPermissions: string[]
 let myRoleIds: string[]
 let roles: Role[]
+let roleAgents: Record<string, RoleAgent[]>
 let createFailure: Response | undefined
 let updateFailure: Response | undefined
 let usersResponse: Promise<Response> | undefined
@@ -78,6 +82,10 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		const role = { id: "new-role", memberCount: 0, ...body }
 		roles.push(role)
 		return json({ role }, 201)
+	}
+	if (url.startsWith("/api/roles/") && url.endsWith("/agents")) {
+		const roleId = url.slice("/api/roles/".length, -"/agents".length)
+		return json({ agents: roleAgents[roleId] ?? [] })
 	}
 	const id = url.slice("/api/roles/".length)
 	if (url.startsWith("/api/roles/") && method === "DELETE") {
@@ -164,7 +172,7 @@ async function save() {
 }
 
 function dialog(): HTMLElement {
-	const found = document.querySelector<HTMLElement>("[role='dialog']")
+	const found = document.querySelector<HTMLElement>("[role='alertdialog']")
 	if (!found) throw new Error("dialog not open")
 	return found
 }
@@ -173,6 +181,7 @@ beforeEach(() => {
 	myPermissions = EVERYTHING
 	myRoleIds = []
 	roles = []
+	roleAgents = {}
 	createFailure = undefined
 	updateFailure = undefined
 	usersResponse = undefined
@@ -218,7 +227,7 @@ describe("role management", () => {
 		})
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles/new-role")
 		expect(nameInput().value).toBe("New role")
-		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("chooses a free default name and lists names and people without permission summaries", async () => {
@@ -230,6 +239,24 @@ describe("role management", () => {
 		expect(nameInput().value).toBe("New role 2")
 	})
 
+	test("shows the role name as a heading and keeps long names fully available", async () => {
+		const fullName = `Support ${"with-a-very-long-name-".repeat(8)}`
+		roles = [{ id: "support", name: fullName, permissions: [], memberCount: 3 }]
+		await renderPage()
+
+		const link = host.querySelector<HTMLAnchorElement>("[data-role-id='support']")
+		if (!link) throw new Error("role link not rendered")
+		const card = link.closest<HTMLElement>("[data-slot='card']")
+		const heading = card?.querySelector("[data-slot='card-title']")
+		const label = heading?.querySelector("span")
+		expect(heading?.tagName).toBe("H2")
+		expect(heading?.textContent).toBe(fullName)
+		expect(label?.getAttribute("title")).toBe(fullName)
+		expect(card?.querySelectorAll("a, button, input, select, textarea, [tabindex]")).toHaveLength(1)
+		await act(async () => link.focus())
+		expect(document.activeElement).toBe(link)
+	})
+
 	test("opens a role by clicking its row", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 0 }]
 		await renderPage()
@@ -237,7 +264,7 @@ describe("role management", () => {
 		if (!row) throw new Error("role link not rendered")
 		await click(row)
 		expect(nameInput().value).toBe("Support")
-		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("shows creation errors without navigating away", async () => {
@@ -328,6 +355,39 @@ describe("role management", () => {
 		expect(button(t("roles.save"), host).disabled).toBe(true)
 	})
 
+	test("lists the agents this role gives access to", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		roleAgents = {
+			support: [
+				{
+					id: "agent-a",
+					name: "Agent A",
+					permissions: ["agents:read", "agents:manage"],
+					rolePermissions: ["agents:manage"],
+				},
+				{
+					id: "agent-b",
+					name: "Agent B",
+					permissions: ["agents:read", "stats:read"],
+					rolePermissions: ["stats:read"],
+				},
+			],
+		}
+		await renderPage("support")
+		expect(host.textContent).toContain("Agent A")
+		expect(host.textContent).toContain(t("agentAccess.editConfiguration"))
+		expect(host.textContent).toContain("Agent B")
+	})
+
+	test("explains when a role gives no agents access", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		roleAgents = {
+			support: [{ id: "agent-a", name: "Agent A", permissions: ["agents:read"], rolePermissions: [] }],
+		}
+		await renderPage("support")
+		expect(host.textContent).toContain(t("agentAccess.empty"))
+	})
+
 	test("preserves unsaved changes on background refresh and can discard them", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
@@ -338,6 +398,22 @@ describe("role management", () => {
 		await click(button(t("roles.discard"), host))
 		expect(nameInput().value).toBe("Support")
 		expect(button(t("roles.save"), host).disabled).toBe(true)
+	})
+
+	test("stops blocking navigation when the edited role disappears", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+		await type(nameInput(), "Draft")
+		roles = []
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(host.textContent).toContain(t("problems.role-not-found"))
+		await act(async () => {
+			void router.navigate({ to: "/dashboard/users/roles" })
+		})
+		await settle()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 	})
 
 	test("keeps the editor unavailable until saved access has refreshed", async () => {
@@ -378,26 +454,30 @@ describe("role management", () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		await type(nameInput(), "Draft")
-		const confirm = spyOn(window, "confirm").mockReturnValue(false)
 		await act(async () => {
 			void router.navigate({ to: "/dashboard/users/roles" })
 		})
 		await settle()
-		expect(confirm).toHaveBeenCalledWith(t("roles.leavePrompt"))
+		expect(dialog().textContent).toContain(t("common.discardTitle"))
+		await click(button(t("common.keepEditing"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles/support")
 		expect(nameInput().value).toBe("Draft")
-		confirm.mockReturnValue(true)
 		await act(async () => {
 			void router.navigate({ to: "/dashboard/users/roles" })
 		})
 		await settle()
+		await click(button(t("common.discardChanges"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 	})
 
-	test("confirms deletion with recovery instructions and returns to the role list", async () => {
+	test("moves deletion into a danger zone below the form", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 3 }]
 		await renderPage("support")
 		await type(nameInput(), "Unsaved name")
+		const dangerZone = host.querySelector("section[aria-labelledby]")
+		expect(dangerZone?.textContent).toContain(t("roles.dangerZone"))
+		expect(dangerZone?.textContent).toContain(t("roles.delete"))
+		expect(host.querySelector("form")?.textContent).not.toContain(t("roles.delete"))
 		await click(button(t("roles.delete"), host))
 		expect(dialog().textContent).toContain(t("roles.deleteDescription", { people: 3 }))
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))
@@ -417,12 +497,13 @@ describe("role management", () => {
 		expect(host.textContent).toContain(t("problems.role-name-taken"))
 	})
 
-	test("disables saving while the name is invalid", async () => {
+	test("keeps saving enabled for an invalid dirty form so submit reveals field errors", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		await type(nameInput(), "")
+		expect(button(t("roles.save"), host).disabled).toBe(false)
 		await save()
-		expect(button(t("roles.save"), host).disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.nameError", { max: createRoleBodyNameMax }))
 		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 

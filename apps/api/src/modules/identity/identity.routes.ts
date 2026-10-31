@@ -1,3 +1,4 @@
+import { requestClientNetwork } from "@/http/client-network.ts"
 import { sessionCookieOptions } from "@/http/session-cookie.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { annotate } from "@/http/wide-event.ts"
@@ -21,7 +22,12 @@ const { SESSION_COOKIE } = service
 
 const authRoutes = new OpenAPIHono()
 	.openapi(loginRoute, async (c) => {
-		const { token, expiresAt, user } = await service.login(c.req.valid("json"))
+		const input = c.req.valid("json")
+		const { token, expiresAt, user } = await service.runCredentialOperation(
+			requestClientNetwork(c),
+			input.username,
+			() => service.login(input),
+		)
 		annotate(c, { "user.id": user.id })
 		setCookie(c, SESSION_COOKIE, token, { ...sessionCookieOptions(), expires: expiresAt })
 		return c.json({ user }, HTTP_STATUS.OK)

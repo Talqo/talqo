@@ -216,7 +216,7 @@ const WORKER_INTERVAL_MS = 3_000
 // A hung embedding call would stall the strictly-serial ingestion worker, so it is bounded.
 const EMBEDDING_TIMEOUT_MS = 60_000
 // Derive the advisory-lock key from the feature name; mask to a signed bigint for Postgres.
-const WORKER_LOCK_KEY = BigInt(Bun.hash("knowledge-base-ingestion")) & 0x7fff_ffff_ffff_ffffn
+const WORKER_LOCK_KEY = Bun.hash("knowledge-base-ingestion") & 0x7fff_ffff_ffff_ffffn
 
 class FileNotRetryableError extends ApiError {
 	constructor(message?: string, options?: ErrorOptions) {
@@ -280,11 +280,11 @@ export async function retryEmbedding(agentId: string, name: string): Promise<voi
 
 const RETRIEVAL_TOP_K = 5
 
-export async function searchKnowledge(agentId: string, text: string): Promise<string[]> {
+export async function searchKnowledge(agentId: string, text: string, signal?: AbortSignal): Promise<string[]> {
 	// Without indexed files there is nothing to match, so skip the paid embedding call.
 	if (!(await repository.hasReadyFiles(agentId))) return []
 	const operation = await aiProvider.prepareEmbeddingOperation()
-	return repository.search(agentId, await operation.embed(text), operation.key, RETRIEVAL_TOP_K)
+	return repository.search(agentId, await operation.embed(text, signal), operation.key, RETRIEVAL_TOP_K)
 }
 
 async function recoverUploads(): Promise<void> {

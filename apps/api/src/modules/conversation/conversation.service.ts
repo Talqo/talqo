@@ -222,6 +222,7 @@ export function createConversationService(dependencies: Dependencies) {
 		if (recovering) return recovering
 		if (performance.now() - lastRecovery < RECOVERY_INTERVAL_MS) return
 		recovering = (async () => {
+			await repository.pruneDailyCounters()
 			const pending = await repository.listPendingUsageFinalizations(USAGE_FINALIZATION_BATCH)
 			for (let offset = 0; offset < pending.length; offset += USAGE_FINALIZATION_CONCURRENCY) {
 				// oxlint-disable-next-line no-await-in-loop -- bounded recovery must finish each group before starting another.
@@ -239,11 +240,13 @@ export function createConversationService(dependencies: Dependencies) {
 	async function run(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		messages: aiProvider.TextMessage[],
-		prepared: PreparedOperation,
+		baseMessages: aiProvider.TextMessage[],
+		initialOperation: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
 	): Promise<void> {
+		let messages = baseMessages
+		let prepared = initialOperation
 		const { generationAttempt, assistantMessage } = accepted
 		if (!(await repository.markRunning(generationAttempt.id, generationAttempt.leaseToken))) {
 			annotate({ "chat.lease_lost": true })
@@ -305,6 +308,7 @@ export function createConversationService(dependencies: Dependencies) {
 		let model = prepared.model
 		let providerUsage: usageService.ProviderUsage | undefined
 		let terminalObserved = false
+		let providerInvoked = false
 		let publicError: { code: ChatErrorCode; newChatAvailable: boolean; retriable: boolean } = {
 			code: "provider-error",
 			retriable: true,
@@ -312,20 +316,59 @@ export function createConversationService(dependencies: Dependencies) {
 		}
 		// Resolves here because abort exists here. Prepare retries would orphan earlier spawns.
 		let connection: mcp.OpenTools | undefined
-		try {
-			connection = await mcp.openTools(agent.id, controller.signal)
-			annotate({ "mcp.servers_degraded": connection.degradedServers })
-		} catch (error) {
-			console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
-		}
 		const inFlight = new Map<string, { serverName: string; toolName: string }>()
 		try {
+			controller.signal.throwIfAborted()
+			let chunks: string[] = []
+			try {
+				chunks = await knowledgeBase.searchKnowledge(
+					agent.id,
+					accepted.userMessage.text,
+					AbortSignal.any([controller.signal, AbortSignal.timeout(dependencies.timeoutMs)]),
+				)
+				annotate({ "rag.chunks": chunks.length, "rag.degraded": false })
+			} catch (error) {
+				if (controller.signal.aborted) throw error
+				annotate({ "rag.degraded": true })
+				console.error("knowledge-base.retrieval.degraded", { agentId: agent.id, error: String(error) })
+			}
+			controller.signal.throwIfAborted()
+			if (chunks.length) {
+				const question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${accepted.userMessage.text}`
+				messages = [...baseMessages.slice(0, -1), { role: "user", content: question }]
+				const promptCharacters = Array.from(promptText(messages)).length
+				annotate({ "chat.prompt_characters": promptCharacters })
+				if (promptCharacters > dependencies.maxInputCharacters)
+					throw new aiProvider.ProviderContextLimitError("Retrieved context exceeds the input limit")
+				prepared = await dependencies.prepare({
+					messages,
+					maxOutputTokens: dependencies.maxOutputTokens,
+					timeoutMs: dependencies.timeoutMs,
+				})
+				provider = prepared.provider
+				model = prepared.model
+			}
+			try {
+				connection = await mcp.openTools(agent.id, controller.signal)
+				annotate({ "mcp.servers_degraded": connection.degradedServers })
+			} catch (error) {
+				console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
+			}
+			controller.signal.throwIfAborted()
 			if (
-				!(await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model, true))
+				!(await repository.setAttribution(
+					generationAttempt.id,
+					generationAttempt.leaseToken,
+					provider,
+					model,
+					true,
+					usageService.estimateTokens(promptText(messages)),
+				))
 			) {
 				annotate({ "chat.lease_lost": true })
 				return
 			}
+			providerInvoked = true
 			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
 				// Parallel calls to the same tool share a name; only the call id tells them apart.
 				const key = toolEvent.toolCallId
@@ -396,11 +439,13 @@ export function createConversationService(dependencies: Dependencies) {
 		}
 		if (outputFailed && outcome !== "blocked") outcome = "failed"
 
-		const normalized = usageService.normalizeUsage({
-			inputText: promptText(messages),
-			outputText: observedOutput,
-			usage: providerUsage,
-		})
+		const normalized = providerInvoked
+			? usageService.normalizeUsage({
+					inputText: promptText(messages),
+					outputText: observedOutput,
+					usage: providerUsage,
+				})
+			: { inputTokens: 0, outputTokens: 0 }
 		annotate({
 			"gen_ai.provider.name": provider,
 			"gen_ai.response.model": model,
@@ -450,6 +495,7 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
+			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 			const conversationId = requireUuid(
 				input.credential,
 				new SessionUnauthorizedError("A valid session credential is required"),
@@ -474,18 +520,7 @@ export function createConversationService(dependencies: Dependencies) {
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
 				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				let question = input.text
-				try {
-					const chunks = await knowledgeBase.searchKnowledge(agentId, input.text)
-					annotate({ "rag.chunks": chunks.length, "rag.degraded": false })
-					if (chunks.length) {
-						question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${input.text}`
-					}
-				} catch (error) {
-					annotate({ "rag.degraded": true })
-					console.error("knowledge-base.retrieval.degraded", { agentId, error: String(error) })
-				}
-				const messages = completedPrompt(systemPrompt, history.messages, question)
+				const messages = completedPrompt(systemPrompt, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
 				annotate({ "chat.prompt_characters": promptCharacters })
@@ -616,8 +651,10 @@ export async function listConversations(
 	actorId: string,
 ): Promise<ConversationPage> {
 	const scope = await roles.requireAgentScope(actorId, roles.AgentPermission.ConversationsRead)
-	const agentIds =
-		scope === "all" ? filter.agentId : filter.agentId ? filter.agentId.filter((id) => scope.includes(id)) : scope
+	let agentIds: string[] | undefined = scope === "all" ? undefined : scope
+	if (filter.agentId) {
+		agentIds = scope === "all" ? filter.agentId : filter.agentId.filter((id) => scope.includes(id))
+	}
 	const { rows, total } = await repository.listConversations({
 		agentIds,
 		limit: CONVERSATION_PAGE_SIZE,

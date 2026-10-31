@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test"
 
 import { test } from "./chat-embed"
+import { widget } from "./i18n"
 
 test("built widget boots in a sandboxed CDN-only preview frame", async ({ page, application }) => {
 	const baseURL = application.widgetHostOrigin
@@ -42,7 +43,7 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page, 
 	)
 
 	const preview = page.frameLocator("iframe")
-	await preview.getByRole("button", { name: "Open chat" }).click()
+	await preview.getByRole("button", { name: widget("openChat") }).click()
 	await expect(preview.getByRole("dialog")).toBeVisible()
 })
 
@@ -56,8 +57,11 @@ test("widget fetches and paints its palette across origins", async ({ page, chat
 
 	await page.goto(chatEmbed.widgetUrl)
 
-	await expect(page.getByRole("button", { name: "Open chat" })).toHaveCSS("background-color", "rgb(124, 58, 237)")
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await expect(page.getByRole("button", { name: widget("openChat") })).toHaveCSS(
+		"background-color",
+		"rgb(124, 58, 237)",
+	)
+	await page.getByRole("button", { name: widget("openChat") }).click()
 
 	await expect(page.getByRole("dialog")).toHaveCSS("background-color", "rgb(255, 247, 237)")
 	await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCSS("background-color", "rgb(255, 237, 213)")
@@ -68,12 +72,12 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 	const { providerControlOrigin } = chatEmbed
 
 	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await page.getByRole("button", { name: widget("openChat") }).click()
 	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
 	const send = async (text: string) => {
 		await messageInput.fill(text)
-		await dialog.getByRole("button", { name: "Send" }).click()
+		await dialog.getByRole("button", { name: widget("send") }).click()
 	}
 
 	await send("Give me the first answer")
@@ -95,7 +99,7 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 
 	// The same session proves persistence: a reload must not lose either turn.
 	await page.reload()
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await page.getByRole("button", { name: widget("openChat") }).click()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 	await expect(dialog.getByText("Prove you received the earlier turn", { exact: true })).toBeVisible()
@@ -111,12 +115,12 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	const { providerControlOrigin } = chatEmbed
 
 	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await page.getByRole("button", { name: widget("openChat") }).click()
 	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
 	const send = async (text: string) => {
 		await messageInput.fill(text)
-		await dialog.getByRole("button", { name: "Send" }).click()
+		await dialog.getByRole("button", { name: widget("send") }).click()
 	}
 
 	await send("Give me the first answer")
@@ -127,9 +131,11 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	await send("Stream until I cancel")
 	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
 	await expect(dialog.getByText("Cancellation partial output remains", { exact: true })).toBeVisible()
-	await dialog.getByRole("button", { name: "Stop generating" }).click()
-	await expect(dialog.getByText("Response cancelled", { exact: true })).toBeVisible()
-	await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
+	await dialog.getByRole("button", { name: widget("stopGenerating") }).click()
+	await expect(
+		dialog.getByRole("log", { name: widget("transcriptLabel") }).getByText(widget("outcomeCancelled"), { exact: true }),
+	).toBeVisible()
+	await expect(dialog.getByRole("button", { name: widget("stopGenerating") })).toHaveCount(0)
 
 	const oldCredential = await page.evaluate(() => {
 		const entry: [string, string] | undefined = Object.entries(localStorage).find(([key]) =>
@@ -142,7 +148,7 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 		return stored.credential
 	})
 
-	await dialog.getByRole("button", { name: "New chat" }).click()
+	await dialog.getByRole("button", { name: widget("newChat") }).click()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toHaveCount(0)
 
 	const response = await request.get(`${application.origin}/api/chat/session`, {
@@ -166,15 +172,15 @@ test("widget enforces daily chat allowance across new chats", async ({ page, req
 	const { providerControlOrigin } = chatEmbed
 
 	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: "Open chat" }).click()
+	await page.getByRole("button", { name: widget("openChat") }).click()
 	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: "Message" })
+	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
 	const sendUntilAnswered = async () => {
 		await messageInput.fill("Give me the first answer")
-		await dialog.getByRole("button", { name: "Send" }).click()
+		await dialog.getByRole("button", { name: widget("send") }).click()
 		await expect(dialog.getByText("First", { exact: true })).toBeVisible()
 		await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
-		await expect(dialog.getByRole("button", { name: "Stop generating" })).toHaveCount(0)
+		await expect(dialog.getByRole("button", { name: widget("stopGenerating") })).toHaveCount(0)
 	}
 
 	// The allowance is per agent and visitor network, not per session.
@@ -184,10 +190,11 @@ test("widget enforces daily chat allowance across new chats", async ({ page, req
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toHaveCount(3)
 
 	// Starting over does not top the allowance back up.
-	await dialog.getByRole("button", { name: "New chat" }).click()
+	await dialog.getByRole("button", { name: widget("newChat") }).click()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toHaveCount(0)
 
 	await messageInput.fill("The allowance must not reset")
-	await dialog.getByRole("button", { name: "Send" }).click()
-	await expect(dialog.getByRole("alert")).toContainText("daily message allowance has been reached")
+	await dialog.getByRole("button", { name: widget("send") }).click()
+	const [allowance] = widget("errorDailyAllowance").split("{{reset}}")
+	await expect(dialog.getByRole("alert")).toContainText((allowance ?? "").trim())
 })

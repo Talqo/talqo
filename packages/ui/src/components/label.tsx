@@ -1,7 +1,8 @@
-import { cn } from "@talqo/ui/lib/utils"
-import * as React from "react"
+import type { ComponentProps } from "react"
 
-function Label({ className, htmlFor, children, ...props }: React.ComponentProps<"label">) {
+import { cn } from "@talqo/ui/lib/utils"
+
+function Label({ className, htmlFor, children, ...props }: ComponentProps<"label">) {
 	return (
 		<label
 			htmlFor={htmlFor}

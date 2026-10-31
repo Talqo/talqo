@@ -104,6 +104,16 @@ export const grantablePermissionsResponseSchema = z.object({
 export const roleListResponseSchema = z.object({ roles: z.array(roleSchema), manageableRoleIds: z.array(z.string()) })
 export const roleResponseSchema = z.object({ role: roleSchema })
 export const userRolesResponseSchema = z.object({ roles: z.array(roleSummarySchema) })
+export const roleAgentsResponseSchema = z.object({
+	agents: z.array(
+		z.object({
+			id: z.string(),
+			name: z.string(),
+			permissions: z.array(z.enum(AGENT_PERMISSIONS)),
+			rolePermissions: z.array(z.enum(AGENT_PERMISSIONS)),
+		}),
+	),
+})
 
 const invalidRequest = problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON])
 const authRequired = problemResponse([PROBLEM_CODES.AUTHENTICATION_REQUIRED])
@@ -135,6 +145,23 @@ export const myPermissionsRoute = createRoute({
 	},
 })
 
+export const myRolesRoute = createRoute({
+	method: "get",
+	path: "/me/roles",
+	operationId: "getMyRoles",
+	tags: ["Roles"],
+	...access.session(),
+	responses: {
+		200: {
+			content: { "application/json": { schema: userRolesResponseSchema } },
+			description: "Roles assigned to the current operator",
+		},
+		401: authRequired,
+		403: passwordRequired,
+		500: serverError,
+	},
+})
+
 const resetPasswordRequestSchema = z.object({
 	newPassword: passwordSchema,
 })
@@ -159,77 +186,8 @@ const roleParamsSchema = z.object({
 	roleId: z.string().openapi({ param: { name: "roleId", in: "path" } }),
 })
 
-const agentAccessParamsSchema = z.object({ agentId: z.string().min(1) })
-const agentRoleParamsSchema = agentAccessParamsSchema.extend({ roleId: z.string().min(1) })
+const roleAgentParamsSchema = roleParamsSchema.extend({ agentId: z.string().min(1) })
 const agentPermissionsResponseSchema = z.object({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })
-export const agentAccessResponseSchema = z.object({
-	permissions: z.array(z.enum(AGENT_PERMISSIONS)),
-	roles: z.array(roleSummarySchema.extend({ permissions: z.array(z.enum(AGENT_PERMISSIONS)) })).optional(),
-})
-
-export const getAgentAccessRoute = createRoute({
-	method: "get",
-	path: "/agents/{agentId}/access",
-	operationId: "getAgentAccess",
-	tags: ["Roles"],
-	...access.session(),
-	request: { params: agentAccessParamsSchema },
-	responses: {
-		200: {
-			content: { "application/json": { schema: agentAccessResponseSchema } },
-			description: "Effective permissions, with role grants for access managers",
-		},
-		401: authRequired,
-		403: permissionForbidden,
-		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND]),
-		500: serverError,
-	},
-})
-
-export const setAgentAccessRoute = createRoute({
-	method: "put",
-	path: "/agents/{agentId}/access/{roleId}",
-	operationId: "setAgentAccess",
-	tags: ["Roles"],
-	...access.permission(Permission.RolesManage),
-	request: {
-		params: agentRoleParamsSchema,
-		body: {
-			required: true,
-			content: {
-				"application/json": {
-					schema: agentPermissionsResponseSchema
-						.strict()
-						.refine(({ permissions }) => permissions.length > 0 && hasNoRepeats(permissions)),
-				},
-			},
-		},
-	},
-	responses: {
-		204: noContentResponse,
-		400: invalidRequest,
-		401: authRequired,
-		403: targetForbidden,
-		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
-		500: serverError,
-	},
-})
-
-export const removeAgentAccessRoute = createRoute({
-	method: "delete",
-	path: "/agents/{agentId}/access/{roleId}",
-	operationId: "removeAgentAccess",
-	tags: ["Roles"],
-	...access.permission(Permission.RolesManage),
-	request: { params: agentRoleParamsSchema },
-	responses: {
-		204: noContentResponse,
-		401: authRequired,
-		403: targetForbidden,
-		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
-		500: serverError,
-	},
-})
 
 export const getSetupStatusRoute = createRoute({
 	method: "get",
@@ -259,6 +217,7 @@ export const bootstrapAdminRoute = createRoute({
 		},
 		400: invalidRequest,
 		409: problemResponse([PROBLEM_CODES.ADMIN_ALREADY_EXISTS, PROBLEM_CODES.USERNAME_TAKEN]),
+		429: problemResponse([PROBLEM_CODES.AUTH_RATE_LIMITED]),
 		413: payloadTooLargeResponse,
 		500: serverError,
 	},
@@ -303,6 +262,7 @@ export const redeemInvitationRoute = createRoute({
 		},
 		400: invalidRequest,
 		409: problemResponse([PROBLEM_CODES.INVALID_INVITATION, PROBLEM_CODES.USERNAME_TAKEN]),
+		429: problemResponse([PROBLEM_CODES.AUTH_RATE_LIMITED]),
 		413: payloadTooLargeResponse,
 		500: serverError,
 	},
@@ -394,6 +354,70 @@ export const listRolesRoute = createRoute({
 		200: { content: { "application/json": { schema: roleListResponseSchema } }, description: "All roles" },
 		401: authRequired,
 		403: permissionForbidden,
+		500: serverError,
+	},
+})
+
+export const listRoleAgentsRoute = createRoute({
+	method: "get",
+	path: "/roles/{roleId}/agents",
+	operationId: "listRoleAgents",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: { params: roleParamsSchema },
+	responses: {
+		200: {
+			content: { "application/json": { schema: roleAgentsResponseSchema } },
+			description: "Agents the caller can manage, with this role's grants",
+		},
+		401: authRequired,
+		403: permissionForbidden,
+		404: roleNotFound,
+		500: serverError,
+	},
+})
+
+export const setRoleAgentAccessRoute = createRoute({
+	method: "put",
+	path: "/roles/{roleId}/agents/{agentId}",
+	operationId: "setRoleAgentAccess",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: {
+		params: roleAgentParamsSchema,
+		body: {
+			required: true,
+			content: {
+				"application/json": {
+					schema: agentPermissionsResponseSchema
+						.strict()
+						.refine(({ permissions }) => permissions.length > 0 && hasNoRepeats(permissions)),
+				},
+			},
+		},
+	},
+	responses: {
+		204: noContentResponse,
+		400: invalidRequest,
+		401: authRequired,
+		403: targetForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
+		500: serverError,
+	},
+})
+
+export const removeRoleAgentAccessRoute = createRoute({
+	method: "delete",
+	path: "/roles/{roleId}/agents/{agentId}",
+	operationId: "removeRoleAgentAccess",
+	tags: ["Roles"],
+	...access.permission(Permission.RolesManage),
+	request: { params: roleAgentParamsSchema },
+	responses: {
+		204: noContentResponse,
+		401: authRequired,
+		403: targetForbidden,
+		404: problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.ROLE_NOT_FOUND]),
 		500: serverError,
 	},
 })

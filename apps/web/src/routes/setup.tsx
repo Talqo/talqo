@@ -36,6 +36,7 @@ function SetupPage() {
 				error={error}
 				onSubmit={handleSubmit}
 				requireConfirmation={true}
+				pendingLabel={t("auth.setup.pending")}
 				submitLabel={t("auth.setup.submit")}
 				submitting={bootstrapAdmin.isPending}
 			/>

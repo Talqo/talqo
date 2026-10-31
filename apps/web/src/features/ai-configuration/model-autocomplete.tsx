@@ -11,6 +11,9 @@ type ModelAutocompleteProps = {
 	loading?: boolean
 	disabled?: boolean
 	placeholder?: string
+	required?: boolean
+	invalid?: boolean
+	describedBy?: string
 	emptyLabel: string
 	triggerLabel: string
 }
@@ -20,18 +23,35 @@ function FieldInput({
 	placeholder,
 	loading,
 	triggerLabel,
+	required,
+	invalid,
+	describedBy,
 }: {
 	id: string
 	placeholder?: string
 	loading: boolean
 	triggerLabel: string
+	required: boolean
+	invalid: boolean
+	describedBy?: string
 }) {
 	return (
 		<>
-			<Autocomplete.Input id={id} placeholder={placeholder} render={<Input trailingAction />} />
+			<Autocomplete.Input
+				id={id}
+				placeholder={placeholder}
+				render={
+					<Input
+						trailingAction
+						required={required}
+						aria-invalid={invalid || undefined}
+						aria-describedby={describedBy}
+					/>
+				}
+			/>
 			<Autocomplete.Trigger
 				aria-label={triggerLabel}
-				className="text-muted-foreground hover:text-foreground size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none"
+				className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 size-control-sm rounded-item absolute top-1/2 right-1 inline-flex -translate-y-1/2 items-center justify-center outline-none focus-visible:ring-3"
 			>
 				{loading ? <LoaderCircleIcon className="size-4 animate-spin" /> : <ChevronsUpDownIcon className="size-4" />}
 			</Autocomplete.Trigger>
@@ -47,6 +67,9 @@ export function ModelAutocomplete({
 	loading = false,
 	disabled = false,
 	placeholder,
+	required = false,
+	invalid = false,
+	describedBy,
 	emptyLabel,
 	triggerLabel,
 }: ModelAutocompleteProps) {
@@ -59,6 +82,9 @@ export function ModelAutocomplete({
 					onChange={(event) => onChange(event.target.value)}
 					placeholder={placeholder}
 					disabled={disabled}
+					required={required}
+					aria-invalid={invalid || undefined}
+					aria-describedby={describedBy}
 					autoComplete="off"
 					spellCheck={false}
 				/>
@@ -72,7 +98,15 @@ export function ModelAutocomplete({
 	return (
 		<Autocomplete.Root items={models} value={value} onValueChange={(next) => onChange(next)} disabled={disabled}>
 			<div className="relative">
-				<FieldInput id={id} placeholder={placeholder} loading={loading} triggerLabel={triggerLabel} />
+				<FieldInput
+					id={id}
+					placeholder={placeholder}
+					loading={loading}
+					triggerLabel={triggerLabel}
+					required={required}
+					invalid={invalid}
+					describedBy={describedBy}
+				/>
 			</div>
 			<Combobox.Portal>
 				<Combobox.Positioner sideOffset={4} className="isolate z-50">

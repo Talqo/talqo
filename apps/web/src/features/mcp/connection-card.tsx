@@ -1,7 +1,6 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import {
-	type DeleteMcpServerMutationError,
 	getListMcpServersQueryKey,
 	type ListMcpServersQueryResult,
 	type UpdateMcpServerMutationError,
@@ -11,16 +10,11 @@ import {
 } from "@/api/generated/mcp/mcp.ts"
 import { connectionSummary, toggledBody } from "@/features/mcp/connection-body"
 import { ConnectionDialog } from "@/features/mcp/connection-dialog"
+import { getProblemMessage } from "@/lib/problem-message"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@talqo/ui/components/card"
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@talqo/ui/components/dialog"
+import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardName } from "@talqo/ui/components/card-name"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import { Switch } from "@talqo/ui/components/switch"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
@@ -33,12 +27,15 @@ export function ConnectionCard({
 	agentId,
 	canManage,
 	server,
+	stdioAllowed,
 }: {
 	agentId: string
 	canManage: boolean
 	server: McpServer
+	stdioAllowed: boolean
 }) {
 	const { t } = useTranslation()
+	const deploymentBlocked = server.transport === "stdio" && !stdioAllowed
 	const queryClient = useQueryClient()
 	const refresh = () => queryClient.invalidateQueries({ queryKey: getListMcpServersQueryKey(agentId) })
 	const update = useUpdateMcpServer<UpdateMcpServerMutationError, { previous: ListMcpServersQueryResult | undefined }>({
@@ -88,29 +85,43 @@ export function ConnectionCard({
 			await action()
 		} catch (caught) {
 			setError(
-				(caught as UpdateMcpServerMutationError | DeleteMcpServerMutationError).status === NOT_FOUND_STATUS
+				(caught as UpdateMcpServerMutationError).status === NOT_FOUND_STATUS
 					? t("mcp.notFound")
 					: t("mcp.actionFailed"),
 			)
 		}
 	}
 
+	async function removeServer(): Promise<void> {
+		try {
+			await remove.mutateAsync({ agentId, serverId: server.id })
+			setConfirmOpen(false)
+		} catch {
+			// ConfirmDialog renders the mutation error; guard() would duplicate it in the card.
+		}
+	}
+
 	return (
 		<Card className="h-full" data-testid="mcp-server-card">
 			<CardHeader>
-				<CardTitle>
-					<span className="flex items-center gap-2">
-						<span
-							aria-hidden="true"
-							className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
-						/>
-						<span className="truncate">{server.name}</span>
-					</span>
-				</CardTitle>
-				<p className="text-muted-foreground truncate font-mono text-sm">{connectionSummary(server)}</p>
+				<CardName>{server.name}</CardName>
+				<CardDescription className="min-w-0">
+					<div className="space-y-1">
+						<span className="block truncate font-mono" title={connectionSummary(server)}>
+							{connectionSummary(server)}
+						</span>
+						<span className="flex items-center gap-1.5">
+							<span
+								aria-hidden="true"
+								className={`size-2 shrink-0 rounded-full ${server.isWorking ? "bg-success" : "bg-destructive"}`}
+							/>
+							{server.isWorking ? t("mcp.statusConnected") : t("mcp.statusUnreachable")}
+						</span>
+					</div>
+				</CardDescription>
 			</CardHeader>
-			<CardContent>
-				<div className="space-y-3">
+			<CardContent className="flex flex-1 flex-col">
+				<div className="flex flex-1 flex-col gap-3">
 					<div className="flex items-center justify-between gap-2">
 						<p className="text-muted-foreground text-xs">{t("mcp.toolsAvailable", { toolCount: server.toolCount })}</p>
 						{server.tools.length > 0 && (
@@ -119,13 +130,17 @@ export function ConnectionCard({
 							</Button>
 						)}
 					</div>
-					{!server.isWorking && (
-						<p role="alert" className="text-destructive text-xs">
-							{t("mcp.unreachable")}
-						</p>
+					{deploymentBlocked ? (
+						<p className="text-muted-foreground text-xs">{t("mcp.stdioDisabled")}</p>
+					) : (
+						!server.isWorking && (
+							<p role="alert" className="text-destructive text-xs">
+								{t("mcp.unreachable")}
+							</p>
+						)
 					)}
 					{expanded && (
-						<fieldset className="space-y-1">
+						<fieldset className="space-y-1" disabled={deploymentBlocked}>
 							<legend className="sr-only">{t("mcp.toolsLegend")}</legend>
 							{server.tools.map((tool) => (
 								<label key={tool.name} className="flex items-center gap-2 text-sm">
@@ -149,78 +164,64 @@ export function ConnectionCard({
 						</fieldset>
 					)}
 
-					{canManage && (
-						<div className="flex items-center justify-between gap-2">
-							<Switch
-								checked={!server.isDisabled}
-								disabled={setDisabled.isPending}
-								onCheckedChange={(checked) =>
-									void guard(() =>
-										setDisabled.mutateAsync({
-											agentId,
-											serverId: server.id,
-											action: checked ? "enable" : "disable",
-										}),
-									)
-								}
-								aria-label={t("mcp.enabled")}
-							/>
-							<div className="flex items-center gap-1">
-								<ConnectionDialog key={server.id} agentId={agentId} server={server} />
-								<Button
-									variant="destructive"
-									size="icon-sm"
-									onClick={() => setConfirmOpen(true)}
-									aria-label={t("mcp.remove")}
-								>
-									<Trash2 className="size-4" />
-								</Button>
+					<div className="mt-auto space-y-3">
+						{error && (
+							<p role="alert" className="text-destructive text-xs">
+								{error}
+							</p>
+						)}
+						{canManage && (
+							<div className="flex items-center justify-between gap-2">
+								<div className="flex items-center gap-2">
+									<Switch
+										checked={!server.isDisabled}
+										disabled={setDisabled.isPending || deploymentBlocked}
+										onCheckedChange={(checked) =>
+											void guard(() =>
+												setDisabled.mutateAsync({
+													agentId,
+													serverId: server.id,
+													action: checked ? "enable" : "disable",
+												}),
+											)
+										}
+										aria-label={t("mcp.enabledFor", { name: server.name })}
+									/>
+									<span className="text-muted-foreground text-sm">{t("mcp.enabled")}</span>
+								</div>
+								<div className="flex items-center gap-1">
+									<ConnectionDialog key={server.id} agentId={agentId} server={server} stdioAllowed={stdioAllowed} />
+									<Button
+										variant="destructive"
+										size="icon-sm"
+										onClick={() => setConfirmOpen(true)}
+										aria-label={t("mcp.remove")}
+									>
+										<Trash2 className="size-4" />
+									</Button>
+								</div>
 							</div>
-						</div>
-					)}
-					{error && (
-						<p role="alert" className="text-destructive text-xs">
-							{error}
-						</p>
-					)}
+						)}
+					</div>
 
-					<Dialog
+					<ConfirmDialog
 						open={confirmOpen}
 						onOpenChange={(next) => {
-							if (remove.isPending) return
 							setConfirmOpen(next)
-							if (!next) setError(null)
+							if (!next) {
+								setError(null)
+								remove.reset()
+							}
 						}}
-					>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>{t("mcp.removeTitle")}</DialogTitle>
-								<DialogDescription>{t("mcp.removePrompt", { name: server.name })}</DialogDescription>
-							</DialogHeader>
-							{error && (
-								<p role="alert" className="text-destructive text-sm">
-									{error}
-								</p>
-							)}
-							<DialogFooter>
-								<Button variant="outline" onClick={() => setConfirmOpen(false)}>
-									{t("common.cancel")}
-								</Button>
-								<Button
-									variant="destructive"
-									disabled={remove.isPending}
-									onClick={() =>
-										void guard(async () => {
-											await remove.mutateAsync({ agentId, serverId: server.id })
-											setConfirmOpen(false)
-										})
-									}
-								>
-									{remove.isPending ? t("mcp.removing") : t("mcp.removeConfirm")}
-								</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+						title={t("mcp.removeTitle")}
+						description={t("mcp.removePrompt", { name: server.name })}
+						cancelLabel={t("common.cancel")}
+						confirmLabel={t("mcp.removeConfirm")}
+						pendingLabel={t("mcp.removing")}
+						pending={remove.isPending}
+						error={remove.error ? getProblemMessage(remove.error, t, t("mcp.actionFailed")) : undefined}
+						onConfirm={() => void removeServer()}
+					/>
 				</div>
 			</CardContent>
 		</Card>

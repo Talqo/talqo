@@ -19,7 +19,7 @@ function outcomeKey(outcome: Message["outcome"]) {
 export function Transcript({ messages }: { messages: Message[] }) {
 	const { t } = useTranslation()
 	return (
-		<ol className="space-y-4">
+		<ol className="bg-foreground/8 rounded-surface p-surface-padding space-y-4 border">
 			{messages.map((message) => {
 				const fromVisitor = message.role === "user"
 				const outcomeLabel = message.role === "assistant" ? outcomeKey(message.outcome) : undefined
@@ -32,7 +32,7 @@ export function Transcript({ messages }: { messages: Message[] }) {
 							<div
 								className={cn(
 									"max-w-[85%] rounded-2xl px-4 py-2 text-sm break-words",
-									fromVisitor ? "bg-primary text-primary-foreground whitespace-pre-wrap" : "bg-muted",
+									fromVisitor ? "bg-primary text-primary-foreground whitespace-pre-wrap" : "bg-card dark:bg-muted",
 								)}
 							>
 								{fromVisitor ? message.text : <Markdown>{message.text}</Markdown>}

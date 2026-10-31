@@ -6,19 +6,27 @@ import {
 	useListUsers,
 } from "@/api/generated/roles/roles"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { buttonVariants } from "@talqo/ui/components/button"
 import { Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { RoleAccessCard } from "./role-access-card"
 import { holdsAll } from "./role-form"
 import { UpdateRoleForm } from "./update-role-form"
 
 export function RolePage({ roleId }: { roleId: string }) {
 	const { t } = useTranslation()
+	const [roleDirty, setRoleDirty] = useState(false)
+	const [accessDirty, setAccessDirty] = useState(false)
+	const dirty = roleDirty || accessDirty
+	const dirtyGuard = useDirtyFormGuard(dirty)
 	const rolesQuery = useListRoles()
 	const catalogQuery = useListGrantablePermissions()
 	const heldQuery = useGetMyPermissions()
@@ -47,7 +55,10 @@ export function RolePage({ roleId }: { roleId: string }) {
 			{forbidden ? (
 				<AccessDenied />
 			) : queries.some(({ isPending }) => isPending) ? (
-				<p className="text-muted-foreground">{t("roles.loading")}</p>
+				<>
+					<output className="sr-only">{t("roles.loading")}</output>
+					<PageSkeleton />
+				</>
 			) : queries.some(({ isError }) => isError) || !roles || !catalog || !held ? (
 				<ProblemAlert
 					error={queries.find(({ isError }) => isError)?.error}
@@ -69,9 +80,12 @@ export function RolePage({ roleId }: { roleId: string }) {
 						heldPermissions={held}
 						ownRoles={ownRoles}
 						disabled={!changeable}
+						onDirtyChange={setRoleDirty}
 					/>
+					<RoleAccessCard roleId={role.id} onDirtyChange={setAccessDirty} />
 				</>
 			)}
+			{dirtyGuard}
 		</div>
 	)
 }

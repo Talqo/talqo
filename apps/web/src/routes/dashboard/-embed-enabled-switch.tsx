@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next"
 
 const NOT_FOUND_STATUS = 404
 
-type EmbedTarget = { id: string; agentId: string; isDisabled: boolean }
+type EmbedTarget = { id: string; agentId: string; isDisabled: boolean; name: string }
 
 export function EmbedEnabledSwitch({ embed, disabled = false }: { embed: EmbedTarget; disabled?: boolean }) {
 	const { t } = useTranslation()
@@ -55,7 +55,7 @@ export function EmbedEnabledSwitch({ embed, disabled = false }: { embed: EmbedTa
 					checked={!embed.isDisabled}
 					disabled={disabled || pending}
 					onCheckedChange={(checked) => void onToggle(checked)}
-					aria-label={t("embedSetup.embedEnabled")}
+					aria-label={t("embedSetup.embedEnabledFor", { name: embed.name })}
 				/>
 				<span className="text-muted-foreground text-sm">{t("embedSetup.embedEnabled")}</span>
 			</div>

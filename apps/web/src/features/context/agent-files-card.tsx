@@ -17,6 +17,7 @@ import { getProblemMessage } from "@/lib/problem-message.ts"
 import { useLanguage } from "@/lib/use-language"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
+import { ConfirmDialog } from "@talqo/ui/components/confirm-dialog"
 import {
 	Dialog,
 	DialogContent,
@@ -25,8 +26,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@talqo/ui/components/dialog"
+import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@talqo/ui/components/tooltip"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -294,13 +297,28 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 						</p>
 					)}
 					{filesQuery.isLoading ? (
-						<p className="text-muted-foreground text-sm">{t("agentFiles.loading")}</p>
+						<div className="divide-border divide-y rounded-md border">
+							<output className="sr-only">{t("agentFiles.loading")}</output>
+							{Array.from({ length: 3 }, (_, index) => (
+								<div key={index} className="flex items-center gap-3 px-3 py-2">
+									<Skeleton className="size-4 shrink-0" />
+									<div className="min-w-0 flex-1 space-y-2">
+										<Skeleton className="h-4 w-2/3 max-w-full" />
+										<Skeleton className="h-3 w-1/2 max-w-full" />
+									</div>
+								</div>
+							))}
+						</div>
 					) : filesQuery.isError ? (
 						<ProblemAlert error={filesQuery.error} onRetry={() => void filesQuery.refetch()} />
 					) : files.length === 0 ? (
 						// The dropzone already invites managers to upload; readers need to know the list is empty.
 						canManage ? null : (
-							<p className="text-muted-foreground text-sm">{t("agentFiles.empty")}</p>
+							<EmptyState
+								icon={FileText}
+								title={t("agentFiles.emptyTitle")}
+								description={t("agentFiles.emptyDescriptionReader")}
+							/>
 						)
 					) : (
 						<ul className="divide-border divide-y rounded-md border">
@@ -372,7 +390,7 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 														render={
 															<Button
 																type="button"
-																variant="ghost"
+																variant="destructive"
 																size="icon"
 																disabled={deleteFile.isPending}
 																onClick={() => openDelete(file)}
@@ -397,10 +415,13 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 			<Dialog
 				open={renameTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setRenameTarget(null)
+					if (!open && !renameFile.isPending) {
+						setRenameTarget(null)
+						setRenameError(null)
+					}
 				}}
 			>
-				<DialogContent>
+				<DialogContent closeLabel={t("common.close")}>
 					<DialogHeader>
 						<DialogTitle>{t("agentFiles.renameTitle")}</DialogTitle>
 						<DialogDescription>{t("agentFiles.renameDescription")}</DialogDescription>
@@ -428,43 +449,46 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 							</p>
 						)}
 						<DialogFooter>
+							<Button
+								type="button"
+								variant="outline"
+								disabled={renameFile.isPending}
+								onClick={() => {
+									setRenameTarget(null)
+									setRenameError(null)
+								}}
+							>
+								{t("common.cancel")}
+							</Button>
 							<Button type="submit" disabled={renameFile.isPending || !renameValue.trim()}>
-								{t("agentFiles.renameSave")}
+								{renameFile.isPending ? t("agentFiles.renaming") : t("agentFiles.renameSave")}
 							</Button>
 						</DialogFooter>
 					</form>
 				</DialogContent>
 			</Dialog>
 
-			<Dialog
+			<ConfirmDialog
 				open={deleteTarget !== null}
 				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null)
+					if (open) return
+					setDeleteTarget(null)
+					setDeleteError(null)
+					deleteFile.reset()
 				}}
+				title={t("agentFiles.deleteTitle")}
+				description={t("agentFiles.deletePrompt")}
+				cancelLabel={t("common.cancel")}
+				confirmLabel={t("agentFiles.deleteConfirm")}
+				pendingLabel={t("agentFiles.deleting")}
+				pending={deleteFile.isPending}
+				error={deleteError ?? undefined}
+				onConfirm={() => void onConfirmDelete()}
 			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>{t("agentFiles.deleteTitle")}</DialogTitle>
-						<DialogDescription>{t("agentFiles.deletePrompt")}</DialogDescription>
-					</DialogHeader>
-					<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
-						{deleteTarget?.name}
-					</p>
-					{deleteError && (
-						<p role="alert" className="text-destructive text-xs">
-							{deleteError}
-						</p>
-					)}
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setDeleteTarget(null)}>
-							{t("agentFiles.deleteCancel")}
-						</Button>
-						<Button variant="destructive" disabled={deleteFile.isPending} onClick={() => void onConfirmDelete()}>
-							{deleteFile.isPending ? t("agentFiles.deleting") : t("agentFiles.deleteConfirm")}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				<p className="truncate text-sm font-medium" title={deleteTarget?.name}>
+					{deleteTarget?.name}
+				</p>
+			</ConfirmDialog>
 		</Card>
 	)
 }

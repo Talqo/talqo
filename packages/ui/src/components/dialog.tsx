@@ -1,8 +1,9 @@
+import type { ComponentProps } from "react"
+
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { Button } from "@talqo/ui/components/button"
 import { cn } from "@talqo/ui/lib/utils"
 import { XIcon } from "lucide-react"
-import * as React from "react"
 
 function Dialog({ ...props }: DialogPrimitive.Root.Props) {
 	return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -33,14 +34,10 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
 	)
 }
 
-function DialogContent({
-	className,
-	children,
-	showCloseButton = true,
-	...props
-}: DialogPrimitive.Popup.Props & {
-	showCloseButton?: boolean
-}) {
+type DialogContentProps = DialogPrimitive.Popup.Props &
+	({ showCloseButton: false; closeLabel?: string } | { showCloseButton?: boolean; closeLabel: string })
+
+function DialogContent({ className, children, showCloseButton = true, closeLabel, ...props }: DialogContentProps) {
 	return (
 		<DialogPortal>
 			<DialogOverlay />
@@ -59,7 +56,7 @@ function DialogContent({
 						render={<Button variant="ghost" className="absolute top-3 right-3" size="icon-sm" />}
 					>
 						<XIcon />
-						<span className="sr-only">Close</span>
+						<span className="sr-only">{closeLabel}</span>
 					</DialogPrimitive.Close>
 				)}
 			</DialogPrimitive.Popup>
@@ -67,18 +64,11 @@ function DialogContent({
 	)
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({ className, ...props }: ComponentProps<"div">) {
 	return <div data-slot="dialog-header" className={cn("flex flex-col gap-2", className)} {...props} />
 }
 
-function DialogFooter({
-	className,
-	showCloseButton = false,
-	children,
-	...props
-}: React.ComponentProps<"div"> & {
-	showCloseButton?: boolean
-}) {
+function DialogFooter({ className, children, ...props }: ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="dialog-footer"
@@ -86,7 +76,6 @@ function DialogFooter({
 			{...props}
 		>
 			{children}
-			{showCloseButton && <DialogPrimitive.Close render={<Button variant="outline" />}>Close</DialogPrimitive.Close>}
 		</div>
 	)
 }

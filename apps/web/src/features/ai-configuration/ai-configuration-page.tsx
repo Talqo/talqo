@@ -14,6 +14,8 @@ import {
 	useSaveAiProviderConfiguration,
 } from "@/api/generated/ai-providers/ai-providers.ts"
 import { PageHeader } from "@/components/page-header"
+import { PageSkeleton } from "@/components/page-skeleton"
+import { ProblemAlert } from "@/components/problem-alert"
 import {
 	aiConfigurationFormSchema,
 	buildSaveInput,
@@ -24,6 +26,7 @@ import { ModelAutocomplete } from "@/features/ai-configuration/model-autocomplet
 import { ProviderBrand } from "@/features/ai-configuration/provider-brand"
 import { useModelDiscovery } from "@/features/ai-configuration/use-model-discovery"
 import { getProblemMessage } from "@/lib/problem-message.ts"
+import { useDirtyFormGuard } from "@/lib/use-dirty-form-guard"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talqo/ui/components/card"
@@ -35,16 +38,18 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@talqo/ui/components/dialog"
+import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
-import { Tabs, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { LockIcon, PencilLineIcon } from "lucide-react"
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
-import { Controller, useForm, useWatch } from "react-hook-form"
+import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
+type MissingField = { field: string; kind: "credential" | "setting"; role: "text" | "embedding" }
 
 function settingsKey(settings: Record<string, string>): string {
 	return JSON.stringify(Object.entries(settings).toSorted(([a], [b]) => a.localeCompare(b)))
@@ -87,6 +92,22 @@ function authModeLabel(mode: AiProviderAuthMode, t: (key: string) => string): st
 	return mode === "static" ? t("aiConfiguration.auth.static") : t("aiConfiguration.auth.deploymentIdentity")
 }
 
+function focusFirstInvalidModel(errors: FieldErrors<AiConfigurationFormValues>): void {
+	if (errors.text?.modelId) {
+		document.getElementById("text-model")?.focus()
+		return
+	}
+	if (errors.embedding?.modelId) document.getElementById("embedding-model")?.focus()
+}
+
+function RequiredMark() {
+	return (
+		<span aria-hidden="true" className="text-muted-foreground">
+			*
+		</span>
+	)
+}
+
 function ProviderSelect({
 	id,
 	providers,
@@ -110,7 +131,7 @@ function ProviderSelect({
 			}}
 			disabled={disabled}
 		>
-			<SelectTrigger id={id} className="w-full">
+			<SelectTrigger id={id} className="w-full" aria-required="true">
 				<SelectValue>
 					{(providerId: AiProviderId) => {
 						const provider = providers.find((item) => item.id === providerId)
@@ -148,6 +169,7 @@ function ModelField({
 	stored,
 	storedCredentialRole,
 	disabled = false,
+	invalid = false,
 }: {
 	modelRole: "text" | "embedding"
 	label: string
@@ -158,14 +180,18 @@ function ModelField({
 	stored: RedactedRoleConfiguration | null
 	storedCredentialRole: "text" | "embedding"
 	disabled?: boolean
+	invalid?: boolean
 }) {
 	const { t } = useTranslation()
 	const context: DiscoveryContext = { provider, value, stored }
 	const discovery = useModelDiscovery({ ...context, storedCredentialRole })
 	const refreshWithStoredCredentials = storedCredentialsMatch(context)
+	const errorId = `${role}-model-error`
 	return (
 		<div className="space-y-2">
-			<Label htmlFor={`${role}-model`}>{label}</Label>
+			<Label htmlFor={`${role}-model`}>
+				{label} <RequiredMark />
+			</Label>
 			<ModelAutocomplete
 				id={`${role}-model`}
 				value={modelId}
@@ -173,9 +199,17 @@ function ModelField({
 				models={discovery.models}
 				loading={discovery.loading}
 				disabled={disabled}
+				required={!disabled}
+				invalid={invalid}
+				describedBy={invalid ? errorId : undefined}
 				emptyLabel={t("aiConfiguration.discovery.noResults")}
 				triggerLabel={t("aiConfiguration.discovery.showModels")}
 			/>
+			{invalid && (
+				<p id={errorId} role="alert" className="text-destructive text-xs">
+					{t("aiConfiguration.fields.modelRequired")}
+				</p>
+			)}
 			{discovery.failed && (
 				<p className="text-muted-foreground text-xs">
 					{refreshWithStoredCredentials
@@ -198,6 +232,8 @@ function ConnectionFields({
 	stored,
 	drafts,
 	disabled = false,
+	credentialRevision,
+	missing,
 }: {
 	modelRole: "text" | "embedding"
 	value: RoleValue
@@ -206,6 +242,8 @@ function ConnectionFields({
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
+	credentialRevision: number
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
@@ -241,7 +279,9 @@ function ConnectionFields({
 	return (
 		<>
 			<div className="space-y-2">
-				<Label htmlFor={`${role}-provider`}>{t("aiConfiguration.fields.provider")}</Label>
+				<Label htmlFor={`${role}-provider`}>
+					{t("aiConfiguration.fields.provider")} <RequiredMark />
+				</Label>
 				<ProviderSelect
 					id={`${role}-provider`}
 					providers={providers}
@@ -276,20 +316,43 @@ function ConnectionFields({
 				</div>
 			)}
 
-			{provider.settingFields.map((field) => (
-				<div className="space-y-2" key={field}>
-					<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
-					<Input
-						id={`${role}-${field}`}
-						value={value.settings[field] ?? ""}
-						disabled={disabled}
-						onChange={(event) => onChange({ ...value, settings: { ...value.settings, [field]: event.target.value } })}
-					/>
-				</div>
-			))}
+			{provider.settingFields.map((field) => {
+				const required = provider.requiredSettingFields.includes(field)
+				const invalid =
+					required && missing?.kind === "setting" && missing.field === field && !value.settings[field]?.trim()
+				return (
+					<div className="space-y-2" key={field}>
+						<Label htmlFor={`${role}-${field}`}>
+							{fieldLabel(field, t)} {required && <RequiredMark />}
+						</Label>
+						<Input
+							id={`${role}-${field}`}
+							value={value.settings[field] ?? ""}
+							disabled={disabled}
+							required={required}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? `${role}-${field}-error` : undefined}
+							onChange={(event) => onChange({ ...value, settings: { ...value.settings, [field]: event.target.value } })}
+						/>
+						{invalid && (
+							<p id={`${role}-${field}-error`} role="alert" className="text-destructive text-xs">
+								{t("aiConfiguration.fields.fieldRequired")}
+							</p>
+						)}
+					</div>
+				)
+			})}
 
 			{value.authMode === "static" && !disabled && (
-				<CredentialsSection modelRole={role} provider={provider} value={value} onChange={onChange} stored={stored} />
+				<CredentialsSection
+					key={credentialRevision}
+					modelRole={role}
+					provider={provider}
+					value={value}
+					onChange={onChange}
+					stored={stored}
+					missing={missing}
+				/>
 			)}
 		</>
 	)
@@ -301,15 +364,20 @@ function CredentialsSection({
 	value,
 	onChange,
 	stored,
+	missing,
 }: {
 	modelRole: "text" | "embedding"
 	provider: ProviderMetadata
 	value: RoleValue
 	onChange: (value: RoleValue) => void
 	stored: RedactedRoleConfiguration | null
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
 	const configured = storedCredentialsMatch({ provider, value, stored })
+	const storedCredentials =
+		stored !== null && stored.hasCredentials && stored.providerId === provider.id && stored.authMode === value.authMode
+	const drafting = Object.values(value.credentials).some((credential) => credential.trim())
 	const [replacingContext, setReplacingContext] = useState<string | null>(null)
 	const contextSignature = useMemo(
 		() => JSON.stringify([value.providerId, value.authMode, value.settings, provider.id]),
@@ -351,20 +419,35 @@ function CredentialsSection({
 					</button>
 				</p>
 			)}
-			{provider.credentialFields.map((field) => (
-				<div className="space-y-2" key={field}>
-					<Label htmlFor={`${role}-${field}`}>{fieldLabel(field, t)}</Label>
-					<Input
-						id={`${role}-${field}`}
-						type="password"
-						autoComplete="off"
-						value={value.credentials[field] ?? ""}
-						onChange={(event) =>
-							onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
-						}
-					/>
-				</div>
-			))}
+			{provider.credentialFields.map((field) => {
+				const required = (!storedCredentials || drafting) && provider.requiredCredentialFields.includes(field)
+				const invalid =
+					required && missing?.kind === "credential" && missing.field === field && !value.credentials[field]?.trim()
+				return (
+					<div className="space-y-2" key={field}>
+						<Label htmlFor={`${role}-${field}`}>
+							{fieldLabel(field, t)} {required && <RequiredMark />}
+						</Label>
+						<Input
+							id={`${role}-${field}`}
+							type="password"
+							autoComplete="off"
+							required={required}
+							aria-invalid={invalid}
+							aria-describedby={invalid ? `${role}-${field}-error` : undefined}
+							value={value.credentials[field] ?? ""}
+							onChange={(event) =>
+								onChange({ ...value, credentials: { ...value.credentials, [field]: event.target.value } })
+							}
+						/>
+						{invalid && (
+							<p id={`${role}-${field}-error`} role="alert" className="text-destructive text-xs">
+								{t("aiConfiguration.fields.fieldRequired")}
+							</p>
+						)}
+					</div>
+				)
+			})}
 		</>
 	)
 }
@@ -377,9 +460,12 @@ function RoleFields(props: {
 	stored: RedactedRoleConfiguration | null
 	drafts: RefObject<Map<string, RoleValue>>
 	disabled?: boolean
+	credentialRevision: number
+	invalid?: boolean
+	missing?: MissingField
 }) {
 	const { t } = useTranslation()
-	const { modelRole: role, value, onChange, providers, stored, disabled = false } = props
+	const { modelRole: role, value, onChange, providers, stored, disabled = false, invalid = false } = props
 	const provider = providers.find(({ id }) => id === value.providerId) ?? providers[0]
 	if (!provider) return null
 
@@ -396,6 +482,7 @@ function RoleFields(props: {
 				stored={stored}
 				storedCredentialRole={role}
 				disabled={disabled}
+				invalid={invalid}
 			/>
 		</div>
 	)
@@ -408,6 +495,7 @@ export function AiConfigurationPage() {
 	const save = useSaveAiProviderConfiguration()
 	const [saved, setSaved] = useState(false)
 	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
+	const [missingField, setMissingField] = useState<MissingField | null>(null)
 	const drafts = useRef(new Map<string, RoleValue>())
 	const {
 		control,
@@ -415,11 +503,12 @@ export function AiConfigurationPage() {
 		reset,
 		setValue,
 		getValues,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm<AiConfigurationFormValues>({
 		resolver: zodResolver(aiConfigurationFormSchema),
 		defaultValues: configurationToFormValues({ revision: 0, health: "unconfigured", text: null, embedding: null }),
 	})
+	const dirtyGuard = useDirtyFormGuard(isDirty)
 
 	// Depend on the response body, not the envelope: its `headers` makes the envelope new on every refetch.
 	const configuration = configurationQuery.data?.data
@@ -432,17 +521,56 @@ export function AiConfigurationPage() {
 	const watchedTextRole = useWatch({ control, name: "text" })
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
-		return <p className="text-muted-foreground">{t("aiConfiguration.loading")}</p>
-	if (!providersQuery.data || !configuration)
 		return (
-			<p role="alert" className="text-destructive">
-				{t("aiConfiguration.loadError")}
-			</p>
+			<>
+				<output className="sr-only">{t("aiConfiguration.loading")}</output>
+				<PageSkeleton />
+			</>
+		)
+	if (providersQuery.isError || configurationQuery.isError || !providersQuery.data || !configuration)
+		return (
+			<div className="space-y-6">
+				<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
+				<ProblemAlert
+					error={providersQuery.error ?? configurationQuery.error}
+					fallback={t("aiConfiguration.loadError")}
+					onRetry={() => {
+						void providersQuery.refetch()
+						void configurationQuery.refetch()
+					}}
+				/>
+			</div>
 		)
 
 	const storedEmbedding = configuration.embedding
+	const storedText = configuration.text
 	const providers = providersQuery.data.data.providers
 	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
+
+	function findMissingField(values: AiConfigurationFormValues): MissingField | undefined {
+		for (const role of ["text", "embedding"] as const) {
+			if (role === "embedding" && values.embedding.credentialSource === "text") continue
+			const roleValues = values[role]
+			const provider = providers.find((item) => item.id === roleValues.providerId)
+			if (!provider) continue
+			const missingSetting = provider.requiredSettingFields.find((field) => !roleValues.settings[field]?.trim())
+			if (missingSetting) return { field: missingSetting, kind: "setting", role }
+			if (roleValues.authMode !== "static") continue
+			const stored = role === "text" ? storedText : storedEmbedding
+			const storedCredentials =
+				stored !== null &&
+				stored.hasCredentials &&
+				stored.providerId === provider.id &&
+				stored.authMode === roleValues.authMode
+			const drafting = Object.values(roleValues.credentials).some((credential) => credential.trim())
+			if (storedCredentials && !drafting) continue
+			const missingCredential = provider.requiredCredentialFields.find(
+				(field) => !roleValues.credentials[field]?.trim(),
+			)
+			if (missingCredential) return { field: missingCredential, kind: "credential", role }
+		}
+		return undefined
+	}
 
 	async function saveConfiguration(values: AiConfigurationFormValues) {
 		setSaved(false)
@@ -457,6 +585,13 @@ export function AiConfigurationPage() {
 	}
 
 	async function onValid(values: AiConfigurationFormValues) {
+		const missing = findMissingField(values)
+		if (missing) {
+			setMissingField(missing)
+			document.getElementById(`${missing.role}-${missing.field}`)?.focus()
+			return
+		}
+		setMissingField(null)
 		if (
 			storedEmbedding &&
 			(storedEmbedding.providerId !== values.embedding.providerId ||
@@ -496,7 +631,7 @@ export function AiConfigurationPage() {
 	}
 
 	return (
-		<div className="mx-auto max-w-3xl space-y-6">
+		<div className="space-y-6">
 			<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
 			{configuration.health === "unusable" && (
 				<p
@@ -506,10 +641,11 @@ export function AiConfigurationPage() {
 					{t("aiConfiguration.unusableWarning")}
 				</p>
 			)}
-			<form onSubmit={handleSubmit(onValid)} className="space-y-6">
+			<form onSubmit={handleSubmit(onValid, focusFirstInvalidModel)} className="space-y-6" noValidate>
+				<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("aiConfiguration.textTitle")}</CardTitle>
+						<CardTitle level={2}>{t("aiConfiguration.textTitle")}</CardTitle>
 						<CardDescription>{t("aiConfiguration.textDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -527,6 +663,9 @@ export function AiConfigurationPage() {
 									providers={providers}
 									stored={configuration.text}
 									drafts={drafts}
+									credentialRevision={configuration.revision}
+									invalid={Boolean(errors.text?.modelId)}
+									missing={missingField?.role === "text" ? missingField : undefined}
 								/>
 							)}
 						/>
@@ -535,7 +674,7 @@ export function AiConfigurationPage() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>{t("aiConfiguration.embeddingTitle")}</CardTitle>
+						<CardTitle level={2}>{t("aiConfiguration.embeddingTitle")}</CardTitle>
 						<CardDescription>{t("aiConfiguration.embeddingDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -594,42 +733,51 @@ export function AiConfigurationPage() {
 												})
 											}}
 										>
-											<TabsList>
+											<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>
 												<TabsTrigger value="same" disabled={!canReuse}>
 													{t("aiConfiguration.tabs.sameProvider")}
 												</TabsTrigger>
 												<TabsTrigger value="different">{t("aiConfiguration.tabs.differentProvider")}</TabsTrigger>
 											</TabsList>
+											<TabsContent value="same">
+												{textProvider && (
+													<div className="space-y-4">
+														<p className="text-muted-foreground flex items-center gap-2 text-sm">
+															<ProviderBrand providerId={textProvider.id} />
+															{t("aiConfiguration.sameProviderNote")}
+														</p>
+														<ModelField
+															modelRole="embedding"
+															label={t("aiConfiguration.fields.embeddingModel")}
+															modelId={field.value.modelId}
+															onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
+															provider={textProvider}
+															value={textRole}
+															stored={configuration.text}
+															storedCredentialRole="text"
+															invalid={Boolean(errors.embedding?.modelId)}
+														/>
+													</div>
+												)}
+											</TabsContent>
+											<TabsContent value="different">
+												{sameProvider ? null : (
+													<RoleFields
+														modelRole="embedding"
+														value={field.value}
+														onChange={field.onChange}
+														providers={embeddingProviders}
+														stored={configuration.embedding}
+														drafts={drafts}
+														credentialRevision={configuration.revision}
+														invalid={Boolean(errors.embedding?.modelId)}
+														missing={missingField?.role === "embedding" ? missingField : undefined}
+													/>
+												)}
+											</TabsContent>
 										</Tabs>
 										{!canReuse && (
 											<p className="text-muted-foreground text-xs">{t("aiConfiguration.sameProviderUnavailable")}</p>
-										)}
-										{sameProvider && textProvider ? (
-											<div className="space-y-4">
-												<p className="text-muted-foreground flex items-center gap-2 text-sm">
-													<ProviderBrand providerId={textProvider.id} />
-													{t("aiConfiguration.sameProviderNote")}
-												</p>
-												<ModelField
-													modelRole="embedding"
-													label={t("aiConfiguration.fields.embeddingModel")}
-													modelId={field.value.modelId}
-													onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
-													provider={textProvider}
-													value={textRole}
-													stored={configuration.text}
-													storedCredentialRole="text"
-												/>
-											</div>
-										) : (
-											<RoleFields
-												modelRole="embedding"
-												value={field.value}
-												onChange={field.onChange}
-												providers={embeddingProviders}
-												stored={configuration.embedding}
-												drafts={drafts}
-											/>
 										)}
 									</div>
 								)
@@ -648,20 +796,20 @@ export function AiConfigurationPage() {
 						{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
 					</p>
 				)}
-				<div className="flex items-center gap-3">
-					<Button type="submit" disabled={save.isPending}>
+				<FormActions status={saved && !isDirty ? t("aiConfiguration.saved") : undefined}>
+					<Button type="submit" disabled={save.isPending || !isDirty}>
 						{save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.save")}
 					</Button>
-					{saved && <output className="text-muted-foreground text-sm">{t("aiConfiguration.saved")}</output>}
-				</div>
+				</FormActions>
 			</form>
+			{dirtyGuard}
 			<Dialog
 				open={pendingSave !== null}
 				onOpenChange={(open) => {
 					if (!open && !save.isPending) setPendingSave(null)
 				}}
 			>
-				<DialogContent>
+				<DialogContent closeLabel={t("common.close")}>
 					<DialogHeader>
 						<DialogTitle>{t("aiConfiguration.reembedTitle")}</DialogTitle>
 						<DialogDescription>{t("aiConfiguration.reembedWarning")}</DialogDescription>

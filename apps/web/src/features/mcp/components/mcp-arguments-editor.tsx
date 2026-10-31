@@ -19,7 +19,7 @@ export function McpArgumentsEditor({
 		<div className="space-y-2">
 			<Label>{t("mcp.arguments")}</Label>
 			{args.map((row, index) => (
-				<div key={row.id} className="flex gap-2">
+				<div key={row.id} className="flex flex-col gap-2 sm:flex-row">
 					<Input
 						value={row.value}
 						placeholder={t("mcp.argumentPlaceholder")}
@@ -31,6 +31,7 @@ export function McpArgumentsEditor({
 						type="button"
 						variant="ghost"
 						size="icon"
+						className="self-end sm:self-auto"
 						aria-label={t("mcp.removeArgument", { argument: row.value.trim() || index + 1 })}
 						onClick={() => onChange(args.filter((candidate) => candidate.id !== row.id))}
 					>

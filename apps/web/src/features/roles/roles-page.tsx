@@ -3,13 +3,34 @@ import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
+import { UsersRolesSwitcher } from "@/features/users/users-roles-switcher"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
-import { Card, CardContent } from "@talqo/ui/components/card"
+import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
+import { CardLink } from "@talqo/ui/components/card-link"
+import { CardName } from "@talqo/ui/components/card-name"
+import { EmptyState } from "@talqo/ui/components/empty-state"
+import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Plus } from "lucide-react"
+import { Plus, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
+function RolesSkeleton({ label }: { label: string }) {
+	return (
+		<div className="space-y-3">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 3 }, (_, index) => (
+				<Card key={index}>
+					<CardHeader>
+						<Skeleton className="h-5 w-40 max-w-full" />
+						<Skeleton className="h-4 w-24" />
+					</CardHeader>
+				</Card>
+			))}
+		</div>
+	)
+}
 
 export function RolesPage() {
 	const { t } = useTranslation()
@@ -21,6 +42,10 @@ export function RolesPage() {
 			onSuccess: async ({ data }) => {
 				await queryClient.invalidateQueries({ queryKey: getListRolesQueryKey() })
 				await navigate({ to: "/dashboard/users/roles/$roleId", params: { roleId: data.role.id } })
+			},
+			onError: (error) => {
+				// A taken name means the cached list is stale; refresh it so Retry proposes a free one.
+				if (error.info?.code === "role-name-taken") void rolesQuery.refetch()
 			},
 		},
 	})
@@ -54,38 +79,41 @@ export function RolesPage() {
 					) : null
 				}
 			/>
-			{!forbidden ? <ProblemAlert error={createRole.error} /> : null}
+			<UsersRolesSwitcher />
+			{!forbidden ? <ProblemAlert error={createRole.error} onRetry={onCreate} /> : null}
 			{forbidden ? (
 				<AccessDenied />
 			) : rolesQuery.isPending ? (
-				<p className="text-muted-foreground">{t("roles.loading")}</p>
+				<RolesSkeleton label={t("roles.loading")} />
 			) : rolesQuery.isError || !roles ? (
 				<ProblemAlert error={rolesQuery.error} onRetry={() => void rolesQuery.refetch()} />
 			) : roles.length === 0 ? (
-				<p className="text-muted-foreground">{t("roles.empty")}</p>
+				<EmptyState
+					icon={ShieldCheck}
+					title={t("roles.emptyTitle")}
+					description={t("roles.emptyDescription")}
+					actions={
+						<Button onClick={onCreate} disabled={createRole.isPending}>
+							<Plus className="size-4" />
+							{createRole.isPending ? t("roles.creating") : t("roles.create")}
+						</Button>
+					}
+				/>
 			) : (
 				<div className="space-y-3">
 					{roles.map((role) => (
-						<Link
-							key={role.id}
-							to="/dashboard/users/roles/$roleId"
-							params={{ roleId: role.id }}
-							className="group rounded-surface focus-visible:ring-ring block outline-none focus-visible:ring-2"
-							data-role-id={role.id}
-						>
-							<Card variant="interactive">
-								<CardContent>
-									<div className="flex flex-wrap items-center justify-between gap-2">
-										<span className="min-w-0 flex-1 truncate font-medium" title={role.name}>
-											{role.name}
-										</span>
-										<span className="text-muted-foreground shrink-0 text-sm">
-											{t("roles.members", { people: role.memberCount })}
-										</span>
-									</div>
-								</CardContent>
-							</Card>
-						</Link>
+						<Card key={role.id} variant="interactive" className="relative">
+							<CardHeader>
+								<CardName>{role.name}</CardName>
+								<CardDescription>{t("roles.members", { people: role.memberCount })}</CardDescription>
+							</CardHeader>
+							<CardLink
+								render={
+									<Link to="/dashboard/users/roles/$roleId" params={{ roleId: role.id }} data-role-id={role.id} />
+								}
+								aria-label={role.name}
+							/>
+						</Card>
 					))}
 				</div>
 			)}
