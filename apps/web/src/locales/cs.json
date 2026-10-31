@@ -41,9 +41,9 @@
 		"descriptions": {
 			"conversations": "Číst konverzace návštěvníků s tímto agentem.",
 			"deleteAgent": "Trvale smazat tohoto agenta a jeho historii.",
-			"editConfiguration": "Měnit nastavení, znalostní bázi, připojení a integrace tohoto agenta.",
+			"editConfiguration": "Měnit nastavení, znalostní bázi, nástroje a integrace tohoto agenta.",
 			"statistics": "Zobrazovat statistiky a využití tohoto agenta.",
-			"viewConfiguration": "Zobrazovat nastavení, znalostní bázi, připojení a integrace tohoto agenta."
+			"viewConfiguration": "Zobrazovat nastavení, znalostní bázi, nástroje a integrace tohoto agenta."
 		},
 		"editConfiguration": "Upravovat nastavení",
 		"empty": "Tato role nemá přístup k žádným agentům. Přidejte agenta a nastavte oprávnění.",
@@ -162,9 +162,9 @@
 		"loadFailed": "Agenty se nepodařilo načíst.",
 		"loading": "Načítání agentů…",
 		"manageForbidden": "Váš účet nemá oprávnění spravovat agenty.",
-		"metricConnections": "Připojení",
 		"metricEnabledEmbeds": "Zapnuté integrace",
 		"metricFiles": "Soubory",
+		"metricTools": "Nástroje",
 		"metricUnavailable": "Nedostupné",
 		"nameConflict": "Agent s tímto názvem již existuje. Zvolte jiný název.",
 		"saveFailed": "Agenta se nepodařilo uložit. Zkuste to znovu.",

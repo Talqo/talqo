@@ -41,9 +41,9 @@
 		"descriptions": {
 			"conversations": "Read visitor conversations with this agent.",
 			"deleteAgent": "Permanently delete this agent and its history.",
-			"editConfiguration": "Change this agent's settings, knowledge base, connections, and embeds.",
+			"editConfiguration": "Change this agent's settings, knowledge base, tools, and embeds.",
 			"statistics": "View statistics and usage for this agent.",
-			"viewConfiguration": "View this agent's settings, knowledge base, connections, and embeds."
+			"viewConfiguration": "View this agent's settings, knowledge base, tools, and embeds."
 		},
 		"editConfiguration": "Edit configuration",
 		"empty": "This role has no agent access. Add an agent to grant permissions.",
@@ -160,9 +160,9 @@
 		"loadFailed": "Agents could not be loaded.",
 		"loading": "Loading agents…",
 		"manageForbidden": "Your account does not have permission to manage agents.",
-		"metricConnections": "Connections",
 		"metricEnabledEmbeds": "Enabled embeds",
 		"metricFiles": "Files",
+		"metricTools": "Tools",
 		"metricUnavailable": "Unavailable",
 		"nameConflict": "An agent with this name already exists. Choose a unique name.",
 		"saveFailed": "The agent could not be saved. Try again.",

@@ -42,8 +42,13 @@ export function AgentCardSummary({ agentId }: { agentId: string }) {
 				/>
 				<Metric
 					icon={Wrench}
-					label={t("agents.metricConnections")}
-					value={connections.data?.data.servers.length}
+					label={t("agents.metricTools")}
+					value={
+						connections.data?.data.servers
+							.filter((server) => !server.isDisabled)
+							.flatMap((server) => server.tools)
+							.filter((tool) => tool.enabled).length
+					}
 					isError={connections.isError}
 				/>
 				<Metric
