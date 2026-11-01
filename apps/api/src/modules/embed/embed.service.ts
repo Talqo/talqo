@@ -1,4 +1,5 @@
 import type { Annotate } from "@/http/wide-event.ts"
+import type { AgentPermission } from "@/modules/roles/roles.service.ts"
 import type { WidgetAppearance } from "@talqo/shared/widget-appearance"
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
@@ -111,7 +112,7 @@ export async function listVisibleEmbeds(actorId: string, agentId?: string): Prom
 export async function getEmbed(
 	id: string,
 	actorId: string,
-	permission: "agents:read" | "agents:manage" = roles.AgentPermission.AgentRead,
+	permission: AgentPermission = roles.AgentPermission.AgentRead,
 ): Promise<Embed> {
 	const row = await repo.findEmbed(id)
 	if (!row) throw new EmbedNotFoundError(`Embed ${id} not found`)

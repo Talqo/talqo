@@ -170,7 +170,11 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 				srcDoc={source.srcDoc}
 				sandbox={source.srcDoc ? "allow-scripts" : undefined}
 				title={t("embedSetup.livePreview")}
-				className={cn("absolute w-[336px] border-0", appearance.position === "bottom-right" ? "right-0" : "left-0")}
+				// scheme-light must match the preview document's scheme; a mismatch makes browsers paint an opaque backdrop.
+				className={cn(
+					"absolute w-[336px] border-0 scheme-light",
+					appearance.position === "bottom-right" ? "right-0" : "left-0",
+				)}
 				style={{
 					height: FRAME_HEIGHT,
 					transform: `scale(${scale})`,

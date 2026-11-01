@@ -4,7 +4,7 @@ Capture browser automation sessions as video for debugging, documentation, or ve
 
 ## Feature walkthrough standard
 
-When the user or repository requests a demo video, follow the requested scenario or manual test steps. The repository decides when a video is required; this skill does not require a particular PR section. Use before/after screenshots for simple visual fixes only when allowed.
+When the user or repository requests a demo video, follow the requested scenario or manual test steps. The repository decides when a video is required; this skill does not require a particular PR section. Every UI change needs either a demo video or labeled before/after screenshots.
 
 - Record a walkthrough of the requested behavior, not an unrelated scenario or an unedited E2E test run. Use video when motion or a sequence of actions explains the change. For screenshot comparisons, use the same viewport and scenario and label before and after.
 - Prepare accounts and data before recording. Keep unrelated setup and cleanup out of the recording. Include login or invitation steps when they are part of the requested flow. Use real application behavior, not mocked feature responses.

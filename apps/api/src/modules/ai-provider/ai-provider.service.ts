@@ -319,7 +319,6 @@ function redact(configuration: StoredConfiguration | undefined, vault: Vault): R
 
 export function createAiProviderService(dependencies: ServiceDependencies) {
 	return {
-		repository: dependencies.repository,
 		getProviders() {
 			return PROVIDER_DEFINITIONS.map((provider) => ({
 				id: provider.id,
@@ -430,7 +429,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				credentials,
 			})
 		},
-		async prepareEmbeddingOperation() {
+		async prepareEmbeddingOperation(options?: { timeoutMs?: number }) {
 			const stored = await dependencies.repository.find()
 			if (!stored) throw new UnusableConfigurationError("AI provider configuration is missing")
 			try {
@@ -451,11 +450,19 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				return {
 					key: embeddingKey(stored.embedding),
 					async embed(text: string, signal?: AbortSignal) {
-						return (await aiEmbed({ model, value: text, maxRetries: 0, abortSignal: signal })).embedding
+						return (
+							await aiEmbed({
+								model,
+								value: text,
+								maxRetries: 0,
+								abortSignal: signal ?? (options?.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined),
+							})
+						).embedding
 					},
 				}
-			} catch {
-				throw new UnusableConfigurationError("AI provider configuration is unusable")
+			} catch (error) {
+				if (error instanceof UnusableConfigurationError) throw error
+				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause: error })
 			}
 		},
 		async prepareTextOperation(input: PrepareTextOperationInput) {
@@ -494,7 +501,7 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				}
 			} catch (error) {
 				if (error instanceof UnusableConfigurationError) throw error
-				throw new UnusableConfigurationError("AI provider configuration is unusable")
+				throw new UnusableConfigurationError("AI provider configuration is unusable", { cause: error })
 			}
 		},
 	}
@@ -541,9 +548,8 @@ export async function prepareTextOperation(input: PrepareTextOperationInput) {
 	return (await getDefaultService()).prepareTextOperation(input)
 }
 
-export async function prepareEmbeddingOperation(): Promise<{
-	key: string
-	embed(text: string, signal?: AbortSignal): Promise<number[]>
-}> {
-	return (await getDefaultService()).prepareEmbeddingOperation()
+export async function prepareEmbeddingOperation(options?: {
+	timeoutMs?: number
+}): Promise<{ key: string; embed(text: string, signal?: AbortSignal): Promise<number[]> }> {
+	return (await getDefaultService()).prepareEmbeddingOperation(options)
 }
