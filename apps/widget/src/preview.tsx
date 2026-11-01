@@ -41,6 +41,7 @@ export function PreviewWidget({ parentOrigin: configuredParentOrigin }: { parent
 		<EmbeddedWidget
 			title={config.title}
 			appearance={config.appearance}
+			defaultOpen
 			forcedScheme={config.forcedScheme}
 			isAvailable={config.isAvailable === true}
 		/>

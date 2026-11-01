@@ -44,6 +44,7 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 					icon={Wrench}
 					title={t("mcp.emptyTitle")}
 					description={canManage ? t("mcp.emptyDescriptionManager") : t("mcp.emptyDescriptionReader")}
+					actions={canManage ? <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} /> : undefined}
 				/>
 			) : (
 				<div className="grid gap-4 md:grid-cols-2">

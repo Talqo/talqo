@@ -7,7 +7,6 @@ import { useAccessError } from "@/features/permissions/use-access-error"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent } from "@talqo/ui/components/card"
-import { DangerZone, DangerZoneRow } from "@talqo/ui/components/danger-zone"
 import { FormActions } from "@talqo/ui/components/form-actions"
 import { Input } from "@talqo/ui/components/input"
 import { Label } from "@talqo/ui/components/label"
@@ -16,7 +15,6 @@ import { useEffect, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-import { DeleteRoleDialog } from "./delete-role-dialog"
 import { type GrantablePermission, PERMISSION_COPY } from "./permission-labels"
 import {
 	includedPermissions,
@@ -33,6 +31,7 @@ export function UpdateRoleForm({
 	disabled,
 	heldPermissions,
 	onDirtyChange,
+	onSavingChange,
 	ownRoles,
 	role,
 }: {
@@ -40,6 +39,7 @@ export function UpdateRoleForm({
 	disabled: boolean
 	heldPermissions: readonly string[]
 	onDirtyChange: (dirty: boolean) => void
+	onSavingChange: (saving: boolean) => void
 	ownRoles: readonly Role[]
 	role: Role
 }) {
@@ -47,6 +47,7 @@ export function UpdateRoleForm({
 	const refreshAccess = useRefreshAccess()
 	const updateRole = useUpdateRole({ mutation: { onSuccess: refreshAccess } })
 	const [saved, setSaved] = useState(false)
+	const isSaving = updateRole.isPending
 	useAccessError(updateRole.error)
 	const {
 		control,
@@ -62,13 +63,14 @@ export function UpdateRoleForm({
 	})
 	useEffect(() => onDirtyChange(isDirty), [isDirty, onDirtyChange])
 	useEffect(() => () => onDirtyChange(false), [onDirtyChange])
+	useEffect(() => onSavingChange(isSaving), [isSaving, onSavingChange])
+	useEffect(() => () => onSavingChange(false), [onSavingChange])
 	// Background refreshes must not replace an unfinished edit.
 	useEffect(() => {
 		if (!isDirty) reset(toRoleFormValues(role))
 	}, [role, reset, isDirty])
 	const selected = useWatch({ control, name: "permissions" })
 	const included = includedPermissions(selected, catalog)
-	const isSaving = updateRole.isPending
 	const idPrefix = `role-${role.id}`
 	const locksOut = losesRoleManagement({
 		heldPermissions,
@@ -194,25 +196,6 @@ export function UpdateRoleForm({
 					</CardContent>
 				</Card>
 			</form>
-			{!disabled ? (
-				<DangerZone title={t("roles.dangerZone")}>
-					<DangerZoneRow
-						title={t("roles.delete")}
-						description={t("roles.dangerDescription")}
-						action={
-							<DeleteRoleDialog
-								role={role}
-								disabled={isSaving}
-								locksOut={losesRoleManagement({
-									heldPermissions,
-									rolesBefore: ownRoles,
-									rolesAfter: ownRoles.filter(({ id }) => id !== role.id),
-								})}
-							/>
-						}
-					/>
-				</DangerZone>
-			) : null}
 		</div>
 	)
 }

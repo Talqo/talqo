@@ -470,7 +470,7 @@ describe("role management", () => {
 		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
 	})
 
-	test("moves deletion into a danger zone below the form", async () => {
+	test("moves deletion into a danger zone below the access settings", async () => {
 		roles = [{ id: "support", name: "Support", permissions: ["users:read"], memberCount: 3 }]
 		await renderPage("support")
 		await type(nameInput(), "Unsaved name")
@@ -478,6 +478,8 @@ describe("role management", () => {
 		expect(dangerZone?.textContent).toContain(t("roles.dangerZone"))
 		expect(dangerZone?.textContent).toContain(t("roles.delete"))
 		expect(host.querySelector("form")?.textContent).not.toContain(t("roles.delete"))
+		const accessCard = [...host.querySelectorAll("[data-slot='card']")].at(-1)
+		expect(accessCard?.nextElementSibling).toBe(dangerZone)
 		await click(button(t("roles.delete"), host))
 		expect(dialog().textContent).toContain(t("roles.deleteDescription", { people: 3 }))
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))

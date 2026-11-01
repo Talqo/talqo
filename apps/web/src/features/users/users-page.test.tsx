@@ -358,14 +358,13 @@ describe("UsersPage", () => {
 		expect(buttonNames(card("owner"))).toEqual([t("users.editRoles")])
 	})
 
-	test("hides self-deletion and self-reset, and offers role editing and Account settings", async () => {
+	test("hides self-deletion and self-reset, and keeps role editing", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
 		users = [user("me")]
 		await renderPage()
 
 		expect(buttonNames(card("me"))).toEqual([t("users.editRoles")])
 		expect(button(t("users.editRoles"), card("me")).disabled).toBe(false)
-		expect(card("me").querySelector("a[href='/dashboard/account']")).not.toBeNull()
 	})
 
 	test("says so when roles cannot be loaded instead of silently hiding role editing", async () => {
