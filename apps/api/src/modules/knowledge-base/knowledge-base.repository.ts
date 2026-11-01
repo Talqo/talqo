@@ -17,6 +17,12 @@ export async function statuses(
 	return new Map(rows.map(({ name, status, error }) => [name, { status, error }]))
 }
 
+export async function listAll(): Promise<{ agentId: string; name: string }[]> {
+	const rows = await sql<{ agentId: string; name: string }[]>`
+		SELECT agent_id AS "agentId", name FROM agent_file`
+	return rows
+}
+
 export async function retry(agentId: string, name: string): Promise<boolean> {
 	const rows = await sql`UPDATE agent_file SET status = 'pending', error = NULL, generation = generation + 1
 		WHERE agent_id = ${agentId} AND name = ${name} AND status = 'failed' RETURNING id`

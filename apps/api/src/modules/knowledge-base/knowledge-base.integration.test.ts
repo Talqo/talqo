@@ -6,11 +6,16 @@ import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
 import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test"
-import { readdir, readFile, rm, stat } from "node:fs/promises"
+import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
 
 import * as repository from "./knowledge-base.repository.ts"
-import { MAX_FILE_SIZE_BYTES, searchKnowledge } from "./knowledge-base.service.ts"
+import {
+	MAX_FILE_SIZE_BYTES,
+	reconcileDanglingRows,
+	searchKnowledge,
+	upload as uploadFile,
+} from "./knowledge-base.service.ts"
 
 const LARGE_UPLOAD_BYTES = 300_000
 
@@ -162,6 +167,48 @@ describe("knowledge embeddings", () => {
 		}
 	})
 
+	it("removes ready rows whose backing file disappeared and stops returning their chunks", async () => {
+		const owner = await createOwner("Recovery")
+		try {
+			await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
+			const job = await repository.claim("recovery-key")
+			if (!job) throw new Error("Expected an ingestion job")
+			await repository.complete(job, "recovery-key", [{ text: "orphaned", embedding: [1, 0, 0] }])
+			expect(await repository.search(owner.id, [1, 0, 0], "recovery-key", 5)).toEqual(["orphaned"])
+
+			await rm(join(UPLOAD_ROOT, owner.id, "guide.md"))
+			await reconcileDanglingRows()
+
+			expect(await repository.statuses(owner.id)).toEqual(new Map())
+			expect(
+				(
+					await sql`SELECT c.file_id FROM agent_file_chunk c JOIN agent_file f ON f.id = c.file_id
+				WHERE f.agent_id = ${owner.id}`
+				).length,
+			).toBe(0)
+			expect(await searchKnowledge(owner.id, "question")).toEqual([])
+		} finally {
+			await agent.deleteAgent(owner.id)
+		}
+	})
+
+	it("skips the recovery sweep when the uploads root itself is missing", async () => {
+		const owner = await createOwner("Recovery")
+		try {
+			await uploadFile(owner.id, "guide.md", new TextEncoder().encode("content").buffer)
+
+			await rm(UPLOAD_ROOT, { recursive: true, force: true })
+			await reconcileDanglingRows()
+			expect((await repository.statuses(owner.id)).has("guide.md")).toBe(true)
+
+			await mkdir(UPLOAD_ROOT, { recursive: true })
+			await reconcileDanglingRows()
+			expect(await repository.statuses(owner.id)).toEqual(new Map())
+		} finally {
+			await agent.deleteAgent(owner.id)
+		}
+	})
+
 	it("searches ready chunks by similarity within the agent and model key", async () => {
 		const owner = await createOwner("Search")
 		const other = await createOwner("Search")
@@ -270,6 +317,30 @@ describe("agent knowledge files", () => {
 		const after = await app.request(`/api/agents/${agentId}/files`, { headers: { Cookie: cookie } })
 		expect(((await after.json()) as { files: unknown[] }).files).toEqual([])
 		expect((await sql`SELECT id FROM agent_file WHERE agent_id = ${agentId}`).length).toBe(0)
+	})
+
+	it("deletes a file whose disk entry is missing and removes its row and chunks", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Ghost delete")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+		const job = await repository.claim("ghost-key")
+		if (!job) throw new Error("Expected an ingestion job")
+		await repository.complete(job, "ghost-key", [{ text: "chunk", embedding: [1, 0, 0] }])
+		await rm(join(UPLOAD_ROOT, agentId, "a.md"))
+
+		const removed = await app.request(`/api/agents/${agentId}/files/a.md`, {
+			method: "DELETE",
+			headers: { Cookie: cookie },
+		})
+
+		expect(removed.status).toBe(204)
+		expect((await sql`SELECT id FROM agent_file WHERE agent_id = ${agentId}`).length).toBe(0)
+		expect(
+			(
+				await sql`SELECT c.file_id FROM agent_file_chunk c JOIN agent_file f ON f.id = c.file_id
+					WHERE f.agent_id = ${agentId}`
+			).length,
+		).toBe(0)
 	})
 
 	it("downloads a file with its raw bytes and attachment headers", async () => {

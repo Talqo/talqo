@@ -330,6 +330,36 @@ describe("conversation lifecycle", () => {
 		])
 	})
 
+	it("rejects a disabled embed before retrieval and provider preparation without charging", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const search = spyOn(knowledge, "searchKnowledge")
+		try {
+			await embed.disableEmbed(createdEmbed.id, await testAdminId())
+			await expect(
+				instance.service.send({
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "hello",
+					networkHash: "network-a",
+				}),
+			).rejects.toMatchObject({ problemCode: "embed-disabled", status: 403 })
+			expect(search.mock.calls).toHaveLength(0)
+			expect(instance.prompts).toHaveLength(0)
+			const [counts] = await sql`
+				SELECT
+					(SELECT count(*) FROM conversation)::int AS conversations,
+					(SELECT count(*) FROM generation_attempt)::int AS generation_attempts,
+					(SELECT count(*) FROM message)::int AS messages,
+					(SELECT count(*) FROM conversation_daily_counter)::int AS allowance
+			`
+			expect(counts).toMatchObject({ conversations: 0, generation_attempts: 0, messages: 0, allowance: 0 })
+		} finally {
+			search.mockRestore()
+		}
+	})
+
 	it("revokes sessions on embed rotation while preserving history and usage", async () => {
 		const { createdEmbed } = await fixture()
 		const instance = service()
