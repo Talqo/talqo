@@ -28,7 +28,7 @@ const { default: render } = (await import(SERVER_ENTRY)) as {
 }
 
 // Client assets are content-hashed, so they carry an immutable cache policy.
-// Anything else is server-rendered by TanStack Start.
+// Anything else is server-rendered by the app.
 async function assetResponse(pathname: string): Promise<Response | null> {
 	if (!pathname.startsWith("/assets/")) {
 		return null

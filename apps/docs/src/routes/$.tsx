@@ -1,11 +1,20 @@
 import { useMDXComponents } from "@/components/mdx"
+import { getPageMarkdownUrl } from "@/lib/markdown"
 import { docs } from "@/lib/source"
 import logoUrl from "@talqo/ui/assets/logo.svg"
 import { createFileRoute, notFound } from "@tanstack/react-router"
 import { createServerFn } from "@tanstack/react-start"
+import { getRequestUrl } from "@tanstack/react-start/server"
 import { deserializePageTree } from "fumadocs-core/source/client"
 import { DocsLayout } from "fumadocs-ui/layouts/docs"
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page"
+import {
+	DocsBody,
+	DocsDescription,
+	DocsPage,
+	DocsTitle,
+	MarkdownCopyButton,
+	ViewOptionsPopover,
+} from "fumadocs-ui/layouts/docs/page"
 import { type CSSProperties, Suspense, use } from "react"
 
 const MAX_SLUGS = 32
@@ -36,10 +45,29 @@ const getDoc = createServerFn({ method: "GET" })
 		const page = source.getPage(slugs)
 		if (!page) throw notFound()
 
-		return { path: page.path, pageTree: await source.serializePageTree(source.pageTree) }
+		const origin = getRequestUrl({ xForwardedHost: true }).origin
+
+		return {
+			path: page.path,
+			title: page.data.title,
+			description: page.data.description,
+			url: new URL(page.url, origin).href,
+			markdownUrl: getPageMarkdownUrl(page).url,
+			pageTree: await source.serializePageTree(source.pageTree),
+		}
 	})
 
 export const Route = createFileRoute("/$")({
+	server: {
+		handlers: {
+			GET: async ({ next, params, request }) => {
+				// oxlint-disable-next-line no-underscore-dangle -- TanStack Router names the splat param `_splat`.
+				const slugs = (params._splat ?? "").split("/").filter((segment) => segment.length > 0)
+				const { negotiateMarkdown } = await import("@/lib/markdown-response")
+				return (await negotiateMarkdown(request, slugs)) ?? next()
+			},
+		},
+	},
 	loader: async ({ params }) => {
 		// oxlint-disable-next-line no-underscore-dangle -- TanStack Router names the splat param `_splat`.
 		const slugs = (params._splat ?? "").split("/").filter((segment) => segment.length > 0)
@@ -50,11 +78,36 @@ export const Route = createFileRoute("/$")({
 
 		return doc
 	},
+	head: ({ loaderData }) => {
+		if (!loaderData) return {}
+
+		const { description, markdownUrl, title, url } = loaderData
+		const pageTitle = new URL(url).pathname === "/" ? "Talqo Docs" : `${title} | Talqo Docs`
+
+		return {
+			meta: [
+				{ title: pageTitle },
+				{ property: "og:title", content: title },
+				{ property: "og:type", content: "article" },
+				{ property: "og:url", content: url },
+				...(description
+					? [
+							{ name: "description", content: description },
+							{ property: "og:description", content: description },
+						]
+					: []),
+			],
+			links: [
+				{ rel: "canonical", href: url },
+				{ rel: "alternate", type: "text/markdown", href: markdownUrl },
+			],
+		}
+	},
 	component: Page,
 })
 
 function Page() {
-	const { path, pageTree } = Route.useLoaderData()
+	const { markdownUrl, path, pageTree } = Route.useLoaderData()
 	const page = docs.getPage(path)
 
 	// The loader already resolved this path server-side; if the client collection
@@ -84,6 +137,13 @@ function Page() {
 			<DocsPage toc={toc}>
 				<DocsTitle>{page.title}</DocsTitle>
 				<DocsDescription>{page.description}</DocsDescription>
+				<div className="flex flex-row items-center gap-2 border-b pt-2 pb-6">
+					<MarkdownCopyButton markdownUrl={markdownUrl} />
+					<ViewOptionsPopover
+						markdownUrl={markdownUrl}
+						githubUrl={`https://github.com/Talqo/talqo/blob/main/apps/docs/content/docs/${path}`}
+					/>
+				</div>
 				<DocsBody>
 					<Suspense>
 						<page.body components={useMDXComponents()} />
