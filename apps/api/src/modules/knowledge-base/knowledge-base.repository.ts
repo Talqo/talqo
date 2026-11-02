@@ -71,10 +71,10 @@ export async function complete(
 		if (chunks.length) {
 			await tx`INSERT INTO agent_file_chunk (file_id, position, text, embedding)
 				SELECT t.file_id, t.position, t.text, t.embedding::vector FROM unnest(
-					${sql.array(chunks.map(() => job.id))}::text[],
-					${sql.array(chunks.map((_, position) => position))}::int[],
-					${sql.array(chunks.map((chunk) => chunk.text))}::text[],
-					${sql.array(chunks.map((chunk) => JSON.stringify(chunk.embedding)))}::text[]
+					${chunks.map(() => job.id)}::text[],
+					${chunks.map((_, position) => position)}::int[],
+					${chunks.map((chunk) => chunk.text)}::text[],
+					${chunks.map((chunk) => JSON.stringify(chunk.embedding))}::text[]
 				) AS t(file_id, position, text, embedding)`
 		}
 		await tx`UPDATE agent_file SET status = 'ready', error = NULL, model_key = ${modelKey} WHERE id = ${job.id}`
