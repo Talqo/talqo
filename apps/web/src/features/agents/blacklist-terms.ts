@@ -1,7 +1,10 @@
 export const BLACKLIST_TERM_LIMIT = 100
 
+/** Mirrors the API's BLACKLIST_WORD_MAX_LENGTH; the server rejects anything longer. */
+export const BLACKLIST_TERM_MAX_LENGTH = 100
+
 export type AddTermResult =
-	{ ok: true; term: string; terms: string[] } | { ok: false; reason: "duplicate" | "empty" | "limit" }
+	{ ok: true; term: string; terms: string[] } | { ok: false; reason: "duplicate" | "empty" | "limit" | "tooLong" }
 
 export function addBlacklistTerm(terms: string[], input: string): AddTermResult {
 	const term = input.trim()
@@ -9,6 +12,7 @@ export function addBlacklistTerm(terms: string[], input: string): AddTermResult 
 	if (terms.some((existing) => existing.toLowerCase() === term.toLowerCase())) {
 		return { ok: false, reason: "duplicate" }
 	}
+	if (term.length > BLACKLIST_TERM_MAX_LENGTH) return { ok: false, reason: "tooLong" }
 	if (terms.length >= BLACKLIST_TERM_LIMIT) return { ok: false, reason: "limit" }
 	return { ok: true, term, terms: [...terms, term] }
 }
