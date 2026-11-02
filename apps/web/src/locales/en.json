@@ -297,7 +297,8 @@
 		"removed": "{{word}} removed from blocked words.",
 		"removeTerm": "Remove {{word}}",
 		"termPlaceholder": "Word or phrase to block",
-		"termsLabel": "Blocked words"
+		"termsLabel": "Blocked words",
+		"tooLongError": "Blocked words can be at most {{max}} characters."
 	},
 	"common": {
 		"appName": "Talqo",

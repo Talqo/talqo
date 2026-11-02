@@ -21,6 +21,11 @@ describe("addBlacklistTerm", () => {
 		expect(addBlacklistTerm(full, "overflow")).toEqual({ ok: false, reason: "limit" })
 	})
 
+	test("rejects a term longer than the API accepts", () => {
+		expect(addBlacklistTerm([], "x".repeat(101))).toEqual({ ok: false, reason: "tooLong" })
+		expect(addBlacklistTerm([], "x".repeat(100))).toMatchObject({ ok: true })
+	})
+
 	test("spots duplicates even when the list is at the limit", () => {
 		const full = Array.from({ length: BLACKLIST_TERM_LIMIT }, (_, index) => `word${index}`)
 		expect(addBlacklistTerm(full, "word0")).toEqual({ ok: false, reason: "duplicate" })

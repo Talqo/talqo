@@ -1,4 +1,9 @@
-import { addBlacklistTerm, BLACKLIST_TERM_LIMIT, removeBlacklistTerm } from "@/features/agents/blacklist-terms"
+import {
+	addBlacklistTerm,
+	BLACKLIST_TERM_LIMIT,
+	BLACKLIST_TERM_MAX_LENGTH,
+	removeBlacklistTerm,
+} from "@/features/agents/blacklist-terms"
 import { Badge } from "@talqo/ui/components/badge"
 import { Button } from "@talqo/ui/components/button"
 import { Input } from "@talqo/ui/components/input"
@@ -26,14 +31,14 @@ export function BlacklistTermsEditor({
 	function handleAdd() {
 		const result = addBlacklistTerm(value, draft)
 		if (!result.ok) {
+			const messages = {
+				duplicate: t("blacklist.duplicateError", { word: draft.trim() }),
+				empty: t("blacklist.emptyError"),
+				limit: t("blacklist.limitError", { limit: BLACKLIST_TERM_LIMIT }),
+				tooLong: t("blacklist.tooLongError", { max: BLACKLIST_TERM_MAX_LENGTH }),
+			}
 			setAnnouncement("")
-			setError(
-				result.reason === "empty"
-					? t("blacklist.emptyError")
-					: result.reason === "duplicate"
-						? t("blacklist.duplicateError", { word: draft.trim() })
-						: t("blacklist.limitError", { limit: BLACKLIST_TERM_LIMIT }),
-			)
+			setError(messages[result.reason])
 			return
 		}
 		setError(null)
@@ -91,7 +96,12 @@ export function BlacklistTermsEditor({
 			{value.length > 0 && (
 				<ul className="flex flex-wrap gap-1" aria-label={t("blacklist.termsLabel")}>
 					{value.map((term) => (
-						<Badge key={term} variant="outline" render={<li />} className="overflow-visible">
+						<Badge
+							key={term}
+							variant="outline"
+							render={<li />}
+							className="h-auto max-w-full overflow-visible wrap-anywhere whitespace-normal"
+						>
 							{term}
 							{!disabled && (
 								<button

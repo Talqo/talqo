@@ -299,7 +299,8 @@
 		"removed": "{{word}} bylo odebráno z blokovaných slov.",
 		"removeTerm": "Odebrat {{word}}",
 		"termPlaceholder": "Slovo nebo fráze k blokování",
-		"termsLabel": "Blokovaná slova"
+		"termsLabel": "Blokovaná slova",
+		"tooLongError": "Blokovaná slova mohou mít nejvýše {{max}} znaků."
 	},
 	"common": {
 		"appName": "Talqo",
