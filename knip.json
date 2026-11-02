@@ -9,7 +9,7 @@
 			"project": ["*.ts"]
 		},
 		"apps/api": {
-			"entry": ["src/index.ts", "test-database.preload.ts"],
+			"entry": ["test-database.preload.ts"],
 			"project": ["src/**/*.ts", "*.ts"]
 		},
 		"apps/docs": {

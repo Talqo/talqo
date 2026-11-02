@@ -111,8 +111,8 @@ export const test = base.extend<
 					TALQO_SEED_EMBEDDING_MODEL: "embedding-model",
 				}
 				const cwd = path.join(ROOT, "apps/api")
-				await $`bun --no-env-file src/db/migrate.ts`.cwd(cwd).env(env).quiet()
-				await $`bun --no-env-file src/db/seed.ts`.cwd(cwd).env(env).quiet()
+				await $`bun --no-env-file ${path.join(cwd, "src/db/migrate.ts")}`.cwd(cwd).env(env).quiet()
+				await $`bun --no-env-file ${path.join(cwd, "src/db/seed.ts")}`.cwd(cwd).env(env).quiet()
 				const apiProcess = Bun.spawn(["bun", "--no-env-file", "--no-orphans", "src/index.ts"], {
 					cwd,
 					env,
