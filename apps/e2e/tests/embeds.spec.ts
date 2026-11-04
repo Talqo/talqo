@@ -45,7 +45,10 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 	const responsePromise = page.waitForResponse(
 		(response) => response.request().method() === "POST" && new URL(response.url()).pathname === "/api/embeds",
 	)
-	await page.getByRole("button", { name: web("embedSetup.createEmbed") }).click()
+	await page
+		.locator('[data-slot="empty-state"]')
+		.getByRole("button", { name: web("embedSetup.createEmbed") })
+		.click()
 	const created = await responsePromise
 	expect(created.ok()).toBe(true)
 	const { embed } = (await created.json()) as { embed: { id: string } }
@@ -67,7 +70,6 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 	await expect(page.getByLabel(web("embedSetup.nameLabel"), { exact: true })).toHaveValue("Customer help")
 	const preview = page.frameLocator("iframe")
 	await page.locator("iframe").scrollIntoViewIfNeeded()
-	await preview.getByRole("button", { name: widget("openChat") }).click()
 	await expect(preview.getByRole("dialog").getByRole("heading")).toHaveText("Customer help")
 
 	await name.fill("Unsaved rename")
@@ -88,7 +90,7 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 test("operator previews and saves independent light and dark palettes", async ({ page, agent }) => {
 	const embed = await createEmbed(page, agent.id)
 	await page.goto(`/dashboard/embeds/${embed.id}`)
-	const launcher = page.frameLocator("iframe").getByRole("button", { name: widget("openChat") })
+	const launcher = page.frameLocator("iframe").getByRole("button", { name: widget("closeChat"), expanded: true })
 	await expect(launcher).toBeVisible()
 	let previewNavigations = 0
 	page.on("framenavigated", (frame) => {
@@ -145,9 +147,9 @@ test("operator disables and re-enables an installed embed", async ({ page, agent
 
 	// Disabling hides the public chat but keeps appearance previews usable.
 	await page.goto(`/dashboard/embeds/${embed.id}`)
-	await expect(page.frameLocator("iframe").getByRole("button", { name: widget("openChat") })).toBeVisible()
+	await expect(page.frameLocator("iframe").getByRole("dialog")).toBeVisible()
 	await page.goto(`/embed-preview?embed=${embed.id}`)
-	await expect(page.frameLocator("iframe").getByRole("button", { name: widget("openChat") })).toBeVisible()
+	await expect(page.frameLocator("iframe").getByRole("dialog")).toBeVisible()
 	await page.goto(`/dashboard/agent/${agentId}?tab=embeds`)
 
 	await expect(toggle).not.toBeChecked()

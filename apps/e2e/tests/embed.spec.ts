@@ -43,7 +43,6 @@ test("built widget boots in a sandboxed CDN-only preview frame", async ({ page, 
 	)
 
 	const preview = page.frameLocator("iframe")
-	await preview.getByRole("button", { name: widget("openChat") }).click()
 	await expect(preview.getByRole("dialog")).toBeVisible()
 })
 

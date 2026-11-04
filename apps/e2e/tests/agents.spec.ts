@@ -24,10 +24,11 @@ test("manager creates, configures, and deletes an agent through the real API", a
 
 		await page.getByLabel(web("agentFields.name")).fill(agentName)
 		await page.getByLabel(web("agentFields.systemPrompt")).fill("You answer questions from the product docs.")
-		await page.getByLabel(web("agentFields.wordBlacklist")).fill("spam")
+		const blockedWord = page.getByRole("textbox", { name: web("agentFields.wordBlacklist"), exact: true })
+		await blockedWord.fill("spam")
 		await page.getByRole("button", { name: web("blacklist.addTerm") }).click()
-		await page.getByLabel(web("agentFields.wordBlacklist")).fill("abuse")
-		await page.getByLabel(web("agentFields.wordBlacklist")).press("Enter")
+		await blockedWord.fill("abuse")
+		await blockedWord.press("Enter")
 		await page.getByRole("button", { name: web("agentConfig.save") }).click()
 		await expect(page.getByText(web("agentConfig.saved"))).toBeVisible()
 
