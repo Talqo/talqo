@@ -55,6 +55,7 @@
       "name": "@talqo/docs",
       "version": "0.0.0",
       "dependencies": {
+        "@modelcontextprotocol/server": "2.4.0",
         "@talqo/shared": "workspace:*",
         "@talqo/ui": "workspace:*",
         "@tanstack/react-router": "1.170.46",

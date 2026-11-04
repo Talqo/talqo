@@ -31,6 +31,7 @@ Update this guide in the same change as any decision that changes architecture, 
 | Zod | Runtime contracts | None |
 | React | Web UI | None |
 | TanStack Router | Routing and URL state | None |
+| Fumadocs | Public documentation | [ADR-0021](adr/0021-use-fumadocs-for-public-docs.md) |
 | Playwright | E2E tests | None |
 
 ## Convention Provenance

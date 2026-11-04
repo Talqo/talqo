@@ -1,0 +1,14 @@
+{
+	"title": "Talqo",
+	"description": "Talqo documentation",
+	"pages": [
+		"embed-chat-integration",
+		"system-prompt",
+		"knowledge-base",
+		"deployment",
+		"ai-provider-configuration",
+		"mcp-connections",
+		"sdk",
+		"roles"
+	]
+}

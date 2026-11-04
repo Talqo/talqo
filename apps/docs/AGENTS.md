@@ -2,9 +2,18 @@
 
 - Keep content purely user-facing. Put implementation details and architectural rationale under root `docs/`.
 - Never edit `src/routeTree.gen.ts`.
-- Render every content page by slug in `src/routes/$.tsx`; derive public URLs from `baseUrl` in `src/lib/source.ts`.
+- Render every content page by slug in `src/routes/$.tsx`; derive public URLs from `DOCS_ROUTE` in `src/lib/markdown.ts`.
 - Keep `/problems` as a static sibling of the docs pages; static paths must outrank the splat.
 - Serve `dist/client/assets` and forward everything else to the built Start handler in `src/serve.ts`, the process entry point and container command. Keep the SSR bundle dependency-free (`noExternal`); the image ships no `node_modules`.
+
+## Machine surface
+
+- `content/docs` is canonical. `meta.json` controls navigation order.
+- `llms.txt`, `llms-full.txt`, `/<slug>.md`, `/problems.md`, and `/api/mcp` are generated from source. Do not edit them by hand.
+- `src/lib/markdown.ts` owns `getPageMarkdownUrl` and `decodeMarkdownUrl`; `src/routes/{$}[.]md.ts` serves the raw Markdown route.
+- `src/routes/$.tsx` owns per-page metadata, the canonical link, the Markdown alternate, and page actions.
+- When adding a page, add it to `content/docs/meta.json` and link it from `index.mdx`.
+- Run `bun run test` after changing the problem catalog.
 
 ## Content
 

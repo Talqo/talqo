@@ -2,6 +2,27 @@ import { PROBLEMS } from "@/lib/problem-catalog.ts"
 import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/problems")({
+	server: {
+		handlers: {
+			GET: async ({ next, request }) => {
+				const { negotiateMarkdown } = await import("@/lib/markdown-response")
+				return (await negotiateMarkdown(request, ["problems"])) ?? next()
+			},
+		},
+	},
+	head: () => ({
+		meta: [
+			{ title: "API problem types | Talqo Docs" },
+			{
+				name: "description",
+				content: "RFC 9457 problem details emitted by the Talqo API, with recovery guidance for each code.",
+			},
+		],
+		links: [
+			{ rel: "canonical", href: "/problems" },
+			{ rel: "alternate", type: "text/markdown", href: "/problems.md" },
+		],
+	}),
 	component: ProblemsPage,
 })
 

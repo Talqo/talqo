@@ -404,6 +404,20 @@ export const PROBLEMS = [
 	},
 ] satisfies readonly ProblemDefinition[]
 
+export function renderProblemsMarkdown(): string {
+	const sections = PROBLEMS.map(
+		(problem) =>
+			`## ${problem.title}\n\n\`${problem.status}\` · \`${problem.code}\`\n\n${problem.meaning}\n\n**Fix:** ${problem.guidance}`,
+	)
+
+	return `# API problem types
+
+Talqo API errors use RFC 9457 problem details. The type URI is the primary identifier; the code is a stable localization key. Append a code to /problems# to get its type URI.
+
+${sections.join("\n\n")}
+`
+}
+
 type UndocumentedCode = Exclude<ProblemCode, (typeof PROBLEMS)[number]["code"]>
 
 // Every problem code the API can emit needs a docs entry. This fails typecheck
