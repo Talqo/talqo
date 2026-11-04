@@ -87,7 +87,7 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	})
 	const users = createRoute({
 		getParentRoute: () => route,
-		path: "/dashboard/users",
+		path: "/dashboard/team",
 		component: () => <h1>{t("nav.team")}</h1>,
 	})
 	const router = createRouter({ routeTree: route.addChildren([page, account, users]), history: createMemoryHistory() })
@@ -245,7 +245,7 @@ test("titles and focuses the page heading on route changes", async () => {
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("account.heading"))
 	expect(document.title).toBe(`${t("account.heading")} · Talqo`)
 
-	await act(async () => rendered.router.navigate({ to: "/dashboard/users" }))
+	await act(async () => rendered.router.navigate({ to: "/dashboard/team" }))
 	await settle()
 	await settle()
 

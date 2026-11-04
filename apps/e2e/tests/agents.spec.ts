@@ -194,7 +194,7 @@ test("an ungranted operator sees neither agent navigation nor agent content", as
 	await expect(page).toHaveURL("/dashboard/account")
 
 	// A hidden nav item is not an authorization boundary: a direct URL must deny, not blank.
-	await page.goto("/dashboard/users")
+	await page.goto("/dashboard/team")
 	await expect(page).toHaveURL("/dashboard/account")
 	await expect(page.getByRole("button", { name: web("auth.invitations.heading") })).toHaveCount(0)
 

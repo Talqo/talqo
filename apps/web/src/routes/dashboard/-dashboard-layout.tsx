@@ -26,7 +26,7 @@ type NavItem = {
 		| "/dashboard"
 		| "/dashboard/agents"
 		| "/dashboard/conversations"
-		| "/dashboard/users"
+		| "/dashboard/team"
 		| "/dashboard/ai-configuration"
 		| "/dashboard/account"
 	icon: typeof LayoutDashboard
@@ -37,7 +37,7 @@ const navItems: readonly NavItem[] = [
 	{ to: "/dashboard", icon: LayoutDashboard, requires: "statsRead" },
 	{ to: "/dashboard/agents", icon: Bot, requires: "agentRead" },
 	{ to: "/dashboard/conversations", icon: MessagesSquare, requires: "conversationsRead" },
-	{ to: "/dashboard/users", icon: Users, requires: "usersRead" },
+	{ to: "/dashboard/team", icon: Users, requires: "usersRead" },
 	{ to: "/dashboard/ai-configuration", icon: Settings2, requires: "providerManage" },
 	{ to: "/dashboard/account", icon: User },
 ]
@@ -46,7 +46,7 @@ const navLabels = {
 	"/dashboard": "nav.dashboard",
 	"/dashboard/agents": "nav.agents",
 	"/dashboard/conversations": "nav.conversations",
-	"/dashboard/users": "nav.team",
+	"/dashboard/team": "nav.team",
 	"/dashboard/ai-configuration": "nav.aiConfiguration",
 	"/dashboard/account": "nav.account",
 } as const satisfies Record<NavItem["to"], string>

@@ -46,10 +46,10 @@ let router: ReturnType<typeof makeRouter>
 
 function makeRouter(path: string) {
 	const rootRoute = createRootRoute()
-	const list = createRoute({ getParentRoute: () => rootRoute, path: "/dashboard/users/roles", component: RolesPage })
+	const list = createRoute({ getParentRoute: () => rootRoute, path: "/dashboard/team/roles", component: RolesPage })
 	const detail = createRoute({
 		getParentRoute: () => rootRoute,
-		path: "/dashboard/users/roles/$roleId",
+		path: "/dashboard/team/roles/$roleId",
 		component: () => <RolePage roleId={detail.useParams().roleId} />,
 	})
 	return createRouter({
@@ -114,7 +114,7 @@ async function settle() {
 }
 
 async function renderPage(roleId?: string) {
-	router = makeRouter(roleId ? `/dashboard/users/roles/${roleId}` : "/dashboard/users/roles")
+	router = makeRouter(roleId ? `/dashboard/team/roles/${roleId}` : "/dashboard/team/roles")
 	await act(async () => {
 		await router.load()
 		root.render(
@@ -225,7 +225,7 @@ describe("role management", () => {
 			name: "New role",
 			permissions: [],
 		})
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles/new-role")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles/new-role")
 		expect(nameInput().value).toBe("New role")
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
@@ -272,7 +272,7 @@ describe("role management", () => {
 		await renderPage()
 		await click(button(t("roles.create")))
 		expect(host.textContent).toContain(t("problems.role-name-taken"))
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
 	test("shows access restricted and refreshes permissions when the roles request is forbidden", async () => {
@@ -409,11 +409,11 @@ describe("role management", () => {
 		await settle()
 		expect(host.textContent).toContain(t("problems.role-not-found"))
 		await act(async () => {
-			void router.navigate({ to: "/dashboard/users/roles" })
+			void router.navigate({ to: "/dashboard/team/roles" })
 		})
 		await settle()
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
 	test("keeps the editor unavailable until saved access has refreshed", async () => {
@@ -455,19 +455,19 @@ describe("role management", () => {
 		await renderPage("support")
 		await type(nameInput(), "Draft")
 		await act(async () => {
-			void router.navigate({ to: "/dashboard/users/roles" })
+			void router.navigate({ to: "/dashboard/team/roles" })
 		})
 		await settle()
 		expect(dialog().textContent).toContain(t("common.discardTitle"))
 		await click(button(t("common.keepEditing"), dialog()))
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles/support")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles/support")
 		expect(nameInput().value).toBe("Draft")
 		await act(async () => {
-			void router.navigate({ to: "/dashboard/users/roles" })
+			void router.navigate({ to: "/dashboard/team/roles" })
 		})
 		await settle()
 		await click(button(t("common.discardChanges"), dialog()))
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
 	test("moves deletion into a danger zone below the access settings", async () => {
@@ -484,7 +484,7 @@ describe("role management", () => {
 		expect(dialog().textContent).toContain(t("roles.deleteDescription", { people: 3 }))
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))
 		await click(button(t("roles.deleteConfirm"), dialog()))
-		expect(router.state.location.pathname).toBe("/dashboard/users/roles")
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 		expect(host.querySelector("[data-role-id='support']")).toBeNull()
 		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})

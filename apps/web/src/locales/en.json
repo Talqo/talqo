@@ -52,7 +52,7 @@
 		"permissionsFor": "Permissions for {{agent}}",
 		"remove": "Remove agent access",
 		"removed": "Agent access removed.",
-		"removePrompt": "Remove {{agent}} from this role? People with this role lose its access to this agent unless another role also grants it. An authorized user or admin can add the agent again. If you lose access, ask them to restore it.",
+		"removePrompt": "Remove {{agent}} from this role? People with this role lose its access to this agent unless another role also grants it. A member with access or an admin can add the agent again. If you lose access, ask them to restore it.",
 		"save": "Save permissions",
 		"saved": "Permissions saved.",
 		"statistics": "View statistics",
@@ -601,9 +601,9 @@
 		"role-name-taken": "A role with this name already exists. Choose another name.",
 		"role-not-found": "This role no longer exists. Reload the page to see current roles.",
 		"route-not-found": "The requested API route was not found.",
-		"self-delete-not-allowed": "You cannot delete your own account from the user list.",
+		"self-delete-not-allowed": "You cannot delete your own account from the team.",
 		"self-password-reset-not-allowed": "Use account settings to change your own password.",
-		"user-not-found": "The user was not found.",
+		"user-not-found": "The member was not found.",
 		"username-taken": "This username is already in use."
 	},
 	"roles": {
@@ -639,14 +639,14 @@
 		"permissionDescriptions": {
 			"aiProviderManage": "Choose the AI provider and models that agents use.",
 			"rolesManage": "Create roles and choose who has them.",
-			"usersManage": "Invite users, reset their passwords and remove them.",
+			"usersManage": "Invite members, reset their passwords and delete them.",
 			"usersRead": "View everyone who can sign in to this dashboard."
 		},
 		"permissionLabels": {
 			"aiProviderManage": "Configure AI",
 			"rolesManage": "Manage roles",
-			"usersManage": "Manage users",
-			"usersRead": "See users"
+			"usersManage": "Manage team",
+			"usersRead": "See team"
 		},
 		"permissionsLegend": "Workspace permissions",
 		"save": "Save changes",
@@ -656,23 +656,23 @@
 		"subheading": "Group access into roles, then give roles to people.",
 		"unsaved": "You have unsaved changes."
 	},
-	"users": {
+	"team": {
 		"adminBadge": "Admin",
 		"cancel": "Cancel",
-		"cannotChange": "You can't reset this user's password or delete them because they have access you don't have yourself.",
+		"cannotChange": "You can't reset this member's password or delete them because they have access you don't have yourself.",
 		"copy": "Copy generated password",
 		"copyFailed": "The password could not be copied. Select it and copy it manually.",
 		"delete": "Delete",
-		"deleteConfirm": "Delete user",
+		"deleteConfirm": "Delete member",
 		"deletePrompt": "This deletes {{username}} and signs them out everywhere. To restore their access, invite them again and assign their roles.",
-		"deleteTitle": "Delete user?",
+		"deleteTitle": "Delete member?",
 		"deleting": "Deleting…",
 		"editRoles": "Edit roles",
-		"editRolesDescription": "Choose the roles this user has. They get every access their roles give.",
+		"editRolesDescription": "Choose the roles this member has. They get every access their roles give.",
 		"editRolesTitle": "Roles for {{username}}",
 		"generate": "Generate",
 		"heading": "Team",
-		"loading": "Loading users…",
+		"loading": "Loading team…",
 		"lockoutWarning": "After saving, you won't be able to manage roles. Ask an admin if you need access again.",
 		"noRoles": "There are no roles yet. Create one on the Roles page first.",
 		"pendingChange": "Pending password change",

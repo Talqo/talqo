@@ -10,7 +10,7 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const { UsersPage } = await import("./users-page")
+const { TeamPage } = await import("./team-page")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createMemoryHistory, RouterContextProvider } =
@@ -104,7 +104,7 @@ async function renderPage() {
 			<RouterContextProvider router={router}>
 				<QueryClientProvider client={queryClient}>
 					<LanguageProvider>
-						<UsersPage />
+						<TeamPage />
 					</LanguageProvider>
 				</QueryClientProvider>
 			</RouterContextProvider>,
@@ -182,7 +182,7 @@ afterEach(async () => {
 	mock.restore()
 })
 
-describe("UsersPage", () => {
+describe("TeamPage", () => {
 	test("allows a role-less invitation after roles fail to load and explains the failure", async () => {
 		rolesFailure = problem("internal-server-error", 500)
 		await renderPage()
@@ -263,7 +263,7 @@ describe("UsersPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
-		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+		expect(dialog().textContent).toContain(t("team.roleNotYours"))
 	})
 	test("does not preselect or allow an invitation role with inaccessible agent grants", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
@@ -287,7 +287,7 @@ describe("UsersPage", () => {
 		await renderPage()
 
 		expect(ListUsers200.safeParse({ users }).success).toBe(true)
-		expect(card("owner").textContent).toContain(t("users.adminBadge"))
+		expect(card("owner").textContent).toContain(t("team.adminBadge"))
 		expect(card("helper").textContent).toContain("Support")
 		expect(buttonNames(host)).toEqual([])
 	})
@@ -307,9 +307,9 @@ describe("UsersPage", () => {
 		await renderPage()
 
 		expect(buttonNames(host)).toContain(t("auth.invitations.heading"))
-		expect(buttonNames(card("reader"))).toEqual([t("users.resetPassword"), t("users.delete")])
+		expect(buttonNames(card("reader"))).toEqual([t("team.resetPassword"), t("team.delete")])
 		expect(buttonNames(card("editor"))).toEqual([])
-		expect(card("editor").textContent).toContain(t("users.cannotChange"))
+		expect(card("editor").textContent).toContain(t("team.cannotChange"))
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {
@@ -320,13 +320,13 @@ describe("UsersPage", () => {
 		]
 		users = [user("helper")]
 		await renderPage()
-		expect(buttonNames(card("helper"))).toEqual([t("users.editRoles")])
+		expect(buttonNames(card("helper"))).toEqual([t("team.editRoles")])
 
-		await click(button(t("users.editRoles"), card("helper")))
+		await click(button(t("team.editRoles"), card("helper")))
 		expect(checkbox("AI team").getAttribute("aria-disabled")).toBe("true")
-		expect(dialog().textContent).toContain(t("users.roleNotYours"))
+		expect(dialog().textContent).toContain(t("team.roleNotYours"))
 		await click(checkbox("Readers"))
-		await click(button(t("users.saveRoles"), dialog()))
+		await click(button(t("team.saveRoles"), dialog()))
 
 		expect(requests.find(({ method }) => method === "PUT")).toEqual({
 			url: "/api/users/helper/roles",
@@ -341,11 +341,11 @@ describe("UsersPage", () => {
 		users = [user("me", { roles: [{ id: "managers", name: "Managers" }] })]
 		await renderPage()
 
-		await click(button(t("users.editRoles"), card("me")))
-		expect(dialog().textContent).not.toContain(t("users.lockoutWarning"))
+		await click(button(t("team.editRoles"), card("me")))
+		expect(dialog().textContent).not.toContain(t("team.lockoutWarning"))
 		await click(checkbox("Managers"))
 
-		expect(dialog().textContent).toContain(t("users.lockoutWarning"))
+		expect(dialog().textContent).toContain(t("team.lockoutWarning"))
 	})
 
 	test("shows the admin to a non-admin manager with a note instead of reset and delete", async () => {
@@ -353,9 +353,9 @@ describe("UsersPage", () => {
 		users = [user("owner", { permissions: EVERYTHING, canManage: false })]
 		await renderPage()
 
-		expect(card("owner").textContent).toContain(t("users.adminBadge"))
-		expect(card("owner").textContent).toContain(t("users.cannotChange"))
-		expect(buttonNames(card("owner"))).toEqual([t("users.editRoles")])
+		expect(card("owner").textContent).toContain(t("team.adminBadge"))
+		expect(card("owner").textContent).toContain(t("team.cannotChange"))
+		expect(buttonNames(card("owner"))).toEqual([t("team.editRoles")])
 	})
 
 	test("hides self-deletion and self-reset, and keeps role editing", async () => {
@@ -363,8 +363,8 @@ describe("UsersPage", () => {
 		users = [user("me")]
 		await renderPage()
 
-		expect(buttonNames(card("me"))).toEqual([t("users.editRoles")])
-		expect(button(t("users.editRoles"), card("me")).disabled).toBe(false)
+		expect(buttonNames(card("me"))).toEqual([t("team.editRoles")])
+		expect(button(t("team.editRoles"), card("me")).disabled).toBe(false)
 	})
 
 	test("says so when roles cannot be loaded instead of silently hiding role editing", async () => {
@@ -373,11 +373,11 @@ describe("UsersPage", () => {
 		users = [user("helper"), user("other")]
 		await renderPage()
 
-		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
+		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(true)
 		expect(host.querySelectorAll("[role='alert']")).toHaveLength(1)
 		rolesFailure = undefined
 		await click(button(t("common.retry"), host))
-		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
+		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
 	test("keeps role editing visible but unavailable while roles load", async () => {
@@ -386,10 +386,10 @@ describe("UsersPage", () => {
 		const deferred = Promise.withResolvers<Response>()
 		rolesResponse = deferred.promise
 		await renderPage()
-		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(true)
+		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(true)
 		await act(async () => deferred.resolve(json({ roles: [], manageableRoleIds: [] })))
 		await settle()
-		expect(button(t("users.editRoles"), card("helper")).disabled).toBe(false)
+		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
 	test("starts from the user's current roles every time the dialog opens", async () => {
@@ -400,11 +400,11 @@ describe("UsersPage", () => {
 		await act(() => queryClient.refetchQueries())
 		await settle()
 
-		await click(button(t("users.editRoles"), card("helper")))
+		await click(button(t("team.editRoles"), card("helper")))
 		expect(checkbox("Readers").getAttribute("aria-checked")).toBe("true")
 		await click(checkbox("Readers"))
-		await click(button(t("users.cancel"), dialog()))
-		await click(button(t("users.editRoles"), card("helper")))
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("team.editRoles"), card("helper")))
 
 		expect(checkbox("Readers").getAttribute("aria-checked")).toBe("true")
 	})
@@ -416,9 +416,9 @@ describe("UsersPage", () => {
 		const usersBefore = requestCount("/api/users")
 		const permissionsBefore = requestCount("/api/me/permissions")
 
-		await click(button(t("users.editRoles"), card("helper")))
+		await click(button(t("team.editRoles"), card("helper")))
 		await click(checkbox("Readers"))
-		await click(button(t("users.saveRoles"), dialog()))
+		await click(button(t("team.saveRoles"), dialog()))
 
 		expect(document.querySelector("[role='dialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
@@ -431,8 +431,8 @@ describe("UsersPage", () => {
 		users = [user("helper")]
 		await renderPage()
 
-		await click(button(t("users.editRoles"), card("helper")))
-		await click(button(t("users.saveRoles"), dialog()))
+		await click(button(t("team.editRoles"), card("helper")))
+		await click(button(t("team.saveRoles"), dialog()))
 
 		expect(dialog().textContent).toContain(t("problems.permission-exceeds-own"))
 	})
@@ -441,17 +441,17 @@ describe("UsersPage", () => {
 		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
 		users = [user("me", { roles: [{ id: "managers", name: "Managers" }], permissions: EVERYTHING })]
 		await renderPage()
-		await click(button(t("users.editRoles"), card("me")))
+		await click(button(t("team.editRoles"), card("me")))
 		await click(checkbox("Managers"))
-		expect(dialog().textContent).not.toContain(t("users.lockoutWarning"))
-		await click(button(t("users.cancel"), dialog()))
+		expect(dialog().textContent).not.toContain(t("team.lockoutWarning"))
+		await click(button(t("team.cancel"), dialog()))
 
 		myPermissions = ["users:read", "roles:manage"]
 		users = [user("helper", { roles: [{ id: "managers", name: "Managers" }] })]
 		await act(() => queryClient.refetchQueries())
 		await settle()
-		await click(button(t("users.editRoles"), card("helper")))
+		await click(button(t("team.editRoles"), card("helper")))
 		await click(checkbox("Managers"))
-		expect(dialog().textContent).not.toContain(t("users.lockoutWarning"))
+		expect(dialog().textContent).not.toContain(t("team.lockoutWarning"))
 	})
 })
