@@ -16,7 +16,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await openDashboard(page, ADMIN, "/dashboard/team")
 			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
 			await page.getByRole("button", { name: web("roles.create") }).click()
-			await expect(page).toHaveURL(/\/dashboard\/users\/roles\/[^/]+$/)
+			await expect(page).toHaveURL(/\/dashboard\/team\/roles\/[^/]+$/)
 			createdRoleId = new URL(page.url()).pathname.split("/").pop()
 			await page.getByLabel(web("roles.name")).fill(roleName)
 			await page.getByRole("button", { name: web("roles.save") }).click()
