@@ -1,5 +1,6 @@
 import { useMDXComponents } from "@/components/mdx"
 import { getPageMarkdownUrl } from "@/lib/markdown"
+import { isValidSlugPath, splitSlugPath } from "@/lib/slugs"
 import { docs } from "@/lib/source"
 import logoUrl from "@talqo/ui/assets/logo.svg"
 import { createFileRoute, notFound } from "@tanstack/react-router"
@@ -17,23 +18,13 @@ import {
 } from "fumadocs-ui/layouts/docs/page"
 import { type CSSProperties, Suspense, use } from "react"
 
-const MAX_SLUGS = 32
-const MAX_SLUG_CHARACTERS = 256
 // A mask paints the logo in currentColor, so it follows the docs theme rather than the OS color scheme.
 const LOGO_MASK = { "--logo-mask": `url("${logoUrl}")` } as CSSProperties
 
 // Slugs arrive from the URL splat, so constrain shape and size before lookup.
 // Rejections are missing addresses, not server failures.
 function validSlugs(slugs: unknown): string[] {
-	if (
-		!Array.isArray(slugs) ||
-		slugs.length > MAX_SLUGS ||
-		!slugs.every(
-			(slug): slug is string => typeof slug === "string" && slug.length > 0 && slug.length <= MAX_SLUG_CHARACTERS,
-		)
-	) {
-		throw notFound()
-	}
+	if (!isValidSlugPath(slugs)) throw notFound()
 	return slugs
 }
 
@@ -52,7 +43,7 @@ const getDoc = createServerFn({ method: "GET" })
 			title: page.data.title,
 			description: page.data.description,
 			url: new URL(page.url, origin).href,
-			markdownUrl: getPageMarkdownUrl(page).url,
+			markdownUrl: new URL(getPageMarkdownUrl(page).url, origin).href,
 			pageTree: await source.serializePageTree(source.pageTree),
 		}
 	})
@@ -62,7 +53,7 @@ export const Route = createFileRoute("/$")({
 		handlers: {
 			GET: async ({ next, params, request }) => {
 				// oxlint-disable-next-line no-underscore-dangle -- TanStack Router names the splat param `_splat`.
-				const slugs = (params._splat ?? "").split("/").filter((segment) => segment.length > 0)
+				const slugs = splitSlugPath(params._splat)
 				const { negotiateMarkdown } = await import("@/lib/markdown-response")
 				return (await negotiateMarkdown(request, slugs)) ?? next()
 			},
@@ -70,7 +61,7 @@ export const Route = createFileRoute("/$")({
 	},
 	loader: async ({ params }) => {
 		// oxlint-disable-next-line no-underscore-dangle -- TanStack Router names the splat param `_splat`.
-		const slugs = (params._splat ?? "").split("/").filter((segment) => segment.length > 0)
+		const slugs = splitSlugPath(params._splat)
 		const doc = await getDoc({ data: slugs })
 
 		// Preloading settles the tracked load promise, so `toc` and `body` never suspend on render.
