@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next"
 
 type TargetUser = { id: string; roles: { id: string }[]; username: string }
 
-export function EditUserRolesDialog({
+export function EditMemberRolesDialog({
 	heldPermissions,
 	isSelf,
 	ownRoles,
@@ -71,18 +71,18 @@ export function EditUserRolesDialog({
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger render={<Button variant="outline" />}>
 				<Pencil className="size-4" />
-				{t("users.editRoles")}
+				{t("team.editRoles")}
 			</DialogTrigger>
 			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{t("users.editRolesTitle", { username: targetUser.username })}</DialogTitle>
-					<DialogDescription>{t("users.editRolesDescription")}</DialogDescription>
+					<DialogTitle>{t("team.editRolesTitle", { username: targetUser.username })}</DialogTitle>
+					<DialogDescription>{t("team.editRolesDescription")}</DialogDescription>
 				</DialogHeader>
 				{roles.length === 0 ? (
-					<p className="text-muted-foreground text-sm">{t("users.noRoles")}</p>
+					<p className="text-muted-foreground text-sm">{t("team.noRoles")}</p>
 				) : (
 					<fieldset className="min-w-0 space-y-2">
-						<legend className="sr-only">{t("users.editRolesTitle", { username: targetUser.username })}</legend>
+						<legend className="sr-only">{t("team.editRolesTitle", { username: targetUser.username })}</legend>
 						<RolePicker
 							heldPermissions={heldPermissions}
 							manageableRoleIds={manageableRoleIds}
@@ -94,19 +94,19 @@ export function EditUserRolesDialog({
 				)}
 				{locksOut ? (
 					<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
-						{t("users.lockoutWarning")}
+						{t("team.lockoutWarning")}
 					</p>
 				) : null}
 				<ProblemAlert error={assignRoles.error} />
 				<DialogFooter>
 					<Button variant="outline" disabled={isSaving} onClick={() => handleOpenChange(false)}>
-						{t("users.cancel")}
+						{t("team.cancel")}
 					</Button>
 					<Button
 						disabled={isSaving || roles.length === 0}
 						onClick={() => assignRoles.mutate({ userId: targetUser.id, data: { roleIds: selected } })}
 					>
-						{isSaving ? t("users.savingRoles") : t("users.saveRoles")}
+						{isSaving ? t("team.savingRoles") : t("team.saveRoles")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

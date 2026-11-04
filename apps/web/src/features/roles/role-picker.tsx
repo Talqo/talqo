@@ -56,7 +56,7 @@ export function RolePicker({
 							</Label>
 							{notHeld ? (
 								<p id={`${id}-description`} className="text-muted-foreground text-xs">
-									{t("users.roleNotYours")}
+									{t("team.roleNotYours")}
 								</p>
 							) : null}
 						</div>

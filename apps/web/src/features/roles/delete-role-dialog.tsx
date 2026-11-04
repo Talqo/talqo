@@ -39,7 +39,7 @@ export function DeleteRoleDialog({ disabled, locksOut, role }: { disabled: boole
 	function onDeleted() {
 		setOpen(false)
 		void refreshAccess()
-		void navigate({ to: "/dashboard/users/roles", ignoreBlocker: true })
+		void navigate({ to: "/dashboard/team/roles", ignoreBlocker: true })
 	}
 
 	return (

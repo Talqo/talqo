@@ -13,7 +13,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 		await createInvitedMember(request, operator)
 
 		await test.step("the admin creates a role that can manage agents", async () => {
-			await openDashboard(page, ADMIN, "/dashboard/users")
+			await openDashboard(page, ADMIN, "/dashboard/team")
 			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
 			await page.getByRole("button", { name: web("roles.create") }).click()
 			await expect(page).toHaveURL(/\/dashboard\/users\/roles\/[^/]+$/)
@@ -46,17 +46,17 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await logOut(page)
 		})
 
-		await test.step("the admin assigns the role on the Users page", async () => {
-			await openDashboard(page, ADMIN, "/dashboard/users")
+		await test.step("the admin assigns the role on the Team page", async () => {
+			await openDashboard(page, ADMIN, "/dashboard/team")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
-			await operatorCard.getByRole("button", { name: web("users.editRoles") }).click()
+			await operatorCard.getByRole("button", { name: web("team.editRoles") }).click()
 			const dialog = page.getByRole("dialog")
 			await expect(dialog.getByRole("checkbox", { name: "Support", exact: true })).toBeVisible()
 			await page.setViewportSize({ width: 390, height: 844 })
 			await expect.poll(() => dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
 			await dialog.getByRole("checkbox", { name: "Support", exact: true }).check()
 			await dialog.getByRole("checkbox", { name: roleName, exact: true }).check()
-			await dialog.getByRole("button", { name: web("users.saveRoles") }).click()
+			await dialog.getByRole("button", { name: web("team.saveRoles") }).click()
 			await expect(dialog).toBeHidden()
 			await expect(operatorCard).toContainText(roleName)
 			await expect(operatorCard).toContainText("Support")
@@ -69,7 +69,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await openDashboard(page, operator)
 			await expect(page.getByRole("link", { name: web("nav.agents"), exact: true })).toBeVisible()
 			await expect(page.getByRole("link", { name: web("nav.aiConfiguration"), exact: true })).toHaveCount(0)
-			await expect(page.getByRole("link", { name: web("nav.users"), exact: true })).toHaveCount(0)
+			await expect(page.getByRole("link", { name: web("nav.team"), exact: true })).toHaveCount(0)
 
 			await page.getByRole("link", { name: web("nav.agents"), exact: true }).click()
 			await expect(page.getByRole("button", { name: web("agents.create") })).toHaveCount(0)
@@ -78,18 +78,18 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 			await expect(page.getByRole("button", { name: web("agentConfig.deleteAgent"), exact: true })).toHaveCount(0)
 
 			// A hidden link is not the boundary: the page itself must refuse.
-			await page.goto("/dashboard/users/roles")
+			await page.goto("/dashboard/team/roles")
 			await expect(page).toHaveURL("/dashboard")
 			await expect(page.getByRole("button", { name: web("roles.create") })).toHaveCount(0)
 			await logOut(page)
 		})
 
 		await test.step("the admin removes the operator and the role", async () => {
-			await openDashboard(page, ADMIN, "/dashboard/users")
+			await openDashboard(page, ADMIN, "/dashboard/team")
 			const operatorCard = page.locator("[data-user-id]", { hasText: operator.username })
-			await operatorCard.getByRole("button", { name: web("users.delete"), exact: true }).click()
+			await operatorCard.getByRole("button", { name: web("team.delete"), exact: true }).click()
 			const deleteUser = page.getByRole("alertdialog")
-			await deleteUser.getByRole("button", { name: web("users.deleteConfirm"), exact: true }).click()
+			await deleteUser.getByRole("button", { name: web("team.deleteConfirm"), exact: true }).click()
 			await expect(operatorCard).toHaveCount(0)
 
 			await page.getByRole("link", { name: web("roles.heading"), exact: true }).click()
@@ -100,7 +100,7 @@ test("an admin gives an invited operator a role and the dashboard follows it", a
 				.getByRole("alertdialog")
 				.getByRole("button", { name: web("roles.deleteConfirm") })
 				.click()
-			await expect(page).toHaveURL("/dashboard/users/roles")
+			await expect(page).toHaveURL("/dashboard/team/roles")
 			await expect(roleCard).toHaveCount(0)
 			createdRoleId = undefined
 		})

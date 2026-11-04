@@ -18,7 +18,7 @@ const test = applicationTest.extend<{ member: { username: string; password: stri
 })
 
 test("admin selects invitation roles and the member lands signed in with that access", async ({ page, member }) => {
-	await openDashboard(page, ADMIN, "/dashboard/users")
+	await openDashboard(page, ADMIN, "/dashboard/team")
 	await page.getByRole("button", { name: web("auth.invitations.heading") }).click()
 
 	const dialog = page.getByRole("dialog")
@@ -46,7 +46,7 @@ test("admin selects invitation roles and the member lands signed in with that ac
 	await expect(page.getByRole("link", { name: web("nav.agents"), exact: true })).toHaveCount(0)
 
 	await logOut(page)
-	await page.goto("/dashboard/users")
+	await page.goto("/dashboard/team")
 	await expect(page).toHaveURL("/login")
 })
 
@@ -57,20 +57,20 @@ test("an admin resets a member's password and forces them through a new one", as
 
 	await createInvitedMember(request, { username: memberUsername, password: originalPassword })
 
-	await openDashboard(page, ADMIN, "/dashboard/users")
+	await openDashboard(page, ADMIN, "/dashboard/team")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: web("users.resetPassword") })).toHaveCount(0)
+	await expect(adminRow.getByRole("button", { name: web("team.resetPassword") })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
-	await expect(memberRow.getByText(web("users.pendingChange"))).toHaveCount(0)
-	await memberRow.getByRole("button", { name: web("users.resetPassword") }).click()
+	await expect(memberRow.getByText(web("team.pendingChange"))).toHaveCount(0)
+	await memberRow.getByRole("button", { name: web("team.resetPassword") }).click()
 	const dialog = page.getByRole("dialog")
 	await dialog.getByLabel(web("account.newPassword"), { exact: true }).fill(adminResetPassword)
 	await dialog.getByLabel(web("account.confirmNewPassword")).fill(adminResetPassword)
-	await dialog.getByRole("button", { name: web("users.resetPassword") }).click()
-	await expect(page.getByText(web("users.resetSuccess"))).toBeVisible()
-	await expect(memberRow.getByText(web("users.pendingChange"))).toBeVisible()
+	await dialog.getByRole("button", { name: web("team.resetPassword") }).click()
+	await expect(page.getByText(web("team.resetSuccess"))).toBeVisible()
+	await expect(memberRow.getByText(web("team.pendingChange"))).toBeVisible()
 	await logOut(page)
 
 	await page.getByLabel(web("auth.credentialsForm.username")).fill(memberUsername)
@@ -104,20 +104,20 @@ test("an admin can delete a member but cannot delete their own account", async (
 	await expect(page.getByRole("heading", { name: web("account.heading"), exact: true })).toBeVisible()
 	await expect(page.getByRole("heading", { name: web("account.dangerZone"), exact: true })).toHaveCount(0)
 	await expect(page.getByRole("button", { name: web("account.deleteAccount"), exact: true })).toHaveCount(0)
-	await page.getByRole("link", { name: web("nav.users") }).click()
-	await expect(page).toHaveURL("/dashboard/users")
+	await page.getByRole("link", { name: web("nav.team") }).click()
+	await expect(page).toHaveURL("/dashboard/team")
 
 	const adminRow = page.locator("[data-user-id]", { hasText: ADMIN.username })
-	await expect(adminRow.getByRole("button", { name: web("users.delete"), exact: true })).toHaveCount(0)
+	await expect(adminRow.getByRole("button", { name: web("team.delete"), exact: true })).toHaveCount(0)
 
 	const memberRow = page.locator("[data-user-id]", { hasText: memberUsername })
-	await memberRow.getByRole("button", { name: web("users.delete"), exact: true }).click()
+	await memberRow.getByRole("button", { name: web("team.delete"), exact: true }).click()
 	const dialog = page.getByRole("alertdialog")
-	const confirm = dialog.getByRole("button", { name: web("users.deleteConfirm") })
+	const confirm = dialog.getByRole("button", { name: web("team.deleteConfirm") })
 	await expect(confirm).toBeEnabled()
 	await dialog.getByRole("button", { name: web("common.cancel"), exact: true }).click()
 	await expect(memberRow).toBeVisible()
-	await memberRow.getByRole("button", { name: web("users.delete"), exact: true }).click()
+	await memberRow.getByRole("button", { name: web("team.delete"), exact: true }).click()
 	await confirm.click()
 	await expect(dialog).toBeHidden()
 	await expect(memberRow).toHaveCount(0)
