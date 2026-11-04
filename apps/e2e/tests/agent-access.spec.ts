@@ -28,7 +28,7 @@ test("admin grants a role access to one agent and removal revokes it immediately
 	await pinLanguage(context)
 	try {
 		await expect(await page.request.put(`/api/users/${user.id}/roles`, { data: { roleIds: [role.id] } })).toBeOK()
-		await page.goto(`/dashboard/users/roles/${role.id}`)
+		await page.goto(`/dashboard/team/roles/${role.id}`)
 		const access = page.locator("[data-slot=card]", {
 			has: page.getByRole("heading", { name: web("agentAccess.title"), exact: true }),
 		})

@@ -52,7 +52,7 @@ function RolesRow() {
 				<ProblemAlert error={roles.error} onRetry={() => void roles.refetch()} />
 			) : (
 				<div className="flex flex-wrap gap-2">
-					{isAdmin && <Badge>{t("users.adminBadge")}</Badge>}
+					{isAdmin && <Badge>{t("team.adminBadge")}</Badge>}
 					{roles.data.data.roles.map((role) => (
 						<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
 							<span className="max-w-48 truncate">{role.name}</span>

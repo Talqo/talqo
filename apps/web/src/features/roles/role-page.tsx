@@ -50,7 +50,7 @@ export function RolePage({ roleId }: { roleId: string }) {
 
 	return (
 		<div className="space-y-6">
-			<Link to="/dashboard/users/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
+			<Link to="/dashboard/team/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
 				<ArrowLeft className="size-4" />
 				{t("roles.back")}
 			</Link>

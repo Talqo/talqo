@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
-import { UsersRolesSwitcher } from "@/features/users/users-roles-switcher"
+import { TeamRolesSwitcher } from "@/features/team/team-roles-switcher"
 import { nextDefaultName } from "@/lib/default-name"
 import { Button } from "@talqo/ui/components/button"
 import { Card, CardDescription, CardHeader } from "@talqo/ui/components/card"
@@ -41,7 +41,7 @@ export function RolesPage() {
 		mutation: {
 			onSuccess: async ({ data }) => {
 				await queryClient.invalidateQueries({ queryKey: getListRolesQueryKey() })
-				await navigate({ to: "/dashboard/users/roles/$roleId", params: { roleId: data.role.id } })
+				await navigate({ to: "/dashboard/team/roles/$roleId", params: { roleId: data.role.id } })
 			},
 			onError: (error) => {
 				// A taken name means the cached list is stale; refresh it so Retry proposes a free one.
@@ -79,7 +79,7 @@ export function RolesPage() {
 					) : null
 				}
 			/>
-			<UsersRolesSwitcher />
+			<TeamRolesSwitcher />
 			{!forbidden ? <ProblemAlert error={createRole.error} onRetry={onCreate} /> : null}
 			{forbidden ? (
 				<AccessDenied />
@@ -108,9 +108,7 @@ export function RolesPage() {
 								<CardDescription>{t("roles.members", { people: role.memberCount })}</CardDescription>
 							</CardHeader>
 							<CardLink
-								render={
-									<Link to="/dashboard/users/roles/$roleId" params={{ roleId: role.id }} data-role-id={role.id} />
-								}
+								render={<Link to="/dashboard/team/roles/$roleId" params={{ roleId: role.id }} data-role-id={role.id} />}
 								aria-label={role.name}
 							/>
 						</Card>

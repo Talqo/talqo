@@ -46,8 +46,8 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-import { EditUserRolesDialog } from "./edit-user-roles-dialog"
-import { UsersRolesSwitcher } from "./users-roles-switcher"
+import { EditMemberRolesDialog } from "./edit-member-roles-dialog"
+import { TeamRolesSwitcher } from "./team-roles-switcher"
 
 const NOT_FOUND_STATUS = 404
 
@@ -95,7 +95,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 			await navigator.clipboard.writeText(getValues("newPassword"))
 			setCopied(true)
 		} catch {
-			setError(t("users.copyFailed"))
+			setError(t("team.copyFailed"))
 		}
 	}
 
@@ -112,14 +112,14 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button variant="outline" />}>{t("users.resetPassword")}</DialogTrigger>
+			<DialogTrigger render={<Button variant="outline" />}>{t("team.resetPassword")}</DialogTrigger>
 			<DialogContent closeLabel={t("common.close")}>
 				<DialogHeader>
-					<DialogTitle>{t("users.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
-					<DialogDescription>{t("users.resetDialogDescription")}</DialogDescription>
+					<DialogTitle>{t("team.resetDialogTitle", { username: targetUser.username })}</DialogTitle>
+					<DialogDescription>{t("team.resetDialogDescription")}</DialogDescription>
 				</DialogHeader>
 				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm">
-					{t("users.resetWarning")}
+					{t("team.resetWarning")}
 				</p>
 				<form onSubmit={handleSubmit(onValid)} className="space-y-4">
 					<div className="space-y-2">
@@ -134,9 +134,9 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 								{...register("newPassword")}
 							/>
 							<Button type="button" variant="outline" onClick={handleGenerate}>
-								{t("users.generate")}
+								{t("team.generate")}
 							</Button>
-							<Button type="button" variant="outline" size="icon" onClick={handleCopy} aria-label={t("users.copy")}>
+							<Button type="button" variant="outline" size="icon" onClick={handleCopy} aria-label={t("team.copy")}>
 								{copied ? <Check className="text-primary" /> : <Copy />}
 							</Button>
 						</div>
@@ -174,10 +174,10 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 							disabled={resetUserPassword.isPending}
 							onClick={() => handleOpenChange(false)}
 						>
-							{t("users.cancel")}
+							{t("team.cancel")}
 						</Button>
 						<Button type="submit" disabled={resetUserPassword.isPending}>
-							{resetUserPassword.isPending ? t("users.resetting") : t("users.resetPassword")}
+							{resetUserPassword.isPending ? t("team.resetting") : t("team.resetPassword")}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -186,7 +186,7 @@ function ResetPasswordDialog({ onReset, targetUser }: { onReset: (userId: string
 	)
 }
 
-function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; targetUser: ListedUser }) {
+function DeleteMemberDialog({ onDeleted, targetUser }: { onDeleted: () => void; targetUser: ListedUser }) {
 	const { t } = useTranslation()
 	const deleteUser = useDeleteUser()
 	const [open, setOpen] = useState(false)
@@ -219,16 +219,16 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 		<>
 			<Button variant="destructive" onClick={() => setOpen(true)}>
 				<Trash2 className="size-4" />
-				{t("users.delete")}
+				{t("team.delete")}
 			</Button>
 			<ConfirmDialog
 				open={open}
 				onOpenChange={handleOpenChange}
-				title={t("users.deleteTitle")}
-				description={t("users.deletePrompt", { username: targetUser.username })}
-				cancelLabel={t("users.cancel")}
-				confirmLabel={t("users.deleteConfirm")}
-				pendingLabel={t("users.deleting")}
+				title={t("team.deleteTitle")}
+				description={t("team.deletePrompt", { username: targetUser.username })}
+				cancelLabel={t("team.cancel")}
+				confirmLabel={t("team.deleteConfirm")}
+				pendingLabel={t("team.deleting")}
 				pending={deleteUser.isPending}
 				error={error ?? undefined}
 				onConfirm={() => void onConfirm()}
@@ -237,7 +237,7 @@ function DeleteUserDialog({ onDeleted, targetUser }: { onDeleted: () => void; ta
 	)
 }
 
-function UsersSkeleton({ label }: { label: string }) {
+function TeamSkeleton({ label }: { label: string }) {
 	return (
 		<div className="space-y-3">
 			<output className="sr-only">{label}</output>
@@ -262,7 +262,7 @@ function UsersSkeleton({ label }: { label: string }) {
 	)
 }
 
-function UsersList({ held }: { held: readonly string[] }) {
+function TeamList({ held }: { held: readonly string[] }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
 	const session = useGetSession()
@@ -284,7 +284,7 @@ function UsersList({ held }: { held: readonly string[] }) {
 	}
 
 	if (usersQuery.isPending || session.isPending) {
-		return <UsersSkeleton label={t("users.loading")} />
+		return <TeamSkeleton label={t("team.loading")} />
 	}
 
 	if (usersQuery.isError || session.isError) {
@@ -324,13 +324,13 @@ function UsersList({ held }: { held: readonly string[] }) {
 							{(user.permissions.includes("admin") || user.roles.length > 0 || user.mustChangePassword) && (
 								<CardDescription className="min-w-0">
 									<div className="flex flex-wrap items-center gap-2">
-										{user.permissions.includes("admin") && <Badge>{t("users.adminBadge")}</Badge>}
+										{user.permissions.includes("admin") && <Badge>{t("team.adminBadge")}</Badge>}
 										{user.roles.map((role) => (
 											<Badge key={role.id} variant="outline" className="max-w-full" title={role.name}>
 												<span className="max-w-48 truncate">{role.name}</span>
 											</Badge>
 										))}
-										{user.mustChangePassword && <Badge variant="secondary">{t("users.pendingChange")}</Badge>}
+										{user.mustChangePassword && <Badge variant="secondary">{t("team.pendingChange")}</Badge>}
 									</div>
 								</CardDescription>
 							)}
@@ -339,10 +339,10 @@ function UsersList({ held }: { held: readonly string[] }) {
 							<div className="space-y-4">
 								<div className="flex flex-wrap items-center gap-3">
 									{confirmedUserId === user.id && (
-										<output className="text-primary text-xs">{t("users.resetSuccess")}</output>
+										<output className="text-primary text-xs">{t("team.resetSuccess")}</output>
 									)}
 									{canManageRoles && roles && !rolesQuery.isError ? (
-										<EditUserRolesDialog
+										<EditMemberRolesDialog
 											heldPermissions={held}
 											isSelf={user.id === currentUserId}
 											ownRoles={ownRoles}
@@ -353,16 +353,16 @@ function UsersList({ held }: { held: readonly string[] }) {
 									) : canManageRoles ? (
 										<Button variant="outline" disabled aria-busy={rolesQuery.isPending}>
 											<Pencil className="size-4" />
-											{t("users.editRoles")}
+											{t("team.editRoles")}
 										</Button>
 									) : null}
 									{canManageUsers && exceedsOperator ? (
-										<p className="text-muted-foreground max-w-xs text-xs">{t("users.cannotChange")}</p>
+										<p className="text-muted-foreground max-w-xs text-xs">{t("team.cannotChange")}</p>
 									) : null}
 									{canManageUsers && !exceedsOperator && user.id !== currentUserId ? (
 										<>
 											<ResetPasswordDialog targetUser={user} onReset={handleReset} />
-											<DeleteUserDialog targetUser={user} onDeleted={handleDeleted} />
+											<DeleteMemberDialog targetUser={user} onDeleted={handleDeleted} />
 										</>
 									) : null}
 								</div>
@@ -492,7 +492,7 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 				) : null}
 				<DialogFooter>
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
-						{t("users.cancel")}
+						{t("team.cancel")}
 					</Button>
 					<Button type="button" onClick={handleCreate} disabled={createInvitation.isPending || Boolean(inviteUrl)}>
 						{t("auth.invitations.create")}
@@ -503,19 +503,19 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 	)
 }
 
-export function UsersPage() {
+export function TeamPage() {
 	const { t } = useTranslation()
 	const held = useGetMyPermissions().data?.data.permissions ?? []
 
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title={t("users.heading")}
-				description={t("users.subheading")}
+				title={t("team.heading")}
+				description={t("team.subheading")}
 				actions={held.includes("users:manage") ? <InviteMemberDialog held={held} /> : null}
 			/>
-			<UsersRolesSwitcher />
-			<UsersList held={held} />
+			<TeamRolesSwitcher />
+			<TeamList held={held} />
 		</div>
 	)
 }

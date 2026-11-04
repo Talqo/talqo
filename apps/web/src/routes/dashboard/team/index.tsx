@@ -1,8 +1,8 @@
 import { requirePermission } from "@/features/permissions/require-permission"
-import { UsersPage } from "@/features/users/users-page"
+import { TeamPage } from "@/features/team/team-page"
 import { createFileRoute } from "@tanstack/react-router"
 
-export const Route = createFileRoute("/dashboard/users/")({
+export const Route = createFileRoute("/dashboard/team/")({
 	beforeLoad: requirePermission("users:read"),
-	component: UsersPage,
+	component: TeamPage,
 })
