@@ -167,7 +167,7 @@ describe("AiConfigurationPage", () => {
 		expect(error?.getAttribute("role")).toBe("alert")
 		expect(model.getAttribute("aria-invalid")).toBe("true")
 		expect(model.getAttribute("aria-describedby")).toBe("text-model-error")
-		expect(document.activeElement).toBe(model)
+		expect(document.activeElement === model).toBe(true)
 	})
 
 	test("associates a missing required setting with its field and focuses it", async () => {
@@ -203,7 +203,7 @@ describe("AiConfigurationPage", () => {
 		await submit()
 		await settle()
 
-		expect(host.querySelector("#text-apiKey")).toBeNull()
+		expect(host.querySelector("#text-apiKey") === null).toBe(true)
 		expect(host.textContent).toContain(t("aiConfiguration.savedCredentials"))
 	})
 })

@@ -264,7 +264,7 @@ describe("RoleAccessCard", () => {
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
 		await chooseAgent("Observers bot")
-		expect(host.querySelector("[role=alert]")).toBeNull()
+		expect(host.querySelector("[role=alert]") === null).toBe(true)
 	})
 
 	test("clears the dirty flag when the card unmounts", async () => {

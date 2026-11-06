@@ -85,9 +85,9 @@ describe("AgentFilesCard for a read-only operator", () => {
 
 		expect(host.textContent).toContain("faq.md")
 		expect(labelledButton(t("agentFiles.download", { name: "faq.md" }))).not.toBeNull()
-		expect(labelledButton(t("agentFiles.rename", { name: "faq.md" }))).toBeNull()
-		expect(labelledButton(t("agentFiles.delete", { name: "faq.md" }))).toBeNull()
-		expect(labelledButton(t("agentFiles.retry", { name: "faq.md" }))).toBeNull()
+		expect(labelledButton(t("agentFiles.rename", { name: "faq.md" })) === null).toBe(true)
+		expect(labelledButton(t("agentFiles.delete", { name: "faq.md" })) === null).toBe(true)
+		expect(labelledButton(t("agentFiles.retry", { name: "faq.md" })) === null).toBe(true)
 		expect(host.textContent).not.toContain(t("agentFiles.dropzone"))
 	})
 
