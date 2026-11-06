@@ -397,28 +397,15 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(announcement()?.textContent).toBe("Response complete.")
 	})
 
-	test("tells the end user the chat is monitored once they have written", async () => {
+	test("tells the end user the chat is monitored before they write", async () => {
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
-		expect(transcript().textContent).not.toContain("monitored")
 
-		await act(async () =>
-			store.setSnapshot({
-				...READY_SNAPSHOT,
-				messages: [
-					message("u1", "user", "Hello", "completed"),
-					message("a1", "assistant", "Hi", "completed"),
-					message("u2", "user", "Thanks", "completed"),
-				],
-			}),
-		)
-		const notices = [...transcript().querySelectorAll("p")].filter((element) =>
-			element.textContent?.includes("This chat is monitored and can be viewed by administrators."),
-		)
-		expect(notices).toHaveLength(1)
-		const bubbles = [...transcript().querySelectorAll("[data-slot='bubble']")]
-		expect(bubbles[0]?.nextElementSibling).toBe(notices[0] ?? null)
+		const noticeId = input().getAttribute("aria-describedby")
+		const notice = noticeId ? host.querySelector(`[id="${noticeId}"]`) : null
+		expect(notice?.textContent).toBe("This chat is monitored and can be viewed by administrators.")
+		expect(transcript().firstElementChild).toBe(notice)
 	})
 
 	test("labels transcript items by role in a silent named log", async () => {

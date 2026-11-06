@@ -17,12 +17,12 @@ import { cn } from "@talqo/ui/lib/utils"
 import {
 	type CSSProperties,
 	type FormEvent,
-	Fragment,
 	type KeyboardEvent,
 	memo,
 	type PointerEvent as ReactPointerEvent,
 	useCallback,
 	useEffect,
+	useId,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -190,7 +190,7 @@ function WidgetChat({
 	const position = appearance.position
 	const { size, resizable, startResize, resizeBy, toggleExpanded, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
-	const firstUserMessageId = messages.find((message) => message.role === "user")?.id
+	const monitoringNoticeId = useId()
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
 	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
@@ -469,6 +469,9 @@ function WidgetChat({
 						aria-label={t("transcriptLabel")}
 						className="talqo-scrollbar tw:flex-1 tw:overflow-y-auto tw:p-4"
 					>
+						<p id={monitoringNoticeId} className="tw:mb-4 tw:text-center tw:text-muted-foreground tw:text-xs">
+							{t("monitoringNotice")}
+						</p>
 						<BubbleGroup>
 							{messages.length === 0 && activity === "idle" && (
 								<Bubble align="start">
@@ -477,12 +480,7 @@ function WidgetChat({
 								</Bubble>
 							)}
 							{messages.map((message) => (
-								<Fragment key={message.id}>
-									<TranscriptBubble message={message} />
-									{message.id === firstUserMessageId && (
-										<p className="tw:text-center tw:text-muted-foreground tw:text-xs">{t("monitoringNotice")}</p>
-									)}
-								</Fragment>
+								<TranscriptBubble key={message.id} message={message} />
 							))}
 							{activeTools.length > 0 && (
 								<Bubble align="start">
@@ -561,6 +559,7 @@ function WidgetChat({
 							onChange={(event) => setDraft(event.target.value)}
 							placeholder={t("placeholder")}
 							aria-label={t("messageLabel")}
+							aria-describedby={monitoringNoticeId}
 							disabled={composerDisabled}
 							className="tw:h-control tw:min-w-0 tw:flex-1 tw:rounded-control tw:border tw:border-input-border tw:bg-input tw:px-control-padding tw:text-sm tw:outline-none tw:placeholder:text-muted-foreground tw:focus-visible:border-ring tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:disabled:opacity-50"
 						/>
