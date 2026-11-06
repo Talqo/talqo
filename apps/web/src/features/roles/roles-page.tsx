@@ -1,4 +1,5 @@
 import { getListRolesQueryKey, useCreateRole, useListRoles } from "@/api/generated/roles/roles"
+import { FloatingActionButton } from "@/components/floating-action-button"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
@@ -72,10 +73,10 @@ export function RolesPage() {
 				description={t("roles.subheading")}
 				actions={
 					roles && !rolesQuery.isError && !forbidden ? (
-						<Button onClick={onCreate} disabled={createRole.isPending}>
-							<Plus className="size-4" />
+						<FloatingActionButton onClick={onCreate} disabled={createRole.isPending}>
+							<Plus />
 							{createRole.isPending ? t("roles.creating") : t("roles.create")}
-						</Button>
+						</FloatingActionButton>
 					) : null
 				}
 			/>

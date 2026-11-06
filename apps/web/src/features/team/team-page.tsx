@@ -9,6 +9,7 @@ import {
 	useListUsers,
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
+import { FloatingActionButton } from "@/components/floating-action-button"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { type ResetPasswordFormValues, resetPasswordSchema } from "@/features/authentication/change-password-schema.ts"
@@ -435,8 +436,8 @@ function InviteMemberDialog({ held }: { held: readonly string[] }) {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger render={<Button disabled={canAssignRoles && rolesQuery.isPending} />}>
-				<UserPlus className="size-4" />
+			<DialogTrigger render={<FloatingActionButton disabled={canAssignRoles && rolesQuery.isPending} />}>
+				<UserPlus />
 				{t("auth.invitations.heading")}
 			</DialogTrigger>
 			<DialogContent closeLabel={t("common.close")} className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
