@@ -1,5 +1,6 @@
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
+import { FloatingActionButton } from "@/components/floating-action-button"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AgentCardSummary } from "@/features/agents/agent-card-summary"
@@ -68,10 +69,10 @@ function AgentsPage() {
 				description={t("agents.subheading")}
 				actions={
 					canManage ? (
-						<Button onClick={() => void create()} disabled={pending}>
-							<Plus className="size-4" />
+						<FloatingActionButton onClick={() => void create()} disabled={pending}>
+							<Plus />
 							{pending ? t("agents.creating") : t("agents.create")}
-						</Button>
+						</FloatingActionButton>
 					) : undefined
 				}
 			/>
