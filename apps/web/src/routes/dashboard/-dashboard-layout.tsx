@@ -229,10 +229,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				{t("header.skipToContent")}
 			</a>
 			<aside className="border-sidebar-border bg-sidebar sticky top-0 hidden h-dvh w-64 flex-col overflow-y-auto border-r p-4 md:flex">
-				<div className="text-sidebar-foreground mb-6 flex items-center gap-2 px-3">
+				<Link
+					to="/dashboard"
+					className="text-sidebar-foreground rounded-item focus-visible:ring-ring/50 mb-6 flex items-center gap-2 px-3 outline-none select-none focus-visible:ring-3"
+				>
 					<Logo className="size-7" />
 					<span className="text-lg font-semibold tracking-tight">{t("common.appName")}</span>
-				</div>
+				</Link>
 				<NavList className="flex flex-1 flex-col gap-1" onNavigate={closeMobile} />
 				<AccountFooter accountName={accountName} />
 			</aside>
@@ -252,7 +255,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						>
 							{mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
 						</Button>
-						<Logo className="size-6 md:hidden" />
+						<Link
+							to="/dashboard"
+							aria-label={t("common.appName")}
+							className="rounded-item focus-visible:ring-ring/50 inline-flex outline-none select-none focus-visible:ring-3 md:hidden"
+						>
+							<Logo className="size-6" />
+						</Link>
 					</div>
 					<div className="flex items-center gap-2">
 						<LanguageSelect />
