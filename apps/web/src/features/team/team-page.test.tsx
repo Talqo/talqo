@@ -174,7 +174,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		rolesFailure = undefined
 		await click(button(t("common.retry"), dialog()))
-		expect(dialog().querySelector("[role='alert']")).toBeNull()
+		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		await click(checkbox("Default"))
 		await click(button(t("auth.invitations.create"), dialog()))
@@ -391,7 +391,7 @@ describe("TeamPage", () => {
 		await click(checkbox("Readers"))
 		await click(button(t("team.saveRoles"), dialog()))
 
-		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(document.querySelector("[role='dialog']") === null).toBe(true)
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 		expect(requestCount("/api/me/permissions")).toBeGreaterThan(permissionsBefore)
 	})
