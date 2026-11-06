@@ -100,7 +100,7 @@ describe("ConnectionDialog", () => {
 		await click(button(t("mcp.add")))
 
 		expect(element<HTMLInputElement>("#mcp-name").value).toBe("")
-		expect(document.querySelector("#mcp-name-error")).toBeNull()
+		expect(document.querySelector("#mcp-name-error") === null).toBe(true)
 	})
 
 	test("drops cancelled edits and entered secrets when reopened for editing", async () => {
@@ -132,7 +132,7 @@ describe("ConnectionDialog", () => {
 		expect(error.getAttribute("role")).toBe("alert")
 		expect(name.getAttribute("aria-invalid")).toBe("true")
 		expect(name.getAttribute("aria-describedby")).toBe("mcp-name-error")
-		expect(document.activeElement).toBe(name)
+		expect(document.activeElement === name).toBe(true)
 	})
 
 	test("focuses the empty secret value instead of its filled name", async () => {
