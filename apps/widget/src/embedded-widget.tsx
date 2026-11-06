@@ -17,6 +17,7 @@ import { cn } from "@talqo/ui/lib/utils"
 import {
 	type CSSProperties,
 	type FormEvent,
+	Fragment,
 	type KeyboardEvent,
 	memo,
 	type PointerEvent as ReactPointerEvent,
@@ -189,6 +190,7 @@ function WidgetChat({
 	const position = appearance.position
 	const { size, resizable, startResize, resizeBy, toggleExpanded, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
+	const firstUserMessageId = messages.find((message) => message.role === "user")?.id
 	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
 	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
@@ -475,7 +477,12 @@ function WidgetChat({
 								</Bubble>
 							)}
 							{messages.map((message) => (
-								<TranscriptBubble key={message.id} message={message} />
+								<Fragment key={message.id}>
+									<TranscriptBubble message={message} />
+									{message.id === firstUserMessageId && (
+										<p className="tw:text-center tw:text-muted-foreground tw:text-xs">{t("monitoringNotice")}</p>
+									)}
+								</Fragment>
 							))}
 							{activeTools.length > 0 && (
 								<Bubble align="start">
