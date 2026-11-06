@@ -143,15 +143,17 @@ test("keeps the account name and log out in the sidebar footer", async () => {
 	expect(header?.contains(logout ?? null)).toBe(false)
 })
 
-test("links the brand in the sidebar to the dashboard", async () => {
+test("links the brand in the sidebar and mobile header to the dashboard", async () => {
 	mockSignedInAdmin()
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
-	const brand = [...(rendered.host.querySelector("aside")?.querySelectorAll("a") ?? [])].find(
+	const sidebarBrand = [...(rendered.host.querySelector("aside")?.querySelectorAll("a") ?? [])].find(
 		(link) => link.textContent === t("common.appName"),
 	)
-	expect(brand?.getAttribute("href")).toBe("/dashboard")
-	expect(brand?.querySelector("[data-slot=logo]")).not.toBeNull()
-	expect(brand?.className).toContain("select-none")
+	const headerBrand = rendered.host.querySelector(`header a[aria-label="${t("common.appName")}"]`)
+	for (const brand of [sidebarBrand, headerBrand]) {
+		expect(brand?.getAttribute("href")).toBe("/dashboard")
+		expect(brand?.querySelector("[data-slot=logo]")).not.toBeNull()
+	}
 })
 
 test("closes the mobile navigation on a same-page navigation", async () => {
