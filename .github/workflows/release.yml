@@ -7,10 +7,6 @@ on:
 permissions:
   contents: read
 
-defaults:
-  run:
-    shell: bash
-
 concurrency:
   group: cd-prod
   queue: max
@@ -61,6 +57,7 @@ jobs:
     timeout-minutes: 15
     outputs:
       artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      tarball: ${{ steps.pack.outputs.tarball }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -116,9 +113,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          SDK_TARBALL: ${{ needs.sdk-build.outputs.tarball }}
         run: |
           bash scripts/release.sh validate "$RELEASE_VERSION"
-          npm stage publish "./dist/talqo-sdk-$RELEASE_VERSION.tgz" --ignore-scripts --access public
+          npm stage publish "./dist/${SDK_TARBALL##*/}" --ignore-scripts --access public
 
   deploy:
     name: Deploy production
