@@ -143,6 +143,17 @@ test("keeps the account name and log out in the sidebar footer", async () => {
 	expect(header?.contains(logout ?? null)).toBe(false)
 })
 
+test("links the brand in the sidebar to the dashboard", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const brand = [...(rendered.host.querySelector("aside")?.querySelectorAll("a") ?? [])].find(
+		(link) => link.textContent === t("common.appName"),
+	)
+	expect(brand?.getAttribute("href")).toBe("/dashboard")
+	expect(brand?.querySelector("[data-slot=logo]")).not.toBeNull()
+	expect(brand?.className).toContain("select-none")
+})
+
 test("closes the mobile navigation on a same-page navigation", async () => {
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
