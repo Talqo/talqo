@@ -26,6 +26,8 @@ const buttonVariants = cva(
 				"icon-xs": "size-control-xs [&_svg:not([class*='size-'])]:size-3",
 				"icon-sm": "size-control-sm",
 				"icon-lg": "size-control-lg",
+				// Pill below md, default size from md up.
+				fab: "h-control gap-2 px-control-padding max-md:h-control-lg max-md:rounded-full max-md:px-control-padding-lg max-md:shadow-lg",
 			},
 		},
 		defaultVariants: {
