@@ -49,4 +49,6 @@ Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a fa
 
 The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. A `storage-unavailable` error or notice means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
 
+The pre-built widget tells end users that the chat is monitored and can be viewed by administrators. Show an equivalent notice in your interface before the end user sends a message.
+
 The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.
