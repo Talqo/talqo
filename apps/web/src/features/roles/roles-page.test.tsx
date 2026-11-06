@@ -199,7 +199,7 @@ describe("role management", () => {
 		})
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles/new-role")
 		expect(nameInput().value).toBe("New role")
-		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 	})
 
 	test("chooses a free default name and lists names and people without permission summaries", async () => {
@@ -226,7 +226,7 @@ describe("role management", () => {
 		expect(label?.getAttribute("title")).toBe(fullName)
 		expect(card?.querySelectorAll("a, button, input, select, textarea, [tabindex]")).toHaveLength(1)
 		await act(async () => link.focus())
-		expect(document.activeElement).toBe(link)
+		expect(document.activeElement === link).toBe(true)
 	})
 
 	test("opens a role by clicking its row", async () => {
@@ -236,7 +236,7 @@ describe("role management", () => {
 		if (!row) throw new Error("role link not rendered")
 		await click(row)
 		expect(nameInput().value).toBe("Support")
-		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 	})
 
 	test("shows creation errors without navigating away", async () => {
@@ -292,7 +292,7 @@ describe("role management", () => {
 		rolesFailure = json({ code: "internal-server-error" }, 500)
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage()
-		expect(host.querySelector("[data-role-id='support']")).toBeNull()
+		expect(host.querySelector("[data-role-id='support']") === null).toBe(true)
 		rolesFailure = undefined
 		await click(button(t("common.retry"), host))
 		expect(host.querySelector("[data-role-id='support']")).not.toBeNull()
@@ -384,7 +384,7 @@ describe("role management", () => {
 			void router.navigate({ to: "/dashboard/team/roles" })
 		})
 		await settle()
-		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
@@ -457,7 +457,7 @@ describe("role management", () => {
 		expect(dialog().textContent).toContain(t("roles.deleteRecovery"))
 		await click(button(t("roles.deleteConfirm"), dialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
-		expect(host.querySelector("[data-role-id='support']")).toBeNull()
+		expect(host.querySelector("[data-role-id='support']") === null).toBe(true)
 		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 
@@ -493,6 +493,6 @@ describe("role management", () => {
 	test("explains a deleted or unknown role instead of showing an empty editor", async () => {
 		await renderPage("missing")
 		expect(host.textContent).toContain(t("problems.role-not-found"))
-		expect(host.querySelector("form")).toBeNull()
+		expect(host.querySelector("form") === null).toBe(true)
 	})
 })

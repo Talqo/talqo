@@ -90,7 +90,7 @@ describe("visitor theme toggle", () => {
 		act(() => {
 			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
 		})
-		expect(container.querySelector("button[aria-label='Switch to dark theme']")).toBeNull()
+		expect(container.querySelector("button[aria-label='Switch to dark theme']") === null).toBe(true)
 	})
 
 	test("overrides the operator default for the visitor", () => {
@@ -149,7 +149,7 @@ describe("dialog semantics", () => {
 	test("starts collapsed for an embed", () => {
 		const container = render(<EmbeddedWidget />)
 
-		expect(container.querySelector("dialog")).toBeNull()
+		expect(container.querySelector("dialog") === null).toBe(true)
 	})
 
 	test("opens modally, focuses the composer, and returns focus to the launcher on Escape", async () => {
@@ -162,11 +162,11 @@ describe("dialog semantics", () => {
 		const dialog = container.querySelector("dialog")
 		expect(showModal).toHaveBeenCalledTimes(1)
 		expect(dialog?.open).toBe(true)
-		expect(document.activeElement).toBe(container.querySelector("input[aria-label='Message']"))
+		expect(document.activeElement === container.querySelector("input[aria-label='Message']")).toBe(true)
 
 		await act(async () => dialog?.dispatchEvent(new Event("cancel", { cancelable: true })))
-		expect(container.querySelector("dialog")).toBeNull()
-		expect(document.activeElement).toBe(launcher)
+		expect(container.querySelector("dialog") === null).toBe(true)
+		expect(document.activeElement === launcher).toBe(true)
 	})
 
 	test("closes when the backdrop is pressed and keeps panel presses open", async () => {
@@ -186,8 +186,8 @@ describe("dialog semantics", () => {
 		await act(async () =>
 			dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX: 4, clientY: 4 })),
 		)
-		expect(container.querySelector("dialog")).toBeNull()
-		expect(document.activeElement).toBe(launcher)
+		expect(container.querySelector("dialog") === null).toBe(true)
+		expect(document.activeElement === launcher).toBe(true)
 	})
 })
 
@@ -279,7 +279,7 @@ describe("EmbeddedWidget resize", () => {
 	})
 
 	test("shows the corner resize grip on desktop when the chat is open", async () => {
-		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
+		expect(host.querySelector('[data-testid="resize-corner"]') === null).toBe(true)
 
 		await openChat()
 		expect(host.querySelector('[data-testid="resize-corner"]')).not.toBeNull()
@@ -303,7 +303,7 @@ describe("EmbeddedWidget resize", () => {
 
 		await openChat()
 		expect(panel()).not.toBeNull()
-		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
+		expect(host.querySelector('[data-testid="resize-corner"]') === null).toBe(true)
 	})
 
 	test("dragging the corner resizes the panel", async () => {

@@ -9,7 +9,7 @@ describe("widget mount", () => {
 	})
 
 	test("creates its own mount root when the page has none", () => {
-		expect(document.querySelector("#talqo-widget")).toBeNull()
+		expect(document.querySelector("#talqo-widget") === null).toBe(true)
 		mount()
 		const element = document.querySelector("#talqo-widget")
 		expect(element).not.toBeNull()
@@ -26,12 +26,12 @@ describe("widget mount", () => {
 
 	test("warns and creates nothing for a missing explicit target", () => {
 		mount("#missing-target")
-		expect(document.querySelector("#missing-target")).toBeNull()
+		expect(document.querySelector("#missing-target") === null).toBe(true)
 	})
 
 	test("warns instead of throwing for an invalid selector target", () => {
 		expect(() => mount("#")).not.toThrow()
-		expect(document.querySelector("#talqo-widget")).toBeNull()
+		expect(document.querySelector("#talqo-widget") === null).toBe(true)
 	})
 
 	test("warns and renders no widget without an embed token", () => {
