@@ -1,6 +1,7 @@
 .talqo-widget-loader {
 	position: fixed;
 	bottom: 1rem;
+	z-index: 2147483000;
 	display: flex;
 	align-items: center;
 	justify-content: center;
