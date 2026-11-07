@@ -247,7 +247,7 @@ function EmbedDetailPage() {
 				},
 			},
 			// Re-sync on save so the stored values show through and the fields go clean.
-			{ onSuccess: (saved) => reset(toFormValues(saved.data.embed)) },
+			{ onSuccess: (saved) => reset(toFormValues(saved.data.embed), { keepDirtyValues: false }) },
 		)
 	}
 

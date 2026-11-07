@@ -37,7 +37,10 @@ const CONTEXT: Context = {
 	storedCredentialRole: "text",
 }
 
-type Request = ReturnType<typeof Promise.withResolvers<Response>> & { signal: AbortSignal | null | undefined }
+type Request = ReturnType<typeof Promise.withResolvers<Response>> & {
+	body: unknown
+	signal: AbortSignal | null | undefined
+}
 
 let requests: Request[]
 let host: HTMLDivElement
@@ -102,7 +105,11 @@ beforeEach(() => {
 	requests = []
 	const fetchDiscovery = Object.assign(
 		(_input: RequestInfo | URL, init?: RequestInit) => {
-			const request = { ...Promise.withResolvers<Response>(), signal: init?.signal }
+			const request: Request = {
+				...Promise.withResolvers<Response>(),
+				body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+				signal: init?.signal,
+			}
 			requests.push(request)
 			return request.promise
 		},
@@ -133,6 +140,47 @@ describe("model discovery", () => {
 		await advance(400)
 		expect(requests).toHaveLength(1)
 	})
+	test("sends the exact connection and complete typed credentials", async () => {
+		await render(CONTEXT)
+		await advance(400)
+
+		expect(requests).toHaveLength(1)
+		expect(requests[0]?.body).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			settings: { baseURL: "https://models.example/v1" },
+			credentials: { apiKey: "test-key" },
+		})
+		await answer(requests[0], ["chat-model"])
+		expect(status()).toBe("chat-model")
+	})
+
+	test("uses the stored credential role when the typed API key is blank", async () => {
+		await render({
+			...CONTEXT,
+			stored: {
+				providerId: "openai-compatible",
+				modelId: "saved-model",
+				authMode: "static",
+				settings: { baseURL: "https://models.example/v1" },
+				hasCredentials: true,
+			},
+			storedCredentialRole: "embedding",
+			value: { ...CONTEXT.value, credentials: { apiKey: " \t " } },
+		})
+		await advance(400)
+
+		expect(requests).toHaveLength(1)
+		expect(requests[0]?.body).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			settings: { baseURL: "https://models.example/v1" },
+			storedCredentialRole: "embedding",
+		})
+		await answer(requests[0], ["embedding-model"])
+		expect(status()).toBe("embedding-model")
+	})
+
 	test("debounces connection edits and shows the latest models", async () => {
 		await render(CONTEXT)
 		expect(status()).toBe("loading")
@@ -154,6 +202,19 @@ describe("model discovery", () => {
 		await advance(400)
 		await answer(requests[1], ["new-model"])
 		await answer(requests[0], ["old-model"])
+		expect(status()).toBe("new-model")
+		expect(requests[0]?.signal?.aborted).toBe(true)
+	})
+
+	test("an obsolete rejection preserves newer models without returning to loading", async () => {
+		await render(CONTEXT)
+		await advance(400)
+		await render({ ...CONTEXT, value: { ...CONTEXT.value, settings: { baseURL: "https://other.example/v1" } } })
+		await advance(400)
+		await answer(requests[1], ["new-model"])
+
+		await act(async () => requests[0]?.reject(new Error("Obsolete discovery failed")))
+
 		expect(status()).toBe("new-model")
 		expect(requests[0]?.signal?.aborted).toBe(true)
 	})
