@@ -1,16 +1,6 @@
 import type { ActiveTool, ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { WidgetAppearance, WidgetAppearanceInput, WidgetPosition } from "@talqo/shared/widget-appearance"
 
-import {
-	DEFAULT_WIDGET_APPEARANCE,
-	isHexColor,
-	isWidgetPosition,
-	isWidgetTheme,
-	type WidgetAppearance,
-	type WidgetAppearanceInput,
-	type WidgetPosition,
-	type WidgetScheme,
-	type WidgetSchemeInput,
-} from "@talqo/shared/widget-appearance"
 import logoUrl from "@talqo/ui/assets/logo.svg"
 import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
@@ -38,8 +28,9 @@ import StopIcon from "./assets/icons/stop.svg?react"
 import SunIcon from "./assets/icons/sun.svg?react"
 import { errorText, formatResetTime, outcomeText, ResponseIndicator } from "./components/chat-feedback"
 import { Bubble, BubbleContent, BubbleGroup } from "./components/ui/bubble"
+import { resolveAppearance } from "./lib/appearance"
 import { mergeAppearance } from "./lib/embed-config"
-import { createWidgetI18n, isWidgetLanguage } from "./lib/i18n"
+import { createWidgetI18n } from "./lib/i18n"
 import { useResizablePanel } from "./lib/use-resizable-panel"
 
 import "./index.css"
@@ -57,6 +48,7 @@ export type EmbeddedWidgetProps = {
 
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
 	client: ChatClient
+	disposeOnUnmount?: boolean
 }
 
 type ColorScheme = "light" | "dark"
@@ -120,32 +112,6 @@ const headerControlClasses =
 	"tw:flex tw:size-10 tw:items-center tw:justify-center tw:rounded-control tw:text-muted-foreground tw:transition-colors tw:hover:text-foreground tw:focus-visible:ring-2 tw:focus-visible:ring-ring/50 tw:focus-visible:outline-none tw:sm:size-8"
 
 const RESIZE_STEP_PX = 24
-
-function resolveScheme(input: WidgetSchemeInput | undefined, fallback: WidgetScheme): WidgetScheme {
-	return {
-		primary: isHexColor(input?.primary) ? input.primary : fallback.primary,
-		textOnPrimary: isHexColor(input?.textOnPrimary) ? input.textOnPrimary : fallback.textOnPrimary,
-		background: isHexColor(input?.background) ? input.background : fallback.background,
-		surface: isHexColor(input?.surface) ? input.surface : fallback.surface,
-		text: isHexColor(input?.text) ? input.text : fallback.text,
-	}
-}
-
-/**
- * Falls back per field: an invalid hex reaching a var() invalidates every declaration
- * referencing it, blanking the whole widget instead of degrading one color.
- */
-function resolveAppearance(appearance: WidgetAppearanceInput | undefined): WidgetAppearance {
-	return {
-		light: resolveScheme(appearance?.light, DEFAULT_WIDGET_APPEARANCE.light),
-		dark: resolveScheme(appearance?.dark, DEFAULT_WIDGET_APPEARANCE.dark),
-		position: isWidgetPosition(appearance?.position) ? appearance.position : DEFAULT_WIDGET_APPEARANCE.position,
-		theme: isWidgetTheme(appearance?.theme) ? appearance.theme : DEFAULT_WIDGET_APPEARANCE.theme,
-		themeToggle:
-			typeof appearance?.themeToggle === "boolean" ? appearance.themeToggle : DEFAULT_WIDGET_APPEARANCE.themeToggle,
-		language: isWidgetLanguage(appearance?.language) ? appearance.language : DEFAULT_WIDGET_APPEARANCE.language,
-	}
-}
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
 const EMPTY_TOOLS: readonly ActiveTool[] = []
@@ -616,13 +582,22 @@ export function EmbeddedWidget({ title, appearance, defaultOpen, forcedScheme, i
 	)
 }
 
-export function ConnectedEmbeddedWidget({ client, title, appearance, forcedScheme }: ConnectedEmbeddedWidgetProps) {
+export function ConnectedEmbeddedWidget({
+	client,
+	title,
+	appearance,
+	forcedScheme,
+	defaultOpen,
+	disposeOnUnmount = true,
+}: ConnectedEmbeddedWidgetProps) {
 	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
 
 	useEffect(() => {
 		void client.initialize().catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
-		return () => client.dispose()
-	}, [client])
+		return () => {
+			if (disposeOnUnmount) client.dispose()
+		}
+	}, [client, disposeOnUnmount])
 
 	if (!snapshot.isAvailable) {
 		return null
@@ -635,6 +610,7 @@ export function ConnectedEmbeddedWidget({ client, title, appearance, forcedSchem
 			title={title}
 			appearance={appearance}
 			forcedScheme={forcedScheme}
+			defaultOpen={defaultOpen}
 		/>
 	)
 }
@@ -645,6 +621,7 @@ function ConnectedWidgetContent({
 	title,
 	appearance,
 	forcedScheme,
+	defaultOpen,
 }: ConnectedEmbeddedWidgetProps & { snapshot: ChatSnapshot }) {
 	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
 	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
@@ -660,6 +637,7 @@ function ConnectedWidgetContent({
 				title={title ?? snapshot.configuration?.title}
 				appearance={resolved}
 				forcedScheme={forcedScheme}
+				defaultOpen={defaultOpen}
 				snapshot={snapshot}
 				client={client}
 			/>
