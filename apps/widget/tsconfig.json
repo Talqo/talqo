@@ -8,5 +8,12 @@
 		},
 		"types": ["vite/client", "bun"]
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "i18next.config.ts"]
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"vite.config.ts",
+		"vite.loader.config.ts",
+		"vite.css.ts",
+		"i18next.config.ts"
+	]
 }

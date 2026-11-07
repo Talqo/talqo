@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "vite build",
+		"build": "vite build --config vite.loader.config.ts && vite build",
 		"dev": "bun --env-file .env.example node_modules/vite/bin/vite.js",
 		"typecheck": "bun check",
 		"test": "bun test",

@@ -1,2 +1,5 @@
-// eslint-disable-next-line import/no-unassigned-import -- dev harness: importing widget.tsx executes the auto-mount into #talqo-widget.
-import "./widget"
+import { mount, unmount } from "./chat"
+import { widgetGlobals } from "./lib/chat-bridge"
+
+widgetGlobals().talqoDevChat = { mount, unmount }
+void import("./widget")
