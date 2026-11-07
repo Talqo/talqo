@@ -38,6 +38,8 @@ let updateFailure: Response | undefined
 let usersResponse: Promise<Response> | undefined
 let rolesFailure: Response | undefined
 let refreshedRolesResponse: Promise<Response> | undefined
+let responseDelays: Record<string, Promise<void> | undefined>
+let responseFailures: Record<string, Response | undefined>
 let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
@@ -66,6 +68,10 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
 	requests.push({ url, method, body: init?.body ? parseJsonBody(init.body) : undefined })
+	const delay = responseDelays[url]
+	const failure = responseFailures[url]
+	if (method === "GET" && delay) await delay
+	if (method === "GET" && failure) return failure
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: ME })
 	if (url === "/api/users") {
@@ -137,6 +143,16 @@ function queryButton(name: string, scope: ParentNode = document): HTMLButtonElem
 	return [...scope.querySelectorAll("button")].find((element) => element.textContent?.trim() === name)
 }
 
+function expectRoleControlsHidden() {
+	expect(host.querySelector("form") === null).toBe(true)
+	expect(host.textContent).not.toContain(t("agentAccess.title"))
+	expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
+}
+
+function requestCount(url: string): number {
+	return requests.filter((request) => request.url === url && request.method === "GET").length
+}
+
 async function click(element: HTMLElement) {
 	await act(async () => element.click())
 	await settle()
@@ -187,6 +203,8 @@ beforeEach(() => {
 	usersResponse = undefined
 	rolesFailure = undefined
 	refreshedRolesResponse = undefined
+	responseDelays = {}
+	responseFailures = {}
 	requests = []
 	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
 	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -275,11 +293,34 @@ describe("role management", () => {
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
+	test("hides creation until the roles list has loaded", async () => {
+		const rolesResponse = Promise.withResolvers<void>()
+		responseDelays["/api/roles"] = rolesResponse.promise
+		await renderPage()
+		expect(queryButton(t("roles.create"), host) === undefined).toBe(true)
+		expect(host.querySelector("output")?.textContent).toBe(t("roles.loading"))
+		await act(async () => rolesResponse.resolve())
+		await settle()
+		expect(queryButton(t("roles.create"), host) !== undefined).toBe(true)
+	})
+
 	test("shows access restricted and refreshes permissions when the roles request is forbidden", async () => {
 		rolesFailure = json({ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" }, 403)
 		await renderPage()
 		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
-		expect(queryButton(t("roles.create"), host)).toBeUndefined()
+		expect(queryButton(t("roles.create"), host) === undefined).toBe(true)
+	})
+
+	test("refreshes permissions when operator roles are forbidden on a role page", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		responseFailures["/api/users"] = json(
+			{ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" },
+			403,
+		)
+		await renderPage("support")
+		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
+		expectRoleControlsHidden()
+		expect(requestCount("/api/me/permissions")).toBe(2)
 	})
 
 	test("hides a lingering creation error once access is denied", async () => {
@@ -292,20 +333,33 @@ describe("role management", () => {
 		await settle()
 		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
 		expect(host.textContent).not.toContain(t("problems.role-name-taken"))
+		expect(queryButton(t("roles.create"), host) === undefined).toBe(true)
 	})
 
 	test("waits for the operator roles before offering changes that may lock them out", async () => {
 		myPermissions = ["roles:manage", "users:read"]
 		myRoleIds = ["managers"]
-		roles = [{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 }]
+		roles = [
+			{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 },
+			{ id: "other-managers", name: "Other managers", permissions: ["roles:manage"], memberCount: 1 },
+		]
 		const deferred = Promise.withResolvers<Response>()
 		usersResponse = deferred.promise
 		await renderPage("managers")
-		expect(queryButton(t("roles.delete"), host)).toBeUndefined()
+		expectRoleControlsHidden()
+		expect(host.querySelector("output")?.textContent).toBe(t("roles.loading"))
 		await act(async () =>
 			deferred.resolve(
 				json({
 					users: [
+						{
+							id: "other-user",
+							username: "colleague",
+							mustChangePassword: false,
+							roles: [{ id: "other-managers", name: "Other managers" }],
+							permissions: myPermissions,
+							canManage: false,
+						},
 						{ ...ME, roles: [{ id: "managers", name: "Managers" }], permissions: myPermissions, canManage: false },
 					],
 				}),
@@ -316,14 +370,67 @@ describe("role management", () => {
 		expect(dialog().textContent).toContain(t("roles.lockoutWarningDelete"))
 	})
 
-	test("retries a failed roles load without reloading the page", async () => {
-		rolesFailure = json({ code: "internal-server-error" }, 500)
+	for (const [dependency, url] of [
+		["role list", "/api/roles"],
+		["permission catalog", "/api/permissions"],
+		["operator permissions", "/api/me/permissions"],
+		["session", "/api/auth/session"],
+	] as const) {
+		test(`hides role controls while the ${dependency} is pending`, async () => {
+			roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+			const response = Promise.withResolvers<void>()
+			responseDelays[url] = response.promise
+			await renderPage("support")
+			expectRoleControlsHidden()
+			expect(host.querySelector("output")?.textContent).toBe(t("roles.loading"))
+			await act(async () => response.resolve())
+			await settle()
+			expect(host.querySelector("form") !== null).toBe(true)
+		})
+	}
+
+	test("keeps role controls hidden while retrying only the failed dependency", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+		const failedUrl = "/api/permissions"
+		responseFailures[failedUrl] = json({ code: "internal-server-error" }, 500)
+		await act(() => queryClient.refetchQueries({ queryKey: [failedUrl] }))
+		await settle()
+		expectRoleControlsHidden()
+		expect(requestCount(failedUrl)).toBe(2)
+
+		responseFailures[failedUrl] = undefined
+		const retryResponse = Promise.withResolvers<void>()
+		responseDelays[failedUrl] = retryResponse.promise
+		await click(button(t("common.retry"), host))
+		expectRoleControlsHidden()
+		expect(requestCount(failedUrl)).toBe(3)
+		for (const url of [
+			"/api/roles",
+			"/api/me/permissions",
+			"/api/users",
+			"/api/auth/session",
+			"/api/roles/support/agents",
+		]) {
+			expect(requestCount(url)).toBe(1)
+		}
+
+		await act(async () => retryResponse.resolve())
+		await settle()
+		expect(nameInput().disabled).toBe(false)
+	})
+
+	test("hides creation after a failed roles refresh and retries without reloading the page", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage()
+		rolesFailure = json({ code: "internal-server-error" }, 500)
+		await act(() => queryClient.refetchQueries())
+		await settle()
 		expect(host.querySelector("[data-role-id='support']") === null).toBe(true)
+		expect(queryButton(t("roles.create"), host) === undefined).toBe(true)
 		rolesFailure = undefined
 		await click(button(t("common.retry"), host))
-		expect(host.querySelector("[data-role-id='support']")).not.toBeNull()
+		expect(host.querySelector("[data-role-id='support']") !== null).toBe(true)
 	})
 
 	test("shows included switches and explains permissions the operator lacks", async () => {
@@ -440,14 +547,39 @@ describe("role management", () => {
 		expect(host.textContent).toContain(t("roles.saved"))
 	})
 
+	test("offers no changes to a role the operator cannot manage", async () => {
+		myPermissions = ["roles:manage", "users:read"]
+		roles = [
+			{ id: "support", name: "Support", permissions: ["roles:manage"], memberCount: 0 },
+			{ id: "manageable", name: "Manageable", permissions: [], memberCount: 0 },
+		]
+		refreshedRolesResponse = Promise.resolve(json({ roles, manageableRoleIds: ["manageable"] }))
+		await renderPage("support")
+		expect(host.textContent).toContain(t("roles.cannotChange"))
+		expect(nameInput().disabled).toBe(true)
+		expect(queryButton(t("roles.save"), host) === undefined).toBe(true)
+		expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
+	})
+
 	test("offers no changes to a role with access the operator lacks", async () => {
 		myPermissions = ["roles:manage", "users:read"]
 		roles = [{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 1 }]
 		await renderPage("ai")
 		expect(host.textContent).toContain(t("roles.cannotChange"))
 		expect(nameInput().disabled).toBe(true)
-		expect(queryButton(t("roles.save"), host)).toBeUndefined()
-		expect(queryButton(t("roles.delete"), host)).toBeUndefined()
+		expect(queryButton(t("roles.save"), host) === undefined).toBe(true)
+		expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
+	})
+
+	test("leaves an untouched role without asking to discard changes", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+		await act(async () => {
+			void router.navigate({ to: "/dashboard/team/roles" })
+		})
+		await settle()
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
 	test("keeps an unfinished edit when leaving is cancelled", async () => {
