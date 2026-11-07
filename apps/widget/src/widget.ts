@@ -141,12 +141,13 @@ function syncLauncher() {
 
 	const configured = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
 	const appearance = resolveAppearance(mergeAppearance(configured, appearanceOverrides))
-	const key = JSON.stringify({ appearance, loading, loadFailed })
+	const scheme = activeScheme(appearance, prefersDark())
+	const key = JSON.stringify({ appearance, scheme, loading, loadFailed })
 	if (launcher && key === lastLauncherKey) return
 
 	lastLauncherKey = key
 	const button = ensureLauncher()
-	applyLauncher(button, appearance, activeScheme(appearance, prefersDark()))
+	applyLauncher(button, appearance, scheme)
 	chatBoot = { mode: "connected", client, appearance, title: datasetTitle }
 }
 
@@ -165,9 +166,9 @@ function chatScriptUrl(): string | undefined {
 
 function loadChat(): Promise<ChatModule> {
 	const devChat = widgetGlobals().talqoDevChat
-	if (devChat) return Promise.resolve(devChat)
+	if (devChat) return Promise.resolve(rememberChat(devChat))
 	if (chatModule) return Promise.resolve(chatModule)
-	if (chatPromise) return chatPromise
+	if (chatPromise) return chatPromise.then(rememberChat)
 
 	const pending = new Promise<ChatModule>((resolve, reject) => {
 		const source = chatScriptUrl()
@@ -178,11 +179,12 @@ function loadChat(): Promise<ChatModule> {
 		const script = document.createElement("script")
 		script.src = source
 		script.async = true
+		if (embedScript?.nonce) script.nonce = embedScript.nonce
 		script.addEventListener(
 			"load",
 			() => {
 				const installed = widgetGlobals().TalqoWidgetChat
-				if (installed) resolve(installed)
+				if (installed) resolve(rememberChat(installed))
 				else reject(new Error("chat bundle did not initialize"))
 			},
 			{ once: true },
@@ -191,15 +193,16 @@ function loadChat(): Promise<ChatModule> {
 		document.head.append(script)
 	})
 
-	const tracked = pending.then((module) => {
-		chatModule = module
-		return module
+	chatPromise = pending
+	void pending.catch(() => {
+		if (chatPromise === pending) chatPromise = null
 	})
-	chatPromise = tracked
-	void tracked.catch(() => {
-		if (chatPromise === tracked) chatPromise = null
-	})
-	return tracked
+	return pending
+}
+
+function rememberChat(module: ChatModule): ChatModule {
+	chatModule = module
+	return module
 }
 
 function prefetchChat() {
@@ -218,13 +221,13 @@ async function openChat() {
 	try {
 		const module = await loadChat()
 		if (current !== generation || !container) return
+		loading = false
+		removeLauncher()
+		module.mount(container, boot)
 		handedOff = true
 		unsubscribe?.()
 		unsubscribe = null
 		detachMediaListener()
-		loading = false
-		removeLauncher()
-		module.mount(container, boot)
 	} catch (cause) {
 		if (current !== generation) return
 		loading = false
