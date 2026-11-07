@@ -214,7 +214,7 @@ apps/web/src/
 
 ## Widget
 
-`apps/widget` builds and ships a single self-contained `dist/widget.js` for customer websites; the build inlines the scoped stylesheet so one `async` script tag is the whole embed. The widget owns presentation; `packages/sdk` owns chat behavior. `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
+`apps/widget` builds `dist/widget.js`, a small loader that renders the launcher, initializes the SDK, and fetches `dist/widget-chat.js` on first hover, focus, or click. The chat bundle holds the React UI and inlines its scoped stylesheet, so one `async` script tag remains the whole embed contract; the loader derives the second file from its own URL. The widget owns presentation; `packages/sdk` owns chat behavior. `apps/web` never imports widget source. The widget dist ships inside the same production image and is served from the API origin (see ADR-0016).
 
 ## E2E Tests
 
