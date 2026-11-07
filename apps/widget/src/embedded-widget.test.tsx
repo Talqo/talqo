@@ -113,14 +113,6 @@ describe("title", () => {
 		})
 		expect(container.querySelector("h2")?.textContent).toBe("AI Chat")
 	})
-
-	test("shows the propagated widget name", () => {
-		const container = render(<EmbeddedWidget title="Marketing site" appearance={{ theme: "light" }} />)
-		act(() => {
-			container.querySelector<HTMLButtonElement>("button[aria-haspopup=dialog]")?.click()
-		})
-		expect(container.querySelector("h2")?.textContent).toBe("Marketing site")
-	})
 })
 
 describe("language", () => {

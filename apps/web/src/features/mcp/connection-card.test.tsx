@@ -1,10 +1,14 @@
+import type { ListMcpServersQueryResult } from "@/api/generated/mcp/mcp.ts"
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { act, createTestHarness, QueryClientProvider, type Root } from "@/testing/component-harness"
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { ConnectionCard } = await import("./connection-card")
+const { getListMcpServersQueryKey } = await import("@/api/generated/mcp/mcp.ts")
 const { t } = await import("i18next")
+
+const SERVERS_QUERY_KEY = getListMcpServersQueryKey("agent")
 
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
@@ -31,14 +35,43 @@ function server(overrides: Partial<McpServer> = {}): McpServer {
 	}
 }
 
-function renderCard(value: McpServer) {
+function renderCard(value: McpServer, canManage = false) {
 	return act(async () =>
 		root.render(
 			<QueryClientProvider client={client}>
-				<ConnectionCard agentId="agent" canManage={false} server={value} stdioAllowed={false} />
+				<ConnectionCard agentId="agent" canManage={canManage} server={value} stdioAllowed={false} />
 			</QueryClientProvider>,
 		),
 	)
+}
+
+function json(body: unknown, status = 200): Response {
+	return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
+}
+
+async function settle() {
+	await act(async () => {
+		await new Promise((resolve) => setTimeout(resolve, 0))
+	})
+}
+
+async function click(target: HTMLElement) {
+	await act(async () => target.click())
+	await settle()
+}
+
+function button(label: string): HTMLButtonElement {
+	const found = [...host.querySelectorAll("button")].find((candidate) => candidate.textContent === label)
+	if (!found) throw new Error(`button ${label} not rendered`)
+	return found
+}
+
+function switchInput(name: string): HTMLInputElement {
+	const control = card().querySelector<HTMLElement>(`[role="switch"][aria-label="${name}"]`)
+	// Happy DOM toggles twice when the labelled switch span is clicked; use its real checkbox.
+	const found = control?.parentElement?.querySelector<HTMLInputElement>('input[type="checkbox"]')
+	if (!found) throw new Error(`switch input ${name} not rendered`)
+	return found
 }
 
 function card(): HTMLElement {
@@ -75,6 +108,93 @@ describe("ConnectionCard", () => {
 		const label = heading?.querySelector("span")
 		expect(heading?.textContent).toBe(fullName)
 		expect(label?.getAttribute("title")).toBe(fullName)
-		expect(label?.className).toContain("truncate")
+	})
+
+	test("disables a disallowed stdio toggle without disabling HTTP connections", async () => {
+		const stdio = server({
+			id: "local",
+			name: "Local",
+			transport: "stdio",
+			url: null,
+			authMode: null,
+			command: "bunx",
+		})
+		const http = server({ id: "remote", name: "Remote" })
+		const requests: string[] = []
+		spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+			requests.push(typeof input === "string" ? input : input instanceof URL ? input.href : input.url)
+			return json({ server: http })
+		}) as typeof fetch)
+
+		await renderCard(stdio, true)
+		const stdioToggle = switchInput(t("mcp.enabledFor", { name: stdio.name }))
+		expect(stdioToggle.disabled).toBe(true)
+		await click(stdioToggle)
+		expect(requests).toEqual([])
+
+		await renderCard(http, true)
+		const httpToggle = switchInput(t("mcp.enabledFor", { name: http.name }))
+		expect(httpToggle.disabled).toBe(false)
+		await click(httpToggle)
+		expect(requests).toEqual(["/api/agents/agent/mcp-servers/remote/disable"])
+	})
+
+	test("updates only the target server's toggled tool optimistically and restores the whole cache after rejection", async () => {
+		const stock = server({
+			tools: [
+				{ name: "price", description: "Current price", enabled: true },
+				{ name: "history", description: "Price history", enabled: true },
+			],
+			toolCount: 2,
+		})
+		const warehouse = server({
+			id: "warehouse",
+			name: "Warehouse",
+			tools: [{ name: "price", description: "Warehouse price", enabled: true }],
+			toolCount: 1,
+		})
+		const previous: ListMcpServersQueryResult = {
+			data: { servers: [stock, warehouse], stdioAllowed: false },
+			status: 200,
+			headers: new Headers(),
+		}
+		const originalData = structuredClone(previous.data)
+		const restoredCache = { ...previous, data: originalData }
+		const [originalStock, originalWarehouse] = originalData.servers
+		if (!originalStock || !originalWarehouse) throw new Error("server fixture incomplete")
+		const update = Promise.withResolvers<Response>()
+		spyOn(globalThis, "fetch").mockImplementation((async (_input: RequestInfo | URL, init?: RequestInit) => {
+			if (init?.method === "PUT") return update.promise
+			throw new Error("unexpected request")
+		}) as typeof fetch)
+		client.setQueryData(SERVERS_QUERY_KEY, previous)
+		await renderCard(stock, true)
+		await click(button(t("mcp.showTools")))
+
+		await click(switchInput("price"))
+
+		expect(client.getQueryData(SERVERS_QUERY_KEY)).toEqual({
+			...restoredCache,
+			data: {
+				...originalData,
+				servers: [
+					{
+						...originalStock,
+						tools: [
+							{ name: "price", description: "Current price", enabled: false },
+							{ name: "history", description: "Price history", enabled: true },
+						],
+					},
+					originalWarehouse,
+				],
+			},
+		})
+
+		await act(async () => update.resolve(json({ code: "server-error" }, 500)))
+		await settle()
+
+		expect(host.querySelector("[role='alert']")?.textContent).toBe(t("mcp.actionFailed"))
+		expect(client.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
+		expect(client.getQueryData(SERVERS_QUERY_KEY)).toEqual(restoredCache)
 	})
 })

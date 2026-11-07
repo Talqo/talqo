@@ -6,6 +6,7 @@ import {
 	hasCompleteCredentials,
 	isDiscoveryReady,
 	requiredCredentials,
+	storedCredentialsMatch,
 	supportsDiscovery,
 } from "./discovery-readiness.ts"
 
@@ -88,7 +89,57 @@ describe("discovery readiness", () => {
 		).toBe(false)
 	})
 
+	it("matches reordered Azure settings only to stored credentials for the same provider and auth mode", () => {
+		const stored = {
+			providerId: "azure",
+			modelId: "x",
+			authMode: "static",
+			settings: { apiVersion: "2026-01-01", baseURL: "http://models.internal" },
+			hasCredentials: true,
+		} as const
+		const value = {
+			authMode: "static",
+			settings: { baseURL: "http://models.internal", apiVersion: "2026-01-01" },
+			credentials: {},
+		} as const
+
+		expect(storedCredentialsMatch({ provider: azure, value, stored })).toBe(true)
+		expect(
+			storedCredentialsMatch({
+				provider: azure,
+				value: { ...value, settings: stored.settings },
+				stored: { ...stored, settings: value.settings },
+			}),
+		).toBe(true)
+		expect(
+			storedCredentialsMatch({ provider: azure, value, stored: { ...stored, providerId: "openai-compatible" } }),
+		).toBe(false)
+		expect(
+			storedCredentialsMatch({
+				provider: azure,
+				value,
+				stored: { ...stored, authMode: "deployment-identity" },
+			}),
+		).toBe(false)
+	})
+
+	it("omits a blank discovery key instead of sending it with unrelated credential fields", () => {
+		expect(requiredCredentials(openAiCompatible, { apiKey: " \t ", accessKeyId: "extra" })).toEqual({})
+		expect(requiredCredentials(openAiCompatible, { apiKey: "key", accessKeyId: "extra" })).toEqual({ apiKey: "key" })
+	})
+
 	it("skips providers without discovery support", () => {
+		expect(
+			isDiscoveryReady({
+				provider: azure,
+				value: {
+					authMode: "static",
+					settings: { baseURL: "https://azure.example.com", apiVersion: "2026-01-01" },
+					credentials: { apiKey: "key" },
+				},
+				stored: null,
+			}),
+		).toBe(false)
 		expect(supportsDiscovery(azure, "static")).toBe(false)
 		expect(supportsDiscovery(azure, "deployment-identity")).toBe(false)
 		expect(supportsDiscovery(openAiCompatible, "deployment-identity")).toBe(false)

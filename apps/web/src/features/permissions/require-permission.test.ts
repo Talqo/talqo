@@ -31,6 +31,10 @@ describe("accessGate", () => {
 		expect(accessGate("stats:read", permissions, agents)).toBe("open")
 		expect(accessGate("conversations:read", permissions, agents)).toBe("denied")
 		expect(accessGate("agents:read", permissions, agents)).toBe("denied")
+		const agentData = agents.data
+		if (!agentData) throw new Error("Agent fixture has no response data")
+		for (const agent of agentData.data.agents) agent.permissions = ["conversations:read"]
+		expect(accessGate("conversations:read", permissions, agents)).toBe("open")
 	})
 
 	test("distinguishes empty agent scopes, loading and failures", () => {

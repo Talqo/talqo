@@ -13,7 +13,7 @@ describe("widget mount", () => {
 		mount()
 		const element = document.querySelector("#talqo-widget")
 		expect(element).not.toBeNull()
-		expect(element?.parentElement).toBe(document.body)
+		expect(element?.parentElement === document.body).toBe(true)
 	})
 
 	test("mounts into an existing target element", () => {
@@ -21,17 +21,21 @@ describe("widget mount", () => {
 		element.id = "talqo-widget"
 		document.body.append(element)
 		mount()
-		expect(document.querySelector("#talqo-widget")).toBe(element)
+		expect(document.querySelector("#talqo-widget") === element).toBe(true)
 	})
 
 	test("warns and creates nothing for a missing explicit target", () => {
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		mount("#missing-target")
-		expect(document.querySelector("#missing-target") === null).toBe(true)
+		expect(document.querySelector("#talqo-widget") === null).toBe(true)
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (#missing-target)")
 	})
 
 	test("warns instead of throwing for an invalid selector target", () => {
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		expect(() => mount("#")).not.toThrow()
 		expect(document.querySelector("#talqo-widget") === null).toBe(true)
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (#)")
 	})
 
 	test("warns and renders no widget without an embed token", () => {

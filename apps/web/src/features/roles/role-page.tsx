@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { useGetSession } from "@/api/generated/identity/identity"
 import {
 	useGetMyPermissions,
@@ -48,27 +50,30 @@ export function RolePage({ roleId }: { roleId: string }) {
 	const changeable =
 		role && held && holdsAll(held, role.permissions) && rolesQuery.data?.data.manageableRoleIds.includes(role.id)
 
-	return (
-		<div className="space-y-6">
-			<Link to="/dashboard/team/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
-				<ArrowLeft className="size-4" />
-				{t("roles.back")}
-			</Link>
-			{forbidden ? (
-				<AccessDenied />
-			) : queries.some(({ isPending }) => isPending) ? (
-				<>
-					<output className="sr-only">{t("roles.loading")}</output>
-					<PageSkeleton />
-				</>
-			) : queries.some(({ isError }) => isError) || !roles || !catalog || !held ? (
+	let content: ReactNode
+	if (forbidden) {
+		content = <AccessDenied />
+	} else if (queries.some(({ isPending }) => isPending)) {
+		content = (
+			<>
+				<output className="sr-only">{t("roles.loading")}</output>
+				<PageSkeleton />
+			</>
+		)
+	} else {
+		const failedQuery = queries.find(({ isError }) => isError)
+		if (failedQuery) {
+			content = (
 				<ProblemAlert
-					error={queries.find(({ isError }) => isError)?.error}
+					error={failedQuery.error}
 					onRetry={() => {
 						for (const query of queries) if (query.isError) void query.refetch()
 					}}
 				/>
-			) : !role ? (
+			)
+		} else {
+			if (!roles || !catalog || !held) throw new Error("Role queries settled without required data")
+			content = !role ? (
 				<p role="alert" className="text-muted-foreground">
 					{t("problems.role-not-found")}
 				</p>
@@ -90,7 +95,17 @@ export function RolePage({ roleId }: { roleId: string }) {
 						<RoleDangerZone role={role} heldPermissions={held} ownRoles={ownRoles} disabled={roleSaving} />
 					) : null}
 				</>
-			)}
+			)
+		}
+	}
+
+	return (
+		<div className="space-y-6">
+			<Link to="/dashboard/team/roles" className={buttonVariants({ variant: "ghost", className: "-ml-2" })}>
+				<ArrowLeft className="size-4" />
+				{t("roles.back")}
+			</Link>
+			{content}
 			{dirtyGuard}
 		</div>
 	)
