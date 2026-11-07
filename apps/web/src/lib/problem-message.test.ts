@@ -42,6 +42,11 @@ describe("getProblemMessage", () => {
 		expect(getProblemMessage(error, translate, "Fallback")).toBe("Fallback")
 	})
 
+	it("uses the fallback for ordinary runtime failures without problem details", () => {
+		expect(getProblemMessage(new TypeError("Failed to fetch"), translate, "Fallback")).toBe("Fallback")
+		expect(getProblemMessage({ info: undefined }, translate, "Fallback")).toBe("Fallback")
+	})
+
 	it("uses the localized fallback for malformed problem bodies", () => {
 		const mismatched = {
 			info: {

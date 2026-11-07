@@ -27,6 +27,8 @@ let myPermissions: string[]
 let users: ListedUser[]
 let roles: Role[]
 let assignFailure: Response | undefined
+let deleteFailure: Response | undefined
+let resetFailure: Response | undefined
 let rolesFailure: Response | undefined
 let rolesResponse: Promise<Response> | undefined
 let requests: { body: unknown; method: string; url: string }[]
@@ -71,6 +73,12 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		if (assignFailure) return assignFailure
 		const { roleIds } = parseJsonBody(init?.body) as { roleIds: string[] }
 		return json({ roles: roles.filter(({ id }) => roleIds.includes(id)).map(({ id, name }) => ({ id, name })) })
+	}
+	if (/^\/api\/users\/[^/]+\/password$/.test(url) && method === "PATCH") {
+		return resetFailure ?? new Response(null, { status: 204 })
+	}
+	if (/^\/api\/users\/[^/]+$/.test(url) && method === "DELETE") {
+		return deleteFailure ?? new Response(null, { status: 204 })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
 }
@@ -121,6 +129,14 @@ async function click(element: HTMLElement) {
 	await settle()
 }
 
+async function type(element: HTMLInputElement, text: string) {
+	await act(async () => {
+		Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element, text)
+		element.dispatchEvent(new Event("input", { bubbles: true }))
+	})
+	await settle()
+}
+
 function checkbox(label: string): HTMLElement {
 	const labelElement = [...document.querySelectorAll("label")].find((element) => element.textContent?.trim() === label)
 	const input = labelElement
@@ -130,10 +146,17 @@ function checkbox(label: string): HTMLElement {
 	return input
 }
 
-function dialog(): HTMLElement {
-	const found = document.querySelector<HTMLElement>("[role='dialog']")
+function dialog(role = "dialog"): HTMLElement {
+	const found = document.querySelector<HTMLElement>(`[role='${role}']`)
 	if (!found) throw new Error("dialog not open")
 	return found
+}
+
+function dialogInput(label: string): HTMLInputElement {
+	const labelElement = [...dialog().querySelectorAll("label")].find((element) => element.textContent?.trim() === label)
+	const input = labelElement ? document.getElementById(labelElement.htmlFor) : null
+	if (!(input instanceof HTMLInputElement)) throw new Error(`input "${label}" not rendered`)
+	return input
 }
 
 beforeEach(() => {
@@ -141,6 +164,8 @@ beforeEach(() => {
 	users = []
 	roles = []
 	assignFailure = undefined
+	deleteFailure = undefined
+	resetFailure = undefined
 	rolesFailure = undefined
 	rolesResponse = undefined
 	requests = []
@@ -281,6 +306,86 @@ describe("TeamPage", () => {
 		expect(buttonNames(card("reader"))).toEqual([t("team.resetPassword"), t("team.delete")])
 		expect(buttonNames(card("editor"))).toEqual([])
 		expect(card("editor").textContent).toContain(t("team.cannotChange"))
+	})
+
+	test("generates identical valid passwords in both reset fields", async () => {
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.resetPassword"), card("helper")))
+		await click(button(t("team.generate"), dialog()))
+
+		const newPassword = dialogInput(t("account.newPassword")).value
+		expect(newPassword.length).toBeGreaterThanOrEqual(8)
+		expect(newPassword.length).toBeLessThanOrEqual(128)
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(newPassword)
+	})
+
+	test("keeps entered passwords and the dialog open when reset is rejected", async () => {
+		resetFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		const password = "correct-horse-battery-staple"
+		await renderPage()
+		await click(button(t("team.resetPassword"), card("helper")))
+		await type(dialogInput(t("account.newPassword")), password)
+		await type(dialogInput(t("account.confirmNewPassword")), password)
+		await click(button(t("team.resetPassword"), dialog()))
+
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(dialogInput(t("account.newPassword")).value).toBe(password)
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(password)
+	})
+
+	test("resets only the selected user's password, refreshes users, and clears the form", async () => {
+		users = [user("helper"), user("other")]
+		const password = "replacement-password"
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.resetPassword"), card("helper")))
+		await type(dialogInput(t("account.newPassword")), password)
+		await type(dialogInput(t("account.confirmNewPassword")), password)
+		await click(button(t("team.resetPassword"), dialog()))
+
+		expect(requests.find(({ method, url }) => method === "PATCH" && url === "/api/users/helper/password")).toEqual({
+			method: "PATCH",
+			url: "/api/users/helper/password",
+			body: { newPassword: password },
+		})
+		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
+		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
+		expect(card("other").textContent).not.toContain(t("team.resetSuccess"))
+
+		await click(button(t("team.resetPassword"), card("helper")))
+		expect(dialogInput(t("account.newPassword")).value).toBe("")
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe("")
+	})
+
+	test("keeps deletion actionable and shows the server error after a failure", async () => {
+		deleteFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		const failedDialog = dialog("alertdialog")
+		expect(failedDialog.textContent).toContain(t("problems.internal-server-error"))
+		expect(button(t("team.deleteConfirm"), failedDialog).disabled).toBe(false)
+		expect(requestCount("/api/users")).toBe(usersBefore)
+	})
+
+	test("refreshes and closes when deletion reports the user is already gone", async () => {
+		deleteFailure = problem("user-not-found", 404)
+		users = [user("helper")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		users = []
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
+		expect(host.querySelector("[data-user-id='helper']") === null).toBe(true)
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {

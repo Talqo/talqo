@@ -1,4 +1,8 @@
-import type { AiProviderConfiguration, ProviderMetadata } from "@/features/ai-configuration/types.ts"
+import type {
+	AiProviderConfiguration,
+	ProviderMetadata,
+	SaveAiProviderConfigurationInput,
+} from "@/features/ai-configuration/types.ts"
 import type { QueryClient } from "@/testing/component-harness"
 
 import { json } from "@/testing/api-responses"
@@ -21,7 +25,11 @@ const PROVIDER: ProviderMetadata = {
 }
 
 // Separate embedding credentials keep text edits from opening the re-embed confirmation.
-function configuration(revision: number, baseURL: string): AiProviderConfiguration {
+function configuration(
+	revision: number,
+	baseURL: string,
+	embeddingBaseURL = "https://embeddings.example/v1",
+): AiProviderConfiguration {
 	const role = { providerId: "openai-compatible" as const, authMode: "static" as const, hasCredentials: true }
 	return {
 		revision,
@@ -30,7 +38,7 @@ function configuration(revision: number, baseURL: string): AiProviderConfigurati
 		embedding: {
 			...role,
 			modelId: "embedding-model",
-			settings: { baseURL: "https://embeddings.example/v1" },
+			settings: { baseURL: embeddingBaseURL },
 			credentialSource: "separate",
 		},
 	}
@@ -41,10 +49,19 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
+let saveRequests: SaveAiProviderConfigurationInput[]
+let saveResponse: Promise<Response> | undefined
+let configurationRequests: number
 
 function baseUrlInput(): HTMLInputElement {
 	const element = host.querySelector<HTMLInputElement>("#text-baseURL")
 	if (!element) throw new Error("text base URL input not rendered")
+	return element
+}
+
+function embeddingBaseUrlInput(): HTMLInputElement {
+	const element = host.querySelector<HTMLInputElement>("#embedding-baseURL")
+	if (!element) throw new Error("embedding base URL input not rendered")
 	return element
 }
 
@@ -69,10 +86,16 @@ async function renderPage() {
 	await settle()
 }
 
-function button(label: string): HTMLButtonElement {
-	const found = [...host.querySelectorAll("button")].find((element) => element.textContent === label)
+function button(label: string, parent: ParentNode = host): HTMLButtonElement {
+	const found = [...parent.querySelectorAll("button")].find((element) => element.textContent === label)
 	if (!found) throw new Error(`button ${label} not rendered`)
 	return found
+}
+
+function confirmationDialog(): HTMLElement {
+	const element = document.querySelector<HTMLElement>("[role=dialog]")
+	if (!element) throw new Error("confirmation dialog not rendered")
+	return element
 }
 
 function submit() {
@@ -87,19 +110,38 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/ai-providers") return json({ providers: [PROVIDER] })
 	if (url === "/api/ai-provider-models/discover") return json({ models: [] })
 	if (url === "/api/ai-provider-configuration" && method === "PUT") {
-		// Mimics the server canonicalizing the base URL so the test can see the post-save reset.
-		const body = JSON.parse(typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? null)) as {
-			text: { settings: { baseURL: string } }
+		// Mimics the server canonicalizing base URLs so tests can see the post-save reset.
+		const body = JSON.parse(
+			typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? null),
+		) as SaveAiProviderConfigurationInput
+		if (typeof body.text.settings.baseURL !== "string" || typeof body.embedding.settings.baseURL !== "string") {
+			throw new Error("save request must include both base URLs")
 		}
-		server = configuration(server.revision + 1, body.text.settings.baseURL.replace(/\/$/, ""))
+		saveRequests.push(body)
+		if (saveResponse) {
+			const response = saveResponse
+			saveResponse = undefined
+			return response
+		}
+		server = configuration(
+			server.revision + 1,
+			body.text.settings.baseURL.replace(/\/$/, ""),
+			body.embedding.settings.baseURL.replace(/\/$/, ""),
+		)
 		return json(server)
 	}
-	if (url === "/api/ai-provider-configuration") return json(server)
+	if (url === "/api/ai-provider-configuration") {
+		configurationRequests += 1
+		return json(server)
+	}
 	throw new Error(`unexpected request ${method} ${url}`)
 }
 
 beforeEach(() => {
 	server = configuration(1, "https://server.example/v1")
+	saveRequests = []
+	saveResponse = undefined
+	configurationRequests = 0
 	harness = createTestHarness({ fetch: respond as typeof fetch })
 	;({ host, root, queryClient } = harness)
 })
@@ -129,6 +171,107 @@ describe("AiConfigurationPage", () => {
 
 		expect(host.textContent).toContain(t("aiConfiguration.saved"))
 		expect(baseUrlInput().value).toBe("https://saved.example/v1")
+	})
+
+	test("requires confirmation for embedding changes and preserves the draft on cancel", async () => {
+		await renderPage()
+		const editedBaseURL = "https://draft-embeddings.example/v1"
+
+		await type(embeddingBaseUrlInput(), editedBaseURL)
+		await submit()
+		await settle()
+
+		expect(confirmationDialog().textContent).toContain(t("aiConfiguration.reembedTitle"))
+		expect(saveRequests).toHaveLength(0)
+		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
+
+		await act(async () => button(t("aiConfiguration.reembedCancel"), confirmationDialog()).click())
+		await settle()
+
+		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(saveRequests).toHaveLength(0)
+		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
+	})
+
+	test("requires re-embedding confirmation when only the embedding model changes", async () => {
+		await renderPage()
+		const embeddingModel = host.querySelector<HTMLInputElement>("#embedding-model")
+		if (!embeddingModel) throw new Error("embedding model input not rendered")
+
+		await type(embeddingModel, "embedding-model-next")
+		await submit()
+		await settle()
+
+		expect(confirmationDialog().textContent).toContain(t("aiConfiguration.reembedTitle"))
+		expect(confirmationDialog().textContent).toContain(t("aiConfiguration.reembedWarning"))
+		expect(saveRequests).toHaveLength(0)
+		expect(embeddingModel.value).toBe("embedding-model-next")
+	})
+
+	test("keeps a failed confirmed save open and retries the pending values", async () => {
+		await renderPage()
+		const editedBaseURL = "https://saved-embeddings.example/v1/"
+		await type(embeddingBaseUrlInput(), editedBaseURL)
+		await submit()
+		await settle()
+		expect(saveRequests).toHaveLength(0)
+
+		const initialConfigurationRequests = configurationRequests
+		const firstSave = Promise.withResolvers<Response>()
+		saveResponse = firstSave.promise
+		const expectedSave: SaveAiProviderConfigurationInput = {
+			expectedRevision: 1,
+			text: {
+				providerId: "openai-compatible",
+				authMode: "static",
+				modelId: "chat-model",
+				settings: { baseURL: "https://server.example/v1" },
+			},
+			embedding: {
+				providerId: "openai-compatible",
+				authMode: "static",
+				modelId: "embedding-model",
+				settings: { baseURL: editedBaseURL },
+				credentialSource: "separate",
+			},
+		}
+
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests).toEqual([expectedSave])
+		expect(configurationRequests).toBe(initialConfigurationRequests)
+		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
+
+		await act(async () => {
+			button(t("aiConfiguration.reembedCancel"), confirmationDialog()).click()
+			button(t("common.close"), confirmationDialog()).click()
+		})
+		await settle()
+
+		expect(confirmationDialog().textContent).toContain(t("aiConfiguration.reembedTitle"))
+		expect(saveRequests).toEqual([expectedSave])
+		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
+
+		await act(async () => {
+			firstSave.resolve(json({}, 500))
+			await Promise.resolve()
+		})
+		await settle()
+
+		expect(confirmationDialog().querySelector("[role=alert]")?.textContent).toBe(t("aiConfiguration.saveFailed"))
+		expect(configurationRequests).toBe(initialConfigurationRequests)
+		expect(saveRequests).toEqual([expectedSave])
+		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
+
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests).toEqual([expectedSave, expectedSave])
+		expect(configurationRequests).toBe(initialConfigurationRequests + 1)
+		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(host.textContent).toContain(t("aiConfiguration.saved"))
+		expect(embeddingBaseUrlInput().value).toBe("https://saved-embeddings.example/v1")
 	})
 
 	test("associates a missing model with its field and focuses it", async () => {

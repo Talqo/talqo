@@ -11,7 +11,10 @@ import {
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { ConnectionDialog } = await import("./connection-dialog")
+const { getListMcpServersQueryKey } = await import("@/api/generated/mcp/mcp.ts")
 const { t } = await import("i18next")
+
+const SERVERS_QUERY_KEY = getListMcpServersQueryKey("agent")
 
 const SERVER: McpServer = {
 	id: "srv",
@@ -30,9 +33,21 @@ const SERVER: McpServer = {
 	revision: 4,
 }
 
+type RecordedRequest = { url: string; method: string; body: unknown }
+
 let harness: ReturnType<typeof createTestHarness>
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
+let requests: RecordedRequest[]
+let responses: Array<Response | Error>
+
+function json(body: unknown, status = 200): Response {
+	return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
+}
+
+function problem(code: string, status: number): Response {
+	return json({ type: "about:blank", code }, status)
+}
 
 function element<T extends HTMLElement>(selector: string): T {
 	const found = document.querySelector<T>(selector)
@@ -59,6 +74,15 @@ async function type(input: HTMLInputElement, text: string) {
 	})
 }
 
+async function chooseHeaders() {
+	await click(element("#mcp-auth"))
+	const headers = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+		(option) => option.textContent === t("mcp.authHeaders"),
+	)
+	if (!headers) throw new Error("headers option not rendered")
+	await click(headers)
+}
+
 async function renderDialog(server?: McpServer) {
 	await act(async () =>
 		root.render(
@@ -71,12 +95,28 @@ async function renderDialog(server?: McpServer) {
 }
 
 beforeEach(() => {
+	requests = []
+	responses = []
 	harness = createTestHarness({
 		queryClient: new QueryClient({
 			defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
 		}),
+		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			const method = init?.method ?? "GET"
+			requests.push({ url, method, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined })
+			const response = responses.shift()
+			if (!response) throw new Error(`unexpected request ${method} ${url}`)
+			if (response instanceof Error) throw response
+			return response
+		}) as typeof fetch,
 	})
 	;({ root, queryClient } = harness)
+	queryClient.setQueryData(SERVERS_QUERY_KEY, {
+		data: { servers: [], stdioAllowed: false },
+		status: 200,
+		headers: new Headers(),
+	})
 })
 
 afterEach(async () => {
@@ -113,6 +153,25 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`).value).toBe("")
 	})
 
+	test("blocks a disallowed stdio save until the operator switches to HTTP", async () => {
+		await renderDialog({ ...SERVER, transport: "stdio", url: null, authMode: null, command: "bunx", headers: [] })
+		await click(element(`[aria-label="${t("mcp.edit")}"]`))
+		const save = element<HTMLButtonElement>('form button[type="submit"]')
+
+		expect(save.disabled).toBe(true)
+		await click(save)
+		expect(requests).toEqual([])
+
+		await click(element("#mcp-transport"))
+		const http = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+			(option) => option.textContent === t("mcp.transportHttp"),
+		)
+		if (!http) throw new Error("HTTP option not rendered")
+		await click(http)
+
+		expect(save.disabled).toBe(false)
+	})
+
 	test("associates the first invalid field with its error and focuses it", async () => {
 		await renderDialog()
 		await click(button(t("mcp.add")))
@@ -131,12 +190,7 @@ describe("ConnectionDialog", () => {
 	test("focuses the empty secret value instead of its filled name", async () => {
 		await renderDialog()
 		await click(button(t("mcp.add")))
-		await click(element("#mcp-auth"))
-		const headers = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
-			(option) => option.textContent === t("mcp.authHeaders"),
-		)
-		if (!headers) throw new Error("headers option not rendered")
-		await click(headers)
+		await chooseHeaders()
 		await click(button(t("mcp.addHeader")))
 
 		await type(element<HTMLInputElement>("#mcp-name"), "Stock")
@@ -156,5 +210,84 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLInputElement>("#mcp-name").required).toBe(true)
 		expect(element<HTMLInputElement>("#mcp-url").required).toBe(true)
 		expect(document.body.textContent).toContain(t("common.requiredHint"))
+	})
+
+	test("retries runtime and HTTP failures without losing its draft or secret", async () => {
+		responses = [new TypeError("Failed to fetch"), problem("internal-error", 500), json({ server: SERVER }, 201)]
+		await renderDialog()
+		await click(button(t("mcp.add")))
+		await chooseHeaders()
+		await click(button(t("mcp.addHeader")))
+		await type(element<HTMLInputElement>("#mcp-name"), "Inventory")
+		await type(element<HTMLInputElement>("#mcp-url"), "https://inventory.test/mcp")
+		await type(element<HTMLInputElement>(`[aria-label="${t("mcp.headerName")}"]`), "X-API-Key")
+		await type(element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`), "secret")
+
+		await click(element('form button[type="submit"]'))
+
+		expect(element<HTMLElement>('[role="dialog"] [role="alert"]').textContent).toBe(t("mcp.errorSave"))
+		expect(element<HTMLInputElement>("#mcp-name").value).toBe("Inventory")
+		expect(element<HTMLInputElement>("#mcp-url").value).toBe("https://inventory.test/mcp")
+		expect(element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`).value).toBe("secret")
+		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(false)
+
+		await click(element('form button[type="submit"]'))
+		expect(element<HTMLElement>('[role="dialog"] [role="alert"]').textContent).toBe(t("mcp.errorSave"))
+
+		await click(element('form button[type="submit"]'))
+
+		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
+		const request: RecordedRequest = {
+			url: "/api/agents/agent/mcp-servers",
+			method: "POST",
+			body: {
+				name: "Inventory",
+				server: {
+					transport: "http",
+					url: "https://inventory.test/mcp",
+					authMode: "headers",
+					headers: { "X-API-Key": "secret" },
+				},
+			},
+		}
+		expect(requests).toEqual([request, request, request])
+	})
+
+	test("retries a conflicting edit without losing secrets or bumping the revision", async () => {
+		responses = [problem("configuration-conflict", 409), json({ server: { ...SERVER, revision: 5 } })]
+		await renderDialog(SERVER)
+		await click(element(`[aria-label="${t("mcp.edit")}"]`))
+		await type(element<HTMLInputElement>("#mcp-name"), "Inventory")
+		await type(element<HTMLInputElement>("#mcp-url"), "https://edited.test/mcp")
+		await type(element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`), "rotated-secret")
+
+		await click(element('form button[type="submit"]'))
+
+		expect(element<HTMLElement>('[role="dialog"] [role="alert"]').textContent).toBe(t("mcp.errorConflict"))
+		expect(element<HTMLInputElement>("#mcp-name").value).toBe("Inventory")
+		expect(element<HTMLInputElement>("#mcp-url").value).toBe("https://edited.test/mcp")
+		expect(element<HTMLInputElement>(`[aria-label="${t("mcp.headerValue")}"]`).value).toBe("rotated-secret")
+		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(false)
+
+		await click(element('form button[type="submit"]'))
+
+		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
+		const request: RecordedRequest = {
+			url: "/api/agents/agent/mcp-servers/srv",
+			method: "PUT",
+			body: {
+				name: "Inventory",
+				expectedRevision: 4,
+				server: {
+					transport: "http",
+					url: "https://edited.test/mcp",
+					authMode: "headers",
+					headers: { "X-API-Key": "rotated-secret" },
+				},
+			},
+		}
+		expect(requests).toEqual([request, request])
 	})
 })
