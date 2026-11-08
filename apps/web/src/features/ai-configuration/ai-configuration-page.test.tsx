@@ -1,7 +1,7 @@
 import type { AiProviderConfiguration, ProviderMetadata } from "@/features/ai-configuration/types.ts"
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { AiConfigurationPage } = await import("./ai-configuration-page")
@@ -40,12 +40,6 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 function baseUrlInput(): HTMLInputElement {
 	const element = host.querySelector<HTMLInputElement>("#text-baseURL")

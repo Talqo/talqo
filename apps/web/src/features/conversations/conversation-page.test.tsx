@@ -1,6 +1,6 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { ConversationPage } = await import("./conversation-page")
@@ -31,12 +31,6 @@ const conversationWith = (text: string) => ({
 })
 
 const found = () => json({ conversation: conversationWith("Where is my order?") })
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 async function renderPage() {
 	const rootRoute = createRootRoute({

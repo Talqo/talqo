@@ -1,6 +1,6 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { Route } = await import("./agents")
@@ -22,12 +22,6 @@ let harness: ReturnType<typeof createTestHarness>
 
 function problem(code: string, status: number): Response {
 	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 async function renderPage() {

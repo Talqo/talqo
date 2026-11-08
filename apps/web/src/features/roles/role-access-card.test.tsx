@@ -1,7 +1,7 @@
 import type { ListRoleAgents200 } from "@/api/generated/models/roles/listRoleAgents200.zod"
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { RoleAccessCard } = await import("./role-access-card")
@@ -20,12 +20,6 @@ let host: HTMLDivElement
 let root: Root
 let client: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 function agentAt(index: number): Agent {
 	const agent = agents[index]

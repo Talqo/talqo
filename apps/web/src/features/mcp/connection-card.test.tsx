@@ -1,22 +1,15 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
-import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { act, createTestHarness, QueryClientProvider, type Root } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { ConnectionCard } = await import("./connection-card")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
-let client: InstanceType<typeof QueryClient>
+let client: ReturnType<typeof createTestHarness>["queryClient"]
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {
@@ -55,16 +48,12 @@ function card(): HTMLElement {
 }
 
 beforeEach(() => {
-	client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root, queryClient: client } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	client.clear()
+	await harness.dispose()
 })
 
 describe("ConnectionCard", () => {

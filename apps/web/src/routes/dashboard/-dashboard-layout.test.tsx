@@ -1,8 +1,8 @@
 import type { Permission } from "@/features/permissions/require-permission"
 import type { ReactNode } from "react"
 
-import { act, createRoot, json, QueryClient, QueryClientProvider, type Root } from "@/test-helpers"
-import { afterEach, expect, mock, spyOn, test } from "bun:test"
+import { act, createTestHarness, json, QueryClientProvider, settle } from "@/test-helpers"
+import { afterEach, expect, spyOn, test } from "bun:test"
 
 const { DashboardLayout } = await import("./-dashboard-layout")
 const { RoleAccessCard } = await import("@/features/roles/role-access-card")
@@ -14,24 +14,14 @@ const { createRootRoute, createRoute, createRouter, createMemoryHistory, RouterP
 const { PageHeader } = await import("@/components/page-header")
 const { t } = await import("i18next")
 
-let root: Root | undefined
-let host: HTMLDivElement | undefined
-let client: InstanceType<typeof QueryClient> | undefined
+let harness: ReturnType<typeof createTestHarness> | undefined
 
 afterEach(async () => {
-	await act(async () => root?.unmount())
-	host?.remove()
-	client?.clear()
-	mock.restore()
+	await harness?.dispose()
+	harness = undefined
 	window.localStorage.removeItem("talqo-language")
 	document.documentElement.lang = "en"
 })
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 function mockAdminSession(permissions: string[] = ["admin"]) {
 	return spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
@@ -50,11 +40,8 @@ function mockSignedInAdmin() {
 }
 
 async function renderPage(content: ReactNode, permission?: Permission) {
-	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	client = queryClient
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	const { host, root, queryClient } = harness
 	const route = createRootRoute({
 		component: () => (
 			<LanguageProvider>
@@ -84,7 +71,7 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	})
 	const router = createRouter({ routeTree: route.addChildren([page, account, users]), history: createMemoryHistory() })
 	await act(async () =>
-		root?.render(
+		root.render(
 			<QueryClientProvider client={queryClient}>
 				<RouterProvider router={router} />
 			</QueryClientProvider>,

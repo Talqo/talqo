@@ -1,6 +1,6 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 import type { ConversationsSearch as Search } from "./conversations-search"
@@ -37,12 +37,6 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 function Harness({ initial }: { initial: Search }) {
 	const [search, setSearch] = useState(initial)

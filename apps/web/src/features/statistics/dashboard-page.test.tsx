@@ -1,6 +1,6 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, expect, test } from "bun:test"
 
 import type { DashboardSearch } from "./dashboard-page"
@@ -36,12 +36,6 @@ function emptyOverview(days: number) {
 			activeWindowMinutes: 5,
 		},
 	}
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 function Harness({ initial }: { initial: DashboardSearch }) {

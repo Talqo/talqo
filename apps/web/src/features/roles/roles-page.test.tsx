@@ -10,6 +10,7 @@ import {
 	QueryClientProvider,
 	requestDetails,
 	type Root,
+	settle,
 } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
@@ -97,12 +98,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ role })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 async function renderPage(roleId?: string) {

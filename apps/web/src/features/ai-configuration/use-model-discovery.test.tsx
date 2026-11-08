@@ -1,17 +1,11 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, jest, mock, spyOn, test } from "bun:test"
+import { act, createTestHarness } from "@/test-helpers"
+import { afterEach, beforeEach, describe, expect, jest, test } from "bun:test"
 
 import type { DiscoveryContext } from "./discovery-readiness.ts"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { useModelDiscovery } = await import("./use-model-discovery")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { Controller, useForm } = await import("react-hook-form")
 const { t } = await import("i18next")
 
@@ -40,6 +34,7 @@ const CONTEXT: Context = {
 type Request = ReturnType<typeof Promise.withResolvers<Response>> & { signal: AbortSignal | null | undefined }
 
 let requests: Request[]
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 
@@ -108,17 +103,13 @@ beforeEach(() => {
 		},
 		{ preconnect: fetch.preconnect },
 	)
-	spyOn(globalThis, "fetch").mockImplementation(fetchDiscovery)
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: fetchDiscovery })
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
+	await harness.dispose()
 	jest.useRealTimers()
-	mock.restore()
 })
 
 describe("model discovery", () => {
