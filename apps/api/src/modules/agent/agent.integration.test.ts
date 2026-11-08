@@ -1,8 +1,9 @@
+import type * as roles from "@/modules/roles/roles.service.ts"
+
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
+import { createAdminSession, DEFAULT_PASSWORD, giveRole, login, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import * as service from "./agent.service.ts"
@@ -16,25 +17,6 @@ type AgentPayload = {
 		updatedAt: string
 		wordBlacklist: string[]
 	}
-}
-
-async function login(username: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
-
-async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	const username = uniqueUsername()
-	const admin = await roles.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
-	return { cookie: await login(username), userId: admin.id }
 }
 
 async function createMemberSession(grantedBy: string, permissions: roles.AgentPermission[] = []): Promise<string> {

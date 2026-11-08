@@ -1,19 +1,11 @@
 import type { AiProviderConfiguration, ProviderMetadata } from "@/features/ai-configuration/types.ts"
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/test-helpers"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-// Component test files share one process, so only the first one registers the DOM.
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { AiConfigurationPage } = await import("./ai-configuration-page")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createMemoryHistory, RouterProvider } = await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const PROVIDER: ProviderMetadata = {
@@ -47,10 +39,7 @@ let server: AiProviderConfiguration
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-function json(body: unknown): Response {
-	return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })
-}
+let harness: ReturnType<typeof createTestHarness>
 
 async function settle() {
 	await act(async () => {
@@ -116,18 +105,12 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 
 beforeEach(() => {
 	server = configuration(1, "https://server.example/v1")
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("AiConfigurationPage", () => {

@@ -5,7 +5,7 @@ import { env } from "@/config/env.ts"
 import { db, sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, login, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 import { eq } from "drizzle-orm"
 
@@ -13,19 +13,6 @@ import { mcpServer } from "./mcp.schema.ts"
 import * as service from "./mcp.service.ts"
 
 const UNREACHABLE_URL = "http://127.0.0.1:1/mcp"
-
-async function login(username: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
 
 /** Access is declared per route, so a read-only member gets a role with exactly one permission. */
 async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {

@@ -2,8 +2,7 @@ import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agentService from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
+import { createAdminSession, DEFAULT_PASSWORD, giveRole, login, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it } from "bun:test"
 
 import { getStatsOverview } from "./stats.service.ts"
@@ -13,25 +12,6 @@ const OUTSIDE_WINDOW_DAYS = 40
 
 function utcDate(daysAgo: number): string {
 	return new Date(Date.now() - daysAgo * MILLISECONDS_PER_DAY).toISOString()
-}
-
-async function login(username: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
-
-async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	const username = uniqueUsername()
-	const admin = await roles.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
-	return { cookie: await login(username), userId: admin.id }
 }
 
 async function seedChatHistory(agentA: string, agentB: string): Promise<void> {

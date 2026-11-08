@@ -1,19 +1,12 @@
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/test-helpers"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { Route } = await import("./agents")
 const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const AgentsPage = Route.options.component
@@ -25,10 +18,7 @@ let listRequests: number
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
+let harness: ReturnType<typeof createTestHarness>
 
 function problem(code: string, status: number): Response {
 	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
@@ -76,27 +66,23 @@ beforeEach(() => {
 	permissions = ["admin"]
 	createResponse = undefined
 	listRequests = 0
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		if (url === "/api/me/permissions") return json({ permissions })
-		if (url === "/api/agents") {
-			if (init?.method === "POST") return createResponse ?? json({ agent: {} }, 201)
-			listRequests += 1
-			return json({ agents: [] })
-		}
-		throw new Error(`unexpected request ${url}`)
-	}) as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			if (url === "/api/me/permissions") return json({ permissions })
+			if (url === "/api/agents") {
+				if (init?.method === "POST") return createResponse ?? json({ agent: {} }, 201)
+				listRequests += 1
+				return json({ agents: [] })
+			}
+			throw new Error(`unexpected request ${url}`)
+		}) as typeof fetch,
+	})
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("AgentsPage empty states", () => {

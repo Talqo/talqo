@@ -34,6 +34,21 @@ function streamFrom(events: ChatEvent[]): AsyncIterable<ChatEvent> {
 	}
 }
 
+function abortableStream(signal: AbortSignal): AsyncIterable<ChatEvent> {
+	return {
+		[Symbol.asyncIterator]: () => ({
+			next: () =>
+				new Promise<IteratorResult<ChatEvent>>((_resolve, reject) => {
+					if (signal.aborted) {
+						reject(signal.reason)
+						return
+					}
+					signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+				}),
+		}),
+	}
+}
+
 async function waitForSnapshot(client: ReturnType<typeof createChatClient>, predicate: () => boolean): Promise<void> {
 	if (predicate()) return
 	await new Promise<void>((resolve) => {
@@ -1351,18 +1366,7 @@ describe("createChatClient", () => {
 					sends += 1
 					if (sends > 1) throw new Error("not accepted")
 					sendStarted.resolve()
-					return {
-						[Symbol.asyncIterator]: () => ({
-							next: () =>
-								new Promise<IteratorResult<ChatEvent>>((_resolve, reject) => {
-									if (signal.aborted) {
-										reject(signal.reason)
-										return
-									}
-									signal.addEventListener("abort", () => reject(signal.reason), { once: true })
-								}),
-						}),
-					}
+					return abortableStream(signal)
 				},
 				cancelResponse: async () => {
 					throw new ChatTransportError({

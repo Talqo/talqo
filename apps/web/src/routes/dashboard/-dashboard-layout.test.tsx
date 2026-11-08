@@ -1,25 +1,17 @@
 import type { Permission } from "@/features/permissions/require-permission"
 import type { ReactNode } from "react"
-import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { act, createRoot, json, QueryClient, QueryClientProvider, type Root } from "@/test-helpers"
 import { afterEach, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { DashboardLayout } = await import("./-dashboard-layout")
 const { RoleAccessCard } = await import("@/features/roles/role-access-card")
 const { requirePermission } = await import("@/features/permissions/require-permission")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { ThemeProvider } = await import("@/lib/use-theme")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRootRoute, createRoute, createRouter, createMemoryHistory, RouterProvider, Outlet } =
 	await import("@tanstack/react-router")
 const { PageHeader } = await import("@/components/page-header")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 let root: Root | undefined
@@ -35,26 +27,26 @@ afterEach(async () => {
 	document.documentElement.lang = "en"
 })
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
-}
-
 async function settle() {
 	await act(async () => {
 		await new Promise((resolve) => setTimeout(resolve, 0))
 	})
 }
 
-function mockSignedInAdmin() {
+function mockAdminSession(permissions: string[] = ["admin"]) {
 	return spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		if (url.endsWith("/api/agents")) return json({ agents: [] })
 		return json(
 			url.endsWith("/api/me/permissions")
-				? { permissions: ["admin", "users:read", "roles:manage"] }
+				? { permissions }
 				: { user: { username: "Admin", mustChangePassword: false } },
 		)
 	}) as typeof fetch)
+}
+
+function mockSignedInAdmin() {
+	return mockAdminSession(["admin", "users:read", "roles:manage"])
 }
 
 async function renderPage(content: ReactNode, permission?: Permission) {
@@ -123,15 +115,7 @@ test("keeps global navigation and the current page when agent discovery fails", 
 })
 
 test("keeps the account name and log out in the sidebar footer", async () => {
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		if (url.endsWith("/api/agents")) return json({ agents: [] })
-		return json(
-			url.endsWith("/api/me/permissions")
-				? { permissions: ["admin"] }
-				: { user: { username: "Admin", mustChangePassword: false } },
-		)
-	}) as typeof fetch)
+	mockAdminSession()
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
 	const sidebar = rendered.host.querySelector("aside")
 	const header = rendered.host.querySelector("header")
@@ -144,15 +128,7 @@ test("keeps the account name and log out in the sidebar footer", async () => {
 })
 
 test("closes the mobile navigation on a same-page navigation", async () => {
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		if (url.endsWith("/api/agents")) return json({ agents: [] })
-		return json(
-			url.endsWith("/api/me/permissions")
-				? { permissions: ["admin"] }
-				: { user: { username: "Admin", mustChangePassword: false } },
-		)
-	}) as typeof fetch)
+	mockAdminSession()
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
 	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
 	if (!toggle) throw new Error("Missing navigation toggle")

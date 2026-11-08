@@ -2,20 +2,7 @@ import { describe, expect, it } from "bun:test"
 
 import { app } from "./app.ts"
 import { sql } from "./db/client.ts"
-import { DEFAULT_PASSWORD, uniqueUsername } from "./test-helpers.ts"
-
-async function login(username: string, password: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
+import { DEFAULT_PASSWORD, login, uniqueUsername } from "./test-helpers.ts"
 
 describe("auth flow", () => {
 	it("bootstraps an admin, invites and grants a member, then revokes access via password reset", async () => {

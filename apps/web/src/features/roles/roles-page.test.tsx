@@ -1,21 +1,22 @@
 import type { Role } from "@/api/generated/models/role.zod"
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/test-helpers"
 
 import { createRoleBodyNameMax } from "@/api/generated/models/roles/createRoleBody.zod"
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import {
+	act,
+	createTestHarness,
+	json,
+	parseJsonBody,
+	QueryClientProvider,
+	requestDetails,
+	type Root,
+} from "@/test-helpers"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { RolesPage } = await import("./roles-page")
 const { RolePage } = await import("./role-page")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createRoute, createMemoryHistory, RouterProvider } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const GRANTABLE = [
@@ -43,6 +44,7 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let router: ReturnType<typeof makeRouter>
+let harness: ReturnType<typeof createTestHarness>
 
 function makeRouter(path: string) {
 	const rootRoute = createRootRoute()
@@ -58,14 +60,9 @@ function makeRouter(path: string) {
 	})
 }
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-	const method = init?.method ?? "GET"
-	requests.push({ url, method, body: init?.body ? parseJsonBody(init.body) : undefined })
+	const { url, method, body: requestBody } = requestDetails(input, init)
+	requests.push({ url, method, body: requestBody })
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: ME })
 	if (url === "/api/users") {
@@ -100,11 +97,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ role })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
-}
-
-function parseJsonBody(body: BodyInit | null | undefined): unknown {
-	if (typeof body !== "string") throw new Error("Expected a JSON request body")
-	return JSON.parse(body)
 }
 
 async function settle() {
@@ -188,18 +180,12 @@ beforeEach(() => {
 	rolesFailure = undefined
 	refreshedRolesResponse = undefined
 	requests = []
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("role management", () => {
