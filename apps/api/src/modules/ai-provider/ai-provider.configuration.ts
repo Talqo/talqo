@@ -1,3 +1,5 @@
+import { sameStringRecord } from "@talqo/shared"
+
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 
 import { getProviderDefinition } from "./ai-provider.registry.ts"
@@ -48,12 +50,6 @@ function assertRole(
 	}
 }
 
-function sameRecord(left: Record<string, string>, right: Record<string, string>): boolean {
-	const leftEntries = Object.entries(left).toSorted(([a], [b]) => a.localeCompare(b))
-	const rightEntries = Object.entries(right).toSorted(([a], [b]) => a.localeCompare(b))
-	return JSON.stringify(leftEntries) === JSON.stringify(rightEntries)
-}
-
 export function validateConfigurationInput(
 	input: SaveConfigurationInput,
 	existing?: { text?: { credentials: boolean }; embedding?: { credentials: boolean } },
@@ -69,7 +65,7 @@ export function validateConfigurationInput(
 		if (
 			input.text.providerId !== input.embedding.providerId ||
 			input.text.authMode !== input.embedding.authMode ||
-			!sameRecord(input.text.settings, input.embedding.settings)
+			!sameStringRecord(input.text.settings, input.embedding.settings)
 		) {
 			throw new Error("Embedding configuration cannot reuse text credentials with a different provider context")
 		}

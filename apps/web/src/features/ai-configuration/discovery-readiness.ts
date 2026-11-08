@@ -1,3 +1,5 @@
+import { sameStringRecord } from "@talqo/shared"
+
 import type { AiProviderAuthMode, ProviderMetadata, RedactedRoleConfiguration } from "./types.ts"
 
 export type DiscoveryContext = {
@@ -8,12 +10,6 @@ export type DiscoveryContext = {
 		credentials: Record<string, string>
 	}
 	stored: RedactedRoleConfiguration | null
-}
-
-function sameSettings(left: Record<string, string>, right: Record<string, string>): boolean {
-	const leftEntries = Object.entries(left).toSorted(([a], [b]) => a.localeCompare(b))
-	const rightEntries = Object.entries(right).toSorted(([a], [b]) => a.localeCompare(b))
-	return JSON.stringify(leftEntries) === JSON.stringify(rightEntries)
 }
 
 function hasRequiredSettings(provider: ProviderMetadata, settings: Record<string, string>): boolean {
@@ -43,7 +39,7 @@ export function storedCredentialsMatch(context: DiscoveryContext): boolean {
 		stored.hasCredentials &&
 		stored.providerId === provider.id &&
 		stored.authMode === value.authMode &&
-		sameSettings(stored.settings, value.settings)
+		sameStringRecord(stored.settings, value.settings)
 	)
 }
 

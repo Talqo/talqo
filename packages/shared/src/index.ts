@@ -7,4 +7,5 @@ export {
 	USERNAME_PATTERN,
 } from "./credentials"
 export { isSupportedLanguage, SUPPORTED_LANGUAGES, supportedLanguages, type SupportedLanguage } from "./languages"
+export { sameStringRecord } from "./records"
 export { DEFAULT_ROLE_ID } from "./roles"
