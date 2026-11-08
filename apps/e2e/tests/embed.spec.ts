@@ -84,19 +84,28 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 	await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 
+	await page.evaluate(() => history.pushState({}, "", "/product/guitar?color=natural#reviews"))
 	await send("Prove you received the earlier turn")
 	await expect(dialog.getByText("Second streamed answer.", { exact: true })).toBeVisible()
 	const captured = (await (await request.get(`${providerControlOrigin}/requests`)).json()) as {
 		requests: { messages: { content: unknown; role: string }[] }[]
 	}
+	expect(captured.requests[0]?.messages.at(-1)).toEqual({
+		role: "user",
+		content: "Current page path: /\n\nGive me the first answer",
+	})
 	expect(captured.requests[1]?.messages).toEqual([
 		{ role: "system", content: expect.stringContaining("support assistant") },
 		{ role: "user", content: "Give me the first answer" },
 		{ role: "assistant", content: "First streamed answer." },
-		{ role: "user", content: "Prove you received the earlier turn" },
+		{
+			role: "user",
+			content: "Current page path: /product/guitar\n\nProve you received the earlier turn",
+		},
 	])
 
 	// The same session proves persistence: a reload must not lose either turn.
+	await page.evaluate((url) => history.replaceState({}, "", url), chatEmbed.widgetUrl)
 	await page.reload()
 	await page.getByRole("button", { name: widget("openChat") }).click()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()

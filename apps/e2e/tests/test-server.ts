@@ -63,7 +63,7 @@ function waitForRelease(signal: AbortSignal, pendingStreams: PendingStream[]): P
 }
 
 function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolean } {
-	const latest = text(messages.at(-1))
+	const latest = text(messages.at(-1)).replace(/^Current page path: \/[^\n]*\n\n/, "")
 	if (latest === "Give me the first answer") return { chunks: ["First streame", "d answer", "."], delayed: true }
 	if (latest === "Where is my order?") return { chunks: ["It ships **tomorrow**."], delayed: false }
 	if (latest === "Stream until I cancel") {

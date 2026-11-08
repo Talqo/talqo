@@ -24,6 +24,8 @@ Keep `async`, so the widget never delays the host page's own content. Omit `data
 
 Talqo sends the saved system prompt and completed conversation history with each message. It does not truncate or summarize history. Failed, cancelled, blocked, and interrupted replies are excluded from later model input.
 
+The widget and browser SDK include the current page path with each question. Query strings and fragments are excluded, and this context stays out of the visible conversation.
+
 ## Limits and network identity
 
 Chat limits apply per agent and visitor network, not per embed or conversation. Visitors sharing a network may share the same allowance. See [Deployment](/deployment) for limits and proxy configuration.

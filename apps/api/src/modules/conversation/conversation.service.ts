@@ -118,6 +118,7 @@ type SendInput = {
 	credential: string
 	embedToken: string
 	networkHash: string
+	pagePath?: string
 	requestId: string
 	text: string
 }
@@ -141,6 +142,10 @@ function publicMessage(message: Awaited<ReturnType<typeof repository.listMessage
 		outcome: message.outcome,
 		createdAt: message.createdAt.toISOString(),
 	}
+}
+
+function composeUserTurn(text: string, pagePath: string | undefined): string {
+	return pagePath === undefined ? text : `Current page path: ${pagePath}\n\n${text}`
 }
 
 function completedPrompt(
@@ -244,6 +249,7 @@ export function createConversationService(dependencies: Dependencies) {
 		initialOperation: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
+		pagePath: string | undefined,
 	): Promise<void> {
 		let messages = baseMessages
 		let prepared = initialOperation
@@ -334,7 +340,10 @@ export function createConversationService(dependencies: Dependencies) {
 			}
 			controller.signal.throwIfAborted()
 			if (chunks.length) {
-				const question = `Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${accepted.userMessage.text}`
+				const question = composeUserTurn(
+					`Use the context below only if relevant to the question, otherwise ignore it.\n${chunks.join("\n---\n")}\n\nQuestion: ${accepted.userMessage.text}`,
+					pagePath,
+				)
 				messages = [...baseMessages.slice(0, -1), { role: "user", content: question }]
 				const promptCharacters = Array.from(promptText(messages)).length
 				annotate({ "chat.prompt_characters": promptCharacters })
@@ -520,7 +529,8 @@ export function createConversationService(dependencies: Dependencies) {
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
 				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				const messages = completedPrompt(systemPrompt, history.messages, input.text)
+				const text = composeUserTurn(input.text, input.pagePath)
+				const messages = completedPrompt(systemPrompt, history.messages, text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
 				annotate({ "chat.prompt_characters": promptCharacters })
@@ -578,7 +588,9 @@ export function createConversationService(dependencies: Dependencies) {
 			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
-			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
+			const done = accepted.duplicate
+				? Promise.resolve()
+				: run(accepted, agent, messages, prepared, emit, annotate, input.pagePath)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 

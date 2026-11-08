@@ -227,6 +227,34 @@ describe("conversation lifecycle", () => {
 		).rejects.toBeInstanceOf(SessionUnauthorizedError)
 	})
 
+	it("adds page context only to the final provider turn", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const search = spyOn(knowledge, "searchKnowledge").mockResolvedValue([])
+		try {
+			const sent = await instance.service.send({
+				embedToken: createdEmbed.embedToken,
+				credential: CREDENTIAL_1,
+				requestId: REQUEST_1,
+				text: "where is my order?",
+				networkHash: "network-a",
+				pagePath: "/account",
+			})
+			await sent.done
+
+			expect(instance.prompts[0]?.at(-1)).toEqual({
+				role: "user",
+				content: "Current page path: /account\n\nwhere is my order?",
+			})
+			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
+				"where is my order?",
+				"answer",
+			])
+		} finally {
+			search.mockRestore()
+		}
+	})
+
 	it("deduplicates identical requests, rejects conflicting text, and sends complete history", async () => {
 		const { createdEmbed } = await fixture()
 		const instance = service(["one", "two"])
@@ -1551,6 +1579,7 @@ describe("chat retrieval", () => {
 					requestId: REQUEST_1,
 					text: "what is the refund policy",
 					networkHash: "network-a",
+					pagePath: "/help/refunds",
 				},
 				undefined,
 				(annotation) => Object.assign(fields, annotation),
@@ -1577,9 +1606,12 @@ describe("chat retrieval", () => {
 			expect(systemPrompt?.content).toMatch(/\S\nSystem$/)
 			const question = instance.prompts[0]?.at(-1)
 			expect(question).toMatchObject({ role: "user" })
-			expect(question?.content).toContain("refund policy: 30 days")
-			expect(question?.content).toContain("only if relevant")
-			expect(question?.content).toContain("what is the refund policy")
+			expect(question?.content).toBe(`Current page path: /help/refunds
+
+Use the context below only if relevant to the question, otherwise ignore it.
+refund policy: 30 days
+
+Question: what is the refund policy`)
 			expect((await instance.service.getSession(CREDENTIAL_1)).messages.map((message) => message.text)).toEqual([
 				"what is the refund policy",
 				"answer",
