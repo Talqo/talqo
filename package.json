@@ -34,7 +34,7 @@
 		"release": "bash scripts/release.sh",
 		"test": "turbo run test --output-logs=errors-only",
 		"test:integration": "turbo run test:integration --output-logs=errors-only",
-		"test:mutation": "stryker run",
+		"test:mutation": "stryker run --ignoreStatic",
 		"typecheck": "turbo run typecheck --output-logs=errors-only"
 	},
 	"devDependencies": {
@@ -51,7 +51,7 @@
 		"orval": "8.46.0",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "^7.0.2005",
-		"@fidasek009/stryker-mutator-bun-runner": "0.5.0",
+		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
 		"turbo": "2.11.10"
 	},
 	"packageManager": "bun@1.4.4"
