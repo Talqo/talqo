@@ -85,9 +85,24 @@ jobs:
           persist-credentials: false
       - name: Set up Bun dependencies
         uses: $/.github/actions/setup-bun
-      - name: Detect new duplicated code
+      - name: Resolve baseline ref
         env:
-          BASE_REF: ${{ github.base_ref || 'main' }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_REF: ${{ github.ref }}
+        run: |
+          if [[ -n "$BASE_BRANCH" ]]; then
+            ref="origin/$BASE_BRANCH"
+          elif [[ "$EVENT_REF" == refs/tags/* ]]; then
+            # A tag can trail main, whose removed clones would look new.
+            ref="HEAD^"
+          elif [[ -z "$EVENT_BEFORE" || "$EVENT_BEFORE" =~ ^0+$ ]]; then
+            ref="origin/main"
+          else
+            ref="$EVENT_BEFORE"
+          fi
+          printf 'BASE_REF=%s\n' "$ref" >> "$GITHUB_ENV"
+      - name: Detect new duplicated code
         run: bun run duplication
 
   contracts:
