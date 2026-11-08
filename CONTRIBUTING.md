@@ -62,7 +62,7 @@ bun run typecheck
 bun run test
 ```
 
-`bun run duplication` fails when the change adds clones relative to `origin/main`; CI compares against the pull request's base branch.
+`bun run duplication` fails when any clone reaches the configured token threshold.
 
 Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 
