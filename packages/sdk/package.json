@@ -22,6 +22,7 @@
 	},
 	"scripts": {
 		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
+		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test && supercov runs latest && supercov runs latest minimize --kind unit",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},

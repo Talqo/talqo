@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build src/index.ts src/db/migrate.ts --outdir dist --target bun",
+		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test --timeout 15000 --env-file .env.example --preload ./no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts' && supercov runs latest",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bun run src/db/migrate.ts",
 		"db:seed": "bun run src/db/seed.ts",

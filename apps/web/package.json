@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "vite build",
+		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test && supercov runs latest && supercov runs latest minimize --kind unit",
 		"dev": "bun --env-file .env.example node_modules/vite/bin/vite.js",
 		"preview": "vite preview",
 		"typecheck": "bun check",

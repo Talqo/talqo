@@ -36,6 +36,9 @@
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**"]
 		},
+		"coverage:overlap": {
+			"cache": false
+		},
 		"dev": {
 			"cache": false,
 			"persistent": true
