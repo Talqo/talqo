@@ -1,0 +1,6 @@
+{
+	"path": ["."],
+	"format": ["typescript", "tsx", "javascript", "jsx"],
+	"minTokens": 90,
+	"ignore": ["**/generated/**", "**/routeTree.gen.ts", ".claude/**"]
+}

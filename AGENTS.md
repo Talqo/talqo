@@ -52,6 +52,7 @@ Run only the checks your change can break. CI runs all of them except `e2e` on e
 
 ```sh
 bun run quality:fix      # any edit
+bun run duplication      # any code edit
 bun run typecheck        # any code edit
 bun run test             # changed behavior or its tests
 bun run test:integration # module, database, service, or route

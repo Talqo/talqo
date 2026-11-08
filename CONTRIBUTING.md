@@ -57,9 +57,12 @@ E2E records come from the API-owned deterministic seed against an isolated E2E d
 
 ```sh
 bun run quality:fix
+bun run duplication
 bun run typecheck
 bun run test
 ```
+
+`bun run duplication` compares the working tree with `origin/main` and fails on new clones. CI compares the pull request with its base branch.
 
 Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 
