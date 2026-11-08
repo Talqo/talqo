@@ -60,9 +60,12 @@ bun run quality:fix
 bun run duplication
 bun run typecheck
 bun run test
+bun run crap
 ```
 
 `bun run duplication` fails when any clone reaches the configured token threshold.
+
+`bun run crap` runs the full unit suite through Supercov and fails changed functions at or above CRAP 6. Fallow's threshold is inclusive, so a score of exactly 6 fails. `bun run crap:check` reruns the CRAP gate on the last coverage export.
 
 Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 
