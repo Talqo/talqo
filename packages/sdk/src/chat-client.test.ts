@@ -1412,18 +1412,7 @@ describe("createChatClient", () => {
 						sends += 1
 						if (sends > 1) return streamFrom([])
 						sendStarted.resolve()
-						return {
-							[Symbol.asyncIterator]: () => ({
-								next: () =>
-									new Promise<IteratorResult<ChatEvent>>((_resolve, reject) => {
-										if (signal.aborted) {
-											reject(signal.reason)
-											return
-										}
-										signal.addEventListener("abort", () => reject(signal.reason), { once: true })
-									}),
-							}),
-						}
+						return abortableStream(signal)
 					},
 					cancelResponse: async () => {
 						cancellationStarted.resolve()
