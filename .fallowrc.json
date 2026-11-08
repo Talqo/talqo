@@ -1,0 +1,21 @@
+{
+	"$schema": "./node_modules/fallow/schema.json",
+	"ignorePatterns": ["**/generated/**", "**/routeTree.gen.ts", ".claude/**"],
+	"health": {
+		"suggestInlineSuppression": false,
+		"ignore": ["**/*.{spec,test}.{ts,tsx}", "apps/e2e/**", "apps/api/test-fixtures/**", "**/*.config.ts", "scripts/**"],
+		"coverage": ".cache/fallow/coverage-final.json",
+		"maxCrap": 6
+	},
+	"audit": {
+		"gate": "new-only",
+		"deadCode": false,
+		"dupes": false,
+		"css": false,
+		"cssDeep": false
+	},
+	"rules": {
+		"added-suppression": "error",
+		"weakened-tests": "error"
+	}
+}
