@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build src/index.ts src/db/migrate.ts --outdir dist --target bun",
-		"coverage:overlap": "supercov -- bun run test --timeout 30000 --only-failures",
+		"coverage:overlap": "supercov runs latest gaps",
+		"coverage:record": "supercov -- bun run test --timeout 30000 --only-failures",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "bun run src/db/migrate.ts",
 		"db:seed": "bun run src/db/seed.ts",
@@ -14,8 +15,7 @@
 		"openapi:generate": "bun --env-file .env.example --preload ./no-database.preload.ts src/openapi.ts",
 		"test": "bun test --env-file .env.example --preload ./no-database.preload.ts --path-ignore-patterns '**/*.integration.test.ts'",
 		"test:integration": "../../scripts/test-integration.sh",
-		"typecheck": "bun check",
-		"coverage:report": "supercov runs latest gaps"
+		"typecheck": "bun check"
 	},
 	"dependencies": {
 		"@ai-sdk/amazon-bedrock": "5.0.130",

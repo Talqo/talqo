@@ -12,10 +12,10 @@
 		"./widget-appearance": "./src/widget-appearance.ts"
 	},
 	"scripts": {
-		"coverage:overlap": "supercov -- bun test --only-failures",
+		"coverage:overlap": "supercov runs latest minimize --kind unit && supercov runs latest gaps",
+		"coverage:record": "supercov -- bun test --only-failures",
 		"test": "bun test",
-		"typecheck": "bun check",
-		"coverage:report": "supercov runs latest minimize --kind unit && supercov runs latest gaps"
+		"typecheck": "bun check"
 	},
 	"devDependencies": {
 		"@talqo/typescript-config": "workspace:*",

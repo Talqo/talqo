@@ -38,12 +38,12 @@
 		},
 		"coverage:overlap": {
 			"cache": false,
-			"outputLogs": "errors-only"
-		},
-		"coverage:report": {
-			"cache": false,
-			"dependsOn": ["coverage:overlap"],
+			"dependsOn": ["coverage:record"],
 			"outputLogs": "full"
+		},
+		"coverage:record": {
+			"cache": false,
+			"outputLogs": "errors-only"
 		},
 		"dev": {
 			"cache": false,
