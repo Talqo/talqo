@@ -22,9 +22,10 @@
 	},
 	"scripts": {
 		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
-		"coverage:overlap": "supercov -- bun test --only-failures && supercov runs latest minimize --kind unit && supercov runs latest gaps",
+		"coverage:overlap": "supercov -- bun test --only-failures",
 		"test": "bun test",
-		"typecheck": "bun check"
+		"typecheck": "bun check",
+		"coverage:report": "supercov runs latest minimize --kind unit && supercov runs latest gaps"
 	},
 	"dependencies": {
 		"eventsource-parser": "4.1.3"

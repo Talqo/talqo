@@ -37,7 +37,13 @@
 			"outputs": ["dist/**"]
 		},
 		"coverage:overlap": {
-			"cache": false
+			"cache": false,
+			"outputLogs": "errors-only"
+		},
+		"coverage:report": {
+			"cache": false,
+			"dependsOn": ["coverage:overlap"],
+			"outputLogs": "full"
 		},
 		"dev": {
 			"cache": false,
