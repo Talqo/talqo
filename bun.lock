@@ -87,7 +87,7 @@
         "@playwright/test": "1.64.1",
         "@talqo/typescript-config": "workspace:*",
         "@types/bun": "1.4.4",
-        "i18next": "26.6.0",
+        "i18next": "27.0.1",
         "typescript": "7.0.2",
       },
     },
@@ -101,7 +101,7 @@
         "@talqo/ui": "workspace:*",
         "@tanstack/react-query": "^5.105.0",
         "@tanstack/react-router": "1.170.46",
-        "i18next": "^26.6.0",
+        "i18next": "^27.0.1",
         "lucide-react": "1.66.0",
         "react": "19.3.1",
         "react-dom": "19.3.1",
@@ -131,7 +131,7 @@
         "@talqo/sdk": "workspace:*",
         "@talqo/shared": "workspace:*",
         "@talqo/ui": "workspace:*",
-        "i18next": "^26.6.0",
+        "i18next": "^27.0.1",
         "react": "19.3.1",
         "react-dom": "19.3.1",
         "react-i18next": "^17.1.9",
@@ -1543,7 +1543,7 @@
 
     "husky": ["husky@9.1.7", "", { "bin": { "husky": "bin.js" } }, "sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA=="],
 
-    "i18next": ["i18next@26.6.0", "", { "peerDependencies": { "typescript": "^5 || ^6 || ^7" }, "optionalPeers": ["typescript"] }, "sha512-jpb1n5386s9mbBLNF6tSNIVhbBUUNiNeDyjWte+uxHP/Wr+CEy7WBM8q29TkfQ46VbwKeJFYdQJK3pSUhLp4CQ=="],
+    "i18next": ["i18next@27.0.1", "", { "peerDependencies": { "typescript": "^5 || ^6 || ^7" }, "optionalPeers": ["typescript"] }, "sha512-KaE5ozP8UUeVpOJIwMVbbnpRKpyYQuxd9ZbseJoDzezE3nvLnZZQn20pkzyIJwPI2Uet/Qs3WzPTG812f6F/Eg=="],
 
     "i18next-cli": ["i18next-cli@1.81.0", "", { "dependencies": { "@croct/json5-parser": "^0.2.2", "@formatjs/icu-messageformat-parser": "^3.5.22", "@inquirer/confirm": "^6.3.5", "@inquirer/input": "^5.1.9", "@inquirer/password": "^5.2.5", "@inquirer/select": "^5.2.8", "@swc/core": "^1.16.20", "chokidar": "^5.0.0", "commander": "^15.0.0", "glob": "^13.0.6", "i18next": "^26.5.10", "i18next-resources-for-ts": "^2.1.2", "jiti": "^2.7.0", "jsonc-parser": "^3.3.1", "magic-string": "^1.4.3", "messageformat": "^4.1.0", "minimatch": "^10.2.6", "nano-spawn": "^2.1.0", "react-i18next": "^17.1.8", "yaml": "^2.9.1", "yocto-spinner": "^1.2.2" }, "bin": { "i18next-cli": "dist/esm/cli.js" } }, "sha512-w5Uw5/F9S9XdfAle40sXq1FrK/Pd0XoQyJ9T6+9EdaocAwPx3xOwjJQg+TDOHgR86lWr4EI7qjP0dhSNnY2CkA=="],
 
@@ -2382,6 +2382,8 @@
     "fumadocs-mdx/esbuild": ["esbuild@0.28.2", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.28.2", "@esbuild/android-arm": "0.28.2", "@esbuild/android-arm64": "0.28.2", "@esbuild/android-x64": "0.28.2", "@esbuild/darwin-arm64": "0.28.2", "@esbuild/darwin-x64": "0.28.2", "@esbuild/freebsd-arm64": "0.28.2", "@esbuild/freebsd-x64": "0.28.2", "@esbuild/linux-arm": "0.28.2", "@esbuild/linux-arm64": "0.28.2", "@esbuild/linux-ia32": "0.28.2", "@esbuild/linux-loong64": "0.28.2", "@esbuild/linux-mips64el": "0.28.2", "@esbuild/linux-ppc64": "0.28.2", "@esbuild/linux-riscv64": "0.28.2", "@esbuild/linux-s390x": "0.28.2", "@esbuild/linux-x64": "0.28.2", "@esbuild/netbsd-arm64": "0.28.2", "@esbuild/netbsd-x64": "0.28.2", "@esbuild/openbsd-arm64": "0.28.2", "@esbuild/openbsd-x64": "0.28.2", "@esbuild/openharmony-arm64": "0.28.2", "@esbuild/sunos-x64": "0.28.2", "@esbuild/win32-arm64": "0.28.2", "@esbuild/win32-ia32": "0.28.2", "@esbuild/win32-x64": "0.28.2" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA=="],
 
     "fumadocs-ui/cn": ["cn@0.5.0", "", { "bin": { "cn": "bin/cn.mjs" } }, "sha512-JGEixZEpfFXm1P5uXwvEobOFLlHwIWi5v4tjd1ZwfiYmcEilkuD2l+054rvJcYCR1B+uVThHeUbgmNz1FwuxuA=="],
+
+    "i18next-cli/i18next": ["i18next@26.6.0", "", { "peerDependencies": { "typescript": "^5 || ^6 || ^7" }, "optionalPeers": ["typescript"] }, "sha512-jpb1n5386s9mbBLNF6tSNIVhbBUUNiNeDyjWte+uxHP/Wr+CEy7WBM8q29TkfQ46VbwKeJFYdQJK3pSUhLp4CQ=="],
 
     "import-fresh/resolve-from": ["resolve-from@4.0.0", "", {}, "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g=="],
 
