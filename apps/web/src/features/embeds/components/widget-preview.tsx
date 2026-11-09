@@ -5,9 +5,6 @@ import { cn } from "@talqo/ui/lib/utils"
 import { type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL
-const configuredWidgetUrl = import.meta.env.VITE_WIDGET_CDN_URL
-
 const FRAME_WIDTH = 336
 const FRAME_HEIGHT = 420
 
@@ -100,6 +97,8 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 
 	// Once per widget: recomputing per keystroke would reload the frame.
 	const [source] = useState(() => {
+		const configuredPreviewUrl = import.meta.env.VITE_WIDGET_PREVIEW_URL
+		const configuredWidgetUrl = import.meta.env.VITE_WIDGET_CDN_URL
 		// A CDN script without a preview document keeps the sandboxed inline preview.
 		if (!configuredPreviewUrl && configuredWidgetUrl) {
 			return {
@@ -123,9 +122,6 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	const targetOrigin = source.targetOrigin
 
 	useEffect(() => {
-		if (!targetOrigin) {
-			return undefined
-		}
 		const messageTargetOrigin = targetOrigin
 		function onMessage(event: MessageEvent) {
 			// Replying on `ready` rather than on iframe load makes reload, HMR, and bfcache
@@ -148,9 +144,6 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	}, [source.expectedOrigin, targetOrigin])
 
 	useEffect(() => {
-		if (!targetOrigin) {
-			return
-		}
 		// Dropped harmlessly if the child is not listening yet; its next `ready` re-syncs.
 		iframeRef.current?.contentWindow?.postMessage(
 			configMessage(appearance, { title, forcedScheme: activeScheme, isAvailable: true }),

@@ -1,0 +1,20 @@
+{
+	"$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+	"testRunner": "bun",
+	"plugins": ["./node_modules/@fidasek009/stryker-mutator-bun-runner/dist/index.js"],
+	"coverageAnalysis": "perTest",
+	"concurrency": "50%",
+	"mutate": [
+		"apps/web/src/**/*.{ts,tsx}",
+		"!apps/web/src/**/*.{test,spec}.{ts,tsx}",
+		"!apps/web/src/**/generated/**",
+		"!apps/web/src/**/routeTree.gen.ts",
+		"!apps/web/src/**/*.d.ts"
+	],
+	"bun": {
+		"testFiles": ["apps/web/src/**/*.{test,spec}.{ts,tsx}"],
+		"timeout": 2000
+	},
+	"reporters": ["clear-text", "progress", "html", "json", "event-recorder"],
+	"ignorePatterns": ["reports"]
+}

@@ -34,6 +34,7 @@
 		"release": "bash scripts/release.sh",
 		"test": "turbo run test --output-logs=errors-only",
 		"test:integration": "turbo run test:integration --output-logs=errors-only",
+		"test:mutation": "stryker run --ignoreStatic",
 		"typecheck": "turbo run typecheck --output-logs=errors-only"
 	},
 	"devDependencies": {
@@ -41,6 +42,7 @@
 		"@commitlint/config-conventional": "^21.2.4",
 		"@playwright/cli": "^0.1.23",
 		"@shadcn/lint": "0.2.3",
+		"@stryker-mutator/core": "10.1.1",
 		"@tanstack/eslint-plugin-router": "1.162.0",
 		"@types/bun": "1.4.4",
 		"eslint-plugin-playwright": "2.12.1",
@@ -49,6 +51,7 @@
 		"orval": "8.46.0",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "^7.0.2005",
+		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
 		"turbo": "2.11.10"
 	},
 	"packageManager": "bun@1.4.4"
