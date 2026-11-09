@@ -11,6 +11,7 @@ const { createRoot } = await import("react-dom/client")
 const { act, useState } = await import("react")
 
 const EMPTY_LABEL = "No matching models"
+const OUTSIDE_LABEL = "Outside autocomplete"
 const TRIGGER_LABEL = "Show models"
 
 let host: HTMLDivElement
@@ -32,7 +33,7 @@ function ControlledAutocomplete({ models }: { models: string[] | null }) {
 				emptyLabel={EMPTY_LABEL}
 				triggerLabel={TRIGGER_LABEL}
 			/>
-			<button type="button">Outside</button>
+			<button type="button" data-testid="outside" aria-label={OUTSIDE_LABEL} />
 		</>
 	)
 }
@@ -54,9 +55,7 @@ function suggestionTrigger(): HTMLButtonElement | null {
 }
 
 function outsideButton(): HTMLButtonElement {
-	const button = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
-		(candidate) => candidate.textContent === "Outside",
-	)
+	const button = document.querySelector<HTMLButtonElement>('[data-testid="outside"]')
 	if (!button) throw new Error("outside button not rendered")
 	return button
 }
