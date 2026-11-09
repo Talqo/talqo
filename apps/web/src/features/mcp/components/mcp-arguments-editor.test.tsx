@@ -1,6 +1,7 @@
 import type { ArgumentRow } from "@/features/mcp/mcp-arguments"
 import type { Root } from "react-dom/client"
 
+import { click, findButton as button, typeInto as type } from "@/testing/dom"
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
@@ -44,26 +45,6 @@ function argumentInput(index: number): HTMLInputElement {
 
 function argumentValues(): string[] {
 	return [...host.querySelectorAll<HTMLInputElement>("input")].map((input) => input.value)
-}
-
-function button(label: string): HTMLButtonElement {
-	const found = [...host.querySelectorAll("button")].find(
-		(candidate) => candidate.textContent?.trim() === label || candidate.getAttribute("aria-label") === label,
-	)
-	if (!found) throw new Error(`Missing button ${label}`)
-	return found
-}
-
-async function click(target: HTMLElement) {
-	await act(async () => target.click())
-}
-
-async function type(input: HTMLInputElement, value: string) {
-	await act(async () => {
-		const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set
-		valueSetter?.call(input, value)
-		input.dispatchEvent(new Event("input", { bubbles: true }))
-	})
 }
 
 beforeEach(() => {
@@ -144,5 +125,16 @@ describe("McpArgumentsEditor", () => {
 		expect(add.disabled).toBe(true)
 		await click(add)
 		expect(emitted).toEqual([])
+	})
+
+	test("names an empty argument by its one-based position in the remove label", async () => {
+		await renderEditor([
+			{ id: "first", value: "--verbose" },
+			{ id: "second", value: "   " },
+		])
+
+		await click(button(t("mcp.removeArgument", { argument: 2 })))
+
+		expect(emitted).toEqual([[{ id: "first", value: "--verbose" }]])
 	})
 })

@@ -28,6 +28,7 @@ let myRoleIds: string[]
 let roles: Role[]
 let roleAgents: Record<string, RoleAgent[]>
 let createFailure: Response | undefined
+let createResponse: Promise<Response> | undefined
 let updateFailure: Response | undefined
 let usersResponse: Promise<Response> | undefined
 let rolesFailure: Response | undefined
@@ -72,6 +73,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/roles" && method === "GET")
 		return refreshedRolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/roles" && method === "POST") {
+		if (createResponse) return createResponse
 		if (createFailure) return createFailure
 		const body = parseJsonBody(init?.body) as Pick<Role, "name" | "permissions">
 		const role = { id: "new-role", memberCount: 0, ...body }
@@ -177,6 +179,7 @@ beforeEach(() => {
 	roles = []
 	roleAgents = {}
 	createFailure = undefined
+	createResponse = undefined
 	updateFailure = undefined
 	usersResponse = undefined
 	rolesFailure = undefined
@@ -218,6 +221,32 @@ describe("role management", () => {
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles/new-role")
 		expect(nameInput().value).toBe("New role")
 		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	})
+
+	test("invites the operator to create the first role when none exist", async () => {
+		await renderPage()
+
+		expect(host.textContent).toContain(t("roles.emptyTitle"))
+		expect(host.textContent).toContain(t("roles.emptyDescription"))
+		expect(button(t("roles.create"), host).disabled).toBe(false)
+	})
+
+	test("shows progress and blocks a second create while the first is pending", async () => {
+		const response = Promise.withResolvers<Response>()
+		createResponse = response.promise
+		await renderPage()
+
+		await click(button(t("roles.create"), host))
+
+		const creating = button(t("roles.creating"), host)
+		expect(creating.disabled).toBe(true)
+		expect(requests.filter(({ method, url }) => method === "POST" && url === "/api/roles")).toHaveLength(1)
+
+		await act(async () =>
+			response.resolve(json({ role: { id: "new-role", name: "New role", permissions: [], memberCount: 0 } }, 201)),
+		)
+		await settle()
+		expect(router.state.location.pathname).toBe("/dashboard/team/roles/new-role")
 	})
 
 	test("chooses a free default name and lists names and people without permission summaries", async () => {
@@ -263,6 +292,7 @@ describe("role management", () => {
 		await click(button(t("roles.create")))
 		expect(host.textContent).toContain(t("problems.role-name-taken"))
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
+		expect(requestCount("/api/roles")).toBe(2)
 	})
 
 	test("hides creation until the roles list has loaded", async () => {
@@ -432,6 +462,28 @@ describe("role management", () => {
 		expect(nameInput().value).toBe("Helpdesk")
 		expect(host.textContent).toContain(t("roles.saved"))
 		expect(button(t("roles.save"), host).disabled).toBe(true)
+
+		await click(permissionSwitch(t("roles.permissionLabels.usersManage")))
+		expect(host.textContent).toContain(t("roles.unsaved"))
+		expect(button(t("roles.save"), host).disabled).toBe(false)
+		await save()
+		expect(requests.findLast(({ method }) => method === "PUT")?.body).toEqual({
+			name: "Helpdesk",
+			permissions: [],
+		})
+	})
+
+	test("adopts a background role refresh while the form is clean", async () => {
+		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
+		await renderPage("support")
+
+		roles = [{ id: "support", name: "Renamed elsewhere", permissions: [], memberCount: 0 }]
+		await act(() => queryClient.refetchQueries())
+		await settle()
+
+		expect(nameInput().value).toBe("Renamed elsewhere")
+		expect(button(t("roles.save"), host).disabled).toBe(true)
+		expect(host.textContent).not.toContain(t("roles.unsaved"))
 	})
 
 	test("lists the agents this role gives access to", async () => {
@@ -519,29 +571,36 @@ describe("role management", () => {
 		expect(host.textContent).toContain(t("roles.saved"))
 	})
 
-	test("offers no changes to a role the operator cannot manage", async () => {
-		myPermissions = ["roles:manage", "users:read"]
-		roles = [
-			{ id: "support", name: "Support", permissions: ["roles:manage"], memberCount: 0 },
-			{ id: "manageable", name: "Manageable", permissions: [], memberCount: 0 },
-		]
-		refreshedRolesResponse = Promise.resolve(json({ roles, manageableRoleIds: ["manageable"] }))
-		await renderPage("support")
-		expect(host.textContent).toContain(t("roles.cannotChange"))
-		expect(nameInput().disabled).toBe(true)
-		expect(queryButton(t("roles.save"), host) === undefined).toBe(true)
-		expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
-	})
-
-	test("offers no changes to a role with access the operator lacks", async () => {
-		myPermissions = ["roles:manage", "users:read"]
-		roles = [{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 1 }]
-		await renderPage("ai")
-		expect(host.textContent).toContain(t("roles.cannotChange"))
-		expect(nameInput().disabled).toBe(true)
-		expect(queryButton(t("roles.save"), host) === undefined).toBe(true)
-		expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
-	})
+	for (const scenario of [
+		{
+			title: "a role the operator cannot manage",
+			roleId: "support",
+			roles: [
+				{ id: "support", name: "Support", permissions: ["roles:manage"], memberCount: 0 },
+				{ id: "manageable", name: "Manageable", permissions: [], memberCount: 0 },
+			],
+			manageableRoleIds: ["manageable"],
+		},
+		{
+			title: "a role with access the operator lacks",
+			roleId: "ai",
+			roles: [{ id: "ai", name: "AI team", permissions: ["ai_provider:manage"], memberCount: 1 }],
+			manageableRoleIds: undefined,
+		},
+	] as const) {
+		test(`offers no changes to ${scenario.title}`, async () => {
+			myPermissions = ["roles:manage", "users:read"]
+			roles = scenario.roles.map((role) => ({ ...role, permissions: [...role.permissions] }))
+			refreshedRolesResponse = scenario.manageableRoleIds
+				? Promise.resolve(json({ roles, manageableRoleIds: [...scenario.manageableRoleIds] }))
+				: undefined
+			await renderPage(scenario.roleId)
+			expect(host.textContent).toContain(t("roles.cannotChange"))
+			expect(nameInput().disabled).toBe(true)
+			expect(queryButton(t("roles.save"), host) === undefined).toBe(true)
+			expect(queryButton(t("roles.delete"), host) === undefined).toBe(true)
+		})
+	}
 
 	test("leaves an untouched role without asking to discard changes", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
@@ -610,6 +669,13 @@ describe("role management", () => {
 		expect(button(t("roles.save"), host).disabled).toBe(false)
 		await save()
 		expect(host.textContent).toContain(t("roles.nameError", { max: createRoleBodyNameMax }))
+		expect(document.activeElement).toBe(nameInput())
+		const input = nameInput()
+		expect(input.getAttribute("aria-invalid")).toBe("true")
+		expect(input.getAttribute("aria-describedby")).toBe("role-support-name-error")
+		expect(document.getElementById("role-support-name-error")?.textContent).toBe(
+			t("roles.nameError", { max: createRoleBodyNameMax }),
+		)
 		expect(requests.some(({ method }) => method === "PUT")).toBe(false)
 	})
 

@@ -230,19 +230,19 @@ function ProfileCardSkeleton({ label }: { label: string }) {
 function AccountPage() {
 	const { t } = useTranslation()
 	const session = useGetSession()
-	const username = session.data?.data.user?.username
+	const user = session.data?.data.user
 
 	return (
 		<div className="space-y-6">
 			<PageHeader title={t("account.heading")} description={t("account.subheading")} />
 			{session.isPending ? (
 				<ProfileCardSkeleton label={t("auth.loading")} />
-			) : session.isError || !session.data?.data.user ? (
+			) : session.isError || !user ? (
 				<ProblemAlert message={t("account.loadFailed")} onRetry={() => void session.refetch()} />
 			) : (
-				<AccountSettingsCard username={username ?? ""} />
+				<AccountSettingsCard username={user.username} />
 			)}
-			{username ? <DeleteAccountCard username={username} /> : null}
+			{user ? <DeleteAccountCard username={user.username} /> : null}
 		</div>
 	)
 }

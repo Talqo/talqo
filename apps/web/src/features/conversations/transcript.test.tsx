@@ -1,5 +1,7 @@
+import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { describe, expect, test } from "bun:test"
 
+if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
 await import("@/lib/i18n")
 
 const { Transcript } = await import("./transcript")
@@ -33,6 +35,22 @@ describe("Transcript", () => {
 })
 
 describe("Transcript outcomes", () => {
+	test("labels visitors and agents without an outcome for completed messages", () => {
+		const html = renderToStaticMarkup(
+			<Transcript
+				messages={[
+					{ id: "1", role: "user", text: "Hello", outcome: "completed", createdAt: CREATED_AT },
+					{ id: "2", role: "assistant", text: "Hi", outcome: "completed", createdAt: CREATED_AT },
+				]}
+			/>,
+		)
+
+		expect(html).toContain(t("conversations.visitor"))
+		expect(html).toContain(t("conversations.agent"))
+		expect(html).not.toContain(t("conversations.outcomeFailed"))
+		expect(html).not.toContain(t("conversations.outcomeStreaming"))
+	})
+
 	test("labels every unfinished answer and drops empty bubbles", () => {
 		const outcomes = ["streaming", "failed", "cancelled", "interrupted"] as const
 		const html = renderToStaticMarkup(

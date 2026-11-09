@@ -18,4 +18,9 @@ describe("embedNotFound", () => {
 	test("treats a network failure as retryable", () => {
 		expect(embedNotFound(new TypeError("Failed to fetch"))).toBe(false)
 	})
+
+	test("treats a missing error as retryable", () => {
+		expect(embedNotFound(null)).toBe(false)
+		expect(embedNotFound(undefined)).toBe(false)
+	})
 })

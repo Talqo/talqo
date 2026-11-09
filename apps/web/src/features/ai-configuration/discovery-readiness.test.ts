@@ -32,6 +32,17 @@ const azure: ProviderMetadata = {
 	discovery: false,
 }
 
+const multiField: ProviderMetadata = {
+	id: "amazon-bedrock",
+	roles: ["text", "embedding"],
+	authModes: ["static"],
+	settingFields: ["region", "endpoint"],
+	requiredSettingFields: ["region", "endpoint"],
+	credentialFields: ["accessKeyId", "secretAccessKey"],
+	requiredCredentialFields: ["accessKeyId", "secretAccessKey"],
+	discovery: true,
+}
+
 describe("discovery readiness", () => {
 	it("requires a base URL and API key before contacting an OpenAI-compatible endpoint", () => {
 		expect(
@@ -148,5 +159,42 @@ describe("discovery readiness", () => {
 	it("keeps only complete required credentials in the discovery signature", () => {
 		expect(requiredCredentials(azure, { apiKey: "key", accessKeyId: "extra" })).toEqual({ apiKey: "key" })
 		expect(hasCompleteCredentials(openAiCompatible, { apiKey: "" })).toBe(false)
+	})
+
+	it("requires every required setting and credential on multi-field providers", () => {
+		expect(hasCompleteCredentials(multiField, { accessKeyId: "id" })).toBe(false)
+		expect(hasCompleteCredentials(multiField, { accessKeyId: "id", secretAccessKey: " \t " })).toBe(false)
+		expect(hasCompleteCredentials(multiField, { accessKeyId: "id", secretAccessKey: "secret" })).toBe(true)
+
+		const credentials = { accessKeyId: "id", secretAccessKey: "secret" }
+		expect(
+			isDiscoveryReady({
+				provider: multiField,
+				value: { authMode: "static", settings: { region: "us-east-1" }, credentials },
+				stored: null,
+			}),
+		).toBe(false)
+		expect(
+			isDiscoveryReady({
+				provider: multiField,
+				value: {
+					authMode: "static",
+					settings: { region: " \t ", endpoint: "https://bedrock.example" },
+					credentials,
+				},
+				stored: null,
+			}),
+		).toBe(false)
+		expect(
+			isDiscoveryReady({
+				provider: multiField,
+				value: {
+					authMode: "static",
+					settings: { region: "us-east-1", endpoint: "https://bedrock.example" },
+					credentials,
+				},
+				stored: null,
+			}),
+		).toBe(true)
 	})
 })

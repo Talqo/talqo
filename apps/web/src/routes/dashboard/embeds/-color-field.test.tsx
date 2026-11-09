@@ -17,10 +17,10 @@ const LABEL = "Primary"
 let host: HTMLDivElement
 let root: Root
 
-async function renderField(value: string, against = "#ffffff") {
+async function renderField(value: string, against = "#ffffff", onChange: (value: string) => void = () => {}) {
 	await act(async () => {
 		root.render(
-			<ColorField against={against} id="primary" label={LABEL} onChange={() => {}} readOnly={false} value={value} />,
+			<ColorField against={against} id="primary" label={LABEL} onChange={onChange} readOnly={false} value={value} />,
 		)
 	})
 }
@@ -84,5 +84,20 @@ describe("ColorField", () => {
 		expect(error?.getAttribute("role")).toBe("alert")
 		expect(error?.textContent).toBe(t("embedSetup.colorInvalid"))
 		expect(host.textContent).not.toContain(t("embedSetup.contrastWarning"))
+	})
+
+	test("falls back to black in the native picker and reports native changes", async () => {
+		const changes: string[] = []
+		await renderField("#12", "#ffffff", (value) => changes.push(value))
+		const picker = host.querySelector<HTMLInputElement>('input[type="color"]')
+		if (!picker) throw new Error("Native color picker not rendered")
+		expect(picker.value).toBe("#000000")
+
+		await act(async () => {
+			Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(picker, "#123456")
+			picker.dispatchEvent(new Event("input", { bubbles: true }))
+		})
+
+		expect(changes).toEqual(["#123456"])
 	})
 })

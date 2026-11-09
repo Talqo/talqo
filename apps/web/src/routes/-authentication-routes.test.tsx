@@ -1,11 +1,7 @@
-import type { Root } from "react-dom/client"
-
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json, problem } from "@/testing/api-responses"
+import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { Route: IndexRoute } = await import("./index")
 const { Route: DashboardRoute } = await import("./dashboard/route")
@@ -15,11 +11,9 @@ const { Route: SetupRoute } = await import("./setup")
 const { Route: AcceptInviteRoute } = await import("./accept-invite")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { ThemeProvider } = await import("@/lib/use-theme")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { QueryClientProvider } = await import("@tanstack/react-query")
 const { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const LoginPage = LoginRoute.options.component ?? (() => null)
@@ -107,22 +101,19 @@ let requests: { body: unknown; method: string; url: string }[]
 let setupNeeded: boolean
 let sessionUser: SessionUser | null
 let mutationResponse: Response | undefined
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
-function problem(code: string, status: number): Response {
-	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
-}
 
 function parseBody(body: BodyInit | null | undefined): unknown {
 	if (body == null) return undefined
 	if (typeof body !== "string") throw new Error("Expected a JSON request body")
 	return JSON.parse(body)
+}
+
+function forcedPasswordRequests() {
+	return requests.filter(({ url, method }) => url === "/api/me/password/forced" && method === "PATCH")
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -196,12 +187,6 @@ function makeSubmitRouter(initialPath: string) {
 	})
 }
 
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
-
 async function renderSubmitRoute(initialPath: string) {
 	const router = makeSubmitRouter(initialPath)
 	queryClient.setQueryData(CACHE_KEY, CACHED_VALUE)
@@ -252,18 +237,12 @@ beforeEach(() => {
 	setupNeeded = false
 	sessionUser = REGULAR_USER
 	mutationResponse = undefined
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("route guards", () => {
@@ -342,6 +321,34 @@ describe("authentication route submissions", () => {
 			expect(queryClient.getQueryData(CACHE_KEY)).toEqual(CACHED_VALUE)
 		})
 	}
+
+	test("validates the forced password before sending it", async () => {
+		sessionUser = FORCED_USER
+		const router = await renderSubmitRoute("/force-password-change")
+
+		await fill("#new-password", "short")
+		await fill("#confirm-new-password", "short")
+		await submitForm()
+		expect(host.querySelector("#new-password-error")?.textContent).toBe(
+			t("account.newPasswordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH }),
+		)
+		expect(host.querySelector<HTMLInputElement>("#new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector<HTMLInputElement>("#new-password")?.getAttribute("aria-describedby")).toBe(
+			"new-password-error",
+		)
+		expect(forcedPasswordRequests()).toEqual([])
+
+		await fill("#new-password", PASSWORD)
+		await fill("#confirm-new-password", `${PASSWORD}-other`)
+		await submitForm()
+		expect(host.querySelector("#confirm-new-password-error")?.textContent).toBe(t("account.passwordMismatchError"))
+		expect(host.querySelector<HTMLInputElement>("#confirm-new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector<HTMLInputElement>("#confirm-new-password")?.getAttribute("aria-describedby")).toBe(
+			"confirm-new-password-error",
+		)
+		expect(forcedPasswordRequests()).toEqual([])
+		expect(router.state.location.pathname).toBe("/force-password-change")
+	})
 
 	test("shows an invitation error without a form when the token is missing", async () => {
 		await renderSubmitRoute("/accept-invite")
