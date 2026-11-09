@@ -12,7 +12,7 @@
 		"./widget-appearance": "./src/widget-appearance.ts"
 	},
 	"scripts": {
-		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test --only-failures && bash ../../scripts/supercov-summary.sh",
+		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test --only-failures",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},

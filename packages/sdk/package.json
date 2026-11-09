@@ -22,7 +22,7 @@
 	},
 	"scripts": {
 		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
-		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test --only-failures && bash ../../scripts/supercov-summary.sh",
+		"coverage:overlap": "bash ../../scripts/supercov.sh -- bun test --only-failures",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},
