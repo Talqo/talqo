@@ -70,6 +70,37 @@ function baseTransport(overrides: Partial<ChatTransport> = {}): ChatTransport {
 	}
 }
 
+function dailyAllowanceRejection(): ChatTransportError {
+	return new ChatTransportError({
+		code: "chat-daily-allowance-exceeded",
+		status: 429,
+		retryAt: "2026-09-13T00:00:00.000Z",
+	})
+}
+
+function recoveryClient(loadSession: (loads: number) => Promise<Awaited<ReturnType<ChatTransport["loadSession"]>>>) {
+	let loads = 0
+	let sends = 0
+	const client = createChatClient({
+		apiUrl: "https://api.example.test",
+		embedToken: "embed",
+		transport: baseTransport({
+			sendMessage: async () => {
+				sends += 1
+				if (sends === 1) throw new Error("connection lost")
+				return streamFrom([])
+			},
+			loadSession: async () => {
+				loads += 1
+				return loadSession(loads)
+			},
+		}),
+		randomUUID: () => "11111111-1111-4111-8111-111111111111",
+		recoveryDelays: [0],
+	})
+	return { client, loads: () => loads }
+}
+
 describe("createChatClient", () => {
 	test("stores a UUID bearer before the first send", async () => {
 		const storage = createMemoryStorage()
@@ -369,11 +400,7 @@ describe("createChatClient", () => {
 
 	test("clears a definitely rejected first session and permits a different send", async () => {
 		const storage = createMemoryStorage()
-		const rejection = new ChatTransportError({
-			code: "chat-daily-allowance-exceeded",
-			status: 429,
-			retryAt: "2026-09-13T00:00:00.000Z",
-		})
+		const rejection = dailyAllowanceRejection()
 		let sends = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
@@ -553,69 +580,35 @@ describe("createChatClient", () => {
 	})
 
 	test("continues session recovery when the first load fails", async () => {
-		let loads = 0
-		let sends = 0
-		const client = createChatClient({
-			apiUrl: "https://api.example.test",
-			embedToken: "embed",
-			transport: baseTransport({
-				sendMessage: async () => {
-					sends += 1
-					if (sends === 1) throw new Error("connection lost")
-					return streamFrom([])
-				},
-				loadSession: async () => {
-					loads += 1
-					if (loads === 1) throw new Error("session temporarily unavailable")
-					return {
-						messages: [
-							{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
-							{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "completed" },
-						],
-						activeGeneration: undefined,
-					}
-				},
-			}),
-			randomUUID: () => "11111111-1111-4111-8111-111111111111",
-			recoveryDelays: [0],
+		const { client, loads } = recoveryClient(async (count) => {
+			if (count === 1) throw new Error("session temporarily unavailable")
+			return {
+				messages: [
+					{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
+					{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "completed" },
+				],
+				activeGeneration: undefined,
+			}
 		})
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
-		expect(loads).toBe(2)
+		expect(loads()).toBe(2)
 		expect(client.getSnapshot().messages.at(-1)).toMatchObject({ text: "recovered", outcome: "completed" })
 	})
 
 	test("keeps polling beyond the default generation timeout window", async () => {
-		let loads = 0
-		let sends = 0
-		const client = createChatClient({
-			apiUrl: "https://api.example.test",
-			embedToken: "embed",
-			transport: baseTransport({
-				sendMessage: async () => {
-					sends += 1
-					if (sends === 1) throw new Error("connection lost")
-					return streamFrom([])
-				},
-				loadSession: async () => {
-					loads += 1
-					return {
-						messages: [],
-						activeGeneration: loads <= 25 ? { id: "generation" } : undefined,
-					}
-				},
-			}),
-			randomUUID: () => "11111111-1111-4111-8111-111111111111",
-			recoveryDelays: [0],
-		})
+		const { client, loads } = recoveryClient(async (count) => ({
+			messages: [],
+			activeGeneration: count <= 25 ? { id: "generation" } : undefined,
+		}))
 		await client.initialize()
 		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
 
 		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
 
-		expect(loads).toBe(26)
+		expect(loads()).toBe(26)
 	})
 
 	for (const rejection of [
@@ -683,11 +676,7 @@ describe("createChatClient", () => {
 
 	test("stops recovery on a definitive pending-request rejection and exposes its details", async () => {
 		const storage = createMemoryStorage()
-		const rejection = new ChatTransportError({
-			code: "chat-daily-allowance-exceeded",
-			status: 429,
-			retryAt: "2026-09-13T00:00:00.000Z",
-		})
+		const rejection = dailyAllowanceRejection()
 		let sends = 0
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",

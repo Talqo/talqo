@@ -1,13 +1,12 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
+import { act, createTestHarness, json, renderWithProviders, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 import type { ConversationsSearch as Search } from "./conversations-search"
 
 const { ConversationsPage } = await import("./conversations-page")
-const { LanguageProvider } = await import("@/lib/use-language")
-const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } = await import("@tanstack/react-router")
+const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
 const { useState } = await import("react")
 const { t } = await import("i18next")
 
@@ -46,15 +45,7 @@ function Harness({ initial }: { initial: Search }) {
 async function renderPage(initial: Search = {}) {
 	const rootRoute = createRootRoute({ component: () => <Harness initial={initial} /> })
 	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
-	await act(async () =>
-		root.render(
-			<QueryClientProvider client={queryClient}>
-				<LanguageProvider>
-					<RouterProvider router={router} />
-				</LanguageProvider>
-			</QueryClientProvider>,
-		),
-	)
+	await renderWithProviders(root, queryClient, router)
 	await settle()
 	await settle()
 }

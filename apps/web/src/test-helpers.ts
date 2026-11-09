@@ -9,11 +9,32 @@ await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
+const { RouterProvider } = await import("@tanstack/react-router")
+const { LanguageProvider } = await import("@/lib/use-language")
 const { createRoot } = await import("react-dom/client")
+const { createElement } = await import("react")
 const { act } = await import("react")
 
 export { act, QueryClient, QueryClientProvider }
 export type { Root }
+
+type Router = Parameters<typeof RouterProvider>[0]["router"]
+
+export async function renderWithProviders(
+	root: Root,
+	queryClient: InstanceType<typeof QueryClient>,
+	router: Router,
+): Promise<void> {
+	await act(async () =>
+		root.render(
+			createElement(
+				QueryClientProvider,
+				{ client: queryClient },
+				createElement(LanguageProvider, null, createElement(RouterProvider, { router })),
+			),
+		),
+	)
+}
 
 export async function settle(): Promise<void> {
 	await act(async () => {
@@ -39,6 +60,16 @@ function requestUrl(input: RequestInfo | URL): string {
 export function requestDetails(input: RequestInfo | URL, init?: RequestInit) {
 	const method = init?.method ?? "GET"
 	return { url: requestUrl(input), method, body: init?.body ? parseJsonBody(init.body) : undefined }
+}
+
+export function recordRequest(
+	requests: ReturnType<typeof requestDetails>[],
+	input: RequestInfo | URL,
+	init?: RequestInit,
+) {
+	const request = requestDetails(input, init)
+	requests.push(request)
+	return request
 }
 
 type TestHarnessOptions = {

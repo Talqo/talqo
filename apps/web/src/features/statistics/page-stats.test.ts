@@ -29,6 +29,15 @@ function overview(overrides?: Partial<StatsOverview>): StatsOverview {
 	}
 }
 
+const duplicatedAgentRow = {
+	date: "2026-10-06",
+	conversations: 1,
+	messages: 2,
+	inputTokens: 5,
+	outputTokens: 2,
+	agentId: "a",
+}
+
 describe("toAgentDailyPoints", () => {
 	test("sums input and output tokens into one token metric", () => {
 		const points = toAgentDailyPoints(overview())
@@ -44,10 +53,7 @@ describe("toAgentDailyPoints", () => {
 
 	test("keeps duplicate agent-date rows so consumers can accumulate them", () => {
 		const duplicated = overview({
-			agentDaily: [
-				{ date: "2026-10-06", conversations: 1, messages: 2, inputTokens: 5, outputTokens: 2, agentId: "a" },
-				{ date: "2026-10-06", conversations: 1, messages: 2, inputTokens: 5, outputTokens: 2, agentId: "a" },
-			],
+			agentDaily: [duplicatedAgentRow, duplicatedAgentRow],
 		})
 		expect(toAgentDailyPoints(duplicated)).toHaveLength(2)
 	})
@@ -82,10 +88,7 @@ describe("toSelectedStats", () => {
 
 	test("accumulates duplicate agent-date rows instead of keeping the last value", () => {
 		const duplicated = overview({
-			agentDaily: [
-				{ date: "2026-10-06", conversations: 1, messages: 2, inputTokens: 5, outputTokens: 2, agentId: "a" },
-				{ date: "2026-10-06", conversations: 1, messages: 2, inputTokens: 5, outputTokens: 2, agentId: "a" },
-			],
+			agentDaily: [duplicatedAgentRow, duplicatedAgentRow],
 		})
 		const stats = toSelectedStats(duplicated, ["a"])
 		expect(stats.conversations).toBe(2)

@@ -18,6 +18,15 @@ async function createEmbed(page: Page, agentId: string) {
 	return embed
 }
 
+async function saveEmbed(page: Page, embedId: string) {
+	const saved = page.waitForResponse(
+		(response) =>
+			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embedId}`,
+	)
+	await page.getByRole("button", { name: web("embedSetup.save") }).click()
+	expect((await saved).ok()).toBe(true)
+}
+
 test("embed configuration waits for agent permissions before showing editable controls", async ({ page, agent }) => {
 	const embed = await createEmbed(page, agent.id)
 	const release = Promise.withResolvers<void>()
@@ -60,12 +69,7 @@ test("operator creates, names, and permanently deletes an embed", async ({ page,
 	await expect(page.getByText(web("embedSetup.nameRequired"))).toBeVisible()
 	await expect(name).toBeFocused()
 	await name.fill("Customer help")
-	const saved = page.waitForResponse(
-		(response) =>
-			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embed.id}`,
-	)
-	await page.getByRole("button", { name: web("embedSetup.save") }).click()
-	expect((await saved).ok()).toBe(true)
+	await saveEmbed(page, embed.id)
 	await page.reload()
 	await expect(page.getByLabel(web("embedSetup.nameLabel"), { exact: true })).toHaveValue("Customer help")
 	const preview = page.frameLocator("iframe")
@@ -112,12 +116,7 @@ test("operator previews and saves independent light and dark palettes", async ({
 	await page.getByRole("tab", { name: web("embedSetup.tabLight"), exact: true }).click()
 	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
 	expect(previewNavigations).toBe(0)
-	const saved = page.waitForResponse(
-		(response) =>
-			response.request().method() === "PUT" && new URL(response.url()).pathname === `/api/embeds/${embed.id}`,
-	)
-	await page.getByRole("button", { name: web("embedSetup.save") }).click()
-	expect((await saved).ok()).toBe(true)
+	await saveEmbed(page, embed.id)
 	await page.reload()
 	await expect(launcher).toHaveCSS("background-color", "rgb(185, 28, 28)")
 	await page.getByRole("tab", { name: web("embedSetup.tabDark"), exact: true }).click()

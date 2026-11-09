@@ -8,7 +8,7 @@ import {
 	json,
 	parseJsonBody,
 	QueryClientProvider,
-	requestDetails,
+	recordRequest,
 	type Root,
 	settle,
 } from "@/test-helpers"
@@ -57,8 +57,7 @@ function user(username: string, overrides: Partial<ListedUser> = {}): ListedUser
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const { url, method, body: requestBody } = requestDetails(input, init)
-	requests.push({ url, method, body: requestBody })
+	const { url, method } = recordRequest(requests, input, init)
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })

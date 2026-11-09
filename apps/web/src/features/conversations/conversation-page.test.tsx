@@ -1,11 +1,10 @@
 import type { QueryClient } from "@/test-helpers"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
+import { act, createTestHarness, json, renderWithProviders, type Root, settle } from "@/test-helpers"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { ConversationPage } = await import("./conversation-page")
-const { LanguageProvider } = await import("@/lib/use-language")
-const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } = await import("@tanstack/react-router")
+const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
 const { t } = await import("i18next")
 
 const AGENT = { id: "11111111-1111-4111-8111-111111111111", name: "Shop helper" }
@@ -37,15 +36,7 @@ async function renderPage() {
 		component: () => <ConversationPage conversationId={CONVERSATION_ID} listSearch={{ page: 2 }} />,
 	})
 	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
-	await act(async () =>
-		root.render(
-			<QueryClientProvider client={queryClient}>
-				<LanguageProvider>
-					<RouterProvider router={router} />
-				</LanguageProvider>
-			</QueryClientProvider>,
-		),
-	)
+	await renderWithProviders(root, queryClient, router)
 	await settle()
 }
 

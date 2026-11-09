@@ -99,6 +99,13 @@ async function seedChatHistory(agentA: string, agentB: string): Promise<void> {
 	)
 }
 
+async function seedAgentChats() {
+	const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
+	const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
+	await seedChatHistory(agentA.id, agentB.id)
+	return { agentA, agentB }
+}
+
 beforeEach(async () => {
 	await sql`TRUNCATE TABLE
 		usage_record, message, generation_attempt, conversation_daily_counter, conversation,
@@ -122,9 +129,7 @@ describe("stats overview aggregation", () => {
 		expect(overview.agentDaily.every((point) => point.agentId === b.id)).toBe(true)
 	})
 	it("aggregates daily counts, token sums, and per-agent totals within the window", async () => {
-		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
-		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
-		await seedChatHistory(agentA.id, agentB.id)
+		const { agentA, agentB } = await seedAgentChats()
 
 		const overview = await getStatsOverview({ days: 30 }, await testAdminId())
 
@@ -209,9 +214,7 @@ describe("stats overview aggregation", () => {
 	})
 
 	it("respects the requested day window", async () => {
-		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
-		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
-		await seedChatHistory(agentA.id, agentB.id)
+		await seedAgentChats()
 
 		const overview = await getStatsOverview({ days: 1 }, await testAdminId())
 
@@ -220,9 +223,7 @@ describe("stats overview aggregation", () => {
 	})
 
 	it("spans the whole recorded history when days is all", async () => {
-		const agentA = await agentService.createAgent({ name: "Alpha", systemPrompt: "A.", wordBlacklist: [] })
-		const agentB = await agentService.createAgent({ name: "Beta", systemPrompt: "B.", wordBlacklist: [] })
-		await seedChatHistory(agentA.id, agentB.id)
+		await seedAgentChats()
 
 		const overview = await getStatsOverview({ days: "all" }, await testAdminId())
 

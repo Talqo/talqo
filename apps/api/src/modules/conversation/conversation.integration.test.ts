@@ -1137,14 +1137,7 @@ describe("conversation lifecycle", () => {
 		const observed = deferred()
 		const instance = customService(async function* ({ signal }) {
 			yield { type: "text", text: "hello" } as const
-			await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }))
-			yield {
-				type: "finish",
-				outcome: "cancelled",
-				provider: "openai-compatible",
-				model: "fake-model",
-				usage: {},
-			} as const
+			yield* cancellationGeneration({ signal })
 		})
 		const sent = await instance.send(
 			{
@@ -1171,14 +1164,7 @@ describe("conversation lifecycle", () => {
 			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
 			yield { type: "text", text: "tiny" } as const
 			started.resolve()
-			await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }))
-			yield {
-				type: "finish",
-				outcome: "cancelled",
-				provider: "openai-compatible",
-				model: "fake-model",
-				usage: {},
-			} as const
+			yield* cancellationGeneration(input)
 		})
 		const sent = await instance.send({
 			embedToken: createdEmbed.embedToken,

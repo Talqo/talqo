@@ -1,5 +1,6 @@
 import { getListRolesQueryKey, useCreateRole, useListRoles } from "@/api/generated/roles/roles"
 import { PageHeader } from "@/components/page-header"
+import { SkeletonList } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { AccessDenied } from "@/features/permissions/components/access-denied"
 import { useAccessError } from "@/features/permissions/use-access-error"
@@ -18,17 +19,12 @@ import { useTranslation } from "react-i18next"
 
 function RolesSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-3">
-			<output className="sr-only">{label}</output>
-			{Array.from({ length: 3 }, (_, index) => (
-				<Card key={index}>
-					<CardHeader>
-						<Skeleton className="h-5 w-40 max-w-full" />
-						<Skeleton className="h-4 w-24" />
-					</CardHeader>
-				</Card>
-			))}
-		</div>
+		<SkeletonList label={label}>
+			<CardHeader>
+				<Skeleton className="h-5 w-40 max-w-full" />
+				<Skeleton className="h-4 w-24" />
+			</CardHeader>
+		</SkeletonList>
 	)
 }
 

@@ -39,6 +39,21 @@ async function createAgent(name = `Shop assistant ${crypto.randomUUID().slice(0,
 	return (await agent.createAgent({ name, systemPrompt: "You help shoppers.", wordBlacklist: [] })).id
 }
 
+async function createStockServer() {
+	const agentId = await createAgent()
+	const created = await service.createServer(agentId, {
+		name: "Stock",
+		transport: "http",
+		url: UNREACHABLE_URL,
+		authMode: "none",
+	})
+	await db
+		.update(mcpServer)
+		.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
+		.where(eq(mcpServer.id, created.id))
+	return { agentId, created }
+}
+
 /** Flips the deployment gate off for one test; the returned function restores the cached env getter. */
 function disableStdio(): () => void {
 	const descriptor = Object.getOwnPropertyDescriptor(env, "TALQO_MCP_ALLOW_STDIO")
@@ -411,17 +426,7 @@ describe("mcp server lifecycle", () => {
 	})
 
 	it("excludes a disabled connection from tool resolution", async () => {
-		const agentId = await createAgent()
-		const created = await service.createServer(agentId, {
-			name: "Stock",
-			transport: "http",
-			url: UNREACHABLE_URL,
-			authMode: "none",
-		})
-		await db
-			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
-			.where(eq(mcpServer.id, created.id))
+		const { agentId, created } = await createStockServer()
 
 		const controller = new AbortController()
 		await service.setServerDisabled(agentId, created.id, true)
@@ -435,17 +440,7 @@ describe("mcp server lifecycle", () => {
 	})
 
 	it("counts an enabled connection that fails to open as degraded", async () => {
-		const agentId = await createAgent()
-		const created = await service.createServer(agentId, {
-			name: "Stock",
-			transport: "http",
-			url: UNREACHABLE_URL,
-			authMode: "none",
-		})
-		await db
-			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
-			.where(eq(mcpServer.id, created.id))
+		const { agentId } = await createStockServer()
 		const logged = spyOn(console, "error").mockImplementation(() => undefined)
 
 		try {

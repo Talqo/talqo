@@ -10,6 +10,7 @@ import {
 	useResetUserPassword,
 } from "@/api/generated/roles/roles.ts"
 import { PageHeader } from "@/components/page-header"
+import { SkeletonList } from "@/components/page-skeleton"
 import { ProblemAlert } from "@/components/problem-alert"
 import { type ResetPasswordFormValues, resetPasswordSchema } from "@/features/authentication/change-password-schema.ts"
 import { generateRandomPassword } from "@/features/authentication/generate-password.ts"
@@ -239,26 +240,21 @@ function DeleteMemberDialog({ onDeleted, targetUser }: { onDeleted: () => void; 
 
 function TeamSkeleton({ label }: { label: string }) {
 	return (
-		<div className="space-y-3">
-			<output className="sr-only">{label}</output>
-			{Array.from({ length: 3 }, (_, index) => (
-				<Card key={index}>
-					<CardHeader>
-						<Skeleton className="h-5 w-32 max-w-full" />
-						<div className="flex flex-wrap items-center gap-2">
-							<Skeleton className="h-5 w-16" />
-							<Skeleton className="h-5 w-20" />
-						</div>
-					</CardHeader>
-					<CardContent>
-						<div className="flex flex-wrap items-center gap-3">
-							<Skeleton className="h-9 w-28" />
-							<Skeleton className="h-9 w-28" />
-						</div>
-					</CardContent>
-				</Card>
-			))}
-		</div>
+		<SkeletonList label={label}>
+			<CardHeader>
+				<Skeleton className="h-5 w-32 max-w-full" />
+				<div className="flex flex-wrap items-center gap-2">
+					<Skeleton className="h-5 w-16" />
+					<Skeleton className="h-5 w-20" />
+				</div>
+			</CardHeader>
+			<CardContent>
+				<div className="flex flex-wrap items-center gap-3">
+					<Skeleton className="h-9 w-28" />
+					<Skeleton className="h-9 w-28" />
+				</div>
+			</CardContent>
+		</SkeletonList>
 	)
 }
 

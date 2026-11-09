@@ -82,6 +82,15 @@ async function renderPage(content: ReactNode, permission?: Permission) {
 	return { host, queryClient, router }
 }
 
+async function openMobileNavigation(mockSession: () => void = mockSignedInAdmin) {
+	mockSession()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
+	if (!toggle) throw new Error("Missing navigation toggle")
+	await act(async () => toggle.click())
+	return { rendered, toggle }
+}
+
 test("keeps global navigation and the current page when agent discovery fails", async () => {
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
@@ -115,11 +124,7 @@ test("keeps the account name and log out in the sidebar footer", async () => {
 })
 
 test("closes the mobile navigation on a same-page navigation", async () => {
-	mockAdminSession()
-	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
-	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
-	if (!toggle) throw new Error("Missing navigation toggle")
-	await act(async () => toggle.click())
+	const { rendered } = await openMobileNavigation(mockAdminSession)
 	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
 	await act(async () => rendered.router.navigate({ to: "/", hash: "filtered" }))
 	await settle()
@@ -236,12 +241,7 @@ test("leaves focus alone when the heading changes after navigation", async () =>
 })
 
 test("focuses the first mobile link, closes on Escape, and returns focus to the toggle", async () => {
-	mockSignedInAdmin()
-	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
-	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
-	if (!toggle) throw new Error("Missing navigation toggle")
-
-	await act(async () => toggle.click())
+	const { rendered, toggle } = await openMobileNavigation()
 	const firstLink = rendered.host.querySelector("#mobile-navigation a")
 	expect(toggle.getAttribute("aria-expanded")).toBe("true")
 	expect(document.activeElement).toBe(firstLink)
@@ -256,12 +256,7 @@ test("focuses the first mobile link, closes on Escape, and returns focus to the 
 })
 
 test("closes the mobile navigation when the page outside it is pressed", async () => {
-	mockSignedInAdmin()
-	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
-	const toggle = rendered.host.querySelector<HTMLButtonElement>(`button[aria-label="${t("header.toggleNavigation")}"]`)
-	if (!toggle) throw new Error("Missing navigation toggle")
-
-	await act(async () => toggle.click())
+	const { rendered, toggle } = await openMobileNavigation()
 	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
 
 	await act(async () => {
