@@ -1,8 +1,9 @@
 import type { Permission } from "@/features/permissions/require-permission"
 import type { ReactNode } from "react"
 
-import { act, createTestHarness, json, QueryClientProvider, settle } from "@/test-helpers"
-import { afterEach, expect, spyOn, test } from "bun:test"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, settle } from "@/testing/component-harness"
+import { afterEach, expect, mock, spyOn, test } from "bun:test"
 
 const { DashboardLayout } = await import("./-dashboard-layout")
 const { RoleAccessCard } = await import("@/features/roles/role-access-card")
@@ -19,6 +20,7 @@ let harness: ReturnType<typeof createTestHarness> | undefined
 afterEach(async () => {
 	await harness?.dispose()
 	harness = undefined
+	mock.restore()
 	window.localStorage.removeItem("talqo-language")
 	document.documentElement.lang = "en"
 })

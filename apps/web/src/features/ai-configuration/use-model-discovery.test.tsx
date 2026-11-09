@@ -1,6 +1,6 @@
 import type { Root } from "react-dom/client"
 
-import { act, createTestHarness } from "@/test-helpers"
+import { act, createTestHarness } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, jest, test } from "bun:test"
 
 import type { DiscoveryContext } from "./discovery-readiness.ts"

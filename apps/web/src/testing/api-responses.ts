@@ -1,0 +1,35 @@
+export function json(body: unknown, status = 200): Response {
+	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
+}
+
+export function parseJsonBody(body: BodyInit | null | undefined): unknown {
+	if (typeof body !== "string") throw new Error("Expected a JSON request body")
+	return JSON.parse(body)
+}
+
+function requestUrl(input: RequestInfo | URL): string {
+	if (typeof input === "string") return input
+	if (input instanceof URL) return input.href
+	return input.url
+}
+
+export type RecordedRequest = {
+	url: string
+	method: string
+	body: unknown
+}
+
+function requestDetails(input: RequestInfo | URL, init?: RequestInit): RecordedRequest {
+	const method = init?.method ?? "GET"
+	return { url: requestUrl(input), method, body: init?.body ? parseJsonBody(init.body) : undefined }
+}
+
+export function recordRequest(
+	requests: RecordedRequest[],
+	input: RequestInfo | URL,
+	init?: RequestInit,
+): RecordedRequest {
+	const request = requestDetails(input, init)
+	requests.push(request)
+	return request
+}

@@ -1,7 +1,8 @@
 import type { AgentFile } from "@/api/generated/models/agentFile.zod"
-import type { QueryClient } from "@/test-helpers"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root } from "@/test-helpers"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { AgentFilesCard } = await import("./agent-files-card")

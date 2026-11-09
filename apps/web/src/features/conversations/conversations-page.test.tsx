@@ -1,9 +1,12 @@
-import type { QueryClient } from "@/test-helpers"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { act, createTestHarness, json, renderWithProviders, type Root, settle } from "@/test-helpers"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, type Root, settle } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 import type { ConversationsSearch as Search } from "./conversations-search"
+
+import { renderConversationsPage } from "./-render-with-providers"
 
 const { ConversationsPage } = await import("./conversations-page")
 const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
@@ -45,7 +48,7 @@ function Harness({ initial }: { initial: Search }) {
 async function renderPage(initial: Search = {}) {
 	const rootRoute = createRootRoute({ component: () => <Harness initial={initial} /> })
 	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
-	await renderWithProviders(root, queryClient, router)
+	await renderConversationsPage(root, queryClient, router)
 	await settle()
 	await settle()
 }

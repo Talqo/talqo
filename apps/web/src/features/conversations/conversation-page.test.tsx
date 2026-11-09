@@ -1,7 +1,10 @@
-import type { QueryClient } from "@/test-helpers"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { act, createTestHarness, json, renderWithProviders, type Root, settle } from "@/test-helpers"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, type Root, settle } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
+
+import { renderConversationsPage } from "./-render-with-providers"
 
 const { ConversationPage } = await import("./conversation-page")
 const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
@@ -36,7 +39,7 @@ async function renderPage() {
 		component: () => <ConversationPage conversationId={CONVERSATION_ID} listSearch={{ page: 2 }} />,
 	})
 	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
-	await renderWithProviders(root, queryClient, router)
+	await renderConversationsPage(root, queryClient, router)
 	await settle()
 }
 

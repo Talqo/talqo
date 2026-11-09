@@ -1,7 +1,8 @@
 import type { ListRoleAgents200 } from "@/api/generated/models/roles/listRoleAgents200.zod"
-import type { QueryClient } from "@/test-helpers"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { act, createTestHarness, json, QueryClientProvider, type Root, settle } from "@/test-helpers"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { RoleAccessCard } = await import("./role-access-card")

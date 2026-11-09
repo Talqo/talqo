@@ -1,6 +1,6 @@
 import type { Root } from "react-dom/client"
 
-import { act, createTestHarness } from "@/test-helpers"
+import { act, createTestHarness } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { CredentialsForm } = await import("./credentials-form")

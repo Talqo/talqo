@@ -1,6 +1,6 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
-import { act, createTestHarness, QueryClientProvider, type Root } from "@/test-helpers"
+import { act, createTestHarness, QueryClientProvider, type Root } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { ConnectionCard } = await import("./connection-card")

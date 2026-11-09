@@ -1,17 +1,9 @@
 import type { Role } from "@/api/generated/models/role.zod"
-import type { QueryClient } from "@/test-helpers"
+import type { QueryClient } from "@/testing/component-harness"
 
 import { ListUsers200 } from "@/api/generated/models/roles/listUsers200.zod"
-import {
-	act,
-	createTestHarness,
-	json,
-	parseJsonBody,
-	QueryClientProvider,
-	recordRequest,
-	type Root,
-	settle,
-} from "@/test-helpers"
+import { json, parseJsonBody, recordRequest } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { TeamPage } = await import("./team-page")
