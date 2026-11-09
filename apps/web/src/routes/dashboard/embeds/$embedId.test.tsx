@@ -17,6 +17,7 @@ const { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterP
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
 const { t } = await import("i18next")
+const { supportedLanguages } = await import("@talqo/shared/languages")
 
 const EmbedDetailPage = Route.options.component ?? (() => null)
 
@@ -51,6 +52,7 @@ const INITIAL_EMBED: Embed = {
 		language: "en",
 	},
 }
+const DEFAULT_AGENT_PERMISSIONS = ["agents:read", "agents:manage"]
 const SAVED_EMBED: Embed = {
 	...INITIAL_EMBED,
 	name: "Saved by server",
@@ -61,9 +63,13 @@ const SAVED_EMBED: Embed = {
 }
 
 let currentEmbed: Embed
+let agentPermissions: string[]
+let detailFailures: Response[]
+let agentsFailures: Response[]
 let updateFailures: Response[]
 let deleteFailures: Response[]
 let updates: unknown[]
+let requests: Array<{ url: string; method: string }>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
@@ -75,8 +81,11 @@ function json(body: unknown, status = 200): Response {
 async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<Response> {
 	const url = typeof request === "string" ? request : request instanceof URL ? request.href : request.url
 	const method = init?.method ?? "GET"
+	requests.push({ url, method })
 
 	if (url === "/api/agents" && method === "GET") {
+		const failure = agentsFailures.shift()
+		if (failure) return failure
 		return json({
 			agents: [
 				{
@@ -91,12 +100,16 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 					name: "Support agent",
 					createdAt: "2026-01-01T00:00:00.000Z",
 					updatedAt: "2026-01-01T00:00:00.000Z",
-					permissions: ["agents:read", "agents:manage"],
+					permissions: agentPermissions,
 				},
 			],
 		})
 	}
-	if (url === DETAIL_URL && method === "GET") return json({ embed: currentEmbed })
+	if (url === DETAIL_URL && method === "GET") {
+		const failure = detailFailures.shift()
+		if (failure) return failure
+		return json({ embed: currentEmbed })
+	}
 	if (url === DETAIL_URL && method === "DELETE") {
 		return deleteFailures.shift() ?? new Response(null, { status: 204 })
 	}
@@ -157,13 +170,26 @@ function input(selector: string): HTMLInputElement {
 }
 
 function button(label: string, scope: ParentNode = host): HTMLButtonElement {
-	const found = [...scope.querySelectorAll("button")].find((element) => element.textContent?.trim() === label)
+	const found = [...scope.querySelectorAll("button")].find(
+		(element) => element.textContent?.trim() === label || element.getAttribute("aria-label") === label,
+	)
 	if (!found) throw new Error(`Button "${label}" not rendered`)
 	return found
 }
 
 function formStatus(): string | undefined {
 	return input("#widget-name").form?.querySelector("output")?.textContent ?? undefined
+}
+
+async function choose(triggerSelector: string, label: string) {
+	const trigger = host.querySelector<HTMLElement>(triggerSelector)
+	if (!trigger) throw new Error(`Select ${triggerSelector} not rendered`)
+	await click(trigger)
+	const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+		(candidate) => candidate.textContent?.trim() === label,
+	)
+	if (!option) throw new Error(`Option "${label}" not rendered`)
+	await click(option)
 }
 
 function deleteDialog(): HTMLElement {
@@ -194,9 +220,13 @@ async function typeInto(element: HTMLInputElement, value: string) {
 
 beforeEach(() => {
 	currentEmbed = INITIAL_EMBED
+	agentPermissions = [...DEFAULT_AGENT_PERMISSIONS]
+	detailFailures = []
+	agentsFailures = []
 	updateFailures = []
 	deleteFailures = []
 	updates = []
+	requests = []
 	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
 	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 	host = document.createElement("div")
@@ -268,6 +298,137 @@ describe("embed appearance saving", () => {
 	})
 })
 
+describe("embed detail loading", () => {
+	test("explains a missing embed without offering a retry", async () => {
+		detailFailures = [json({ code: "embed-not-found", type: "https://docs.talqo.chat/problems#embed-not-found" }, 404)]
+		await renderPage()
+
+		expect(host.textContent).toContain(t("embedSetup.notFound"))
+		expect(host.querySelector("[role='alert']") === null).toBe(true)
+	})
+
+	test("retries a failed embed load and then renders the form", async () => {
+		detailFailures = [json({}, 403)]
+		await renderPage()
+		expect(host.textContent).toContain(t("embedSetup.detailLoadError"))
+		const beforeRetry = requests.filter(({ url, method }) => url === DETAIL_URL && method === "GET").length
+
+		await click(button(t("common.retry")))
+
+		expect(requests.filter(({ url, method }) => url === DETAIL_URL && method === "GET")).toHaveLength(beforeRetry + 1)
+		expect(input("#widget-name").value).toBe(INITIAL_EMBED.name)
+	})
+
+	test("retries a failed agent permission load before allowing edits", async () => {
+		agentsFailures = [json({}, 403)]
+		await renderPage()
+		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("common.retry"))
+		expect(host.querySelector("#widget-name") === null).toBe(true)
+		const beforeRetry = requests.filter(({ url }) => url === "/api/agents").length
+
+		await click(button(t("common.retry")))
+
+		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(beforeRetry + 1)
+		expect(input("#widget-name").value).toBe(INITIAL_EMBED.name)
+	})
+
+	test("explains when the embed is disabled", async () => {
+		currentEmbed = { ...INITIAL_EMBED, isDisabled: true }
+		await renderPage()
+
+		expect(host.textContent).toContain(t("embedSetup.embedDisabledNote"))
+	})
+
+	test("makes the form and token read-only without manage permission", async () => {
+		agentPermissions = ["agents:read"]
+		await renderPage()
+
+		expect(input("#widget-name").readOnly).toBe(true)
+		expect(input("#color-light-primary-hex").readOnly).toBe(true)
+		expect(host.querySelector("#widget-position")?.getAttribute("disabled")).not.toBeNull()
+		expect(host.querySelector("#embed-token") === null).toBe(true)
+		expect(host.textContent).not.toContain(t("embedSetup.deleteEmbed"))
+		expect(
+			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("embedSetup.save")),
+		).toBe(false)
+	})
+})
+
+describe("embed snippet copying", () => {
+	test("writes the current snippet and recovers after a rejected clipboard write", async () => {
+		const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard")
+		const writes: string[] = []
+		let reject = true
+		Object.defineProperty(navigator, "clipboard", {
+			configurable: true,
+			value: {
+				writeText: async (text: string) => {
+					writes.push(text)
+					if (reject) throw new Error("clipboard denied")
+				},
+			},
+		})
+		try {
+			await renderPage()
+			const copy = t("embedSetup.copyEmbed")
+
+			await click(button(copy))
+			expect(writes).toHaveLength(1)
+
+			reject = false
+			await click(button(copy))
+			expect(writes).toHaveLength(2)
+			expect(writes[1]).toContain(`data-talqo-embed-token="${INITIAL_EMBED.embedToken}"`)
+			expect(writes[1]).toContain(`${window.location.origin}/widget.js`)
+		} finally {
+			if (originalClipboard) Object.defineProperty(navigator, "clipboard", originalClipboard)
+			else Reflect.deleteProperty(navigator, "clipboard")
+		}
+	})
+})
+
+describe("embed appearance controls", () => {
+	test("keeps the selected color scheme in the URL", async () => {
+		const router = await renderPage()
+		expect(button(t("embedSetup.tabLight")).getAttribute("aria-selected")).toBe("true")
+
+		await click(button(t("embedSetup.tabDark")))
+
+		expect(router.state.location.search).toEqual({ colorTab: "dark" })
+		expect(button(t("embedSetup.tabDark")).getAttribute("aria-selected")).toBe("true")
+		expect(host.querySelector("#color-dark-primary-hex") === null).toBe(false)
+	})
+
+	test("saves the selected position, theme, language, and theme toggle", async () => {
+		await renderPage()
+		expect(host.querySelector("#widget-position")?.textContent).toContain(t("embedSetup.positionBottomRight"))
+		expect(host.querySelector("#widget-theme")?.textContent).toContain(t("embedSetup.themeSystem"))
+		expect(host.querySelector("#widget-language")?.textContent).toContain(supportedLanguages.en)
+		await typeInto(input("#widget-name"), "Storefront")
+		await choose("#widget-position", t("embedSetup.positionBottomLeft"))
+		await choose("#widget-theme", t("embedSetup.themeDark"))
+		await choose("#widget-language", supportedLanguages.cs)
+		const themeToggle = host.querySelector<HTMLElement>("[role='switch']")
+		if (!themeToggle) throw new Error("Theme toggle not rendered")
+		await click(themeToggle)
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(updates).toHaveLength(1)
+		expect(updates[0]).toEqual({
+			name: "Storefront",
+			agentId: AGENT_ID,
+			appearance: {
+				...INITIAL_EMBED.appearance,
+				position: "bottom-left",
+				theme: "dark",
+				themeToggle: true,
+				language: "cs",
+			},
+		})
+	})
+})
+
 describe("embed deletion", () => {
 	test("keeps failure state intact, then clears cached queries and bypasses the dirty guard", async () => {
 		deleteFailures = [json({}, 500)]
@@ -276,6 +437,10 @@ describe("embed deletion", () => {
 		const detailKey = getGetEmbedQueryKey(EMBED_ID)
 		queryClient.setQueryData(listKey, { data: { embeds: [INITIAL_EMBED] } })
 		await typeInto(input("#widget-name"), "Unsaved embed name")
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		await click(button(t("embedSetup.deleteEmbed")))
+		await click(button(t("embedSetup.cancel"), deleteDialog()))
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 		await click(button(t("embedSetup.deleteEmbed")))
 		const confirmation = deleteDialog().querySelector("input")
 		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")

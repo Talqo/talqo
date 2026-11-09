@@ -10,7 +10,7 @@ import microsoftazureLogo from "./logos/microsoftazure.svg"
 import mistralaiLogo from "./logos/mistralai.svg"
 import openaiLogo from "./logos/openai.svg"
 
-const LOGOS: Partial<Record<AiProviderId, { src: string; label: string }>> = {
+const LOGOS: Record<Exclude<AiProviderId, "openai-compatible">, { src: string; label: string }> = {
 	openai: { src: openaiLogo, label: "OpenAI" },
 	anthropic: { src: anthropicLogo, label: "Anthropic" },
 	google: { src: googlegeminiLogo, label: "Google Gemini" },
@@ -34,7 +34,6 @@ export function ProviderBrand({ providerId, className }: { providerId: AiProvide
 		)
 	}
 	const logo = LOGOS[providerId]
-	if (!logo) return null
 	return (
 		<span
 			className={cn(

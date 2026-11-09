@@ -173,10 +173,6 @@ export function ConnectionDialog({
 
 	function onSubmit() {
 		setError(null)
-		if (stdioBlocked) {
-			setError({ message: t("mcp.stdioDisabled") })
-			return
-		}
 		if (server) {
 			const result = toEditBody(draft, server)
 			if (!result.ok) {

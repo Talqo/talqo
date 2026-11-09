@@ -34,6 +34,7 @@ type FileOperation = { url: string; method: string; body: unknown }
 
 let files: AgentFile[]
 let fileListRequests: number
+let fileListFailures: Response[]
 let fileOperations: FileOperation[]
 let fileOperationResponses: Array<Response | Promise<Response>>
 let uploads: PendingUpload[]
@@ -50,6 +51,8 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const method = init?.method ?? "GET"
 	if (url === FILES_URL && method === "GET") {
 		fileListRequests++
+		const failure = fileListFailures.shift()
+		if (failure) return failure
 		return json({ files, maxSizeBytes: MAX_SIZE_BYTES, maxNameLength: 255, allowedExtensions: [".md"] })
 	}
 	if (url === FILES_URL && method === "POST") {
@@ -66,7 +69,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 			method,
 			body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
 		})
-		if (method === "GET") return new Response("downloaded file")
+		if (method === "GET") return fileOperationResponses.shift() ?? new Response("downloaded file")
 		const response = fileOperationResponses.shift()
 		if (!response) throw new Error(`unexpected request ${method} ${url}`)
 		return response
@@ -155,6 +158,7 @@ async function replaceInputValue(input: HTMLInputElement, value: string) {
 beforeEach(() => {
 	files = []
 	fileListRequests = 0
+	fileListFailures = []
 	fileOperations = []
 	fileOperationResponses = []
 	uploads = []
@@ -178,6 +182,8 @@ describe("AgentFilesCard for a read-only operator", () => {
 		await renderCard()
 
 		expect(host.textContent).toContain("faq.md")
+		expect(host.textContent).toContain(t("agentFiles.status.failed"))
+		expect(host.textContent).toContain(t("agentFiles.error.conversionFailed"))
 		expect(labelledButton(t("agentFiles.download", { name: "faq.md" }))).not.toBeNull()
 		expect(labelledButton(t("agentFiles.rename", { name: "faq.md" })) === null).toBe(true)
 		expect(labelledButton(t("agentFiles.delete", { name: "faq.md" })) === null).toBe(true)
@@ -215,6 +221,7 @@ describe("AgentFilesCard for a managing operator", () => {
 
 	test("uploads a max-size file sequentially, stops after failure, and refreshes earlier successes", async () => {
 		await renderCard(true)
+		expect(host.textContent).toContain(t("agentFiles.dropzoneHint"))
 		const atLimit = new File([new Uint8Array(MAX_SIZE_BYTES)], "one.md")
 		const failing = new File(["two"], "two.md")
 		const skipped = new File(["three"], "three.md")
@@ -292,6 +299,12 @@ describe("AgentFilesCard for a managing operator", () => {
 		)
 		const input = element<HTMLInputElement>("#rename-file-name")
 		expect(input.value).toBe("guides/what #1? 50%")
+		expect(element<HTMLElement>('[role="dialog"]').textContent).toContain(
+			t("agentFiles.renameExtensionKept", { extension: ".md" }),
+		)
+		await replaceInputValue(input, "   ")
+		await settle()
+		expect(dialogButton(t("agentFiles.renameSave"), "dialog").disabled).toBe(true)
 		await replaceInputValue(input, "  renamed  ")
 
 		await click(dialogButton(t("agentFiles.renameSave"), "dialog"))
@@ -371,5 +384,85 @@ describe("AgentFilesCard for a managing operator", () => {
 		expect(fileListRequests).toBe(2)
 		expect(host.textContent).toContain(t("agentFiles.status.pending"))
 		expect(labelledButton(retryLabel) === null).toBe(true)
+	})
+
+	test("uploads files dropped onto the dropzone", async () => {
+		await renderCard(true)
+		const dropzone = [...host.querySelectorAll("button")].find((candidate) =>
+			candidate.textContent?.includes(t("agentFiles.dropzone")),
+		)
+		if (!dropzone) throw new Error("dropzone not rendered")
+		const transfer = new DataTransfer()
+		transfer.items.add(new File(["dropped"], "dropped.md"))
+		const drop = new Event("drop", { bubbles: true, cancelable: true })
+		Object.defineProperty(drop, "dataTransfer", { value: transfer })
+
+		await act(async () => dropzone.dispatchEvent(drop))
+
+		expect(drop.defaultPrevented).toBe(true)
+		expect(uploads.map(({ file }) => file.name)).toEqual(["dropped.md"])
+		await resolveUpload(0, json({ file: { ...FILE, name: "dropped.md", embeddingStatus: "ready" } }, 201))
+	})
+
+	test("opens the hidden file picker from the dropzone", async () => {
+		await renderCard(true)
+		const input = element<HTMLInputElement>("#agent-file-input")
+		const clickInput = spyOn(input, "click")
+		const dropzone = [...host.querySelectorAll("button")].find((candidate) =>
+			candidate.textContent?.includes(t("agentFiles.dropzone")),
+		)
+		if (!dropzone) throw new Error("dropzone not rendered")
+
+		await click(dropzone)
+		expect(clickInput).toHaveBeenCalledTimes(1)
+	})
+
+	test("disables download while pending and reports a failed download", async () => {
+		files = [{ ...FILE, name: "report.pdf" }]
+		const pendingDownload = Promise.withResolvers<Response>()
+		fileOperationResponses = [pendingDownload.promise]
+		await renderCard(true)
+		const label = t("agentFiles.download", { name: "report.pdf" })
+		const download = labelledButton(label)
+		if (!download) throw new Error("download button not rendered")
+
+		await click(download)
+		expect(download.disabled).toBe(true)
+
+		await act(async () => pendingDownload.resolve(json({}, 500)))
+		await settle()
+		await settle()
+
+		expect(host.querySelector('[role="alert"]')?.textContent).toBe(t("agentFiles.downloadFailed"))
+		expect(download.disabled).toBe(false)
+	})
+
+	test("retries a failed file list without losing the upload controls", async () => {
+		fileListFailures = [json({}, 500)]
+		await renderCard(true)
+		expect(host.querySelector('[role="alert"]')).not.toBeNull()
+		const beforeRetry = fileListRequests
+
+		await click(element<HTMLButtonElement>('[role="alert"] button'))
+
+		expect(fileListRequests).toBe(beforeRetry + 1)
+		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.textContent).toContain(t("agentFiles.dropzone"))
+	})
+
+	test("closes the rename and delete dialogs without changing files", async () => {
+		files = [FILE]
+		await renderCard(true)
+
+		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.rename", { name: FILE.name })}"]`))
+		expect(element<HTMLElement>('[role="dialog"]')).not.toBeNull()
+		await click(dialogButton(t("common.cancel"), "dialog"))
+		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+
+		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.delete", { name: FILE.name })}"]`))
+		expect(element<HTMLElement>('[role="alertdialog"]')).not.toBeNull()
+		await click(dialogButton(t("common.cancel"), "alertdialog"))
+		expect(document.querySelector('[role="alertdialog"]') === null).toBe(true)
+		expect(fileOperations).toEqual([])
 	})
 })

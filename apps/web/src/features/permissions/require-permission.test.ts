@@ -33,6 +33,8 @@ describe("accessGate", () => {
 		expect(accessGate("agents:read", permissions, agents)).toBe("denied")
 		const agentData = agents.data
 		if (!agentData) throw new Error("Agent fixture has no response data")
+		for (const agent of agentData.data.agents) agent.permissions = ["agents:read"]
+		expect(accessGate("agents:read", permissions, agents)).toBe("open")
 		for (const agent of agentData.data.agents) agent.permissions = ["conversations:read"]
 		expect(accessGate("conversations:read", permissions, agents)).toBe("open")
 	})
@@ -58,6 +60,10 @@ describe("accessGate", () => {
 
 	test("denies a route whose requirement is absent", () => {
 		expect(accessGate("ai_provider:manage", query({ data: { data: { permissions: [] } } }))).toBe("denied")
+	})
+
+	test("treats missing permission data as no access", () => {
+		expect(accessGate("admin", query())).toBe("denied")
 	})
 
 	// A failed request is not an authorization decision.

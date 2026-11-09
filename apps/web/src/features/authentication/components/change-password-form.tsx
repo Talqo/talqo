@@ -8,7 +8,7 @@ import { Button } from "@talqo/ui/components/button"
 import { FormActions } from "@talqo/ui/components/form-actions"
 import { Label } from "@talqo/ui/components/label"
 import { PasswordInput } from "@talqo/ui/components/password-input"
-import { type FieldErrors, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type ChangePasswordFormProps = {
@@ -32,17 +32,11 @@ export function ChangePasswordForm({
 	const {
 		register,
 		handleSubmit,
-		setFocus,
 		formState: { errors, isDirty },
 	} = useForm<ChangePasswordFormValues>({ resolver: zodResolver(changePasswordSchema) })
-	const firstInvalid = (formErrors: FieldErrors<ChangePasswordFormValues>) => {
-		if (formErrors.currentPassword) setFocus("currentPassword")
-		else if (formErrors.newPassword) setFocus("newPassword")
-		else setFocus("confirmPassword")
-	}
 
 	return (
-		<form className="space-y-4" onSubmit={handleSubmit(onSubmit, firstInvalid)}>
+		<form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
 			<div className="space-y-2">
 				<Label htmlFor="current-password">{t("account.currentPassword")}</Label>
 				<PasswordInput

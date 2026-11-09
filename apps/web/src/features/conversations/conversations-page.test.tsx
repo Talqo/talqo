@@ -37,7 +37,7 @@ function list(conversations: unknown[], total = conversations.length, page = 1) 
 	return json({ conversations, page, pageSize: 25, total })
 }
 
-let responses: Record<string, () => Response>
+let responses: Record<string, () => Response | Promise<Response>>
 let requested: string[]
 let host: HTMLDivElement
 let root: Root
@@ -74,10 +74,21 @@ async function renderPage(initial: Search = {}) {
 	await settle()
 }
 
-function button(label: string): HTMLButtonElement {
-	const found = [...host.querySelectorAll("button")].find((element) => element.textContent === label)
+function button(label: string, scope: ParentNode = host): HTMLButtonElement {
+	const found = [...scope.querySelectorAll("button")].find((element) => element.textContent === label)
 	if (!found) throw new Error(`button ${label} not rendered`)
 	return found
+}
+
+function combobox(label: string): HTMLElement {
+	const element = host.querySelector<HTMLElement>(`[role=combobox][aria-label="${label}"]`)
+	if (!element) throw new Error(`${label} combobox not rendered`)
+	return element
+}
+
+async function click(element: HTMLElement) {
+	await act(async () => element.click())
+	await settle()
 }
 
 beforeEach(() => {
@@ -111,6 +122,7 @@ describe("ConversationsPage", () => {
 
 		expect(host.textContent).toContain(t("conversations.emptyTitle"))
 		expect(host.textContent).toContain(t("conversations.emptyDescription"))
+		expect(host.querySelector(`nav[aria-label="${t("conversations.pagination")}"]`) === null).toBe(true)
 	})
 
 	test("explains an empty filtered list without dropping the agent filter", async () => {
@@ -127,6 +139,7 @@ describe("ConversationsPage", () => {
 		responses["/api/conversations?page=1"] = () =>
 			list([
 				summary("a", "2026-10-02T10:00:00.000Z"),
+				summary("c", "2026-10-02T09:00:00.000Z"),
 				summary("b", "2026-10-01T10:00:00.000Z", { agentId: DOCS.id, messageCount: 1 }),
 			])
 
@@ -134,9 +147,11 @@ describe("ConversationsPage", () => {
 
 		expect([...host.querySelectorAll("h3")].map((heading) => heading.textContent)).toHaveLength(2)
 		const rows = [...host.querySelectorAll("li")]
+		expect(rows).toHaveLength(3)
 		expect(rows[0]?.textContent).toContain(SHOP.name)
-		expect(rows[1]?.textContent).toContain(DOCS.name)
-		expect(rows[1]?.textContent).toContain(t("conversations.messageCount", { count: 1 }))
+		expect(rows[1]?.textContent).toContain("Question c")
+		expect(rows[2]?.textContent).toContain(DOCS.name)
+		expect(rows[2]?.textContent).toContain(t("conversations.messageCount", { count: 1 }))
 		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
 	})
 
@@ -149,16 +164,73 @@ describe("ConversationsPage", () => {
 		await renderPage({ agents: [SHOP.id] })
 		expect(host.textContent).toContain(t("conversations.pageOf", { page: 1, pages: 2 }))
 		expect(button(t("conversations.previousPage")).disabled).toBe(true)
+		expect(host.querySelector("section h2")?.getAttribute("tabindex")).toBe("-1")
 
 		await act(async () => button(t("conversations.nextPage")).click())
 		await settle()
 
 		expect(host.textContent).toContain(t("conversations.pageOf", { page: 2, pages: 2 }))
 		expect(host.querySelectorAll("li")).toHaveLength(1)
+		expect(button(t("conversations.nextPage")).disabled).toBe(true)
 		expect(document.activeElement?.tagName).toBe("H2")
 		expect(host.querySelector("a")?.getAttribute("href")).toBe(
 			`/dashboard/conversations/p2-0?agents=${encodeURIComponent(JSON.stringify([SHOP.id]))}&page=2`,
 		)
+
+		await act(async () => button(t("conversations.previousPage")).click())
+		await settle()
+
+		expect(requested).toContain(`/api/conversations?agentId=${SHOP.id}&page=1`)
+		expect(host.textContent).toContain(t("conversations.pageOf", { page: 1, pages: 2 }))
+		expect(button(t("conversations.previousPage")).disabled).toBe(true)
+		expect(host.querySelector("a")?.getAttribute("href")).toBe(
+			`/dashboard/conversations/p1-0?agents=${encodeURIComponent(JSON.stringify([SHOP.id]))}`,
+		)
+	})
+
+	test("recovers from an out-of-range page through the first page", async () => {
+		responses["/api/conversations?page=3"] = () => list([], 30, 3)
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")], 30)
+
+		await renderPage({ page: 3 })
+
+		expect(host.textContent).toContain(t("conversations.pageEmptyTitle"))
+		expect(host.textContent).toContain(t("conversations.pageEmptyDescription"))
+
+		await act(async () => button(t("conversations.firstPage")).click())
+		await settle()
+
+		expect(requested).toContain("/api/conversations?page=1")
+		expect(host.textContent).toContain("Question a")
+		expect(host.textContent).toContain(t("conversations.pageOf", { page: 1, pages: 2 }))
+	})
+
+	test("labels a missing preview and a removed agent", async () => {
+		responses["/api/conversations?page=1"] = () =>
+			list([summary("a", "2026-10-02T10:00:00.000Z", { agentId: REMOVED_ID, preview: null })])
+
+		await renderPage()
+
+		expect(host.textContent).toContain(t("conversations.noPreview"))
+		expect(host.textContent).toContain(t("conversations.unknownAgent"))
+	})
+
+	test("shows every agent without a filter and hides them all from the selector", async () => {
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
+		await renderPage({ agents: [SHOP.id] })
+
+		await click(combobox(t("dashboard.agentsLabel")))
+		await click(button(t("dashboard.selectAll"), document))
+		await settle()
+
+		expect(requested).toContain("/api/conversations?page=1")
+		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
+
+		if (document.querySelector("[role=listbox]") === null) await click(combobox(t("dashboard.agentsLabel")))
+		await click(button(t("dashboard.deselectAll"), document))
+		await settle()
+
+		expect(host.querySelector("output")?.textContent).toBe(t("conversations.noAgentSelected"))
 	})
 
 	test("asks for an agent instead of loading when every agent is deselected", async () => {
@@ -194,6 +266,45 @@ describe("ConversationsPage", () => {
 		expect(requested.some((url) => url.includes(REMOVED_ID))).toBe(false)
 		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
 		expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 2, total: 2, count: 2 }))
+	})
+
+	test("waits for agent discovery before requesting a filtered conversation list", async () => {
+		const agents = Promise.withResolvers<Response>()
+		responses["/api/agents"] = () => agents.promise
+		responses[`/api/conversations?agentId=${DOCS.id}&page=1`] = () => list([])
+
+		await renderPage({ agents: [DOCS.id] })
+		expect(requested.some((url) => url.startsWith("/api/conversations"))).toBe(false)
+
+		await act(async () => agents.resolve(json({ agents: [SHOP, DOCS] })))
+		await settle()
+		await settle()
+
+		expect(requested).toContain(`/api/conversations?agentId=${DOCS.id}&page=1`)
+	})
+
+	test("starts the unfiltered list while agent discovery is still running", async () => {
+		const agents = Promise.withResolvers<Response>()
+		responses["/api/agents"] = () => agents.promise
+		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
+
+		await renderPage()
+		expect(requested).toContain("/api/conversations?page=1")
+
+		await act(async () => agents.resolve(json({ agents: [SHOP, DOCS] })))
+		await settle()
+	})
+
+	test("announces loading while conversations are pending", async () => {
+		const conversations = Promise.withResolvers<Response>()
+		responses["/api/conversations?page=1"] = () => conversations.promise
+
+		await renderPage()
+		expect(host.querySelector("output")?.textContent).toBe(t("conversations.loading"))
+
+		await act(async () => conversations.resolve(list([summary("a", "2026-10-02T10:00:00.000Z")])))
+		await settle()
+		expect(host.textContent).toContain("Question a")
 	})
 
 	test("keeps a saved filter when the agent list cannot be loaded", async () => {
