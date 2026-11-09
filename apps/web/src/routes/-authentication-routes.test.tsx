@@ -166,7 +166,7 @@ function makeGuardRouter(initialPath: string) {
 }
 
 function DashboardDestination() {
-	return <h1>Dashboard destination</h1>
+	return <div data-testid="dashboard-destination" />
 }
 
 function makeSubmitRouter(initialPath: string) {
@@ -324,7 +324,7 @@ describe("authentication route submissions", () => {
 				{ url: scenario.apiUrl, method: scenario.method, body: scenario.expectedBody },
 			])
 			expect(router.state.location.pathname).toBe("/dashboard")
-			expect(host.querySelector("h1")?.textContent).toBe("Dashboard destination")
+			expect(host.querySelector('[data-testid="dashboard-destination"]')).not.toBeNull()
 			if (scenario.clearsCache) expect(queryClient.getQueryData(CACHE_KEY)).toBeUndefined()
 		})
 
