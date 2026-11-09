@@ -13,11 +13,13 @@ const { t } = await import("i18next")
 const AgentsPage = Route.options.component ?? (() => null)
 
 let permissions: string[]
+let permissionsResponse: Promise<Response> | undefined
 let createResponse: Response | Promise<Response> | undefined
 let createRequests: unknown[]
 let listedAgentNames: string[]
 let unreadableAgentNames: string[]
 let listRequests: number
+let listResponse: Response | undefined
 let listRequestsAtNavigation: number | undefined
 let host: HTMLDivElement
 let root: Root
@@ -70,16 +72,18 @@ function buttons(label: string): HTMLButtonElement[] {
 
 beforeEach(() => {
 	permissions = ["admin"]
+	permissionsResponse = undefined
 	createResponse = undefined
 	createRequests = []
 	listedAgentNames = []
 	unreadableAgentNames = []
 	listRequests = 0
+	listResponse = undefined
 	listRequestsAtNavigation = undefined
 	harness = createTestHarness({
 		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-			if (url === "/api/me/permissions") return json({ permissions })
+			if (url === "/api/me/permissions") return permissionsResponse ?? json({ permissions })
 			if (url === "/api/agents") {
 				if (init?.method === "POST") {
 					if (typeof init.body !== "string") throw new Error("create request must have a JSON body")
@@ -87,6 +91,7 @@ beforeEach(() => {
 					return createResponse ?? json({ agent: { id: "created-agent" } }, 201)
 				}
 				listRequests += 1
+				if (listResponse) return listResponse
 				return json({
 					agents: [
 						...listedAgentNames.map((name, index) => ({
@@ -119,6 +124,10 @@ afterEach(async () => {
 	await harness.dispose()
 })
 
+test("guards the page with read access", () => {
+	expect(Route.options.beforeLoad?.({} as never)).toEqual({ requires: "agents:read" })
+})
+
 describe("AgentsPage empty states", () => {
 	test("invites an admin to create the first agent", async () => {
 		await renderPage()
@@ -126,6 +135,9 @@ describe("AgentsPage empty states", () => {
 		expect(host.textContent).toContain(t("agents.emptyTitle"))
 		expect(host.textContent).toContain(t("agents.emptyDescriptionManager"))
 		expect(buttons(t("agents.create")).length).toBe(2)
+
+		await click(buttons(t("agents.create"))[1])
+		expect(createRequests).toHaveLength(1)
 	})
 
 	test("does not tell a reader to create an agent", async () => {
@@ -139,6 +151,20 @@ describe("AgentsPage empty states", () => {
 	})
 })
 
+describe("AgentsPage load failures", () => {
+	test("shows the load failure and refetches on retry", async () => {
+		listResponse = new Response(null, { status: 500 })
+		await renderPage()
+
+		expect(host.querySelector("[role=alert] p")?.textContent).toBe(t("agents.loadFailed"))
+		const before = listRequests
+
+		await click(buttons(t("common.retry"))[0])
+
+		expect(listRequests).toBe(before + 1)
+	})
+})
+
 describe("AgentsPage access filtering", () => {
 	test("omits cards and links for agents without read access", async () => {
 		listedAgentNames = ["Readable agent"]
@@ -147,8 +173,26 @@ describe("AgentsPage access filtering", () => {
 
 		expect(host.textContent).toContain("Readable agent")
 		expect(host.textContent).not.toContain("Unreadable agent")
-		expect(host.querySelector("a[aria-label='Readable agent']")).not.toBeNull()
+		expect(host.querySelector("a[aria-label='Readable agent']")?.getAttribute("href")).toBe(
+			"/dashboard/agent/listed-agent-0",
+		)
 		expect(host.querySelector("a[aria-label='Unreadable agent']") === null).toBe(true)
+	})
+})
+
+describe("AgentsPage permissions", () => {
+	test("offers creation only after admin permissions resolve", async () => {
+		const pending = Promise.withResolvers<Response>()
+		permissionsResponse = pending.promise
+		await renderPage()
+
+		expect(buttons(t("agents.create"))).toHaveLength(0)
+
+		await act(async () => pending.resolve(json({ permissions })))
+		await settle()
+		await settle()
+
+		expect(buttons(t("agents.create")).length).toBeGreaterThan(0)
 	})
 })
 

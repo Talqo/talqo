@@ -8,6 +8,16 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
+import {
+	json,
+	problem,
+	type RecordedRequest as RequestRecord,
+	recordRequest,
+	requestCount as countRequests,
+} from "@/testing/api-responses"
+import { settle } from "@/testing/component-harness"
+import { click } from "@/testing/dom"
+
 const { EMBED_FORM_DEFAULTS } = await import("@/features/embeds/embed-appearance-form")
 const { useGetEmbed, useListEmbeds } = await import("@/api/generated/embed/embed.ts")
 const { EmbedEnabledSwitch } = await import("./-embed-enabled-switch")
@@ -47,8 +57,6 @@ const SCENARIOS = [
 	},
 ] as const
 
-type RequestRecord = { url: string; method: string }
-
 let currentEmbed: Embed
 let mutationFailures: Response[]
 let mutationResponse: Promise<Response> | undefined
@@ -70,19 +78,8 @@ function SwitchHarness({ initialDisabled, disabled = false }: { initialDisabled:
 	)
 }
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
-function problem(code: "embed-not-found" | "internal-server-error", status: number): Response {
-	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
-}
-
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-	const method = init?.method ?? "GET"
-	requests.push({ url, method })
-
+	const { url, method } = recordRequest(requests, input, init)
 	if (url === DETAIL_URL && method === "GET") return json({ embed: currentEmbed })
 	if (url === AGENT_LIST_URL && method === "GET") return json({ embeds: [currentEmbed] })
 	if (url === OTHER_AGENT_LIST_URL && method === "GET") return json({ embeds: [OTHER_AGENT_EMBED] })
@@ -94,12 +91,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ embed: currentEmbed })
 	}
 	throw new Error(`Unexpected request ${method} ${url}`)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 async function renderSwitch(initialDisabled: boolean, disabled = false) {
@@ -131,14 +122,8 @@ function detailDisabled(): string | null {
 	return host.querySelector("#detail-disabled")?.textContent ?? null
 }
 
-async function click(element: HTMLElement) {
-	await act(async () => element.click())
-	await settle()
-	await settle()
-}
-
 function requestCount(url: string, method = "GET"): number {
-	return requests.filter((request) => request.url === url && request.method === method).length
+	return countRequests(requests, url, method)
 }
 
 beforeEach(async () => {

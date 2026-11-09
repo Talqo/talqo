@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test"
+import { expectValidationIssue } from "@/testing/schema-assertions"
+import { describe, test } from "bun:test"
 
 import { invitationRegistrationFormSchema, registrationFormSchema } from "./credentials-schema.ts"
 
@@ -16,13 +17,6 @@ describe("registration password confirmation", () => {
 			},
 		] as const
 
-		for (const { schema, input } of cases) {
-			const result = schema.safeParse(input)
-			expect(result.success).toBe(false)
-			if (!result.success) {
-				const issue = result.error.issues.find((entry) => entry.path.join(".") === "confirmPassword")
-				expect(issue?.message).toBe("passwordMismatch")
-			}
-		}
+		expectValidationIssue(cases, "confirmPassword", "passwordMismatch")
 	})
 })

@@ -8,6 +8,15 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
+import {
+	json,
+	type RecordedRequest as RequestRecord,
+	recordRequest,
+	requestCount as countRequests,
+} from "@/testing/api-responses"
+import { settle } from "@/testing/component-harness"
+import { click } from "@/testing/dom"
+
 const { EMBED_FORM_DEFAULTS } = await import("@/features/embeds/embed-appearance-form")
 const { useGetEmbed, useListEmbeds } = await import("@/api/generated/embed/embed.ts")
 const { RotateEmbedTokenDialog } = await import("./-rotate-embed-token-dialog")
@@ -29,8 +38,6 @@ const INITIAL_EMBED: Embed = {
 	appearance: EMBED_FORM_DEFAULTS,
 }
 
-type RequestRecord = { url: string; method: string }
-
 let currentEmbed: Embed
 let rotationFailures: number
 let requests: RequestRecord[]
@@ -50,15 +57,8 @@ function TokenRotationHarness() {
 	)
 }
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-	const method = init?.method ?? "GET"
-	requests.push({ url, method })
-
+	const { url, method } = recordRequest(requests, input, init)
 	if (url === DETAIL_URL && method === "GET") return json({ embed: currentEmbed })
 	if (url === "/api/embeds" && method === "GET") return json({ embeds: [currentEmbed] })
 	if (url === ROTATE_URL && method === "POST") {
@@ -70,12 +70,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ embed: currentEmbed })
 	}
 	throw new Error(`Unexpected request ${method} ${url}`)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 async function renderDialog() {
@@ -108,14 +102,8 @@ function button(label: string, scope: ParentNode = document): HTMLButtonElement 
 	return found
 }
 
-async function click(element: HTMLElement) {
-	await act(async () => element.click())
-	await settle()
-	await settle()
-}
-
 function requestCount(url: string, method = "GET"): number {
-	return requests.filter((request) => request.url === url && request.method === method).length
+	return countRequests(requests, url, method)
 }
 
 beforeEach(() => {
@@ -144,7 +132,12 @@ describe("embed token rotation", () => {
 		await renderDialog()
 		expect(tokenOutput("detail-token").textContent).toBe("initial-token")
 		expect(tokenOutput("list-token").textContent).toBe("initial-token")
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 		await click(button(t("embedSetup.rotateToken"), host))
+		await click(button(t("embedSetup.cancel"), dialog()))
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		await click(button(t("embedSetup.rotateToken"), host))
+		expect(requestCount(ROTATE_URL, "POST")).toBe(0)
 		const detailBeforeRotate = requestCount(DETAIL_URL)
 		const listBeforeRotate = requestCount("/api/embeds")
 

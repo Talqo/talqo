@@ -1,3 +1,4 @@
+import en from "@/locales/en.json"
 import { describe, expect, it } from "bun:test"
 
 import { getProblemMessage } from "./problem-message.ts"
@@ -7,6 +8,10 @@ const translations = {
 } as const
 
 const translate = (key: string) => translations[key as keyof typeof translations]
+
+function problem(code: string) {
+	return { info: { code, type: `https://docs.talqo.chat/problems#${code}` } }
+}
 
 describe("getProblemMessage", () => {
 	it("localizes a known exact problem", () => {
@@ -18,6 +23,12 @@ describe("getProblemMessage", () => {
 		}
 
 		expect(getProblemMessage(error, translate, "Fallback")).toBe("Localized invalid credentials")
+	})
+
+	it("maps every dashboard problem code to its translation key", () => {
+		for (const code of Object.keys(en.problems)) {
+			expect(getProblemMessage(problem(code), (key) => key, "Fallback")).toBe(`problems.${code}`)
+		}
 	})
 
 	it("uses the localized fallback for unknown codes", () => {
@@ -44,7 +55,10 @@ describe("getProblemMessage", () => {
 
 	it("uses the fallback for ordinary runtime failures without problem details", () => {
 		expect(getProblemMessage(new TypeError("Failed to fetch"), translate, "Fallback")).toBe("Fallback")
+		expect(getProblemMessage(null, translate, "Fallback")).toBe("Fallback")
+		expect(getProblemMessage(undefined, translate, "Fallback")).toBe("Fallback")
 		expect(getProblemMessage({ info: undefined }, translate, "Fallback")).toBe("Fallback")
+		expect(getProblemMessage({ info: "invalid-credentials" }, translate, "Fallback")).toBe("Fallback")
 	})
 
 	it("uses the localized fallback for malformed problem bodies", () => {

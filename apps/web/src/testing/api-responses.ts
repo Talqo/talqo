@@ -7,6 +7,18 @@ export function parseJsonBody(body: BodyInit | null | undefined): unknown {
 	return JSON.parse(body)
 }
 
+export function problem(code: string, status: number): Response {
+	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
+}
+
+export function requestCount(
+	requests: ReadonlyArray<{ method?: string; url: string }>,
+	url: string,
+	method = "GET",
+): number {
+	return requests.filter((request) => request.url === url && (request.method ?? "GET") === method).length
+}
+
 function requestUrl(input: RequestInfo | URL): string {
 	if (typeof input === "string") return input
 	if (input instanceof URL) return input.href

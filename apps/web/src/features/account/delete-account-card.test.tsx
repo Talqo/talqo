@@ -1,41 +1,26 @@
-import type { Root } from "react-dom/client"
-
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json } from "@/testing/api-responses"
+import { createTestHarness, type QueryClient, type Root } from "@/testing/component-harness"
+import { click, findButton as button, typeInto as type } from "@/testing/dom"
+import { renderRouter } from "@/testing/router"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { DeleteAccountCard } = await import("./delete-account-card")
-const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider, useBlocker } =
+const { createMemoryHistory, createRootRoute, createRoute, createRouter, useBlocker } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const PRIVATE_QUERY_KEY = ["delete-account-test"]
 
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let permissions: string[]
+let permissionsFailure: Response | undefined
 let deleteResponse: Response
-
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
 
 function problem(code: string, status: number): Response {
 	return json({ code, type: `https://docs.talqo.chat/problems#${code}` }, status)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 function AccountWithDelete({ blockNavigation }: { blockNavigation: boolean }) {
@@ -68,25 +53,8 @@ async function renderPage(blockNavigation = false) {
 		routeTree: rootRoute.addChildren([account, login]),
 		history: createMemoryHistory({ initialEntries: ["/dashboard/account"] }),
 	})
-	await act(async () => {
-		await router.load()
-		root.render(
-			<QueryClientProvider client={queryClient}>
-				<LanguageProvider>
-					<RouterProvider router={router} />
-				</LanguageProvider>
-			</QueryClientProvider>,
-		)
-	})
-	await settle()
-	await settle()
+	await renderRouter(root, queryClient, router)
 	return router
-}
-
-function button(label: string, scope: ParentNode = host): HTMLButtonElement {
-	const found = [...scope.querySelectorAll("button")].find((element) => element.textContent?.trim() === label)
-	if (!found) throw new Error(`button "${label}" not rendered`)
-	return found
 }
 
 function queryButton(label: string): HTMLButtonElement | undefined {
@@ -99,19 +67,6 @@ function dialog(): HTMLElement {
 	return found
 }
 
-async function click(element: HTMLButtonElement) {
-	await act(async () => element.click())
-	await settle()
-	await settle()
-}
-
-async function type(element: HTMLInputElement, value: string) {
-	await act(async () => {
-		Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element, value)
-		element.dispatchEvent(new Event("input", { bubbles: true }))
-	})
-}
-
 async function confirmDeletion() {
 	await click(button(t("account.deleteAccount")))
 	const confirmation = dialog().querySelector<HTMLInputElement>("input")
@@ -122,25 +77,22 @@ async function confirmDeletion() {
 
 beforeEach(() => {
 	permissions = []
+	permissionsFailure = undefined
 	deleteResponse = new Response(null, { status: 204 })
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		const method = init?.method ?? "GET"
-		if (url === "/api/me/permissions" && method === "GET") return json({ permissions })
-		if (url === "/api/me" && method === "DELETE") return deleteResponse
-		throw new Error(`unexpected request ${method} ${url}`)
-	}) as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			const method = init?.method ?? "GET"
+			if (url === "/api/me/permissions" && method === "GET") return permissionsFailure ?? json({ permissions })
+			if (url === "/api/me" && method === "DELETE") return deleteResponse
+			throw new Error(`unexpected request ${method} ${url}`)
+		}) as typeof fetch,
+	})
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 	window.localStorage.removeItem("talqo-language")
 	document.documentElement.lang = "en"
 })
@@ -155,16 +107,37 @@ describe("account deletion", () => {
 		expect(host.textContent).not.toContain(t("account.dangerZone"))
 	})
 
+	test("keeps the danger zone visible with a retry when permissions fail", async () => {
+		permissionsFailure = problem("internal-server-error", 500)
+		await renderPage()
+
+		expect(host.textContent).toContain(t("account.dangerZone"))
+		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("problems.internal-server-error"))
+		expect(queryButton(t("account.deleteAccount")) === undefined).toBe(true)
+
+		permissionsFailure = undefined
+		await click(button(t("common.retry")))
+
+		expect(queryButton(t("account.deleteAccount")) !== undefined).toBe(true)
+		expect(host.querySelector("[role='alert']") === null).toBe(true)
+	})
+
 	test("keeps the confirmation open and cached data intact after deletion fails", async () => {
 		deleteResponse = problem("internal-server-error", 500)
 		const router = await renderPage()
 		queryClient.setQueryData(PRIVATE_QUERY_KEY, { private: true })
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 
 		await confirmDeletion()
 
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(router.state.location.pathname).toBe("/dashboard/account")
 		expect(queryClient.getQueryData(PRIVATE_QUERY_KEY)).toEqual({ private: true })
+
+		await click(button(t("account.cancel"), dialog()))
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		await click(button(t("account.deleteAccount")))
+		expect(dialog().textContent).not.toContain(t("problems.internal-server-error"))
 	})
 
 	test("clears cached data and bypasses navigation blockers after deletion", async () => {
