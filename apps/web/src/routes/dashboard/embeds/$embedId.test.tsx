@@ -129,7 +129,7 @@ async function renderPage() {
 	const agent = createRoute({
 		getParentRoute: () => rootRoute,
 		path: "/dashboard/agent/$agentId",
-		component: () => <h1>Agent destination</h1>,
+		component: () => <div data-testid="agent-destination" />,
 	})
 	const router = createRouter({
 		routeTree: rootRoute.addChildren([detail, agent]),
@@ -293,7 +293,7 @@ describe("embed deletion", () => {
 
 		expect(router.state.location.pathname).toBe(`/dashboard/agent/${AGENT_ID}`)
 		expect(router.state.location.search).toHaveProperty("tab", "embeds")
-		expect(host.querySelector("h1")?.textContent).toBe("Agent destination")
+		expect(host.querySelector('[data-testid="agent-destination"]')).not.toBeNull()
 		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 		expect(queryClient.getQueryData(listKey)).toBeUndefined()
 		expect(queryClient.getQueryData(detailKey)).toBeUndefined()

@@ -47,13 +47,13 @@ function AccountWithDelete({ blockNavigation }: { blockNavigation: boolean }) {
 	return (
 		<>
 			<DeleteAccountCard username="operator" />
-			{blocker.status === "blocked" ? <p>Navigation blocked</p> : null}
+			{blocker.status === "blocked" ? <p data-testid="navigation-blocked" /> : null}
 		</>
 	)
 }
 
 function LoginDestination() {
-	return <h1>Login destination</h1>
+	return <div data-testid="login-destination" />
 }
 
 async function renderPage(blockNavigation = false) {
@@ -174,8 +174,8 @@ describe("account deletion", () => {
 		await confirmDeletion()
 
 		expect(router.state.location.pathname).toBe("/login")
-		expect(host.querySelector("h1")?.textContent).toBe("Login destination")
+		expect(host.querySelector('[data-testid="login-destination"]')).not.toBeNull()
 		expect(queryClient.getQueryData(PRIVATE_QUERY_KEY)).toBeUndefined()
-		expect(host.textContent).not.toContain("Navigation blocked")
+		expect(host.querySelector('[data-testid="navigation-blocked"]')).toBeNull()
 	})
 })

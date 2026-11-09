@@ -73,7 +73,7 @@ async function renderAccessError(...errors: unknown[]) {
 	const login = createRoute({
 		getParentRoute: () => rootRoute,
 		path: "/login",
-		component: () => <p>Login</p>,
+		component: () => <p data-testid="login-route" />,
 	})
 	const router = createRouter({
 		routeTree: rootRoute.addChildren([page, login]),
