@@ -1,6 +1,7 @@
 import type { Root } from "react-dom/client"
 
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
 if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
@@ -123,6 +124,10 @@ function parseBody(body: BodyInit | null | undefined): unknown {
 	if (body == null) return undefined
 	if (typeof body !== "string") throw new Error("Expected a JSON request body")
 	return JSON.parse(body)
+}
+
+function forcedPasswordRequests() {
+	return requests.filter(({ url, method }) => url === "/api/me/password/forced" && method === "PATCH")
 }
 
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -342,6 +347,34 @@ describe("authentication route submissions", () => {
 			expect(queryClient.getQueryData(CACHE_KEY)).toEqual(CACHED_VALUE)
 		})
 	}
+
+	test("validates the forced password before sending it", async () => {
+		sessionUser = FORCED_USER
+		const router = await renderSubmitRoute("/force-password-change")
+
+		await fill("#new-password", "short")
+		await fill("#confirm-new-password", "short")
+		await submitForm()
+		expect(host.querySelector("#new-password-error")?.textContent).toBe(
+			t("account.newPasswordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH }),
+		)
+		expect(host.querySelector<HTMLInputElement>("#new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector<HTMLInputElement>("#new-password")?.getAttribute("aria-describedby")).toBe(
+			"new-password-error",
+		)
+		expect(forcedPasswordRequests()).toEqual([])
+
+		await fill("#new-password", PASSWORD)
+		await fill("#confirm-new-password", `${PASSWORD}-other`)
+		await submitForm()
+		expect(host.querySelector("#confirm-new-password-error")?.textContent).toBe(t("account.passwordMismatchError"))
+		expect(host.querySelector<HTMLInputElement>("#confirm-new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector<HTMLInputElement>("#confirm-new-password")?.getAttribute("aria-describedby")).toBe(
+			"confirm-new-password-error",
+		)
+		expect(forcedPasswordRequests()).toEqual([])
+		expect(router.state.location.pathname).toBe("/force-password-change")
+	})
 
 	test("shows an invitation error without a form when the token is missing", async () => {
 		await renderSubmitRoute("/accept-invite")

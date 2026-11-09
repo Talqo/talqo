@@ -107,6 +107,19 @@ describe("buildPreviewDocument", () => {
 		expect(document).toContain('data-talqo-parent-origin="https://dashboard.example.com"')
 		expect(document).not.toContain("preview.html")
 	})
+
+	test("escapes attribute-breaking characters in the script URL and parent origin", () => {
+		const document = buildPreviewDocument(
+			'https://cdn.example.com/widget.js?a=1&b="x"<y>',
+			'https://dashboard.example.com/?a=1&b="x"<y>',
+		)
+
+		expect(document).toContain('src="https://cdn.example.com/widget.js?a=1&amp;b=&quot;x&quot;&lt;y&gt;"')
+		expect(document).toContain(
+			'data-talqo-parent-origin="https://dashboard.example.com/?a=1&amp;b=&quot;x&quot;&lt;y&gt;"',
+		)
+		expect(document).not.toContain("<y>")
+	})
 })
 
 describe("WidgetPreview", () => {
@@ -173,6 +186,39 @@ describe("WidgetPreview", () => {
 		expect(frameElement() === frame).toBe(true)
 		expect(frame.getAttribute("src")).toBe(initialSrc)
 		expect(initialSrc).toContain("position=bottom-right")
+	})
+
+	test("carries the whole first-paint appearance in the frame URL", async () => {
+		await renderPreview()
+		const url = new URL(frameElement().src)
+
+		expect(url.origin).toBe(PREVIEW_ORIGIN)
+		expect(url.pathname).toBe("/preview.html")
+		expect(url.searchParams.get("lightPrimary")).toBe(appearance.light.primary)
+		expect(url.searchParams.get("lightTextOnPrimary")).toBe(appearance.light.textOnPrimary)
+		expect(url.searchParams.get("lightBackground")).toBe(appearance.light.background)
+		expect(url.searchParams.get("lightSurface")).toBe(appearance.light.surface)
+		expect(url.searchParams.get("lightText")).toBe(appearance.light.text)
+		expect(url.searchParams.get("darkPrimary")).toBe(appearance.dark.primary)
+		expect(url.searchParams.get("darkTextOnPrimary")).toBe(appearance.dark.textOnPrimary)
+		expect(url.searchParams.get("darkBackground")).toBe(appearance.dark.background)
+		expect(url.searchParams.get("darkSurface")).toBe(appearance.dark.surface)
+		expect(url.searchParams.get("darkText")).toBe(appearance.dark.text)
+		expect(url.searchParams.get("position")).toBe(appearance.position)
+		expect(url.searchParams.get("theme")).toBe(appearance.theme)
+		expect(url.searchParams.get("themeToggle")).toBe(String(appearance.themeToggle))
+		expect(url.searchParams.get("language")).toBe(appearance.language)
+		expect(url.searchParams.get("forcedScheme")).toBe("light")
+		expect(url.searchParams.get("title")).toBe("Initial title")
+		expect(url.searchParams.get("parentOrigin")).toBe(PREVIEW_ORIGIN)
+	})
+
+	test("omits the forced scheme and title when the preview lets the embed decide", async () => {
+		await renderPreview({ title: undefined, activeScheme: undefined })
+		const url = new URL(frameElement().src)
+
+		expect(url.searchParams.has("forcedScheme")).toBe(false)
+		expect(url.searchParams.has("title")).toBe(false)
 	})
 
 	test("scales the frame to its available width and disconnects the observer on unmount", async () => {

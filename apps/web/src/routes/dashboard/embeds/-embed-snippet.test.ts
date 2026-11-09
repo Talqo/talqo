@@ -18,6 +18,18 @@ describe("buildEmbedSnippet", () => {
 		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123" })).toStartWith("<script async")
 	})
 
+	test("renders one attribute per line so the copied code stays readable", () => {
+		expect(buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123", apiOrigin: "https://api.example.com" })).toBe(
+			[
+				"<script async",
+				`  src="${SCRIPT_URL}"`,
+				'  data-talqo-embed-token="tok_123"',
+				'  data-talqo-api="https://api.example.com"',
+				"></script>",
+			].join("\n"),
+		)
+	})
+
 	test("includes the API origin when the deployment needs one", () => {
 		const snippet = buildEmbedSnippet(SCRIPT_URL, { embedToken: "tok_123", apiOrigin: "https://api.example.com" })
 

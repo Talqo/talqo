@@ -22,6 +22,7 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let permissions: string[]
+let permissionsFailure: Response | undefined
 let deleteResponse: Response
 
 function json(body: unknown, status = 200): Response {
@@ -122,11 +123,12 @@ async function confirmDeletion() {
 
 beforeEach(() => {
 	permissions = []
+	permissionsFailure = undefined
 	deleteResponse = new Response(null, { status: 204 })
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
-		if (url === "/api/me/permissions" && method === "GET") return json({ permissions })
+		if (url === "/api/me/permissions" && method === "GET") return permissionsFailure ?? json({ permissions })
 		if (url === "/api/me" && method === "DELETE") return deleteResponse
 		throw new Error(`unexpected request ${method} ${url}`)
 	}) as typeof fetch)
@@ -155,16 +157,37 @@ describe("account deletion", () => {
 		expect(host.textContent).not.toContain(t("account.dangerZone"))
 	})
 
+	test("keeps the danger zone visible with a retry when permissions fail", async () => {
+		permissionsFailure = problem("internal-server-error", 500)
+		await renderPage()
+
+		expect(host.textContent).toContain(t("account.dangerZone"))
+		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("problems.internal-server-error"))
+		expect(queryButton(t("account.deleteAccount")) === undefined).toBe(true)
+
+		permissionsFailure = undefined
+		await click(button(t("common.retry")))
+
+		expect(queryButton(t("account.deleteAccount")) !== undefined).toBe(true)
+		expect(host.querySelector("[role='alert']") === null).toBe(true)
+	})
+
 	test("keeps the confirmation open and cached data intact after deletion fails", async () => {
 		deleteResponse = problem("internal-server-error", 500)
 		const router = await renderPage()
 		queryClient.setQueryData(PRIVATE_QUERY_KEY, { private: true })
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
 
 		await confirmDeletion()
 
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(router.state.location.pathname).toBe("/dashboard/account")
 		expect(queryClient.getQueryData(PRIVATE_QUERY_KEY)).toEqual({ private: true })
+
+		await click(button(t("account.cancel"), dialog()))
+		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		await click(button(t("account.deleteAccount")))
+		expect(dialog().textContent).not.toContain(t("problems.internal-server-error"))
 	})
 
 	test("clears cached data and bypasses navigation blockers after deletion", async () => {

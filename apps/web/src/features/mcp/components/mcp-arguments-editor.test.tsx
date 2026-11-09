@@ -145,4 +145,15 @@ describe("McpArgumentsEditor", () => {
 		await click(add)
 		expect(emitted).toEqual([])
 	})
+
+	test("names an empty argument by its one-based position in the remove label", async () => {
+		await renderEditor([
+			{ id: "first", value: "--verbose" },
+			{ id: "second", value: "   " },
+		])
+
+		await click(button(t("mcp.removeArgument", { argument: 2 })))
+
+		expect(emitted).toEqual([[{ id: "first", value: "--verbose" }]])
+	})
 })

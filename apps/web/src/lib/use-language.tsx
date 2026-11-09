@@ -6,9 +6,6 @@ import { type DashboardLanguage, isDashboardLanguage } from "./languages"
 const STORAGE_KEY = "talqo-language"
 
 export function getStoredLanguage(): DashboardLanguage {
-	if (typeof window === "undefined") {
-		return "en"
-	}
 	const stored = window.localStorage.getItem(STORAGE_KEY)
 	return isDashboardLanguage(stored) ? stored : "en"
 }

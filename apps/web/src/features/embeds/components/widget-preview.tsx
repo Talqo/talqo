@@ -122,9 +122,6 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	const targetOrigin = source.targetOrigin
 
 	useEffect(() => {
-		if (!targetOrigin) {
-			return undefined
-		}
 		const messageTargetOrigin = targetOrigin
 		function onMessage(event: MessageEvent) {
 			// Replying on `ready` rather than on iframe load makes reload, HMR, and bfcache
@@ -147,9 +144,6 @@ export function WidgetPreview({ appearance, title, activeScheme, previewKey }: W
 	}, [source.expectedOrigin, targetOrigin])
 
 	useEffect(() => {
-		if (!targetOrigin) {
-			return
-		}
 		// Dropped harmlessly if the child is not listening yet; its next `ready` re-syncs.
 		iframeRef.current?.contentWindow?.postMessage(
 			configMessage(appearance, { title, forcedScheme: activeScheme, isAvailable: true }),
