@@ -48,12 +48,13 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 
 ## Feedback loop
 
-Run only the checks your change can break. CI runs all of them except `e2e` on every pull request.
+Run only the checks your change can break. CI runs all of them except `e2e` on every pull request; `coverage:overlap` is advisory and never gates a PR.
 
 ```sh
 bun run quality:fix      # any edit
 bun run typecheck        # any code edit
 bun run test             # changed behavior or its tests
+bun run coverage:overlap # changed or added tests; advisory
 bun run test:integration # module, database, service, or route
 bun run contracts:check  # API contract or generated client
 bun run e2e              # web, widget, SDK, or API request handling; never run on PRs

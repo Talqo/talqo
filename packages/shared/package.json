@@ -12,6 +12,8 @@
 		"./widget-appearance": "./src/widget-appearance.ts"
 	},
 	"scripts": {
+		"coverage:overlap": "supercov runs latest minimize --kind unit && supercov runs latest gaps",
+		"coverage:record": "supercov -- bun test --only-failures",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},
