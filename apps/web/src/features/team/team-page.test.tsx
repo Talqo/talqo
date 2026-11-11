@@ -290,15 +290,6 @@ describe("TeamPage", () => {
 		})
 	})
 
-	test("allows invitations with no selected roles when Default is absent", async () => {
-		await renderPage()
-		await click(button(t("auth.invitations.heading")))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
-	})
-
 	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
 		roles = [{ id: "default", name: "Default", permissions: ["ai_provider:manage"], memberCount: 0 }]

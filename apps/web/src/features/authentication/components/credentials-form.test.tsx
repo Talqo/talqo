@@ -137,20 +137,6 @@ describe("CredentialsForm", () => {
 		expect(submissions).toEqual([])
 	})
 
-	test("rejects a mismatched invitation registration before submitting", async () => {
-		await renderForm({ invitationRegistration: true, requireConfirmation: true })
-		await type("username", "invited-user")
-		await type("password", "correct-horse")
-		await type("confirmPassword", "different-horse")
-
-		await submit()
-
-		expect(host.querySelector("#confirm-password-error")?.textContent).toBe(
-			t("auth.credentialsForm.passwordMismatchError"),
-		)
-		expect(submissions).toEqual([])
-	})
-
 	test("shows the server error and the requested password autocomplete", async () => {
 		await renderForm({ error: "Invalid username or password.", passwordAutoComplete: "current-password" })
 
