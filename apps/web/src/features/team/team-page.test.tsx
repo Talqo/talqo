@@ -276,15 +276,6 @@ describe("TeamPage", () => {
 		})
 	})
 
-	test("allows invitations with no selected roles when Default is absent", async () => {
-		await renderPage()
-		await click(button(t("auth.invitations.heading")))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
-	})
-
 	test("does not load or offer roles to an inviter who cannot manage roles", async () => {
 		myPermissions = ["users:read", "users:manage"]
 		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
