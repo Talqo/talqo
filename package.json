@@ -13,7 +13,6 @@
 		"ci": "bun run --sequential actions:check contracts:check quality knip i18n typecheck test build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated packages/sdk/src/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x orval --config orval.config.ts --fail-on-warnings",
-		"coverage:overlap": "turbo run coverage:overlap --log-order=grouped --log-prefix=none",
 		"dev": "./scripts/dev.sh",
 		"dev:teardown": "docker compose down",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",
@@ -41,7 +40,6 @@
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.4",
 		"@commitlint/config-conventional": "^21.2.4",
-		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
 		"@playwright/cli": "^0.1.23",
 		"@shadcn/lint": "0.2.3",
 		"@stryker-mutator/core": "10.1.1",
@@ -53,7 +51,7 @@
 		"orval": "8.46.0",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "^7.0.2005",
-		"supercov": "4.26.0",
+		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
 		"turbo": "2.11.10"
 	},
 	"packageManager": "bun@1.4.4"

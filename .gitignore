@@ -52,6 +52,3 @@ playwright/.auth/
 # Stryker
 .stryker-tmp/
 reports/
-
-# Supercov
-.supercov/

@@ -36,15 +36,6 @@
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**"]
 		},
-		"coverage:overlap": {
-			"cache": false,
-			"dependsOn": ["coverage:record"],
-			"outputLogs": "full"
-		},
-		"coverage:record": {
-			"cache": false,
-			"outputLogs": "errors-only"
-		},
 		"dev": {
 			"cache": false,
 			"persistent": true
