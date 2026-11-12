@@ -7,6 +7,7 @@ import {
 	useUpdateAgent,
 } from "@/api/generated/agent/agent.ts"
 import { getListEmbedsQueryKey, useCreateEmbed, useListEmbeds } from "@/api/generated/embed/embed.ts"
+import { FloatingActionButton } from "@/components/floating-action-button"
 import { PageHeader } from "@/components/page-header"
 import { ProblemAlert } from "@/components/problem-alert"
 import {
@@ -455,10 +456,10 @@ function AgentEmbedsPanel({ agentId, canManage }: { agentId: string; canManage: 
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">{t("embedSetup.agentPanelDescription")}</p>
 				{canManage && (
-					<Button onClick={onCreate} disabled={createEmbed.isPending}>
-						<Plus className="size-4" />
+					<FloatingActionButton onClick={onCreate} disabled={createEmbed.isPending}>
+						<Plus />
 						{createEmbed.isPending ? t("embedSetup.creating") : t("embedSetup.createEmbed")}
-					</Button>
+					</FloatingActionButton>
 				)}
 			</div>
 			{createEmbed.isError && <ProblemAlert message={t("embedSetup.createError")} onRetry={() => void onCreate()} />}

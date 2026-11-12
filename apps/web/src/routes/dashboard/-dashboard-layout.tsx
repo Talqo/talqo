@@ -283,7 +283,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					ref={mainRef}
 					id="dashboard-main"
 					tabIndex={-1}
-					className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 md:py-20"
+					className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 max-md:has-data-[slot=floating-action]:pb-28 md:py-20"
 				>
 					{gate === "open" && children}
 					{gate === "pending" && (
