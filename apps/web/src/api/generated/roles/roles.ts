@@ -238,7 +238,6 @@ export function useGetSetupStatus<TData = Awaited<ReturnType<typeof getSetupStat
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetSetupStatus<TData = Awaited<ReturnType<typeof getSetupStatus>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSetupStatus>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -778,7 +777,6 @@ export function useGetMyPermissions<TData = Awaited<ReturnType<typeof getMyPermi
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetMyPermissions<TData = Awaited<ReturnType<typeof getMyPermissions>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPermissions>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -914,7 +912,6 @@ export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TE
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetMyRoles<TData = Awaited<ReturnType<typeof getMyRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyRoles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -1050,7 +1047,6 @@ export function useListUsers<TData = Awaited<ReturnType<typeof listUsers>>, TErr
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListUsers<TData = Awaited<ReturnType<typeof listUsers>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUsers>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -1444,7 +1440,6 @@ export function useListGrantablePermissions<TData = Awaited<ReturnType<typeof li
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListGrantablePermissions<TData = Awaited<ReturnType<typeof listGrantablePermissions>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGrantablePermissions>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -1580,7 +1575,6 @@ export function useListRoles<TData = Awaited<ReturnType<typeof listRoles>>, TErr
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListRoles<TData = Awaited<ReturnType<typeof listRoles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -1859,7 +1853,6 @@ export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgen
  roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListRoleAgents<TData = Awaited<ReturnType<typeof listRoleAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  roleId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listRoleAgents>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient

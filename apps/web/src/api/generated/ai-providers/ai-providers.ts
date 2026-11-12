@@ -188,7 +188,6 @@ export function useListAiProviders<TData = Awaited<ReturnType<typeof listAiProvi
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListAiProviders<TData = Awaited<ReturnType<typeof listAiProviders>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAiProviders>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -324,7 +323,6 @@ export function useGetAiProviderConfiguration<TData = Awaited<ReturnType<typeof 
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetAiProviderConfiguration<TData = Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAiProviderConfiguration>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient

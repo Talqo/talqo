@@ -154,7 +154,6 @@ export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TErr
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetHealth<TData = Awaited<ReturnType<typeof getHealth>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealth>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient

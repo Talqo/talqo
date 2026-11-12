@@ -22,17 +22,17 @@
 	},
 	"devDependencies": {
 		"@happy-dom/global-registrator": "^21.0.4",
-		"@tailwindcss/vite": "4.3.3",
+		"@tailwindcss/vite": "4.3.5",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.4",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
-		"@vitejs/plugin-react": "6.1.2",
-		"i18next-cli": "1.81.0",
+		"@vitejs/plugin-react": "6.3.0",
+		"i18next-cli": "1.87.0",
 		"postcss": "^8.5.32",
-		"tailwindcss": "4.3.3",
+		"tailwindcss": "4.3.5",
 		"typescript": "7.0.2",
-		"vite": "8.3.5",
+		"vite": "8.3.8",
 		"vite-plugin-css-injected-by-js": "5.0.3",
 		"vite-plugin-svgr": "^5.2.0"
 	}

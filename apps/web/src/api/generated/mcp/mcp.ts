@@ -207,7 +207,6 @@ export function useListMcpServers<TData = Awaited<ReturnType<typeof listMcpServe
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMcpServers>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListMcpServers<TData = Awaited<ReturnType<typeof listMcpServers>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMcpServers>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -509,7 +508,6 @@ export function useGetMcpServer<TData = Awaited<ReturnType<typeof getMcpServer>>
     serverId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMcpServer>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetMcpServer<TData = Awaited<ReturnType<typeof getMcpServer>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  agentId: string,
     serverId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMcpServer>>, TError, TData>>, fetch?: RequestInit}

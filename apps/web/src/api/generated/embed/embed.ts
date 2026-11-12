@@ -211,7 +211,6 @@ export function useListEmbeds<TData = Awaited<ReturnType<typeof listEmbeds>>, TE
  params?: ListEmbedsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmbeds>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListEmbeds<TData = Awaited<ReturnType<typeof listEmbeds>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  params?: ListEmbedsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmbeds>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -490,7 +489,6 @@ export function useGetEmbed<TData = Awaited<ReturnType<typeof getEmbed>>, TError
  embedId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmbed>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetEmbed<TData = Awaited<ReturnType<typeof getEmbed>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  embedId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEmbed>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
