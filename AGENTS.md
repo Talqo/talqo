@@ -54,6 +54,7 @@ Run only the checks your change can break. CI runs all of them except `e2e` on e
 bun run quality:fix      # any edit
 bun run typecheck        # any code edit
 bun run test             # changed behavior or its tests
+bun run crap             # full suite + CRAP gate (max 6) for changed code
 bun run test:integration # module, database, service, or route
 bun run contracts:check  # API contract or generated client
 bun run e2e              # web, widget, SDK, or API request handling; never run on PRs

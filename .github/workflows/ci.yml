@@ -105,15 +105,18 @@ jobs:
     name: Test
     runs-on: ubuntu-26.04
     timeout-minutes: 10
+    env:
+      FALLOW_AUDIT_BASE: origin/${{ github.base_ref || 'main' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Bun dependencies
         uses: $/.github/actions/setup-bun
-      - name: Run tests
-        run: bun run test
+      - name: Run tests and check CRAP
+        run: bun run crap
 
   i18n:
     name: I18n
