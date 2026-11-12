@@ -3,8 +3,6 @@ import type { ComponentProps } from "react"
 import { Button } from "@talqo/ui/components/button"
 import { cn } from "@talqo/ui/lib/utils"
 
-// The page's primary action: floats below md, sits in PageHeader actions from md up.
-// The dashboard layout reserves bottom space below md when this data-slot is present.
 export function FloatingActionButton({ className, ...props }: Omit<ComponentProps<typeof Button>, "size" | "variant">) {
 	return (
 		<Button
