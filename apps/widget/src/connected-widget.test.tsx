@@ -397,6 +397,17 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(announcement()?.textContent).toBe("Response complete.")
 	})
 
+	test("tells the end user administrators may review the chat before they write", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const noticeId = input().getAttribute("aria-describedby")
+		const notice = noticeId ? host.querySelector(`[id="${noticeId}"]`) : null
+		expect(notice?.textContent).toBe("This chat may be reviewed by administrators.")
+		expect(transcript().firstElementChild).toBe(notice)
+	})
+
 	test("labels transcript items by role in a silent named log", async () => {
 		const store = fakeClient({
 			...READY_SNAPSHOT,

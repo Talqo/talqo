@@ -30,6 +30,7 @@
 	"greeting": "Dobrý den! Jak vám mohu dnes pomoci?",
 	"initializing": "Načítání chatu…",
 	"messageLabel": "Zpráva",
+	"monitoringNotice": "Tento chat mohou zkontrolovat administrátoři.",
 	"newChat": "Nový chat",
 	"newChatTooltip": "Zahájit nový chat a ukončit tuto konverzaci",
 	"openChat": "Otevřít chat",
