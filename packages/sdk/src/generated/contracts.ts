@@ -264,6 +264,7 @@ export type SendChatMessageBody = {
   requestId: string;
   /** @minLength 1 */
   text: string;
+  pagePath?: string;
 };
 
 export type GetChatSession200MessagesItemRole = typeof GetChatSession200MessagesItemRole[keyof typeof GetChatSession200MessagesItemRole];

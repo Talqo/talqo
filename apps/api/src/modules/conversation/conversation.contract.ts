@@ -72,6 +72,11 @@ const sendBody = z.object({
 		.string()
 		.min(1)
 		.refine((text) => Array.from(text).length <= MAX_CHAT_INPUT_CHARACTERS),
+	pagePath: z
+		.string()
+		.startsWith("/")
+		.refine((path) => !path.includes("?") && !path.includes("#"))
+		.optional(),
 })
 const cancelBody = z.object({ generationId: z.uuid({ version: "v4" }).optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })

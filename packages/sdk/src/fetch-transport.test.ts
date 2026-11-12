@@ -188,6 +188,43 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
+	test("reads a fresh page path for each send and omits it when unavailable", async () => {
+		const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
+		const fake = recordingFetch([streamResponse([terminal]), streamResponse([terminal]), streamResponse([terminal])])
+		const pagePaths = ["/account", "/product/guitar", undefined]
+		const transport = createFetchChatTransport({ fetch: fake.fetch, getPagePath: () => pagePaths.shift() })
+		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL }
+
+		await Array.fromAsync(await transport.sendMessage({ ...input, text: "first" }))
+		await Array.fromAsync(await transport.sendMessage({ ...input, text: "second" }))
+		await Array.fromAsync(await transport.sendMessage({ ...input, text: "third" }))
+
+		expect(fake.calls.map((call) => call.init?.body)).toEqual([
+			JSON.stringify({ requestId: REQUEST_ID, text: "first", pagePath: "/account" }),
+			JSON.stringify({ requestId: REQUEST_ID, text: "second", pagePath: "/product/guitar" }),
+			JSON.stringify({ requestId: REQUEST_ID, text: "third" }),
+		])
+	})
+
+	test("omits the page path for browser locations without a leading slash", async () => {
+		const originalLocation = Object.getOwnPropertyDescriptor(globalThis, "location")
+		Object.defineProperty(globalThis, "location", { configurable: true, value: new URL("about:srcdoc") })
+		try {
+			const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
+			const fake = recordingFetch([streamResponse([terminal])])
+			const transport = createFetchChatTransport({ fetch: fake.fetch })
+
+			await Array.fromAsync(
+				await transport.sendMessage({ ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }),
+			)
+
+			expect(fake.calls[0]?.init?.body).toBe(JSON.stringify({ requestId: REQUEST_ID, text: "hello" }))
+		} finally {
+			if (originalLocation) Object.defineProperty(globalThis, "location", originalLocation)
+			else Reflect.deleteProperty(globalThis, "location")
+		}
+	})
+
 	test("cancels the response body when an events stream is abandoned", async () => {
 		let cancelled = false
 		const encoder = new TextEncoder()

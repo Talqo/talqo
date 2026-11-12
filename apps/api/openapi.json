@@ -6895,6 +6895,9 @@
                   "text": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "pagePath": {
+                    "type": "string"
                   }
                 },
                 "required": [

@@ -87,7 +87,7 @@ export function createConversationRoutes(
 		}
 		const embedToken = c.req.param("embedToken")
 		if (!embedToken) throw new InvalidChatInputError()
-		const body = await c.req.json<{ requestId: string; text: string }>()
+		const body = await c.req.json<{ requestId: string; text: string; pagePath?: string }>()
 		const result = await activeService().send(
 			{
 				...body,
