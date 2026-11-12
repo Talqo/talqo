@@ -50,44 +50,77 @@ jobs:
       ref: ${{ github.sha }}
       version: ${{ needs.validate.outputs.version }}
 
-  sdk:
-    name: Publish SDK
-    needs: [validate, deploy]
+  sdk-build:
+    name: Build SDK release artifact
+    needs: [validate, checks]
     runs-on: ubuntu-26.04
     timeout-minutes: 15
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      tarball: ${{ steps.pack.outputs.tarball }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Set up Bun dependencies
-        uses: $/.github/actions/setup-bun
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          no-cache: true
+      - name: Install frozen dependencies without lifecycle scripts
+        run: bun ci --ignore-scripts
       - name: Pack release SDK
         id: pack
         env:
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
         run: bun run pack:sdk "$RELEASE_VERSION"
+      - name: Preserve the exact SDK tarball for review
+        id: artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sdk-${{ needs.validate.outputs.version }}-${{ github.run_attempt }}
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+          retention-days: 30
+
+  sdk-stage:
+    name: Stage SDK for npm approval
+    needs: [validate, sdk-build]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out release history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download the SDK artifact from this run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.sdk-build.outputs.artifact-id }}
+          path: dist
+          merge-multiple: true
       - name: Set up npm publishing runtime
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26.11.1"
           package-manager-cache: false
-      - name: Publish SDK to npm
+      - name: Stage SDK on npm
         env:
           GH_TOKEN: ${{ github.token }}
-          SDK_TARBALL: ${{ steps.pack.outputs.tarball }}
           RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          SDK_TARBALL: ${{ needs.sdk-build.outputs.tarball }}
         run: |
           bash scripts/release.sh validate "$RELEASE_VERSION"
-          npm publish "$SDK_TARBALL" --ignore-scripts --access public
+          npm stage publish "./dist/${SDK_TARBALL##*/}" --ignore-scripts --access public
 
   deploy:
     name: Deploy production
-    needs: [validate, images]
+    needs: [validate, images, sdk-stage]
     uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ github.sha }}
@@ -100,7 +133,7 @@ jobs:
 
   promote:
     name: Promote stable aliases
-    needs: [validate, sdk, images]
+    needs: [validate, deploy, images]
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:

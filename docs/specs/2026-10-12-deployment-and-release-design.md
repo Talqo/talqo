@@ -18,8 +18,9 @@ Add image publishing commands, automatic dev deployment, and tag-triggered produ
 ```text
 PR/manual -> CI
 main push -> CD -> CI -> publish Talqo dev image -> deploy Talqo dev
-version tag -> Release -> CI with E2E -> publish images
-                       -> deploy prod -> publish SDK -> promote latest -> GitHub release
+version tag -> Release -> CI with E2E -> publish images + build SDK
+                       -> stage SDK -> npm approval with 2FA -> GitHub prod approval
+                       -> deploy prod -> promote latest -> GitHub release
 ```
 
 `ci.yml` owns checks, tests, and validation builds. `cd.yml` handles main pushes and calls CI directly before publication. `release.yml` calls the same CI workflow with E2E enabled. CI also runs independently for PRs and manual requests.
@@ -42,7 +43,9 @@ The release command creates and pushes only the annotated tag. It requires a cle
 
 The SDK remains authored in TypeScript. Bun bundles ESM JavaScript, and the existing SDK TypeScript config emits declarations usable by ESM consumers. The widget uses workspace source; npm consumers use the built distribution. Consumer documentation belongs in `apps/docs`.
 
-`pack:sdk` uses Bun to build and pack a staged public manifest without modifying source package versions. The release job publishes that exact tarball using npm trusted publishing and automatic provenance. npm/Node are confined to that job because Bun does not support this authentication flow. There is no separate SDK consumer or custom registry/signature verification stage.
+`pack:sdk` leaves source versions unchanged. Build without OIDC access, lifecycle scripts, or restored caches. Transfer the tarball by immutable artifact ID to a separate job that runs `npm stage publish` through trusted publishing with automatic provenance.
+
+Review the candidate in npm's Staged Packages tab or with `npm stage view` and `npm stage download`. Check its version and source against the release tag, approve with 2FA, and confirm publication before approving the GitHub `prod` deployment. CI does not approve stages or check publication; reviewers enforce this order.
 
 ## Deployment boundary
 
@@ -54,10 +57,16 @@ CI does not upload shell programs, Compose files, or application secrets to the 
 
 Publication, deployment, alias updates, and GitHub release creation are separate operations. Failed steps stop the pipeline and leave earlier successful operations intact. GitHub releases are created last through gh with generated notes; no custom release-record asset or draft-upload state machine is needed.
 
-npm handles version collisions and publication errors. If SDK publication already succeeded, rerun only the failed downstream jobs rather than publishing the same version again. Rebuilding images can produce new digests; deployment always uses outputs from the successful build jobs. npm publication and image aliases never move before prod succeeds, and version-order guards prevent older retries from promoting a superseded release.
+After staging succeeds, retry only failed downstream jobs. Do not rebuild or restage the candidate. Reject incorrect candidates on npm and cancel their GitHub runs; cancellation does not remove npm stages. Deployment failure leaves an approved SDK published. Retry deployment, not publication. Promote image aliases only after deployment succeeds; version-order guards reject superseded releases.
 
 ## Activation prerequisites
 
 Configure container-package access/visibility, npm ownership and trusted publishing, and the dev/prod deployment endpoints and credentials. These are external settings, not repository-provisioned infrastructure. Live publication and deployment must be exercised after setup.
 
-Before the first release tag, verify the `@talqo/sdk` trusted publisher in npm package settings matches owner `Talqo`, repository `talqo`, workflow `release.yml`, and no environment, with direct `npm publish` allowed. New publisher configurations expire unless their first publish succeeds within two days. A dry-run publish does not verify authorization. Dispatch CI manually to exercise browser E2E before releasing. A failed SDK publish leaves production deployed; rerun the failed jobs after fixing npm configuration.
+Before the next release tag:
+
+- Set the `@talqo/sdk` trusted publisher to `Talqo/talqo`, workflow `release.yml`, no environment. Disable **Allow npm publish** and **Allow npm dist-tag**. Select **Require two-factor authentication and disallow tokens** under publishing access. Revoke unused automation tokens.
+- Require reviewers on the GitHub `prod` environment and disable administrator bypass. Enable **Prevent self-review** when another maintainer can approve. Allow only tags matching `v*`; protect release tags from unauthorized creation, updates, and deletion. Without required reviewers, deployment starts after staging without waiting for npm approval.
+- Pending approvals block later releases. Cancel rejected or expired runs to unblock the queue, and reject their npm stages.
+
+New npm publisher configurations need a successful publish within two days or they expire. Exercise live staging, 2FA approval, GitHub approval, and deployment after setup; a dry-run cannot verify authorization. References: [npm staging](https://docs.npmjs.com/staged-publishing/), [trusted publishing](https://docs.npmjs.com/trusted-publishers/), [GitHub environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
