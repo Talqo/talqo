@@ -19,7 +19,7 @@
 		"@talqo/ui": "workspace:*",
 		"@tanstack/react-query": "^5.105.0",
 		"@tanstack/react-router": "1.170.46",
-		"i18next": "^26.6.0",
+		"i18next": "^27.0.1",
 		"lucide-react": "1.66.0",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
