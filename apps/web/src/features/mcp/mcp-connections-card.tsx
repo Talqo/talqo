@@ -19,7 +19,7 @@ export function McpConnectionsCard({ agentId, canManage }: { agentId: string; ca
 			<div className="flex items-center justify-between">
 				<p className="text-muted-foreground text-sm">{t("mcp.panelDescription")}</p>
 				{/* Add waits for the list: it carries the allowed transports. */}
-				{canManage && <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} disabled={!data} />}
+				{canManage && <ConnectionDialog agentId={agentId} stdioAllowed={stdioAllowed} disabled={!data} floating />}
 			</div>
 
 			{isLoading ? (

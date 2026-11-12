@@ -2,6 +2,7 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 import type { TFunction } from "i18next"
 
 import { getListMcpServersQueryKey, useCreateMcpServer, useUpdateMcpServer } from "@/api/generated/mcp/mcp.ts"
+import { FloatingActionButton } from "@/components/floating-action-button"
 import { McpArgumentsEditor } from "@/features/mcp/components/mcp-arguments-editor"
 import { McpEnvEditor } from "@/features/mcp/components/mcp-env-editor"
 import {
@@ -138,11 +139,13 @@ export function ConnectionDialog({
 	server,
 	stdioAllowed,
 	disabled = false,
+	floating = false,
 }: {
 	agentId: string
 	server?: McpServer
 	stdioAllowed: boolean
 	disabled?: boolean
+	floating?: boolean
 }) {
 	const { t } = useTranslation()
 	const queryClient = useQueryClient()
@@ -203,6 +206,8 @@ export function ConnectionDialog({
 				render={
 					server ? (
 						<Button variant="ghost" size="icon-sm" aria-label={t("mcp.edit")} />
+					) : floating ? (
+						<FloatingActionButton disabled={disabled || create.isPending} />
 					) : (
 						<Button disabled={disabled || create.isPending} />
 					)
