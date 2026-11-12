@@ -1,6 +1,6 @@
 import type { ChatError, ChatMessage } from "@talqo/sdk"
 
-type Translate = (key: string, options?: Record<string, unknown>) => string
+type Translate = (key: string) => string
 type ErrorTranslator = (t: Translate) => string
 
 const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {

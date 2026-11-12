@@ -27,7 +27,7 @@ function create(name: string, translation: ResourceLanguage): I18nInstance {
 
 function translate(instance: I18nInstance, key: string, values?: Values): string {
 	if (!instance.exists(key, values)) throw new Error(`Missing translation key: ${key}`)
-	return instance.t(key, values)
+	return instance.t(key, values ?? {})
 }
 
 export async function pinLanguage(context: BrowserContext): Promise<void> {

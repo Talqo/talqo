@@ -1,4 +1,5 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
+import type { TFunction } from "i18next"
 
 import { getListMcpServersQueryKey, useCreateMcpServer, useUpdateMcpServer } from "@/api/generated/mcp/mcp.ts"
 import { McpArgumentsEditor } from "@/features/mcp/components/mcp-arguments-editor"
@@ -30,10 +31,8 @@ import { Pencil, Plus } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-type Translator = (key: string, options?: Record<string, number>) => string
-
 /** Problem details carry a code; the catalog turns it into something an operator can act on. */
-function apiError(caught: unknown, t: Translator): string {
+function apiError(caught: unknown, t: TFunction): string {
 	const code = (caught as { info?: { code?: string } }).info?.code
 	switch (code ?? "") {
 		case "invalid-request":
@@ -66,7 +65,7 @@ function draftFailure(
 	reason: DraftReason,
 	draft: ConnectionDraft,
 	requireSecretValue: boolean,
-	t: Translator,
+	t: TFunction,
 ): DraftError {
 	switch (reason) {
 		case "nameRequired":
