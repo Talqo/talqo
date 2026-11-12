@@ -1,6 +1,20 @@
+import type { ReactNode } from "react"
+
+import { Card } from "@talqo/ui/components/card"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { cn } from "@talqo/ui/lib/utils"
 import { useTranslation } from "react-i18next"
+
+export function SkeletonList({ label, children }: { label: string; children: ReactNode }) {
+	return (
+		<div className="space-y-3">
+			<output className="sr-only">{label}</output>
+			{Array.from({ length: 3 }, (_, index) => (
+				<Card key={index}>{children}</Card>
+			))}
+		</div>
+	)
+}
 
 export function PageSkeleton({ className }: { className?: string }) {
 	return (

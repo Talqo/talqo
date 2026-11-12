@@ -77,6 +77,19 @@ function streamResponse(chunks: string[]): Response {
 	)
 }
 
+function providerErrorResult(retryAt: string): ChatEvent {
+	return {
+		type: "error",
+		outcome: "failed",
+		error: {
+			code: "provider-error",
+			retryAt,
+			retriable: false,
+			newChatAvailable: true,
+		},
+	}
+}
+
 function context(signal = new AbortController().signal) {
 	return { apiUrl: API_URL, embedToken: EMBED_TOKEN, signal }
 }
@@ -306,16 +319,7 @@ describe("createFetchChatTransport", () => {
 		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
 
 		expect(await Array.fromAsync(await transport.sendMessage(input))).toEqual([
-			{
-				type: "error",
-				outcome: "failed",
-				error: {
-					code: "provider-error",
-					retryAt: "2026-09-12T12:05:00Z",
-					retriable: false,
-					newChatAvailable: true,
-				},
-			},
+			providerErrorResult("2026-09-12T12:05:00Z"),
 		])
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
 		await expect(Array.fromAsync(await transport.sendMessage(input))).rejects.toThrow("validation")
@@ -340,18 +344,7 @@ describe("createFetchChatTransport", () => {
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
 
-		expect(await Array.fromAsync(await transport.sendMessage(input))).toEqual([
-			{
-				type: "error",
-				outcome: "failed",
-				error: {
-					code: "provider-error",
-					retryAt: "raw-retry-value",
-					retriable: false,
-					newChatAvailable: true,
-				},
-			},
-		])
+		expect(await Array.fromAsync(await transport.sendMessage(input))).toEqual([providerErrorResult("raw-retry-value")])
 		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
 			code: "provider-error",
 			type: "https://docs.talqo.chat/problems#provider-error",

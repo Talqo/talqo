@@ -1,7 +1,34 @@
-import { expect } from "@playwright/test"
+import { type APIRequestContext, expect, type Locator, type Page } from "@playwright/test"
 
 import { test } from "./chat-embed"
 import { widget } from "./i18n"
+
+async function openChat(page: Page, url: string) {
+	await page.goto(url)
+	await page.getByRole("button", { name: widget("openChat") }).click()
+	const dialog = page.getByRole("dialog")
+	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
+	return {
+		dialog,
+		messageInput,
+		send: async (text: string) => {
+			await messageInput.fill(text)
+			await dialog.getByRole("button", { name: widget("send") }).click()
+		},
+	}
+}
+
+async function sendFirstAnswer(
+	dialog: Locator,
+	send: (text: string) => Promise<void>,
+	request: APIRequestContext,
+	providerControlOrigin: string,
+) {
+	await send("Give me the first answer")
+	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
+	await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
+	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
+}
 
 test("built widget boots in a sandboxed CDN-only preview frame", async ({ page, application }) => {
 	const baseURL = application.widgetHostOrigin
@@ -69,20 +96,9 @@ test("widget fetches and paints its palette across origins", async ({ page, chat
 
 test("widget streams a multi-turn chat and verifies history", async ({ page, request, chatEmbed }) => {
 	const { providerControlOrigin } = chatEmbed
+	const { dialog, send } = await openChat(page, chatEmbed.widgetUrl)
 
-	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: widget("openChat") }).click()
-	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
-	const send = async (text: string) => {
-		await messageInput.fill(text)
-		await dialog.getByRole("button", { name: widget("send") }).click()
-	}
-
-	await send("Give me the first answer")
-	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
-	await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
-	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
+	await sendFirstAnswer(dialog, send, request, providerControlOrigin)
 
 	await send("Prove you received the earlier turn")
 	await expect(dialog.getByText("Second streamed answer.", { exact: true })).toBeVisible()
@@ -112,20 +128,9 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 	chatEmbed,
 }) => {
 	const { providerControlOrigin } = chatEmbed
+	const { dialog, send } = await openChat(page, chatEmbed.widgetUrl)
 
-	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: widget("openChat") }).click()
-	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
-	const send = async (text: string) => {
-		await messageInput.fill(text)
-		await dialog.getByRole("button", { name: widget("send") }).click()
-	}
-
-	await send("Give me the first answer")
-	await expect(dialog.getByText("First", { exact: true })).toBeVisible()
-	await expect(await request.post(`${providerControlOrigin}/release`)).toBeOK()
-	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
+	await sendFirstAnswer(dialog, send, request, providerControlOrigin)
 
 	await send("Stream until I cancel")
 	// The API's blacklist look-behind withholds the provider chunk tail until cancellation confirms it is safe.
@@ -169,11 +174,7 @@ test("widget cancels a stream and starts a new chat preserving history", async (
 
 test("widget enforces daily chat allowance across new chats", async ({ page, request, chatEmbed }) => {
 	const { providerControlOrigin } = chatEmbed
-
-	await page.goto(chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: widget("openChat") }).click()
-	const dialog = page.getByRole("dialog")
-	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })
+	const { dialog, messageInput } = await openChat(page, chatEmbed.widgetUrl)
 	const sendUntilAnswered = async () => {
 		await messageInput.fill("Give me the first answer")
 		await dialog.getByRole("button", { name: widget("send") }).click()

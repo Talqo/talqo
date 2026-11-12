@@ -60,6 +60,15 @@ const input: SaveConfigurationInput = {
 	},
 }
 
+const separateEmbedding: NonNullable<SaveConfigurationInput["embedding"]> = {
+	providerId: "openai",
+	modelId: "text-embedding-3-small",
+	authMode: "static",
+	settings: {},
+	credentialSource: "separate",
+	credentials: { apiKey: "sk-embedding" },
+}
+
 function createMemoryService(
 	generate?: Parameters<typeof createAiProviderService>[0]["generate"],
 	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
@@ -80,6 +89,15 @@ function createMemoryService(
 		},
 	})
 	return { service, getStored: () => stored }
+}
+
+async function prepareText(service: ReturnType<typeof createMemoryService>["service"]) {
+	await service.saveConfiguration(input)
+	return service.prepareTextOperation({
+		messages: [{ role: "user", content: "Hi" }],
+		maxOutputTokens: 10,
+		timeoutMs: 1000,
+	})
 }
 
 describe("AI provider service", () => {
@@ -118,14 +136,7 @@ describe("AI provider service", () => {
 		const { service, getStored } = createMemoryService()
 		await service.saveConfiguration({
 			...input,
-			embedding: {
-				providerId: "openai",
-				modelId: "text-embedding-3-small",
-				authMode: "static",
-				settings: {},
-				credentialSource: "separate",
-				credentials: { apiKey: "sk-embedding" },
-			},
+			embedding: separateEmbedding,
 		})
 		const stored = getStored()
 		if (!stored?.embedding.credentials) throw new Error("Expected encrypted embedding credentials")
@@ -181,14 +192,7 @@ describe("AI provider service", () => {
 		const { service, getStored } = createMemoryService()
 		await service.saveConfiguration({
 			...input,
-			embedding: {
-				providerId: "openai",
-				modelId: "text-embedding-3-small",
-				authMode: "static",
-				settings: {},
-				credentialSource: "separate",
-				credentials: { apiKey: "sk-embedding" },
-			},
+			embedding: separateEmbedding,
 		})
 		const stored = getStored()
 		if (!stored?.text.credentials) throw new Error("Expected stored text credentials")
@@ -292,13 +296,7 @@ describe("AI provider service", () => {
 				responseBody: '{"code":"context_length_exceeded"}',
 			})
 		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 10,
-			timeoutMs: 1000,
-		})
+		const prepared = await prepareText(service)
 		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
 			ProviderContextLimitError,
 		)
@@ -328,13 +326,7 @@ describe("AI provider service", () => {
 				responseBody,
 			})
 		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 10,
-			timeoutMs: 1000,
-		})
+		const prepared = await prepareText(service)
 		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(
 			ProviderContextLimitError,
 		)
@@ -351,13 +343,7 @@ describe("AI provider service", () => {
 				responseBody: '{"error":{"message":"The model `gpt-0` does not exist","code":"model_not_found"}}',
 			})
 		})
-		await service.saveConfiguration(input)
-
-		const prepared = await service.prepareTextOperation({
-			messages: [{ role: "user", content: "Hi" }],
-			maxOutputTokens: 10,
-			timeoutMs: 1000,
-		})
+		const prepared = await prepareText(service)
 		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBeInstanceOf(APICallError)
 	})
 

@@ -5,7 +5,7 @@ import { env } from "@/config/env.ts"
 import { db, sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, login, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 import { eq } from "drizzle-orm"
 
@@ -13,19 +13,6 @@ import { mcpServer } from "./mcp.schema.ts"
 import * as service from "./mcp.service.ts"
 
 const UNREACHABLE_URL = "http://127.0.0.1:1/mcp"
-
-async function login(username: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
 
 /** Access is declared per route, so a read-only member gets a role with exactly one permission. */
 async function memberSession(permissions: ("agents:read" | "agents:manage")[]): Promise<string> {
@@ -50,6 +37,21 @@ async function expectCheckViolation(insert: Promise<unknown>): Promise<void> {
 
 async function createAgent(name = `Shop assistant ${crypto.randomUUID().slice(0, 8)}`): Promise<string> {
 	return (await agent.createAgent({ name, systemPrompt: "You help shoppers.", wordBlacklist: [] })).id
+}
+
+async function createStockServer() {
+	const agentId = await createAgent()
+	const created = await service.createServer(agentId, {
+		name: "Stock",
+		transport: "http",
+		url: UNREACHABLE_URL,
+		authMode: "none",
+	})
+	await db
+		.update(mcpServer)
+		.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
+		.where(eq(mcpServer.id, created.id))
+	return { agentId, created }
 }
 
 /** Flips the deployment gate off for one test; the returned function restores the cached env getter. */
@@ -424,17 +426,7 @@ describe("mcp server lifecycle", () => {
 	})
 
 	it("excludes a disabled connection from tool resolution", async () => {
-		const agentId = await createAgent()
-		const created = await service.createServer(agentId, {
-			name: "Stock",
-			transport: "http",
-			url: UNREACHABLE_URL,
-			authMode: "none",
-		})
-		await db
-			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
-			.where(eq(mcpServer.id, created.id))
+		const { agentId, created } = await createStockServer()
 
 		const controller = new AbortController()
 		await service.setServerDisabled(agentId, created.id, true)
@@ -448,17 +440,7 @@ describe("mcp server lifecycle", () => {
 	})
 
 	it("counts an enabled connection that fails to open as degraded", async () => {
-		const agentId = await createAgent()
-		const created = await service.createServer(agentId, {
-			name: "Stock",
-			transport: "http",
-			url: UNREACHABLE_URL,
-			authMode: "none",
-		})
-		await db
-			.update(mcpServer)
-			.set({ tools: [{ name: "get_stock", description: "", enabled: true }] })
-			.where(eq(mcpServer.id, created.id))
+		const { agentId } = await createStockServer()
 		const logged = spyOn(console, "error").mockImplementation(() => undefined)
 
 		try {

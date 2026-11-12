@@ -1,17 +1,12 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { act, createTestHarness } from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { CredentialsForm } = await import("./credentials-form")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
 
@@ -31,14 +26,12 @@ async function renderForm(props: { pendingLabel?: string; requireConfirmation?: 
 }
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
+	await harness.dispose()
 })
 
 describe("CredentialsForm", () => {

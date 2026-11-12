@@ -1,20 +1,16 @@
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, type Root, settle } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 import type { ConversationsSearch as Search } from "./conversations-search"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { renderConversationsPage } from "./-render-with-providers"
 
 const { ConversationsPage } = await import("./conversations-page")
-const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createMemoryHistory, createRootRoute, createRouter, RouterProvider } = await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act, useState } = await import("react")
+const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
+const { useState } = await import("react")
 const { t } = await import("i18next")
 
 const SHOP = { id: "11111111-1111-4111-8111-111111111111", name: "Shop helper", permissions: ["conversations:read"] }
@@ -42,16 +38,7 @@ let requested: string[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
+let harness: ReturnType<typeof createTestHarness>
 
 function Harness({ initial }: { initial: Search }) {
 	const [search, setSearch] = useState(initial)
@@ -61,15 +48,7 @@ function Harness({ initial }: { initial: Search }) {
 async function renderPage(initial: Search = {}) {
 	const rootRoute = createRootRoute({ component: () => <Harness initial={initial} /> })
 	const router = createRouter({ routeTree: rootRoute, history: createMemoryHistory() })
-	await act(async () =>
-		root.render(
-			<QueryClientProvider client={queryClient}>
-				<LanguageProvider>
-					<RouterProvider router={router} />
-				</LanguageProvider>
-			</QueryClientProvider>,
-		),
-	)
+	await renderConversationsPage(root, queryClient, router)
 	await settle()
 	await settle()
 }
@@ -83,24 +62,20 @@ function button(label: string): HTMLButtonElement {
 beforeEach(() => {
 	requested = []
 	responses = { "/api/agents": () => json({ agents: [SHOP, DOCS] }) }
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		requested.push(url)
-		const respond = responses[url]
-		if (!respond) throw new Error(`unexpected request ${url}`)
-		return respond()
-	}) as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			requested.push(url)
+			const respond = responses[url]
+			if (!respond) throw new Error(`unexpected request ${url}`)
+			return respond()
+		}) as typeof fetch,
+	})
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("ConversationsPage", () => {

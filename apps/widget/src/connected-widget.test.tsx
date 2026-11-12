@@ -150,6 +150,44 @@ async function scrollTo(top: number) {
 	})
 }
 
+async function renderStreamingWidget() {
+	const store = fakeClient({
+		...READY_SNAPSHOT,
+		activity: "responding",
+		messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+	})
+	await render(<ConnectedEmbeddedWidget client={store.client} />)
+	await openChat()
+	mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+	return store
+}
+
+async function renderRespondingWidget() {
+	const store = fakeClient({
+		...READY_SNAPSHOT,
+		activity: "responding",
+		actions: ["stop", "new-chat"],
+		messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+	})
+	await render(<ConnectedEmbeddedWidget client={store.client} />)
+	await openChat()
+	return store
+}
+
+async function growTranscript(store: ReturnType<typeof fakeClient>) {
+	mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
+	await act(async () =>
+		store.setSnapshot({
+			...READY_SNAPSHOT,
+			activity: "responding",
+			messages: [
+				message("u1", "user", "Hello", "completed"),
+				message("a1", "assistant", "Part one and part two", "streaming"),
+			],
+		}),
+	)
+}
+
 beforeEach(() => {
 	host = document.createElement("div")
 	document.body.append(host)
@@ -186,14 +224,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	})
 
 	test("renders SDK transcript updates and cancellation with partial cancelled output", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			activity: "responding",
-			actions: ["stop", "new-chat"],
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
+		const store = await renderRespondingWidget()
 
 		expect(host.textContent).toContain("Part")
 		const stop = host.querySelector<HTMLButtonElement>("button[aria-label='Stop generating']")
@@ -317,14 +348,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	})
 
 	test("keeps the composer editable and focused while the agent responds", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			activity: "responding",
-			actions: ["stop", "new-chat"],
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
+		const store = await renderRespondingWidget()
 
 		expect(input().disabled).toBe(false)
 		expect(document.activeElement).toBe(input())
@@ -350,14 +374,7 @@ describe("ConnectedEmbeddedWidget", () => {
 	})
 
 	test("announces a completed response, not each streamed delta", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			activity: "responding",
-			actions: ["stop", "new-chat"],
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
+		const store = await renderRespondingWidget()
 
 		expect(announcement()?.textContent).toBe("")
 
@@ -705,53 +722,19 @@ describe("ConnectedEmbeddedWidget", () => {
 
 describe("transcript autoscroll", () => {
 	test("follows streamed text growth while pinned", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			activity: "responding",
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
-		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		const store = await renderStreamingWidget()
 		await scrollTo(700)
 
-		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
-		await act(async () =>
-			store.setSnapshot({
-				...READY_SNAPSHOT,
-				activity: "responding",
-				messages: [
-					message("u1", "user", "Hello", "completed"),
-					message("a1", "assistant", "Part one and part two", "streaming"),
-				],
-			}),
-		)
+		await growTranscript(store)
 
 		expect(transcript().scrollTop).toBe(1200)
 	})
 
 	test("leaves a scrolled-up visitor alone while the response streams", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			activity: "responding",
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
-		})
-		await render(<ConnectedEmbeddedWidget client={store.client} />)
-		await openChat()
-		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		const store = await renderStreamingWidget()
 		await scrollTo(0)
 
-		mockScrollMetrics(transcript(), { scrollHeight: 1200, clientHeight: 300 })
-		await act(async () =>
-			store.setSnapshot({
-				...READY_SNAPSHOT,
-				activity: "responding",
-				messages: [
-					message("u1", "user", "Hello", "completed"),
-					message("a1", "assistant", "Part one and part two", "streaming"),
-				],
-			}),
-		)
+		await growTranscript(store)
 
 		expect(transcript().scrollTop).toBe(0)
 	})

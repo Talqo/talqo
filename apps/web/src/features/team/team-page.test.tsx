@@ -1,22 +1,15 @@
 import type { Role } from "@/api/generated/models/role.zod"
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/testing/component-harness"
 
 import { ListUsers200 } from "@/api/generated/models/roles/listUsers200.zod"
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-// Component test files share one process, so only the first one registers the DOM.
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json, parseJsonBody, recordRequest } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { TeamPage } = await import("./team-page")
 const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createMemoryHistory, RouterContextProvider } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 type ListedUser = {
@@ -41,6 +34,7 @@ let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
+let harness: ReturnType<typeof createTestHarness>
 
 function user(username: string, overrides: Partial<ListedUser> = {}): ListedUser {
 	return {
@@ -54,14 +48,8 @@ function user(username: string, overrides: Partial<ListedUser> = {}): ListedUser
 	}
 }
 
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })
-}
-
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-	const method = init?.method ?? "GET"
-	requests.push({ url, method, body: init?.body ? parseJsonBody(init.body) : undefined })
+	const { url, method } = recordRequest(requests, input, init)
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
 	if (url === "/api/users") return json({ users })
@@ -85,17 +73,6 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 		return json({ roles: roles.filter(({ id }) => roleIds.includes(id)).map(({ id, name }) => ({ id, name })) })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
-}
-
-function parseJsonBody(body: BodyInit | null | undefined): unknown {
-	if (typeof body !== "string") throw new Error("Expected a JSON request body")
-	return JSON.parse(body)
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 async function renderPage() {
@@ -167,19 +144,13 @@ beforeEach(() => {
 	rolesFailure = undefined
 	rolesResponse = undefined
 	requests = []
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 	router = createRouter({ routeTree: createRootRoute(), history: createMemoryHistory() })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("TeamPage", () => {

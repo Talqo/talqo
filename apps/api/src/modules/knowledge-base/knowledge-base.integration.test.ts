@@ -3,8 +3,7 @@ import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import * as roles from "@/modules/roles/roles.service.ts"
-import { DEFAULT_PASSWORD, giveRole, uniqueUsername } from "@/test-helpers.ts"
+import { createAdminSession, DEFAULT_PASSWORD, giveRole, login, uniqueUsername } from "@/test-helpers.ts"
 import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test"
 import { mkdir, readdir, readFile, rm, stat } from "node:fs/promises"
 import { join } from "node:path"
@@ -22,25 +21,6 @@ const LARGE_UPLOAD_BYTES = 300_000
 // Integration uploads must not fall back to a directory inside src/.
 const UPLOAD_ROOT = process.env.TALQO_UPLOAD_DIR
 if (!UPLOAD_ROOT) throw new Error("TALQO_UPLOAD_DIR must be set; run via bun run test:integration")
-
-async function login(username: string): Promise<string> {
-	const response = await app.request("/api/auth/login", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ username, password: DEFAULT_PASSWORD }),
-	})
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
-}
-
-async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
-	const username = uniqueUsername()
-	const admin = await roles.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
-	return { cookie: await login(username), userId: admin.id }
-}
 
 async function createReaderSession(): Promise<string> {
 	const username = uniqueUsername()

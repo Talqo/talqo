@@ -574,24 +574,22 @@ async function permissionsOfRoles(roleIds: string[]): Promise<GrantablePermissio
 	)
 }
 
-export async function resetUserPassword(userId: string, newPassword: string, actorId: string): Promise<void> {
-	await repo.withAccessLock(async () => {
+async function withManagedUser<T>(userId: string, actorId: string, action: () => Promise<T>): Promise<T> {
+	return repo.withAccessLock(async () => {
 		const held = await managementPermissions(actorId, Permission.UsersManage)
 		await identity.getUser(userId)
 		requireHeld(held, await listEffectivePermissions(userId))
 		await requireScopedAuthority(actorId, await repo.findAgentPermissionsForUsers([userId]))
-		await identity.setPassword(userId, newPassword)
+		return action()
 	})
 }
 
+export async function resetUserPassword(userId: string, newPassword: string, actorId: string): Promise<void> {
+	await withManagedUser(userId, actorId, () => identity.setPassword(userId, newPassword))
+}
+
 export async function deleteUser(userId: string, actorId: string): Promise<void> {
-	await repo.withAccessLock(async () => {
-		const held = await managementPermissions(actorId, Permission.UsersManage)
-		await identity.getUser(userId)
-		requireHeld(held, await listEffectivePermissions(userId))
-		await requireScopedAuthority(actorId, await repo.findAgentPermissionsForUsers([userId]))
-		await identity.deleteUser(userId)
-	})
+	await withManagedUser(userId, actorId, () => identity.deleteUser(userId))
 }
 
 export async function deleteCurrentUser(userId: string): Promise<void> {

@@ -1,3 +1,4 @@
+import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 
@@ -5,6 +6,25 @@ export const DEFAULT_PASSWORD = "correct-horse-battery-staple"
 
 export function uniqueUsername(): string {
 	return `user_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
+}
+
+export async function login(username: string, password = DEFAULT_PASSWORD): Promise<string> {
+	const response = await app.request("/api/auth/login", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ username, password }),
+	})
+	const setCookie = response.headers.get("set-cookie")
+	if (!setCookie) throw new Error("Expected a Set-Cookie header")
+	const [cookiePair] = setCookie.split(";")
+	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
+	return cookiePair
+}
+
+export async function createAdminSession(): Promise<{ cookie: string; userId: string }> {
+	const username = uniqueUsername()
+	const admin = await roles.bootstrapAdmin({ username, password: DEFAULT_PASSWORD })
+	return { cookie: await login(username), userId: admin.id }
 }
 
 export async function testAdminId(): Promise<string> {

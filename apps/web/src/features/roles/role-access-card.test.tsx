@@ -1,18 +1,12 @@
 import type { ListRoleAgents200 } from "@/api/generated/models/roles/listRoleAgents200.zod"
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { RoleAccessCard } = await import("./role-access-card")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
 const { createRouter, createRootRoute, createMemoryHistory, RouterProvider } = await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 type Agent = ListRoleAgents200["agents"][number]
@@ -26,16 +20,7 @@ let refreshResponse: Promise<Response> | undefined
 let host: HTMLDivElement
 let root: Root
 let client: InstanceType<typeof QueryClient>
-
-function json(body: unknown, status = 200): Response {
-	return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
+let harness: ReturnType<typeof createTestHarness>
 
 function agentAt(index: number): Agent {
 	const agent = agents[index]
@@ -113,33 +98,29 @@ beforeEach(() => {
 	mutations = []
 	failure = undefined
 	refreshResponse = undefined
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		const method = init?.method ?? "GET"
-		if (method === "GET") return refreshResponse ?? json({ agents })
-		mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
-		if (failure) return failure
-		const selected = agents.find((agent) => url.endsWith(`/agents/${agent.id}`))
-		if (!selected) throw new Error("Unknown agent")
-		if (method === "DELETE") selected.rolePermissions = []
-		else {
-			if (typeof init?.body !== "string") throw new Error("Missing body")
-			const body = JSON.parse(init.body) as { permissions: Permission[] }
-			selected.rolePermissions = body.permissions
-		}
-		return new Response(null, { status: 204 })
-	}) as typeof fetch)
-	client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			const method = init?.method ?? "GET"
+			if (method === "GET") return refreshResponse ?? json({ agents })
+			mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
+			if (failure) return failure
+			const selected = agents.find((agent) => url.endsWith(`/agents/${agent.id}`))
+			if (!selected) throw new Error("Unknown agent")
+			if (method === "DELETE") selected.rolePermissions = []
+			else {
+				if (typeof init?.body !== "string") throw new Error("Missing body")
+				const body = JSON.parse(init.body) as { permissions: Permission[] }
+				selected.rolePermissions = body.permissions
+			}
+			return new Response(null, { status: 204 })
+		}) as typeof fetch,
+	})
+	;({ host, root, queryClient: client } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	client.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("RoleAccessCard", () => {

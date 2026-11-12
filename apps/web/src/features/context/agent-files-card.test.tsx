@@ -1,19 +1,12 @@
 import type { AgentFile } from "@/api/generated/models/agentFile.zod"
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-// Component test files share one process, so only the first one registers the DOM.
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { AgentFilesCard } = await import("./agent-files-card")
 const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const FILE: AgentFile = {
@@ -28,17 +21,12 @@ let files: AgentFile[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
+let harness: ReturnType<typeof createTestHarness>
 
 async function respond(input: RequestInfo | URL): Promise<Response> {
 	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	if (url === "/api/agents/agent-1/files") {
-		return new Response(
-			JSON.stringify({ files, maxSizeBytes: 10_485_760, maxNameLength: 255, allowedExtensions: [".md"] }),
-			{
-				status: 200,
-				headers: { "content-type": "application/json" },
-			},
-		)
+		return json({ files, maxSizeBytes: 10_485_760, maxNameLength: 255, allowedExtensions: [".md"] })
 	}
 	throw new Error(`unexpected request ${url}`)
 }
@@ -64,18 +52,12 @@ function labelledButton(label: string): HTMLButtonElement | null {
 
 beforeEach(() => {
 	files = []
-	spyOn(globalThis, "fetch").mockImplementation(respond as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({ fetch: respond as typeof fetch })
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("AgentFilesCard for a read-only operator", () => {

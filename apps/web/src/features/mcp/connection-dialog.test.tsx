@@ -1,17 +1,16 @@
 import type { McpServer } from "@/api/generated/models/mcpServer.zod"
-import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import {
+	act,
+	createTestHarness,
+	QueryClient,
+	QueryClientProvider,
+	type Root,
+	settle,
+} from "@/testing/component-harness"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { ConnectionDialog } = await import("./connection-dialog")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const SERVER: McpServer = {
@@ -31,15 +30,9 @@ const SERVER: McpServer = {
 	revision: 4,
 }
 
-let host: HTMLDivElement
+let harness: ReturnType<typeof createTestHarness>
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
 
 function element<T extends HTMLElement>(selector: string): T {
 	const found = document.querySelector<T>(selector)
@@ -78,16 +71,16 @@ async function renderDialog(server?: McpServer) {
 }
 
 beforeEach(() => {
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		queryClient: new QueryClient({
+			defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+		}),
+	})
+	;({ root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
+	await harness.dispose()
 })
 
 describe("ConnectionDialog", () => {

@@ -49,6 +49,18 @@ async function createAdminSession(): Promise<{ cookie: string; userId: string }>
 	return { cookie: await login(username, DEFAULT_PASSWORD), userId: admin.id }
 }
 
+async function resetMemberPassword(password: string) {
+	const { cookie: adminCookie } = await createAdminSession()
+	const memberUsername = uniqueUsername()
+	const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
+	await app.request(`/api/users/${member.id}/password`, {
+		method: "PATCH",
+		headers: { Cookie: adminCookie, "Content-Type": "application/json" },
+		body: JSON.stringify({ newPassword: password }),
+	})
+	return { memberUsername, memberCookie: await login(memberUsername, password) }
+}
+
 async function createRole(permissions: service.Permission[], name = `Role ${crypto.randomUUID()}`) {
 	return service.createRole({ name, permissions }, await testAdminId())
 }
@@ -1236,16 +1248,7 @@ describe("admin password reset", () => {
 	})
 
 	it("lets the reset target complete a forced change without re-entering the admin-set password", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-		const memberUsername = uniqueUsername()
-		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
-
-		await app.request(`/api/users/${member.id}/password`, {
-			method: "PATCH",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ newPassword: "admin-reset-password-789" }),
-		})
-		const memberCookie = await login(memberUsername, "admin-reset-password-789")
+		const { memberUsername, memberCookie } = await resetMemberPassword("admin-reset-password-789")
 
 		const response = await app.request("/api/me/password/forced", {
 			method: "PATCH",
@@ -1262,15 +1265,7 @@ describe("admin password reset", () => {
 	})
 
 	it("blocks every other session route until a pending password change is completed", async () => {
-		const { cookie: adminCookie } = await createAdminSession()
-		const memberUsername = uniqueUsername()
-		const member = await identity.createUser({ username: memberUsername, password: DEFAULT_PASSWORD })
-		await app.request(`/api/users/${member.id}/password`, {
-			method: "PATCH",
-			headers: { Cookie: adminCookie, "Content-Type": "application/json" },
-			body: JSON.stringify({ newPassword: "admin-reset-password-456" }),
-		})
-		const memberCookie = await login(memberUsername, "admin-reset-password-456")
+		const { memberCookie } = await resetMemberPassword("admin-reset-password-456")
 
 		const response = await app.request("/api/me/permissions", { headers: { Cookie: memberCookie } })
 

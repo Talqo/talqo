@@ -1,19 +1,14 @@
-import type { Root } from "react-dom/client"
+import type { QueryClient } from "@/testing/component-harness"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test"
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
+import { afterEach, beforeEach, expect, test } from "bun:test"
 
 import type { DashboardSearch } from "./dashboard-page"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { DashboardIndexPage } = await import("./dashboard-page")
 const { LanguageProvider } = await import("@/lib/use-language")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act, useState } = await import("react")
+const { useState } = await import("react")
 const { t } = await import("i18next")
 
 const AGENT = {
@@ -28,10 +23,7 @@ let requested: string[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
-
-function json(body: unknown): Response {
-	return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })
-}
+let harness: ReturnType<typeof createTestHarness>
 
 function emptyOverview(days: number) {
 	return {
@@ -45,12 +37,6 @@ function emptyOverview(days: number) {
 			activeWindowMinutes: 5,
 		},
 	}
-}
-
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
 }
 
 function Harness({ initial }: { initial: DashboardSearch }) {
@@ -74,26 +60,22 @@ async function renderPage(initial: DashboardSearch) {
 
 beforeEach(() => {
 	requested = []
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		requested.push(url)
-		if (url === "/api/me/permissions") return json({ permissions: ["admin"] })
-		if (url === "/api/agents") return json({ agents: [AGENT] })
-		if (url === "/api/stats?days=7") return json(emptyOverview(7))
-		if (url === "/api/stats?days=all") return json(emptyOverview(0))
-		throw new Error(`unexpected request ${url}`)
-	}) as typeof fetch)
-	queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			requested.push(url)
+			if (url === "/api/me/permissions") return json({ permissions: ["admin"] })
+			if (url === "/api/agents") return json({ agents: [AGENT] })
+			if (url === "/api/stats?days=7") return json(emptyOverview(7))
+			if (url === "/api/stats?days=all") return json(emptyOverview(0))
+			throw new Error(`unexpected request ${url}`)
+		}) as typeof fetch,
+	})
+	;({ host, root, queryClient } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	queryClient.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 test("keeps both filters visible and offers all time when a range has no conversations", async () => {
