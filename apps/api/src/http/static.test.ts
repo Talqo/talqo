@@ -20,6 +20,7 @@ function fixtureDirs() {
 	writeFileSync(join(webDist, "index.html"), "<html>app</html>")
 	writeFileSync(join(webDist, "assets", "app-abc123.js"), "console.log(1)")
 	writeFileSync(join(widgetDist, "widget.js"), "console.log(2)")
+	writeFileSync(join(widgetDist, "widget-chat.js"), "console.log(3)")
 	writeFileSync(join(widgetDist, "preview.html"), "<html>preview</html>")
 	return { webDist, widgetDist }
 }
@@ -54,11 +55,20 @@ describe("createStaticResponder", () => {
 		const unversioned = await serve(request("/widget.js"))
 		expect(unversioned?.status).toBe(200)
 		expect(unversioned?.headers.get("Content-Type")).toContain("javascript")
-		expect(unversioned?.headers.get("Cache-Control")).toBeNull()
+		expect(unversioned?.headers.get("Cache-Control")).toBe("no-cache")
 		expect(await unversioned?.text()).toContain("console.log(2)")
+
+		const unversionedChat = await serve(request("/widget-chat.js"))
+		expect(unversionedChat?.headers.get("Cache-Control")).toBe("no-cache")
 
 		const versioned = await serve(request("/widget.js?v=42"))
 		expect(versioned?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
+
+		const chat = await serve(request("/widget-chat.js?v=42"))
+		expect(chat?.status).toBe(200)
+		expect(chat?.headers.get("Content-Type")).toContain("javascript")
+		expect(chat?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
+		expect(await chat?.text()).toContain("console.log(3)")
 
 		const preview = await serve(request("/preview.html"))
 		expect(preview?.status).toBe(200)

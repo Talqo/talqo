@@ -22,6 +22,19 @@ describe("built embed bundle", () => {
 		expect(document.querySelector("#talqo-widget")).not.toBeNull()
 	})
 
+	test("ships the deferred chat bundle", () => {
+		const code = readFileSync(new URL("../dist/widget-chat.js", import.meta.url), "utf8")
+
+		const run = new Function(code) as unknown as () => unknown
+		expect(() => {
+			run()
+		}).not.toThrow()
+
+		const chat = window as { TalqoWidgetChat?: { mount?: unknown; unmount?: unknown } }
+		expect(typeof chat.TalqoWidgetChat?.mount).toBe("function")
+		expect(typeof chat.TalqoWidgetChat?.unmount).toBe("function")
+	})
+
 	test("makes no network request when the page carries no embed snippet", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))

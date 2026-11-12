@@ -127,6 +127,9 @@ export function createTestServer(): Bun.Server<undefined> {
 			"/widget.js": new Response(Bun.file(path.resolve(import.meta.dirname, "../../widget/dist/widget.js")), {
 				headers: { "content-type": "text/javascript" },
 			}),
+			"/widget-chat.js": new Response(Bun.file(path.resolve(import.meta.dirname, "../../widget/dist/widget-chat.js")), {
+				headers: { "content-type": "text/javascript" },
+			}),
 		},
 		async fetch(request) {
 			const { pathname } = new URL(request.url)
