@@ -29,7 +29,6 @@ export function EmbedEnabledSwitch({ embed, disabled = false }: { embed: EmbedTa
 	const pending = disableEmbed.isPending || enableEmbed.isPending
 
 	async function onToggle(enabled: boolean) {
-		if (disabled) return
 		setError(null)
 		try {
 			if (enabled) {

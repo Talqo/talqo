@@ -21,7 +21,9 @@ const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "a
 let agents: Agent[]
 let dirtyCalls: boolean[]
 let mutations: { method: string; body?: string }[]
+let gets: string[]
 let failure: Response | undefined
+let getFailure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
 let host: HTMLDivElement
 let root: Root
@@ -44,7 +46,7 @@ function agentAt(index: number): Agent {
 }
 
 async function render(permissions: Permission[] = ALL) {
-	agents[0] = { ...agentAt(0), permissions }
+	if (agents.length > 0) agents[0] = { ...agentAt(0), permissions }
 	const route = createRootRoute({
 		component: () => <RoleAccessCard roleId="role" onDirtyChange={(dirty) => dirtyCalls.push(dirty)} />,
 	})
@@ -111,12 +113,17 @@ beforeEach(() => {
 	]
 	dirtyCalls = []
 	mutations = []
+	gets = []
 	failure = undefined
+	getFailure = undefined
 	refreshResponse = undefined
 	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
 		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 		const method = init?.method ?? "GET"
-		if (method === "GET") return refreshResponse ?? json({ agents })
+		if (method === "GET") {
+			gets.push(url)
+			return getFailure ?? refreshResponse ?? json({ agents })
+		}
 		mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
 		if (failure) return failure
 		const selected = agents.find((agent) => url.endsWith(`/agents/${agent.id}`))
@@ -145,6 +152,12 @@ afterEach(async () => {
 describe("RoleAccessCard", () => {
 	test("directs an empty existing grant to removal instead of Save", async () => {
 		await render()
+		expect(host.textContent).not.toContain(t("agentAccess.saved"))
+		expect(host.textContent).not.toContain(t("agentAccess.removed"))
+		expect(host.textContent).not.toContain(t("agentAccess.useRemove"))
+		expect(
+			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("agentConfig.cancel")),
+		).toBe(false)
 		await click(permissionSwitch("agents:read"))
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
 		expect(host.textContent).toContain(t("agentAccess.useRemove"))
@@ -167,6 +180,7 @@ describe("RoleAccessCard", () => {
 
 	test("shows the latest operation's failure and keeps the draft", async () => {
 		await render()
+		const refreshesBeforeSave = gets.length
 		await click(permissionSwitch("stats:read"))
 		failure = json(
 			{ code: "permission-exceeds-own", type: "https://docs.talqo.chat/problems#permission-exceeds-own" },
@@ -174,11 +188,14 @@ describe("RoleAccessCard", () => {
 		)
 		await click(button(t("agentAccess.save")))
 		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.permission-exceeds-own"))
+		expect(gets.length).toBeGreaterThan(refreshesBeforeSave)
 		failure = json({ code: "role-not-found", type: "https://docs.talqo.chat/problems#role-not-found" }, 404)
+		const refreshesBeforeRemove = gets.length
 		await confirmRemoval()
 		expect(document.querySelector("[role=alertdialog] [role=alert]")?.textContent).toContain(
 			t("problems.role-not-found"),
 		)
+		expect(gets.length).toBeGreaterThan(refreshesBeforeRemove)
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(mutations.map(({ method }) => method)).toEqual(["PUT", "DELETE"])
 	})
@@ -226,6 +243,9 @@ describe("RoleAccessCard", () => {
 	test("keeps a new agent selected when its last draft permission is switched off", async () => {
 		await render()
 		await chooseAgent("Observers bot")
+		expect(
+			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("agentAccess.remove")),
+		).toBe(false)
 		await click(permissionSwitch("stats:read", "observers"))
 		await click(permissionSwitch("stats:read", "observers"))
 		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("true")
@@ -245,6 +265,7 @@ describe("RoleAccessCard", () => {
 		expect(button(t("roles.saving")).disabled).toBe(true)
 		expect(permissionSwitch("stats:read").disabled).toBe(true)
 		expect(button(t("agentAccess.remove")).disabled).toBe(true)
+		expect(host.querySelector<HTMLButtonElement>("[role=combobox]")?.disabled).toBe(true)
 		await act(async () => refreshed.resolve(json({ agents })))
 		await settle()
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
@@ -264,7 +285,7 @@ describe("RoleAccessCard", () => {
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
 		await chooseAgent("Observers bot")
-		expect(host.querySelector("[role=alert]")).toBeNull()
+		expect(host.querySelector("[role=alert]") === null).toBe(true)
 	})
 
 	test("clears the dirty flag when the card unmounts", async () => {
@@ -273,5 +294,125 @@ describe("RoleAccessCard", () => {
 		expect(dirtyCalls.at(-1)).toBe(true)
 		await act(async () => root.render(null))
 		expect(dirtyCalls.at(-1)).toBe(false)
+	})
+
+	test("shows view access as included when a grant carries manage or delete", async () => {
+		agents[0] = { ...agentAt(0), rolePermissions: ["agents:manage"] }
+		agents[1] = { ...agentAt(1), rolePermissions: ["agents:delete"] }
+		await render()
+
+		const supportRead = permissionSwitch("agents:read")
+		expect(supportRead.getAttribute("aria-checked")).toBe("true")
+		expect(supportRead.disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.editConfiguration") }))
+
+		await click(button("Observers bot"))
+		const observersRead = permissionSwitch("agents:read", "observers")
+		expect(observersRead.getAttribute("aria-checked")).toBe("true")
+		expect(observersRead.disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.deleteAgent") }))
+		expect(host.querySelector<HTMLButtonElement>("[role=combobox]")?.disabled).toBe(true)
+	})
+
+	test("adds implied view access when granting manage and keeps it when manage is revoked", async () => {
+		await render()
+		await chooseAgent("Observers bot")
+		await click(permissionSwitch("agents:manage", "observers"))
+
+		const read = permissionSwitch("agents:read", "observers")
+		expect(read.getAttribute("aria-checked")).toBe("true")
+		expect(read.disabled).toBe(true)
+		expect(host.textContent).toContain(t("roles.includedWith", { permission: t("agentAccess.editConfiguration") }))
+
+		await click(permissionSwitch("agents:manage", "observers"))
+		expect(read.getAttribute("aria-checked")).toBe("true")
+		expect(read.disabled).toBe(false)
+
+		await click(button(t("agentAccess.save")))
+		expect(JSON.parse(mutations[0]?.body ?? "{}")).toEqual({ permissions: ["agents:read"] })
+	})
+
+	test("reverts a draft when its permissions match the stored grant again", async () => {
+		agents[0] = { ...agentAt(0), rolePermissions: ["stats:read"] }
+		await render()
+
+		await click(permissionSwitch("stats:read"))
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+		await click(permissionSwitch("stats:read"))
+		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+		expect(mutations).toEqual([])
+	})
+
+	test("returns focus to the add choice after removing the last grant", async () => {
+		await render()
+
+		await confirmRemoval()
+
+		expect(host.textContent).toContain(t("agentAccess.removed"))
+		expect(document.activeElement).toBe(host.querySelector("[role=combobox]"))
+	})
+
+	test("disables removal when the grant contains a permission the caller does not hold", async () => {
+		agents[0] = { ...agentAt(0), rolePermissions: ["agents:manage"] }
+		await render(["agents:read", "stats:read", "conversations:read", "agents:delete"])
+
+		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("true")
+		expect(permissionSwitch("agents:manage").disabled).toBe(true)
+		expect(button(t("agentAccess.remove")).disabled).toBe(true)
+	})
+
+	test("explains an agentless team without offering access controls", async () => {
+		agents = []
+		await render()
+
+		expect(host.textContent).toContain(t("agentAccess.noAgents"))
+		expect(host.querySelector("[role=combobox]") === null).toBe(true)
+	})
+
+	test("shows a load failure and retries without reloading the card", async () => {
+		getFailure = json({ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" }, 403)
+		await render()
+
+		expect(host.querySelector("[role=alert]")?.textContent).toContain(t("problems.permission-denied"))
+		getFailure = undefined
+		const before = gets.length
+		await click(button(t("common.retry")))
+
+		expect(gets.length).toBeGreaterThan(before)
+		expect(button("Support bot").getAttribute("aria-pressed")).toBe("true")
+	})
+
+	test("clears a removal failure when the confirmation is cancelled and reopened", async () => {
+		await render()
+		failure = json(
+			{ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" },
+			500,
+		)
+		await confirmRemoval()
+
+		expect(document.querySelector("[role=alertdialog] [role=alert]")?.textContent).toContain(
+			t("problems.internal-server-error"),
+		)
+		const dialog = document.querySelector<HTMLElement>("[role=alertdialog]")
+		const cancel = [...(dialog?.querySelectorAll("button") ?? [])].find(
+			(element) => element.textContent?.trim() === t("agentConfig.cancel"),
+		)
+		if (!cancel) throw new Error("cancel not rendered")
+		await click(cancel)
+		expect(document.querySelector("[role=alertdialog]") === null).toBe(true)
+
+		await click(button(t("agentAccess.remove")))
+		expect(document.querySelector("[role=alertdialog] [role=alert]") === null).toBe(true)
+	})
+
+	test("keeps protected content when a save preserves every existing permission", async () => {
+		await render()
+		client.setQueryData(["/api/agents/agent"], { private: true })
+
+		await click(permissionSwitch("stats:read"))
+		await click(button(t("agentAccess.save")))
+
+		expect(client.getQueryData(["/api/agents/agent"])).toEqual({ private: true })
 	})
 })

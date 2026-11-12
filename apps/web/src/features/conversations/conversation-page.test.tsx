@@ -121,6 +121,54 @@ describe("ConversationPage", () => {
 		expect(host.querySelector("h1")?.textContent).toBe(`${"a".repeat(80)}…`)
 	})
 
+	test("names the unknown agent when the conversation has no visitor message", async () => {
+		transcript = async () =>
+			json({
+				conversation: {
+					id: CONVERSATION_ID,
+					agentId: "removed-agent",
+					startedAt: "2026-10-01T10:00:00.000Z",
+					messages: [],
+				},
+			})
+
+		await renderPage()
+
+		expect(host.querySelector("h1")?.textContent).toBe(t("conversations.unknownAgent"))
+		expect(host.textContent).toContain(t("conversations.unknownAgent"))
+	})
+
+	test("uses the first visitor message even when the agent replied first", async () => {
+		transcript = async () =>
+			json({
+				conversation: {
+					id: CONVERSATION_ID,
+					agentId: AGENT.id,
+					startedAt: "2026-10-01T10:00:00.000Z",
+					messages: [
+						{
+							id: "1",
+							role: "assistant",
+							text: "Welcome",
+							outcome: "completed",
+							createdAt: "2026-10-01T10:00:00.000Z",
+						},
+						{
+							id: "2",
+							role: "user",
+							text: "Where is my order?",
+							outcome: "completed",
+							createdAt: "2026-10-01T10:00:00.000Z",
+						},
+					],
+				},
+			})
+
+		await renderPage()
+
+		expect(host.querySelector("h1")?.textContent).toBe("Where is my order?")
+	})
+
 	test("returns to the list page the operator came from", async () => {
 		transcript = async () => found()
 
