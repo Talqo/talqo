@@ -30,7 +30,7 @@
 	"greeting": "Hi there! How can I help you today?",
 	"initializing": "Loading chat…",
 	"messageLabel": "Message",
-	"monitoringNotice": "This chat is monitored and can be viewed by administrators.",
+	"monitoringNotice": "This chat may be reviewed by administrators.",
 	"newChat": "New chat",
 	"newChatTooltip": "Start a new chat and clear this conversation",
 	"openChat": "Open chat",
