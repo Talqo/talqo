@@ -192,7 +192,6 @@ export function useListConversations<TData = Awaited<ReturnType<typeof listConve
  params?: ListConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListConversations<TData = Awaited<ReturnType<typeof listConversations>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  params?: ListConversationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listConversations>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -338,7 +337,6 @@ export function useGetConversation<TData = Awaited<ReturnType<typeof getConversa
  conversationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetConversation<TData = Awaited<ReturnType<typeof getConversation>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  conversationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getConversation>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient

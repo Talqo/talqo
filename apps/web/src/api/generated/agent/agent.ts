@@ -208,7 +208,6 @@ export function useListAgents<TData = Awaited<ReturnType<typeof listAgents>>, TE
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListAgents<TData = Awaited<ReturnType<typeof listAgents>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -487,7 +486,6 @@ export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -891,7 +889,6 @@ export function useListAgentFiles<TData = Awaited<ReturnType<typeof listAgentFil
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useListAgentFiles<TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
@@ -1176,7 +1173,6 @@ export function useDownloadAgentFile<TData = Awaited<ReturnType<typeof downloadA
     fileName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAgentFile>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useDownloadAgentFile<TData = Awaited<ReturnType<typeof downloadAgentFile>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  agentId: string,
     fileName: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadAgentFile>>, TError, TData>>, fetch?: RequestInit}

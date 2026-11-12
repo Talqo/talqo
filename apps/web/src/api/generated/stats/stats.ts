@@ -180,7 +180,6 @@ export function useGetStatsOverview<TData = Awaited<ReturnType<typeof getStatsOv
  params?: GetStatsOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsOverview>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetStatsOverview<TData = Awaited<ReturnType<typeof getStatsOverview>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
  params?: GetStatsOverviewParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStatsOverview>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient

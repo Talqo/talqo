@@ -414,7 +414,6 @@ export function useGetSession<TData = Awaited<ReturnType<typeof getSession>>, TE
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
 export function useGetSession<TData = Awaited<ReturnType<typeof getSession>>, TError = globalThis.Error & { info?: ProblemDetails; status?: number }>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSession>>, TError, TData>>, fetch?: RequestInit}
  , queryClient?: QueryClient
