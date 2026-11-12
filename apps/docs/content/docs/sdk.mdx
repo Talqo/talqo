@@ -50,3 +50,7 @@ Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a fa
 The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. A `storage-unavailable` error or notice means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
 
 The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.
+
+## Page context
+
+The SDK sends no page location by default. To send the current path to the AI provider with each question, pass `getPagePath: () => window.location.pathname` to `createChatClient`. The SDK reads it again for every send, including after client-side navigation. Query strings and fragments are excluded. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets.

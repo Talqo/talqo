@@ -128,6 +128,7 @@ export type ChatTransport = {
 export type ChatClientOptions = {
 	apiUrl: string
 	embedToken: string
+	getPagePath?: () => string | undefined
 	storage?: AsyncStorage
 	transport?: ChatTransport
 	randomUUID?: () => string

@@ -37,6 +37,10 @@ export function appearanceFromDataset(dataset: DOMStringMap | undefined): Widget
 	return appearanceFromValues((key) => dataset?.[`talqo${key[0]?.toUpperCase()}${key.slice(1)}`])
 }
 
+export function isPageContextEnabled(dataset: DOMStringMap | undefined): boolean {
+	return dataset?.talqoPageContext === "true"
+}
+
 /** Attributes last: a per-page override outranks the stored config, one color at a time. */
 export function mergeAppearance(
 	config: WidgetAppearanceInput,

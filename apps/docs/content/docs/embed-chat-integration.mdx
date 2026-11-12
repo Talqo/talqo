@@ -24,7 +24,7 @@ Keep `async`, so the widget never delays the host page's own content. Omit `data
 
 Talqo sends the saved system prompt and completed conversation history with each message. It does not truncate or summarize history. Failed, cancelled, blocked, and interrupted replies are excluded from later model input.
 
-The widget and browser SDK include the current page path with each question. Query strings and fragments are excluded, and this context stays out of the visible conversation.
+Talqo does not send page locations by default. To send the current page path to the AI provider with each question, add `data-talqo-page-context="true"` to the widget script. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets. Query strings and fragments are excluded, and the context stays out of the visible conversation. Custom interfaces can opt in through the [SDK](/sdk).
 
 ## Limits and network identity
 

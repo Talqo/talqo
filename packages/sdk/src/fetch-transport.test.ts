@@ -188,27 +188,37 @@ describe("createFetchChatTransport", () => {
 		})
 	})
 
-	test("reads a fresh page path for each send and omits it when unavailable", async () => {
+	test("reads a fresh page path for each send and omits missing or non-path locations", async () => {
 		const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
-		const fake = recordingFetch([streamResponse([terminal]), streamResponse([terminal]), streamResponse([terminal])])
-		const pagePaths = ["/account", "/product/guitar", undefined]
+		const fake = recordingFetch([
+			streamResponse([terminal]),
+			streamResponse([terminal]),
+			streamResponse([terminal]),
+			streamResponse([terminal]),
+		])
+		const pagePaths = ["/account", "/product/guitar", undefined, "srcdoc"]
 		const transport = createFetchChatTransport({ fetch: fake.fetch, getPagePath: () => pagePaths.shift() })
 		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL }
 
 		await Array.fromAsync(await transport.sendMessage({ ...input, text: "first" }))
 		await Array.fromAsync(await transport.sendMessage({ ...input, text: "second" }))
 		await Array.fromAsync(await transport.sendMessage({ ...input, text: "third" }))
+		await Array.fromAsync(await transport.sendMessage({ ...input, text: "fourth" }))
 
 		expect(fake.calls.map((call) => call.init?.body)).toEqual([
 			JSON.stringify({ requestId: REQUEST_ID, text: "first", pagePath: "/account" }),
 			JSON.stringify({ requestId: REQUEST_ID, text: "second", pagePath: "/product/guitar" }),
 			JSON.stringify({ requestId: REQUEST_ID, text: "third" }),
+			JSON.stringify({ requestId: REQUEST_ID, text: "fourth" }),
 		])
 	})
 
-	test("omits the page path for browser locations without a leading slash", async () => {
+	test("does not collect a browser page path without an explicit hook", async () => {
 		const originalLocation = Object.getOwnPropertyDescriptor(globalThis, "location")
-		Object.defineProperty(globalThis, "location", { configurable: true, value: new URL("about:srcdoc") })
+		Object.defineProperty(globalThis, "location", {
+			configurable: true,
+			value: new URL("https://shop.example.test/reset-password/secret"),
+		})
 		try {
 			const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
 			const fake = recordingFetch([streamResponse([terminal])])

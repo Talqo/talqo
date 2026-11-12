@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { apiOrigin, appearanceFromDataset, mergeAppearance } from "./embed-config"
+import { apiOrigin, appearanceFromDataset, isPageContextEnabled, mergeAppearance } from "./embed-config"
 
 await import("@/test-setup")
 
@@ -54,6 +54,16 @@ describe("appearanceFromDataset", () => {
 			theme: "neon",
 			language: "xx",
 		})
+	})
+})
+
+describe("isPageContextEnabled", () => {
+	test("requires an explicit true value", () => {
+		expect(isPageContextEnabled(undefined)).toBe(false)
+		expect(isPageContextEnabled({})).toBe(false)
+		expect(isPageContextEnabled({ talqoPageContext: "false" })).toBe(false)
+		expect(isPageContextEnabled({ talqoPageContext: "" })).toBe(false)
+		expect(isPageContextEnabled({ talqoPageContext: "true" })).toBe(true)
 	})
 })
 

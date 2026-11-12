@@ -2,13 +2,15 @@ import { type ChatClient, type ChatClientOptions, createChatClient } from "@talq
 import { createRoot, type Root } from "react-dom/client"
 
 import { ConnectedEmbeddedWidget } from "./embedded-widget"
-import { apiOrigin, appearanceFromDataset } from "./lib/embed-config"
+import { apiOrigin, appearanceFromDataset, isPageContextEnabled } from "./lib/embed-config"
 import { PreviewWidget } from "./preview"
 
 let root: Root | null = null
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
+export type ChatClientFactory = (
+	options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "getPagePath">,
+) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory }
 
 const DEFAULT_TARGET = "#talqo-widget"
@@ -42,6 +44,11 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	return created
 }
 
+function currentPagePath(): string | undefined {
+	const pagePath = globalThis.location?.pathname
+	return pagePath?.startsWith("/") ? pagePath : undefined
+}
+
 export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
 	const element = resolveMountElement(target)
 	if (!element) {
@@ -66,7 +73,8 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 		return
 	}
 
-	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken })
+	const getPagePath = isPageContextEnabled(dataset) ? currentPagePath : undefined
+	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, getPagePath })
 	root.render(<ConnectedEmbeddedWidget client={client} title={dataset?.talqoTitle} appearance={overrides} />)
 }
 

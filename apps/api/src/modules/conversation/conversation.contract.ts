@@ -6,6 +6,7 @@ import { createRoute, z } from "@hono/zod-openapi"
 
 import { CONVERSATION_AGENT_FILTER_MAX, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
 
+const MAX_PAGE_PATH_CHARACTERS = 2048
 const requestIdSchema = z.uuid({ version: "v4" })
 
 const terminalOutcome = z.enum(["completed", "failed", "cancelled", "blocked", "interrupted"])
@@ -74,8 +75,8 @@ const sendBody = z.object({
 		.refine((text) => Array.from(text).length <= MAX_CHAT_INPUT_CHARACTERS),
 	pagePath: z
 		.string()
-		.startsWith("/")
-		.refine((path) => !path.includes("?") && !path.includes("#"))
+		.max(MAX_PAGE_PATH_CHARACTERS)
+		.regex(/^\/[^\s\p{Cc}\p{Cf}?#]*$/u)
 		.optional(),
 })
 const cancelBody = z.object({ generationId: z.uuid({ version: "v4" }).optional() })

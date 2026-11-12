@@ -161,6 +161,45 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().configuration?.title).toBe("Support")
 	})
 
+	test("passes explicit page path capture to the production transport", async () => {
+		const bodies: unknown[] = []
+		using fetchSpy = spyOn(globalThis, "fetch").mockImplementation((async (
+			_input: RequestInfo | URL,
+			init?: RequestInit,
+		) => {
+			if (init?.method === "POST") {
+				bodies.push(JSON.parse(typeof init.body === "string" ? init.body : "null"))
+				return new Response(
+					'event: chat\ndata: {"version":1,"type":"accepted","requestId":"11111111-1111-4111-8111-111111111111","generationId":"generation","userMessage":{"id":"user","createdAt":"now"},"assistantMessage":{"id":"assistant","createdAt":"now"}}\n\nevent: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n',
+					{ headers: { "Content-Type": "text/event-stream" } },
+				)
+			}
+			return new Response(JSON.stringify({ version: 1, name: "Support", appearance: {}, isAvailable: true }), {
+				headers: { "Content-Type": "application/json" },
+			})
+		}) as typeof fetch)
+		const ids = ["22222222-2222-4222-8222-222222222222", "11111111-1111-4111-8111-111111111111"]
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			getPagePath: () => "/account",
+			storage: createMemoryStorage(),
+			randomUUID: () => ids.shift()!,
+		})
+		await client.initialize()
+
+		await client.sendMessage("hello")
+
+		expect(fetchSpy).toHaveBeenCalledTimes(2)
+		expect(bodies).toEqual([
+			{
+				requestId: "11111111-1111-4111-8111-111111111111",
+				text: "hello",
+				pagePath: "/account",
+			},
+		])
+	})
+
 	test("initializes configuration and restores server history from a stored credential", async () => {
 		const storage = createMemoryStorage()
 		const key = createChatStorageKey("https://api.example.test", "embed")

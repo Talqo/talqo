@@ -110,7 +110,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const transport = options.transport ?? createFetchChatTransport()
+	const transport = options.transport ?? createFetchChatTransport({ getPagePath: options.getPagePath })
 
 	const storage = createResilientStorage(
 		options.storage ?? {

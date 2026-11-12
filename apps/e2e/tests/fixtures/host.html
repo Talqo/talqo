@@ -9,6 +9,7 @@
 			script.async = true
 			script.dataset.talqoEmbedToken = params.get("token")
 			script.dataset.talqoApi = params.get("api")
+			if (params.get("pageContext") === "true") script.dataset.talqoPageContext = "true"
 			document.body.append(script)
 		</script>
 	</body>
