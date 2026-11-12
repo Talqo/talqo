@@ -55,8 +55,11 @@ describe("createStaticResponder", () => {
 		const unversioned = await serve(request("/widget.js"))
 		expect(unversioned?.status).toBe(200)
 		expect(unversioned?.headers.get("Content-Type")).toContain("javascript")
-		expect(unversioned?.headers.get("Cache-Control")).toBeNull()
+		expect(unversioned?.headers.get("Cache-Control")).toBe("no-cache")
 		expect(await unversioned?.text()).toContain("console.log(2)")
+
+		const unversionedChat = await serve(request("/widget-chat.js"))
+		expect(unversionedChat?.headers.get("Cache-Control")).toBe("no-cache")
 
 		const versioned = await serve(request("/widget.js?v=42"))
 		expect(versioned?.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable")
