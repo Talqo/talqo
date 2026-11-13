@@ -62,7 +62,7 @@ bun run check
 
 `check` runs typecheck and audits changed files for dead code, duplication, boundary violations, and import cycles. Run `bun run test` for unit tests.
 
-CI runs whole-repository checks and the full unit suite. It rejects clones of at least 70 tokens and new CRAP findings at scores of 6 or higher, or 30 for React components. Duplication is advisory in the local audit.
+CI runs whole-repository checks and the full unit suite. It rejects clones of at least 70 tokens and new CRAP findings at scores of 8 or higher, or 30 for React components. Duplication is advisory in the local audit.
 
 Run `bun run health` to collect fresh unit-test coverage and check changed-code health, including CRAP.
 
