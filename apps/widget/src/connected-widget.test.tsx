@@ -162,6 +162,58 @@ afterEach(async () => {
 })
 
 describe("ConnectedEmbeddedWidget", () => {
+	for (const [status, label] of [
+		["running", "Running"],
+		["completed", "Completed"],
+		["failed", "Failed"],
+		["cancelled", "Cancelled"],
+		["interrupted", "Interrupted"],
+	] as const) {
+		test(`shows general tool labels with accessible ${status} status instead of internal names`, async () => {
+			const parts: ChatMessage["parts"][number][] = []
+			for (const source of ["client", "mcp"] as const) {
+				parts.push({
+					type: "dynamic-tool",
+					toolName: "internal_tool_name",
+					toolCallId: source,
+					input: {},
+					toolMetadata: {
+						source,
+						displayName: "internal_tool_name",
+						serverName: "Internal server",
+						...(status === "running" ? {} : { outcome: status }),
+					},
+					...(status === "running"
+						? { state: "input-available" }
+						: status === "completed"
+							? { state: "output-available", output: {} }
+							: { state: "output-error", errorText: "Tool did not finish" }),
+				})
+			}
+			const assistant: ChatMessage = { ...message("a1", "assistant", "", "completed"), parts }
+			const store = fakeClient({ ...READY_SNAPSHOT, messages: [assistant] })
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+
+			const rows = [...transcript().querySelectorAll("output")]
+			expect(rows).toHaveLength(2)
+			expect(rows.map((row) => row.title)).toEqual([label, label])
+			expect(
+				rows.map((row) =>
+					[...row.childNodes]
+						.filter((node) => node.nodeType === Node.TEXT_NODE)
+						.map((node) => node.textContent)
+						.join(""),
+				),
+			).toEqual(["Website tool", "Connected tool"])
+			for (const row of rows) {
+				expect(row.querySelector(".tw\\:sr-only")?.textContent).toBe(` ${row.title}`)
+				expect(row.textContent).not.toContain("internal_tool_name")
+				expect(row.textContent).not.toContain("Internal server")
+			}
+		})
+	}
+
 	test("initializes the semantic client and uses SDK configuration with host overrides", async () => {
 		const store = fakeClient()
 		await render(

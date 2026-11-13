@@ -29,7 +29,10 @@ import {
 } from "react"
 import { I18nextProvider, useTranslation } from "react-i18next"
 
+import CircleCheckIcon from "./assets/icons/circle-check.svg?react"
+import CircleXIcon from "./assets/icons/circle-x.svg?react"
 import CloseIcon from "./assets/icons/close.svg?react"
+import LoaderIcon from "./assets/icons/loader.svg?react"
 import MoonIcon from "./assets/icons/moon.svg?react"
 import NewChatIcon from "./assets/icons/new-chat.svg?react"
 import ResizeGripIcon from "./assets/icons/resize-grip.svg?react"
@@ -96,14 +99,22 @@ const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: 
 				const status =
 					part.toolMetadata.outcome ??
 					(part.state === "input-available" ? "running" : part.state === "output-error" ? "failed" : "completed")
+				const StatusIcon = status === "running" ? LoaderIcon : status === "completed" ? CircleCheckIcon : CircleXIcon
 				return (
 					<output
 						key={part.toolCallId}
-						className="tw:min-w-0 tw:max-w-full tw:break-words tw:px-1 tw:text-muted-foreground tw:text-xs"
+						title={toolStatuses[status]}
+						className="tw:flex tw:min-w-0 tw:max-w-full tw:items-center tw:gap-1.5 tw:break-words tw:px-1 tw:text-muted-foreground tw:text-xs"
 					>
-						{part.toolMetadata.displayName} ·{" "}
+						<StatusIcon
+							aria-hidden="true"
+							className={cn(
+								"tw:size-3.5 tw:shrink-0",
+								status === "running" && "tw:animate-spin tw:motion-reduce:animate-none",
+							)}
+						/>
 						{part.toolMetadata.source === "client" ? t("websiteTool") : t("connectedTool")}
-						{part.toolMetadata.serverName ? ` · ${part.toolMetadata.serverName}` : ""} · {toolStatuses[status]}
+						<span className="tw:sr-only"> {toolStatuses[status]}</span>
 					</output>
 				)
 			})}

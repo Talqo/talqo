@@ -2,6 +2,7 @@ import type { ConversationMessage as Message } from "@/api/generated/models/conv
 
 import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
+import { CircleCheckIcon, CircleXIcon, LoaderCircleIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const OUTCOME_KEYS = {
@@ -46,17 +47,26 @@ export function Transcript({ messages }: { messages: Message[] }) {
 										: part.state === "output-error"
 											? "failed"
 											: "completed")
+								const StatusIcon =
+									status === "running" ? LoaderCircleIcon : status === "completed" ? CircleCheckIcon : CircleXIcon
 								return (
-									<span
+									<output
 										key={part.toolCallId}
-										className="text-muted-foreground max-w-full min-w-0 px-1 text-xs break-words"
+										title={toolStatuses[status]}
+										className="text-muted-foreground flex max-w-full min-w-0 items-center gap-1.5 px-1 text-xs break-words"
 									>
-										{part.toolMetadata.displayName} ·{" "}
+										<StatusIcon
+											aria-hidden="true"
+											className={cn(
+												"size-3.5 shrink-0",
+												status === "running" && "animate-spin motion-reduce:animate-none",
+											)}
+										/>
 										{part.toolMetadata.source === "client"
 											? t("conversations.websiteTool")
 											: t("conversations.connectedTool")}
-										{part.toolMetadata.serverName ? ` · ${part.toolMetadata.serverName}` : ""} · {toolStatuses[status]}
-									</span>
+										<span className="sr-only"> {toolStatuses[status]}</span>
+									</output>
 								)
 							}
 							return (

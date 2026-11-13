@@ -27,15 +27,23 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await input.fill("Read this page")
 	await dialog.getByRole("button", { name: widget("send") }).click()
 	await expect(dialog.getByText("Page says host text.", { exact: true })).toBeVisible()
-	await expect(dialog.getByRole("status").filter({ hasText: "readPage" })).toContainText(widget("toolCompleted"))
-	await expect(dialog.getByRole("status").filter({ hasText: "get_stock_level" })).toContainText(widget("toolCompleted"))
+	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
+		widget("toolCompleted"),
+	)
+	await expect(dialog.getByRole("status").filter({ hasText: widget("connectedTool") })).toContainText(
+		widget("toolCompleted"),
+	)
+	await expect(dialog.getByText("readPage", { exact: false })).toHaveCount(0)
+	await expect(dialog.getByText("get_stock_level", { exact: false })).toHaveCount(0)
 	await input.fill("Remember the page result")
 	await dialog.getByRole("button", { name: widget("send") }).click()
 	await expect(dialog.getByText("Page says host text.", { exact: true })).toHaveCount(2)
 	await page.reload()
 	await page.waitForFunction(() => document.documentElement.dataset.toolsReady === "true")
 	await page.getByRole("button", { name: widget("openChat") }).click()
-	await expect(dialog.getByRole("status").filter({ hasText: "readPage" })).toContainText(widget("toolCompleted"))
+	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
+		widget("toolCompleted"),
+	)
 	expect(await page.evaluate(() => sessionStorage.getItem("tool-executions"))).toBe("1")
 	const captured = (await (await adminRequest.get(`${chatEmbed.providerControlOrigin}/requests`)).json()) as {
 		requests: { messages: { role: string; content: unknown }[] }[]
@@ -49,10 +57,18 @@ test("browser and connected tool results survive the live answer, reload, and op
 	)
 	await openDashboard(page, ADMIN, "/dashboard/conversations")
 	await page.getByRole("link", { name: "Read this page" }).click()
-	await expect(page.getByText("readPage", { exact: false })).toContainText(web("conversations.toolCompleted"))
-	await expect(page.getByText("get_stock_level", { exact: false })).toContainText(web("conversations.connectedTool"))
+	await expect(page.getByRole("status").filter({ hasText: web("conversations.websiteTool") })).toContainText(
+		web("conversations.toolCompleted"),
+	)
+	await expect(page.getByRole("status").filter({ hasText: web("conversations.connectedTool") })).toContainText(
+		web("conversations.toolCompleted"),
+	)
+	await expect(page.getByText("readPage", { exact: false })).toHaveCount(0)
+	await expect(page.getByText("get_stock_level", { exact: false })).toHaveCount(0)
 	await page.reload()
-	await expect(page.getByText("readPage", { exact: false })).toContainText(web("conversations.websiteTool"))
+	await expect(page.getByRole("status").filter({ hasText: web("conversations.websiteTool") })).toContainText(
+		web("conversations.toolCompleted"),
+	)
 })
 
 test("disconnect interrupts an executing browser tool without replaying its page action", async ({
@@ -73,9 +89,12 @@ test("disconnect interrupts an executing browser tool without replaying its page
 	await page.reload()
 	await page.waitForFunction(() => document.documentElement.dataset.toolsReady === "true")
 	await page.getByRole("button", { name: widget("openChat") }).click()
-	await expect(dialog.getByRole("status").filter({ hasText: "readPage" })).toContainText(widget("toolInterrupted"), {
-		timeout: 20_000,
-	})
+	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
+		widget("toolInterrupted"),
+		{
+			timeout: 20_000,
+		},
+	)
 	expect(await page.evaluate(() => sessionStorage.getItem("tool-executions"))).toBe("1")
 	const captured = (await (await adminRequest.get(`${chatEmbed.providerControlOrigin}/requests`)).json()) as {
 		requests: unknown[]
