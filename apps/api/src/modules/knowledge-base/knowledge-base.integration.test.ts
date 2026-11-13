@@ -382,6 +382,64 @@ describe("agent knowledge files", () => {
 		await expectProblem(await upload(cookie, agentId), 409, "agent-file-name-taken")
 	})
 
+	it("renames a file to its current name without touching its contents", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Same rename")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+
+		const response = await app.request(`/api/agents/${agentId}/files/a.md`, {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "a" }),
+		})
+
+		expect(response.status).toBe(200)
+		expect(((await response.json()) as { file: { name: string } }).file.name).toBe("a.md")
+		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
+		expect((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId}`) as { name: string }[]).toEqual([
+			{ name: "a.md" },
+		])
+	})
+
+	it("rejects a rename onto an existing file and keeps both files", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Rename collision")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+		expect((await upload(cookie, agentId, "b.md", "second")).status).toBe(201)
+
+		const response = await app.request(`/api/agents/${agentId}/files/a.md`, {
+			method: "PATCH",
+			headers: { Cookie: cookie, "Content-Type": "application/json" },
+			body: JSON.stringify({ name: "b" }),
+		})
+
+		await expectProblem(response, 409, "agent-file-name-taken")
+		expect(await readFile(join(UPLOAD_ROOT, agentId, "a.md"), "utf8")).toBe("hello")
+		expect(await readFile(join(UPLOAD_ROOT, agentId, "b.md"), "utf8")).toBe("second")
+		expect(
+			((await sql`SELECT name FROM agent_file WHERE agent_id = ${agentId} ORDER BY name`) as { name: string }[]).map(
+				({ name }) => name,
+			),
+		).toEqual(["a.md", "b.md"])
+	})
+
+	it("returns 404 when renaming a missing file, including a no-op rename", async () => {
+		const { cookie } = await createAdminSession()
+		const agentId = await createAgent(cookie, "Rename missing")
+		expect((await upload(cookie, agentId)).status).toBe(201)
+
+		const rename = (name: string, target: string) =>
+			app.request(`/api/agents/${agentId}/files/${name}`, {
+				method: "PATCH",
+				headers: { Cookie: cookie, "Content-Type": "application/json" },
+				body: JSON.stringify({ name: target }),
+			})
+
+		await expectProblem(await rename("missing.md", "missing"), 404, "agent-file-not-found")
+		await expectProblem(await rename("missing.md", "renamed"), 404, "agent-file-not-found")
+		expect((await readdir(join(UPLOAD_ROOT, agentId))).includes("renamed.md")).toBe(false)
+	})
+
 	it("rejects an oversized file with 413 over HTTP", async () => {
 		const { cookie } = await createAdminSession()
 		const agentId = await createAgent(cookie, "Oversize")
