@@ -46,11 +46,12 @@
 		},
 		"test": {
 			"dependsOn": ["transit"],
-			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
+			"inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+			"passThroughEnv": ["BUN_OPTIONS", "NODE_OPTIONS", "SUPERCOV_*"]
 		},
 		"test:integration": {
 			"cache": false,
-			"passThroughEnv": ["TALQO_TEST_WORKERS", "DOCKER_*", "TMPDIR"]
+			"passThroughEnv": ["BUN_OPTIONS", "NODE_OPTIONS", "SUPERCOV_*", "TALQO_TEST_WORKERS", "DOCKER_*", "TMPDIR"]
 		},
 		"typecheck": {
 			"dependsOn": ["transit"],
@@ -63,7 +64,8 @@
 		"i18n": {},
 		"i18n:fix": {},
 		"@talqo/widget#test": {
-			"dependsOn": ["^build", "build"]
+			"dependsOn": ["^build", "build"],
+			"passThroughEnv": ["BUN_OPTIONS", "NODE_OPTIONS", "SUPERCOV_*"]
 		}
 	}
 }
