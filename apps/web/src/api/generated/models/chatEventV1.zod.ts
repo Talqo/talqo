@@ -5,11 +5,25 @@
  * OpenAPI spec version: 0.0.1
  */
 import * as zod from 'zod';
+import { MessagePart } from './messagePart.zod';
+
+export const chatEventV1OneIndexMin = 0;
+
+export const chatEventV1ThreeIndexMin = 0;
+
+
 
 export const ChatEventV1 = zod.union([zod.object({
   "version": zod.literal(1),
+  "type": zod.enum(['part']),
+  "assistantMessageId": zod.string(),
+  "index": zod.int().min(chatEventV1OneIndexMin),
+  "part": MessagePart
+}),zod.object({
+  "version": zod.literal(1),
   "type": zod.enum(['accepted']),
   "requestId": zod.uuid(),
+  "duplicate": zod.boolean().optional(),
   "generationId": zod.string(),
   "userMessage": zod.object({
   "id": zod.string(),
@@ -23,6 +37,7 @@ export const ChatEventV1 = zod.union([zod.object({
   "version": zod.literal(1),
   "type": zod.enum(['delta']),
   "assistantMessageId": zod.string(),
+  "index": zod.int().min(chatEventV1ThreeIndexMin),
   "text": zod.string()
 }),zod.object({
   "version": zod.literal(1),

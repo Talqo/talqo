@@ -29,7 +29,9 @@ Add a proxy such as Caddy or Traefik in the same Compose project, point it at th
 
 If your proxy runs on a separate machine or container network, add that network's address to `TALQO_TRUSTED_PROXY_CIDRS` so rate limiting sees real visitor addresses instead of the proxy's.
 
-Chat replies stream over Server-Sent Events, so the proxy must not buffer responses and must allow reads longer than `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS`. nginx breaks both by default: it withholds streamed replies until the model finishes, and its 60s read timeout cuts generations short before Talqo's 120s default.
+The widget and SDK require WebSocket upgrades on `/api/chat/*/socket`. Forward the `Upgrade` and `Connection` headers and allow idle reads longer than `TALQO_CHAT_GENERATION_TIMEOUT_SECONDS`. nginx's default 60-second read timeout is shorter than Talqo's 120-second generation default. There is no automatic SSE fallback.
+
+Direct server-only API clients can still use POST/SSE. Disable proxy buffering for those responses.
 
 ## Keeping your data
 

@@ -7,6 +7,7 @@ export type AsyncStorage = {
 export const CHAT_STORAGE_VERSION = 1 as const
 
 type PendingMessage = {
+	clientTools?: boolean
 	requestId: string
 	text: string
 }
@@ -73,6 +74,7 @@ function isPendingMessage(value: unknown): value is PendingMessage {
 	return (
 		typeof value === "object" &&
 		value !== null &&
+		(!("clientTools" in value) || typeof value.clientTools === "boolean") &&
 		"requestId" in value &&
 		typeof value.requestId === "string" &&
 		"text" in value &&

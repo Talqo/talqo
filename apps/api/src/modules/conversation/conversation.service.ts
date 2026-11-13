@@ -10,9 +10,14 @@ import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.
 import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
+import { asSchema, convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { z } from "zod"
 
+import type { ClientToolChannel } from "./conversation.client-tools.ts"
+import type { MessagePart } from "./conversation.messages.ts"
+
 import { createBlacklistFilter } from "./blacklist.ts"
+import { TOOL_PAYLOAD_BYTES } from "./conversation.client-tools.ts"
 import {
 	ConversationNotFoundError,
 	ConversationTooLongError,
@@ -22,6 +27,7 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
+import { finalizePart } from "./conversation.messages.ts"
 import { createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
 import {
@@ -46,6 +52,7 @@ const UUID_SCHEMA = z.uuid({ version: "v4" })
 type GenerationEvent =
 	| { model: string; provider: aiProvider.AiProviderId; type: "start" }
 	| { text: string; type: "text" }
+	| { type: "step-start" }
 	| {
 			model: string
 			outcome: "cancelled" | "completed" | "failed" | "interrupted"
@@ -58,7 +65,7 @@ type PreparedOperation = {
 	invoke(
 		signal: AbortSignal,
 		tools?: aiProvider.ToolBinding,
-		onToolEvent?: (event: aiProvider.ToolEvent) => void,
+		onToolEvent?: (event: aiProvider.ToolEvent) => void | Promise<void>,
 	): AsyncIterable<GenerationEvent>
 	model: string
 	provider: aiProvider.AiProviderId
@@ -68,22 +75,20 @@ type Dependencies = {
 	beforeAccept?: (attempt: number) => Promise<void>
 	concurrencyLimit: number
 	dailyLimit: number
-	prepare(input: {
-		maxOutputTokens: number
-		messages: aiProvider.TextMessage[]
-		timeoutMs: number
-	}): Promise<PreparedOperation>
+	prepare(input: { maxOutputTokens: number; messages: ModelMessage[]; timeoutMs: number }): Promise<PreparedOperation>
 	maxInputCharacters: number
 	maxOutputTokens: number
 	timeoutMs: number
 }
 
 type ChatMessage = {
+	requestId?: string
 	createdAt: string
 	id: string
 	outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted" | "streaming"
 	role: "assistant" | "user"
 	text: string
+	parts: MessagePart[]
 }
 
 export type ChatEvent =
@@ -92,10 +97,12 @@ export type ChatEvent =
 			assistantMessage: { createdAt: string; id: string }
 			generationId: string
 			requestId: string
+			duplicate?: boolean
 			type: "accepted"
 			userMessage: { createdAt: string; id: string }
 	  }
-	| { version: 1; assistantMessageId: string; text: string; type: "delta" }
+	| { version: 1; assistantMessageId: string; index: number; text: string; type: "delta" }
+	| { version: 1; assistantMessageId: string; index: number; part: MessagePart; type: "part" }
 	| { version: 1; outcome: "blocked" | "cancelled" | "completed" | "failed" | "interrupted"; type: "terminal" }
 	| { version: 1; serverName: string; toolName: string; type: "tool-start" }
 	| {
@@ -115,6 +122,9 @@ export type ChatEvent =
 type ChatErrorCode = "chat-context-limit" | "chat-input-incompatible" | "provider-error"
 
 type SendInput = {
+	cancellationSignal?: AbortSignal
+	clientTools?: ClientToolChannel
+	clientManifestFingerprint?: string
 	credential: string
 	embedToken: string
 	networkHash: string
@@ -136,19 +146,21 @@ function isActiveStatus(
 function publicMessage(message: Awaited<ReturnType<typeof repository.listMessages>>[number]): ChatMessage {
 	return {
 		id: message.id,
+		requestId: message.requestId,
 		role: message.role,
 		text: message.text,
+		parts: message.parts,
 		outcome: message.outcome,
 		createdAt: message.createdAt.toISOString(),
 	}
 }
 
-function completedPrompt(
+async function completedPrompt(
 	systemPrompt: string,
 	messages: Awaited<ReturnType<typeof repository.listMessages>>,
 	text: string,
 ) {
-	const prompt: aiProvider.TextMessage[] = [{ role: "system", content: systemPrompt }]
+	const history: UIMessage[] = []
 	for (let index = 0; index < messages.length - 1; index += COMPLETED_PAIR_WIDTH) {
 		const user = messages[index]
 		const assistant = messages[index + 1]
@@ -158,15 +170,23 @@ function completedPrompt(
 			assistant?.role === "assistant" &&
 			assistant.outcome === "completed"
 		) {
-			prompt.push({ role: "user", content: user.text }, { role: "assistant", content: assistant.text })
+			history.push(
+				{ id: user.id, role: "user", parts: user.parts },
+				{ id: assistant.id, role: "assistant", parts: assistant.parts },
+			)
 		}
 	}
-	prompt.push({ role: "user", content: text })
-	return prompt
+	return [
+		{ role: "system" as const, content: systemPrompt },
+		...(await convertToModelMessages(history)),
+		{ role: "user" as const, content: text },
+	]
 }
 
-function promptText(messages: aiProvider.TextMessage[]): string {
-	return messages.map((message) => message.content).join("\n")
+function promptText(messages: ModelMessage[]): string {
+	return messages
+		.map((message) => (typeof message.content === "string" ? message.content : JSON.stringify(message.content)))
+		.join("\n")
 }
 
 async function recordPendingUsage(pending: repository.PendingUsageFinalization): Promise<void> {
@@ -240,10 +260,12 @@ export function createConversationService(dependencies: Dependencies) {
 	async function run(
 		accepted: repository.AcceptedGenerationAttempt,
 		agent: agentService.Agent,
-		baseMessages: aiProvider.TextMessage[],
+		baseMessages: ModelMessage[],
 		initialOperation: PreparedOperation,
 		emit: (event: ChatEvent) => void,
 		annotate: Annotate,
+		clientTools?: ClientToolChannel,
+		cancellationSignal?: AbortSignal,
 	): Promise<void> {
 		let messages = baseMessages
 		let prepared = initialOperation
@@ -253,13 +275,42 @@ export function createConversationService(dependencies: Dependencies) {
 			return
 		}
 		const controller = new AbortController()
+		const interrupt = () => controller.abort()
+		clientTools?.signal.addEventListener("abort", interrupt, { once: true })
+		cancellationSignal?.addEventListener("abort", interrupt, { once: true })
+		if (clientTools?.signal.aborted) controller.abort()
+		if (cancellationSignal?.aborted) controller.abort()
 		poller.register(generationAttempt.id, generationAttempt.leaseToken, controller)
 		const filter = createBlacklistFilter(agent.wordBlacklist)
 		let observedOutput = ""
+		let toolDefinitions = ""
 		let bufferedOutput = ""
+		let bufferedIndex: number | undefined
+		let activeTextIndex: number | undefined
+		// Blacklist look-behind can release text after a tool call. Keep each span's original part.
+		const textOrigins: { index: number; remaining: number }[] = []
 		let flushTimer: ReturnType<typeof setTimeout> | undefined
 		let flushing: Promise<void> | undefined
 		let outputFailed = false
+		const parts: MessagePart[] = []
+		let mutations = Promise.resolve()
+		function serialize(write: () => Promise<void>): Promise<void> {
+			const next = mutations.then(write)
+			mutations = next.catch(() => {
+				outputFailed = true
+				controller.abort()
+			})
+			return next
+		}
+		async function persistPart(part: MessagePart, position?: number): Promise<void> {
+			await serialize(async () => {
+				const index = position ?? parts.length
+				parts[index] = part
+				if (!(await repository.replaceParts(generationAttempt.id, generationAttempt.leaseToken, parts)))
+					throw new Error("Generation lease lost")
+				emit({ version: 1, type: "part", assistantMessageId: assistantMessage.id, index, part })
+			})
+		}
 		async function flushOutput(): Promise<void> {
 			if (flushing) {
 				await flushing
@@ -269,15 +320,20 @@ export function createConversationService(dependencies: Dependencies) {
 			flushTimer = undefined
 			if (!bufferedOutput || outputFailed) return
 			const text = bufferedOutput
+			const index = bufferedIndex
+			if (index === undefined) throw new Error("Text output has no part")
 			bufferedOutput = ""
-			flushing = (async () => {
-				if (!(await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, text))) {
+			flushing = serialize(async () => {
+				if (!(await repository.appendOutput(generationAttempt.id, generationAttempt.leaseToken, text, index))) {
 					outputFailed = true
 					controller.abort()
 					return
 				}
-				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, text })
-			})()
+				const part = parts[index]
+				if (part?.type !== "text") throw new Error("Text output targets a non-text part")
+				parts[index] = { ...part, text: part.text + text }
+				emit({ version: 1, type: "delta", assistantMessageId: assistantMessage.id, index, text })
+			})
 			try {
 				await flushing
 			} finally {
@@ -287,9 +343,16 @@ export function createConversationService(dependencies: Dependencies) {
 		async function queueOutput(text: string): Promise<void> {
 			if (!text || outputFailed) return
 			for (let offset = 0; offset < text.length;) {
-				const length = Math.min(OUTPUT_BATCH_SIZE - bufferedOutput.length, text.length - offset)
+				const origin = textOrigins[0]
+				if (!origin) throw new Error("Filtered output has no source part")
+				// oxlint-disable-next-line no-await-in-loop -- the blacklist can release text from earlier parts.
+				if (bufferedIndex !== origin.index) await flushOutput()
+				bufferedIndex = origin.index
+				const length = Math.min(OUTPUT_BATCH_SIZE - bufferedOutput.length, text.length - offset, origin.remaining)
 				bufferedOutput += text.slice(offset, offset + length)
 				offset += length
+				origin.remaining -= length
+				if (origin.remaining === 0) textOrigins.shift()
 				// oxlint-disable-next-line no-await-in-loop -- writes must preserve provider text order.
 				if (bufferedOutput.length >= OUTPUT_BATCH_SIZE) await flushOutput()
 				if (outputFailed) return
@@ -354,6 +417,25 @@ export function createConversationService(dependencies: Dependencies) {
 			} catch (error) {
 				console.error("mcp.tools.degraded", { agentId: agent.id, error: String(error) })
 			}
+			const tools: aiProvider.ToolBinding = { names: new Map(connection?.names), tools: { ...connection?.tools } }
+			for (const [name, identity] of clientTools?.binding.names ?? []) {
+				if (tools.names.has(name)) throw new InvalidChatInputError("Tool name collision")
+				tools.names.set(name, identity)
+				const definition = clientTools?.binding.tools[name]
+				if (!definition) throw new Error("Client tool definition missing")
+				tools.tools[name] = definition
+			}
+			if (Object.keys(tools.tools).length)
+				toolDefinitions = JSON.stringify(
+					await Promise.all(
+						Object.entries(tools.tools).map(async ([name, definition]) => {
+							const inputSchema: unknown = await asSchema(definition.inputSchema).jsonSchema
+							return { name, description: definition.description, inputSchema, inputExamples: definition.inputExamples }
+						}),
+					),
+				)
+			if (Array.from(promptText(messages) + toolDefinitions).length > dependencies.maxInputCharacters)
+				throw new aiProvider.ProviderContextLimitError("Tool definitions exceed the input limit")
 			controller.signal.throwIfAborted()
 			if (
 				!(await repository.setAttribution(
@@ -362,20 +444,68 @@ export function createConversationService(dependencies: Dependencies) {
 					provider,
 					model,
 					true,
-					usageService.estimateTokens(promptText(messages)),
+					usageService.estimateTokens(promptText(messages) + toolDefinitions),
 				))
 			) {
 				annotate({ "chat.lease_lost": true })
 				return
 			}
 			providerInvoked = true
-			for await (const event of prepared.invoke(controller.signal, connection, (toolEvent) => {
+			for await (const event of prepared.invoke(controller.signal, tools, async (toolEvent) => {
+				await flushOutput()
 				// Parallel calls to the same tool share a name; only the call id tells them apart.
 				const key = toolEvent.toolCallId
 				if (toolEvent.type === "tool-start") {
+					if (
+						toolEvent.identity.source === "client" &&
+						Buffer.byteLength(JSON.stringify(toolEvent.input)) > TOOL_PAYLOAD_BYTES
+					)
+						throw new Error("Client tool input exceeds the payload limit")
+					activeTextIndex = undefined
+					observedOutput += JSON.stringify(toolEvent.input)
+					await persistPart({
+						type: "dynamic-tool",
+						toolName: toolEvent.toolName,
+						toolCallId: key,
+						input: toolEvent.input,
+						state: "input-available",
+						toolMetadata: {
+							source: toolEvent.identity.source ?? "mcp",
+							displayName: toolEvent.identity.toolName,
+							serverName: toolEvent.identity.serverName,
+						},
+					})
 					inFlight.set(key, toolEvent.identity)
 					emit({ version: 1, type: "tool-start", ...toolEvent.identity })
 				} else {
+					observedOutput += JSON.stringify(toolEvent.output ?? toolEvent.errorText)
+					const index = parts.findIndex((part) => part.type === "dynamic-tool" && part.toolCallId === key)
+					const part = parts[index]
+					if (part?.type !== "dynamic-tool" || part.state !== "input-available")
+						throw new Error("Tool result without pending invocation")
+					if (controller.signal.aborted) {
+						const interrupted = clientTools?.interrupted && !cancellationSignal?.aborted
+						await persistPart(finalizePart(part, interrupted ? "interrupted" : "cancelled"), index)
+						inFlight.delete(key)
+						emit({ version: 1, type: "tool-end", ...toolEvent.identity, outcome: "cancelled" })
+						return
+					}
+					await persistPart(
+						toolEvent.output !== undefined
+							? {
+									...part,
+									state: "output-available",
+									output: toolEvent.output,
+									toolMetadata: { ...part.toolMetadata, outcome: toolEvent.outcome },
+								}
+							: {
+									...part,
+									state: "output-error",
+									errorText: toolEvent.errorText ?? "Tool execution failed",
+									toolMetadata: { ...part.toolMetadata, outcome: "failed" },
+								},
+						index,
+					)
 					inFlight.delete(key)
 					emit({ version: 1, type: "tool-end", ...toolEvent.identity, outcome: toolEvent.outcome })
 				}
@@ -386,6 +516,15 @@ export function createConversationService(dependencies: Dependencies) {
 					await repository.setAttribution(generationAttempt.id, generationAttempt.leaseToken, provider, model)
 				} else if (event.type === "text") {
 					observedOutput += event.text
+					if (!event.text) continue
+					if (activeTextIndex === undefined) {
+						await flushOutput()
+						activeTextIndex = parts.length
+						await persistPart({ type: "text", text: "" })
+					}
+					const previousOrigin = textOrigins.at(-1)
+					if (previousOrigin?.index === activeTextIndex) previousOrigin.remaining += event.text.length
+					else textOrigins.push({ index: activeTextIndex, remaining: event.text.length })
 					const result = filter.push(event.text)
 					if (result.blocked) {
 						outcome = "blocked"
@@ -393,6 +532,10 @@ export function createConversationService(dependencies: Dependencies) {
 						break
 					}
 					await queueOutput(result.text)
+				} else if (event.type === "step-start") {
+					await flushOutput()
+					activeTextIndex = undefined
+					await persistPart({ type: "step-start" })
 				} else {
 					const abortPrecededTerminal = controller.signal.aborted
 					provider = event.provider
@@ -432,16 +575,21 @@ export function createConversationService(dependencies: Dependencies) {
 			try {
 				if (outcome !== "blocked") await queueOutput(filter.finish())
 				await flushOutput()
+				await mutations
 			} finally {
 				poller.unregister(generationAttempt.id)
+				clientTools?.signal.removeEventListener("abort", interrupt)
+				cancellationSignal?.removeEventListener("abort", interrupt)
 				await connection?.close()
 			}
 		}
 		if (outputFailed && outcome !== "blocked") outcome = "failed"
+		if (clientTools?.interrupted && !cancellationSignal?.aborted) outcome = "interrupted"
+		if (clientTools?.dispatched) publicError.retriable = false
 
 		const normalized = providerInvoked
 			? usageService.normalizeUsage({
-					inputText: promptText(messages),
+					inputText: promptText(messages) + toolDefinitions,
 					outputText: observedOutput,
 					usage: providerUsage,
 				})
@@ -463,6 +611,11 @@ export function createConversationService(dependencies: Dependencies) {
 					...normalized,
 				})
 			) {
+				for (const [index, part] of parts.entries()) {
+					const finalized = finalizePart(part, outcome)
+					if (finalized !== part)
+						emit({ version: 1, type: "part", assistantMessageId: assistantMessage.id, index, part: finalized })
+				}
 				const [pending] = await repository.listPendingUsageFinalizations(1, generationAttempt.id)
 				if (pending) await recordPendingUsage(pending)
 				if (outcome === "failed") {
@@ -513,14 +666,14 @@ export function createConversationService(dependencies: Dependencies) {
 			const agent = await agentService.getAgent(agentId)
 			async function prepareAndAccept(attempt: number): Promise<{
 				accepted: repository.AcceptedGenerationAttempt
-				messages: aiProvider.TextMessage[]
+				messages: ModelMessage[]
 				prepared: PreparedOperation
 			}> {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
 				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				const messages = completedPrompt(systemPrompt, history.messages, input.text)
+				const messages = await completedPrompt(systemPrompt, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
 				annotate({ "chat.prompt_characters": promptCharacters })
@@ -551,6 +704,7 @@ export function createConversationService(dependencies: Dependencies) {
 						networkHash: input.networkHash,
 						dailyLimit: dependencies.dailyLimit,
 						concurrencyLimit: dependencies.concurrencyLimit,
+						clientManifestFingerprint: input.clientManifestFingerprint,
 					})
 					return { accepted, messages, prepared }
 				} catch (error) {
@@ -566,6 +720,7 @@ export function createConversationService(dependencies: Dependencies) {
 				version: 1,
 				type: "accepted",
 				requestId: input.requestId,
+				duplicate: accepted.duplicate,
 				generationId: accepted.generationAttempt.id,
 				userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
 				assistantMessage: {
@@ -578,7 +733,9 @@ export function createConversationService(dependencies: Dependencies) {
 			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
 				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
 			}
-			const done = accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
+			const done = accepted.duplicate
+				? Promise.resolve()
+				: run(accepted, agent, messages, prepared, emit, annotate, input.clientTools, input.cancellationSignal)
 			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
 		},
 

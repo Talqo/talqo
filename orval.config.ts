@@ -11,6 +11,8 @@ export default defineConfig({
 			mode: "single",
 			target: "./packages/sdk/src/generated/contracts.ts",
 			clean: true,
+			schemas: { path: "./packages/sdk/src/generated/models", type: "zod" },
+			override: { zod: { generateReusableSchemas: true, variant: "classic", version: 4 } },
 		},
 	},
 	web: {

@@ -3,6 +3,7 @@
 	"agentResponding": "Agent is responding",
 	"chatUnavailable": "This chat isn't available right now.",
 	"closeChat": "Close chat",
+	"connectedTool": "Connected tool",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "The response could not be stopped. It may still be running.",
 	"errorClientAddressUnavailable": "Chat cannot verify this network and is unavailable.",
@@ -49,7 +50,13 @@
 	"stopping": "Stopping…",
 	"switchToDark": "Switch to dark theme",
 	"switchToLight": "Switch to light theme",
+	"toolCancelled": "Cancelled",
+	"toolCompleted": "Completed",
+	"toolFailed": "Failed",
+	"toolInterrupted": "Interrupted",
+	"toolRunning": "Running",
 	"transcriptLabel": "Conversation",
-	"usingTool": "Using a tool…",
+	"websiteActionUncertain": "The reply stopped after a website tool ran. Its action may already have happened. Check the page before asking again.",
+	"websiteTool": "Website tool",
 	"youLabel": "You"
 }

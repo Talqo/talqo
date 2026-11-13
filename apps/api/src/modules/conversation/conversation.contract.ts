@@ -4,9 +4,34 @@ import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
+import { CLIENT_TOOL_LIMIT, MANIFEST_BYTES, TOOL_DESCRIPTION_CHARACTERS } from "./conversation.client-tools.ts"
 import { CONVERSATION_AGENT_FILTER_MAX, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
 
 const requestIdSchema = z.uuid({ version: "v4" })
+const TOOL_CALL_ID_CHARACTERS = 256
+
+const toolMetadataSchema = z.object({
+	source: z.enum(["client", "mcp"]),
+	displayName: z.string(),
+	serverName: z.string().optional(),
+	outcome: z.enum(["completed", "failed", "cancelled", "interrupted"]).optional(),
+})
+const toolPartFields = {
+	type: z.literal("dynamic-tool"),
+	toolName: z.string(),
+	toolCallId: z.string(),
+	input: z.unknown(),
+	toolMetadata: toolMetadataSchema,
+}
+export const messagePartSchema = z
+	.union([
+		z.object({ type: z.literal("text"), text: z.string() }),
+		z.object({ type: z.literal("step-start") }),
+		z.object({ ...toolPartFields, state: z.literal("input-available") }),
+		z.object({ ...toolPartFields, state: z.literal("output-available"), output: z.unknown() }),
+		z.object({ ...toolPartFields, state: z.literal("output-error"), errorText: z.string() }),
+	])
+	.openapi("MessagePart")
 
 const terminalOutcome = z.enum(["completed", "failed", "cancelled", "blocked", "interrupted"])
 const chatErrorSchema = z.object({
@@ -19,8 +44,16 @@ export const chatEventSchema = z
 	.discriminatedUnion("type", [
 		z.object({
 			version: z.literal(1),
+			type: z.literal("part"),
+			assistantMessageId: z.string(),
+			index: z.number().int().nonnegative(),
+			part: messagePartSchema,
+		}),
+		z.object({
+			version: z.literal(1),
 			type: z.literal("accepted"),
 			requestId: requestIdSchema,
+			duplicate: z.boolean().optional(),
 			generationId: z.string(),
 			userMessage: z.object({ id: z.string(), createdAt: z.iso.datetime() }),
 			assistantMessage: z.object({ id: z.string(), createdAt: z.iso.datetime() }),
@@ -29,6 +62,7 @@ export const chatEventSchema = z
 			version: z.literal(1),
 			type: z.literal("delta"),
 			assistantMessageId: z.string(),
+			index: z.number().int().nonnegative(),
 			text: z.string(),
 		}),
 		z.object({ version: z.literal(1), type: z.literal("terminal"), outcome: terminalOutcome }),
@@ -56,9 +90,11 @@ export const chatEventSchema = z
 
 const messageOutcome = z.enum(["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"])
 const messageSchema = z.object({
+	requestId: requestIdSchema.optional(),
 	id: z.string(),
 	role: z.enum(["user", "assistant"]),
 	text: z.string(),
+	parts: z.array(messagePartSchema),
 	createdAt: z.iso.datetime(),
 	outcome: messageOutcome,
 })
@@ -75,6 +111,86 @@ const sendBody = z.object({
 })
 const cancelBody = z.object({ generationId: z.uuid({ version: "v4" }).optional() })
 const embedParams = z.object({ embedToken: z.string().openapi({ param: { name: "embedToken", in: "path" } }) })
+export const clientToolManifestSchema = z
+	.array(
+		z.strictObject({
+			name: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
+			description: z
+				.string()
+				.refine((value) => Array.from(value).length <= TOOL_DESCRIPTION_CHARACTERS)
+				.optional(),
+			inputSchema: z.record(z.string(), z.unknown()),
+			outputSchema: z.record(z.string(), z.unknown()).optional(),
+			strict: z.boolean().optional(),
+			inputExamples: z.array(z.object({ input: z.unknown() })).optional(),
+		}),
+	)
+	.max(CLIENT_TOOL_LIMIT)
+	.refine((tools) => new Set(tools.map((tool) => tool.name)).size === tools.length)
+	.refine((tools) => Buffer.byteLength(JSON.stringify(tools)) <= MANIFEST_BYTES)
+	.openapi("ClientToolManifest")
+export const chatClientFrameSchema = z
+	.discriminatedUnion("type", [
+		z.strictObject({
+			version: z.literal(1),
+			type: z.literal("start"),
+			credential: z.uuid(),
+			...sendBody.shape,
+			tools: clientToolManifestSchema,
+		}),
+		z
+			.strictObject({
+				version: z.literal(1),
+				type: z.literal("tool-result"),
+				toolCallId: z.string().max(TOOL_CALL_ID_CHARACTERS),
+				output: z.unknown(),
+			})
+			.refine((value) => Object.hasOwn(value, "output")),
+		z.strictObject({
+			version: z.literal(1),
+			type: z.literal("tool-error"),
+			toolCallId: z.string().max(TOOL_CALL_ID_CHARACTERS),
+			error: z.string().max(TOOL_DESCRIPTION_CHARACTERS),
+		}),
+		z.strictObject({ version: z.literal(1), type: z.literal("cancel") }),
+	])
+	.openapi("ChatClientFrameV1")
+export const chatServerFrameSchema = z
+	.union([
+		chatEventSchema,
+		z.object({
+			version: z.literal(1),
+			type: z.literal("tool-call"),
+			toolCallId: z.string(),
+			toolName: z.string(),
+			input: z.unknown(),
+			messages: z.array(z.object({ role: z.enum(["user", "assistant", "tool"]), content: z.unknown() })),
+		}),
+		z.object({
+			version: z.literal(1),
+			type: z.literal("rejected"),
+			code: z.string(),
+			status: z.number(),
+			retryAt: z.string().optional(),
+		}),
+	])
+	.openapi("ChatServerFrameV1")
+export const socketRoute = createRoute({
+	method: "get",
+	path: "/{embedToken}/socket",
+	operationId: "openChatSocket",
+	tags: ["Public Chat"],
+	...access.public,
+	request: { params: embedParams },
+	responses: {
+		101: { description: "WebSocket upgrade. Authenticate with the first start frame." },
+		400: { description: "Invalid upgrade" },
+	},
+	"x-websocket": {
+		clientMessage: { $ref: "#/components/schemas/ChatClientFrameV1" },
+		serverMessage: { $ref: "#/components/schemas/ChatServerFrameV1" },
+	},
+})
 const badRequestProblems = problemResponse([
 	PROBLEM_CODES.INVALID_REQUEST,
 	PROBLEM_CODES.MALFORMED_JSON,

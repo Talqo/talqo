@@ -1,5 +1,4 @@
 import type {
-	ActiveTool,
 	ChatClient,
 	ChatClientOptions,
 	ChatConfiguration,
@@ -9,7 +8,8 @@ import type {
 	SessionState,
 } from "./types.ts"
 
-import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
+import { captureClientTools } from "./client-tools.ts"
+import { ChatTransportError } from "./fetch-transport.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	type ChatStorageRecord,
@@ -18,6 +18,7 @@ import {
 	createResilientStorage,
 	readChatStorageRecord,
 } from "./storage.ts"
+import { createWebSocketChatTransport } from "./websocket-transport.ts"
 
 const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
@@ -79,6 +80,24 @@ function isDefiniteRejection(error: unknown): error is ChatTransportError {
 	return (status >= HTTP_CLIENT_ERROR && status < HTTP_SERVER_ERROR) || error.detail.code === "provider-error"
 }
 
+function withOutcome(message: ChatMessage, outcome: ChatMessage["outcome"]): ChatMessage {
+	const toolOutcome = outcome === "cancelled" || outcome === "interrupted" ? outcome : "failed"
+	return {
+		...message,
+		outcome,
+		parts: message.parts.map((part) =>
+			part.type === "dynamic-tool" && part.state === "input-available"
+				? {
+						...part,
+						state: "output-error",
+						errorText: "Tool execution did not finish",
+						toolMetadata: { ...part.toolMetadata, outcome: toolOutcome },
+					}
+				: part,
+		),
+	}
+}
+
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: readonly ChatMessage[] = []
@@ -90,7 +109,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let credential: string | undefined
 	let pendingMessage: ChatStorageRecord["pending"]
 	let activeGenerationId: string | undefined
-	let activeTools: ActiveTool[] = []
 	let disposed = false
 	let initializePromise: Promise<void> | undefined
 	let activeSend:
@@ -110,7 +128,9 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const transport = options.transport ?? createFetchChatTransport()
+	const tools = captureClientTools(options.tools)
+	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
+	const transport = options.transport ?? createWebSocketChatTransport(tools)
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -134,6 +154,15 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	function createSnapshot(): ChatSnapshot {
 		const isAvailable = configuration?.isAvailable === true
+		const latest = messages.at(-1)
+		const websiteActionUncertain =
+			latest?.role === "assistant" &&
+			latest.outcome !== "completed" &&
+			latest.outcome !== "streaming" &&
+			latest.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client")
+		const visibleError: ChatError | undefined = websiteActionUncertain
+			? { ...error, code: "website-action-uncertain", retriable: false }
+			: error
 		const newChatAvailable =
 			error?.newChatAvailable ??
 			(error?.code === "chat-conversation-too-long" ||
@@ -143,7 +172,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (isAvailable && !resetting) {
 			if (initialization === "ready" && generation === "idle" && !activeSend && !pendingMessage) {
 				actions.push("send")
-				if (error?.retriable && messages.at(-1)?.role === "assistant" && messages.at(-1)?.outcome === "failed")
+				if (visibleError?.retriable && messages.at(-1)?.role === "assistant" && messages.at(-1)?.outcome === "failed")
 					actions.push("retry")
 			}
 			if (generation !== "idle" && generation !== "cancelling") actions.push("stop")
@@ -155,13 +184,26 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		return {
 			isAvailable,
 			configuration,
-			activeTools,
+			activeTools: messages.flatMap((message) =>
+				message.parts.flatMap((part) =>
+					part.type === "dynamic-tool" && part.state === "input-available"
+						? [
+								{
+									toolCallId: part.toolCallId,
+									serverName: part.toolMetadata.serverName ?? "",
+									toolName: part.toolMetadata.displayName,
+									source: part.toolMetadata.source,
+								},
+							]
+						: [],
+				),
+			),
 			messages,
 			activity: currentActivity(),
 			actions,
 			notices,
 			acceptedMessageId,
-			error: error && { ...error, newChatAvailable },
+			error: visibleError && { ...visibleError, newChatAvailable },
 		}
 	}
 
@@ -224,7 +266,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					// oxlint-disable-next-line no-await-in-loop
 					await wait(delay, controller.signal)
 					if (credential === undefined) return
-					if (pendingMessage !== undefined) {
+					if (pendingMessage !== undefined && !pendingMessage.clientTools) {
 						const pending = pendingMessage
 						attemptedPending = pending
 						// oxlint-disable-next-line no-await-in-loop
@@ -233,6 +275,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							credential,
 							requestId: pending.requestId,
 							text: pending.text,
+							tools: [],
 						})
 						// Obtaining a successful response proves the idempotent request was accepted.
 						const iterator = events[Symbol.asyncIterator]()
@@ -246,11 +289,22 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					}
 					// oxlint-disable-next-line no-await-in-loop
 					const session = await transport.loadSession({ ...context(controller.signal), credential })
+					if (
+						pendingMessage?.clientTools &&
+						!session.messages.some((message) => message.requestId === pendingMessage?.requestId)
+					)
+						continue
 					// oxlint-disable-next-line no-await-in-loop
 					await acceptSession(session)
 					if (session.activeGeneration === undefined) return
 				} catch (cause) {
 					if (controller.signal.aborted) return
+					if (
+						pendingMessage?.clientTools &&
+						cause instanceof ChatTransportError &&
+						cause.detail.status === HTTP_UNAUTHORIZED
+					)
+						continue
 					if (isDefiniteRejection(cause)) {
 						if (attemptedPending !== undefined && pendingMessage?.requestId === attemptedPending.requestId) {
 							const attemptedRequestId = attemptedPending.requestId
@@ -270,7 +324,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			if (!disposed && generation === "recovery") {
 				generation = "recovery-exhausted"
 				messages = messages.map((message) =>
-					message.outcome === "streaming" ? { ...message, outcome: "interrupted" as const } : message,
+					message.outcome === "streaming" ? withOutcome(message, "interrupted") : message,
 				)
 				publish()
 			}
@@ -304,6 +358,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 								id: `pending:${pendingMessage.requestId}`,
 								role: "user",
 								text: pendingMessage.text,
+								parts: [{ type: "text", text: pendingMessage.text }],
 								createdAt: now().toISOString(),
 								outcome: "interrupted",
 							},
@@ -350,7 +405,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const sendCredential = credential
 		const requestId = randomUUID()
 		const controller = new AbortController()
-		pendingMessage = { requestId, text }
+		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"
 		const record: ChatStorageRecord = {
 			version: CHAT_STORAGE_VERSION,
@@ -373,10 +428,18 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		let accepted = false
 		try {
 			await send.persisted
+			const manifest = await tools.manifest()
 			controller.signal.throwIfAborted()
 			messages = [
 				...messages,
-				{ id: localUserId, role: "user", text, createdAt: now().toISOString(), outcome: "pending" },
+				{
+					id: localUserId,
+					role: "user",
+					text,
+					parts: [{ type: "text", text }],
+					createdAt: now().toISOString(),
+					outcome: "pending",
+				},
 			]
 			error = undefined
 			publish()
@@ -386,6 +449,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				text,
 				requestId,
 				credential: sendCredential,
+				tools: manifest,
 			})
 			for await (const event of events) {
 				if (disposed) return
@@ -394,6 +458,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				}
 				if (accepted && event.type === "accepted") throw new Error("Chat stream emitted acceptance more than once")
 				if (event.type === "accepted") {
+					if (event.duplicate) {
+						generation = "recovery"
+						beginSessionRecoveryPolling()
+						return
+					}
 					accepted = true
 					acceptedMessageId = event.userMessage.id
 					activeGenerationId = event.generationId
@@ -409,6 +478,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							id: assistantId,
 							role: "assistant",
 							text: "",
+							parts: [],
 							createdAt: event.assistantMessage.createdAt,
 							outcome: "streaming",
 						},
@@ -419,20 +489,40 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					publish()
 				} else if (event.type === "delta") {
 					assistantId = event.assistantMessageId
-					replaceMessage(assistantId, (message) => ({ ...message, text: message.text + event.text }))
+					replaceMessage(assistantId, (message) => {
+						const parts = [...message.parts]
+						if (event.index !== undefined) {
+							const part = parts[event.index]
+							if (part?.type !== "text") throw new Error("Text delta targets a non-text part")
+							parts[event.index] = { ...part, text: part.text + event.text }
+							return {
+								...message,
+								text: parts
+									.filter((item) => item.type === "text")
+									.map((item) => item.text)
+									.join(""),
+								parts,
+							}
+						}
+						const last = parts.at(-1)
+						if (last?.type === "text") parts[parts.length - 1] = { ...last, text: last.text + event.text }
+						else parts.push({ type: "text", text: event.text })
+						return { ...message, text: message.text + event.text, parts }
+					})
 					publish()
-				} else if (event.type === "tool-start") {
-					const { serverName, toolName } = event
-					if (!activeTools.some((tool) => tool.toolName === toolName && tool.serverName === serverName))
-						activeTools.push({ serverName, toolName })
+				} else if (event.type === "part") {
+					replaceMessage(event.assistantMessageId, (message) => {
+						if (event.index > message.parts.length) throw new Error("Out-of-order message part")
+						const parts = [...message.parts]
+						parts[event.index] = event.part
+						return { ...message, parts }
+					})
 					publish()
-				} else if (event.type === "tool-end") {
-					activeTools = activeTools.filter((t) => t.toolName !== event.toolName || t.serverName !== event.serverName)
-					publish()
+				} else if (event.type === "tool-start" || event.type === "tool-end") {
+					continue
 				} else {
 					terminalReceived = true
-					if (assistantId !== undefined)
-						replaceMessage(assistantId, (message) => ({ ...message, outcome: event.outcome }))
+					if (assistantId !== undefined) replaceMessage(assistantId, (message) => withOutcome(message, event.outcome))
 					if (event.type === "error") error = event.error
 					generation = "idle"
 					activeGenerationId = undefined
@@ -442,7 +532,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			}
 			if (!terminalReceived) throw new Error("Chat stream closed without a terminal event")
 		} catch (cause) {
-			const definitelyRejected = !accepted && isDefiniteRejection(cause)
+			const definitelyRejected =
+				!accepted && (isDefiniteRejection(cause) || (!send.dispatched && !send.cancellationRequested))
 			if (definitelyRejected) {
 				messages = messages.filter((message) => message.id !== localUserId)
 				pendingMessage = undefined
@@ -459,11 +550,10 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				generation = "idle"
 				error = transportError(cause)
 			} else if (send.cancellationRequested) {
-				if (assistantId !== undefined) replaceMessage(assistantId, (message) => ({ ...message, outcome: "cancelled" }))
+				if (assistantId !== undefined) replaceMessage(assistantId, (message) => withOutcome(message, "cancelled"))
 			} else if (!(cause instanceof ChatClientError)) {
 				if (!accepted) replaceMessage(localUserId, (message) => ({ ...message, outcome: "interrupted" }))
-				if (assistantId !== undefined)
-					replaceMessage(assistantId, (message) => ({ ...message, outcome: "interrupted" }))
+				if (assistantId !== undefined) replaceMessage(assistantId, (message) => withOutcome(message, "interrupted"))
 				generation = "recovery"
 				error = transportError(cause)
 				beginSessionRecoveryPolling()
@@ -487,7 +577,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		const send = activeSend
 		if (preAcceptance && activeSend !== undefined) {
 			activeSend.cancellationRequested = true
-			activeSend.controller.abort(new Error("Chat response cancelled"))
+			if (options.transport) activeSend.controller.abort(new Error("Chat response cancelled"))
 		}
 		generation = "cancelling"
 		publish()
@@ -557,6 +647,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	async function retryLastMessage(): Promise<void> {
 		requireUsable()
 		if (error?.retriable !== true) throw new Error("The latest chat error is not retriable")
+		if (messages.at(-1)?.parts.some((part) => part.type === "dynamic-tool" && part.toolMetadata.source === "client"))
+			throw new Error("A website action cannot be safely retried")
 		const failedAssistantIndex = messages.length - 1
 		const failedAssistant = messages[failedAssistantIndex]
 		if (failedAssistant?.role !== "assistant" || failedAssistant.outcome !== "failed") {

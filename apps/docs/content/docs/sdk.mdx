@@ -43,10 +43,44 @@ chat.dispose()
 
 ## State and controls
 
-`getSnapshot()` returns messages, configuration, activity, available actions, notices, active tool calls, and any error. Use `isAvailable` to hide an unavailable chat and `actions` to enable `send`, `stop`, `retry`, and `new-chat` controls. The SDK owns lifecycle and recovery decisions. `acceptedMessageId` identifies the latest accepted user message, so a UI can clear its submitted draft without inspecting transcript changes. Message text belongs to the message's `text` field. Render it as text or sanitized Markdown, never as unchecked HTML.
+`getSnapshot()` returns messages, configuration, activity, available actions, notices, active tool calls, and any error. Use `isAvailable` to hide an unavailable chat and `actions` to enable `send`, `stop`, `retry`, and `new-chat` controls. The SDK owns lifecycle and recovery decisions. `acceptedMessageId` identifies the latest accepted user message, so a UI can clear its submitted draft without inspecting transcript changes.
+
+Render each message's `parts` in order. Text parts contain `text`; `dynamic-tool` parts contain the call, result, state, and `toolMetadata` with its display name, source, server name when applicable, and outcome. `step-start` parts separate model steps and need no visible row. The message's `text` field concatenates text parts for previews. Render text as text or sanitized Markdown, never as unchecked HTML.
 
 Use `cancelResponse()` to stop a reply, `retryLastMessage()` to retry after a failed response, and `startNewChat()` to clear the current conversation and begin another. `error.newChatAvailable` includes SDK recovery defaults when the server omits guidance. An explicit server value, including `false`, takes precedence.
 
 The SDK stores conversation credentials in browser local storage and falls back to memory if storage is unavailable. A `storage-unavailable` error or notice means a reload can lose the conversation. The SDK owns streaming, cancellation, and reconnect recovery; custom interfaces should render its state rather than implement a second transport.
 
 The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.
+
+## Browser tools
+
+Pass ordinary AI SDK function tools when creating the client. Talqo includes no built-in browser tools.
+
+```ts
+import { createChatClient } from "@talqo/sdk"
+import { tool } from "ai"
+import { z } from "zod"
+
+const tools = {
+	readPageTitle: tool({
+		description: "Read the current page title",
+		inputSchema: z.object({}),
+		execute: async () => ({ title: document.title }),
+	}),
+}
+
+const chat = createChatClient({
+	apiUrl: "https://talqo.example.com",
+	embedToken: "YOUR_EMBED_TOKEN",
+	tools,
+})
+```
+
+Install `ai` and your schema library alongside the SDK. Supported fields are `type: "function"`, a static `description`, `inputSchema`, `outputSchema`, `strict`, static `inputExamples`, and `execute`. Other Tool API features, including approval, provider-defined tools, callbacks, custom context, and streaming outputs, are rejected. Execution receives the AI SDK call ID, model messages, and abort signal.
+
+Register at most 8 tools. Each turn allows 16 browser-tool calls, including failures. Inputs and outputs must be JSON values of at most 256 KiB each; the tool manifest is limited to 128 KiB. Inputs and declared outputs are validated locally. Tool results are stored in conversation history and sent to the model on later completed turns, including MCP results. Do not return secrets or unnecessary personal data.
+
+Browser tools run with your page's permissions. Register only actions you intend the agent to perform, validate application permissions inside `execute`, and honor its abort signal. Stopping or disconnecting cannot undo an action already performed. Interrupted calls are never replayed automatically. When `website-action-uncertain` is reported, tell the visitor to check the page before repeating an instruction.
+
+Live turns require WebSocket access to the Talqo origin. See [Deployment](/deployment) for proxy requirements. There is no silent SSE fallback.

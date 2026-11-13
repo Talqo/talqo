@@ -1,4 +1,5 @@
-import type { AiProviderConfiguration, ProviderMetadata } from "@/features/ai-configuration/types.ts"
+import type { GetAiProviderConfiguration200 } from "@/api/generated/models/ai-providers/getAiProviderConfiguration200.zod.ts"
+import type { ProviderMetadata } from "@/features/ai-configuration/types.ts"
 import type { Root } from "react-dom/client"
 
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
@@ -28,7 +29,7 @@ const PROVIDER: ProviderMetadata = {
 }
 
 // Separate embedding credentials keep text edits from opening the re-embed confirmation.
-function configuration(revision: number, baseURL: string): AiProviderConfiguration {
+function configuration(revision: number, baseURL: string): GetAiProviderConfiguration200 {
 	const role = { providerId: "openai-compatible" as const, authMode: "static" as const, hasCredentials: true }
 	return {
 		revision,
@@ -43,7 +44,7 @@ function configuration(revision: number, baseURL: string): AiProviderConfigurati
 	}
 }
 
-let server: AiProviderConfiguration
+let server: GetAiProviderConfiguration200
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>

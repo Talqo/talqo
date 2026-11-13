@@ -1,6 +1,22 @@
 import { db } from "@/db/client.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
-import { and, asc, count, countDistinct, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
+import {
+	and,
+	asc,
+	count,
+	countDistinct,
+	desc,
+	eq,
+	getTableColumns,
+	gt,
+	gte,
+	inArray,
+	isNotNull,
+	isNull,
+	lt,
+	or,
+	sql,
+} from "drizzle-orm"
 
 import {
 	ConcurrentGenerationLimitError,
@@ -10,6 +26,7 @@ import {
 	SessionBusyError,
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
+import { type MessagePart, messageText, unfinishedToolOutcome } from "./conversation.messages.ts"
 import {
 	conversation,
 	conversationDailyCounter,
@@ -18,6 +35,19 @@ import {
 	type GenerationAttemptOutcome,
 	message,
 } from "./conversation.schema.ts"
+
+type StoredMessage = typeof message.$inferSelect & { text: string; requestId?: string }
+
+function withText(row: typeof message.$inferSelect): StoredMessage {
+	return { ...row, text: messageText(row.parts) }
+}
+
+const textProjection = sql<string>`(SELECT coalesce(string_agg(p->>'text', '' ORDER BY n), '') FROM jsonb_array_elements(${message.parts}) WITH ORDINALITY AS content(p, n) WHERE p->>'type' = 'text')`
+
+function finalizedParts(outcome: GenerationAttemptOutcome) {
+	const toolOutcome = unfinishedToolOutcome(outcome)
+	return sql`(SELECT coalesce(jsonb_agg(CASE WHEN p->>'type' = 'dynamic-tool' AND p->>'state' = 'input-available' THEN p || jsonb_build_object('state', 'output-error', 'errorText', 'Tool execution did not finish', 'toolMetadata', (p->'toolMetadata') || jsonb_build_object('outcome', ${toolOutcome}::text)) ELSE p END ORDER BY n), '[]'::jsonb) FROM jsonb_array_elements(${message.parts}) WITH ORDINALITY AS content(p,n))`
+}
 
 const LEASE_MS = 15_000
 const DAILY_COUNTER_PRUNE_BATCH_SIZE = 1_000
@@ -48,10 +78,10 @@ export type ConversationContext = {
 }
 
 export type AcceptedGenerationAttempt = {
-	assistantMessage: typeof message.$inferSelect
+	assistantMessage: StoredMessage
 	generationAttempt: typeof generationAttempt.$inferSelect
 	duplicate: boolean
-	userMessage: typeof message.$inferSelect
+	userMessage: StoredMessage
 }
 
 // Control-flow signal for the acceptance retry loop, not mapped to an HTTP response.
@@ -59,7 +89,7 @@ export class StaleHistoryRepositoryError extends Error {}
 
 export type HistorySnapshot = {
 	latestCompletedMessageId: string | null
-	messages: (typeof message.$inferSelect)[]
+	messages: StoredMessage[]
 	revision: number
 }
 
@@ -103,12 +133,14 @@ export async function findConversationById(conversationId: string): Promise<Conv
 	return { ...row, embedId: row.embedId }
 }
 
-export async function listMessages(conversationId: string): Promise<(typeof message.$inferSelect)[]> {
-	return db
-		.select()
+export async function listMessages(conversationId: string): Promise<StoredMessage[]> {
+	const rows = await db
+		.select({ ...getTableColumns(message), requestId: generationAttempt.requestId })
 		.from(message)
+		.innerJoin(generationAttempt, eq(generationAttempt.id, message.generationAttemptId))
 		.where(eq(message.conversationId, conversationId))
 		.orderBy(asc(message.createdAt), asc(message.id))
+	return rows.map(withText)
 }
 
 export async function getHistorySnapshot(conversationId: string): Promise<HistorySnapshot> {
@@ -124,7 +156,7 @@ export async function getHistorySnapshot(conversationId: string): Promise<Histor
 			.from(message)
 			.where(eq(message.conversationId, conversationId))
 			.orderBy(asc(message.createdAt), asc(message.id))
-		return { ...state, messages }
+		return { ...state, messages: messages.map(withText) }
 	})
 }
 
@@ -150,7 +182,7 @@ async function interruptExpiredGenerationAttempts(
 	if (expired.length === 0) return
 	await tx
 		.update(message)
-		.set({ outcome: "interrupted", updatedAt: DATABASE_NOW })
+		.set({ outcome: "interrupted", parts: finalizedParts("interrupted"), updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				inArray(
@@ -175,6 +207,7 @@ export async function acceptGenerationAttempt(input: {
 	historyRevision: number
 	historyTailId: string | null
 	concurrencyLimit: number
+	clientManifestFingerprint?: string
 }): Promise<AcceptedGenerationAttempt> {
 	return db.transaction(async (tx) => {
 		await acquireAcceptanceLocks(
@@ -245,8 +278,17 @@ export async function acceptGenerationAttempt(input: {
 			const userMessage = messages.find((storedMessage) => storedMessage.role === "user")
 			const assistantMessage = messages.find((storedMessage) => storedMessage.role === "assistant")
 			if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: accepted pair incomplete")
-			if (userMessage.text !== input.messageText) throw new RequestConflictError()
-			return { generationAttempt: duplicate, userMessage, assistantMessage, duplicate: true }
+			if (
+				messageText(userMessage.parts) !== input.messageText ||
+				duplicate.clientManifestFingerprint !== (input.clientManifestFingerprint ?? null)
+			)
+				throw new RequestConflictError()
+			return {
+				generationAttempt: duplicate,
+				userMessage: withText(userMessage),
+				assistantMessage: withText(assistantMessage),
+				duplicate: true,
+			}
 		}
 		const [historyState] = await tx
 			.select({ revision: conversation.revision, latestCompletedMessageId: conversation.latestCompletedMessageId })
@@ -298,6 +340,7 @@ export async function acceptGenerationAttempt(input: {
 				id: generationAttemptId,
 				conversationId: input.conversationId,
 				requestId: input.requestId,
+				clientManifestFingerprint: input.clientManifestFingerprint,
 				estimatedInputTokens: input.estimatedInputTokens,
 				networkHash: input.networkHash,
 				leaseToken,
@@ -313,7 +356,7 @@ export async function acceptGenerationAttempt(input: {
 					conversationId: input.conversationId,
 					generationAttemptId,
 					role: "user",
-					text: input.messageText,
+					parts: [{ type: "text", text: input.messageText }],
 					outcome: "completed",
 					createdAt: DATABASE_NOW,
 				},
@@ -322,14 +365,19 @@ export async function acceptGenerationAttempt(input: {
 					conversationId: input.conversationId,
 					generationAttemptId,
 					role: "assistant",
-					text: "",
+					parts: [],
 					outcome: "streaming",
 					createdAt: sql`now() + interval '1 millisecond'`,
 				},
 			])
 			.returning()
 		if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: insert returned no row")
-		return { generationAttempt: generationAttemptRow, userMessage, assistantMessage, duplicate: false }
+		return {
+			generationAttempt: generationAttemptRow,
+			userMessage: withText(userMessage),
+			assistantMessage: withText(assistantMessage),
+			duplicate: false,
+		}
 	})
 }
 
@@ -342,10 +390,35 @@ export async function markRunning(generationAttemptId: string, leaseToken: strin
 	return rows.length === 1
 }
 
-export async function appendOutput(generationAttemptId: string, leaseToken: string, text: string): Promise<boolean> {
+export async function appendOutput(
+	generationAttemptId: string,
+	leaseToken: string,
+	text: string,
+	index: number,
+): Promise<boolean> {
+	return writeParts(
+		generationAttemptId,
+		leaseToken,
+		sql`jsonb_set(${message.parts}, ARRAY[${index}::text, 'text'], to_jsonb((${message.parts}->${index}::integer->>'text') || ${text}))`,
+	)
+}
+
+export async function replaceParts(
+	generationAttemptId: string,
+	leaseToken: string,
+	parts: MessagePart[],
+): Promise<boolean> {
+	return writeParts(generationAttemptId, leaseToken, parts)
+}
+
+async function writeParts(
+	generationAttemptId: string,
+	leaseToken: string,
+	parts: MessagePart[] | ReturnType<typeof sql>,
+): Promise<boolean> {
 	const rows = await db
 		.update(message)
-		.set({ text: sql`${message.text} || ${text}`, updatedAt: DATABASE_NOW })
+		.set({ parts, updatedAt: DATABASE_NOW })
 		.where(
 			and(
 				eq(message.generationAttemptId, generationAttemptId),
@@ -440,7 +513,7 @@ export async function stageFinalization(input: {
 		if (!finalized) return false
 		const [assistant] = await tx
 			.update(message)
-			.set({ outcome: input.outcome, updatedAt: DATABASE_NOW })
+			.set({ outcome: input.outcome, parts: finalizedParts(input.outcome), updatedAt: DATABASE_NOW })
 			.where(and(eq(message.generationAttemptId, input.generationAttemptId), eq(message.role, "assistant")))
 			.returning({ id: message.id })
 		if (!assistant) throw new Error("Assistant message missing during finalization")
@@ -464,7 +537,7 @@ export async function listPendingUsageFinalizations(limit: number, id?: string):
 			conversationId: generationAttempt.conversationId,
 			agentId: conversation.agentId,
 			estimatedInputTokens: generationAttempt.estimatedInputTokens,
-			assistantText: message.text,
+			assistantText: sql<string>`CASE WHEN EXISTS (SELECT 1 FROM jsonb_array_elements(${message.parts}) p WHERE p->>'type' = 'dynamic-tool') THEN ${message.parts}::text ELSE ${textProjection} END`,
 			provider: sql<string>`coalesce(${generationAttempt.provider}, 'unknown')`,
 			model: sql<string>`coalesce(${generationAttempt.model}, 'unknown')`,
 			outcome: generationAttempt.finalOutcome,
@@ -650,7 +723,7 @@ export async function listConversations(input: {
 				messageCount: sql<number>`(SELECT count(*)::int FROM message m WHERE m.conversation_id = conversation.id)`,
 				preview: sql<
 					string | null
-				>`(SELECT left(m.text, ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
+				>`(SELECT left((SELECT coalesce(string_agg(p->>'text', '' ORDER BY n), '') FROM jsonb_array_elements(m.parts) WITH ORDINALITY AS content(p, n) WHERE p->>'type' = 'text'), ${input.previewLength}) FROM message m WHERE m.conversation_id = conversation.id AND m.role = 'user' ORDER BY m.created_at, m.id LIMIT 1)`,
 			})
 			.from(conversation)
 			.where(where)

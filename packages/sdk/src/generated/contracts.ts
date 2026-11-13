@@ -4,308 +4,14 @@
  * Talqo API
  * OpenAPI spec version: 0.0.1
  */
-export interface EmbedScheme {
-  primary: string;
-  textOnPrimary: string;
-  background: string;
-  surface: string;
-  text: string;
-}
-
-export type EmbedAppearancePosition = typeof EmbedAppearancePosition[keyof typeof EmbedAppearancePosition];
-
-
-export const EmbedAppearancePosition = {
-  'bottom-right': 'bottom-right',
-  'bottom-left': 'bottom-left',
-} as const;
-
-export type EmbedAppearanceTheme = typeof EmbedAppearanceTheme[keyof typeof EmbedAppearanceTheme];
-
-
-export const EmbedAppearanceTheme = {
-  system: 'system',
-  light: 'light',
-  dark: 'dark',
-} as const;
-
-export interface EmbedAppearance {
-  light: EmbedScheme;
-  dark: EmbedScheme;
-  position: EmbedAppearancePosition;
-  theme: EmbedAppearanceTheme;
-  themeToggle: boolean;
-  language: string;
-}
-
-export interface EmbedConfig {
-  version: number;
-  name: string;
-  appearance: EmbedAppearance;
-  isAvailable: boolean;
-}
-
-export type ProblemDetails = {
-  code: 'admin-already-exists';
-  type: 'https://docs.talqo.chat/problems#admin-already-exists';
-} | {
-  code: 'admin-deletion-not-allowed';
-  type: 'https://docs.talqo.chat/problems#admin-deletion-not-allowed';
-} | {
-  code: 'agent-file-invalid';
-  type: 'https://docs.talqo.chat/problems#agent-file-invalid';
-} | {
-  code: 'agent-file-name-taken';
-  type: 'https://docs.talqo.chat/problems#agent-file-name-taken';
-} | {
-  code: 'agent-file-not-found';
-  type: 'https://docs.talqo.chat/problems#agent-file-not-found';
-} | {
-  code: 'agent-file-not-retryable';
-  type: 'https://docs.talqo.chat/problems#agent-file-not-retryable';
-} | {
-  code: 'agent-invalid';
-  type: 'https://docs.talqo.chat/problems#agent-invalid';
-} | {
-  code: 'agent-in-use';
-  type: 'https://docs.talqo.chat/problems#agent-in-use';
-} | {
-  code: 'agent-name-taken';
-  type: 'https://docs.talqo.chat/problems#agent-name-taken';
-} | {
-  code: 'agent-not-found';
-  type: 'https://docs.talqo.chat/problems#agent-not-found';
-} | {
-  code: 'authentication-required';
-  type: 'https://docs.talqo.chat/problems#authentication-required';
-} | {
-  code: 'auth-rate-limited';
-  type: 'https://docs.talqo.chat/problems#auth-rate-limited';
-} | {
-  code: 'chat-client-address-unavailable';
-  type: 'https://docs.talqo.chat/problems#chat-client-address-unavailable';
-} | {
-  code: 'chat-concurrency-limit';
-  type: 'https://docs.talqo.chat/problems#chat-concurrency-limit';
-} | {
-  code: 'chat-context-limit';
-  type: 'https://docs.talqo.chat/problems#chat-context-limit';
-} | {
-  code: 'chat-conversation-too-long';
-  type: 'https://docs.talqo.chat/problems#chat-conversation-too-long';
-} | {
-  code: 'chat-daily-allowance-exceeded';
-  type: 'https://docs.talqo.chat/problems#chat-daily-allowance-exceeded';
-} | {
-  code: 'chat-input-incompatible';
-  type: 'https://docs.talqo.chat/problems#chat-input-incompatible';
-} | {
-  code: 'chat-request-conflict';
-  type: 'https://docs.talqo.chat/problems#chat-request-conflict';
-} | {
-  code: 'chat-session-busy';
-  type: 'https://docs.talqo.chat/problems#chat-session-busy';
-} | {
-  code: 'chat-session-unauthorized';
-  type: 'https://docs.talqo.chat/problems#chat-session-unauthorized';
-} | {
-  code: 'configuration-conflict';
-  type: 'https://docs.talqo.chat/problems#configuration-conflict';
-} | {
-  code: 'conversation-not-found';
-  type: 'https://docs.talqo.chat/problems#conversation-not-found';
-} | {
-  code: 'current-password-incorrect';
-  type: 'https://docs.talqo.chat/problems#current-password-incorrect';
-} | {
-  code: 'default-role-delete-not-allowed';
-  type: 'https://docs.talqo.chat/problems#default-role-delete-not-allowed';
-} | {
-  code: 'duplicate-mcp-server-name';
-  type: 'https://docs.talqo.chat/problems#duplicate-mcp-server-name';
-} | {
-  code: 'embed-disabled';
-  type: 'https://docs.talqo.chat/problems#embed-disabled';
-} | {
-  code: 'embed-not-found';
-  type: 'https://docs.talqo.chat/problems#embed-not-found';
-} | {
-  code: 'internal-server-error';
-  type: 'https://docs.talqo.chat/problems#internal-server-error';
-} | {
-  code: 'invalid-mcp-server-url';
-  type: 'https://docs.talqo.chat/problems#invalid-mcp-server-url';
-} | {
-  code: 'invalid-mcp-server-name';
-  type: 'https://docs.talqo.chat/problems#invalid-mcp-server-name';
-} | {
-  code: 'invalid-ai-provider-configuration';
-  type: 'https://docs.talqo.chat/problems#invalid-ai-provider-configuration';
-} | {
-  code: 'invalid-credentials';
-  type: 'https://docs.talqo.chat/problems#invalid-credentials';
-} | {
-  code: 'invalid-invitation';
-  type: 'https://docs.talqo.chat/problems#invalid-invitation';
-} | {
-  code: 'invalid-request';
-  type: 'https://docs.talqo.chat/problems#invalid-request';
-} | {
-  code: 'malformed-json';
-  type: 'https://docs.talqo.chat/problems#malformed-json';
-} | {
-  code: 'mcp-server-not-found';
-  type: 'https://docs.talqo.chat/problems#mcp-server-not-found';
-} | {
-  code: 'mcp-stdio-disabled';
-  type: 'https://docs.talqo.chat/problems#mcp-stdio-disabled';
-} | {
-  code: 'model-discovery-unsupported';
-  type: 'https://docs.talqo.chat/problems#model-discovery-unsupported';
-} | {
-  code: 'password-change-not-required';
-  type: 'https://docs.talqo.chat/problems#password-change-not-required';
-} | {
-  code: 'password-change-required';
-  type: 'https://docs.talqo.chat/problems#password-change-required';
-} | {
-  code: 'payload-too-large';
-  type: 'https://docs.talqo.chat/problems#payload-too-large';
-} | {
-  code: 'permission-denied';
-  type: 'https://docs.talqo.chat/problems#permission-denied';
-} | {
-  code: 'permission-exceeds-own';
-  type: 'https://docs.talqo.chat/problems#permission-exceeds-own';
-} | {
-  code: 'provider-credentials-rejected';
-  type: 'https://docs.talqo.chat/problems#provider-credentials-rejected';
-} | {
-  code: 'provider-error';
-  type: 'https://docs.talqo.chat/problems#provider-error';
-} | {
-  code: 'provider-rate-limited';
-  type: 'https://docs.talqo.chat/problems#provider-rate-limited';
-} | {
-  code: 'provider-unreachable';
-  type: 'https://docs.talqo.chat/problems#provider-unreachable';
-} | {
-  code: 'request-failed';
-  type: 'https://docs.talqo.chat/problems#request-failed';
-} | {
-  code: 'role-name-taken';
-  type: 'https://docs.talqo.chat/problems#role-name-taken';
-} | {
-  code: 'role-not-found';
-  type: 'https://docs.talqo.chat/problems#role-not-found';
-} | {
-  code: 'route-not-found';
-  type: 'https://docs.talqo.chat/problems#route-not-found';
-} | {
-  code: 'self-delete-not-allowed';
-  type: 'https://docs.talqo.chat/problems#self-delete-not-allowed';
-} | {
-  code: 'self-password-reset-not-allowed';
-  type: 'https://docs.talqo.chat/problems#self-password-reset-not-allowed';
-} | {
-  code: 'user-not-found';
-  type: 'https://docs.talqo.chat/problems#user-not-found';
-} | {
-  code: 'username-taken';
-  type: 'https://docs.talqo.chat/problems#username-taken';
-};
-
-export type ChatEventV1 = {
-  version: 1;
-  type: 'accepted';
-  requestId: string;
-  generationId: string;
-  userMessage: {
-  id: string;
-  createdAt: string;
-};
-  assistantMessage: {
-  id: string;
-  createdAt: string;
-};
-} | {
-  version: 1;
-  type: 'delta';
-  assistantMessageId: string;
-  text: string;
-} | {
-  version: 1;
-  type: 'terminal';
-  outcome: 'completed' | 'failed' | 'cancelled' | 'blocked' | 'interrupted';
-} | {
-  version: 1;
-  type: 'tool-start';
-  serverName: string;
-  toolName: string;
-} | {
-  version: 1;
-  type: 'tool-end';
-  serverName: string;
-  toolName: string;
-  outcome: 'completed' | 'failed' | 'cancelled';
-} | {
-  version: 1;
-  type: 'error';
-  outcome: 'failed' | 'cancelled' | 'blocked' | 'interrupted';
-  error: {
-  code: string;
-  retryAt?: string;
-  retriable: boolean;
-  newChatAvailable: boolean;
-};
-};
-
-export type SendChatMessageBody = {
-  requestId: string;
-  /** @minLength 1 */
-  text: string;
-};
-
-export type GetChatSession200MessagesItemRole = typeof GetChatSession200MessagesItemRole[keyof typeof GetChatSession200MessagesItemRole];
-
-
-export const GetChatSession200MessagesItemRole = {
-  user: 'user',
-  assistant: 'assistant',
-} as const;
-
-export type GetChatSession200MessagesItemOutcome = typeof GetChatSession200MessagesItemOutcome[keyof typeof GetChatSession200MessagesItemOutcome];
-
-
-export const GetChatSession200MessagesItemOutcome = {
-  streaming: 'streaming',
-  completed: 'completed',
-  failed: 'failed',
-  cancelled: 'cancelled',
-  blocked: 'blocked',
-  interrupted: 'interrupted',
-} as const;
-
-export type GetChatSession200MessagesItem = {
-  id: string;
-  role: GetChatSession200MessagesItemRole;
-  text: string;
-  createdAt: string;
-  outcome: GetChatSession200MessagesItemOutcome;
-};
-
-export type GetChatSession200ActiveGeneration = {
-  id: string;
-};
-
-export type GetChatSession200 = {
-  messages: GetChatSession200MessagesItem[];
-  activeGeneration?: GetChatSession200ActiveGeneration;
-};
-
-export type CancelChatGenerationBody = {
-  generationId?: string;
-};
+import type {
+  CancelChatGenerationBody,
+  ChatEventV1,
+  EmbedConfig,
+  GetChatSession200,
+  ProblemDetails,
+  SendChatMessageBody
+} from './models';
 
 export type getEmbedConfigResponse200 = {
   data: EmbedConfig
@@ -360,6 +66,51 @@ export const getEmbedConfig = async (embedToken: string, options?: RequestInit):
 
   const data: getEmbedConfigResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getEmbedConfigResponse
+}
+
+
+
+export type openChatSocketResponse101 = {
+  data: void
+  status: 101
+}
+
+export type openChatSocketResponse400 = {
+  data: void
+  status: 400
+}
+
+;
+export type openChatSocketResponseError = (openChatSocketResponse101 | openChatSocketResponse400) & {
+  headers: Headers;
+};
+
+export type openChatSocketResponse = (openChatSocketResponseError)
+
+export const getOpenChatSocketUrl = (embedToken: string,) => {
+
+
+
+
+  return `/api/chat/${embedToken}/socket`
+}
+
+export const openChatSocket = async (embedToken: string, options?: RequestInit): Promise<openChatSocketResponse> => {
+
+  const res = await fetch(getOpenChatSocketUrl(embedToken),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: openChatSocketResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as openChatSocketResponse
 }
 
 

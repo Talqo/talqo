@@ -1,3 +1,4 @@
+import { websocket } from "hono/bun"
 import { constants } from "node:os"
 
 import { app } from "./app.ts"
@@ -12,17 +13,25 @@ const config = parseEnv(process.env)
 const serveStatic = createStaticResponder(resolveStaticDirs())
 const WORKER_RESTART_DELAY_MS = 3_000
 const SIGNAL_EXIT_BASE = 128
+const SOCKET_BUFFER_BYTES = 8_388_608
 
 const server = Bun.serve({
 	fetch(request, bunServer) {
 		const peerAddress = bunServer.requestIP(request)?.address
 		if (request.method === "GET" || request.method === "HEAD") {
-			return serveStatic(request).then((response) => response ?? app.fetch(request, { peerAddress }))
+			return serveStatic(request).then((response) => response ?? app.fetch(request, { peerAddress, server: bunServer }))
 		}
-		return app.fetch(request, { peerAddress })
+		return app.fetch(request, { peerAddress, server: bunServer })
 	},
 	hostname: "0.0.0.0",
 	port: config.TALQO_API_PORT,
+	websocket: {
+		...websocket,
+		maxPayloadLength: SOCKET_BUFFER_BYTES,
+		backpressureLimit: SOCKET_BUFFER_BYTES,
+		closeOnBackpressureLimit: true,
+		sendPings: true,
+	},
 })
 
 console.log(`API listening on http://localhost:${server.port}`)

@@ -41,7 +41,7 @@ describe("built embed bundle", () => {
 		expect(html).not.toContain("/src/")
 	})
 
-	test("defers its mount until the document is parsed", () => {
+	test("preserves an explicit mount made before the document is parsed", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 
 		const hadOwnReadyState = Object.hasOwn(document, "readyState")
@@ -51,9 +51,13 @@ describe("built embed bundle", () => {
 			const run = new Function(code) as unknown as () => unknown
 			run()
 			expect(document.querySelector("#talqo-widget")).toBeNull()
+			const customTarget = document.createElement("div")
+			const host = window as { TalqoWidget?: { mount(target: HTMLElement): void } }
+			if (!host.TalqoWidget) throw new Error("Widget bundle did not register mount")
+			host.TalqoWidget.mount(customTarget)
 
 			document.dispatchEvent(new Event("DOMContentLoaded"))
-			expect(document.querySelector("#talqo-widget")).not.toBeNull()
+			expect(document.querySelector("#talqo-widget") === null).toBe(true)
 		} finally {
 			if (hadOwnReadyState && ownReadyState) Object.defineProperty(document, "readyState", ownReadyState)
 			else Reflect.deleteProperty(document, "readyState")

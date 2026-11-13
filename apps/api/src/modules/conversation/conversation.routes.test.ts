@@ -3,6 +3,7 @@ import { type Annotate, createWideEvents, type WideEvent } from "@/http/wide-eve
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
+import { websocket } from "hono/bun"
 
 import { chatEventSchema } from "./conversation.contract.ts"
 import { EmbedDisabledError, ProviderUnavailableError } from "./conversation.errors.ts"
@@ -54,7 +55,7 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 			}
 			emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
 			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
-			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
+			emit({ version: 1, type: "delta", assistantMessageId: "assistant", index: 0, text: "hello" })
 			emit({ version: 1, type: "terminal", outcome: "completed" })
 			return { ...accepted, duplicate: false, done: Promise.resolve() }
 		},
@@ -76,6 +77,74 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 }
 
 describe("public conversation routes", () => {
+	it("upgrades a real socket and authenticates in the first frame without logging credentials", async () => {
+		const { app, calls, logged } = routes()
+		const server = Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
+		try {
+			const events: unknown[] = []
+			const socket = new WebSocket(`${server.url.origin.replace("http:", "ws:")}/chat/embed/socket`)
+			const closed = new Promise<number>((resolve, reject) => {
+				socket.addEventListener("open", () =>
+					socket.send(
+						JSON.stringify({
+							version: 1,
+							type: "start",
+							credential: CREDENTIAL,
+							requestId: REQUEST_ID,
+							text: "hello",
+							tools: [],
+						}),
+					),
+				)
+				socket.addEventListener("message", (event) => events.push(JSON.parse(String(event.data))))
+				socket.addEventListener("close", (event) => resolve(event.code))
+				socket.addEventListener("error", reject)
+			})
+			expect(await closed).toBe(1000)
+			expect(events).toMatchObject([
+				{ type: "accepted" },
+				{ type: "tool-start" },
+				{ type: "tool-end" },
+				{ type: "delta" },
+				{ type: "terminal" },
+			])
+			expect(calls).toHaveLength(1)
+			expect(calls[0]).toMatchObject({ credential: CREDENTIAL, text: "hello" })
+			expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
+			expect(logged[0]).toMatchObject({ "chat.outcome": "completed" })
+		} finally {
+			await server.stop(true)
+		}
+	})
+
+	it.each([
+		{ version: 1, type: "cancel" },
+		{ version: 1, type: "start", requestId: REQUEST_ID, text: "hello", tools: [] },
+		{
+			version: 1,
+			type: "start",
+			credential: CREDENTIAL,
+			requestId: REQUEST_ID,
+			text: "hello",
+			tools: Array.from({ length: 9 }, (_, index) => ({ name: `tool${index}`, inputSchema: {} })),
+		},
+	])("closes invalid or over-budget socket starts before acceptance (%j)", async (frame) => {
+		const { app, calls } = routes()
+		const server = Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
+		try {
+			const socket = new WebSocket(`${server.url.origin.replace("http:", "ws:")}/chat/embed/socket`)
+			const closed = new Promise<number>((resolve, reject) => {
+				socket.addEventListener("open", () => socket.send(JSON.stringify(frame)))
+				socket.addEventListener("close", (event) => resolve(event.code))
+				socket.addEventListener("error", reject)
+			})
+			expect(await closed).toBe(1008)
+			expect(calls).toHaveLength(0)
+		} finally {
+			await server.stop(true)
+		}
+	})
+
 	it("streams typed POST SSE and derives the network from the peer", async () => {
 		const { app, calls } = routes()
 		const response = await app.request("/chat/embed/messages", {

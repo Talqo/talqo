@@ -59,6 +59,7 @@ packages -X-> apps
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
 - `packages/sdk` is the framework-independent browser chat SDK; the widget consumes its workspace source and stable releases publish its ESM JavaScript and declarations to npm as `@talqo/sdk`.
+- The SDK owns one authenticated WebSocket per live turn and executes registered browser tools. The conversation module binds these tools into the AI SDK loop alongside MCP tools and owns ordered message parts. HTTP serves configuration, history, and recovery; POST/SSE remains available to server-only API consumers.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.

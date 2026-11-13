@@ -1,7 +1,12 @@
 import path from "node:path"
 
 type ChatMessage = { content: unknown; role: string }
-type CompletionRequest = { messages?: unknown; model?: unknown; stream?: unknown }
+type CompletionRequest = {
+	messages?: unknown
+	model?: unknown
+	stream?: unknown
+	tools?: { function: { name: string } }[]
+}
 type PendingStream = { release(): void }
 
 type ProviderState = {
@@ -64,6 +69,15 @@ function waitForRelease(signal: AbortSignal, pendingStreams: PendingStream[]): P
 
 function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolean } {
 	const latest = text(messages.at(-1))
+	if (messages.at(-1)?.role === "tool" || latest === "Remember the page result") {
+		const output = messages.find(
+			(message) =>
+				message.role === "tool" && typeof message.content === "string" && message.content.includes('"pageText"'),
+		)
+		if (!output || typeof output.content !== "string") throw new Error("The page result did not reach the model")
+		const result = JSON.parse(output.content) as { pageText: string }
+		return { chunks: [`Page says ${result.pageText}.`], delayed: false }
+	}
 	if (latest === "Give me the first answer") return { chunks: ["First streame", "d answer", "."], delayed: true }
 	if (latest === "Where is my order?") return { chunks: ["It ships **tomorrow**."], delayed: false }
 	if (latest === "Stream until I cancel") {
@@ -76,14 +90,49 @@ function answerFor(messages: ChatMessage[]): { chunks: string[]; delayed: boolea
 	return { chunks: ["Unexpected fake provider request."], delayed: false }
 }
 
-function streamCompletion(request: Request, messages: ChatMessage[], state: ProviderState): Response {
+function streamCompletion(
+	request: Request,
+	messages: ChatMessage[],
+	state: ProviderState,
+	tools: CompletionRequest["tools"],
+): Response {
 	const requestIndex = state.requests.length
 	const id = `chatcmpl-e2e-${requestIndex}`
-	const answer = answerFor(messages)
+	const asksForPage = text(messages.at(-1)) === "Read this page"
+	const clientTool = asksForPage ? tools?.find((entry) => entry.function.name.startsWith("client_")) : undefined
+	if (asksForPage && !clientTool) throw new Error("The SDK client tool manifest did not reach the provider")
+	const stockTool = asksForPage ? tools?.find((entry) => entry.function.name.endsWith("get_stock_level")) : undefined
+	const answer = clientTool ? { chunks: [], delayed: false } : answerFor(messages)
 	const body = new ReadableStream<Uint8Array>({
 		start(controller) {
 			void (async () => {
 				try {
+					if (clientTool) {
+						const calls = [
+							{
+								index: 0,
+								id: "page-call",
+								type: "function",
+								function: { name: clientTool.function.name, arguments: "{}" },
+							},
+						]
+						if (stockTool)
+							calls.push({
+								index: 1,
+								id: "stock-call",
+								type: "function",
+								function: { name: stockTool.function.name, arguments: '{"sku":"TALQO-TEA-001"}' },
+							})
+						controller.enqueue(
+							event({
+								...completionChunk(id, ""),
+								choices: [{ index: 0, delta: { tool_calls: calls }, finish_reason: "tool_calls" }],
+							}),
+						)
+						controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+						controller.close()
+						return
+					}
 					controller.enqueue(event(completionChunk(id, answer.chunks[0] ?? "")))
 					if (answer.delayed && (await waitForRelease(request.signal, state.pendingStreams)) === "aborted") {
 						controller.error(request.signal.reason ?? new Error("Provider request cancelled"))
@@ -117,12 +166,19 @@ function streamCompletion(request: Request, messages: ChatMessage[], state: Prov
 	})
 }
 
-export function createTestServer(): Bun.Server<undefined> {
+export async function createTestServer(): Promise<Bun.Server<undefined>> {
+	const toolsBuild = await Bun.build({
+		entrypoints: [path.join(import.meta.dirname, "fixtures/client-tools.ts")],
+		target: "browser",
+		format: "esm",
+	})
+	if (!toolsBuild.success || !toolsBuild.outputs[0]) throw new Error("Could not build the browser tool fixture")
 	const state: ProviderState = { requests: [], pendingStreams: [] }
 	return Bun.serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		routes: {
+			"/client-tools.js": new Response(toolsBuild.outputs[0], { headers: { "content-type": "text/javascript" } }),
 			"/": new Response(Bun.file(path.join(import.meta.dirname, "fixtures/host.html"))),
 			"/widget.js": new Response(Bun.file(path.resolve(import.meta.dirname, "../../widget/dist/widget.js")), {
 				headers: { "content-type": "text/javascript" },
@@ -194,7 +250,7 @@ export function createTestServer(): Bun.Server<undefined> {
 				}
 				const messages = structuredClone(completion.messages)
 				state.requests.push({ model: completion.model, messages })
-				return streamCompletion(request, messages, state)
+				return streamCompletion(request, messages, state, completion.tools)
 			}
 			return new Response("Not found", { status: 404 })
 		},

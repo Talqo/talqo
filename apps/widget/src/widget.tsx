@@ -8,8 +8,8 @@ import { PreviewWidget } from "./preview"
 let root: Root | null = null
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
-export type MountOptions = { createClient?: ChatClientFactory }
+export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools">) => ChatClient
+export type MountOptions = { createClient?: ChatClientFactory; tools?: ChatClientOptions["tools"] }
 
 const DEFAULT_TARGET = "#talqo-widget"
 
@@ -66,7 +66,7 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 		return
 	}
 
-	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken })
+	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, tools: options.tools })
 	root.render(<ConnectedEmbeddedWidget client={client} title={dataset?.talqoTitle} appearance={overrides} />)
 }
 
@@ -81,7 +81,13 @@ const globalScope = window as { TalqoWidget?: { mount: typeof mount; unmount: ty
 globalScope.TalqoWidget = { mount, unmount }
 
 if (document.readyState === "loading") {
-	document.addEventListener("DOMContentLoaded", () => mount())
+	document.addEventListener(
+		"DOMContentLoaded",
+		() => {
+			if (!root) mount()
+		},
+		{ once: true },
+	)
 } else {
 	mount()
 }

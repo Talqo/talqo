@@ -4,7 +4,7 @@ import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
-import { embed as aiEmbed, isStepCount, streamText as aiStreamText } from "ai"
+import { embed as aiEmbed, isStepCount, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
@@ -25,11 +25,18 @@ const CONFIG_ID = "singleton"
 const MAX_TOOL_STEPS = 5
 
 /** How a resolved tool identifies itself to a caller. Carried opaquely; no MCP types cross over. */
-export type ToolIdentity = { serverName: string; toolName: string }
+export type ToolIdentity = { serverName: string; toolName: string; source?: "client" | "mcp" }
 
 export type ToolEvent =
-	| { identity: ToolIdentity; toolCallId: string; type: "tool-start" }
-	| { identity: ToolIdentity; outcome: "completed" | "failed"; toolCallId: string; type: "tool-end" }
+	| { identity: ToolIdentity; toolCallId: string; toolName: string; input: unknown; type: "tool-start" }
+	| {
+			identity: ToolIdentity
+			outcome: "completed" | "failed"
+			toolCallId: string
+			output?: unknown
+			errorText?: string
+			type: "tool-end"
+	  }
 
 type Vault = ReturnType<typeof createCredentialVault>
 type Repository = {
@@ -40,21 +47,19 @@ type Repository = {
 	): Promise<StoredConfiguration | undefined>
 }
 
-export type TextMessage = { content: string; role: "assistant" | "system" | "user" }
-
 /** What a caller hands `invoke`: the tool record plus the names behind each key. */
 export type ToolBinding = {
 	names: Map<string, ToolIdentity>
-	tools: Record<string, unknown>
+	tools: ToolSet
 }
-type RuntimeTextMessage = { content: string; role: "assistant" | "user" }
 export type PrepareTextOperationInput = {
 	maxOutputTokens: number
-	messages: TextMessage[]
+	messages: ModelMessage[]
 	timeoutMs: number
 }
 type RawGenerationEvent =
 	| { text: string; type: "text" }
+	| { type: "step-start" }
 	| {
 			outcome: "cancelled" | "completed" | "failed" | "interrupted"
 			type: "finish"
@@ -70,13 +75,13 @@ type Generate = (input: {
 	instructions?: string
 	maxOutputTokens: number
 	maxRetries: 0
-	messages: RuntimeTextMessage[]
+	messages: ModelMessage[]
 	model: LanguageModelV4
-	onToolEvent?: (event: ToolEvent) => void
+	onToolEvent?: (event: ToolEvent) => void | Promise<void>
 	signal: AbortSignal
 	timeoutMs: number
 	toolNames?: Map<string, ToolIdentity>
-	tools?: Record<string, unknown>
+	tools?: ToolSet
 }) => AsyncIterable<RawGenerationEvent>
 
 type ServiceDependencies = {
@@ -129,14 +134,14 @@ async function* invokePreparedOperation(
 	generate: Generate,
 	input: PrepareTextOperationInput & {
 		instructions?: string
-		messages: RuntimeTextMessage[]
+		messages: ModelMessage[]
 		model: LanguageModelV4
 		modelId: string
-		onToolEvent?: (event: ToolEvent) => void
+		onToolEvent?: (event: ToolEvent) => void | Promise<void>
 		providerId: AiProviderId
 		signal: AbortSignal
 		toolNames?: Map<string, ToolIdentity>
-		tools?: Record<string, unknown>
+		tools?: ToolSet
 	},
 ) {
 	try {
@@ -150,7 +155,7 @@ async function* invokePreparedOperation(
 			timeoutMs: input.timeoutMs,
 			...(input.tools ? { tools: input.tools, toolNames: input.toolNames, onToolEvent: input.onToolEvent } : {}),
 		})) {
-			if (event.type === "text") yield event
+			if (event.type === "text" || event.type === "step-start") yield event
 			else yield { ...event, provider: input.providerId, model: input.modelId }
 		}
 	} catch (error) {
@@ -161,6 +166,22 @@ async function* invokePreparedOperation(
 
 async function* defaultGenerate(input: Parameters<Generate>[0], streamText: typeof aiStreamText): ReturnType<Generate> {
 	let result: ReturnType<typeof aiStreamText> | undefined
+	const persistedCalls = new Map<string, ReturnType<typeof Promise.withResolvers<void>>>()
+	const completedCalls = new Set<string>()
+	function callPersistence(id: string) {
+		let pending = persistedCalls.get(id)
+		if (!pending) {
+			pending = Promise.withResolvers<void>()
+			void pending.promise.catch(() => undefined)
+			persistedCalls.set(id, pending)
+		}
+		return pending
+	}
+	const abort = () => {
+		for (const pending of persistedCalls.values()) pending.reject(new Error("Tool execution aborted"))
+	}
+	const identity = (name: string): ToolIdentity => input.toolNames?.get(name) ?? { serverName: "", toolName: name }
+	input.signal.addEventListener("abort", abort, { once: true })
 	try {
 		result = streamText({
 			model: input.model,
@@ -172,10 +193,48 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			timeout: input.timeoutMs,
 			stopWhen: isStepCount(MAX_TOOL_STEPS),
 			onError: () => undefined,
-			...(input.tools ? { tools: input.tools as never } : {}),
-			...toolCallbacks(input),
+			...(input.tools ? { tools: input.tools } : {}),
+			onAbort: abort,
+			onToolExecutionStart: async ({ toolCall }) => {
+				// Execution can run ahead of fullStream; wait for the ordered call to become durable.
+				input.signal.throwIfAborted()
+				await callPersistence(toolCall.toolCallId).promise
+			},
+			onToolExecutionEnd: async ({ toolCall, toolOutput }) => {
+				await input.onToolEvent?.({
+					type: "tool-end",
+					identity: identity(toolCall.toolName),
+					toolCallId: toolCall.toolCallId,
+					outcome: toolOutput.type === "tool-result" && !isErrorOutput(toolOutput.output) ? "completed" : "failed",
+					...(toolOutput.type === "tool-result"
+						? { output: toolOutput.output }
+						: { errorText: "Tool execution failed" }),
+				})
+				completedCalls.add(toolCall.toolCallId)
+			},
 		})
-		for await (const text of result.textStream) yield { type: "text", text }
+		for await (const part of result.fullStream) {
+			if (part.type === "text-delta") yield { type: "text", text: part.text }
+			else if (part.type === "start-step") yield { type: "step-start" }
+			else if (part.type === "tool-call") {
+				await input.onToolEvent?.({
+					type: "tool-start",
+					identity: identity(part.toolName),
+					toolCallId: part.toolCallId,
+					toolName: part.toolName,
+					input: part.input,
+				})
+				callPersistence(part.toolCallId).resolve()
+			} else if (part.type === "tool-error" && !completedCalls.has(part.toolCallId)) {
+				await input.onToolEvent?.({
+					type: "tool-end",
+					identity: identity(part.toolName),
+					toolCallId: part.toolCallId,
+					outcome: "failed",
+					errorText: "Tool execution failed",
+				})
+			} else if (part.type === "error") throw part.error
+		}
 		const usage = await result.usage
 		yield {
 			type: "finish",
@@ -195,30 +254,9 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			return
 		}
 		throw error
-	}
-}
-
-/**
- * Emitted through a callback rather than the event stream so tool activity reaches the client the
- * moment it happens, instead of waiting for the next text chunk to flush.
- */
-type ToolCallbackOptions = Pick<Parameters<typeof aiStreamText>[0], "onToolExecutionStart" | "onToolExecutionEnd">
-
-function toolCallbacks(input: Parameters<Generate>[0]): ToolCallbackOptions {
-	if (!input.tools || !input.onToolEvent) return {}
-	const identity = (name: string): ToolIdentity => input.toolNames?.get(name) ?? { serverName: "", toolName: name }
-	const emit = input.onToolEvent
-	return {
-		onToolExecutionStart: ({ toolCall }) =>
-			emit({ type: "tool-start", identity: identity(toolCall.toolName), toolCallId: toolCall.toolCallId }),
-		onToolExecutionEnd: ({ toolCall, toolOutput }) =>
-			emit({
-				type: "tool-end",
-				identity: identity(toolCall.toolName),
-				toolCallId: toolCall.toolCallId,
-				// A tool-result carrying isError still reports success upstream; the demo server proves it.
-				outcome: toolOutput.type === "tool-result" && !isErrorOutput(toolOutput.output) ? "completed" : "failed",
-			}),
+	} finally {
+		input.signal.removeEventListener("abort", abort)
+		abort()
 	}
 }
 
@@ -479,13 +517,13 @@ export function createAiProviderService(dependencies: ServiceDependencies) {
 				const model = createProviderModel({ ...stored.text, role: "text", credentials }) as LanguageModelV4
 				const [firstMessage, ...remainingMessages] = input.messages
 				const instructions = firstMessage?.role === "system" ? firstMessage.content : undefined
-				const messages = (instructions === undefined ? input.messages : remainingMessages) as RuntimeTextMessage[]
+				const messages = instructions === undefined ? input.messages : remainingMessages
 				const streamText = dependencies.streamText ?? aiStreamText
 				const generate = dependencies.generate ?? ((generation) => defaultGenerate(generation, streamText))
 				return {
 					provider: stored.text.providerId,
 					model: stored.text.modelId,
-					invoke(signal: AbortSignal, tools?: ToolBinding, onToolEvent?: (event: ToolEvent) => void) {
+					invoke(signal: AbortSignal, tools?: ToolBinding, onToolEvent?: (event: ToolEvent) => void | Promise<void>) {
 						return invokePreparedOperation(generate, {
 							...input,
 							...(instructions === undefined ? {} : { instructions }),

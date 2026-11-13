@@ -84,10 +84,15 @@ function planConversation(agentId: string, startedAt: Date): PlannedRows {
 			conversationId,
 			generationAttemptId: attemptId,
 			role: index % MESSAGES_PER_TURN === 0 ? "user" : "assistant",
-			text:
-				index % MESSAGES_PER_TURN === 0
-					? line(USER_LINES, index / MESSAGES_PER_TURN)
-					: line(ASSISTANT_LINES, (index - 1) / MESSAGES_PER_TURN),
+			parts: [
+				{
+					type: "text",
+					text:
+						index % MESSAGES_PER_TURN === 0
+							? line(USER_LINES, index / MESSAGES_PER_TURN)
+							: line(ASSISTANT_LINES, (index - 1) / MESSAGES_PER_TURN),
+				},
+			],
 			outcome: "completed",
 			createdAt,
 			updatedAt: createdAt,
@@ -308,7 +313,7 @@ function transcriptRows(now: number) {
 					conversationId,
 					generationAttemptId: attemptId,
 					role: "user",
-					text: turn.question,
+					parts: [{ type: "text", text: turn.question }],
 					outcome: "completed",
 					createdAt: askedAt,
 					updatedAt: askedAt,
@@ -318,7 +323,7 @@ function transcriptRows(now: number) {
 					conversationId,
 					generationAttemptId: attemptId,
 					role: "assistant",
-					text: turn.answer,
+					parts: [{ type: "text", text: turn.answer }],
 					outcome: turn.outcome,
 					createdAt: new Date(askedAt.getTime() + 1),
 					updatedAt: askedAt,
@@ -371,7 +376,7 @@ async function seedTranscripts(): Promise<void> {
 			.onConflictDoUpdate({
 				target: message.id,
 				set: {
-					text: sql`excluded.text`,
+					parts: sql`excluded.parts`,
 					outcome: sql`excluded.outcome`,
 					createdAt: sql`excluded.created_at`,
 					updatedAt: sql`excluded.updated_at`,

@@ -99,10 +99,10 @@ async function seedChatHistory(agentA: string, agentB: string): Promise<void> {
 	await Promise.all(
 		attempts.map(
 			(row) => sql`
-				INSERT INTO message (id, conversation_id, generation_attempt_id, role, text, outcome, created_at)
+				INSERT INTO message (id, conversation_id, generation_attempt_id, role, parts, outcome, created_at)
 				VALUES
-					(${crypto.randomUUID()}, ${row.id}, ${row.attemptId}, 'user', 'question', 'completed', ${row.createdAt}),
-					(${crypto.randomUUID()}, ${row.id}, ${row.attemptId}, 'assistant', 'answer', 'completed', ${row.createdAt})
+					(${crypto.randomUUID()}, ${row.id}, ${row.attemptId}, 'user', '[{"type":"text","text":"question"}]'::jsonb, 'completed', ${row.createdAt}),
+					(${crypto.randomUUID()}, ${row.id}, ${row.attemptId}, 'assistant', '[{"type":"text","text":"answer"}]'::jsonb, 'completed', ${row.createdAt})
 			`,
 		),
 	)

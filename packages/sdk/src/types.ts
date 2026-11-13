@@ -1,4 +1,6 @@
-import type { ProblemDetails } from "./generated/contracts.ts"
+import type { ToolSet } from "ai"
+
+import type { ClientToolManifest, MessagePart, ProblemDetails } from "./generated/models"
 import type { AsyncStorage } from "./storage.ts"
 
 export type ChatConfiguration = {
@@ -13,9 +15,11 @@ export type ChatMessageOutcome =
 	"pending" | "streaming" | "completed" | "failed" | "cancelled" | "blocked" | "interrupted"
 
 export type ChatMessage = {
+	readonly requestId?: string
 	readonly id: string
 	readonly role: ChatMessageRole
 	readonly text: string
+	readonly parts: readonly MessagePart[]
 	readonly createdAt: string
 	readonly outcome: ChatMessageOutcome
 }
@@ -41,6 +45,7 @@ const API_CHAT_ERROR_CODES = [
 ] as const satisfies readonly ProblemDetails["code"][]
 
 const SDK_ERROR_CODES = [
+	"website-action-uncertain",
 	"invalid-response",
 	"transport-error",
 	"storage-unavailable",
@@ -85,17 +90,24 @@ export type SessionState = {
 	readonly activeGeneration: { readonly id: string } | undefined
 }
 
-export type ActiveTool = { readonly serverName: string; readonly toolName: string }
+export type ActiveTool = {
+	readonly toolCallId?: string
+	readonly serverName: string
+	readonly toolName: string
+	readonly source?: "client" | "mcp"
+}
 
 export type ChatEvent =
 	| {
 			type: "accepted"
 			requestId: string
+			duplicate?: boolean
 			generationId: string
 			userMessage: { id: string; createdAt: string }
 			assistantMessage: { id: string; createdAt: string }
 	  }
-	| { type: "delta"; assistantMessageId: string; text: string }
+	| { type: "delta"; assistantMessageId: string; index?: number; text: string }
+	| { type: "part"; assistantMessageId: string; index: number; part: MessagePart }
 	| { type: "tool-start"; serverName: string; toolName: string }
 	| { type: "tool-end"; serverName: string; toolName: string; outcome: "completed" | "failed" | "cancelled" }
 	| { type: "terminal"; outcome: Exclude<ChatMessageOutcome, "pending" | "streaming"> }
@@ -115,6 +127,7 @@ export type ChatTransport = {
 			text: string
 			requestId: string
 			credential: string
+			tools?: ClientToolManifest
 		},
 	): Promise<AsyncIterable<ChatEvent>>
 	cancelResponse(
@@ -126,6 +139,8 @@ export type ChatTransport = {
 }
 
 export type ChatClientOptions = {
+	/** AI SDK function tools with execute, static description, inputSchema, outputSchema, strict, and inputExamples. Other behaviors are rejected. */
+	tools?: ToolSet
 	apiUrl: string
 	embedToken: string
 	storage?: AsyncStorage

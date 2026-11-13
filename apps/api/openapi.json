@@ -1254,6 +1254,777 @@
           }
         ]
       },
+      "ChatClientFrameV1": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "start"
+                ]
+              },
+              "credential": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "tools": {
+                "$ref": "#/components/schemas/ClientToolManifest"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "credential",
+              "requestId",
+              "text",
+              "tools"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tool-result"
+                ]
+              },
+              "toolCallId": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "output": {}
+            },
+            "required": [
+              "version",
+              "type",
+              "toolCallId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tool-error"
+                ]
+              },
+              "toolCallId": {
+                "type": "string",
+                "maxLength": 256
+              },
+              "error": {
+                "type": "string",
+                "maxLength": 1000
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "toolCallId",
+              "error"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "cancel"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "type"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "ClientToolManifest": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            "description": {
+              "type": "string"
+            },
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "outputSchema": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "strict": {
+              "type": "boolean"
+            },
+            "inputExamples": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "input": {}
+                }
+              }
+            }
+          },
+          "required": [
+            "name",
+            "inputSchema"
+          ],
+          "additionalProperties": false
+        },
+        "maxItems": 8
+      },
+      "ChatServerFrameV1": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "part"
+                ]
+              },
+              "assistantMessageId": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "part": {
+                "$ref": "#/components/schemas/MessagePart"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "assistantMessageId",
+              "index",
+              "part"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "accepted"
+                ]
+              },
+              "requestId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "duplicate": {
+                "type": "boolean"
+              },
+              "generationId": {
+                "type": "string"
+              },
+              "userMessage": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "createdAt"
+                ]
+              },
+              "assistantMessage": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "id",
+                  "createdAt"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "requestId",
+              "generationId",
+              "userMessage",
+              "assistantMessage"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "delta"
+                ]
+              },
+              "assistantMessageId": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "assistantMessageId",
+              "index",
+              "text"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "terminal"
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "failed",
+                  "cancelled",
+                  "blocked",
+                  "interrupted"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "outcome"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tool-start"
+                ]
+              },
+              "serverName": {
+                "type": "string"
+              },
+              "toolName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "serverName",
+              "toolName"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tool-end"
+                ]
+              },
+              "serverName": {
+                "type": "string"
+              },
+              "toolName": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "failed",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "serverName",
+              "toolName",
+              "outcome"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "error"
+                ]
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "failed",
+                  "cancelled",
+                  "blocked",
+                  "interrupted"
+                ]
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "retryAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "retriable": {
+                    "type": "boolean"
+                  },
+                  "newChatAvailable": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "code",
+                  "retriable",
+                  "newChatAvailable"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "outcome",
+              "error"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "tool-call"
+                ]
+              },
+              "toolCallId": {
+                "type": "string"
+              },
+              "toolName": {
+                "type": "string"
+              },
+              "input": {},
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "assistant",
+                        "tool"
+                      ]
+                    },
+                    "content": {}
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "toolCallId",
+              "toolName",
+              "messages"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "rejected"
+                ]
+              },
+              "code": {
+                "type": "string"
+              },
+              "status": {
+                "type": "number"
+              },
+              "retryAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "code",
+              "status"
+            ]
+          }
+        ]
+      },
+      "MessagePart": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "text"
+                ]
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "text"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "step-start"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "dynamic-tool"
+                ]
+              },
+              "toolName": {
+                "type": "string"
+              },
+              "toolCallId": {
+                "type": "string"
+              },
+              "input": {},
+              "toolMetadata": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "client",
+                      "mcp"
+                    ]
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "serverName": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "completed",
+                      "failed",
+                      "cancelled",
+                      "interrupted"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "displayName"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "input-available"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "toolName",
+              "toolCallId",
+              "toolMetadata",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "dynamic-tool"
+                ]
+              },
+              "toolName": {
+                "type": "string"
+              },
+              "toolCallId": {
+                "type": "string"
+              },
+              "input": {},
+              "toolMetadata": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "client",
+                      "mcp"
+                    ]
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "serverName": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "completed",
+                      "failed",
+                      "cancelled",
+                      "interrupted"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "displayName"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "output-available"
+                ]
+              },
+              "output": {}
+            },
+            "required": [
+              "type",
+              "toolName",
+              "toolCallId",
+              "toolMetadata",
+              "state"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "dynamic-tool"
+                ]
+              },
+              "toolName": {
+                "type": "string"
+              },
+              "toolCallId": {
+                "type": "string"
+              },
+              "input": {},
+              "toolMetadata": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "client",
+                      "mcp"
+                    ]
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "serverName": {
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "completed",
+                      "failed",
+                      "cancelled",
+                      "interrupted"
+                    ]
+                  }
+                },
+                "required": [
+                  "source",
+                  "displayName"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "output-error"
+                ]
+              },
+              "errorText": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "toolName",
+              "toolCallId",
+              "toolMetadata",
+              "state",
+              "errorText"
+            ]
+          }
+        ]
+      },
       "HealthResponse": {
         "type": "object",
         "properties": {
@@ -1510,12 +2281,49 @@
               "type": {
                 "type": "string",
                 "enum": [
+                  "part"
+                ]
+              },
+              "assistantMessageId": {
+                "type": "string"
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "part": {
+                "$ref": "#/components/schemas/MessagePart"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "assistantMessageId",
+              "index",
+              "part"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
                   "accepted"
                 ]
               },
               "requestId": {
                 "type": "string",
                 "format": "uuid"
+              },
+              "duplicate": {
+                "type": "boolean"
               },
               "generationId": {
                 "type": "string"
@@ -1580,6 +2388,10 @@
               "assistantMessageId": {
                 "type": "string"
               },
+              "index": {
+                "type": "integer",
+                "minimum": 0
+              },
               "text": {
                 "type": "string"
               }
@@ -1588,6 +2400,7 @@
               "version",
               "type",
               "assistantMessageId",
+              "index",
               "text"
             ]
           },
@@ -2029,6 +2842,10 @@
       "ConversationMessage": {
         "type": "object",
         "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "id": {
             "type": "string"
           },
@@ -2041,6 +2858,12 @@
           },
           "text": {
             "type": "string"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessagePart"
+            }
           },
           "createdAt": {
             "type": "string",
@@ -2062,6 +2885,7 @@
           "id",
           "role",
           "text",
+          "parts",
           "createdAt",
           "outcome"
         ]
@@ -6860,6 +7684,41 @@
         }
       }
     },
+    "/api/chat/{embedToken}/socket": {
+      "get": {
+        "operationId": "openChatSocket",
+        "tags": [
+          "Public Chat"
+        ],
+        "security": [],
+        "x-websocket": {
+          "clientMessage": {
+            "$ref": "#/components/schemas/ChatClientFrameV1"
+          },
+          "serverMessage": {
+            "$ref": "#/components/schemas/ChatServerFrameV1"
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "embedToken",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "WebSocket upgrade. Authenticate with the first start frame."
+          },
+          "400": {
+            "description": "Invalid upgrade"
+          }
+        }
+      }
+    },
     "/api/chat/{embedToken}/messages": {
       "post": {
         "operationId": "sendChatMessage",
@@ -7033,6 +7892,10 @@
                       "items": {
                         "type": "object",
                         "properties": {
+                          "requestId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
                           "id": {
                             "type": "string"
                           },
@@ -7045,6 +7908,12 @@
                           },
                           "text": {
                             "type": "string"
+                          },
+                          "parts": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/MessagePart"
+                            }
                           },
                           "createdAt": {
                             "type": "string",
@@ -7066,6 +7935,7 @@
                           "id",
                           "role",
                           "text",
+                          "parts",
                           "createdAt",
                           "outcome"
                         ]

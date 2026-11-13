@@ -62,14 +62,14 @@ app.use(
 	`${API_PREFIX}/embed-config/*`,
 	cors({ origin: "*", allowMethods: ["GET", "OPTIONS"], maxAge: CORS_MAX_AGE_SECONDS }),
 )
-app.use(
-	`${API_PREFIX}/chat/*`,
-	cors({
-		origin: "*",
-		allowMethods: ["GET", "POST", "OPTIONS"],
-		allowHeaders: ["Authorization", "Content-Type"],
-		maxAge: CORS_MAX_AGE_SECONDS,
-	}),
+const chatCors = cors({
+	origin: "*",
+	allowMethods: ["GET", "POST", "OPTIONS"],
+	allowHeaders: ["Authorization", "Content-Type"],
+	maxAge: CORS_MAX_AGE_SECONDS,
+})
+app.use(`${API_PREFIX}/chat/*`, (c: Context<{ Bindings: ChatBindings }, string>, next) =>
+	c.req.header("upgrade")?.toLowerCase() === "websocket" ? next() : chatCors(c, next),
 )
 app.use("*", requireAccessPolicy)
 const api = new OpenAPIHono<{ Bindings: ChatBindings }>()

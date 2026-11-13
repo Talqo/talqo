@@ -8,6 +8,8 @@
 		"typecheck": "bun check"
 	},
 	"devDependencies": {
+		"ai": "7.0.159",
+		"zod": "4.6.7",
 		"@playwright/test": "1.64.1",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.4",

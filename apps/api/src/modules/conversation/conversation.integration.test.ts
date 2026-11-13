@@ -1,13 +1,10 @@
 import type { Annotation } from "@/http/wide-event.ts"
+import type { ModelMessage, ToolExecutionOptions } from "ai"
 
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
 import * as agent from "@/modules/agent/agent.service.ts"
-import {
-	type AiProviderId,
-	ProviderContextLimitError,
-	type TextMessage,
-} from "@/modules/ai-provider/ai-provider.service.ts"
+import { type AiProviderId, ProviderContextLimitError } from "@/modules/ai-provider/ai-provider.service.ts"
 import * as embed from "@/modules/embed/embed.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
 import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.repository.ts"
@@ -18,6 +15,7 @@ import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
+import { type ClientToolRequest, createClientToolChannel } from "./conversation.client-tools.ts"
 import {
 	ConcurrentGenerationLimitError,
 	ConversationNotFoundError,
@@ -63,7 +61,7 @@ async function fixture() {
 
 function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; concurrencyLimit?: number } = {}) {
 	let call = 0
-	const prompts: TextMessage[][] = []
+	const prompts: ModelMessage[][] = []
 	return {
 		prompts,
 		service: createConversationService({
@@ -95,7 +93,7 @@ function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; 
 function customService(
 	generate: (input: {
 		maxOutputTokens: number
-		messages: TextMessage[]
+		messages: ModelMessage[]
 		signal: AbortSignal
 		timeoutMs: number
 	}) => AsyncIterable<
@@ -171,6 +169,153 @@ beforeEach(async () => {
 
 afterEach(() => {
 	setSystemTime()
+})
+
+describe("structured tool history", () => {
+	it("migrates existing text without changing message identity or losing empty messages", async () => {
+		const migration = await Bun.file(new URL("../../../drizzle/0016_marvelous_silver_fox.sql", import.meta.url)).text()
+		await sql.begin(async (tx) => {
+			await tx`CREATE TEMP TABLE message (id text, text text NOT NULL) ON COMMIT DROP`
+			await tx`CREATE TEMP TABLE generation_attempt (id text) ON COMMIT DROP`
+			await tx`INSERT INTO message VALUES ('old', 'Original 😀'), ('empty', '')`
+			await tx.unsafe(migration)
+			expect(Array.from(await tx`SELECT id, parts FROM message ORDER BY id`)).toEqual([
+				{ id: "empty", parts: [] },
+				{ id: "old", parts: [{ type: "text", text: "Original 😀" }] },
+			])
+		})
+	})
+
+	it("persists parallel browser calls before dispatch and retains both tool sources in the next model turn", async () => {
+		const { createdEmbed, createdAgent } = await fixture()
+		await agent.updateAgent(createdAgent.id, {
+			name: createdAgent.name,
+			systemPrompt: "System",
+			wordBlacklist: ["forbidden"],
+		})
+		const requests: ClientToolRequest[] = []
+		const dispatched = Promise.withResolvers<void>()
+		const channel = createClientToolChannel(
+			[{ name: "readPage", inputSchema: { type: "object" } }],
+			(request) => {
+				requests.push(request)
+				if (requests.length === 2) dispatched.resolve()
+			},
+			400_000,
+		)
+		let invocation = 0
+		const prompts: ModelMessage[][] = []
+		const instance = createConversationService({
+			dailyLimit: 100,
+			concurrencyLimit: 2,
+			maxInputCharacters: 400_000,
+			maxOutputTokens: 100,
+			timeoutMs: 10_000,
+			prepare: async ({ messages }) => ({
+				provider: "openai-compatible",
+				model: "fake-model",
+				invoke: async function* (_signal, binding, onToolEvent) {
+					prompts.push(messages)
+					if (invocation++ === 0) {
+						yield { type: "step-start" }
+						yield { type: "text", text: "Checking. " }
+						const toolIdentity = { serverName: "Shop", toolName: "stock" }
+						await onToolEvent?.({
+							type: "tool-start",
+							toolCallId: "mcp-call",
+							toolName: "shop_stock",
+							identity: toolIdentity,
+							input: { sku: "shirt" },
+						})
+						await onToolEvent?.({
+							type: "tool-end",
+							toolCallId: "mcp-call",
+							identity: toolIdentity,
+							output: { stock: 7 },
+							outcome: "completed",
+						})
+						if (!binding) throw new Error("Expected client tools")
+						const [name, definition] = Object.entries(binding.tools)[0] ?? []
+						const clientIdentity = name ? binding.names.get(name) : undefined
+						if (!name || !definition?.execute || !clientIdentity) throw new Error("Expected a client proxy")
+						const execute = definition.execute as (
+							input: unknown,
+							options: ToolExecutionOptions<unknown>,
+						) => Promise<unknown>
+						await Promise.all(
+							["first", "second"].map(async (toolCallId) => {
+								await onToolEvent?.({
+									type: "tool-start",
+									toolCallId,
+									toolName: name,
+									identity: clientIdentity,
+									input: { section: toolCallId },
+								})
+								const output = await execute({ section: toolCallId }, { toolCallId, messages, context: undefined })
+								await onToolEvent?.({
+									type: "tool-end",
+									toolCallId,
+									identity: clientIdentity,
+									output,
+									outcome: "completed",
+								})
+							}),
+						)
+						yield { type: "step-start" }
+					}
+					yield { type: "text", text: "Done." }
+					yield { type: "finish", outcome: "completed", provider: "openai-compatible", model: "fake-model", usage: {} }
+				},
+			}),
+		})
+		const input = {
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			networkHash: "network",
+			requestId: REQUEST_1,
+			text: "Check this page",
+		}
+		const sent = await instance.send({ ...input, clientTools: channel, clientManifestFingerprint: "manifest-one" })
+		await dispatched.promise
+		const pending = (await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.parts
+		expect(pending?.map((part) => part.type)).toEqual([
+			"step-start",
+			"text",
+			"dynamic-tool",
+			"dynamic-tool",
+			"dynamic-tool",
+		])
+		expect(pending?.filter((part) => part.type === "dynamic-tool").map((part) => part.state)).toEqual([
+			"output-available",
+			"input-available",
+			"input-available",
+		])
+		channel.accept({ toolCallId: "second", output: { page: "blue" } })
+		channel.accept({ toolCallId: "first", output: { page: "green" } })
+		await sent.done
+		const parts = (await instance.getSession(CREDENTIAL_1)).messages.at(-1)?.parts
+		expect(parts?.filter((part) => part.type === "text").map((part) => part.text)).toEqual(["Checking. ", "Done."])
+		expect(
+			parts
+				?.filter((part) => part.type === "dynamic-tool")
+				.map((part) => [part.toolCallId, part.state === "output-available" ? part.output : undefined]),
+		).toEqual([
+			["mcp-call", { stock: 7 }],
+			["first", { page: "green" }],
+			["second", { page: "blue" }],
+		])
+		const next = await instance.send({ ...input, requestId: REQUEST_2, text: "Remember the results" })
+		await next.done
+		const history = JSON.stringify(prompts[1])
+		expect(history).toContain('"stock":7')
+		expect(history).toContain('"page":"green"')
+		expect(history).toContain('"page":"blue"')
+		expect(prompts[1]?.some((message) => message.role === "tool")).toBe(true)
+		expect(requests).toHaveLength(2)
+		await expect(instance.send({ ...input, clientManifestFingerprint: "manifest-two" })).rejects.toBeInstanceOf(
+			RequestConflictError,
+		)
+	})
 })
 
 describe("conversation lifecycle", () => {
@@ -273,8 +418,8 @@ describe("conversation lifecycle", () => {
 		expect(systemPrompt).toMatchObject({ role: "system" })
 		expect(systemPrompt?.content).toMatch(/\S\nSystem$/)
 		expect(instance.prompts[1]?.slice(1)).toEqual([
-			{ role: "user", content: "first" },
-			{ role: "assistant", content: "one" },
+			{ role: "user", content: [{ type: "text", text: "first" }] },
+			{ role: "assistant", content: [{ type: "text", text: "one" }] },
 			{ role: "user", content: "second" },
 		])
 	})
@@ -793,7 +938,7 @@ describe("conversation lifecycle", () => {
 		})
 		expect(typeof usageRows[0]?.usage_output_tokens).toBe("number")
 		expect(typeof usageRows[0]?.output_tokens).toBe("number")
-		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite")).toBe(false)
+		expect(await repository.appendOutput(sent.generationId, "stale-lease", "overwrite", 0)).toBe(false)
 		const next = await service().service.send({
 			embedToken: createdEmbed.embedToken,
 			credential: CREDENTIAL_2,
@@ -1009,7 +1154,7 @@ describe("conversation lifecycle", () => {
 
 		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], true)).toEqual([])
 		expect(await repository.setAttribution(sent.generationId, leaseToken, "late", "late")).toBe(false)
-		expect(await repository.appendOutput(sent.generationId, leaseToken, "late")).toBe(false)
+		expect(await repository.appendOutput(sent.generationId, leaseToken, "late", 0)).toBe(false)
 		expect(await repository.pollRunningAttempts([{ id: sent.generationId, leaseToken }], false)).toEqual([])
 		expect(
 			await repository.stageFinalization({
@@ -1159,7 +1304,9 @@ describe("conversation lifecycle", () => {
 			},
 		)
 		await observed.promise
-		expect((await sql`SELECT text FROM message WHERE id = ${sent.assistantMessage.id}`)[0]?.text).toBe("hello")
+		expect((await sql`SELECT parts FROM message WHERE id = ${sent.assistantMessage.id}`)[0]?.parts).toEqual([
+			{ type: "text", text: "hello" },
+		])
 		await instance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 	})
@@ -1285,7 +1432,7 @@ describe("conversation lifecycle", () => {
 		})
 		await initial.done
 		const rival = service(["raced"]).service
-		const prompts: TextMessage[][] = []
+		const prompts: ModelMessage[][] = []
 		const main = customService(
 			async function* (input) {
 				prompts.push(input.messages)
@@ -1323,10 +1470,10 @@ describe("conversation lifecycle", () => {
 		expect(prompts).toHaveLength(1)
 		expect(prompts[0]?.[0]?.content).toMatch(/\S\nSystem$/)
 		expect(prompts[0]?.slice(1)).toEqual([
-			{ role: "user", content: "first" },
-			{ role: "assistant", content: "initial" },
-			{ role: "user", content: "racing turn" },
-			{ role: "assistant", content: "raced" },
+			{ role: "user", content: [{ type: "text", text: "first" }] },
+			{ role: "assistant", content: [{ type: "text", text: "initial" }] },
+			{ role: "user", content: [{ type: "text", text: "racing turn" }] },
+			{ role: "assistant", content: [{ type: "text", text: "raced" }] },
 			{ role: "user", content: "after race" },
 		])
 		expect((await sql`SELECT count FROM conversation_daily_counter`)[0]?.count).toBe(3)
@@ -1375,7 +1522,7 @@ describe("conversation lifecycle", () => {
 			await testAdminId(),
 		)
 		const outputs = ["fine", "lost", "poison", "afterwards", "again"]
-		const calls: TextMessage[][] = []
+		const calls: ModelMessage[][] = []
 		let call = 0
 		const svc = customService(async function* (input) {
 			calls.push(input.messages)
@@ -1400,16 +1547,16 @@ describe("conversation lifecycle", () => {
 		}
 
 		expect(calls[3]?.slice(1)).toEqual([
-			{ role: "user", content: "first" },
-			{ role: "assistant", content: "fine" },
+			{ role: "user", content: [{ type: "text", text: "first" }] },
+			{ role: "assistant", content: [{ type: "text", text: "fine" }] },
 			{ role: "user", content: "follow up" },
 		])
 		expect(calls[4]?.slice(1).filter((message) => message.content === "repeat me")).toHaveLength(1)
 		expect(calls[4]?.slice(1)).toEqual([
-			{ role: "user", content: "first" },
-			{ role: "assistant", content: "fine" },
-			{ role: "user", content: "follow up" },
-			{ role: "assistant", content: "afterwards" },
+			{ role: "user", content: [{ type: "text", text: "first" }] },
+			{ role: "assistant", content: [{ type: "text", text: "fine" }] },
+			{ role: "user", content: [{ type: "text", text: "follow up" }] },
+			{ role: "assistant", content: [{ type: "text", text: "afterwards" }] },
 			{ role: "user", content: "repeat me" },
 		])
 	})
@@ -1639,7 +1786,7 @@ describe("chat retrieval", () => {
 		)
 		await sent.done
 
-		expect(events.map((event) => event.type)).toEqual(["accepted", "delta", "error"])
+		expect(events.map((event) => event.type)).toEqual(["accepted", "part", "delta", "error"])
 	})
 })
 

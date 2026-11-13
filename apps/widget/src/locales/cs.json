@@ -3,6 +3,7 @@
 	"agentResponding": "Agent odpovídá",
 	"chatUnavailable": "Chat teď není k dispozici.",
 	"closeChat": "Zavřít chat",
+	"connectedTool": "Připojený nástroj",
 	"defaultTitle": "AI chat",
 	"errorCancelFailed": "Odpověď se nepodařilo zastavit. Může stále probíhat.",
 	"errorClientAddressUnavailable": "Chat nemůže ověřit tuto síť a není dostupný.",
@@ -49,7 +50,13 @@
 	"stopping": "Zastavování…",
 	"switchToDark": "Přepnout na tmavý motiv",
 	"switchToLight": "Přepnout na světlý motiv",
+	"toolCancelled": "Zrušeno",
+	"toolCompleted": "Dokončeno",
+	"toolFailed": "Selhalo",
+	"toolInterrupted": "Přerušeno",
+	"toolRunning": "Probíhá",
 	"transcriptLabel": "Konverzace",
-	"usingTool": "Agent používá nástroj…",
+	"websiteActionUncertain": "Odpověď se zastavila po spuštění nástroje webu. Jeho akce už mohla proběhnout. Před dalším požadavkem zkontrolujte stránku.",
+	"websiteTool": "Nástroj webu",
 	"youLabel": "Vy"
 }

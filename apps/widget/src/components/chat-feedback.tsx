@@ -4,6 +4,7 @@ type Translate = (key: string, options?: Record<string, unknown>) => string
 type ErrorTranslator = (t: Translate) => string
 
 const ERROR_TRANSLATORS: Record<ChatError["code"], ErrorTranslator> = {
+	"website-action-uncertain": (t) => t("websiteActionUncertain"),
 	"invalid-request": (t) => t("errorInvalidRequest"),
 	"malformed-json": (t) => t("errorMalformedJson"),
 	"chat-client-address-unavailable": (t) => t("errorClientAddressUnavailable"),

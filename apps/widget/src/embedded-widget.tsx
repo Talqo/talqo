@@ -1,4 +1,4 @@
-import type { ActiveTool, ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ChatClient, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
 import {
 	DEFAULT_WIDGET_APPEARANCE,
@@ -68,19 +68,48 @@ const LOGO_MASK = { "--talqo-logo": `url("${logoUrl}")` } as CSSProperties
 // Unchanged messages keep object identity through the SDK, so memo skips most rows per delta.
 const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: ChatMessage }) {
 	const { t } = useTranslation()
-	const awaitingText = message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+	const toolStatuses = {
+		running: t("toolRunning"),
+		completed: t("toolCompleted"),
+		failed: t("toolFailed"),
+		cancelled: t("toolCancelled"),
+		interrupted: t("toolInterrupted"),
+	}
+	const lastPart = message.parts.at(-1)
+	const awaitingText =
+		message.role === "assistant" &&
+		message.outcome === "streaming" &&
+		!message.parts.some((part) => part.type === "dynamic-tool" && part.state === "input-available") &&
+		(lastPart?.type !== "text" || lastPart.text.length === 0)
 	return (
 		<Bubble align={message.role === "user" ? "end" : "start"}>
 			<span className="tw:sr-only">{message.role === "user" ? t("youLabel") : t("agentLabel")}</span>
-			{(awaitingText || message.text.length > 0) && (
-				<BubbleContent variant={message.role === "user" ? "default" : "muted"}>
-					{awaitingText ? (
-						<ResponseIndicator label={t("agentResponding")} />
-					) : message.role === "assistant" ? (
-						<Markdown>{message.text}</Markdown>
-					) : (
-						message.text
-					)}
+			{message.parts.map((part, index) => {
+				const partKey = `${message.id}:${index}`
+				if (part.type === "step-start" || (part.type === "text" && !part.text)) return null
+				if (part.type === "text")
+					return (
+						<BubbleContent key={partKey} variant={message.role === "user" ? "default" : "muted"}>
+							{message.role === "assistant" ? <Markdown>{part.text}</Markdown> : part.text}
+						</BubbleContent>
+					)
+				const status =
+					part.toolMetadata.outcome ??
+					(part.state === "input-available" ? "running" : part.state === "output-error" ? "failed" : "completed")
+				return (
+					<output
+						key={part.toolCallId}
+						className="tw:min-w-0 tw:max-w-full tw:break-words tw:px-1 tw:text-muted-foreground tw:text-xs"
+					>
+						{part.toolMetadata.displayName} ·{" "}
+						{part.toolMetadata.source === "client" ? t("websiteTool") : t("connectedTool")}
+						{part.toolMetadata.serverName ? ` · ${part.toolMetadata.serverName}` : ""} · {toolStatuses[status]}
+					</output>
+				)
+			})}
+			{awaitingText && (
+				<BubbleContent variant="muted">
+					<ResponseIndicator label={t("agentResponding")} />
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
@@ -148,7 +177,6 @@ function resolveAppearance(appearance: WidgetAppearanceInput | undefined): Widge
 }
 
 const EMPTY_MESSAGES: readonly ChatMessage[] = []
-const EMPTY_TOOLS: readonly ActiveTool[] = []
 
 const STICKY_SCROLL_THRESHOLD_PX = 48
 
@@ -189,7 +217,6 @@ function WidgetChat({
 	const position = appearance.position
 	const { size, resizable, startResize, resizeBy, toggleExpanded, resizing } = useResizablePanel(position, panelRef)
 	const messages = snapshot?.messages ?? EMPTY_MESSAGES
-	const activeTools = snapshot?.activeTools ?? EMPTY_TOOLS
 	const activity = snapshot?.activity ?? "idle"
 	const sendAvailable = snapshot ? snapshot.actions.includes("send") : true
 	const composerDisabled = snapshot !== undefined && activity === "blocked"
@@ -477,13 +504,6 @@ function WidgetChat({
 							{messages.map((message) => (
 								<TranscriptBubble key={message.id} message={message} />
 							))}
-							{activeTools.length > 0 && (
-								<Bubble align="start">
-									<BubbleContent variant="muted">
-										<ResponseIndicator label={t("usingTool")} />
-									</BubbleContent>
-								</Bubble>
-							)}
 							{activity === "sending" && (
 								<Bubble align="start">
 									<BubbleContent variant="muted">

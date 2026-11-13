@@ -89,7 +89,7 @@ function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 }
 
 function message(id: string, role: ChatMessage["role"], text: string, outcome: ChatMessage["outcome"]): ChatMessage {
-	return { id, role, text, outcome, createdAt: "2026-09-12T00:00:00Z" }
+	return { id, role, text, parts: text ? [{ type: "text", text }] : [], outcome, createdAt: "2026-09-12T00:00:00Z" }
 }
 
 function error(code: ChatErrorCode, overrides: Partial<ChatError> = {}): ChatError {

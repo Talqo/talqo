@@ -1,6 +1,8 @@
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
+import { MockLanguageModelV4, simulateReadableStream } from "ai/test"
 import { describe, expect, it, mock } from "bun:test"
+import { z } from "zod"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration } from "./ai-provider.service.ts"
@@ -386,7 +388,7 @@ describe("AI provider service", () => {
 		const calls: Record<string, unknown>[] = []
 		const { service } = createMemoryService(undefined, ((options: unknown) => {
 			calls.push(options as Record<string, unknown>)
-			return { textStream: (async function* () {})(), usage: Promise.resolve({}) }
+			return { fullStream: (async function* () {})(), usage: Promise.resolve({}) }
 		}) as never)
 		await service.saveConfiguration(input)
 		const prepared = await service.prepareTextOperation({
@@ -400,5 +402,83 @@ describe("AI provider service", () => {
 		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: never[] }) => boolean
 		expect(stopWhen({ steps: Array.from({ length: 4 }) })).toBe(false)
 		expect(stopWhen({ steps: Array.from({ length: 5 }) })).toBe(true)
+	})
+
+	it("preserves text, tool execution, and step order through the real AI SDK loop", async () => {
+		const events: string[] = []
+		const usage = {
+			inputTokens: { total: 3, noCache: 3, cacheRead: undefined, cacheWrite: undefined },
+			outputTokens: { total: 2, text: 2, reasoning: undefined },
+		}
+		const model = new MockLanguageModelV4({
+			doStream: [
+				{
+					stream: simulateReadableStream({
+						initialDelayInMs: null,
+						chunkDelayInMs: null,
+						chunks: [
+							{ type: "stream-start", warnings: [] },
+							{ type: "text-start", id: "text-1" },
+							{ type: "text-delta", id: "text-1", delta: "Checking" },
+							{ type: "text-end", id: "text-1" },
+							{ type: "tool-call", toolCallId: "call", toolName: "lookup", input: "{}" },
+							{ type: "finish", usage, finishReason: { unified: "tool-calls", raw: "tool_calls" } },
+						],
+					}),
+				},
+				{
+					stream: simulateReadableStream({
+						initialDelayInMs: null,
+						chunkDelayInMs: null,
+						chunks: [
+							{ type: "stream-start", warnings: [] },
+							{ type: "text-start", id: "text-2" },
+							{ type: "text-delta", id: "text-2", delta: "Done" },
+							{ type: "text-end", id: "text-2" },
+							{ type: "finish", usage, finishReason: { unified: "stop", raw: "stop" } },
+						],
+					}),
+				},
+			],
+		})
+		const { service } = createMemoryService(undefined, (options) => actualAi.streamText({ ...options, model }))
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Check" }],
+			maxOutputTokens: 100,
+			timeoutMs: 10_000,
+		})
+		for await (const event of prepared.invoke(
+			new AbortController().signal,
+			{
+				names: new Map([["lookup", { serverName: "Shop", toolName: "lookup" }]]),
+				tools: {
+					lookup: actualAi.tool({
+						inputSchema: z.object({}),
+						execute: () => {
+							events.push("execute")
+							return { stock: 7 }
+						},
+					}),
+				},
+			},
+			async (toolEvent) => {
+				events.push(toolEvent.type)
+				await Promise.resolve()
+			},
+		)) {
+			events.push(event.type === "text" ? event.text : event.type)
+			await new Promise<void>((resolve) => setImmediate(resolve))
+		}
+		expect(events).toEqual([
+			"step-start",
+			"Checking",
+			"tool-start",
+			"execute",
+			"tool-end",
+			"step-start",
+			"Done",
+			"finish",
+		])
 	})
 })

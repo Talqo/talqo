@@ -3,13 +3,12 @@ import type {
 	ChatEventV1,
 	EmbedConfig,
 	GetChatSession200,
-	GetChatSession200MessagesItem,
-	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
-} from "./generated/contracts.ts"
+} from "./generated/models"
 import type { ChatError, ChatEvent, ChatTransport } from "./types.ts"
 
-import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts.ts"
+import { GetChatSession200 as sessionSchema } from "./generated/models/getChatSession200.zod.ts"
+import { MessagePart } from "./generated/models/messagePart.zod.ts"
 import { parseSseStream } from "./sse.ts"
 import { isChatErrorCode } from "./types.ts"
 
@@ -35,8 +34,9 @@ const HTTP_OK = 200
 const JSON_HEADERS = { Accept: "application/json" } as const
 const JSON_POST_HEADERS = { Accept: "application/json", "Content-Type": "application/json" } as const
 const SSE_POST_HEADERS = { Accept: "text/event-stream", "Content-Type": "application/json" } as const
-const MESSAGE_ROLES = Object.values(GetChatSession200MessagesItemRole)
-const MESSAGE_OUTCOMES = Object.values(GetChatSession200MessagesItemOutcome)
+type GetChatSession200MessagesItem = GetChatSession200["messages"][number]
+type MessageOutcome = GetChatSession200MessagesItem["outcome"]
+const MESSAGE_OUTCOMES = ["streaming", "completed", "failed", "cancelled", "blocked", "interrupted"] as const
 const TOOL_OUTCOMES = ["completed", "failed", "cancelled"] as const
 const TERMINAL_OUTCOMES = MESSAGE_OUTCOMES.filter(
 	(outcome): outcome is Exclude<MessageOutcome, "streaming"> => outcome !== "streaming",
@@ -105,25 +105,8 @@ function isOneOf<const Values extends readonly string[]>(value: unknown, values:
 	return typeof value === "string" && values.some((candidate) => candidate === value)
 }
 
-function isMessage(value: unknown): value is GetChatSession200MessagesItem {
-	return (
-		isRecord(value) &&
-		typeof value.id === "string" &&
-		isOneOf(value.role, MESSAGE_ROLES) &&
-		typeof value.text === "string" &&
-		typeof value.createdAt === "string" &&
-		isOneOf(value.outcome, MESSAGE_OUTCOMES)
-	)
-}
-
 function isSession(value: unknown): value is GetChatSession200 {
-	return (
-		isRecord(value) &&
-		Array.isArray(value.messages) &&
-		value.messages.every(isMessage) &&
-		(value.activeGeneration === undefined ||
-			(isRecord(value.activeGeneration) && typeof value.activeGeneration.id === "string"))
-	)
+	return sessionSchema.safeParse(value).success
 }
 
 function embedConfiguration(value: unknown): EmbedConfig | undefined {
@@ -165,8 +148,20 @@ async function requireSuccess(response: Response, signal: AbortSignal, now: () =
 	if (!response.ok) throw await problemError(response, signal, now)
 }
 
-function parseChatEvent(value: unknown, eventName: string | undefined): ChatEvent | undefined {
+export function parseChatEvent(value: unknown, eventName: string | undefined): ChatEvent | undefined {
 	if (eventName !== "chat" || !isRecord(value) || value.version !== 1) return undefined
+	if (value.type === "part") {
+		const part = MessagePart.safeParse(value.part)
+		if (
+			!part.success ||
+			typeof value.assistantMessageId !== "string" ||
+			typeof value.index !== "number" ||
+			!Number.isInteger(value.index) ||
+			value.index < 0
+		)
+			return undefined
+		return { type: "part", assistantMessageId: value.assistantMessageId, index: value.index, part: part.data }
+	}
 	if (value.type === "accepted") {
 		if (
 			typeof value.requestId !== "string" ||
@@ -184,6 +179,7 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 			version: 1,
 			type: "accepted",
 			requestId: value.requestId,
+			...(typeof value.duplicate === "boolean" ? { duplicate: value.duplicate } : {}),
 			generationId: value.generationId,
 			userMessage: { id: value.userMessage.id, createdAt: value.userMessage.createdAt },
 			assistantMessage: { id: value.assistantMessage.id, createdAt: value.assistantMessage.createdAt },
@@ -193,7 +189,12 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 	}
 	if (value.type === "delta") {
 		if (typeof value.assistantMessageId !== "string" || typeof value.text !== "string") return undefined
-		return { type: "delta", assistantMessageId: value.assistantMessageId, text: value.text }
+		return {
+			type: "delta",
+			assistantMessageId: value.assistantMessageId,
+			text: value.text,
+			...(typeof value.index === "number" ? { index: value.index } : {}),
+		}
 	}
 	if (value.type === "tool-start" || value.type === "tool-end") {
 		if (typeof value.serverName !== "string" || typeof value.toolName !== "string") return undefined

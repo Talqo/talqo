@@ -48,6 +48,7 @@
 		"knip": "6.44.1",
 		"orval": "8.46.0",
 		"oxlint": "1.90.0",
+		"oxlint-plugin-eslint": "1.93.0",
 		"oxlint-tsgolint": "^7.0.2005",
 		"turbo": "2.11.10"
 	},

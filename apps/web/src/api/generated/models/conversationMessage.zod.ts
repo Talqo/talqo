@@ -5,11 +5,14 @@
  * OpenAPI spec version: 0.0.1
  */
 import * as zod from 'zod';
+import { MessagePart } from './messagePart.zod';
 
 export const ConversationMessage = zod.object({
+  "requestId": zod.uuid().optional(),
   "id": zod.string(),
   "role": zod.enum(['user', 'assistant']),
   "text": zod.string(),
+  "parts": zod.array(MessagePart),
   "createdAt": zod.iso.datetime({"offset":true}),
   "outcome": zod.enum(['streaming', 'completed', 'failed', 'cancelled', 'blocked', 'interrupted'])
 });

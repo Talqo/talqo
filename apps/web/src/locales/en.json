@@ -316,6 +316,7 @@
 	"conversations": {
 		"agent": "Agent",
 		"backToConversations": "Back to conversations",
+		"connectedTool": "Connected tool",
 		"emptyDescription": "They appear here after visitors chat with an agent.",
 		"emptyFilteredDescription": "Try a different agent filter.",
 		"emptyFilteredTitle": "No conversations match this filter",
@@ -341,10 +342,16 @@
 		"pagination": "Pages",
 		"previousPage": "Previous",
 		"startedAt": "Started {{date}} with {{agent}}",
+		"toolCancelled": "Cancelled",
+		"toolCompleted": "Completed",
+		"toolFailed": "Failed",
+		"toolInterrupted": "Interrupted",
+		"toolRunning": "Running",
 		"total_one": "{{count}} conversation",
 		"total_other": "{{count}} conversations",
 		"unknownAgent": "Deleted agent",
-		"visitor": "Visitor"
+		"visitor": "Visitor",
+		"websiteTool": "Website tool"
 	},
 	"dashboard": {
 		"activeConversations": "Active conversations",

@@ -65,7 +65,7 @@ Talqo is related to these repos:
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
 | FR-1.1 | End user can send text messages to the agent and receive AI-generated responses (rendered as markdown) | High | Done |
-| FR-1.2 | Conversation history is persisted server-side and survives page reloads via browser session ID | High | Done |
+| FR-1.2 | Conversation history, including ordered tool calls and outputs, is persisted server-side and survives page reloads via a browser-stored conversation credential | High | Done |
 | FR-1.3 | Widget can be minimized and reopened without losing the conversation state | High | Done |
 | FR-1.4 | Widget displays a typing indicator while the agent is generating a response | High | Done |
 | FR-1.5 | End user can reset the current conversation, which starts a new chat session | Medium | Done |
@@ -73,7 +73,7 @@ Talqo is related to these repos:
 | FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Done |
 | FR-1.8 | End user can cancel a streaming reply | High | Done |
 | FR-1.9 | End user can retry the last message after a failed turn | Medium | Done |
-| FR-1.10 | Widget shows live MCP tool activity while the agent is calling tools | Low | Done |
+| FR-1.10 | Live and saved transcripts show names, sources, and statuses for MCP and SDK-registered browser tools; interrupted browser calls are not replayed | Low | Done |
 | FR-1.11 | End user sees a working fallback in degraded states: a revoked session explains the lost access and offers a new chat, unavailable browser storage continues in memory, and an invalid embed hides the widget | Medium | Done |
 
 ### 3.2 Dashboard (FR-2)
