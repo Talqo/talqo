@@ -1,6 +1,8 @@
 import { app } from "@/app.ts"
 import { sql } from "@/db/client.ts"
+import * as identity from "@/modules/identity/identity.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
+import { expect } from "bun:test"
 
 export const DEFAULT_PASSWORD = "correct-horse-battery-staple"
 
@@ -14,11 +16,25 @@ export async function login(username: string, password = DEFAULT_PASSWORD): Prom
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
 	})
+	return sessionCookieFrom(response)
+}
+
+export function sessionCookieFrom(response: Response): string {
 	const setCookie = response.headers.get("set-cookie")
 	if (!setCookie) throw new Error("Expected a Set-Cookie header")
 	const [cookiePair] = setCookie.split(";")
 	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
 	return cookiePair
+}
+
+export async function expectConcealedResource(userId: string, hiddenPath: string, missingPath: string): Promise<void> {
+	const { token } = await identity.createSession(userId)
+	const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
+	const hiddenResponse = await app.request(hiddenPath, { headers })
+	const missingResponse = await app.request(missingPath, { headers })
+	expect(hiddenResponse.status).toBe(404)
+	expect(missingResponse.status).toBe(404)
+	expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
 }
 
 export async function createAdminSession(): Promise<{ cookie: string; userId: string }> {

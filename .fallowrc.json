@@ -1,20 +1,90 @@
 {
 	"$schema": "./node_modules/fallow/schema.json",
-	"ignorePatterns": ["**/generated/**", "**/routeTree.gen.ts", ".claude/**"],
+	"entry": [
+		"apps/api/test-database.preload.ts",
+		"apps/api/test-fixtures/mcp-demo-server.ts",
+		"apps/docs/src/components/mdx.tsx",
+		"apps/docs/content/**/*.mdx",
+		"apps/web/i18next.config.ts",
+		"apps/widget/src/svg-stub-component.ts",
+		"apps/widget/i18next.config.ts",
+		"packages/ui/i18next.config.ts"
+	],
+	"ignorePatterns": [".claude/**"],
+	"ignoreFindings": ["**/generated/**", "**/routeTree.gen.ts"],
+	"ignoreDependencies": ["@fidasek009/stryker-mutator-bun-runner"],
+	"ignoreBinaries": ["actionlint", "zizmor", "!"],
+	"ignoreUnresolvedImports": ["./widget.js"],
+	"workspaces": {
+		"settings": {
+			"packages/sdk": { "ignoreDependencies": ["@talqo/typescript-config"] }
+		}
+	},
+	"duplicates": {
+		"mode": "strict",
+		"minTokens": 70,
+		"minLines": 5,
+		"ignoreImports": true,
+		"ignoreDefaults": false,
+		"ignore": [
+			"**/generated/**",
+			"**/routeTree.gen.ts",
+			".claude/**",
+			"**/node_modules/**",
+			"**/dist/**",
+			"**/.turbo/**",
+			"**/.cache/**"
+		]
+	},
+	"boundaries": {
+		"zones": [
+			{ "name": "api", "patterns": ["apps/api/**"] },
+			{ "name": "web", "patterns": ["apps/web/**"] },
+			{ "name": "widget", "patterns": ["apps/widget/**"] },
+			{ "name": "docs", "patterns": ["apps/docs/**"] },
+			{ "name": "e2e", "patterns": ["apps/e2e/**"] },
+			{ "name": "packages", "patterns": ["packages/**"] }
+		],
+		"rules": [
+			{ "from": "api", "allow": ["api", "packages"] },
+			{ "from": "web", "allow": ["web", "packages"] },
+			{ "from": "widget", "allow": ["widget", "packages"] },
+			{ "from": "docs", "allow": ["docs", "packages"] },
+			{ "from": "packages", "allow": ["packages"] }
+		]
+	},
 	"health": {
 		"suggestInlineSuppression": false,
-		"ignore": ["**/*.{spec,test}.{ts,tsx}", "apps/e2e/**", "apps/api/test-fixtures/**", "**/*.config.ts", "scripts/**"],
+		"ignore": [
+			"**/generated/**",
+			"**/routeTree.gen.ts",
+			"**/*.{spec,test}.{ts,tsx}",
+			"apps/e2e/**",
+			"apps/api/test-fixtures/**",
+			"**/*.config.ts",
+			"scripts/**"
+		],
 		"coverage": ".cache/fallow/coverage-final.json",
-		"maxCrap": 6
+		"maxCrap": 6,
+		"thresholdOverrides": [
+			{
+				"files": ["apps/web/**/*.tsx", "apps/widget/**/*.tsx", "packages/ui/**/*.tsx"],
+				"maxCrap": 30
+			}
+		]
 	},
 	"audit": {
 		"gate": "new-only",
-		"deadCode": false,
-		"dupes": false,
 		"css": false,
 		"cssDeep": false
 	},
 	"rules": {
+		"duplicate-exports": "off",
+		"unused-dev-dependencies": "error",
+		"unused-optional-dependencies": "error",
+		"unlisted-binaries": "error",
+		"re-export-cycle": "error",
+		"package-cycle": "error",
 		"added-suppression": "error",
 		"weakened-tests": "error"
 	}

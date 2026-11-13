@@ -185,6 +185,11 @@ async function submitResetPassword(password: string, confirmation = password) {
 	await click(button(t("team.resetPassword"), dialog()))
 }
 
+async function submitInvitation(roleIds: string[]) {
+	await click(button(t("auth.invitations.create"), dialog()))
+	expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({ roleIds })
+}
+
 beforeEach(() => {
 	myPermissions = EVERYTHING
 	users = []
@@ -219,10 +224,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 
 	test("retries role loading inside the invitation dialog without silently selecting roles", async () => {
@@ -235,10 +237,7 @@ describe("TeamPage", () => {
 		expect(dialog().querySelector("[role='alert']")).toBeNull()
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		await click(checkbox("Default"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: ["default"],
-		})
+		await submitInvitation(["default"])
 	})
 
 	test("preselects Default for invitations and submits exactly the edited selection", async () => {
@@ -254,10 +253,7 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
 		await click(checkbox("Support"))
 		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: ["support"],
-		})
+		await submitInvitation(["support"])
 	})
 
 	test("keeps the selected roles visible when a background refresh fails", async () => {
@@ -270,10 +266,7 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("true")
 		await click(checkbox("Default"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 
 	test("does not load or offer roles to an inviter who cannot manage roles", async () => {
@@ -308,10 +301,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 	test("shows the generated invitation link, copies it, and explains a copy failure", async () => {
 		const writeText = spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined)

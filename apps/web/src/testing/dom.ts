@@ -8,6 +8,12 @@ export function findButton(label: string, scope: ParentNode = document): HTMLBut
 	return found
 }
 
+export function findCombobox(label: string, scope: ParentNode = document): HTMLElement {
+	const element = scope.querySelector<HTMLElement>(`[role=combobox][aria-label="${label}"]`)
+	if (!element) throw new Error(`${label} combobox not rendered`)
+	return element
+}
+
 export async function click(target: HTMLElement): Promise<void> {
 	await act(async () => target.click())
 	await settle()
