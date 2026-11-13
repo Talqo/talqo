@@ -1,16 +1,10 @@
+import type { QueryClient } from "@/testing/component-harness"
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { act, createTestHarness, QueryClientProvider } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { AgentCardSummary } = await import("./agent-card-summary")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const FILES_URL = "/api/agents/agent-1/files"
@@ -71,6 +65,7 @@ const EMBED = {
 let host: HTMLDivElement
 let root: Root
 let client: InstanceType<typeof QueryClient>
+let harness: ReturnType<typeof createTestHarness>
 let failures: Record<string, Response | undefined>
 let pending: Record<string, Promise<Response> | undefined>
 
@@ -132,6 +127,17 @@ function metric(label: string): string {
 	return found.textContent ?? ""
 }
 
+function expectMetrics(files: string, tools: string, embeds: string) {
+	for (const [label, value] of [
+		[t("agents.metricFiles"), files],
+		[t("agents.metricTools"), tools],
+		[t("agents.metricEnabledEmbeds"), embeds],
+	] as const) {
+		expect(metric(label)).toBe(`${label}: ${value}`)
+	}
+	expect(host.querySelector('[role="alert"]') === null).toBe(true)
+}
+
 beforeEach(() => {
 	failures = {}
 	pending = {}
@@ -141,27 +147,19 @@ beforeEach(() => {
 		if (waiting) return waiting
 		return responseFor(url)
 	}) as typeof fetch)
-	client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root, queryClient: client } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	client.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("AgentCardSummary", () => {
 	test("summarizes files, enabled tools on enabled connections, and enabled embeds", async () => {
 		await renderSummary()
 
-		expect(metric(t("agents.metricFiles"))).toBe(`${t("agents.metricFiles")}: 2`)
-		expect(metric(t("agents.metricTools"))).toBe(`${t("agents.metricTools")}: 1`)
-		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: 1`)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expectMetrics("2", "1", "1")
 	})
 
 	test("shows a placeholder while each source is loading", async () => {
@@ -172,10 +170,7 @@ describe("AgentCardSummary", () => {
 
 		await renderSummary()
 
-		expect(metric(t("agents.metricFiles"))).toBe(`${t("agents.metricFiles")}: …`)
-		expect(metric(t("agents.metricTools"))).toBe(`${t("agents.metricTools")}: …`)
-		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: …`)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expectMetrics("…", "…", "…")
 
 		await act(async () => {
 			files.resolve(responseFor(FILES_URL))

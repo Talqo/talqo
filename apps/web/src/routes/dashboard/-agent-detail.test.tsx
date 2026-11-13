@@ -1,4 +1,4 @@
-import { json, parseJsonBody } from "@/testing/api-responses"
+import { json, parseJsonBody, requestCount } from "@/testing/api-responses"
 import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
 import { click, findButton as button, typeInto } from "@/testing/dom"
 import { renderRouter } from "@/testing/router"
@@ -387,11 +387,11 @@ describe("agent loading failures", () => {
 		agentListFailures = [json({}, 403)]
 		await renderPage()
 		expect(host.querySelector("[role='alert']")).not.toBeNull()
-		const beforeRetry = requests.filter(({ url }) => url === "/api/agents").length
+		const beforeRetry = requestCount(requests, "/api/agents")
 
 		await click(button(t("common.retry")))
 
-		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(beforeRetry + 1)
+		expect(requestCount(requests, "/api/agents")).toBe(beforeRetry + 1)
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 	})
 })

@@ -424,32 +424,24 @@ describe("ConnectionDialog", () => {
 		expect(options).toEqual([t("mcp.transportHttp")])
 	})
 
-	test("maps each server failure code to an operator-facing message", async () => {
-		responses = [
-			problem("invalid-request", 400),
-			problem("malformed-json", 400),
-			problem("invalid-mcp-server-name", 400),
-			problem("duplicate-mcp-server-name", 409),
-			problem("mcp-stdio-disabled", 409),
-		]
+	test.each([
+		["invalid-request", 400, "mcp.errorAddress"],
+		["malformed-json", 400, "mcp.errorAddress"],
+		["invalid-mcp-server-name", 400, "mcp.errorNameLength"],
+		["duplicate-mcp-server-name", 409, "mcp.errorDuplicateName"],
+		["mcp-stdio-disabled", 409, "mcp.stdioDisabled"],
+	] as const)("maps %s to an operator-facing message", async (code, status, messageKey) => {
+		responses = [problem(code, status)]
 		await renderDialog()
 		await click(button(t("mcp.add")))
 		await type(element<HTMLInputElement>("#mcp-name"), "Stock")
 		await type(element<HTMLInputElement>("#mcp-url"), "https://example.test/mcp")
 
-		for (const message of [
-			t("mcp.errorAddress"),
-			t("mcp.errorAddress"),
-			t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT }),
-			t("mcp.errorDuplicateName"),
-			t("mcp.stdioDisabled"),
-		]) {
-			// Responses are consumed in order, so each submit must finish before the next.
-			// eslint-disable-next-line no-await-in-loop
-			await submit()
-			expect(document.querySelector<HTMLElement>('[role="dialog"] [role="alert"]')?.textContent).toBe(message)
-		}
-		expect(requests).toHaveLength(5)
+		await submit()
+		expect(document.querySelector<HTMLElement>('[role="dialog"] [role="alert"]')?.textContent).toBe(
+			t(messageKey, { limit: MCP_SERVER_NAME_LIMIT }),
+		)
+		expect(requests).toHaveLength(1)
 	})
 
 	test("restores a stdio connection's arguments and stored environment names for editing", async () => {

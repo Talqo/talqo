@@ -14,7 +14,7 @@ import * as knowledgeRepository from "@/modules/knowledge-base/knowledge-base.re
 import * as knowledge from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usage from "@/modules/usage/usage.service.ts"
-import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, expectConcealedResource, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { DEFAULT_WIDGET_APPEARANCE } from "@talqo/shared/widget-appearance"
 import { afterEach, beforeEach, describe, expect, it, setSystemTime, spyOn } from "bun:test"
 
@@ -59,6 +59,13 @@ async function fixture() {
 		await testAdminId(),
 	)
 	return { createdAgent, createdEmbed }
+}
+
+async function expectSafeTail(instance: ReturnType<typeof customService>, assistantId: string): Promise<void> {
+	expect((await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === assistantId)?.text).toBe(
+		"tiny",
+	)
+	expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
 }
 
 function service(outputs: string[] = ["answer"], policy: { dailyLimit?: number; concurrencyLimit?: number } = {}) {
@@ -1082,11 +1089,7 @@ describe("conversation lifecycle", () => {
 		})
 		await sent.done
 
-		expect(
-			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
-				?.text,
-		).toBe("tiny")
-		expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
+		await expectSafeTail(instance, sent.assistantMessage.id)
 	})
 
 	it("persists many small safe deltas in fewer writes before emitting them", async () => {
@@ -1177,11 +1180,7 @@ describe("conversation lifecycle", () => {
 		await instance.cancel(CREDENTIAL_1, sent.generationId)
 		await sent.done
 
-		expect(
-			(await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.id === sent.assistantMessage.id)
-				?.text,
-		).toBe("tiny")
-		expect((await sql`SELECT output_tokens FROM usage_record`)[0]?.output_tokens).toBe(1)
+		await expectSafeTail(instance, sent.assistantMessage.id)
 	})
 
 	it("rejects unusable provider configuration before acceptance without charging or creating data", async () => {
@@ -1701,12 +1700,11 @@ describe("operator conversation reads", () => {
 			status: 404,
 			problemCode: "conversation-not-found",
 		})
-		const { token } = await identity.createSession(operator.id)
-		const headers = { Cookie: `${identity.SESSION_COOKIE}=${token}` }
-		const hiddenResponse = await app.request(`/api/conversations/${hidden.id}`, { headers })
-		const missingResponse = await app.request(`/api/conversations/${crypto.randomUUID()}`, { headers })
-		expect(hiddenResponse.status).toBe(404)
-		expect(await hiddenResponse.json()).toEqual(await missingResponse.json())
+		await expectConcealedResource(
+			operator.id,
+			`/api/conversations/${hidden.id}`,
+			`/api/conversations/${crypto.randomUUID()}`,
+		)
 		await giveRole(operator.id, ["stats:read"], [first.createdAgent.id])
 		await expect(listConversations({ page: 1 }, operator.id)).rejects.toMatchObject({ status: 403 })
 	})

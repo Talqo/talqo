@@ -217,11 +217,7 @@ async function fill(selector: string, value: string) {
 }
 
 async function fillForm(fields: SubmitScenario["fields"]) {
-	for (const [selector, value] of fields) {
-		// Each act() must finish before the next controlled input updates.
-		// eslint-disable-next-line no-await-in-loop
-		await fill(selector, value)
-	}
+	await fields.reduce((previous, [selector, value]) => previous.then(() => fill(selector, value)), Promise.resolve())
 }
 
 async function submitForm() {

@@ -3,7 +3,7 @@ import { sql } from "@/db/client.ts"
 import { hashOpaqueToken } from "@/lib/opaque-token.ts"
 import * as agents from "@/modules/agent/agent.service.ts"
 import * as identity from "@/modules/identity/identity.service.ts"
-import { DEFAULT_PASSWORD, giveRole, testAdminId, uniqueUsername } from "@/test-helpers.ts"
+import { DEFAULT_PASSWORD, giveRole, sessionCookieFrom, testAdminId, uniqueUsername } from "@/test-helpers.ts"
 import { beforeEach, describe, expect, it, spyOn } from "bun:test"
 
 import { myPermissionsResponseSchema } from "./roles.contract.ts"
@@ -20,14 +20,6 @@ async function loginResponse(username: string, password: string): Promise<Respon
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ username, password }),
 	})
-}
-
-function sessionCookieFrom(response: Response): string {
-	const setCookie = response.headers.get("set-cookie")
-	if (!setCookie) throw new Error("Expected a Set-Cookie header")
-	const [cookiePair] = setCookie.split(";")
-	if (!cookiePair) throw new Error("Malformed Set-Cookie header")
-	return cookiePair
 }
 
 async function login(username: string, password: string): Promise<string> {
@@ -79,6 +71,13 @@ async function deleteRole(id: string): Promise<void> {
 
 async function createMember(): Promise<identity.PublicUser> {
 	return identity.createUser({ username: uniqueUsername(), password: DEFAULT_PASSWORD })
+}
+
+async function expectInvalidInvitation(token: string, username: string): Promise<void> {
+	await expect(service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })).rejects.toMatchObject({
+		problemCode: "invalid-invitation",
+	})
+	expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
 }
 
 async function memberWith(permissions: service.GrantablePermission[]): Promise<{ cookie: string; userId: string }> {
@@ -458,10 +457,7 @@ describe("invitations", () => {
 		const { token } = (await response.json()) as { token: string }
 		await service.setRoleAgentAccess(admin, role.id, a.id, [])
 		const username = uniqueUsername()
-		await expect(service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })).rejects.toMatchObject({
-			problemCode: "invalid-invitation",
-		})
-		expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
+		await expectInvalidInvitation(token, username)
 		await service.setRoleAgentAccess(admin, role.id, a.id, ["agents:read"])
 		const joined = await service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })
 		expect(await service.listAgentPermissions(joined.id, a.id)).toEqual(["agents:read"])
@@ -563,10 +559,7 @@ describe("invitations", () => {
 		const { token } = (await response.json()) as { token: string }
 		await assignRoles(userId, [])
 		const username = uniqueUsername()
-		await expect(service.redeemInvitation({ token, username, password: DEFAULT_PASSWORD })).rejects.toMatchObject({
-			problemCode: "invalid-invitation",
-		})
-		expect((await identity.listUsers()).some((user) => user.username === username)).toBe(false)
+		await expectInvalidInvitation(token, username)
 	})
 	it("lets an admin create an invitation", async () => {
 		const { cookie } = await createAdminSession()

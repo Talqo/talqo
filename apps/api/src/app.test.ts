@@ -46,22 +46,11 @@ describe("api", () => {
 	it("logs unexpected errors and keeps the response generic", async () => {
 		using _ = spyOn(console, "error").mockImplementation(() => {})
 
-		let response: Response | undefined
-		const context = {
-			json: (data: unknown, status: number, headers?: Record<string, string>) => {
-				response = new Response(JSON.stringify(data), {
-					headers,
-					status,
-				})
-				return response
-			},
-		}
+		const response = await handleError(new Error("boom"), respond())
 
-		await handleError(new Error("boom"), context as unknown as Context)
-
-		expect(response?.status).toBe(500)
-		expect(response?.headers.get("Content-Type")).toBe("application/problem+json")
-		expect(await response?.json()).toEqual({
+		expect(response.status).toBe(500)
+		expect(response.headers.get("Content-Type")).toBe("application/problem+json")
+		expect(await response.json()).toEqual({
 			code: "internal-server-error",
 			type: "https://docs.talqo.chat/problems#internal-server-error",
 		})
@@ -70,14 +59,7 @@ describe("api", () => {
 
 	it("redacts provider call errors in logs", async () => {
 		using logged = spyOn(console, "error").mockImplementation(() => {})
-		let response: Response | undefined
-		const context = {
-			json: (data: unknown, status: number, headers?: Record<string, string>) => {
-				response = new Response(JSON.stringify(data), { headers, status })
-				return response
-			},
-		}
-		await handleError(
+		const response = await handleError(
 			new APICallError({
 				message: "Internal error encountered.",
 				url: "https://provider.invalid/stream",
@@ -85,10 +67,10 @@ describe("api", () => {
 				statusCode: 500,
 				responseBody: '{"error":{"message":"Internal error encountered."}}',
 			}),
-			context as unknown as Context,
+			respond(),
 		)
 
-		expect(response?.status).toBe(500)
+		expect(response.status).toBe(500)
 		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
 		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
 	})

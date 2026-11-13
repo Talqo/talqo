@@ -1,29 +1,23 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { act, createTestHarness } from "@/testing/component-harness"
 import { afterEach, beforeEach, expect, test } from "bun:test"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { PageHeader } = await import("./page-header")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 
 const REFRESH_LABEL = "Refresh"
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
+	await harness.dispose()
 })
 
 test("makes the page heading programmatically focusable without a tab stop", async () => {

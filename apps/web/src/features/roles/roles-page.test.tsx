@@ -195,6 +195,15 @@ afterEach(async () => {
 	await harness.dispose()
 })
 
+async function expectUnblockedNavigation(): Promise<void> {
+	await act(async () => {
+		void router.navigate({ to: "/dashboard/team/roles" })
+	})
+	await settle()
+	expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	expect(router.state.location.pathname).toBe("/dashboard/team/roles")
+}
+
 describe("role management", () => {
 	test("disables deletion of a renamed Default role while allowing name and permission edits", async () => {
 		roles = [{ id: "default", name: "starting access", permissions: [], memberCount: 0 }]
@@ -539,12 +548,7 @@ describe("role management", () => {
 		await act(() => queryClient.refetchQueries())
 		await settle()
 		expect(host.textContent).toContain(t("problems.role-not-found"))
-		await act(async () => {
-			void router.navigate({ to: "/dashboard/team/roles" })
-		})
-		await settle()
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
-		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
+		await expectUnblockedNavigation()
 	})
 
 	test("keeps the editor unavailable until saved access has refreshed", async () => {
@@ -605,12 +609,7 @@ describe("role management", () => {
 	test("leaves an untouched role without asking to discard changes", async () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
-		await act(async () => {
-			void router.navigate({ to: "/dashboard/team/roles" })
-		})
-		await settle()
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
-		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
+		await expectUnblockedNavigation()
 	})
 
 	test("keeps an unfinished edit when leaving is cancelled", async () => {

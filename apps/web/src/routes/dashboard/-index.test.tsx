@@ -1,5 +1,6 @@
 import { json } from "@/testing/api-responses"
-import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
+import { createTestHarness, type QueryClient, type Root } from "@/testing/component-harness"
+import { click, findCombobox } from "@/testing/dom"
 import { renderRouter } from "@/testing/router"
 import { afterEach, beforeEach, expect, test } from "bun:test"
 
@@ -65,19 +66,8 @@ async function renderPage(initialEntry: string) {
 	return router
 }
 
-function combobox(label: string): HTMLElement {
-	const element = host.querySelector<HTMLElement>(`[role=combobox][aria-label="${label}"]`)
-	if (!element) throw new Error(`${label} combobox not rendered`)
-	return element
-}
-
-async function click(element: HTMLElement) {
-	await act(async () => element.click())
-	await settle()
-}
-
 async function choose(label: string, option: string) {
-	await click(combobox(label))
+	await click(findCombobox(label, host))
 	const item = [...document.querySelectorAll<HTMLElement>("[role=option]")].find(
 		(element) => element.textContent?.trim() === option,
 	)

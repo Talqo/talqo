@@ -172,6 +172,18 @@ function dialogInput(label: string): HTMLInputElement {
 	return input
 }
 
+async function submitInvitation(roleIds: string[]) {
+	await click(button(t("auth.invitations.create"), dialog()))
+	expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({ roleIds })
+}
+
+async function submitPasswordReset(password: string) {
+	await click(button(t("team.resetPassword"), card("helper")))
+	await type(dialogInput(t("account.newPassword")), password)
+	await type(dialogInput(t("account.confirmNewPassword")), password)
+	await click(button(t("team.resetPassword"), dialog()))
+}
+
 beforeEach(() => {
 	myPermissions = EVERYTHING
 	users = []
@@ -204,10 +216,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 
 	test("retries role loading inside the invitation dialog without silently selecting roles", async () => {
@@ -220,10 +229,7 @@ describe("TeamPage", () => {
 		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		await click(checkbox("Default"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: ["default"],
-		})
+		await submitInvitation(["default"])
 	})
 
 	test("preselects Default for invitations and submits exactly the edited selection", async () => {
@@ -239,10 +245,7 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("auth.invitations.noRoles"))
 		await click(checkbox("Support"))
 		expect(dialog().textContent).not.toContain(t("auth.invitations.noRoles"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: ["support"],
-		})
+		await submitInvitation(["support"])
 	})
 
 	test("keeps the selected roles visible when a background refresh fails", async () => {
@@ -255,10 +258,7 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("true")
 		await click(checkbox("Default"))
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 
 	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
@@ -278,10 +278,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
-		await click(button(t("auth.invitations.create"), dialog()))
-		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
-			roleIds: [],
-		})
+		await submitInvitation([])
 	})
 	test("shows the generated invitation link, copies it, and explains a copy failure", async () => {
 		const writeText = spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined)
@@ -465,10 +462,7 @@ describe("TeamPage", () => {
 		users = [user("helper")]
 		const password = "correct-horse-battery-staple"
 		await renderPage()
-		await click(button(t("team.resetPassword"), card("helper")))
-		await type(dialogInput(t("account.newPassword")), password)
-		await type(dialogInput(t("account.confirmNewPassword")), password)
-		await click(button(t("team.resetPassword"), dialog()))
+		await submitPasswordReset(password)
 
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(dialogInput(t("account.newPassword")).value).toBe(password)
@@ -480,10 +474,7 @@ describe("TeamPage", () => {
 		const password = "replacement-password"
 		await renderPage()
 		const usersBefore = requestCount("/api/users")
-		await click(button(t("team.resetPassword"), card("helper")))
-		await type(dialogInput(t("account.newPassword")), password)
-		await type(dialogInput(t("account.confirmNewPassword")), password)
-		await click(button(t("team.resetPassword"), dialog()))
+		await submitPasswordReset(password)
 
 		expect(requests.find(({ method, url }) => method === "PATCH" && url === "/api/users/helper/password")).toEqual({
 			method: "PATCH",
@@ -506,10 +497,7 @@ describe("TeamPage", () => {
 		users = [user("helper")]
 		const password = "replacement-password"
 		await renderPage()
-		await click(button(t("team.resetPassword"), card("helper")))
-		await type(dialogInput(t("account.newPassword")), password)
-		await type(dialogInput(t("account.confirmNewPassword")), password)
-		await click(button(t("team.resetPassword"), dialog()))
+		await submitPasswordReset(password)
 
 		expect(button(t("team.resetting"), dialog()).disabled).toBe(true)
 		await click(button(t("team.cancel"), dialog()))

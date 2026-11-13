@@ -57,15 +57,14 @@ E2E records come from the API-owned deterministic seed against an isolated E2E d
 
 ```sh
 bun run quality:fix
-bun run duplication
-bun run typecheck
-bun run test
-bun run crap
+bun run check
 ```
 
-`bun run duplication` fails when any clone reaches the configured token threshold.
+`check` runs typecheck and audits changed files for dead code, duplication, boundary violations, and import cycles. Run `bun run test` for unit tests.
 
-`bun run crap` runs the full unit suite through Supercov and fails changed functions at or above CRAP 6. Fallow's threshold is inclusive, so a score of exactly 6 fails. `bun run crap:check` reruns the CRAP gate on the last coverage export.
+CI runs whole-repository checks and the full unit suite. It rejects clones of at least 70 tokens and new CRAP findings at scores of 6 or higher, or 30 for React components. Duplication is advisory in the local audit.
+
+Run `bun run health` to collect fresh unit-test coverage and check changed-code health, including CRAP.
 
 Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 

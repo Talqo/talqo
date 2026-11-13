@@ -48,17 +48,15 @@ Talqo is an AI agent for any website. It can answer from configured context or c
 
 ## Feedback loop
 
-Run only the checks your change can break. CI runs all of them except `e2e` on every pull request.
+Run only relevant checks locally. CI runs the full checks except E2E.
 
 ```sh
 bun run quality:fix      # any edit
-bun run duplication      # any code edit
-bun run typecheck        # any code edit
-bun run test             # changed behavior or its tests
-bun run crap             # full suite + CRAP gate (max 6) for changed code
+bun run check            # code edits: typecheck, changed-file dead code, duplication, boundaries, cycles
+bun run test             # behavior or test edits
 bun run test:integration # module, database, service, or route
 bun run contracts:check  # API contract or generated client
-bun run e2e              # web, widget, SDK, or API request handling; never run on PRs
+bun run e2e              # web, widget, SDK, or API request handling
 bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
 ```

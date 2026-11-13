@@ -1,6 +1,6 @@
 import type { Embed } from "@/api/generated/models/embed.zod"
 
-import { json } from "@/testing/api-responses"
+import { json, requestCount } from "@/testing/api-responses"
 import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
 import { renderRouter } from "@/testing/router"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
@@ -291,11 +291,11 @@ describe("embed detail loading", () => {
 		await renderPage()
 		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("common.retry"))
 		expect(host.querySelector("#widget-name") === null).toBe(true)
-		const beforeRetry = requests.filter(({ url }) => url === "/api/agents").length
+		const beforeRetry = requestCount(requests, "/api/agents")
 
 		await click(button(t("common.retry")))
 
-		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(beforeRetry + 1)
+		expect(requestCount(requests, "/api/agents")).toBe(beforeRetry + 1)
 		expect(input("#widget-name").value).toBe(INITIAL_EMBED.name)
 	})
 

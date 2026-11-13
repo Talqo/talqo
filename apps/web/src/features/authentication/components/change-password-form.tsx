@@ -3,13 +3,12 @@ import {
 	changePasswordSchema,
 } from "@/features/authentication/change-password-schema.ts"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { Button } from "@talqo/ui/components/button"
 import { FormActions } from "@talqo/ui/components/form-actions"
-import { Label } from "@talqo/ui/components/label"
-import { PasswordInput } from "@talqo/ui/components/password-input"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+
+import { NewPasswordFields, PasswordFormError, PasswordFormField } from "./password-form-fields.tsx"
 
 type ChangePasswordFormProps = {
 	error: string | null
@@ -37,62 +36,20 @@ export function ChangePasswordForm({
 
 	return (
 		<form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-			<div className="space-y-2">
-				<Label htmlFor="current-password">{t("account.currentPassword")}</Label>
-				<PasswordInput
-					id="current-password"
-					autoComplete="current-password"
-					aria-invalid={errors.currentPassword ? true : undefined}
-					aria-describedby={errors.currentPassword ? "current-password-error" : undefined}
-					hideLabel={t("common.hidePassword")}
-					showLabel={t("common.showPassword")}
-					{...register("currentPassword")}
-				/>
-				{errors.currentPassword && (
-					<p id="current-password-error" className="text-destructive text-xs" role="alert">
-						{t("account.currentPasswordRequired")}
-					</p>
-				)}
-			</div>
-			<div className="space-y-2">
-				<Label htmlFor="new-password">{t("account.newPassword")}</Label>
-				<PasswordInput
-					id="new-password"
-					autoComplete="new-password"
-					aria-invalid={errors.newPassword ? true : undefined}
-					aria-describedby={errors.newPassword ? "new-password-error" : undefined}
-					hideLabel={t("common.hidePassword")}
-					showLabel={t("common.showPassword")}
-					{...register("newPassword")}
-				/>
-				{errors.newPassword && (
-					<p id="new-password-error" className="text-destructive text-xs" role="alert">
-						{t("account.newPasswordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH })}
-					</p>
-				)}
-			</div>
-			<div className="space-y-2">
-				<Label htmlFor="confirm-new-password">{t("account.confirmNewPassword")}</Label>
-				<PasswordInput
-					id="confirm-new-password"
-					autoComplete="new-password"
-					aria-invalid={errors.confirmPassword ? true : undefined}
-					aria-describedby={errors.confirmPassword ? "confirm-new-password-error" : undefined}
-					hideLabel={t("common.hidePassword")}
-					showLabel={t("common.showPassword")}
-					{...register("confirmPassword")}
-				/>
-				{errors.confirmPassword && (
-					<p id="confirm-new-password-error" className="text-destructive text-xs" role="alert">
-						{t("account.passwordMismatchError")}
-					</p>
-				)}
-			</div>
-			{error ? (
-				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">
-					{error}
-				</p>
-			) : null}
+			<PasswordFormField
+				id="current-password"
+				label={t("account.currentPassword")}
+				autoComplete="current-password"
+				registration={register("currentPassword")}
+				error={errors.currentPassword}
+				errorMessage={t("account.currentPasswordRequired")}
+			/>
+			<NewPasswordFields
+				newPassword={register("newPassword")}
+				confirmPassword={register("confirmPassword")}
+				errors={errors}
+			/>
+			<PasswordFormError error={error} />
 			<FormActions status={isDirty ? undefined : status}>
 				<Button type="submit" disabled={submitting || !isDirty}>
 					{submitting ? (pendingLabel ?? submitLabel) : submitLabel}

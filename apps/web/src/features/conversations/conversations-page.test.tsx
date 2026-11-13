@@ -2,6 +2,7 @@ import type { QueryClient } from "@/testing/component-harness"
 
 import { json } from "@/testing/api-responses"
 import { act, createTestHarness, type Root, settle } from "@/testing/component-harness"
+import { click, findCombobox } from "@/testing/dom"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 import type { ConversationsSearch as Search } from "./conversations-search"
@@ -57,17 +58,6 @@ function button(label: string, scope: ParentNode = host): HTMLButtonElement {
 	const found = [...scope.querySelectorAll("button")].find((element) => element.textContent === label)
 	if (!found) throw new Error(`button ${label} not rendered`)
 	return found
-}
-
-function combobox(label: string): HTMLElement {
-	const element = host.querySelector<HTMLElement>(`[role=combobox][aria-label="${label}"]`)
-	if (!element) throw new Error(`${label} combobox not rendered`)
-	return element
-}
-
-async function click(element: HTMLElement) {
-	await act(async () => element.click())
-	await settle()
 }
 
 beforeEach(() => {
@@ -194,14 +184,14 @@ describe("ConversationsPage", () => {
 		responses["/api/conversations?page=1"] = () => list([summary("a", "2026-10-02T10:00:00.000Z")])
 		await renderPage({ agents: [SHOP.id] })
 
-		await click(combobox(t("dashboard.agentsLabel")))
+		await click(findCombobox(t("dashboard.agentsLabel"), host))
 		await click(button(t("dashboard.selectAll"), document))
 		await settle()
 
 		expect(requested).toContain("/api/conversations?page=1")
 		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
 
-		if (document.querySelector("[role=listbox]") === null) await click(combobox(t("dashboard.agentsLabel")))
+		if (document.querySelector("[role=listbox]") === null) await click(findCombobox(t("dashboard.agentsLabel"), host))
 		await click(button(t("dashboard.deselectAll"), document))
 		await settle()
 

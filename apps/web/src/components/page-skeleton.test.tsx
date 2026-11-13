@@ -1,29 +1,22 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
+import { act, createTestHarness } from "@/testing/component-harness"
 import { afterEach, beforeEach, expect, test } from "bun:test"
 
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-
 const { PendingPage } = await import("./page-skeleton")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
+	await harness.dispose()
 })
 
 test("announces a pending route with a busy skeleton", async () => {

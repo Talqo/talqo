@@ -1,21 +1,16 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { act, createTestHarness } from "@/testing/component-harness"
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 
 const { NotFoundFallback, RouteErrorFallback } = await import("./route-fallbacks")
 const { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } =
 	await import("@tanstack/react-router")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 let host: HTMLDivElement
 let root: Root
+let harness: ReturnType<typeof createTestHarness>
 
 async function renderFallback(Fallback: typeof NotFoundFallback) {
 	const rootRoute = createRootRoute()
@@ -47,15 +42,12 @@ function button(label: string): HTMLButtonElement {
 }
 
 beforeEach(() => {
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness()
+	;({ host, root } = harness)
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	mock.restore()
+	await harness.dispose()
 })
 
 test("explains a missing page and links back to the dashboard", async () => {
