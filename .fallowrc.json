@@ -64,7 +64,7 @@
 			"**/*.config.ts",
 			"scripts/**"
 		],
-		"coverage": ".cache/fallow/coverage-final.json",
+		"coverage": ".cache/coverage/coverage-final.json",
 		"maxCrap": 8,
 		"thresholdOverrides": [
 			{
