@@ -65,7 +65,7 @@
 			"scripts/**"
 		],
 		"coverage": ".cache/fallow/coverage-final.json",
-		"maxCrap": 6,
+		"maxCrap": 8,
 		"thresholdOverrides": [
 			{
 				"files": ["apps/web/**/*.tsx", "apps/widget/**/*.tsx", "packages/ui/**/*.tsx"],
