@@ -3,7 +3,8 @@ import { APICallError } from "@ai-sdk/provider"
 import { describe, expect, it, mock } from "bun:test"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
-import type { StoredConfiguration } from "./ai-provider.service.ts"
+import type { DiscoveryRequest } from "./ai-provider.discovery.ts"
+import type { StoredConfiguration, ToolEvent, ToolIdentity } from "./ai-provider.service.ts"
 
 import {
 	createAiProviderService,
@@ -72,13 +73,14 @@ const separateEmbedding: NonNullable<SaveConfigurationInput["embedding"]> = {
 function createMemoryService(
 	generate?: Parameters<typeof createAiProviderService>[0]["generate"],
 	streamText?: Parameters<typeof createAiProviderService>[0]["streamText"],
+	discover: Parameters<typeof createAiProviderService>[0]["discover"] = async () => ["model-a"],
 ) {
 	let stored: StoredConfiguration | undefined
 	const service = createAiProviderService({
 		vault: createCredentialVault(APP_SECRET, "talqo:ai-provider-credentials:v1"),
 		generate,
 		streamText,
-		discover: async () => ["model-a"],
+		discover,
 		repository: {
 			find: async () => stored,
 			save: async (configuration, expectedRevision) => {
@@ -386,5 +388,203 @@ describe("AI provider service", () => {
 		const stopWhen = calls[0]?.["stopWhen"] as (state: { steps: never[] }) => boolean
 		expect(stopWhen({ steps: Array.from({ length: 4 }) })).toBe(false)
 		expect(stopWhen({ steps: Array.from({ length: 5 }) })).toBe(true)
+	})
+
+	it("reports tool lifecycle events with resolved identities and failure outcomes", async () => {
+		let call: Record<string, unknown> | undefined
+		const { service } = createMemoryService(undefined, ((options: unknown) => {
+			call = options as Record<string, unknown>
+			return { textStream: (async function* () {})(), usage: Promise.resolve({}) }
+		}) as never)
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		const events: ToolEvent[] = []
+		const names = new Map<string, ToolIdentity>([
+			["calendar_create", { serverName: "calendar", toolName: "create_event" }],
+		])
+
+		await Array.fromAsync(
+			prepared.invoke(new AbortController().signal, { tools: { calendar_create: {} }, names }, (event) =>
+				events.push(event),
+			),
+		)
+
+		type ToolStart = (input: { toolCall: { toolCallId: string; toolName: string } }) => void
+		type ToolEnd = (input: {
+			toolCall: { toolCallId: string; toolName: string }
+			toolOutput: { output?: unknown; type: string }
+		}) => void
+		const start = call?.["onToolExecutionStart"] as ToolStart | undefined
+		const end = call?.["onToolExecutionEnd"] as ToolEnd | undefined
+		if (!start || !end) throw new Error("Expected tool callbacks")
+
+		start({ toolCall: { toolName: "calendar_create", toolCallId: "call-1" } })
+		end({
+			toolCall: { toolName: "calendar_create", toolCallId: "call-2" },
+			toolOutput: { type: "tool-result", output: { ok: true } },
+		})
+		end({
+			toolCall: { toolName: "calendar_create", toolCallId: "call-3" },
+			toolOutput: { type: "tool-result", output: { isError: true } },
+		})
+		end({
+			toolCall: { toolName: "calendar_create", toolCallId: "call-4" },
+			toolOutput: { type: "tool-error" },
+		})
+		start({ toolCall: { toolName: "unmapped", toolCallId: "call-5" } })
+
+		expect(events).toEqual([
+			{
+				type: "tool-start",
+				identity: { serverName: "calendar", toolName: "create_event" },
+				toolCallId: "call-1",
+			},
+			{
+				type: "tool-end",
+				identity: { serverName: "calendar", toolName: "create_event" },
+				toolCallId: "call-2",
+				outcome: "completed",
+			},
+			{
+				type: "tool-end",
+				identity: { serverName: "calendar", toolName: "create_event" },
+				toolCallId: "call-3",
+				outcome: "failed",
+			},
+			{
+				type: "tool-end",
+				identity: { serverName: "calendar", toolName: "create_event" },
+				toolCallId: "call-4",
+				outcome: "failed",
+			},
+			{
+				type: "tool-start",
+				identity: { serverName: "", toolName: "unmapped" },
+				toolCallId: "call-5",
+			},
+		])
+	})
+
+	it("turns an aborted generation failure into a cancelled finish and propagates other errors", async () => {
+		const failure = new Error("stream failed")
+		const streamText = (() => ({
+			textStream: (async function* () {
+				yield* []
+				throw failure
+			})(),
+			usage: Promise.reject(new Error("usage unavailable")),
+		})) as never
+		const { service } = createMemoryService(undefined, streamText)
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
+		const aborted = new AbortController()
+		aborted.abort()
+
+		expect(await Array.fromAsync(prepared.invoke(aborted.signal))).toEqual([
+			{
+				type: "finish",
+				outcome: "cancelled",
+				usage: {},
+				provider: "openai",
+				model: "gpt-5-mini",
+			},
+		])
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBe(failure)
+	})
+
+	it.each([
+		{ name: "a non-provider error", error: new Error("network down") },
+		{
+			name: "a 413 without context text",
+			error: new APICallError({
+				message: "payload too large",
+				url: "https://provider.invalid",
+				requestBodyValues: {},
+				statusCode: 413,
+				responseBody: '{"error":"payload too large"}',
+			}),
+		},
+	])("passes $name through unchanged", async ({ error }) => {
+		const { service } = createMemoryService(async function* () {
+			yield* []
+			throw error
+		})
+		const prepared = await prepareText(service)
+
+		await expect(Array.fromAsync(prepared.invoke(new AbortController().signal))).rejects.toBe(error)
+	})
+
+	it("requires a stored configuration and matching context for stored credentials", async () => {
+		const { service } = createMemoryService()
+
+		await expect(
+			service.discoverModels({
+				providerId: "openai",
+				authMode: "static",
+				settings: {},
+				storedCredentialRole: "text",
+			}),
+		).rejects.toBeInstanceOf(InvalidConfigurationError)
+
+		await service.saveConfiguration(input)
+		await expect(
+			service.discoverModels({
+				providerId: "openai",
+				authMode: "static",
+				settings: { project: "other" },
+				storedCredentialRole: "text",
+			}),
+		).rejects.toBeInstanceOf(InvalidConfigurationError)
+	})
+
+	it("uses the text role's credentials when embedding discovery reuses them", async () => {
+		const discoveryInputs: DiscoveryRequest[] = []
+		const { service } = createMemoryService(undefined, undefined, async (discoveryInput) => {
+			discoveryInputs.push(discoveryInput)
+			return ["embedding-model"]
+		})
+		await service.saveConfiguration(input)
+
+		const models = await service.discoverModels({
+			providerId: "openai",
+			authMode: "static",
+			settings: {},
+			storedCredentialRole: "embedding",
+		})
+
+		expect(models).toEqual(["embedding-model"])
+		expect(discoveryInputs).toHaveLength(1)
+		expect(discoveryInputs[0]?.credentials).toEqual({ apiKey: "sk-text" })
+	})
+
+	it("rejects preparing either role without a stored configuration", async () => {
+		const { service } = createMemoryService()
+
+		await expect(
+			service.prepareTextOperation({
+				messages: [{ role: "user", content: "Hi" }],
+				maxOutputTokens: 10,
+				timeoutMs: 1000,
+			}),
+		).rejects.toBeInstanceOf(UnusableConfigurationError)
+		await expect(service.prepareEmbeddingOperation()).rejects.toBeInstanceOf(UnusableConfigurationError)
+	})
+
+	it("rejects embedding preparation when reused text credentials are corrupted", async () => {
+		const { service, getStored } = createMemoryService()
+		await service.saveConfiguration(input)
+		const stored = getStored()
+		if (!stored?.text.credentials) throw new Error("Expected encrypted text credentials")
+		stored.text.credentials = { ...stored.text.credentials, ciphertext: "corrupted" }
+
+		await expect(service.prepareEmbeddingOperation()).rejects.toBeInstanceOf(UnusableConfigurationError)
 	})
 })

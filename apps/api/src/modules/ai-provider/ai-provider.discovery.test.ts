@@ -1,6 +1,9 @@
+import { PROBLEM_CODES } from "@/http/problem.ts"
 import { describe, expect, it } from "bun:test"
+import { z } from "zod"
 
-import type { ModelDiscoveryFetch } from "./ai-provider.discovery.ts"
+import type { DiscoveryRequest, ModelDiscoveryErrorCode, ModelDiscoveryFetch } from "./ai-provider.discovery.ts"
+import type { AiProviderId } from "./ai-provider.registry.ts"
 
 import { discoverModels, ModelDiscoveryError } from "./ai-provider.discovery.ts"
 
@@ -133,5 +136,171 @@ describe("discoverModels", () => {
 				unreachableFetch,
 			),
 		).rejects.toMatchObject({ code: "unsupported" })
+	})
+
+	const openAiRequest: DiscoveryRequest = {
+		providerId: "openai",
+		authMode: "static",
+		settings: {},
+		credentials: { apiKey: "sk-test" },
+	}
+
+	const classifiedFailures: {
+		name: string
+		fetcher: ModelDiscoveryFetch
+		expected: { code: ModelDiscoveryErrorCode; problemCode: string; status: number }
+	}[] = [
+		{
+			name: "rate limiting",
+			fetcher: async () => new Response("", { status: 429 }),
+			expected: { code: "rate-limited", problemCode: PROBLEM_CODES.PROVIDER_RATE_LIMITED, status: 429 },
+		},
+		{
+			name: "an unreachable endpoint",
+			fetcher: async () => {
+				throw new Error("offline")
+			},
+			expected: { code: "unreachable", problemCode: PROBLEM_CODES.PROVIDER_UNREACHABLE, status: 502 },
+		},
+		{
+			name: "forbidden credentials",
+			fetcher: async () => new Response("", { status: 403 }),
+			expected: {
+				code: "unauthorized",
+				problemCode: PROBLEM_CODES.PROVIDER_CREDENTIALS_REJECTED,
+				status: 400,
+			},
+		},
+		{
+			name: "an unclassified provider failure",
+			fetcher: async () => new Response("", { status: 500 }),
+			expected: { code: "provider-error", problemCode: PROBLEM_CODES.PROVIDER_ERROR, status: 502 },
+		},
+	]
+
+	it.each(classifiedFailures)("classifies $name", async ({ fetcher, expected }) => {
+		await expect(discoverModels(openAiRequest, fetcher)).rejects.toMatchObject(expected)
+	})
+
+	const unusableResponses: { name: string; response: () => Response }[] = [
+		{ name: "malformed JSON", response: () => new Response("{not json") },
+		{ name: "an empty body", response: () => new Response("") },
+		{
+			name: "a declared oversized body",
+			response: () =>
+				new Response(
+					new ReadableStream({
+						pull() {
+							throw new Error("oversized response body must not be read")
+						},
+					}),
+					{ headers: { "content-length": "1000001" } },
+				),
+		},
+	]
+
+	it.each(unusableResponses)("reports a provider error for $name", async ({ response }) => {
+		const fetcher: ModelDiscoveryFetch = async () => response()
+
+		await expect(discoverModels(openAiRequest, fetcher)).rejects.toMatchObject({
+			code: "provider-error",
+			problemCode: PROBLEM_CODES.PROVIDER_ERROR,
+		})
+	})
+
+	const invalidModelLists = [
+		{ name: "non-string model identifiers", payload: { data: [{ id: 1 }] } },
+		{ name: "a missing model list", payload: {} },
+	]
+
+	it.each(invalidModelLists)("rejects $name instead of returning bogus models", async ({ payload }) => {
+		const fetcher: ModelDiscoveryFetch = async () => new Response(JSON.stringify(payload))
+
+		await expect(discoverModels(openAiRequest, fetcher)).rejects.toBeInstanceOf(z.ZodError)
+	})
+
+	const providerEndpoints: {
+		name: string
+		providerId: AiProviderId
+		settings: Record<string, string>
+		url: string
+		headers: Record<string, string>
+	}[] = [
+		{
+			name: "Anthropic",
+			providerId: "anthropic",
+			settings: {},
+			url: "https://api.anthropic.com/v1/models",
+			headers: { "x-api-key": "secret-key", "anthropic-version": "2023-06-01" },
+		},
+		{
+			name: "Mistral's default",
+			providerId: "mistral",
+			settings: {},
+			url: "https://api.mistral.ai/v1/models",
+			headers: { authorization: "Bearer secret-key" },
+		},
+		{
+			name: "Mistral with a base URL override",
+			providerId: "mistral",
+			settings: { baseURL: "https://mistral.internal/v1/" },
+			url: "https://mistral.internal/v1/models",
+			headers: { authorization: "Bearer secret-key" },
+		},
+	]
+
+	it.each(providerEndpoints)("targets $name with provider-specific headers", async (endpoint) => {
+		let seen: { headers: Headers; url: string } | undefined
+		const fetcher: ModelDiscoveryFetch = async (url, init) => {
+			seen = { headers: new Headers(init?.headers), url: fetchUrl(url) }
+			return new Response(JSON.stringify({ data: [] }))
+		}
+
+		await discoverModels(
+			{
+				providerId: endpoint.providerId,
+				authMode: "static",
+				settings: endpoint.settings,
+				credentials: { apiKey: "secret-key" },
+			},
+			fetcher,
+		)
+
+		expect(seen?.url).toBe(endpoint.url)
+		expect(Object.fromEntries(seen?.headers ?? [])).toEqual(endpoint.headers)
+	})
+
+	const invalidRequests: { name: string; request: DiscoveryRequest; code: ModelDiscoveryErrorCode }[] = [
+		{
+			name: "a missing compatible base URL",
+			request: {
+				providerId: "openai-compatible",
+				authMode: "static",
+				settings: {},
+				credentials: { apiKey: "key" },
+			},
+			code: "provider-error",
+		},
+		{
+			name: "deployment-identity authentication",
+			request: { providerId: "openai", authMode: "deployment-identity", settings: {} },
+			code: "unsupported",
+		},
+		{
+			name: "missing credentials",
+			request: { providerId: "openai", authMode: "static", settings: {}, credentials: {} },
+			code: "unauthorized",
+		},
+	]
+
+	it.each(invalidRequests)("rejects $name before calling the provider", async ({ request, code }) => {
+		let calls = 0
+		const fetcher: ModelDiscoveryFetch = async () => {
+			calls += 1
+			return new Response(JSON.stringify({ data: [] }))
+		}
+
+		await expect(discoverModels(request, fetcher)).rejects.toMatchObject({ code })
+		expect(calls).toBe(0)
 	})
 })

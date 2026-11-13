@@ -70,6 +70,14 @@ function baseTransport(overrides: Partial<ChatTransport> = {}): ChatTransport {
 	}
 }
 
+const acceptedEvent: ChatEvent = {
+	type: "accepted",
+	requestId: "request",
+	generationId: "generation",
+	userMessage: { id: "u1", createdAt: "now" },
+	assistantMessage: { id: "a1", createdAt: "now" },
+}
+
 function dailyAllowanceRejection(): ChatTransportError {
 	return new ChatTransportError({
 		code: "chat-daily-allowance-exceeded",
@@ -888,13 +896,7 @@ describe("createChatClient", () => {
 			transport: baseTransport({
 				sendMessage: async () =>
 					streamFrom([
-						{
-							type: "accepted",
-							requestId: "request",
-							generationId: "generation",
-							userMessage: { id: "u1", createdAt: "now" },
-							assistantMessage: { id: "a1", createdAt: "now" },
-						},
+						acceptedEvent,
 						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
 						{ type: "delta", assistantMessageId: "a1", text: "Checking" },
 						{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
@@ -1632,5 +1634,172 @@ describe("createChatClient", () => {
 		expect(aborted).toBe(true)
 		expect(notifications).toBe(beforeDispose)
 		await expect(client.sendMessage("later")).rejects.toThrow("disposed")
+	})
+
+	test("refuses retries when the error is not retriable or no failed response exists", async () => {
+		const accepted: ChatEvent = {
+			type: "accepted",
+			requestId: "request",
+			generationId: "generation",
+			userMessage: { id: "u1", createdAt: "now" },
+			assistantMessage: { id: "a1", createdAt: "now" },
+		}
+		const clientWith = (retriable: boolean, outcome: "failed" | "blocked") =>
+			createChatClient({
+				apiUrl: "https://api.example.test",
+				embedToken: "embed",
+				storage: createMemoryStorage(),
+				transport: baseTransport({
+					sendMessage: async () =>
+						streamFrom([
+							accepted,
+							{ type: "error", outcome, error: { code: "provider-error", retriable, newChatAvailable: false } },
+						]),
+				}),
+				randomUUID: () => crypto.randomUUID(),
+			})
+
+		const nonRetriable = clientWith(false, "failed")
+		await nonRetriable.initialize()
+		await expect(nonRetriable.sendMessage("hello")).rejects.toThrow("provider-error")
+		await expect(nonRetriable.retryLastMessage()).rejects.toThrow("not retriable")
+
+		const noFailedResponse = clientWith(true, "blocked")
+		await noFailedResponse.initialize()
+		await expect(noFailedResponse.sendMessage("hello")).rejects.toThrow("provider-error")
+		expect(noFailedResponse.getSnapshot().error?.retriable).toBe(true)
+		await expect(noFailedResponse.retryLastMessage()).rejects.toThrow("No failed response is available to retry")
+
+		nonRetriable.dispose()
+		noFailedResponse.dispose()
+	})
+
+	test("offers a new chat for conversation-ending codes that omit the policy flag", async () => {
+		const cases = [
+			{ code: "chat-context-limit", status: 400 },
+			{ code: "chat-conversation-too-long", status: 400 },
+			{ code: "chat-session-unauthorized", status: 401 },
+		] as const
+		const snapshots = await Promise.all(
+			cases.map(async ({ code, status }) => {
+				const rejection = new ChatTransportError({ code, status })
+				const client = createChatClient({
+					apiUrl: "https://api.example.test",
+					embedToken: "embed",
+					storage: createMemoryStorage(),
+					transport: baseTransport({
+						sendMessage: async () => {
+							throw rejection
+						},
+					}),
+					randomUUID: () => crypto.randomUUID(),
+				})
+				await client.initialize()
+				await expect(client.sendMessage("hello")).rejects.toBe(rejection)
+				const snapshot = client.getSnapshot()
+				client.dispose()
+				return { activity: snapshot.activity, actions: snapshot.actions, error: snapshot.error }
+			}),
+		)
+
+		expect(snapshots).toEqual(
+			cases.map(({ code, status }) => ({
+				activity: "idle",
+				actions: ["send", "new-chat"],
+				error: { code, status, newChatAvailable: true },
+			})),
+		)
+	})
+
+	test("recovers an unscoped pre-accept transport error before accepting an idle session", async () => {
+		const loadStarted = deferred<void>()
+		const session = deferred<Awaited<ReturnType<ChatTransport["loadSession"]>>>()
+		let sends = 0
+		let loads = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: createMemoryStorage(),
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					if (sends === 1) throw new ChatTransportError({ code: "transport-error" })
+					return streamFrom([])
+				},
+				loadSession: async () => {
+					loads += 1
+					loadStarted.resolve()
+					return session.promise
+				},
+			}),
+			randomUUID: () => crypto.randomUUID(),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toBeInstanceOf(ChatTransportError)
+		expect(client.getSnapshot()).toMatchObject({
+			activity: "recovering",
+			error: { code: "transport-error" },
+		})
+
+		await loadStarted.promise
+		session.resolve({ messages: [], activeGeneration: undefined })
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
+
+		expect({ sends, loads }).toEqual({ sends: 2, loads: 1 })
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", error: undefined, messages: [] })
+	})
+
+	test("rejects sends when Web Crypto is unavailable", async () => {
+		using randomUUIDSpy = spyOn(globalThis.crypto, "randomUUID").mockImplementation(() => {
+			throw new Error("crypto unavailable")
+		})
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: createMemoryStorage(),
+			transport: baseTransport(),
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toThrow("Web Crypto is required to generate chat credentials")
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [] })
+		expect(randomUUIDSpy).toHaveBeenCalled()
+	})
+
+	test("persists credentials in browser localStorage by default and removes them on reset", async () => {
+		const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage")
+		const values = new Map<string, string>()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		const credential = "22222222-2222-4222-8222-222222222222"
+		const identifiers = [credential, "11111111-1111-4111-8111-111111111111"]
+		try {
+			Object.defineProperty(globalThis, "localStorage", {
+				configurable: true,
+				value: {
+					getItem: (name: string) => values.get(name) ?? null,
+					setItem: (name: string, value: string) => void values.set(name, value),
+					removeItem: (name: string) => void values.delete(name),
+				},
+			})
+			const client = createChatClient({
+				apiUrl: "https://api.example.test",
+				embedToken: "embed",
+				transport: baseTransport({
+					sendMessage: async () => streamFrom([acceptedEvent, { type: "terminal", outcome: "completed" }]),
+				}),
+				randomUUID: () => identifiers.shift()!,
+			})
+			await client.initialize()
+			await client.sendMessage("hello")
+			expect(readChatStorageRecord(values.get(key) ?? null)).toEqual({ version: 1, credential })
+
+			await client.startNewChat()
+			expect(values.has(key)).toBe(false)
+		} finally {
+			if (descriptor === undefined) Reflect.deleteProperty(globalThis, "localStorage")
+			else Object.defineProperty(globalThis, "localStorage", descriptor)
+		}
 	})
 })

@@ -63,6 +63,29 @@ function problem(code: string, status: number, headers: HeadersInit = {}): Respo
 	return jsonResponse({ code, type: `https://docs.talqo.chat/problems#${code}` }, { status, headers: merged })
 }
 
+function malformedJson(): Response {
+	return new Response("not json", { headers: { "Content-Type": "application/json" } })
+}
+
+function problemDocument(value: unknown): Response {
+	return jsonResponse(value, { status: 400, headers: { "Content-Type": "application/problem+json" } })
+}
+
+const MALFORMED_PROBLEM_RESPONSES = [
+	() => new Response("bad gateway", { status: 502, headers: { "Content-Type": "text/plain" } }),
+	() => problemDocument([]),
+	() => problemDocument("problem"),
+	() => problemDocument({ type: "https://docs.talqo.chat/problems#provider-error" }),
+	() => problemDocument({ code: "provider-error" }),
+	() => problemDocument({ code: "unknown-code", type: "https://docs.talqo.chat/problems#unknown-code" }),
+] as const
+
+const NON_EVENT_STREAM_RESPONSES = [
+	() => jsonResponse({ accepted: true }),
+	() => new Response(null, { status: 200, headers: { "Content-Type": "text/event-stream" } }),
+	() => new Response("event: chat\n\n", { status: 200, headers: { "Content-Type": "text/plain" } }),
+] as const
+
 function streamResponse(chunks: string[]): Response {
 	const encoder = new TextEncoder()
 	return new Response(
@@ -556,5 +579,156 @@ describe("createFetchChatTransport", () => {
 		readingController.abort(new Error("stop read"))
 		await expect(reading).rejects.toThrow("stop read")
 		expect(bodyCancelled).toBe(true)
+	})
+
+	test("rejects an already-aborted event stream and cancels its body", async () => {
+		let cancelled = false
+		const encoder = new TextEncoder()
+		const body = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(
+					encoder.encode('event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'),
+				)
+				// Left open: an abort must not depend on the server ending the stream.
+			},
+			cancel() {
+				cancelled = true
+			},
+		})
+		const controller = new AbortController()
+		const reason = new Error("already aborted")
+		controller.abort(reason)
+		const transport = createFetchChatTransport({
+			fetch: async () => new Response(body, { headers: { "Content-Type": "text/event-stream" } }),
+		})
+
+		const events = await transport.sendMessage({
+			...context(controller.signal),
+			requestId: REQUEST_ID,
+			credential: CREDENTIAL,
+			text: "hello",
+		})
+
+		await expect(events[Symbol.asyncIterator]().next()).rejects.toBe(reason)
+		expect(cancelled).toBe(true)
+	})
+
+	test("rejects unparseable JSON and preserves an active abort reason", async () => {
+		const fake = recordingFetch([malformedJson(), malformedJson()])
+		const transport = createFetchChatTransport({ fetch: fake.fetch })
+
+		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual({
+			code: "invalid-response",
+			status: 200,
+		})
+		expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL }))).toEqual({
+			code: "invalid-response",
+			status: 200,
+		})
+
+		const controller = new AbortController()
+		const reason = new Error("stop parsing")
+		controller.abort(reason)
+		const aborted = createFetchChatTransport({ fetch: async () => malformedJson() })
+		await expect(aborted.loadConfiguration(context(controller.signal))).rejects.toBe(reason)
+	})
+
+	test("rejects non-problem errors and malformed problem documents", async () => {
+		const details = await Promise.all(
+			MALFORMED_PROBLEM_RESPONSES.map((response) =>
+				rejectedDetail(createFetchChatTransport({ fetch: async () => response() }).loadConfiguration(context())),
+			),
+		)
+
+		expect(details).toEqual([
+			{ code: "invalid-response", status: 502 },
+			{ code: "invalid-response", status: 400 },
+			{ code: "invalid-response", status: 400 },
+			{ code: "invalid-response", status: 400 },
+			{ code: "invalid-response", status: 400 },
+			{ code: "invalid-response", status: 400 },
+		])
+	})
+
+	test("derives retry hints from rate-limit headers with fallbacks", async () => {
+		const now = new Date("2026-09-12T12:00:00Z")
+		const fake = recordingFetch([
+			problem("chat-concurrency-limit", 429, { "Retry-After": "Sat, 12 Sep 2026 12:05:00 GMT" }),
+			problem("chat-concurrency-limit", 429, { "Retry-After": "not-a-date" }),
+			problem("chat-concurrency-limit", 429, { "Retry-After": "9", "X-RateLimit-Reset": "garbage" }),
+			problem("chat-concurrency-limit", 429, { "Retry-After": "not-a-date", "X-RateLimit-Reset": "garbage" }),
+		])
+		const transport = createFetchChatTransport({ fetch: fake.fetch, now: () => now })
+		const base = {
+			code: "chat-concurrency-limit",
+			type: "https://docs.talqo.chat/problems#chat-concurrency-limit",
+			status: 429,
+		} as const
+
+		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual({
+			...base,
+			retryAt: "2026-09-12T12:05:00.000Z",
+		})
+		const invalidRetry = await rejectedDetail(transport.loadConfiguration(context()))
+		expect(invalidRetry).toEqual(base)
+		expect(invalidRetry).not.toHaveProperty("retryAt")
+		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual({
+			...base,
+			retryAt: "2026-09-12T12:00:09.000Z",
+		})
+		expect(await rejectedDetail(transport.loadConfiguration(context()))).toEqual(base)
+	})
+
+	test("rejects session payloads with structurally invalid messages or generation state", async () => {
+		const cases: unknown[] = [
+			{ messages: {} },
+			{ messages: [{ id: "m", role: "system", text: "hi", createdAt: "2026-09-12T12:00:00Z", outcome: "completed" }] },
+			{ messages: [{ id: "m", role: "assistant", text: "hi", createdAt: "2026-09-12T12:00:00Z", outcome: "running" }] },
+			{ messages: [{ id: "m", role: "assistant", text: "hi", outcome: "completed" }] },
+			{ messages: [], activeGeneration: "generation" },
+			{ messages: [], activeGeneration: {} },
+			{ messages: [], activeGeneration: { id: 42 } },
+		]
+		const details = await Promise.all(
+			cases.map((session) =>
+				rejectedDetail(
+					createFetchChatTransport({ fetch: async () => jsonResponse(session) }).loadSession({
+						...context(),
+						credential: CREDENTIAL,
+					}),
+				),
+			),
+		)
+
+		expect(details).toEqual(cases.map(() => ({ code: "invalid-response", status: 200 })))
+	})
+
+	test("rejects embed configuration without a structured appearance", async () => {
+		const details = await Promise.all(
+			[null, [], "flat"].map((appearance) =>
+				rejectedDetail(
+					createFetchChatTransport({
+						fetch: async () => jsonResponse({ version: 1, name: "Support", appearance }),
+					}).loadConfiguration(context()),
+				),
+			),
+		)
+
+		expect(details).toEqual([
+			{ code: "invalid-response", status: 200 },
+			{ code: "invalid-response", status: 200 },
+			{ code: "invalid-response", status: 200 },
+		])
+	})
+
+	test("rejects send responses that are not open event streams", async () => {
+		const input = { ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }
+		const details = await Promise.all(
+			NON_EVENT_STREAM_RESPONSES.map((response) =>
+				rejectedDetail(createFetchChatTransport({ fetch: async () => response() }).sendMessage(input)),
+			),
+		)
+
+		expect(details).toEqual(NON_EVENT_STREAM_RESPONSES.map(() => ({ code: "invalid-response", status: 200 })))
 	})
 })

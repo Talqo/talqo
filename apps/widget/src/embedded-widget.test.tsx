@@ -74,6 +74,27 @@ describe("color scheme", () => {
 		expect(root.dataset.scheme).toBe("dark")
 		expect(root.style.getPropertyValue("--talqo-background-input")).toBe("#0a0a0a")
 	})
+
+	test("follows the visitor's dark system preference in system mode", () => {
+		const original = window.matchMedia
+		try {
+			window.matchMedia = mock((query: string) => ({
+				matches: query === "(prefers-color-scheme: dark)",
+				media: query,
+				addEventListener: () => {},
+				removeEventListener: () => {},
+				addListener: () => {},
+				removeListener: () => {},
+				onchange: null,
+				dispatchEvent: () => false,
+			}))
+
+			const root = widgetRoot(render(<EmbeddedWidget appearance={{ theme: "system" }} />))
+			expect(root.dataset.scheme).toBe("dark")
+		} finally {
+			window.matchMedia = original
+		}
+	})
 })
 
 describe("visitor theme toggle", () => {
@@ -342,6 +363,52 @@ describe("EmbeddedWidget resize", () => {
 			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))
 		})
 		expect(panel()?.style.height).toBe("408px")
+
+		// bottom-right anchors the right/bottom edges, so the other arrows move them back inward.
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+		})
+		expect(panel()?.style.width).toBe("320px")
+
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }))
+		})
+		expect(panel()?.style.height).toBe("384px")
+	})
+
+	test("anchors a bottom-left widget on the left and grows it with ArrowRight", async () => {
+		await act(async () => {
+			root.unmount()
+		})
+		host.remove()
+		host = document.createElement("div")
+		document.body.append(host)
+		root = createRoot(host)
+		await act(async () => {
+			root.render(<EmbeddedWidget appearance={{ position: "bottom-left" }} />)
+		})
+		await act(async () => {})
+
+		const widget = widgetRoot(host)
+		expect(widget.className).toContain("tw:left-4")
+		expect(widget.className).not.toContain("tw:right-4")
+
+		await openChat()
+		const dialog = panel()
+		if (!dialog) throw new Error("panel not found")
+		expect(dialog.className).toContain("tw:left-4")
+		expect(dialog.className).toContain("tw:right-auto")
+		dialog.getBoundingClientRect = () =>
+			({ left: 500, right: 820, top: 116, bottom: 500, width: 320, height: 384 }) as DOMRect
+
+		const handle = host.querySelector<HTMLButtonElement>("[data-testid='resize-corner']")
+		expect(handle).not.toBeNull()
+
+		// Growing away from a left anchor means moving the right edge rightward.
+		await act(async () => {
+			handle?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }))
+		})
+		expect(panel()?.style.width).toBe("344px")
 	})
 
 	test("expands and resets the panel from the resize button", async () => {
