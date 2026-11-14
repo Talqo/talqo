@@ -41,6 +41,10 @@ describe("resolveStaticDirs", () => {
 		})
 		expect(resolveStaticDirs({ TALQO_SERVE_STATIC: "true" })).toEqual({})
 	})
+
+	it("ignores configured dirs while serving is off", () => {
+		expect(resolveStaticDirs({ TALQO_WEB_DIST: "/a", TALQO_WIDGET_DIST: "/b" })).toEqual({})
+	})
 })
 
 describe("createStaticResponder", () => {
@@ -108,5 +112,27 @@ describe("createStaticResponder", () => {
 
 		expect(await serve(request("/widget.js"))).toBeNull()
 		expect(await serve(request("/dashboard"))).toBeNull()
+	})
+
+	it("serves HEAD requests but refuses other methods", async () => {
+		const serve = createStaticResponder(fixtureDirs())
+
+		const head = await serve(request("/assets/app-abc123.js", "HEAD"))
+		expect(head?.status).toBe(200)
+		expect(await serve(request("/assets/app-abc123.js", "PUT"))).toBeNull()
+	})
+
+	it("rejects asset paths with an empty segment", async () => {
+		const serve = createStaticResponder(fixtureDirs())
+
+		expect(await serve(request("/assets//app-abc123.js"))).toBeNull()
+	})
+
+	it("answers nothing for assets when no web dist is configured", async () => {
+		const { widgetDist } = fixtureDirs()
+		const serve = createStaticResponder({ widgetDist })
+
+		expect(await serve(request("/assets/app-abc123.js"))).toBeNull()
+		expect((await serve(request("/widget.js")))?.status).toBe(200)
 	})
 })

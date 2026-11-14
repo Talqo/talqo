@@ -88,6 +88,18 @@ describe("BlacklistTermsEditor", () => {
 		expect(liveRegion()).toBe(t("blacklist.added", { word: "abuse" }))
 	})
 
+	test("adds a term only on Enter, not on other keys", async () => {
+		await renderEditor([])
+		await type(input(), "abuse")
+
+		await act(async () => {
+			input().dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true }))
+		})
+
+		expect(emitted).toEqual([])
+		expect(host.querySelector('[role="alert"]')).toBeNull()
+	})
+
 	test("rejects a duplicate case-insensitively, keeps the draft, and clears the error on edit", async () => {
 		await renderEditor(["Spam"])
 

@@ -88,4 +88,12 @@ describe("in-memory credential limits", () => {
 		}
 		expect(await limit("network", "extra", async () => "available")).toBe("available")
 	})
+
+	it("does not apply a network budget when no network is available", async () => {
+		const limit = createCredentialLimiter()
+		for (let attempt = 0; attempt < 31; attempt += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- prove the missing network is not bucketed.
+			expect(await limit(null, `visitor-${attempt}`, async () => "allowed")).toBe("allowed")
+		}
+	})
 })

@@ -246,6 +246,12 @@ describe("AgentFilesCard for a managing operator", () => {
 		expect(host.querySelector('[role="alert"]')?.textContent).toBe(t("agentFiles.tooLarge", { maxSizeMB: 10 }))
 		expect(input.value).toBe("")
 		expect(input.files?.length).toBe(0)
+
+		await selectFiles([new File(["valid"], "valid.md")])
+		expect(host.querySelector('[role="alert"]')).toBeNull()
+		expect(uploads).toHaveLength(1)
+		await resolveUpload(0, json({ file: { ...FILE, name: "valid.md", embeddingStatus: "ready" } }, 201))
+		await settle()
 	})
 
 	test("downloads a special file name under its original name and releases the object URL", async () => {
@@ -448,5 +454,38 @@ describe("AgentFilesCard for a managing operator", () => {
 		await click(dialogButton(t("common.cancel"), "alertdialog"))
 		expect(document.querySelector('[role="alertdialog"]')).toBeNull()
 		expect(fileOperations).toEqual([])
+	})
+
+	test("does not submit a whitespace-only rename", async () => {
+		files = [FILE]
+		await renderCard(true)
+		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.rename", { name: FILE.name })}"]`))
+		const input = element<HTMLInputElement>("#rename-file-name")
+		await replaceInputValue(input, "   ")
+
+		await act(async () =>
+			input.closest("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+		)
+		await settle()
+
+		expect(fileOperations).toEqual([])
+		expect(element<HTMLElement>('[role="dialog"]')).not.toBeNull()
+	})
+
+	test("keeps the rename dialog open while the rename is pending", async () => {
+		files = [FILE]
+		const pending = Promise.withResolvers<Response>()
+		fileOperationResponses = [pending.promise]
+		await renderCard(true)
+		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.rename", { name: FILE.name })}"]`))
+		await click(dialogButton(t("agentFiles.renameSave"), "dialog"))
+		expect(fileOperations).toHaveLength(1)
+
+		await click(dialogButton(t("common.close"), "dialog"))
+
+		expect(element<HTMLElement>('[role="dialog"]')).not.toBeNull()
+		await act(async () => pending.resolve(json({ file: { ...FILE, name: "faq" } })))
+		await settle()
+		await settle()
 	})
 })

@@ -149,6 +149,11 @@ describe("embed token rotation", () => {
 		expect(requestCount("/api/embeds")).toBe(listBeforeRotate)
 		expect(tokenOutput("detail-token").textContent).toBe("initial-token")
 
+		await click(button(t("embedSetup.cancel"), dialog()))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		await click(button(t("embedSetup.rotateToken"), host))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+
 		await click(button(t("embedSetup.rotateToken"), dialog()))
 
 		expect(requestCount(ROTATE_URL, "POST")).toBe(2)

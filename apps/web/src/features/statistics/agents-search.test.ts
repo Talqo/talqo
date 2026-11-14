@@ -29,6 +29,7 @@ describe("parseAgentsParam", () => {
 
 	it("drops non-string entries and empty ids", () => {
 		expect(parseAgentsParam(["a", 1, "", { id: "b" }])).toEqual(["a"])
+		expect(parseAgentsParam(["a", ["b"]])).toEqual(["a"])
 	})
 
 	it("treats malformed JSON that looks like a list as one raw id", () => {

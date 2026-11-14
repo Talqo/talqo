@@ -244,6 +244,8 @@ describe("WidgetPreview", () => {
 			if (!resize) throw new Error("preview did not observe its container")
 			await act(async () => resize?.())
 
+			expect(frameElement().style.transform).toBe("scale(0.5)")
+
 			await act(async () => root?.unmount())
 			root = undefined
 			expect(disconnect).toHaveBeenCalledTimes(1)

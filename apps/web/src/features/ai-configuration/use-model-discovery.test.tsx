@@ -186,6 +186,16 @@ describe("model discovery", () => {
 		expect(status()).toBe("chat-model")
 	})
 
+	test("clears models from the previous connection while the new one loads", async () => {
+		await render(CONTEXT)
+		await advance(400)
+		await answer(requests[0], ["old-model"])
+		expect(status()).toBe("old-model")
+
+		await render({ ...CONTEXT, value: { ...CONTEXT.value, settings: { baseURL: "https://other.example/v1" } } })
+		expect(status()).toBe("loading")
+	})
+
 	test("an obsolete response cannot replace a newer result", async () => {
 		await render(CONTEXT)
 		await advance(400)

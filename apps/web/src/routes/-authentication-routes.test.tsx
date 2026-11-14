@@ -1,5 +1,6 @@
 import { json, problem } from "@/testing/api-responses"
 import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { Route: IndexRoute } = await import("./index")
@@ -285,6 +286,42 @@ describe("route guards", () => {
 })
 
 describe("authentication route submissions", () => {
+	test("accepts only a string invitation token from the URL", () => {
+		const validateSearch = AcceptInviteRoute.options.validateSearch
+		if (typeof validateSearch !== "function") throw new Error("Invitation route has no search validator")
+
+		expect(validateSearch({ token: "invite-token" })).toEqual({ token: "invite-token" })
+		expect(validateSearch({ token: 42 })).toEqual({ token: "" })
+		expect(validateSearch({})).toEqual({ token: "" })
+	})
+
+	test("blocks a forced password change until both passwords match the policy", async () => {
+		sessionUser = FORCED_USER
+		const router = await renderSubmitRoute("/force-password-change")
+		await fill("#new-password", PASSWORD)
+		await fill("#confirm-new-password", `${PASSWORD}-different`)
+
+		await submitForm()
+		expect(host.querySelector("#confirm-new-password-error")?.textContent).toBe(t("account.passwordMismatchError"))
+		expect(host.querySelector("#confirm-new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector("#confirm-new-password")?.getAttribute("aria-describedby")).toBe(
+			"confirm-new-password-error",
+		)
+		expect(requests.filter(({ url }) => url === "/api/me/password/forced")).toHaveLength(0)
+
+		await fill("#new-password", "short")
+		await fill("#confirm-new-password", "short")
+		await submitForm()
+
+		expect(host.querySelector("#new-password-error")?.textContent).toBe(
+			t("account.newPasswordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH }),
+		)
+		expect(host.querySelector("#new-password")?.getAttribute("aria-invalid")).toBe("true")
+		expect(host.querySelector("#new-password")?.getAttribute("aria-describedby")).toBe("new-password-error")
+		expect(requests.filter(({ url }) => url === "/api/me/password/forced")).toHaveLength(0)
+		expect(router.state.location.pathname).toBe("/force-password-change")
+	})
+
 	for (const scenario of SUBMIT_SCENARIOS) {
 		test(`${scenario.name} sends its exact payload and enters the dashboard after success`, async () => {
 			if (scenario.requiresForcedSession) sessionUser = FORCED_USER

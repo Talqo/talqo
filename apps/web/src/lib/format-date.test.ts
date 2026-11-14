@@ -22,4 +22,8 @@ describe("formatDay", () => {
 		expect(formatDay(new Date(2026, 9, 19, 23, 55).toISOString(), "en", now)).toBe("yesterday")
 		expect(formatDay(new Date(2026, 9, 18, 12, 0).toISOString(), "en", now)).toBe("Sunday, October 18, 2026")
 	})
+
+	test("dates future days instead of labelling them relative to now", () => {
+		expect(formatDay(new Date(2026, 9, 21, 0, 5).toISOString(), "en", now)).toBe("Wednesday, October 21, 2026")
+	})
 })

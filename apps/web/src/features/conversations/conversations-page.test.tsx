@@ -128,6 +128,7 @@ describe("ConversationsPage", () => {
 		expect(rows[2]?.textContent).toContain(DOCS.name)
 		expect(rows[2]?.textContent).toContain(t("conversations.messageCount", { count: 1 }))
 		expect(host.querySelector("a")?.getAttribute("href")).toBe("/dashboard/conversations/a")
+		expect(host.querySelector("nav")).toBeNull()
 	})
 
 	test("pages through conversations and keeps the filters in each transcript link", async () => {
@@ -137,6 +138,8 @@ describe("ConversationsPage", () => {
 			list([summary("p2-0", "2026-10-01T10:00:00.000Z")], 30, 2)
 
 		await renderPage({ agents: [SHOP.id] })
+		expect(host.textContent).toContain(t("conversations.total", { count: 30 }))
+		expect(host.querySelector("nav")?.getAttribute("aria-label")).toBe(t("conversations.pagination"))
 		expect(host.textContent).toContain(t("conversations.pageOf", { page: 1, pages: 2 }))
 		expect(button(t("conversations.previousPage")).disabled).toBe(true)
 		expect(host.querySelector("section h2")?.getAttribute("tabindex")).toBe("-1")
@@ -213,6 +216,9 @@ describe("ConversationsPage", () => {
 
 		expect(host.querySelector("output")?.textContent).toBe(t("conversations.noAgentSelected"))
 		expect(requested.some((url) => url.startsWith("/api/conversations"))).toBe(false)
+
+		await click(combobox(t("dashboard.agentsLabel")))
+		expect(button(t("dashboard.deselectAll"), document).disabled).toBe(true)
 	})
 
 	test("keeps only agents the operator can still read when the URL names others", async () => {

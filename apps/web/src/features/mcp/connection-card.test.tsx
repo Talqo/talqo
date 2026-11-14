@@ -93,6 +93,11 @@ function card(): HTMLElement {
 	return found
 }
 
+async function openToolCard() {
+	await renderCard(server({ tools: [{ name: "price", description: "", enabled: true }], toolCount: 1 }), true)
+	await click(button(t("mcp.showTools")))
+}
+
 beforeEach(() => {
 	harness = createTestHarness()
 	;({ host, root, queryClient: client } = harness)
@@ -105,6 +110,7 @@ afterEach(async () => {
 describe("ConnectionCard", () => {
 	test("shows the connection status as text beside the status dot", async () => {
 		await renderCard(server({ isWorking: true }))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		const metadata = card().querySelector("[data-slot='card-description']")
 		expect(metadata?.textContent).toContain(t("mcp.statusConnected"))
 		expect(metadata?.querySelector("[aria-hidden='true']")).not.toBeNull()
@@ -311,18 +317,33 @@ describe("ConnectionCard", () => {
 				{ code: "mcp-server-not-found", type: "https://docs.talqo.chat/problems#mcp-server-not-found" },
 				404,
 			)) as typeof fetch)
-		await renderCard(
-			server({
-				tools: [{ name: "price", description: "", enabled: true }],
-				toolCount: 1,
-			}),
-			true,
-		)
-		await click(button(t("mcp.showTools")))
+		await openToolCard()
 
 		await click(switchInput("price"))
 
 		expect(host.querySelector("[role='alert']")?.textContent).toBe(t("mcp.notFound"))
+	})
+
+	test("clears a failed action's message after a successful retry", async () => {
+		const fetchSpy = spyOn(globalThis, "fetch")
+		fetchSpy.mockImplementation((async (_input: RequestInfo | URL) =>
+			json(
+				{ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" },
+				500,
+			)) as typeof fetch)
+		await openToolCard()
+		await click(switchInput("price"))
+		expect(host.querySelector("[role='alert']")?.textContent).toBe(t("mcp.actionFailed"))
+
+		fetchSpy.mockImplementation((async (_input: RequestInfo | URL, init?: RequestInit) =>
+			init?.method === "PUT"
+				? json({ server: server() })
+				: json({
+						servers: [server({ tools: [{ name: "price", description: "", enabled: true }], toolCount: 1 })],
+						stdioAllowed: false,
+					})) as typeof fetch)
+		await click(switchInput("price"))
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("removes a connection after confirmation and refreshes the list", async () => {

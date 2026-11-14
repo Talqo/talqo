@@ -1,7 +1,7 @@
 import { json } from "@/testing/api-responses"
 import { act, createTestHarness, type QueryClient, type Root, settle } from "@/testing/component-harness"
 import { renderRouter } from "@/testing/router"
-import { afterEach, beforeEach, expect, test } from "bun:test"
+import { afterEach, beforeEach, expect, spyOn, test } from "bun:test"
 
 const { Route } = await import("./index")
 const { createMemoryHistory, createRootRoute, createRoute, createRouter } = await import("@tanstack/react-router")
@@ -123,9 +123,11 @@ test("parses shareable agent and range search params and guards on statistics ac
 test("updates the URL when the range changes", async () => {
 	const router = await renderPage("/dashboard/?agents=agent-1&days=7")
 	const historyLength = router.history.length
+	using navigate = spyOn(router, "navigate")
 
 	await choose(t("dashboard.rangeLabel"), t("dashboard.range30d"))
 
+	expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ replace: true, resetScroll: false }))
 	expect(router.state.location.search).toEqual({ agents: ["agent-1"], days: undefined })
 	expect(router.history.length).toBe(historyLength)
 })

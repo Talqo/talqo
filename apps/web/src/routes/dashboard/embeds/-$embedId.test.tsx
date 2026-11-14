@@ -56,6 +56,7 @@ const SAVED_EMBED: Embed = {
 
 let currentEmbed: Embed
 let agentPermissions: string[]
+let includeEmbedAgent: boolean
 let detailFailures: Response[]
 let agentsFailures: Response[]
 let updateFailures: Response[]
@@ -84,13 +85,17 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 					updatedAt: "2026-01-01T00:00:00.000Z",
 					permissions: ["agents:read"],
 				},
-				{
-					id: AGENT_ID,
-					name: "Support agent",
-					createdAt: "2026-01-01T00:00:00.000Z",
-					updatedAt: "2026-01-01T00:00:00.000Z",
-					permissions: agentPermissions,
-				},
+				...(includeEmbedAgent
+					? [
+							{
+								id: AGENT_ID,
+								name: "Support agent",
+								createdAt: "2026-01-01T00:00:00.000Z",
+								updatedAt: "2026-01-01T00:00:00.000Z",
+								permissions: agentPermissions,
+							},
+						]
+					: []),
 			],
 		})
 	}
@@ -193,6 +198,7 @@ async function typeInto(element: HTMLInputElement, value: string) {
 beforeEach(() => {
 	currentEmbed = INITIAL_EMBED
 	agentPermissions = [...DEFAULT_AGENT_PERMISSIONS]
+	includeEmbedAgent = true
 	detailFailures = []
 	agentsFailures = []
 	updateFailures = []
@@ -207,6 +213,17 @@ afterEach(async () => {
 	await harness.dispose()
 	window.localStorage.removeItem("talqo-language")
 	document.documentElement.lang = "en"
+})
+
+describe("embed route search", () => {
+	test("accepts only the light and dark color tabs", () => {
+		const validateSearch = Route.options.validateSearch
+		if (typeof validateSearch !== "function") throw new Error("Embed route has no search validator")
+
+		expect(validateSearch({ colorTab: "light" })).toEqual({ colorTab: "light" })
+		expect(validateSearch({ colorTab: "dark" })).toEqual({ colorTab: "dark" })
+		expect(validateSearch({ colorTab: "sepia" })).toEqual({ colorTab: undefined })
+	})
 })
 
 describe("embed appearance saving", () => {
@@ -225,10 +242,14 @@ describe("embed appearance saving", () => {
 		expect(button(t("embedSetup.save")).disabled).toBe(false)
 		expect(formStatus()).toBeUndefined()
 
+		const detailReadsBeforeSave = requests.filter(({ url, method }) => url === DETAIL_URL && method === "GET").length
 		await submit(button(t("embedSetup.save")))
 		await settle()
 		await settle()
 
+		expect(requests.filter(({ url, method }) => url === DETAIL_URL && method === "GET")).toHaveLength(
+			detailReadsBeforeSave + 1,
+		)
 		expect(updates).toHaveLength(2)
 		expect(updates[1]).toEqual({
 			name: "Draft name",
@@ -318,6 +339,20 @@ describe("embed detail loading", () => {
 		expect(
 			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("embedSetup.save")),
 		).toBe(false)
+
+		await act(async () => input("#widget-name").form?.requestSubmit())
+		await settle()
+
+		expect(requests.filter(({ method }) => method === "PUT")).toHaveLength(0)
+	})
+
+	test("treats an embed whose agent is not listed as read-only", async () => {
+		includeEmbedAgent = false
+		await renderPage()
+
+		expect(input("#widget-name").readOnly).toBe(true)
+		expect(host.querySelector("#embed-token")).toBeNull()
+		expect(host.textContent).not.toContain(t("embedSetup.deleteEmbed"))
 	})
 })
 
@@ -355,6 +390,19 @@ describe("embed snippet copying", () => {
 })
 
 describe("embed appearance controls", () => {
+	test("keeps an empty name unsaved and focuses it", async () => {
+		await renderPage()
+		await typeInto(input("#widget-name"), "")
+
+		await submit(button(t("embedSetup.save")))
+
+		expect(updates).toHaveLength(0)
+		expect(document.activeElement).toBe(input("#widget-name"))
+		expect(input("#widget-name").getAttribute("aria-invalid")).toBe("true")
+		expect(input("#widget-name").getAttribute("aria-describedby")).toBe("widget-name-error")
+		expect(host.querySelector("#widget-name-error")?.textContent).toBe(t("embedSetup.nameRequired"))
+	})
+
 	test("keeps the selected color scheme in the URL", async () => {
 		const router = await renderPage()
 		expect(button(t("embedSetup.tabLight")).getAttribute("aria-selected")).toBe("true")
@@ -402,7 +450,9 @@ describe("embed deletion", () => {
 		const router = await renderPage()
 		const listKey = getListEmbedsQueryKey()
 		const detailKey = getGetEmbedQueryKey(EMBED_ID)
+		const unrelatedKey = ["unrelated-cache"]
 		queryClient.setQueryData(listKey, { data: { embeds: [INITIAL_EMBED] } })
+		queryClient.setQueryData(unrelatedKey, { keep: true })
 		await typeInto(input("#widget-name"), "Unsaved embed name")
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("embedSetup.deleteEmbed")))
@@ -421,6 +471,14 @@ describe("embed deletion", () => {
 		expect(queryClient.getQueryData(listKey)).toEqual({ data: { embeds: [INITIAL_EMBED] } })
 		expect(queryClient.getQueryData(detailKey)).toMatchObject({ data: { embed: INITIAL_EMBED } })
 
+		await click(button(t("embedSetup.cancel"), deleteDialog()))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		await click(button(t("embedSetup.deleteEmbed")))
+		expect(deleteDialog().querySelector("[role='alert']")).toBeNull()
+		const retriedConfirmation = deleteDialog().querySelector("input")
+		if (!(retriedConfirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
+		await typeInto(retriedConfirmation, INITIAL_EMBED.name)
+
 		await click(button(t("embedSetup.deleteConfirm"), deleteDialog()))
 
 		expect(router.state.location.pathname).toBe(`/dashboard/agent/${AGENT_ID}`)
@@ -429,5 +487,6 @@ describe("embed deletion", () => {
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(queryClient.getQueryData(listKey)).toBeUndefined()
 		expect(queryClient.getQueryData(detailKey)).toBeUndefined()
+		expect(queryClient.getQueryData(unrelatedKey)).toEqual({ keep: true })
 	})
 })

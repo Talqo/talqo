@@ -95,6 +95,23 @@ describe("ConversationPage", () => {
 		expect(host.querySelector("h1")?.textContent).toBe(`${"a".repeat(80)}…`)
 	})
 
+	test("keeps a first message of exactly the preview limit intact", async () => {
+		transcript = async () => json({ conversation: conversationWith("a".repeat(80)) })
+
+		await renderPage()
+
+		expect(host.querySelector("h1")?.textContent).toBe("a".repeat(80))
+	})
+
+	test("offers a retry when the transcript request fails without a problem body", async () => {
+		transcript = async () => Promise.reject(new Error("offline"))
+
+		await renderPage()
+
+		expect(host.querySelector("[role=alert] p")?.textContent).toBe(t("auth.errorFallback"))
+		expect(host.textContent).toContain(t("common.retry"))
+	})
+
 	test("names the unknown agent when the conversation has no visitor message", async () => {
 		transcript = async () =>
 			json({

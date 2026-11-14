@@ -16,23 +16,51 @@ describe("normalizeAgentInput", () => {
 	})
 
 	it.each([
-		["an empty name", { name: "   ", systemPrompt: "Prompt", wordBlacklist: [] as string[] }],
+		["an empty name", { name: "   ", systemPrompt: "Prompt", wordBlacklist: [] as string[] }, "Agent name is required"],
 		[
 			"a name longer than 100 characters",
 			{ name: "x".repeat(101), systemPrompt: "Prompt", wordBlacklist: [] as string[] },
+			"Agent name must be at most 100 characters",
 		],
-		["an empty system prompt", { name: "Agent", systemPrompt: "  ", wordBlacklist: [] as string[] }],
+		[
+			"an empty system prompt",
+			{ name: "Agent", systemPrompt: "  ", wordBlacklist: [] as string[] },
+			"System prompt is required",
+		],
 		[
 			"a system prompt longer than 20000 characters",
 			{ name: "Agent", systemPrompt: "x".repeat(20_001), wordBlacklist: [] as string[] },
+			"System prompt must be at most 20000 characters",
 		],
-		["a blacklist word longer than 100 characters", { name: "A", systemPrompt: "P", wordBlacklist: ["x".repeat(101)] }],
+		[
+			"a blacklist word longer than 100 characters",
+			{ name: "A", systemPrompt: "P", wordBlacklist: ["x".repeat(101)] },
+			"Blacklist words must be at most 100 characters",
+		],
 		[
 			"more than 100 blacklist words",
 			{ name: "A", systemPrompt: "P", wordBlacklist: Array.from({ length: 101 }, (_, index) => `word${index}`) },
+			"An agent may define at most 100 blacklist words",
 		],
-	])("rejects %s", (_label, input) => {
+	])("rejects %s", (_label, input, message) => {
 		expect(() => normalizeAgentInput(input)).toThrow(InvalidAgentInputError)
+		expect(() => normalizeAgentInput(input)).toThrow(message)
+	})
+
+	it("accepts values at the documented limits", () => {
+		const input = normalizeAgentInput({
+			name: "n".repeat(100),
+			systemPrompt: "p".repeat(20_000),
+			wordBlacklist: ["w".repeat(100)],
+		})
+		const words = Array.from({ length: 100 }, (_, index) => `word${index}`)
+
+		expect(input).toEqual({
+			name: "n".repeat(100),
+			systemPrompt: "p".repeat(20_000),
+			wordBlacklist: ["w".repeat(100)],
+		})
+		expect(normalizeAgentInput({ name: "A", systemPrompt: "P", wordBlacklist: words }).wordBlacklist).toHaveLength(100)
 	})
 
 	it("trims each blacklist word", () => {

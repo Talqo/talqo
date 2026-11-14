@@ -440,6 +440,7 @@ describe("role management", () => {
 		roles = [{ id: "support", name: "Support", permissions: [], memberCount: 0 }]
 		await renderPage("support")
 		expect(permissionSwitch(t("roles.permissionLabels.aiProviderManage")).disabled).toBe(true)
+		expect(permissionSwitch(t("roles.permissionLabels.rolesManage")).getAttribute("aria-checked")).toBe("false")
 		expect(host.textContent).toContain(t("roles.notYours"))
 		await click(permissionSwitch(t("roles.permissionLabels.usersManage")))
 		const included = permissionSwitch(t("roles.permissionLabels.usersRead"))
@@ -484,6 +485,7 @@ describe("role management", () => {
 		expect(nameInput().value).toBe("Renamed elsewhere")
 		expect(button(t("roles.save"), host).disabled).toBe(true)
 		expect(host.textContent).not.toContain(t("roles.unsaved"))
+		expect(host.textContent).not.toContain(t("roles.saved"))
 	})
 
 	test("lists the agents this role gives access to", async () => {
@@ -555,6 +557,7 @@ describe("role management", () => {
 		refreshedRolesResponse = deferred.promise
 		await save()
 		expect(nameInput().disabled).toBe(true)
+		expect(permissionSwitch(t("roles.permissionLabels.usersRead")).closest("fieldset")?.disabled).toBe(true)
 		expect(button(t("roles.saving"), host).disabled).toBe(true)
 		expect(button(t("roles.delete"), host).disabled).toBe(true)
 		await act(async () =>
@@ -568,6 +571,7 @@ describe("role management", () => {
 		await settle()
 		expect(nameInput().value).toBe("Helpdesk")
 		expect(nameInput().disabled).toBe(false)
+		expect(permissionSwitch(t("roles.permissionLabels.usersRead")).closest("fieldset")?.disabled).toBe(false)
 		expect(host.textContent).toContain(t("roles.saved"))
 	})
 
@@ -686,6 +690,22 @@ describe("role management", () => {
 		await renderPage("managers")
 		await click(permissionSwitch(t("roles.permissionLabels.rolesManage")))
 		expect(host.textContent).toContain(t("roles.lockoutWarningEdit"))
+	})
+
+	test("does not warn about losing role management another role still grants", async () => {
+		myPermissions = ["roles:manage", "users:read"]
+		myRoleIds = ["managers", "backup"]
+		roles = [
+			{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 },
+			{ id: "backup", name: "Backup", permissions: ["roles:manage"], memberCount: 1 },
+		]
+		await renderPage("managers")
+
+		await click(permissionSwitch(t("roles.permissionLabels.rolesManage")))
+		expect(host.textContent).not.toContain(t("roles.lockoutWarningEdit"))
+
+		await click(button(t("roles.delete"), host))
+		expect(dialog().textContent).not.toContain(t("roles.lockoutWarningDelete"))
 	})
 
 	test("explains a deleted or unknown role instead of showing an empty editor", async () => {

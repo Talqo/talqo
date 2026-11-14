@@ -2,11 +2,13 @@ import { describe, expect, test } from "bun:test"
 
 import {
 	configFromMessage,
+	configMessage,
 	isReadyMessage,
 	PREVIEW_CHANNEL_VERSION,
 	readyMessage,
 	trustedParentOrigin,
 } from "./preview-channel"
+import { DEFAULT_WIDGET_APPEARANCE } from "./widget-appearance"
 
 const partialAppearance = { light: { primary: "#1a7f4b" }, position: "bottom-left" }
 
@@ -21,6 +23,29 @@ function message(overrides: Record<string, unknown> = {}) {
 }
 
 describe("preview channel", () => {
+	test("builds config messages for the current protocol with optional presentation", () => {
+		expect(configMessage(DEFAULT_WIDGET_APPEARANCE)).toEqual({
+			source: "talqo-preview",
+			version: PREVIEW_CHANNEL_VERSION,
+			type: "config",
+			appearance: DEFAULT_WIDGET_APPEARANCE,
+			title: undefined,
+			forcedScheme: undefined,
+			isAvailable: undefined,
+		})
+		expect(
+			configMessage(DEFAULT_WIDGET_APPEARANCE, { title: "Preview", forcedScheme: "light", isAvailable: true }),
+		).toEqual({
+			source: "talqo-preview",
+			version: PREVIEW_CHANNEL_VERSION,
+			type: "config",
+			appearance: DEFAULT_WIDGET_APPEARANCE,
+			title: "Preview",
+			forcedScheme: "light",
+			isAvailable: true,
+		})
+	})
+
 	test("recognizes only the current ready handshake", () => {
 		expect(readyMessage()).toEqual({ source: "talqo-preview", version: PREVIEW_CHANNEL_VERSION, type: "ready" })
 		expect(isReadyMessage(readyMessage())).toBe(true)
@@ -52,6 +77,8 @@ describe("preview channel", () => {
 			isAvailable: false,
 		})
 		expect(configFromMessage(message({ forcedScheme: "sepia" }))?.forcedScheme).toBeUndefined()
+		expect(configFromMessage(message({ forcedScheme: "light" }))?.forcedScheme).toBe("light")
+		expect(configFromMessage(message({ title: 42 }))?.title).toBeUndefined()
 		expect(configFromMessage(message({ isAvailable: "no" }))?.isAvailable).toBeUndefined()
 	})
 

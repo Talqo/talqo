@@ -71,4 +71,13 @@ describe("Transcript outcomes", () => {
 		expect(html).toContain(t("conversations.outcomeInterrupted"))
 		expect(html).not.toContain('data-slot="markdown"')
 	})
+
+	test("does not label an outcome on a visitor message", () => {
+		const html = renderToStaticMarkup(
+			<Transcript messages={[{ id: "1", role: "user", text: "Hello", outcome: "failed", createdAt: CREATED_AT }]} />,
+		)
+
+		expect(html).toContain(t("conversations.visitor"))
+		expect(html).not.toContain(t("conversations.outcomeFailed"))
+	})
 })

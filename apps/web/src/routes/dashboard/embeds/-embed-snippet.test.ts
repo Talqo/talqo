@@ -12,6 +12,7 @@ describe("buildEmbedSnippet", () => {
 		expect(snippet).toContain('data-talqo-embed-token="tok_123"')
 		expect(snippet).not.toContain("data-talqo-widget")
 		expect(snippet).not.toContain("undefined")
+		expect(snippet.endsWith("></script>")).toBe(true)
 	})
 
 	test("loads asynchronously so the widget stays off the host critical path", () => {

@@ -13,6 +13,7 @@ type Agent = ListRoleAgents200["agents"][number]
 type Permission = Agent["permissions"][number]
 const ALL: Permission[] = ["stats:read", "conversations:read", "agents:read", "agents:manage", "agents:delete"]
 let agents: Agent[]
+let agentsAfterRefresh: Agent[] | undefined
 let dirtyCalls: boolean[]
 let mutations: { method: string; body?: string }[]
 let gets: string[]
@@ -102,13 +103,14 @@ beforeEach(() => {
 	failure = undefined
 	getFailure = undefined
 	refreshResponse = undefined
+	agentsAfterRefresh = undefined
 	harness = createTestHarness({
 		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 			const method = init?.method ?? "GET"
 			if (method === "GET") {
 				gets.push(url)
-				return getFailure ?? refreshResponse ?? json({ agents })
+				return getFailure ?? refreshResponse ?? json({ agents: agentsAfterRefresh ?? agents })
 			}
 			mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
 			if (failure) return failure
@@ -133,6 +135,7 @@ afterEach(async () => {
 describe("RoleAccessCard", () => {
 	test("directs an empty existing grant to removal instead of Save", async () => {
 		await render()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(host.textContent).not.toContain(t("agentAccess.saved"))
 		expect(host.textContent).not.toContain(t("agentAccess.removed"))
 		expect(host.textContent).not.toContain(t("agentAccess.useRemove"))
@@ -157,6 +160,24 @@ describe("RoleAccessCard", () => {
 		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("true")
 		expect(host.textContent).not.toContain(t("agentAccess.empty"))
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
+	})
+
+	test("clears protected content when access to an agent disappears on refresh", async () => {
+		agents = [...agents, { id: "extra", name: "Extra bot", permissions: ALL, rolePermissions: ["stats:read"] }]
+		await render()
+		client.setQueryData(["/api/agents/agent"], { private: true })
+		agentsAfterRefresh = agents.filter(({ id }) => id !== "support")
+		await confirmRemoval()
+		expect(client.getQueryData(["/api/agents/agent"])).toBeUndefined()
+	})
+
+	test("clears protected content when a grant loses some of its permissions", async () => {
+		await render(["stats:read", "conversations:read"])
+		client.setQueryData(["/api/agents/agent"], { private: true })
+		agentsAfterRefresh = [{ ...agentAt(0), permissions: ["stats:read"] }, ...agents.slice(1)]
+		await click(permissionSwitch("conversations:read"))
+		await click(button(t("agentAccess.save")))
+		expect(client.getQueryData(["/api/agents/agent"])).toBeUndefined()
 	})
 
 	test("shows the latest operation's failure and keeps the draft", async () => {
@@ -232,6 +253,7 @@ describe("RoleAccessCard", () => {
 		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("true")
 		expect(button(t("agentAccess.save")).disabled).toBe(true)
 		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("false")
+		expect(host.textContent).not.toContain(t("agentAccess.useRemove"))
 		await click(button(t("agentConfig.cancel")))
 		expect(host.textContent).not.toContain(t("agentAccess.permissionsFor", { agent: "Observers bot" }))
 		expect(mutations).toEqual([])
@@ -271,6 +293,7 @@ describe("RoleAccessCard", () => {
 
 	test("clears the dirty flag when the card unmounts", async () => {
 		await render()
+		expect(dirtyCalls.at(-1)).toBe(false)
 		await click(permissionSwitch("stats:read"))
 		expect(dirtyCalls.at(-1)).toBe(true)
 		await act(async () => root.render(null))
@@ -327,15 +350,19 @@ describe("RoleAccessCard", () => {
 
 	test("returns focus to the add choice after removing the last grant", async () => {
 		await render()
+		await click(permissionSwitch("conversations:read"))
 
 		await confirmRemoval()
 
 		expect(host.textContent).toContain(t("agentAccess.removed"))
+		expect([...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === "Support bot")).toBe(
+			false,
+		)
 		expect(document.activeElement).toBe(host.querySelector("[role=combobox]"))
 	})
 
 	test("disables removal when the grant contains a permission the caller does not hold", async () => {
-		agents[0] = { ...agentAt(0), rolePermissions: ["agents:manage"] }
+		agents[0] = { ...agentAt(0), rolePermissions: ["agents:read", "agents:manage"] }
 		await render(["agents:read", "stats:read", "conversations:read", "agents:delete"])
 
 		expect(permissionSwitch("agents:manage").getAttribute("aria-checked")).toBe("true")

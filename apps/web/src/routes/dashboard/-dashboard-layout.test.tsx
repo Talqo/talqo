@@ -216,8 +216,21 @@ test("redirects a denied caller with no readable pages to the account", async ()
 	await settle()
 
 	expect(rendered.router.state.location.pathname).toBe("/dashboard/account")
+	expect(rendered.router.history.length).toBe(1)
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("account.heading"))
 	expect([...rendered.host.querySelectorAll("aside nav a")].map((link) => link.textContent)).toEqual([t("nav.account")])
+})
+
+test("marks only the navigation item for the current page as current", async () => {
+	mockSignedInAdmin()
+	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)
+	await act(async () => rendered.router.navigate({ to: "/dashboard/team" }))
+	await settle()
+
+	const current = [...rendered.host.querySelectorAll("aside nav a")]
+		.filter((link) => link.getAttribute("aria-current") === "page")
+		.map((link) => link.textContent)
+	expect(current).toEqual([t("nav.team")])
 })
 
 test("logs out, clears protected caches, and returns to login", async () => {

@@ -29,14 +29,32 @@ const AGENTS = [
 	},
 ]
 
+const HIDDEN_AGENT = {
+	id: "agent-3",
+	name: "Hidden helper",
+	createdAt: "2026-10-22T00:00:00.000Z",
+	updatedAt: "2026-10-22T00:00:00.000Z",
+	permissions: [],
+}
+
+const CREATED_AGENT = {
+	id: AGENTS[0]?.id,
+	name: AGENTS[0]?.name,
+	systemPrompt: "prompt",
+	wordBlacklist: [],
+	createdAt: "2026-10-20T00:00:00.000Z",
+	updatedAt: "2026-10-20T00:00:00.000Z",
+}
+
 let requested: string[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-let permissionResponse: () => Response
+let permissionResponse: () => Response | Promise<Response>
 let agentsResponse: () => Response | Promise<Response>
 let statsResponse: (days: string | null) => Response | Promise<Response>
+let createResponse: () => Response | Promise<Response>
 let createBody: { name?: string; systemPrompt?: string; wordBlacklist?: string[] } | undefined
 let createdAgent = false
 
@@ -47,6 +65,22 @@ function emptyOverview(days: number): { overview: StatsOverview } {
 			totals: { conversations: 0, messages: 0, inputTokens: 0, outputTokens: 0 },
 			daily: [],
 			agentDaily: [],
+			agents: [],
+			active: [],
+			activeWindowMinutes: 5,
+		},
+	}
+}
+
+const ZERO_USAGE = { conversations: 0, messages: 0, inputTokens: 0, outputTokens: 0 }
+
+function singleMetricOverview(usage: Partial<typeof ZERO_USAGE>): { overview: StatsOverview } {
+	return {
+		overview: {
+			days: 30,
+			totals: { ...ZERO_USAGE },
+			daily: [{ date: "2026-11-01", ...ZERO_USAGE, ...usage }],
+			agentDaily: [{ agentId: "agent-1", date: "2026-11-01", ...ZERO_USAGE, ...usage }],
 			agents: [],
 			active: [],
 			activeWindowMinutes: 5,
@@ -197,6 +231,7 @@ beforeEach(() => {
 	permissionResponse = () => json({ permissions: ["admin"] })
 	agentsResponse = () => json({ agents: AGENTS })
 	statsResponse = (days) => json(emptyOverview(days === "all" ? 0 : Number(days)))
+	createResponse = () => json({ agent: CREATED_AGENT })
 	harness = createTestHarness({
 		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
@@ -204,17 +239,9 @@ beforeEach(() => {
 			if (url === "/api/me/permissions") return permissionResponse()
 			if (url === "/api/agents" && init?.method === "POST") {
 				createBody = JSON.parse(typeof init.body === "string" ? init.body : "{}") as typeof createBody
-				createdAgent = true
-				return json({
-					agent: {
-						id: AGENTS[0]?.id,
-						name: AGENTS[0]?.name,
-						systemPrompt: "prompt",
-						wordBlacklist: [],
-						createdAt: "2026-10-20T00:00:00.000Z",
-						updatedAt: "2026-10-20T00:00:00.000Z",
-					},
-				})
+				const response = await createResponse()
+				createdAgent = response.ok
+				return response
 			}
 			if (url === "/api/agents") return createdAgent ? json({ agents: [AGENTS[0]] }) : agentsResponse()
 			if (url.startsWith("/api/stats")) return statsResponse(new URL(url, "http://localhost").searchParams.get("days"))
@@ -367,6 +394,22 @@ test("shows the loading skeleton until both queries resolve", async () => {
 	expect(host.textContent).not.toContain(t("dashboard.loading"))
 })
 
+test("keeps the skeleton instead of claiming there are no agents while they load", async () => {
+	const agents = Promise.withResolvers<Response>()
+	agentsResponse = () => agents.promise
+	statsResponse = (days) => json(usageOverview(days === "all" ? 0 : Number(days)))
+	await renderPage({})
+
+	expect(host.querySelector("output")?.textContent).toBe(t("dashboard.loading"))
+	expect(host.textContent).not.toContain(t("dashboard.noAgentsTitle"))
+
+	await act(async () => agents.resolve(json({ agents: AGENTS })))
+	await settle()
+	await settle()
+
+	expect(host.textContent).not.toContain(t("dashboard.loading"))
+})
+
 test("denies statistics access when either query is forbidden", async () => {
 	statsResponse = () => json({}, 403)
 	await renderPage({})
@@ -404,4 +447,63 @@ test("invites the operator to create the first agent and opens it", async () => 
 	})
 	expect(opened[0]).toBe(AGENTS[0]?.id)
 	expect(requested.filter((url) => url === "/api/agents").length).toBeGreaterThanOrEqual(2)
+})
+
+test("does not offer agent creation without the admin permission", async () => {
+	permissionResponse = () => json({ permissions: ["stats:read"] })
+	agentsResponse = () => json({ agents: [] })
+	await renderPage({})
+
+	expect(host.textContent).toContain(t("dashboard.noAgentsTitle"))
+	expect(host.querySelector('[data-slot="empty-state"] button')).toBeNull()
+})
+
+test("does not offer agent creation before permissions are known", async () => {
+	const permissions = Promise.withResolvers<Response>()
+	permissionResponse = () => permissions.promise
+	agentsResponse = () => json({ agents: [] })
+	await renderPage({})
+
+	expect(host.textContent).toContain(t("dashboard.noAgentsTitle"))
+	expect(host.querySelector('[data-slot="empty-state"] button')).toBeNull()
+})
+
+test("offers only agents that grant statistics access", async () => {
+	statsResponse = (days) => json(usageOverview(days === "all" ? 0 : Number(days)))
+	agentsResponse = () => json({ agents: [...AGENTS, HIDDEN_AGENT] })
+	await renderPage({})
+
+	expect(host.textContent).toContain(t("dashboard.agentsSelected", { selected: 2, total: 2, count: 2 }))
+	expect(breakdownRows()).toHaveLength(2)
+})
+
+test.each([
+	{ metric: "conversations", usage: { conversations: 1 } },
+	{ metric: "messages", usage: { messages: 1 } },
+	{ metric: "tokens", usage: { inputTokens: 1 } },
+])("shows usage when only $metric has activity in the range", async ({ usage }) => {
+	statsResponse = () => json(singleMetricOverview(usage))
+	await renderPage({ days: 7 })
+
+	expect(host.textContent).not.toContain(t("dashboard.emptyTitle"))
+	expect(host.textContent).toContain(t("dashboard.usageOverTime"))
+})
+
+test("retries creating the first agent after a retryable failure", async () => {
+	agentsResponse = () => json({ agents: [] })
+	let attempts = 0
+	createResponse = () => {
+		attempts += 1
+		return attempts === 1
+			? json({ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" }, 500)
+			: json({ agent: CREATED_AGENT })
+	}
+	await renderPage({})
+
+	await click(button(t("agents.create")))
+	expect(host.textContent).toContain(t("agents.createFailed"))
+
+	await click(button(t("common.retry")))
+	expect(host.textContent).not.toContain(t("agents.createFailed"))
+	expect(host.textContent).not.toContain(t("dashboard.noAgentsTitle"))
 })

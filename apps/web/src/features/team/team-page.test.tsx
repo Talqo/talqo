@@ -37,6 +37,7 @@ let resetPending: Promise<Response> | undefined
 let rolesFailure: Response | undefined
 let rolesResponse: Promise<Response> | undefined
 let usersFailure: Response | undefined
+let usersResponse: Promise<Response> | undefined
 let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
@@ -60,7 +61,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const { url, method } = recordRequest(requests, input, init)
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
-	if (url === "/api/users") return usersFailure ?? json({ users })
+	if (url === "/api/users") return usersResponse ?? usersFailure ?? json({ users })
 	if (url === "/api/roles")
 		return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/invitations" && method === "POST")
@@ -186,6 +187,7 @@ beforeEach(() => {
 	rolesFailure = undefined
 	rolesResponse = undefined
 	usersFailure = undefined
+	usersResponse = undefined
 	requests = []
 	harness = createTestHarness({ fetch: respond as typeof fetch })
 	;({ host, root, queryClient } = harness)
@@ -397,6 +399,17 @@ describe("TeamPage", () => {
 		expect(card("helper").textContent).toContain("helper")
 	})
 
+	test("shows the team skeleton until the member list resolves", async () => {
+		const deferred = Promise.withResolvers<Response>()
+		usersResponse = deferred.promise
+		await renderPage()
+
+		expect(host.textContent).toContain(t("team.loading"))
+		await act(async () => deferred.resolve(json({ users: [user("helper")] })))
+		await settle()
+		expect(card("helper")).not.toBeNull()
+	})
+
 	test("replaces a forbidden team list with an access denial", async () => {
 		usersFailure = problem("permission-denied", 403)
 		await renderPage()
@@ -428,6 +441,8 @@ describe("TeamPage", () => {
 
 		expect(buttonNames(host)).toContain(t("auth.invitations.heading"))
 		expect(buttonNames(card("reader"))).toEqual([t("team.resetPassword"), t("team.delete")])
+		expect(card("reader").textContent).not.toContain(t("team.cannotChange"))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(buttonNames(card("editor"))).toEqual([])
 		expect(card("editor").textContent).toContain(t("team.cannotChange"))
 	})
@@ -482,6 +497,10 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
 		expect(dialogInput(t("account.newPassword")).value).toBe(password)
 		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(password)
+
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("team.resetPassword"), card("helper")))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("resets only the selected user's password, refreshes users, and clears the form", async () => {
@@ -533,7 +552,7 @@ describe("TeamPage", () => {
 	})
 
 	test("explains when the generated password cannot be copied", async () => {
-		spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("clipboard unavailable"))
+		const writeText = spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("clipboard unavailable"))
 		users = [user("helper")]
 		await renderPage()
 		await click(button(t("team.resetPassword"), card("helper")))
@@ -541,6 +560,10 @@ describe("TeamPage", () => {
 		await click(labelledButton(t("team.copy"), dialog()))
 
 		expect(dialog().textContent).toContain(t("team.copyFailed"))
+
+		writeText.mockResolvedValue(undefined)
+		await click(labelledButton(t("team.copy"), dialog()))
+		expect(dialog().textContent).not.toContain(t("team.copyFailed"))
 	})
 
 	test("keeps deletion actionable and shows the server error after a failure", async () => {
@@ -574,6 +597,22 @@ describe("TeamPage", () => {
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 		expect(host.querySelector("[data-user-id='helper']")).toBeNull()
+	})
+
+	test("deletes the selected member and refreshes the list", async () => {
+		users = [user("helper"), user("other")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		expect(requests.find(({ method }) => method === "DELETE")).toEqual({
+			method: "DELETE",
+			url: "/api/users/helper",
+			body: undefined,
+		})
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {

@@ -9,6 +9,11 @@ const MCP = "talqo:mcp-credentials:v1"
 const context = { configId: "singleton", providerId: "openai", role: "text" as const }
 
 describe("credential vault", () => {
+	it("refuses to hold credentials without an app secret", () => {
+		expect(() => createCredentialVault(undefined, AI_PROVIDER)).toThrow(/APP_SECRET must be set/)
+		expect(() => createCredentialVault("", AI_PROVIDER)).toThrow(/APP_SECRET must be set/)
+	})
+
 	it("round-trips credentials without storing plaintext", () => {
 		const vault = createCredentialVault(APP_SECRET, AI_PROVIDER)
 		const envelope = vault.encrypt({ apiKey: "sk-secret" }, context)

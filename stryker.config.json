@@ -31,7 +31,8 @@
 		"!apps/web/src/features/**/*-shell.tsx",
 		"!apps/web/src/features/**/*-switcher.tsx",
 		"!apps/web/src/features/statistics/components/stats-charts.tsx",
-		"!apps/web/src/lib/i18n*.ts"
+		"!apps/web/src/lib/i18n*.ts",
+		"!apps/web/src/testing/**"
 	],
 	"bun": {
 		"testFiles": [
@@ -47,7 +48,7 @@
 			"--path-ignore-patterns",
 			"**/*.integration.test.ts"
 		],
-		"timeout": 5000
+		"timeout": 15000
 	},
 	"reporters": ["clear-text", "progress", "html", "json", "event-recorder"],
 	"ignorePatterns": ["reports"]

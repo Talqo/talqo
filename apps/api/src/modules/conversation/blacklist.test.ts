@@ -36,4 +36,33 @@ describe("streaming blacklist", () => {
 		expect(emitted.blocked).toBe(false)
 		expect(emitted.text + filter.finish()).toBe("safe text")
 	})
+
+	it("ignores empty configured terms", () => {
+		const filter = createBlacklistFilter(["", "blocked"])
+
+		expect(filter.push("safe")).toEqual({ blocked: false, text: "" })
+		expect(filter.finish()).toBe("safe")
+	})
+
+	it("stays blocked once a match was emitted", () => {
+		const filter = createBlacklistFilter(["bad"])
+
+		expect(filter.push("bad")).toEqual({ blocked: true, text: "" })
+		expect(filter.push("safe")).toEqual({ blocked: true, text: "" })
+		expect(filter.finish()).toBe("")
+	})
+
+	it("holds back the longest term tail so a split match is still caught", () => {
+		const filter = createBlacklistFilter(["blocked"])
+
+		expect(filter.push("blocke")).toEqual({ blocked: false, text: "" })
+		expect(filter.push("d")).toEqual({ blocked: true, text: "" })
+	})
+
+	it("emits text only beyond the held-back tail", () => {
+		const filter = createBlacklistFilter(["blocked"])
+
+		expect(filter.push("0123456789")).toEqual({ blocked: false, text: "012" })
+		expect(filter.finish()).toBe("3456789")
+	})
 })

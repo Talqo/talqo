@@ -86,6 +86,8 @@ let saveRequests: SaveAiProviderConfigurationInput[]
 let saveResponse: Promise<Response> | undefined
 let configurationRequests: number
 let providersFailure: Response | undefined
+let discoveryRequests: Array<{ providerId: string }>
+let discoveryFailure: Response | undefined
 
 function baseUrlInput(): HTMLInputElement {
 	const element = host.querySelector<HTMLInputElement>("#text-baseURL")
@@ -104,6 +106,12 @@ async function type(element: HTMLInputElement, text: string) {
 		const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set
 		valueSetter?.call(element, text)
 		element.dispatchEvent(new Event("input", { bubbles: true }))
+	})
+}
+
+async function wait(milliseconds: number) {
+	await act(async () => {
+		await new Promise((resolve) => setTimeout(resolve, milliseconds))
 	})
 }
 
@@ -204,7 +212,12 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
 	if (url === "/api/ai-providers") return providersFailure ?? json({ providers })
-	if (url === "/api/ai-provider-models/discover") return json({ models: [] })
+	if (url === "/api/ai-provider-models/discover") {
+		discoveryRequests.push(
+			(typeof init?.body === "string" ? JSON.parse(init.body) : init?.body) as { providerId: string },
+		)
+		return discoveryFailure ?? json({ models: [] })
+	}
 	if (url === "/api/ai-provider-configuration" && method === "PUT") {
 		const body = JSON.parse(
 			typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? null),
@@ -241,6 +254,8 @@ beforeEach(() => {
 	saveResponse = undefined
 	configurationRequests = 0
 	providersFailure = undefined
+	discoveryRequests = []
+	discoveryFailure = undefined
 	harness = createTestHarness({ fetch: respond as typeof fetch })
 	;({ host, root, queryClient } = harness)
 })
@@ -253,6 +268,7 @@ describe("AiConfigurationPage", () => {
 	test("keeps unsaved edits when the configuration refetches unchanged", async () => {
 		await renderPage()
 		expect(baseUrlInput().value).toBe("https://server.example/v1")
+		expect(host.textContent).not.toContain(t("aiConfiguration.saved"))
 
 		await type(baseUrlInput(), "https://edited.example/v1")
 		await act(() => queryClient.refetchQueries())
@@ -409,6 +425,7 @@ describe("AiConfigurationPage", () => {
 
 		expect(host.querySelector("#text-provider")?.getAttribute("aria-required")).toBe("true")
 		expect(host.querySelector("#text-model")?.hasAttribute("required")).toBe(true)
+		expect(host.querySelector("#text-authentication")).toBeNull()
 		expect(host.textContent).toContain(t("common.requiredHint"))
 		const save = button(t("aiConfiguration.save"))
 		expect(save.disabled).toBe(true)
@@ -472,6 +489,7 @@ describe("AiConfigurationPage", () => {
 		}
 		await renderPage()
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-selected")).toBe("true")
+		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-disabled")).not.toBe("true")
 
 		await choose("text-provider", t("aiConfiguration.providers.openai"))
 		expect(host.querySelector("#embedding-provider")).toBeNull()
@@ -734,5 +752,114 @@ describe("AiConfigurationPage", () => {
 		expect(model.getAttribute("aria-invalid")).toBe("true")
 		expect(model.getAttribute("aria-describedby")).toBe("embedding-model-error")
 		expect(document.activeElement).toBe(model)
+	})
+
+	test("shows the discovery failure notice only after discovery fails and recovers on retry", async () => {
+		discoveryFailure = json({}, 500)
+		await renderPage()
+		expect(host.textContent).not.toContain(t("aiConfiguration.discovery.unavailableStored"))
+
+		await wait(450)
+		expect(host.textContent).toContain(t("aiConfiguration.discovery.unavailableStored"))
+
+		discoveryFailure = undefined
+		while (true) {
+			const retry = [...host.querySelectorAll("button")].find(
+				(element) => element.textContent?.trim() === t("aiConfiguration.discovery.retry"),
+			)
+			if (!retry) break
+			// oxlint-disable-next-line no-await-in-loop -- retry buttons re-render after each discovery attempt
+			await act(async () => retry.click())
+			// oxlint-disable-next-line no-await-in-loop -- discovery is debounced
+			await wait(450)
+		}
+		expect(host.textContent).not.toContain(t("aiConfiguration.discovery.unavailableStored"))
+	})
+
+	test("discovers models with each role's selected provider", async () => {
+		providers = [PROVIDER, OPENAI]
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("openai", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration("openai", "embedding-model", { baseURL: "https://server.example/v1" }),
+				credentialSource: "separate",
+			},
+		}
+		await renderPage()
+		await wait(450)
+
+		expect(discoveryRequests).not.toHaveLength(0)
+		for (const request of discoveryRequests) expect(request.providerId).toBe("openai")
+	})
+
+	test("copies the text connection when embeddings reuse it and restores the separate draft", async () => {
+		await renderPage()
+
+		await act(async () => tab(t("aiConfiguration.tabs.sameProvider")).click())
+		await settle()
+		expect(host.querySelector("#embedding-provider")).toBeNull()
+		expect(host.querySelector("#embedding-baseURL")).toBeNull()
+		expect(host.querySelector<HTMLInputElement>("#embedding-model")?.value).toBe("embedding-model")
+
+		await act(async () => tab(t("aiConfiguration.tabs.differentProvider")).click())
+		await settle()
+		expect(embeddingBaseUrlInput().value).toBe("https://embeddings.example/v1")
+	})
+
+	test("asks for credentials after switching to a provider without stored credentials", async () => {
+		providers = [PROVIDER, OPENAI]
+		await renderPage()
+
+		await choose("text-provider", t("aiConfiguration.providers.openai"))
+
+		const apiKey = host.querySelector<HTMLInputElement>("#text-apiKey")
+		expect(apiKey?.hasAttribute("required")).toBe(true)
+		expect(savedCredentialSections()).toHaveLength(1)
+	})
+
+	test("treats a whitespace-only required setting as missing", async () => {
+		await renderPage()
+		await type(baseUrlInput(), "   ")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-baseURL-error")?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(document.activeElement?.id).toBe("text-baseURL")
+		expect(saveRequests).toHaveLength(0)
+	})
+
+	test("offers only embedding-capable providers for a separate embedding connection", async () => {
+		providers = [PROVIDER, BEDROCK]
+		await renderPage()
+
+		await act(async () => document.getElementById("embedding-provider")?.click())
+		await settle()
+		const popup = [...document.querySelectorAll("[data-slot=select-content]")].at(-1) ?? document
+		const labels = [...popup.querySelectorAll("[role=option]")].map((option) => option.textContent?.trim())
+
+		expect(labels).toContain(t("aiConfiguration.providers.openaiCompatible"))
+		expect(labels).not.toContain(t("aiConfiguration.providers.amazonBedrock"))
+	})
+
+	test("does not demand embedding credentials when embeddings reuse the text ones", async () => {
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration("openai-compatible", "embedding-model", { baseURL: "https://server.example/v1" }, false),
+				credentialSource: "text",
+			},
+		}
+		await renderPage()
+
+		await type(inputById("text-model"), "chat-model-next")
+		await submit()
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.embedding).toMatchObject({ credentialSource: "text" })
 	})
 })

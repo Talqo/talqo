@@ -14,6 +14,12 @@ describe("sameStringRecord", () => {
 
 	test("compares every value", () => {
 		expect(sameStringRecord({ model: "chat" }, { model: "embedding" })).toBe(false)
+		expect(
+			sameStringRecord(
+				{ model: "chat", baseURL: "https://example.test" },
+				{ model: "chat", baseURL: "https://other.test" },
+			),
+		).toBe(false)
 		expect(sameStringRecord({ model: "chat" }, { model: "chat", baseURL: "https://example.test" })).toBe(false)
 	})
 

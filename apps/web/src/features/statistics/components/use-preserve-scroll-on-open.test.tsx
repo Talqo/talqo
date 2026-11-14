@@ -82,6 +82,37 @@ describe("usePreserveScrollOnOpen", () => {
 		expect(scrollCalls).toHaveLength(1)
 	})
 
+	test("treats a scroll at the focus-reset threshold as still at the top", async () => {
+		setScrollY(4)
+		await act(async () => hook.capturePreOpenScroll())
+		setScrollY(0)
+		await act(async () => hook.onOpenChange(true))
+		await advance(120)
+
+		expect(scrollCalls).toEqual([])
+	})
+
+	test("restores while the focus reset left the page at the threshold", async () => {
+		setScrollY(240)
+		await act(async () => hook.capturePreOpenScroll())
+		setScrollY(4)
+		await act(async () => hook.onOpenChange(true))
+		await advance(120)
+
+		expect(scrollCalls).toEqual([{ top: 240 }])
+	})
+
+	test("gives up after a bounded number of restore attempts", async () => {
+		setScrollY(240)
+		await act(async () => hook.capturePreOpenScroll())
+		setScrollY(0)
+		await act(async () => hook.onOpenChange(true))
+		await advance(12 * 120)
+		await advance(5 * 120)
+
+		expect(scrollCalls).toHaveLength(12)
+	})
+
 	test("stops restoring once the user scrolls", async () => {
 		setScrollY(240)
 		await act(async () => hook.capturePreOpenScroll())

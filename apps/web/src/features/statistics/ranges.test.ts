@@ -27,4 +27,9 @@ describe("parseDaysParam", () => {
 		expect(parseDaysParam("monthly")).toBeUndefined()
 		expect(parseDaysParam(null)).toBeUndefined()
 	})
+
+	it("accepts only digit-only strings as numeric presets", () => {
+		expect(parseDaysParam(" 7")).toBeUndefined()
+		expect(parseDaysParam("7 ")).toBeUndefined()
+	})
 })

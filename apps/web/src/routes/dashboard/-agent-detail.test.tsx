@@ -40,6 +40,8 @@ let canRead: boolean
 let agentPermissions: string[]
 let agentListFailures: Response[]
 let agentDetailFailures: Response[]
+let agentDetailMissing: boolean
+let agentDetailResponse: Promise<Response> | undefined
 let embeds: Array<typeof EMBED>
 let embedsResponse: Promise<Response> | undefined
 let embedListFailing: boolean
@@ -92,7 +94,8 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 		if (method === "GET") {
 			const failure = agentDetailFailures.shift()
 			if (failure) return failure
-			return json({ agent })
+			if (agentDetailMissing) return json({})
+			return agentDetailResponse ?? json({ agent })
 		}
 		if (method === "PUT") {
 			const failure = updateFailures.shift()
@@ -192,6 +195,8 @@ beforeEach(() => {
 	agentPermissions = ["agents:read", "agents:manage", "agents:delete"]
 	agentListFailures = []
 	agentDetailFailures = []
+	agentDetailMissing = false
+	agentDetailResponse = undefined
 	embeds = []
 	embedsResponse = undefined
 	embedListFailing = false
@@ -265,6 +270,7 @@ describe("agent detail access and editing", () => {
 			json({}, 500),
 		]
 		await renderPage()
+		expect(host.textContent).not.toContain(t("agentConfig.saved"))
 		await click(button(t("blacklist.removeTerm", { word: "seed-term" })))
 		await typeInto(blacklistInput(), "draft-term")
 		await click(button(t("blacklist.addTerm")))
@@ -383,6 +389,28 @@ describe("agent loading failures", () => {
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 	})
 
+	test("explains a missing agent payload", async () => {
+		agentDetailMissing = true
+		await renderPage()
+
+		expect(host.textContent).toContain(t("agents.loadFailed"))
+		expect(host.querySelector("#config-name")).toBeNull()
+	})
+
+	test("announces loading while the agent request is in flight", async () => {
+		const pending = Promise.withResolvers<Response>()
+		agentDetailResponse = pending.promise
+		await renderPage()
+		expect(host.textContent).toContain(t("agentConfig.loading"))
+		expect(host.querySelector("#config-name")).toBeNull()
+
+		await act(async () => pending.resolve(json({ agent })))
+		await settle()
+		await settle()
+
+		expect(nameInput().value).toBe(INITIAL_AGENT.name)
+	})
+
 	test("retries a failed permission list load", async () => {
 		agentListFailures = [json({}, 403)]
 		await renderPage()
@@ -400,9 +428,13 @@ describe("agent tabs", () => {
 	test("keeps the selected tab in the URL and renders the tab content", async () => {
 		await renderPage()
 		expect(button(t("agentConfig.tabConfiguration")).getAttribute("aria-selected")).toBe("true")
+		using navigate = spyOn(router, "navigate")
 
 		await click(button(t("agentConfig.tabContext")))
 
+		expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ replace: true, resetScroll: false }))
+		const updateSearch = navigate.mock.calls.at(-1)?.[0]?.search
+		expect(typeof updateSearch).toBe("function")
 		expect(router.state.location.search).toEqual({ tab: "context" })
 		expect(button(t("agentConfig.tabContext")).getAttribute("aria-selected")).toBe("true")
 		expect(host.textContent).toContain(t("agentFiles.cardTitle"))
@@ -475,6 +507,16 @@ describe("agent embeds panel", () => {
 			),
 		).toBe(false)
 	})
+
+	test("disables the embed switch for readers", async () => {
+		agentPermissions = ["agents:read"]
+		embeds = [EMBED]
+		await renderPage(EMBEDS_ENTRY)
+		await settle()
+		await settle()
+
+		expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.disabled).toBe(true)
+	})
 })
 
 describe("agent deletion", () => {
@@ -491,6 +533,13 @@ describe("agent deletion", () => {
 
 		expect(button(t("agentConfig.deleteAgent")).disabled).toBe(true)
 		expect(host.textContent).toContain(t("agentConfig.deleteBlockedByEmbeds", { count: 1 }))
+	})
+
+	test("enables deletion when the agent has no embeds", async () => {
+		await renderPage()
+
+		expect(button(t("agentConfig.deleteAgent")).disabled).toBe(false)
+		expect(host.textContent).not.toContain(t("agentConfig.deleteBlockedByEmbeds", { count: 0 }))
 	})
 
 	test("explains a deletion rejected because the agent is already gone", async () => {
@@ -526,6 +575,14 @@ describe("agent deletion", () => {
 		expect(embedRequestCount()).toBe(embedsBeforeDelete + 1)
 		expect(nameInput().value).toBe("Unsaved agent name")
 		expect(router.state.location.pathname).toBe(`/dashboard/agent/${AGENT_ID}`)
+
+		await click(button(t("agentConfig.cancel"), deleteDialog()))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		await click(button(t("agentConfig.deleteAgent")))
+		expect(deleteDialog().textContent).not.toContain(t("agents.deleteFailed"))
+		const retriedConfirmation = deleteDialog().querySelector("input")
+		if (!(retriedConfirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
+		await typeInto(retriedConfirmation, INITIAL_AGENT.name)
 
 		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/agents")

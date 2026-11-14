@@ -100,12 +100,16 @@ function responseFor(url: string): Response {
 					id: "warehouse",
 					name: "Warehouse",
 					isDisabled: true,
-					tools: [{ name: "stock", description: "", enabled: true }],
-					toolCount: 1,
+					tools: [
+						{ name: "stock", description: "", enabled: true },
+						{ name: "reserve", description: "", enabled: true },
+					],
+					toolCount: 2,
 				},
 			],
 		})
-	if (url === EMBEDS_URL) return json({ embeds: [EMBED, { ...EMBED, id: "second", isDisabled: true }] })
+	if (url === EMBEDS_URL)
+		return json({ embeds: [EMBED, { ...EMBED, id: "second", isDisabled: true }, { ...EMBED, id: "third" }] })
 	throw new Error(`unexpected request ${url}`)
 }
 
@@ -160,7 +164,7 @@ describe("AgentCardSummary", () => {
 
 		expect(metric(t("agents.metricFiles"))).toBe(`${t("agents.metricFiles")}: 2`)
 		expect(metric(t("agents.metricTools"))).toBe(`${t("agents.metricTools")}: 1`)
-		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: 1`)
+		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: 2`)
 		expect(host.querySelector('[role="alert"]')).toBeNull()
 	})
 
@@ -189,7 +193,7 @@ describe("AgentCardSummary", () => {
 	const metrics = [
 		["files", FILES_URL, t("agents.metricFiles"), "2"],
 		["connections", SERVERS_URL, t("agents.metricTools"), "1"],
-		["embeds", EMBEDS_URL, t("agents.metricEnabledEmbeds"), "1"],
+		["embeds", EMBEDS_URL, t("agents.metricEnabledEmbeds"), "2"],
 	] as const
 
 	for (const [source, url, label] of metrics) {
