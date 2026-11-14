@@ -57,5 +57,12 @@ cd "$root/apps/api"
 run bun --env-file .env.example src/db/migrate.ts
 export TALQO_TEST_TEMPLATE_URL="$DATABASE_URL"
 export TALQO_TEST_UPLOAD_ROOT="$upload_root"
-run bun test --env-file .env.example --no-orphans integration.test.ts \
-	--parallel="$workers" --preload ./test-database.preload.ts
+# An explicit command replaces the default test run and executes from the repo root
+# with the template database and upload directory still available.
+if [ "$#" -gt 0 ]; then
+	cd "$root"
+	run "$@"
+else
+	run bun test --env-file .env.example --no-orphans integration.test.ts \
+		--parallel="$workers" --preload ./test-database.preload.ts
+fi
