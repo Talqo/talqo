@@ -51,7 +51,15 @@
 		},
 		"test:integration": {
 			"cache": false,
-			"passThroughEnv": ["BUN_OPTIONS", "NODE_OPTIONS", "SUPERCOV_*", "TALQO_TEST_WORKERS", "DOCKER_*", "TMPDIR"]
+			"passThroughEnv": [
+				"BUN_OPTIONS",
+				"NODE_OPTIONS",
+				"SUPERCOV_*",
+				"TALQO_TEST_WORKERS",
+				"TALQO_TEST_TIMEOUT",
+				"DOCKER_*",
+				"TMPDIR"
+			]
 		},
 		"typecheck": {
 			"dependsOn": ["transit"],

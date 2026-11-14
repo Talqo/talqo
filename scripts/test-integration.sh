@@ -62,6 +62,10 @@ if [ "$#" -gt 0 ]; then
 	cd "$root"
 	run "$@"
 else
-	run bun test --env-file .env.example --no-orphans integration.test.ts \
+	set -- bun test --env-file .env.example --no-orphans integration.test.ts \
 		--parallel="$workers" --preload ./test-database.preload.ts
+	if [ -n "${TALQO_TEST_TIMEOUT:-}" ]; then
+		set -- "$@" --timeout "$TALQO_TEST_TIMEOUT"
+	fi
+	run "$@"
 fi
