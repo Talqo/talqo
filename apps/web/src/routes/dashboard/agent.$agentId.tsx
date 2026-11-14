@@ -112,7 +112,6 @@ function AgentConfigPage() {
 	const canRead = permissions?.includes("agents:read") ?? false
 	const agentQuery = useGetAgent(agentId, { query: { enabled: canRead } })
 	const agent = agentQuery.data?.data.agent
-	const { error } = agentQuery
 	const updateAgent = useUpdateAgent()
 	const deleteAgent = useDeleteAgent()
 
@@ -231,9 +230,7 @@ function AgentConfigPage() {
 		return (
 			<div className="space-y-6">
 				<BackLink t={t} />
-				<p className="text-muted-foreground">
-					{error?.status === NOT_FOUND_STATUS ? t("agentConfig.notFound") : t("agents.loadFailed")}
-				</p>
+				<p className="text-muted-foreground">{t("agents.loadFailed")}</p>
 			</div>
 		)
 	}

@@ -618,7 +618,7 @@ export function AiConfigurationPage() {
 			})
 			return
 		}
-		const fallback = embeddingProviders.find((provider) => provider.id !== next.providerId) ?? embeddingProviders[0]
+		const fallback = embeddingProviders[0]
 		if (!fallback) return
 		setValue("embedding", {
 			providerId: fallback.id,
@@ -726,11 +726,6 @@ export function AiConfigurationPage() {
 													})
 													return
 												}
-												field.onChange({
-													...field.value,
-													credentialSource:
-														field.value.authMode === "deployment-identity" ? "deployment-identity" : "separate",
-												})
 											}}
 										>
 											<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>
