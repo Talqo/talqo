@@ -14,7 +14,7 @@
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated packages/sdk/src/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x orval --config orval.config.ts --fail-on-warnings",
 		"cov": "supercov runs latest gaps",
-		"cov:record": "supercov -- sh -c 'SUPERCOV_TEST_KIND=unit bun run test --force --concurrency=4 -- --timeout 60000 && SUPERCOV_TEST_KIND=integration bun run test:integration --force' && supercov runs latest report --format istanbul --output .cache/coverage/coverage-final.json --force",
+		"cov:record": "supercov -- sh -c 'SUPERCOV_TEST_KIND=unit bun run test --force --concurrency=4 -- --timeout 60000 && SUPERCOV_TEST_KIND=integration bun run test:integration --force -- --timeout 60000' && supercov runs latest report --format istanbul --output .cache/coverage/coverage-final.json --force",
 		"duplication": "jscpd --config .jscpd.json --exit-code 1 --fail-on-empty",
 		"dev": "./scripts/dev.sh",
 		"dev:teardown": "docker compose down",
