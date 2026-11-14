@@ -287,7 +287,7 @@ describe("AiConfigurationPage", () => {
 		await act(async () => button(t("aiConfiguration.reembedCancel"), confirmationDialog()).click())
 		await settle()
 
-		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(document.querySelector("[role=dialog]")).toBeNull()
 		expect(saveRequests).toHaveLength(0)
 		expect(embeddingBaseUrlInput().value).toBe(editedBaseURL)
 	})
@@ -368,7 +368,7 @@ describe("AiConfigurationPage", () => {
 
 		expect(saveRequests).toEqual([expectedSave, expectedSave])
 		expect(configurationRequests).toBe(initialConfigurationRequests + 1)
-		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(document.querySelector("[role=dialog]")).toBeNull()
 		expect(host.textContent).toContain(t("aiConfiguration.saved"))
 		expect(embeddingBaseUrlInput().value).toBe("https://saved-embeddings.example/v1")
 	})
@@ -387,7 +387,7 @@ describe("AiConfigurationPage", () => {
 		expect(error?.getAttribute("role")).toBe("alert")
 		expect(model.getAttribute("aria-invalid")).toBe("true")
 		expect(model.getAttribute("aria-describedby")).toBe("text-model-error")
-		expect(document.activeElement === model).toBe(true)
+		expect(document.activeElement).toBe(model)
 	})
 
 	test("associates a missing required setting with its field and focuses it", async () => {
@@ -430,7 +430,7 @@ describe("AiConfigurationPage", () => {
 		await act(async () => button(t("aiConfiguration.keepSavedCredentials")).click())
 		await settle()
 
-		expect(host.querySelector("#text-apiKey") === null).toBe(true)
+		expect(host.querySelector("#text-apiKey")).toBeNull()
 		expect(savedCredentialSections()).toHaveLength(2)
 
 		await act(async () => button(t("aiConfiguration.replaceCredentials")).click())
@@ -441,7 +441,7 @@ describe("AiConfigurationPage", () => {
 		await submit()
 		await settle()
 
-		expect(host.querySelector("#text-apiKey") === null).toBe(true)
+		expect(host.querySelector("#text-apiKey")).toBeNull()
 		expect(host.textContent).toContain(t("aiConfiguration.savedCredentials"))
 	})
 
@@ -474,7 +474,7 @@ describe("AiConfigurationPage", () => {
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-selected")).toBe("true")
 
 		await choose("text-provider", t("aiConfiguration.providers.openai"))
-		expect(host.querySelector("#embedding-provider") === null).toBe(true)
+		expect(host.querySelector("#embedding-provider")).toBeNull()
 		expect(host.querySelector<HTMLInputElement>("#embedding-model")?.value).toBe("embedding-model")
 
 		await type(baseUrlInput(), "https://openai.example/v1/")
@@ -525,10 +525,10 @@ describe("AiConfigurationPage", () => {
 		expect(embeddingBaseUrlInput().value).toBe("")
 		expect(host.querySelector<HTMLInputElement>("#embedding-model")?.value).toBe("embedding-model")
 		expect(host.textContent).toContain(t("aiConfiguration.sameProviderUnavailable"))
-		expect(inputById("text-region") === null).toBe(false)
-		expect(inputById("text-accessKeyId") === null).toBe(false)
-		expect(inputById("text-secretAccessKey") === null).toBe(false)
-		expect(inputById("text-sessionToken") === null).toBe(false)
+		expect(inputById("text-region")).not.toBeNull()
+		expect(inputById("text-accessKeyId")).not.toBeNull()
+		expect(inputById("text-secretAccessKey")).not.toBeNull()
+		expect(inputById("text-sessionToken")).not.toBeNull()
 	})
 
 	test("restores the stored embedding connection when choosing it again", async () => {
@@ -549,12 +549,12 @@ describe("AiConfigurationPage", () => {
 		await choose("text-provider", t("aiConfiguration.providers.openai"))
 		await act(async () => tab(t("aiConfiguration.tabs.differentProvider")).click())
 		await settle()
-		expect(inputById("embedding-apiKey") === null).toBe(false)
+		expect(inputById("embedding-apiKey")).not.toBeNull()
 
 		await choose("embedding-provider", t("aiConfiguration.providers.openaiCompatible"))
 
 		expect(embeddingBaseUrlInput().value).toBe("https://embeddings.example/v1")
-		expect(host.querySelector("#embedding-apiKey") === null).toBe(true)
+		expect(host.querySelector("#embedding-apiKey")).toBeNull()
 		expect(savedCredentialSections()).toHaveLength(1)
 	})
 
@@ -645,7 +645,7 @@ describe("AiConfigurationPage", () => {
 		await renderPage()
 
 		await choose("text-authentication", t("aiConfiguration.auth.deploymentIdentity"))
-		expect(host.querySelector("#text-apiKey") === null).toBe(true)
+		expect(host.querySelector("#text-apiKey")).toBeNull()
 		expect(savedCredentialSections()).toHaveLength(0)
 
 		await submit()
@@ -671,7 +671,7 @@ describe("AiConfigurationPage", () => {
 		await act(async () => button(t("common.close"), confirmationDialog()).click())
 		await settle()
 
-		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(document.querySelector("[role=dialog]")).toBeNull()
 		expect(saveRequests).toHaveLength(0)
 		expect(embeddingBaseUrlInput().value).toBe("https://closed.example/v1")
 	})
@@ -712,7 +712,7 @@ describe("AiConfigurationPage", () => {
 		await submit()
 		await settle()
 
-		expect(document.querySelector("[role=dialog]") === null).toBe(true)
+		expect(document.querySelector("[role=dialog]")).toBeNull()
 		expect(saveRequests).toHaveLength(1)
 		expect(saveRequests[0]?.embedding.settings).toEqual({
 			baseURL: "https://server.example/v1",
@@ -733,6 +733,6 @@ describe("AiConfigurationPage", () => {
 		expect(error?.textContent).toBe(t("aiConfiguration.fields.modelRequired"))
 		expect(model.getAttribute("aria-invalid")).toBe("true")
 		expect(model.getAttribute("aria-describedby")).toBe("embedding-model-error")
-		expect(document.activeElement === model).toBe(true)
+		expect(document.activeElement).toBe(model)
 	})
 })

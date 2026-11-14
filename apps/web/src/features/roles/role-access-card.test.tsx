@@ -266,7 +266,7 @@ describe("RoleAccessCard", () => {
 		expect(permissionSwitch("stats:read").getAttribute("aria-checked")).toBe("true")
 		expect(host.querySelector("[role=alert]")).not.toBeNull()
 		await chooseAgent("Observers bot")
-		expect(host.querySelector("[role=alert]") === null).toBe(true)
+		expect(host.querySelector("[role=alert]")).toBeNull()
 	})
 
 	test("clears the dirty flag when the card unmounts", async () => {
@@ -348,7 +348,7 @@ describe("RoleAccessCard", () => {
 		await render()
 
 		expect(host.textContent).toContain(t("agentAccess.noAgents"))
-		expect(host.querySelector("[role=combobox]") === null).toBe(true)
+		expect(host.querySelector("[role=combobox]")).toBeNull()
 	})
 
 	test("shows a load failure and retries without reloading the card", async () => {
@@ -381,10 +381,10 @@ describe("RoleAccessCard", () => {
 		)
 		if (!cancel) throw new Error("cancel not rendered")
 		await click(cancel)
-		expect(document.querySelector("[role=alertdialog]") === null).toBe(true)
+		expect(document.querySelector("[role=alertdialog]")).toBeNull()
 
 		await click(button(t("agentAccess.remove")))
-		expect(document.querySelector("[role=alertdialog] [role=alert]") === null).toBe(true)
+		expect(document.querySelector("[role=alertdialog] [role=alert]")).toBeNull()
 	})
 
 	test("keeps protected content when a save preserves every existing permission", async () => {

@@ -131,7 +131,7 @@ describe("CredentialsForm", () => {
 			"Invalid username or password.",
 		)
 		expect(field("password").getAttribute("autocomplete")).toBe("current-password")
-		expect(host.querySelector("#confirmPassword") === null).toBe(true)
+		expect(host.querySelector("#confirmPassword")).toBeNull()
 	})
 
 	test("falls back to the submit label and enables the button when idle", async () => {

@@ -68,7 +68,7 @@ describe("ChangePasswordForm", () => {
 		expect(current.getAttribute("aria-invalid")).toBe("true")
 		expect(current.getAttribute("aria-describedby")).toBe("current-password-error")
 		expect(host.querySelector("#current-password-error")?.textContent).toBe(t("account.currentPasswordRequired"))
-		expect(document.activeElement === current).toBe(true)
+		expect(document.activeElement).toBe(current)
 		expect(submissions).toEqual([])
 	})
 
@@ -86,7 +86,7 @@ describe("ChangePasswordForm", () => {
 		expect(host.querySelector("#new-password-error")?.textContent).toBe(
 			t("account.newPasswordError", { min: 8, max: 128 }),
 		)
-		expect(document.activeElement === next).toBe(true)
+		expect(document.activeElement).toBe(next)
 		expect(submissions).toEqual([])
 	})
 
@@ -102,7 +102,7 @@ describe("ChangePasswordForm", () => {
 		expect(confirmation.getAttribute("aria-invalid")).toBe("true")
 		expect(confirmation.getAttribute("aria-describedby")).toBe("confirm-new-password-error")
 		expect(host.querySelector("#confirm-new-password-error")?.textContent).toBe(t("account.passwordMismatchError"))
-		expect(document.activeElement === confirmation).toBe(true)
+		expect(document.activeElement).toBe(confirmation)
 		expect(submissions).toEqual([])
 	})
 

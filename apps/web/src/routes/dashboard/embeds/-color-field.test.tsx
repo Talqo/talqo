@@ -54,7 +54,7 @@ describe("ColorField", () => {
 
 		expect(hexInput().getAttribute("aria-invalid")).toBe("false")
 		expect(hexInput().hasAttribute("aria-describedby")).toBe(false)
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 		expect(host.textContent).not.toContain(t("embedSetup.contrastWarning"))
 	})
 
@@ -64,7 +64,7 @@ describe("ColorField", () => {
 		const warning = describedElement(hexInput())
 		expect(warning?.textContent).toBe(t("embedSetup.contrastWarning"))
 		expect(hexInput().getAttribute("aria-invalid")).toBe("false")
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("does not calculate a contrast ratio against a malformed comparison color", async () => {
@@ -73,7 +73,7 @@ describe("ColorField", () => {
 		expect(hexInput().getAttribute("aria-invalid")).toBe("false")
 		expect(hexInput().hasAttribute("aria-describedby")).toBe(false)
 		expect(host.textContent).not.toContain(t("embedSetup.contrastWarning"))
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("associates malformed hex input with its validation error", async () => {

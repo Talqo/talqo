@@ -271,7 +271,7 @@ describe("embed detail loading", () => {
 		await renderPage()
 
 		expect(host.textContent).toContain(t("embedSetup.notFound"))
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("retries a failed embed load and then renders the form", async () => {
@@ -290,7 +290,7 @@ describe("embed detail loading", () => {
 		agentsFailures = [json({}, 403)]
 		await renderPage()
 		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("common.retry"))
-		expect(host.querySelector("#widget-name") === null).toBe(true)
+		expect(host.querySelector("#widget-name")).toBeNull()
 		const beforeRetry = requests.filter(({ url }) => url === "/api/agents").length
 
 		await click(button(t("common.retry")))
@@ -313,7 +313,7 @@ describe("embed detail loading", () => {
 		expect(input("#widget-name").readOnly).toBe(true)
 		expect(input("#color-light-primary-hex").readOnly).toBe(true)
 		expect(host.querySelector("#widget-position")?.getAttribute("disabled")).not.toBeNull()
-		expect(host.querySelector("#embed-token") === null).toBe(true)
+		expect(host.querySelector("#embed-token")).toBeNull()
 		expect(host.textContent).not.toContain(t("embedSetup.deleteEmbed"))
 		expect(
 			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("embedSetup.save")),
@@ -363,7 +363,7 @@ describe("embed appearance controls", () => {
 
 		expect(router.state.location.search).toEqual({ colorTab: "dark" })
 		expect(button(t("embedSetup.tabDark")).getAttribute("aria-selected")).toBe("true")
-		expect(host.querySelector("#color-dark-primary-hex") === null).toBe(false)
+		expect(host.querySelector("#color-dark-primary-hex")).not.toBeNull()
 	})
 
 	test("saves the selected position, theme, language, and theme toggle", async () => {
@@ -404,10 +404,10 @@ describe("embed deletion", () => {
 		const detailKey = getGetEmbedQueryKey(EMBED_ID)
 		queryClient.setQueryData(listKey, { data: { embeds: [INITIAL_EMBED] } })
 		await typeInto(input("#widget-name"), "Unsaved embed name")
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("embedSetup.deleteEmbed")))
 		await click(button(t("embedSetup.cancel"), deleteDialog()))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("embedSetup.deleteEmbed")))
 		const confirmation = deleteDialog().querySelector("input")
 		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
@@ -426,7 +426,7 @@ describe("embed deletion", () => {
 		expect(router.state.location.pathname).toBe(`/dashboard/agent/${AGENT_ID}`)
 		expect(router.state.location.search).toHaveProperty("tab", "embeds")
 		expect(host.querySelector('[data-testid="agent-destination"]')).not.toBeNull()
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(queryClient.getQueryData(listKey)).toBeUndefined()
 		expect(queryClient.getQueryData(detailKey)).toBeUndefined()
 	})

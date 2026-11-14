@@ -84,7 +84,7 @@ describe("DeleteRoleDialog", () => {
 		expect(remove.getAttribute("aria-describedby")).toBe("default-delete-description")
 		expect(host.textContent).toContain(t("problems.default-role-delete-not-allowed"))
 		await click(remove)
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("deletes an unused role, explains recovery, and returns to the list", async () => {
@@ -99,7 +99,7 @@ describe("DeleteRoleDialog", () => {
 		await click(button(t("roles.deleteConfirm"), copy))
 
 		expect(requests).toEqual([{ method: "DELETE", url: "/api/roles/support" }])
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(queryClient.getQueryState(getListRolesQueryKey())?.isInvalidated).toBe(true)
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
@@ -111,7 +111,7 @@ describe("DeleteRoleDialog", () => {
 		await openAndConfirm()
 
 		expect(requests).toEqual([{ method: "DELETE", url: "/api/roles/support" }])
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles")
 	})
 
@@ -132,10 +132,10 @@ describe("DeleteRoleDialog", () => {
 		expect(router.state.location.pathname).toBe("/dashboard/team/roles/support")
 
 		await click(button(t("roles.cancel"), copy))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 
 		await click(button(t("roles.delete"), host))
-		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("warns when the deleted role is the operator's only way to manage roles", async () => {

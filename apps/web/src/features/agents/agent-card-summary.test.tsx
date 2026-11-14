@@ -161,7 +161,7 @@ describe("AgentCardSummary", () => {
 		expect(metric(t("agents.metricFiles"))).toBe(`${t("agents.metricFiles")}: 2`)
 		expect(metric(t("agents.metricTools"))).toBe(`${t("agents.metricTools")}: 1`)
 		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: 1`)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 	})
 
 	test("shows a placeholder while each source is loading", async () => {
@@ -175,7 +175,7 @@ describe("AgentCardSummary", () => {
 		expect(metric(t("agents.metricFiles"))).toBe(`${t("agents.metricFiles")}: …`)
 		expect(metric(t("agents.metricTools"))).toBe(`${t("agents.metricTools")}: …`)
 		expect(metric(t("agents.metricEnabledEmbeds"))).toBe(`${t("agents.metricEnabledEmbeds")}: …`)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 
 		await act(async () => {
 			files.resolve(responseFor(FILES_URL))

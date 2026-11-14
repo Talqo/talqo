@@ -217,7 +217,7 @@ describe("TeamPage", () => {
 		await click(button(t("auth.invitations.heading")))
 		rolesFailure = undefined
 		await click(button(t("common.retry"), dialog()))
-		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 		expect(checkbox("Default").getAttribute("aria-checked")).toBe("false")
 		await click(checkbox("Default"))
 		await click(button(t("auth.invitations.create"), dialog()))
@@ -319,7 +319,7 @@ describe("TeamPage", () => {
 
 		await click(button(t("team.cancel"), dialog()))
 		await click(button(t("auth.invitations.heading")))
-		expect(document.querySelector("#invitation-link") === null).toBe(true)
+		expect(document.querySelector("#invitation-link")).toBeNull()
 		expect(dialog().textContent).not.toContain(t("auth.invitations.copied"))
 	})
 
@@ -348,7 +348,7 @@ describe("TeamPage", () => {
 		expect(document.querySelector<HTMLInputElement>("#invitation-link")?.value).toBe(
 			`${window.location.origin}/accept-invite?token=invite`,
 		)
-		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("keeps the invitation dialog open while the server creates it", async () => {
@@ -381,7 +381,7 @@ describe("TeamPage", () => {
 		expect(ListUsers200.safeParse({ users }).success).toBe(true)
 		expect(card("owner").textContent).toContain(t("team.adminBadge"))
 		expect(card("helper").textContent).toContain("Support")
-		expect(host.querySelector("output") === null).toBe(true)
+		expect(host.querySelector("output")).toBeNull()
 		expect(requestCount("/api/roles")).toBe(0)
 		expect(buttonNames(host)).toEqual([])
 	})
@@ -402,7 +402,7 @@ describe("TeamPage", () => {
 		await renderPage()
 
 		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("marks a member who must change their password", async () => {
@@ -466,7 +466,7 @@ describe("TeamPage", () => {
 		expect(requests.some(({ method }) => method === "PATCH")).toBe(false)
 
 		await click(button(t("team.cancel"), dialog()))
-		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(document.querySelector("[role='dialog']")).toBeNull()
 	})
 
 	test("keeps entered passwords and the dialog open when reset is rejected", async () => {
@@ -499,7 +499,7 @@ describe("TeamPage", () => {
 			url: "/api/users/helper/password",
 			body: { newPassword: password },
 		})
-		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(document.querySelector("[role='dialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
 		expect(card("other").textContent).not.toContain(t("team.resetSuccess"))
@@ -528,7 +528,7 @@ describe("TeamPage", () => {
 
 		await act(async () => pending.resolve(new Response(null, { status: 204 })))
 		await settle()
-		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(document.querySelector("[role='dialog']")).toBeNull()
 		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
 	})
 
@@ -557,9 +557,9 @@ describe("TeamPage", () => {
 		expect(requestCount("/api/users")).toBe(usersBefore)
 
 		await click(button(t("team.cancel"), failedDialog))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("team.delete"), card("helper")))
-		expect(dialog("alertdialog").querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog("alertdialog").querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("refreshes and closes when deletion reports the user is already gone", async () => {
@@ -571,9 +571,9 @@ describe("TeamPage", () => {
 		users = []
 		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
 
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
-		expect(host.querySelector("[data-user-id='helper']") === null).toBe(true)
+		expect(host.querySelector("[data-user-id='helper']")).toBeNull()
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {
@@ -696,11 +696,11 @@ describe("TeamPage", () => {
 
 		expect(button(t("team.savingRoles"), dialog()).disabled).toBe(true)
 		await click(button(t("team.cancel"), dialog()))
-		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 
 		await act(async () => pending.resolve(json({ roles: [{ id: "readers", name: "Readers" }] })))
 		await settle()
-		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(document.querySelector("[role='dialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 	})
 
@@ -715,7 +715,7 @@ describe("TeamPage", () => {
 		await click(checkbox("Readers"))
 		await click(button(t("team.saveRoles"), dialog()))
 
-		expect(document.querySelector("[role='dialog']") === null).toBe(true)
+		expect(document.querySelector("[role='dialog']")).toBeNull()
 		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 		expect(requestCount("/api/me/permissions")).toBeGreaterThan(permissionsBefore)
 	})
@@ -732,7 +732,7 @@ describe("TeamPage", () => {
 		expect(dialog().textContent).toContain(t("problems.permission-exceeds-own"))
 		await click(button(t("team.cancel"), dialog()))
 		await click(button(t("team.editRoles"), card("helper")))
-		expect(dialog().querySelector("[role='alert']") === null).toBe(true)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("does not warn the admin or an operator editing someone else", async () => {

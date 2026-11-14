@@ -169,9 +169,9 @@ describe("AgentFilesCard for a read-only operator", () => {
 		expect(host.textContent).toContain(t("agentFiles.status.failed"))
 		expect(host.textContent).toContain(t("agentFiles.error.conversionFailed"))
 		expect(labelledButton(t("agentFiles.download", { name: "faq.md" }))).not.toBeNull()
-		expect(labelledButton(t("agentFiles.rename", { name: "faq.md" })) === null).toBe(true)
-		expect(labelledButton(t("agentFiles.delete", { name: "faq.md" })) === null).toBe(true)
-		expect(labelledButton(t("agentFiles.retry", { name: "faq.md" })) === null).toBe(true)
+		expect(labelledButton(t("agentFiles.rename", { name: "faq.md" }))).toBeNull()
+		expect(labelledButton(t("agentFiles.delete", { name: "faq.md" }))).toBeNull()
+		expect(labelledButton(t("agentFiles.retry", { name: "faq.md" }))).toBeNull()
 		expect(host.textContent).not.toContain(t("agentFiles.dropzone"))
 	})
 
@@ -302,7 +302,7 @@ describe("AgentFilesCard for a managing operator", () => {
 		files = [renamed]
 		await click(dialogButton(t("agentFiles.renameSave"), "dialog"))
 
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 		expect(fileOperations).toEqual([request, request])
 		expect(fileListRequests).toBe(2)
 		expect(host.textContent).toContain("renamed.md")
@@ -328,7 +328,7 @@ describe("AgentFilesCard for a managing operator", () => {
 		files = []
 		await click(dialogButton(t("agentFiles.deleteConfirm"), "alertdialog"))
 
-		expect(document.querySelector('[role="alertdialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="alertdialog"]')).toBeNull()
 		expect(fileOperations).toEqual([request, request])
 		expect(fileListRequests).toBe(2)
 		expect(host.textContent).not.toContain(SPECIAL_FILE_NAME)
@@ -358,16 +358,16 @@ describe("AgentFilesCard for a managing operator", () => {
 		files = [{ ...FILE, name: SPECIAL_FILE_NAME, embeddingStatus: "pending", embeddingError: null }]
 		await click(retry)
 		expect(retry.disabled).toBe(true)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 		await act(async () => pendingRetry.resolve(new Response(null, { status: 204 })))
 		await settle()
 		await settle()
 
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 		expect(fileOperations).toEqual([request, request])
 		expect(fileListRequests).toBe(2)
 		expect(host.textContent).toContain(t("agentFiles.status.pending"))
-		expect(labelledButton(retryLabel) === null).toBe(true)
+		expect(labelledButton(retryLabel)).toBeNull()
 	})
 
 	test("uploads files dropped onto the dropzone", async () => {
@@ -430,7 +430,7 @@ describe("AgentFilesCard for a managing operator", () => {
 		await click(element<HTMLButtonElement>('[role="alert"] button'))
 
 		expect(fileListRequests).toBe(beforeRetry + 1)
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 		expect(host.textContent).toContain(t("agentFiles.dropzone"))
 	})
 
@@ -441,12 +441,12 @@ describe("AgentFilesCard for a managing operator", () => {
 		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.rename", { name: FILE.name })}"]`))
 		expect(element<HTMLElement>('[role="dialog"]')).not.toBeNull()
 		await click(dialogButton(t("common.cancel"), "dialog"))
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 
 		await click(element<HTMLButtonElement>(`button[aria-label="${t("agentFiles.delete", { name: FILE.name })}"]`))
 		expect(element<HTMLElement>('[role="alertdialog"]')).not.toBeNull()
 		await click(dialogButton(t("common.cancel"), "alertdialog"))
-		expect(document.querySelector('[role="alertdialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="alertdialog"]')).toBeNull()
 		expect(fileOperations).toEqual([])
 	})
 })

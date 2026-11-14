@@ -9,11 +9,11 @@ describe("widget mount", () => {
 	})
 
 	test("creates its own mount root when the page has none", () => {
-		expect(document.querySelector("#talqo-widget") === null).toBe(true)
+		expect(document.querySelector("#talqo-widget")).toBeNull()
 		mount()
 		const element = document.querySelector("#talqo-widget")
 		expect(element).not.toBeNull()
-		expect(element?.parentElement === document.body).toBe(true)
+		expect(element?.parentElement).toBe(document.body)
 	})
 
 	test("mounts into an existing target element", () => {
@@ -21,20 +21,20 @@ describe("widget mount", () => {
 		element.id = "talqo-widget"
 		document.body.append(element)
 		mount()
-		expect(document.querySelector("#talqo-widget") === element).toBe(true)
+		expect(document.querySelector("#talqo-widget")).toBe(element)
 	})
 
 	test("warns and creates nothing for a missing explicit target", () => {
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		mount("#missing-target")
-		expect(document.querySelector("#talqo-widget") === null).toBe(true)
+		expect(document.querySelector("#talqo-widget")).toBeNull()
 		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (#missing-target)")
 	})
 
 	test("warns instead of throwing for an invalid selector target", () => {
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		expect(() => mount("#")).not.toThrow()
-		expect(document.querySelector("#talqo-widget") === null).toBe(true)
+		expect(document.querySelector("#talqo-widget")).toBeNull()
 		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (#)")
 	})
 

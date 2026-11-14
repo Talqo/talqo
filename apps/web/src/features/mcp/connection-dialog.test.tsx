@@ -164,7 +164,7 @@ describe("ConnectionDialog", () => {
 		await click(button(t("mcp.add")))
 
 		expect(element<HTMLInputElement>("#mcp-name").value).toBe("")
-		expect(document.querySelector("#mcp-name-error") === null).toBe(true)
+		expect(document.querySelector("#mcp-name-error")).toBeNull()
 	})
 
 	test("drops cancelled edits and entered secrets when reopened for editing", async () => {
@@ -200,7 +200,7 @@ describe("ConnectionDialog", () => {
 		await chooseOption(element("#mcp-transport"), t("mcp.transportHttp"))
 
 		expect(save.disabled).toBe(false)
-		expect(document.querySelector("#mcp-command") === null).toBe(true)
+		expect(document.querySelector("#mcp-command")).toBeNull()
 	})
 
 	test("associates the first invalid field with its error and focuses it", async () => {
@@ -220,12 +220,12 @@ describe("ConnectionDialog", () => {
 		expect(error.getAttribute("role")).toBe("alert")
 		expect(name.getAttribute("aria-invalid")).toBe("true")
 		expect(name.getAttribute("aria-describedby")).toBe("mcp-name-error")
-		expect(element("#mcp-url").getAttribute("aria-describedby") === null).toBe(true)
-		expect(document.activeElement === name).toBe(true)
+		expect(element("#mcp-url").getAttribute("aria-describedby")).toBeNull()
+		expect(document.activeElement).toBe(name)
 
 		await click(button(t("common.cancel")))
 		await click(button(t("mcp.add")))
-		expect(document.querySelector("#mcp-name-error") === null).toBe(true)
+		expect(document.querySelector("#mcp-name-error")).toBeNull()
 	})
 
 	test("focuses the empty secret value instead of its filled name", async () => {
@@ -279,7 +279,7 @@ describe("ConnectionDialog", () => {
 
 		await click(element('form button[type="submit"]'))
 
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
 		const request: RecordedRequest = {
 			url: "/api/agents/agent/mcp-servers",
@@ -316,7 +316,7 @@ describe("ConnectionDialog", () => {
 
 		await click(element('form button[type="submit"]'))
 
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
 		const request: RecordedRequest = {
 			url: "/api/agents/agent/mcp-servers/srv",
@@ -340,7 +340,7 @@ describe("ConnectionDialog", () => {
 		await click(button(t("mcp.add")))
 		const name = element<HTMLInputElement>("#mcp-name")
 		expect(name.getAttribute("aria-invalid")).not.toBe("true")
-		expect(name.getAttribute("aria-describedby") === null).toBe(true)
+		expect(name.getAttribute("aria-describedby")).toBeNull()
 		expect(element("#mcp-url").getAttribute("aria-invalid")).not.toBe("true")
 
 		await type(name, "Obchodník")
@@ -349,7 +349,7 @@ describe("ConnectionDialog", () => {
 
 		expect(element<HTMLElement>("#mcp-name-error").textContent).toBe(t("mcp.errorNameAscii"))
 		expect(name.getAttribute("aria-invalid")).toBe("true")
-		expect(document.activeElement === name).toBe(true)
+		expect(document.activeElement).toBe(name)
 
 		await type(name, "a".repeat(MCP_SERVER_NAME_LIMIT + 1))
 		await focus(element("#mcp-url"))
@@ -358,7 +358,7 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLElement>("#mcp-name-error").textContent).toBe(
 			t("mcp.errorNameLength", { limit: MCP_SERVER_NAME_LIMIT }),
 		)
-		expect(document.activeElement === name).toBe(true)
+		expect(document.activeElement).toBe(name)
 		expect(requests).toEqual([])
 	})
 
@@ -366,7 +366,7 @@ describe("ConnectionDialog", () => {
 		await renderDialog()
 		await click(button(t("mcp.add")))
 		expect(element<HTMLButtonElement>('form button[type="submit"]').textContent).toBe(t("mcp.add"))
-		expect(document.querySelector(`[aria-label="${t("mcp.headerName")}"]`) === null).toBe(true)
+		expect(document.querySelector(`[aria-label="${t("mcp.headerName")}"]`)).toBeNull()
 		expect(document.body.textContent).not.toContain(t("mcp.headersCount", { used: 0, limit: MCP_ENV_VARIABLE_LIMIT }))
 		await type(element<HTMLInputElement>("#mcp-name"), "Stock")
 		await submit()
@@ -375,10 +375,10 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLElement>("#mcp-url-error").textContent).toBe(t("mcp.errorAddress"))
 		expect(url.getAttribute("aria-invalid")).toBe("true")
 		expect(url.getAttribute("aria-describedby")).toBe("mcp-url-error")
-		expect(document.activeElement === url).toBe(true)
+		expect(document.activeElement).toBe(url)
 
 		await chooseHeaders()
-		expect(document.querySelector("#mcp-url-error") === null).toBe(true)
+		expect(document.querySelector("#mcp-url-error")).toBeNull()
 		expect(requests).toEqual([])
 	})
 
@@ -386,20 +386,20 @@ describe("ConnectionDialog", () => {
 		await renderDialog(undefined, { stdioAllowed: true })
 		await click(button(t("mcp.add")))
 		await submit()
-		expect(document.querySelector("#mcp-name-error") !== null).toBe(true)
+		expect(document.querySelector("#mcp-name-error")).not.toBeNull()
 
 		await chooseOption(element("#mcp-transport"), t("mcp.transportStdio"))
-		expect(document.querySelector("#mcp-name-error") === null).toBe(true)
+		expect(document.querySelector("#mcp-name-error")).toBeNull()
 		await type(element<HTMLInputElement>("#mcp-name"), "Local")
 		const command = element<HTMLInputElement>("#mcp-command")
 		expect(command.getAttribute("aria-invalid")).not.toBe("true")
-		expect(command.getAttribute("aria-describedby") === null).toBe(true)
+		expect(command.getAttribute("aria-describedby")).toBeNull()
 		await submit()
 
 		expect(element<HTMLElement>("#mcp-command-error").textContent).toBe(t("mcp.errorCommand"))
 		expect(command.getAttribute("aria-invalid")).toBe("true")
 		expect(command.getAttribute("aria-describedby")).toBe("mcp-command-error")
-		expect(document.activeElement === command).toBe(true)
+		expect(document.activeElement).toBe(command)
 
 		await type(command, "bunx")
 		await click(dialogButton(t("mcp.addEnv"), "last"))
@@ -410,7 +410,7 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLElement>("#mcp-env-error").textContent).toBe(t("mcp.errorSecret"))
 		expect(value.getAttribute("aria-invalid")).toBe("true")
 		expect(value.getAttribute("aria-describedby")).toBe("mcp-env-error")
-		expect(document.activeElement === value).toBe(true)
+		expect(document.activeElement).toBe(value)
 		expect(requests).toEqual([])
 	})
 
@@ -501,7 +501,7 @@ describe("ConnectionDialog", () => {
 		const add = button(t("mcp.add"))
 		expect(add.disabled).toBe(true)
 		await click(add)
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 	})
 
 	test("keeps the dialog open and shows progress while a create is pending", async () => {
@@ -518,7 +518,7 @@ describe("ConnectionDialog", () => {
 
 		await submit()
 
-		expect(document.querySelector("#mcp-name-error") === null).toBe(true)
+		expect(document.querySelector("#mcp-name-error")).toBeNull()
 		const save = button(t("mcp.saving"))
 		expect(save.disabled).toBe(true)
 		const cancel = button(t("common.cancel"))
@@ -530,12 +530,12 @@ describe("ConnectionDialog", () => {
 			),
 		)
 		await settle()
-		expect(document.querySelector('[role="dialog"]') !== null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).not.toBeNull()
 
 		await act(async () => created.resolve(json({ server: SERVER }, 201)))
 		await settle()
 
-		expect(document.querySelector('[role="dialog"]') === null).toBe(true)
+		expect(document.querySelector('[role="dialog"]')).toBeNull()
 		expect(queryClient.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
 		expect(queryClient.getQueryState(["unrelated"])?.isInvalidated).toBe(false)
 	})
@@ -555,7 +555,7 @@ describe("ConnectionDialog", () => {
 
 		expect(element<HTMLElement>("#mcp-headers-error").textContent).toBe(t("mcp.errorSecret"))
 		expect(name.getAttribute("aria-invalid")).toBe("true")
-		expect(document.activeElement === name).toBe(true)
+		expect(document.activeElement).toBe(name)
 		expect(requests).toEqual([])
 	})
 
@@ -579,6 +579,6 @@ describe("ConnectionDialog", () => {
 		expect(element<HTMLElement>("#mcp-headers-error").textContent).toBe(t("mcp.errorSecret"))
 		expect(orphanName.getAttribute("aria-invalid")).toBe("true")
 		expect(orphanName.getAttribute("aria-describedby")).toBe("mcp-headers-error")
-		expect(document.activeElement === orphanName).toBe(true)
+		expect(document.activeElement).toBe(orphanName)
 	})
 })

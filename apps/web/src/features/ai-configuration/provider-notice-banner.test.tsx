@@ -65,7 +65,7 @@ describe("ProviderNoticeBanner", () => {
 		configuration = () => json({ revision: 1, health: "configured", text: null, embedding: null })
 		await renderBanner()
 
-		expect(host.querySelector("output") === null).toBe(true)
+		expect(host.querySelector("output")).toBeNull()
 		expect(configurationRequests).toBe(1)
 	})
 
@@ -81,7 +81,7 @@ describe("ProviderNoticeBanner", () => {
 		permissions = []
 		await renderBanner()
 
-		expect(host.querySelector("output") === null).toBe(true)
+		expect(host.querySelector("output")).toBeNull()
 		expect(configurationRequests).toBe(0)
 	})
 })

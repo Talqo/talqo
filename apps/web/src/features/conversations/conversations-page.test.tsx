@@ -97,7 +97,7 @@ describe("ConversationsPage", () => {
 
 		expect(host.textContent).toContain(t("conversations.emptyTitle"))
 		expect(host.textContent).toContain(t("conversations.emptyDescription"))
-		expect(host.querySelector(`nav[aria-label="${t("conversations.pagination")}"]`) === null).toBe(true)
+		expect(host.querySelector(`nav[aria-label="${t("conversations.pagination")}"]`)).toBeNull()
 	})
 
 	test("explains an empty filtered list without dropping the agent filter", async () => {

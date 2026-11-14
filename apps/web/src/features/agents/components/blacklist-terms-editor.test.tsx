@@ -101,8 +101,8 @@ describe("BlacklistTermsEditor", () => {
 		expect(emitted).toEqual([])
 
 		await type(input(), "S")
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
-		expect(input().getAttribute("aria-invalid") === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
+		expect(input().getAttribute("aria-invalid")).toBeNull()
 	})
 
 	test("clears a rejection when a later term is added or removed", async () => {
@@ -113,14 +113,14 @@ describe("BlacklistTermsEditor", () => {
 		expect(liveRegion()).toBe("")
 		await type(input(), "abuse")
 		await click(button(t("blacklist.addTerm")))
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 		expect(liveRegion()).toBe(t("blacklist.added", { word: "abuse" }))
 
 		await type(input(), "SPAM")
 		await click(button(t("blacklist.addTerm")))
-		expect(host.querySelector('[role="alert"]') !== null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).not.toBeNull()
 		await click(button(t("blacklist.removeTerm", { word: "Spam" })))
-		expect(host.querySelector('[role="alert"]') === null).toBe(true)
+		expect(host.querySelector('[role="alert"]')).toBeNull()
 	})
 
 	test("reports an empty term without changing the list", async () => {
@@ -164,19 +164,19 @@ describe("BlacklistTermsEditor", () => {
 	test("shows terms read-only when the form is disabled", async () => {
 		await renderEditor(["spam", "abuse"], true)
 
-		expect(host.querySelector("#blacklist") === null).toBe(true)
+		expect(host.querySelector("#blacklist")).toBeNull()
 		expect(host.textContent).toContain("spam")
 		expect(host.textContent).toContain("abuse")
-		expect(host.querySelector(`[aria-label="${t("blacklist.removeTerm", { word: "spam" })}"]`) === null).toBe(true)
+		expect(host.querySelector(`[aria-label="${t("blacklist.removeTerm", { word: "spam" })}"]`)).toBeNull()
 	})
 
 	test("shows the term count and only renders the list when terms exist", async () => {
 		await renderEditor([])
 		expect(host.textContent).toContain(t("blacklist.count", { used: 0, limit: BLACKLIST_TERM_LIMIT }))
-		expect(host.querySelector(`[aria-label="${t("blacklist.termsLabel")}"]`) === null).toBe(true)
+		expect(host.querySelector(`[aria-label="${t("blacklist.termsLabel")}"]`)).toBeNull()
 
 		await renderEditor(["spam"])
 		expect(host.textContent).toContain(t("blacklist.count", { used: 1, limit: BLACKLIST_TERM_LIMIT }))
-		expect(host.querySelector(`[aria-label="${t("blacklist.termsLabel")}"]`) !== null).toBe(true)
+		expect(host.querySelector(`[aria-label="${t("blacklist.termsLabel")}"]`)).not.toBeNull()
 	})
 })

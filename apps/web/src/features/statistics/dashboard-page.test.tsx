@@ -308,7 +308,7 @@ test("filters the summary to the chosen agents and restores all agents", async (
 
 	expect(searches.at(-1)?.agents).toEqual([])
 	expect(host.textContent).toContain(t("dashboard.noAgentsSelected"))
-	expect(host.querySelector("tbody") === null).toBe(true)
+	expect(host.querySelector("tbody")).toBeNull()
 })
 
 test("shows zero averages for a selected agent without activity", async () => {

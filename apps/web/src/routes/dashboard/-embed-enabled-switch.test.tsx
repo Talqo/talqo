@@ -173,7 +173,7 @@ describe("embed enabled switch", () => {
 			mutationResponse = retry.promise
 			await click(enabledSwitch())
 			expect(enabledInput().disabled).toBe(true)
-			expect(host.querySelector("[role='alert']") === null).toBe(true)
+			expect(host.querySelector("[role='alert']")).toBeNull()
 
 			await click(enabledSwitch())
 			expect(requestCount(`${DETAIL_URL}/${scenario.action}`, "POST")).toBe(2)
@@ -182,7 +182,7 @@ describe("embed enabled switch", () => {
 			mutationResponse = undefined
 			await settle()
 			await settle()
-			expect(host.querySelector("[role='alert']") === null).toBe(true)
+			expect(host.querySelector("[role='alert']")).toBeNull()
 			expect(detailDisabled()).toBe(String(scenario.resultingDisabled))
 			expect(enabledSwitch().getAttribute("aria-checked")).toBe(String(!scenario.resultingDisabled))
 			expect(requestCount(DETAIL_URL)).toBe(detailBefore + 1)

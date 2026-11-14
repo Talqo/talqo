@@ -160,7 +160,7 @@ describe("account settings", () => {
 		await click(button(t("common.retry")))
 
 		expect(host.textContent).toContain("Support")
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("explains a session without a user and recovers on retry", async () => {
@@ -168,7 +168,7 @@ describe("account settings", () => {
 		await renderPage()
 
 		expect(host.querySelector("[role='alert'] p")?.textContent).toBe(t("account.loadFailed"))
-		expect(host.querySelector("#account-username") === null).toBe(true)
+		expect(host.querySelector("#account-username")).toBeNull()
 
 		sessionUser = { id: "user", username: "operator", mustChangePassword: false }
 		await click(button(t("common.retry")))
@@ -218,7 +218,7 @@ describe("account settings", () => {
 		expect(host.querySelector("#account-username-error")?.textContent).toBe(
 			t("account.usernameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH }),
 		)
-		expect(document.activeElement === input("#account-username")).toBe(true)
+		expect(document.activeElement).toBe(input("#account-username"))
 	})
 
 	test("preserves a rejected username and the cached session", async () => {
@@ -239,7 +239,7 @@ describe("account settings", () => {
 		await type(input("#account-username"), "renamed")
 		await click(button(t("account.saveUsername")))
 
-		expect(host.querySelector("form [role='alert']") === null).toBe(true)
+		expect(host.querySelector("form [role='alert']")).toBeNull()
 		expect(formStatus("#account-username")).toBe(t("account.usernameSaved"))
 	})
 

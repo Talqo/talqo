@@ -104,7 +104,7 @@ test("shows a loading state and then the saved embed preview", async () => {
 	await settle()
 	await settle()
 
-	expect(host.querySelector("output") === null).toBe(true)
+	expect(host.querySelector("output")).toBeNull()
 	const frame = host.querySelector("iframe")
 	if (!(frame instanceof HTMLIFrameElement)) throw new Error("Missing preview frame")
 	expect(frame.src).toContain(`title=${EMBED.name}`)

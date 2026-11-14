@@ -273,8 +273,8 @@ describe("ConnectionCard", () => {
 		expect(host.querySelector(`[role="switch"][aria-label="${t("mcp.enabledFor", { name: "Stock" })}"]`) === null).toBe(
 			true,
 		)
-		expect(host.querySelector(`button[aria-label="${t("mcp.remove")}"]`) === null).toBe(true)
-		expect(queryButton(t("mcp.hideTools")) !== undefined).toBe(true)
+		expect(host.querySelector(`button[aria-label="${t("mcp.remove")}"]`)).toBeNull()
+		expect(queryButton(t("mcp.hideTools"))).not.toBeUndefined()
 	})
 
 	test("prefers the stdio deployment notice over an unreachable alert and disables its tools", async () => {
@@ -294,7 +294,7 @@ describe("ConnectionCard", () => {
 		)
 
 		expect(card().textContent).toContain(t("mcp.stdioDisabled"))
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(host.querySelector("[role='alert']")).toBeNull()
 		await click(button(t("mcp.showTools")))
 		expect(card().querySelector("fieldset")?.disabled).toBe(true)
 	})
@@ -302,7 +302,7 @@ describe("ConnectionCard", () => {
 	test("offers no tool disclosure when the connection exposes no tools", async () => {
 		await renderCard(server({ tools: [], toolCount: 0 }))
 
-		expect(queryButton(t("mcp.showTools")) === undefined).toBe(true)
+		expect(queryButton(t("mcp.showTools"))).toBeUndefined()
 	})
 
 	test("reports a connection deleted elsewhere when a tool toggle fails with 404", async () => {
@@ -351,7 +351,7 @@ describe("ConnectionCard", () => {
 		expect(requests.map(({ method, url }) => ({ method, url }))).toEqual([
 			{ method: "DELETE", url: "/api/agents/agent/mcp-servers/stock" },
 		])
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(client.getQueryState(SERVERS_QUERY_KEY)?.isInvalidated).toBe(true)
 	})
 
@@ -380,9 +380,9 @@ describe("ConnectionCard", () => {
 		)
 		if (!cancel) throw new Error("cancel button not rendered")
 		await click(cancel)
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 
 		await click(removeButton())
-		expect(document.querySelector("[role='alertdialog'] [role='alert']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog'] [role='alert']")).toBeNull()
 	})
 })
