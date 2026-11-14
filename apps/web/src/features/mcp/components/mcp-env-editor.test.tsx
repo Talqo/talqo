@@ -189,7 +189,7 @@ describe("McpEnvEditor", () => {
 		expect(input(1, t("mcp.envValue")).getAttribute("aria-invalid")).toBe("true")
 		expect(input(1, t("mcp.envValue")).getAttribute("aria-describedby")).toBe("mcp-env-error")
 		expect(input(2, t("mcp.envValue")).getAttribute("aria-invalid")).toBe("false")
-		expect(input(2, t("mcp.envValue")).getAttribute("aria-describedby") === null).toBe(true)
+		expect(input(2, t("mcp.envValue")).getAttribute("aria-describedby")).toBeNull()
 	})
 
 	test("prevents adding another variable at the limit", async () => {

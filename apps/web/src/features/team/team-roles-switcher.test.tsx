@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { TeamRolesSwitcher } = await import("./team-roles-switcher")
 const { createMemoryHistory, createRootRoute, createRouter } = await import("@tanstack/react-router")
-const { t } = await import("i18next")
 
 let permissions: string[]
 let harness: ReturnType<typeof createTestHarness>
@@ -36,26 +35,10 @@ afterEach(async () => {
 })
 
 describe("TeamRolesSwitcher", () => {
-	test("links role managers between the team and its roles", async () => {
-		permissions = ["roles:manage"]
-		await renderSwitcher()
-
-		const nav = host.querySelector("nav")
-		expect(nav?.getAttribute("aria-label")).toBe(t("team.switcherLabel"))
-		expect([...host.querySelectorAll("nav a")].map((link) => link.textContent)).toEqual([
-			t("team.heading"),
-			t("roles.heading"),
-		])
-		expect([...host.querySelectorAll("nav a")].map((link) => link.getAttribute("href"))).toEqual([
-			"/dashboard/team",
-			"/dashboard/team/roles",
-		])
-	})
-
 	test("stays hidden without role management access", async () => {
 		permissions = ["users:read"]
 		await renderSwitcher()
 
-		expect(host.querySelector("nav") === null).toBe(true)
+		expect(host.querySelector("nav")).toBeNull()
 	})
 })

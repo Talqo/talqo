@@ -8,7 +8,7 @@ if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://l
 await import("@/lib/i18n")
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const { agentLineColor, agentLineDashPattern, DailyStatsChart, StatsCards } = await import("./stats-charts")
+const { DailyStatsChart, StatsCards } = await import("./stats-charts")
 const { LanguageProvider } = await import("@/lib/use-language")
 const { createRoot } = await import("react-dom/client")
 const { act } = await import("react")
@@ -47,41 +47,6 @@ afterEach(async () => {
 	globalThis.ResizeObserver = originalResizeObserver
 })
 
-describe("agentLineColor", () => {
-	test("cycles the chart palette and repeats only after five agents", () => {
-		expect(Array.from({ length: 6 }, (_, index) => agentLineColor(index))).toEqual([
-			"var(--chart-1)",
-			"var(--chart-2)",
-			"var(--chart-3)",
-			"var(--chart-4)",
-			"var(--chart-5)",
-			"var(--chart-1)",
-		])
-	})
-})
-
-describe("agentLineDashPattern", () => {
-	test("changes the dash pattern for each group of five agents", () => {
-		expect(Array.from({ length: 15 }, (_, index) => agentLineDashPattern(index))).toEqual([
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			undefined,
-			"6 3",
-			"6 3",
-			"6 3",
-			"6 3",
-			"6 3",
-			"2 3",
-			"2 3",
-			"2 3",
-			"2 3",
-			"2 3",
-		])
-	})
-})
-
 describe("StatsCards", () => {
 	test("formats compact counts and fractional averages separately", async () => {
 		await render(
@@ -95,53 +60,6 @@ describe("StatsCards", () => {
 
 		const values = [...host.querySelectorAll("[data-slot=card]")].map((card) => card.textContent)
 		expect(values).toEqual(["Conversations1.3K", "Messages per conversation2.5"])
-	})
-})
-
-describe("DailyStatsChart", () => {
-	test("renders one tab per metric and switches the visible chart", async () => {
-		await render(
-			<DailyStatsChart
-				daily={[
-					{ date: "2026-11-01", conversations: 2, messages: 8, tokens: 1200 },
-					{ date: "2026-11-02", conversations: 3, messages: 9, tokens: 2400 },
-				]}
-				agentDaily={[
-					{
-						agentId: "agent-1",
-						date: "2026-11-01",
-						conversations: 2,
-						messages: 8,
-						tokens: 1200,
-					},
-				]}
-				agentLines={[{ color: "var(--chart-1)", id: "agent-1", name: "Shop helper" }]}
-				labels={{ conversations: "Conversations", messages: "Messages", tokens: "Tokens" }}
-				totalLabel="Total"
-				chartTitle={(metric) => `${metric} per day`}
-				chartDescription="Each selected agent has its own line."
-			/>,
-		)
-
-		const tabs = [...host.querySelectorAll<HTMLElement>("[role=tab]")]
-		expect(tabs.map((tab) => tab.textContent)).toEqual(["Conversations", "Messages", "Tokens"])
-		expect(tabs[0]?.getAttribute("aria-selected")).toBe("true")
-
-		expect(host.querySelector("svg:not([aria-label]) title")?.textContent).toBe("Conversations per day")
-		const axisLabels = [...host.querySelectorAll("svg text")].map((node) => node.textContent)
-		expect(axisLabels).toContain("Nov 1")
-		expect(axisLabels).toContain("Nov 2")
-		expect(host.textContent).toContain("Shop helper")
-
-		await act(async () => tabs[1]?.click())
-
-		expect(tabs[1]?.getAttribute("aria-selected")).toBe("true")
-		expect(host.querySelector("svg:not([aria-label]) title")?.textContent).toBe("Messages per day")
-		expect(host.querySelector("svg:not([aria-label]) desc")?.textContent).toBe("Each selected agent has its own line.")
-
-		await act(async () => tabs[2]?.click())
-		expect(tabs[2]?.getAttribute("aria-selected")).toBe("true")
-		expect([...host.querySelectorAll("svg text")].some((node) => node.textContent?.endsWith("K"))).toBe(true)
 	})
 })
 

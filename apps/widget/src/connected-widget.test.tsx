@@ -228,7 +228,7 @@ describe("ConnectedEmbeddedWidget", () => {
 
 		expect(host.textContent).toContain("Part")
 		const stop = host.querySelector<HTMLButtonElement>("button[aria-label='Stop generating']")
-		expect(host.querySelector("form button[type='submit']") === null).toBe(true)
+		expect(host.querySelector("form button[type='submit']")).toBeNull()
 		await act(async () => stop?.click())
 		expect(store.calls.cancel).toBe(1)
 
@@ -252,7 +252,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		const status = [...host.querySelectorAll("span")].find((element) => element.textContent === "Response cancelled")
 		const bubble = status?.closest<HTMLElement>("[data-slot='bubble']")
 		expect(bubble?.dataset.align).toBe("start")
-		expect(bubble?.querySelector("[data-slot='bubble-content']") === null).toBe(true)
+		expect(bubble?.querySelector("[data-slot='bubble-content']")).toBeNull()
 	})
 
 	test("does not render assistant outcome labels on interrupted user messages", async () => {
@@ -295,7 +295,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Answer", "streaming")],
 			}),
 		)
-		expect(host.querySelector("[data-slot='bubble-content'] output") === null).toBe(true)
+		expect(host.querySelector("[data-slot='bubble-content'] output")).toBeNull()
 		expect(host.textContent).toContain("Answer")
 	})
 
@@ -351,7 +351,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		const store = await renderRespondingWidget()
 
 		expect(input().disabled).toBe(false)
-		expect(document.activeElement === input()).toBe(true)
+		expect(document.activeElement).toBe(input())
 		expect(host.querySelector("button[aria-label='Stop generating']")).not.toBeNull()
 
 		await draft("next thought")
@@ -366,7 +366,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			}),
 		)
 		expect(input().value).toBe("next thought")
-		expect(document.activeElement === input()).toBe(true)
+		expect(document.activeElement).toBe(input())
 
 		await submit()
 		expect(store.calls.sends).toEqual([])
@@ -443,7 +443,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await openChat()
 
 		expect(host.textContent).toContain("daily message allowance")
-		expect(host.querySelector("time") === null).toBe(true)
+		expect(host.querySelector("time")).toBeNull()
 	})
 
 	test("offers new chat for any conversation, preserving draft and focusing after success", async () => {
@@ -459,7 +459,7 @@ describe("ConnectedEmbeddedWidget", () => {
 
 		expect(store.calls.newChat).toBe(1)
 		expect(input().value).toBe("unsent")
-		expect(document.activeElement === input()).toBe(true)
+		expect(document.activeElement).toBe(input())
 		expect(host.textContent).toContain("Hi there!")
 	})
 
@@ -544,7 +544,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(host.querySelector<HTMLButtonElement>("button[aria-label='Retry']")?.disabled).toBe(true)
 
 		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, error: error("provider-error") }))
-		expect(host.querySelector("button[aria-label='Retry']") === null).toBe(true)
+		expect(host.querySelector("button[aria-label='Retry']")).toBeNull()
 	})
 
 	test("renders recovery and storage error notices", async () => {
@@ -594,7 +594,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		await openChat()
 		expect(host.textContent).toContain("Loading chat")
 		expect(input().disabled).toBe(false)
-		expect(document.activeElement === input()).toBe(true)
+		expect(document.activeElement).toBe(input())
 		expect(host.querySelector<HTMLButtonElement>("form button[type='submit']")?.disabled).toBe(true)
 	})
 
@@ -661,8 +661,8 @@ describe("ConnectedEmbeddedWidget", () => {
 
 			const bubble = host.querySelector("[data-align='end'] [data-slot='bubble-content']")
 			expect(bubble?.textContent).toBe("**not bold** and `not code`")
-			expect(bubble?.querySelector("strong") === null).toBe(true)
-			expect(bubble?.querySelector("code") === null).toBe(true)
+			expect(bubble?.querySelector("strong")).toBeNull()
+			expect(bubble?.querySelector("code")).toBeNull()
 		})
 
 		test("opens markdown links in a new tab with safe rel", async () => {
@@ -696,8 +696,8 @@ describe("ConnectedEmbeddedWidget", () => {
 			await openChat()
 
 			const bubble = host.querySelector("[data-slot='bubble-content']")
-			expect(bubble?.querySelector("img") === null).toBe(true)
-			expect(bubble?.querySelector("script") === null).toBe(true)
+			expect(bubble?.querySelector("img")).toBeNull()
+			expect(bubble?.querySelector("script")).toBeNull()
 			expect(bubble?.textContent).toContain("Before")
 			expect(bubble?.textContent).toContain("after")
 		})
@@ -711,7 +711,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			await openChat()
 
 			const bubble = host.querySelector("[data-slot='bubble-content']")
-			expect(bubble?.querySelector("img") === null).toBe(true)
+			expect(bubble?.querySelector("img")).toBeNull()
 			const link = bubble?.querySelector("a")
 			expect(link?.getAttribute("href")).toBe("https://example.com/chart.png")
 			expect(link?.textContent).toBe("Size chart")

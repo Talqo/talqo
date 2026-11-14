@@ -137,7 +137,7 @@ describe("McpConnectionsCard empty state", () => {
 		if (!card) throw new Error("connection card not rendered")
 		expect(card.textContent).toContain("Local")
 		expect(card.textContent).not.toContain(t("mcp.stdioDisabled"))
-		expect(host.querySelector(`button[aria-label="${t("mcp.edit")}"]`) === null).toBe(true)
+		expect(host.querySelector(`button[aria-label="${t("mcp.edit")}"]`)).toBeNull()
 
 		body = { servers: [server()], stdioAllowed: false }
 		await act(async () => queryClient.refetchQueries())

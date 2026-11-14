@@ -176,7 +176,7 @@ describe("AgentsPage access filtering", () => {
 		expect(host.querySelector("a[aria-label='Readable agent']")?.getAttribute("href")).toBe(
 			"/dashboard/agent/listed-agent-0",
 		)
-		expect(host.querySelector("a[aria-label='Unreadable agent']") === null).toBe(true)
+		expect(host.querySelector("a[aria-label='Unreadable agent']")).toBeNull()
 	})
 })
 
@@ -256,7 +256,7 @@ describe("AgentsPage create failures", () => {
 		createResponse = retryResponse.promise
 		await click(buttons(t("common.retry"))[0])
 
-		expect(host.querySelector("[role=alert] p") === null).toBe(true)
+		expect(host.querySelector("[role=alert] p")).toBeNull()
 		expect(createRequests).toEqual([
 			{
 				name: defaultName,

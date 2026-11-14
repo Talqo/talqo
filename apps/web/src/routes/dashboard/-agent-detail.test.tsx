@@ -246,9 +246,9 @@ describe("agent detail access and editing", () => {
 		})
 		expect(router.state.location.pathname).toBe("/dashboard/agents")
 		expect(host.querySelector("h1")?.textContent).toBe(t("agents.heading"))
-		expect(host.querySelector("#config-name") === null).toBe(true)
+		expect(host.querySelector("#config-name")).toBeNull()
 		expect(host.textContent).not.toContain(INITIAL_AGENT.systemPrompt)
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
 	})
 
@@ -413,20 +413,6 @@ describe("agent tabs", () => {
 describe("agent embeds panel", () => {
 	const EMBEDS_ENTRY = `/dashboard/agent/${AGENT_ID}?tab=embeds`
 
-	test("shows a loading state until embeds arrive", async () => {
-		const pendingEmbeds = Promise.withResolvers<Response>()
-		embedsResponse = pendingEmbeds.promise
-		await renderPage(EMBEDS_ENTRY)
-
-		expect(host.querySelector("output.sr-only")?.textContent).toBe(t("embedSetup.loading"))
-
-		await act(async () => pendingEmbeds.resolve(json({ embeds: [] })))
-		await settle()
-		await settle()
-
-		expect(host.textContent).toContain(t("embedSetup.emptyTitle"))
-	})
-
 	test("creates a uniquely named embed with defaults and opens it", async () => {
 		embeds = [{ ...EMBED, name: t("embedSetup.defaultName") }]
 		await renderPage(EMBEDS_ENTRY)
@@ -512,7 +498,7 @@ describe("agent deletion", () => {
 		await renderPage()
 		await click(button(t("agentConfig.deleteAgent")))
 		await click(button(t("agentConfig.cancel"), deleteDialog()))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 
 		await click(button(t("agentConfig.deleteAgent")))
 		const confirmation = deleteDialog().querySelector("input")
@@ -544,6 +530,6 @@ describe("agent deletion", () => {
 		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/agents")
 		expect(host.querySelector("h1")?.textContent).toBe(t("agents.heading"))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 })

@@ -103,7 +103,7 @@ describe("account deletion", () => {
 
 		await renderPage()
 
-		expect(queryButton(t("account.deleteAccount")) === undefined).toBe(true)
+		expect(queryButton(t("account.deleteAccount"))).toBeUndefined()
 		expect(host.textContent).not.toContain(t("account.dangerZone"))
 	})
 
@@ -113,20 +113,20 @@ describe("account deletion", () => {
 
 		expect(host.textContent).toContain(t("account.dangerZone"))
 		expect(host.querySelector("[role='alert']")?.textContent).toContain(t("problems.internal-server-error"))
-		expect(queryButton(t("account.deleteAccount")) === undefined).toBe(true)
+		expect(queryButton(t("account.deleteAccount"))).toBeUndefined()
 
 		permissionsFailure = undefined
 		await click(button(t("common.retry")))
 
-		expect(queryButton(t("account.deleteAccount")) !== undefined).toBe(true)
-		expect(host.querySelector("[role='alert']") === null).toBe(true)
+		expect(queryButton(t("account.deleteAccount"))).not.toBeUndefined()
+		expect(host.querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("keeps the confirmation open and cached data intact after deletion fails", async () => {
 		deleteResponse = problem("internal-server-error", 500)
 		const router = await renderPage()
 		queryClient.setQueryData(PRIVATE_QUERY_KEY, { private: true })
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 
 		await confirmDeletion()
 
@@ -135,7 +135,7 @@ describe("account deletion", () => {
 		expect(queryClient.getQueryData(PRIVATE_QUERY_KEY)).toEqual({ private: true })
 
 		await click(button(t("account.cancel"), dialog()))
-		expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("account.deleteAccount")))
 		expect(dialog().textContent).not.toContain(t("problems.internal-server-error"))
 	})

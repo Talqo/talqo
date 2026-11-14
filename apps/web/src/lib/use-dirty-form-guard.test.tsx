@@ -98,7 +98,7 @@ test("navigates without a prompt when the form is unchanged", async () => {
 	await click(host.querySelector<HTMLElement>('[data-testid="to-next"]'))
 
 	expect(router.state.location.pathname).toBe("/dashboard")
-	expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	expect(document.querySelector("[role='alertdialog']")).toBeNull()
 })
 
 test("does not prompt for same-page navigation", async () => {
@@ -107,7 +107,7 @@ test("does not prompt for same-page navigation", async () => {
 	await click(host.querySelector<HTMLElement>('[data-testid="same-page"]'))
 
 	expect(router.state.location.pathname).toBe("/")
-	expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	expect(document.querySelector("[role='alertdialog']")).toBeNull()
 })
 
 test("keeps editing or discards changes when navigation is blocked", async () => {
@@ -119,11 +119,11 @@ test("keeps editing or discards changes when navigation is blocked", async () =>
 	expect(document.querySelector("[role='alertdialog']")?.textContent).toContain(t("common.discardTitle"))
 
 	await click(button(t("common.keepEditing")))
-	expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	expect(router.state.location.pathname).toBe("/")
 
 	await navigate()
 	await click(button(t("common.discardChanges")))
 	expect(router.state.location.pathname).toBe("/dashboard")
-	expect(document.querySelector("[role='alertdialog']") === null).toBe(true)
+	expect(document.querySelector("[role='alertdialog']")).toBeNull()
 })

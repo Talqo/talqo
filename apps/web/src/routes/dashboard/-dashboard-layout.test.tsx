@@ -185,7 +185,7 @@ test("shows only the navigation the operator's permissions and agents allow", as
 		t("nav.team"),
 		t("nav.account"),
 	])
-	expect(rendered.host.querySelector("nav [role='alert']") === null).toBe(true)
+	expect(rendered.host.querySelector("nav [role='alert']")).toBeNull()
 })
 
 test("gives an admin every navigation item", async () => {
@@ -291,20 +291,20 @@ test("announces loading until permissions and agents resolve", async () => {
 
 	expect([...rendered.host.querySelectorAll("output")].map((output) => output.textContent)).toContain(t("auth.loading"))
 	expect(rendered.host.querySelector("nav output")?.textContent).toBe(t("auth.loading"))
-	expect(rendered.host.querySelector("h1") === null).toBe(true)
+	expect(rendered.host.querySelector("h1")).toBeNull()
 
 	await act(async () => agents.resolve(json({ agents: [] })))
 	await settle()
 	expect(rendered.host.querySelector("nav output")?.textContent).toBe(t("auth.loading"))
-	expect(rendered.host.querySelector("h1") === null).toBe(true)
+	expect(rendered.host.querySelector("h1")).toBeNull()
 
 	await act(async () => permissions.resolve(json({ permissions: ["users:read"] })))
 	await settle()
 	await settle()
 
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("nav.team"))
-	expect(rendered.host.querySelector("main output") === null).toBe(true)
-	expect(rendered.host.querySelector("nav output") === null).toBe(true)
+	expect(rendered.host.querySelector("main output")).toBeNull()
+	expect(rendered.host.querySelector("nav output")).toBeNull()
 })
 
 test("retries a failed permission check from the navigation", async () => {
@@ -336,7 +336,7 @@ test("retries a failed permission check from the navigation", async () => {
 	await settle()
 
 	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("nav.team"))
-	expect(rendered.host.querySelector("[role='alert']") === null).toBe(true)
+	expect(rendered.host.querySelector("[role='alert']")).toBeNull()
 })
 
 test("closes the mobile navigation on a same-page navigation", async () => {
@@ -344,7 +344,7 @@ test("closes the mobile navigation on a same-page navigation", async () => {
 	expect(rendered.host.querySelector("#mobile-navigation")).not.toBeNull()
 	await act(async () => rendered.router.navigate({ to: "/", hash: "filtered" }))
 	await settle()
-	expect(rendered.host.querySelector("#mobile-navigation") === null).toBe(true)
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
 })
 
 test("clears protected caches when access is revoked before the role refetch completes", async () => {
@@ -437,7 +437,7 @@ test("titles and focuses the page heading on route changes", async () => {
 	const heading = rendered.host.querySelector("h1")
 	expect(heading?.textContent).toBe(t("nav.team"))
 	expect(document.title).toBe(`${t("nav.team")} · Talqo`)
-	expect(document.activeElement === heading).toBe(true)
+	expect(document.activeElement).toBe(heading)
 })
 
 test("leaves focus alone when the heading changes after navigation", async () => {
@@ -454,14 +454,14 @@ test("leaves focus alone when the heading changes after navigation", async () =>
 	await settle()
 
 	expect(document.title).toBe(`${t("nav.team")} · Talqo`)
-	expect(document.activeElement === toggle).toBe(true)
+	expect(document.activeElement).toBe(toggle)
 })
 
 test("focuses the first mobile link, closes on Escape, and returns focus to the toggle", async () => {
 	const { rendered, toggle } = await openMobileNavigation()
 	const firstLink = rendered.host.querySelector("#mobile-navigation a")
 	expect(toggle.getAttribute("aria-expanded")).toBe("true")
-	expect(document.activeElement === firstLink).toBe(true)
+	expect(document.activeElement).toBe(firstLink)
 
 	await act(async () => {
 		document.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }))
@@ -472,9 +472,9 @@ test("focuses the first mobile link, closes on Escape, and returns focus to the 
 		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
 	})
 
-	expect(rendered.host.querySelector("#mobile-navigation") === null).toBe(true)
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
 	expect(toggle.getAttribute("aria-expanded")).toBe("false")
-	expect(document.activeElement === toggle).toBe(true)
+	expect(document.activeElement).toBe(toggle)
 })
 
 test("closes the mobile navigation when the page outside it is pressed", async () => {
@@ -497,6 +497,6 @@ test("closes the mobile navigation when the page outside it is pressed", async (
 		document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }))
 	})
 
-	expect(rendered.host.querySelector("#mobile-navigation") === null).toBe(true)
-	expect(document.activeElement === toggle).toBe(true)
+	expect(rendered.host.querySelector("#mobile-navigation")).toBeNull()
+	expect(document.activeElement).toBe(toggle)
 })

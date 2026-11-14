@@ -50,7 +50,7 @@ describe("built embed bundle", () => {
 		try {
 			const run = new Function(code) as unknown as () => unknown
 			run()
-			expect(document.querySelector("#talqo-widget") === null).toBe(true)
+			expect(document.querySelector("#talqo-widget")).toBeNull()
 
 			document.dispatchEvent(new Event("DOMContentLoaded"))
 			expect(document.querySelector("#talqo-widget")).not.toBeNull()

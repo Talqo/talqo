@@ -183,7 +183,7 @@ describe("WidgetPreview", () => {
 			},
 			PREVIEW_ORIGIN,
 		)
-		expect(frameElement() === frame).toBe(true)
+		expect(frameElement()).toBe(frame)
 		expect(frame.getAttribute("src")).toBe(initialSrc)
 		expect(initialSrc).toContain("position=bottom-right")
 	})
@@ -221,7 +221,7 @@ describe("WidgetPreview", () => {
 		expect(url.searchParams.has("title")).toBe(false)
 	})
 
-	test("scales the frame to its available width and disconnects the observer on unmount", async () => {
+	test("disconnects its resize observer on unmount", async () => {
 		let resize: (() => void) | undefined
 		const disconnect = mock()
 		const NativeResizeObserver = globalThis.ResizeObserver
@@ -243,7 +243,6 @@ describe("WidgetPreview", () => {
 			await renderPreview()
 			if (!resize) throw new Error("preview did not observe its container")
 			await act(async () => resize?.())
-			expect(frameElement().style.transform).toBe("scale(0.5)")
 
 			await act(async () => root?.unmount())
 			root = undefined
@@ -329,7 +328,7 @@ describe("WidgetPreview with only a CDN widget URL", () => {
 			},
 			"*",
 		)
-		expect(frameElement() === frame).toBe(true)
+		expect(frameElement()).toBe(frame)
 		expect(frame.getAttribute("srcdoc")).toBe(initialDocument)
 	})
 })

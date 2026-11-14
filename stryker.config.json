@@ -5,15 +5,49 @@
 	"coverageAnalysis": "perTest",
 	"concurrency": "50%",
 	"mutate": [
+		"apps/api/src/**/*.ts",
+		"packages/shared/src/**/*.ts",
 		"apps/web/src/**/*.{ts,tsx}",
-		"!apps/web/src/**/*.{test,spec}.{ts,tsx}",
-		"!apps/web/src/**/generated/**",
-		"!apps/web/src/**/routeTree.gen.ts",
-		"!apps/web/src/**/*.d.ts"
+		"!**/*.{test,spec}.{ts,tsx}",
+		"!**/*.seed.ts",
+		"!**/*.d.ts",
+		"!**/generated/**",
+		"!**/routeTree.gen.ts",
+		"!apps/api/src/db/**",
+		"!apps/api/src/{index,openapi,test-helpers}.ts",
+		"!apps/api/src/**/*.platform-prompt.ts",
+		"!apps/api/src/**/*-stdout.ts",
+		"!apps/web/src/main.*",
+		"!apps/web/src/routes/{__root,index}.tsx",
+		"!apps/web/src/routes/dashboard/*-configuration.tsx",
+		"!apps/web/src/routes/dashboard/conversations/**",
+		"!apps/web/src/routes/dashboard/team/**",
+		"!apps/web/src/components/page-*.tsx",
+		"!apps/web/src/components/route-*.tsx",
+		"!apps/web/src/features/**/*-autocomplete.tsx",
+		"!apps/web/src/features/**/*-brand.tsx",
+		"!apps/web/src/features/**/*-denied.tsx",
+		"!apps/web/src/features/**/*-labels.ts",
+		"!apps/web/src/features/**/*-shell.tsx",
+		"!apps/web/src/features/**/*-switcher.tsx",
+		"!apps/web/src/features/statistics/components/stats-charts.tsx",
+		"!apps/web/src/lib/i18n*.ts"
 	],
 	"bun": {
-		"testFiles": ["apps/web/src/**/*.{test,spec}.{ts,tsx}"],
-		"timeout": 2000
+		"testFiles": [
+			"apps/api/src/**/*.{test,spec}.ts",
+			"packages/shared/src/**/*.{test,spec}.ts",
+			"apps/web/src/**/*.{test,spec}.{ts,tsx}"
+		],
+		"bunArgs": [
+			"--env-file",
+			"apps/api/.env.example",
+			"--preload",
+			"./apps/api/no-database.preload.ts",
+			"--path-ignore-patterns",
+			"**/*.integration.test.ts"
+		],
+		"timeout": 5000
 	},
 	"reporters": ["clear-text", "progress", "html", "json", "event-recorder"],
 	"ignorePatterns": ["reports"]

@@ -35,7 +35,7 @@ test("announces readiness and applies config only from the trusted dashboard ori
 	await act(async () => root?.render(<PreviewWidget />))
 
 	expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
-	expect(host.querySelector(".talqo-widget") === null).toBe(true)
+	expect(host.querySelector(".talqo-widget")).toBeNull()
 
 	const data = {
 		source: "talqo-preview",
@@ -49,7 +49,7 @@ test("announces readiness and applies config only from the trusted dashboard ori
 	await act(async () => {
 		window.dispatchEvent(new MessageEvent("message", { origin: "https://other.example.com", data }))
 	})
-	expect(host.querySelector(".talqo-widget") === null).toBe(true)
+	expect(host.querySelector(".talqo-widget")).toBeNull()
 
 	await act(async () => {
 		window.dispatchEvent(new MessageEvent("message", { origin: "https://dashboard.example.com", data }))
