@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 
-import { isForeignKeyViolation, isRestrictViolation, isUniqueViolation } from "./pg-error.ts"
+import { isForeignKeyViolation, isRestrictViolation, isUniqueViolation, MAX_CAUSE_DEPTH } from "./pg-error.ts"
 
 /** drizzle-orm surfaces the Postgres code on `.cause`. */
 function wrapped(code: string): Error {
@@ -28,9 +28,9 @@ describe("pg error predicates", () => {
 		expect(isForeignKeyViolation(wrapped("23505"))).toBe(false)
 	})
 
-	it("inspects a bounded number of cause levels", () => {
-		expect(isUniqueViolation(nested(4, "23505"))).toBe(true)
-		expect(isUniqueViolation(nested(5, "23505"))).toBe(false)
+	it("stops at the configured cause depth", () => {
+		expect(isUniqueViolation(nested(MAX_CAUSE_DEPTH - 1, "23505"))).toBe(true)
+		expect(isUniqueViolation(nested(MAX_CAUSE_DEPTH, "23505"))).toBe(false)
 	})
 
 	it("stops at a cause that is not an Error", () => {

@@ -2,7 +2,7 @@
 const UNIQUE_VIOLATION = "23505"
 const FOREIGN_KEY_VIOLATION = "23503"
 const RESTRICT_VIOLATION = "23001"
-const MAX_CAUSE_DEPTH = 5
+export const MAX_CAUSE_DEPTH = 5
 
 function hasPgErrorCode(error: unknown, code: string): boolean {
 	// drizzle-orm wraps the raw Postgres error in a DrizzleQueryError's `.cause`.
