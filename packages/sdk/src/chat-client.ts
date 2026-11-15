@@ -110,7 +110,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const transport = options.transport ?? createFetchChatTransport({ getPagePath: options.getPagePath })
+	const transport = options.transport ?? createFetchChatTransport()
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -334,7 +334,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		messages = messages.map((message) => (message.id === id ? update(message) : message))
 	}
 
-	async function sendMessage(text: string): Promise<void> {
+	async function sendText(text: string): Promise<void> {
 		requireUsable()
 		if (initialization !== "ready") throw new Error("Chat client is not initialized")
 		if (!snapshot.isAvailable) throw new ChatClientError({ code: "chat-unavailable" })
@@ -476,6 +476,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
+	async function sendMessage(text: string): Promise<void> {
+		if (text.length === 0) throw new Error("Message text must not be empty")
+		const siteContext = options.getSiteContext?.()
+		await sendText(siteContext ? `Site context:\n${siteContext}\n\n${text}` : text)
+	}
+
 	function cancelResponse(): Promise<void> {
 		requireUsable()
 		if (cancellationPromise !== undefined) return cancellationPromise
@@ -566,7 +572,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			.slice(0, failedAssistantIndex)
 			.findLast((message) => message.role === "user" && message.outcome === "completed")
 		if (failedUserMessage === undefined) throw new Error("No failed message is available to retry")
-		await sendMessage(failedUserMessage.text)
+		await sendText(failedUserMessage.text)
 	}
 
 	async function startNewChat(): Promise<void> {

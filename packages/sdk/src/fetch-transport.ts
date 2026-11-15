@@ -17,7 +17,6 @@ type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Pro
 
 export type FetchChatTransportOptions = {
 	fetch?: FetchImplementation
-	getPagePath?: () => string | undefined
 	now?: () => Date
 }
 
@@ -262,12 +261,7 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 		},
 
 		async sendMessage(input) {
-			const pagePath = options.getPagePath?.()
-			const body = {
-				requestId: input.requestId,
-				text: input.text,
-				...(pagePath?.startsWith("/") ? { pagePath } : {}),
-			} satisfies SendChatMessageBody
+			const body = { requestId: input.requestId, text: input.text } satisfies SendChatMessageBody
 			const response = await fetchImplementation(
 				endpoint(input.apiUrl, `/api/chat/${encodeURIComponent(input.embedToken)}/messages`),
 				{

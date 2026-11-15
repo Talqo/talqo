@@ -161,43 +161,57 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().configuration?.title).toBe("Support")
 	})
 
-	test("passes explicit page path capture to the production transport", async () => {
-		const bodies: unknown[] = []
-		using fetchSpy = spyOn(globalThis, "fetch").mockImplementation((async (
-			_input: RequestInfo | URL,
-			init?: RequestInit,
-		) => {
-			if (init?.method === "POST") {
-				bodies.push(JSON.parse(typeof init.body === "string" ? init.body : "null"))
-				return new Response(
-					'event: chat\ndata: {"version":1,"type":"accepted","requestId":"11111111-1111-4111-8111-111111111111","generationId":"generation","userMessage":{"id":"user","createdAt":"now"},"assistantMessage":{"id":"assistant","createdAt":"now"}}\n\nevent: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n',
-					{ headers: { "Content-Type": "text/event-stream" } },
-				)
-			}
-			return new Response(JSON.stringify({ version: 1, name: "Support", appearance: {}, isAvailable: true }), {
-				headers: { "Content-Type": "application/json" },
-			})
-		}) as typeof fetch)
-		const ids = ["22222222-2222-4222-8222-222222222222", "11111111-1111-4111-8111-111111111111"]
+	test("adds fresh site context to outgoing and visible user messages", async () => {
+		const contexts = ["Current page path: /account", "Current page path: /product/guitar", undefined]
+		const sent: string[] = []
+		const ids = [
+			"11111111-1111-4111-8111-111111111111",
+			"22222222-2222-4222-8222-222222222222",
+			"33333333-3333-4333-8333-333333333333",
+			"44444444-4444-4444-8444-444444444444",
+			"55555555-5555-4555-8555-555555555555",
+		]
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
-			getPagePath: () => "/account",
+			getSiteContext: () => contexts.shift(),
 			storage: createMemoryStorage(),
+			transport: baseTransport({
+				sendMessage: async ({ text }) => {
+					sent.push(text)
+					const suffix = sent.length
+					return streamFrom([
+						{
+							type: "accepted",
+							requestId: `request-${suffix}`,
+							generationId: `generation-${suffix}`,
+							userMessage: { id: `user-${suffix}`, createdAt: "now" },
+							assistantMessage: { id: `assistant-${suffix}`, createdAt: "now" },
+						},
+						{ type: "terminal", outcome: "completed" },
+					])
+				},
+			}),
 			randomUUID: () => ids.shift()!,
 		})
 		await client.initialize()
 
-		await client.sendMessage("hello")
+		await client.sendMessage("first")
+		await client.sendMessage("second")
+		await client.sendMessage("third")
 
-		expect(fetchSpy).toHaveBeenCalledTimes(2)
-		expect(bodies).toEqual([
-			{
-				requestId: "11111111-1111-4111-8111-111111111111",
-				text: "hello",
-				pagePath: "/account",
-			},
-		])
+		const expected = [
+			"Site context:\nCurrent page path: /account\n\nfirst",
+			"Site context:\nCurrent page path: /product/guitar\n\nsecond",
+			"third",
+		]
+		expect(sent).toEqual(expected)
+		expect(
+			client
+				.getSnapshot()
+				.messages.filter((message) => message.role === "user")
+				.map((message) => message.text),
+		).toEqual(expected)
 	})
 
 	test("initializes configuration and restores server history from a stored credential", async () => {
@@ -863,6 +877,7 @@ describe("createChatClient", () => {
 		const client = createChatClient({
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
+			getSiteContext: () => "Current page path: /account",
 			transport: baseTransport({
 				sendMessage: async ({ text }) => {
 					sent.push(text)
@@ -902,7 +917,10 @@ describe("createChatClient", () => {
 		expect(client.getSnapshot().actions).toEqual(["send", "retry", "new-chat"])
 		await client.retryLastMessage()
 
-		expect(sent).toEqual(["hello", "hello"])
+		expect(sent).toEqual([
+			"Site context:\nCurrent page path: /account\n\nhello",
+			"Site context:\nCurrent page path: /account\n\nhello",
+		])
 		expect(client.getSnapshot()).toMatchObject({
 			error: undefined,
 			messages: [

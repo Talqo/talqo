@@ -264,11 +264,6 @@ export type SendChatMessageBody = {
   requestId: string;
   /** @minLength 1 */
   text: string;
-  /**
-     * @maxLength 2048
-     * @pattern ^\/[^\s\p{Cc}\p{Cf}?#]*$/u
-     */
-  pagePath?: string;
 };
 
 export type GetChatSession200MessagesItemRole = typeof GetChatSession200MessagesItemRole[keyof typeof GetChatSession200MessagesItemRole];

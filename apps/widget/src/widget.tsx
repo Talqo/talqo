@@ -9,7 +9,7 @@ let root: Root | null = null
 
 export type MountTarget = string | HTMLElement
 export type ChatClientFactory = (
-	options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "getPagePath">,
+	options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "getSiteContext">,
 ) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory }
 
@@ -44,9 +44,9 @@ function resolveMountElement(target: MountTarget): HTMLElement | null {
 	return created
 }
 
-function currentPagePath(): string | undefined {
+function currentSiteContext(): string | undefined {
 	const pagePath = globalThis.location?.pathname
-	return pagePath?.startsWith("/") ? pagePath : undefined
+	return pagePath?.startsWith("/") ? `Current page path: ${pagePath}` : undefined
 }
 
 export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
@@ -73,8 +73,8 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 		return
 	}
 
-	const getPagePath = isPageContextEnabled(dataset) ? currentPagePath : undefined
-	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, getPagePath })
+	const getSiteContext = isPageContextEnabled(dataset) ? currentSiteContext : undefined
+	const client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, getSiteContext })
 	root.render(<ConnectedEmbeddedWidget client={client} title={dataset?.talqoTitle} appearance={overrides} />)
 }
 

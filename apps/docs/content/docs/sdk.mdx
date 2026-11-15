@@ -51,6 +51,8 @@ The SDK stores conversation credentials in browser local storage and falls back 
 
 The embed token is public. Provider API keys and operator credentials must stay on the Talqo server.
 
-## Page context
+## Site context
 
-The SDK sends no page location by default. To send the current path to the AI provider with each question, pass `getPagePath: () => window.location.pathname` to `createChatClient`. The SDK reads it again for every send, including after client-side navigation. Query strings and fragments are excluded. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets.
+The SDK sends no site context by default. Pass `getSiteContext` to `createChatClient` to prepend context to each new user message. The hook is read for every new send, and the composed text is saved and shown in conversation history. Retries and recovery reuse that exact text rather than adding context again.
+
+For page context, return `Current page path: ${window.location.pathname}` when the pathname starts with `/`, and `undefined` otherwise. Query strings and fragments are excluded by `pathname`. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets.
