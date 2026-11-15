@@ -2,7 +2,8 @@
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"treatConfigHintsAsErrors": true,
 	"ignoreBinaries": ["actionlint", "zizmor"],
-	"ignoreDependencies": ["@playwright/cli"],
+	"ignoreDependencies": ["@playwright/cli", "@fidasek009/stryker-mutator-bun-runner"],
+	"stryker": false,
 	"workspaces": {
 		".": {
 			"entry": ["*.ts"],

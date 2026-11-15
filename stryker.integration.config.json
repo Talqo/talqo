@@ -1,5 +1,6 @@
 {
 	"$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+	"testRunner": "bun",
 	"plugins": ["./node_modules/@fidasek009/stryker-mutator-bun-runner/dist/index.js"],
 	"coverageAnalysis": "perTest",
 	"concurrency": "50%",
@@ -23,11 +24,7 @@
 		"timeout": 60000
 	},
 	"reporters": ["clear-text", "progress", "html", "json"],
-	"jsonReporter": {
-		"fileName": "reports/mutation/integration.json"
-	},
-	"htmlReporter": {
-		"fileName": "reports/mutation/integration.html"
-	},
+	"jsonReporter": { "fileName": "reports/mutation/integration.json" },
+	"htmlReporter": { "fileName": "reports/mutation/integration.html" },
 	"ignorePatterns": ["reports"]
 }

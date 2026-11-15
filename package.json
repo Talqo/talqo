@@ -35,10 +35,10 @@
 		"release": "bash scripts/release.sh",
 		"test": "turbo run test --output-logs=errors-only",
 		"test:integration": "turbo run test:integration --output-logs=errors-only",
-		"test:mutation": "bun x --bun stryker run --testRunner bun --ignoreStatic && bun x --bun stryker run --testRunner bun stryker.dom.config.json --ignoreStatic",
-		"test:mutation:full": "bun x --bun stryker run --testRunner bun --ignoreStatic --force && bun x --bun stryker run --testRunner bun stryker.dom.config.json --ignoreStatic --force",
-		"test:mutation:integration": "bash scripts/test-integration.sh bun x --bun stryker run --testRunner bun stryker.integration.config.json --ignoreStatic",
-		"test:mutation:integration:full": "bash scripts/test-integration.sh bun x --bun stryker run --testRunner bun stryker.integration.config.json --ignoreStatic --force",
+		"test:mutation": "bun x --bun stryker run --ignoreStatic && bun x --bun stryker run stryker.dom.config.json --ignoreStatic",
+		"test:mutation:full": "bun x --bun stryker run --ignoreStatic --force && bun x --bun stryker run stryker.dom.config.json --ignoreStatic --force",
+		"test:mutation:integration": "bash scripts/test-integration.sh bun x --bun stryker run stryker.integration.config.json --ignoreStatic",
+		"test:mutation:integration:full": "bash scripts/test-integration.sh bun x --bun stryker run stryker.integration.config.json --ignoreStatic --force",
 		"typecheck": "turbo run typecheck --output-logs=errors-only"
 	},
 	"devDependencies": {
