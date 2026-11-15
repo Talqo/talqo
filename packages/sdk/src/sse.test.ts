@@ -29,6 +29,23 @@ async function* chunks(bytes: Uint8Array, boundaries: number[]): AsyncIterable<U
 }
 
 describe("parseSseStream", () => {
+	test("ignores comment, unknown, and invalid retry fields", async () => {
+		const encoded = new TextEncoder().encode(
+			': keepalive\nretry: soon\nfoo: bar\nevent: chat\ndata: {"type":"delta","text":"你好"}\n\n',
+		)
+
+		const events = await Array.fromAsync(parseSseStream(chunks(encoded, [3, 19, 40]), eventParser))
+
+		expect(events).toEqual([{ type: "delta", text: "你好" }])
+	})
+
+	test("drops a truncated trailing code point without emitting an event", async () => {
+		const encoded = new TextEncoder().encode('event: chat\ndata: {"type":"delta","text":"你')
+		const truncated = encoded.slice(0, encoded.length - 1)
+
+		expect(await Array.fromAsync(parseSseStream(chunks(truncated, []), eventParser))).toEqual([])
+	})
+
 	test("decodes multibyte JSON across arbitrary byte and event boundaries", async () => {
 		const encoded = new TextEncoder().encode(
 			': keepalive\r\nevent: chat\r\ndata: {"type":"delta",\r\ndata: "text":"你好 🌍"}\r\n\r\n',
@@ -50,12 +67,21 @@ describe("parseSseStream", () => {
 		const oversized = `event: chat\ndata: ${"x".repeat(1_048_576)}`
 		const source = chunks(new TextEncoder().encode(oversized), [])
 
-		await expect(Array.fromAsync(parseSseStream(source, eventParser))).rejects.toThrow("buffer")
+		const error = await Array.fromAsync(parseSseStream(source, eventParser)).catch((cause: unknown) => cause)
+
+		expect(error).toBeInstanceOf(SseParseError)
+		expect((error as SseParseError).name).toBe("SseParseError")
+		expect((error as SseParseError).message).toContain("buffer limit")
+		expect((error as SseParseError).cause).toMatchObject({ type: "max-buffer-size-exceeded" })
 	})
 
 	test("rejects invalid JSON and events rejected by the injected parser", async () => {
 		const invalidJson = chunks(new TextEncoder().encode("event: chat\ndata: nope\n\n"), [])
-		await expect(Array.fromAsync(parseSseStream(invalidJson, eventParser))).rejects.toBeInstanceOf(SseParseError)
+		const jsonError = await Array.fromAsync(parseSseStream(invalidJson, eventParser)).catch((cause: unknown) => cause)
+
+		expect(jsonError).toBeInstanceOf(SseParseError)
+		expect((jsonError as SseParseError).message).toContain("not valid JSON")
+		expect((jsonError as SseParseError).cause).toBeInstanceOf(SyntaxError)
 
 		const invalidEvent = chunks(new TextEncoder().encode('event: chat\ndata: {"type":"other"}\n\n'), [])
 		await expect(Array.fromAsync(parseSseStream(invalidEvent, eventParser))).rejects.toThrow("validation")

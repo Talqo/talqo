@@ -1,9 +1,33 @@
-import { beforeEach, describe, expect, spyOn, test } from "bun:test"
+import type { ChatClient, ChatSnapshot } from "@talqo/sdk"
 
-const { mount, unmount } = await import("./test-setup").then(() => import("./widget"))
+import { readyMessage } from "@talqo/shared/preview-channel"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
+
+import type { MountOptions, MountTarget } from "./widget"
+
+// Import paused: with a parsed document the module auto-mounts at import, outside any test,
+// so a broken mount surfaces as an unhandled error between tests instead of a failed test.
+const { mount, unmount } = await import("./test-setup").then(async () => {
+	const parsedState = Object.getOwnPropertyDescriptor(document, "readyState")
+	Object.defineProperty(document, "readyState", { configurable: true, value: "loading" })
+	try {
+		return await import("./widget")
+	} finally {
+		if (parsedState) Object.defineProperty(document, "readyState", parsedState)
+		else Reflect.deleteProperty(document, "readyState")
+	}
+})
+const { act } = await import("react")
 
 describe("widget mount", () => {
 	beforeEach(() => {
+		unmount()
+		document.querySelector("#talqo-widget")?.remove()
+	})
+
+	// The last mount would otherwise keep its React root and listeners alive for
+	// every test file that runs later in the same process.
+	afterEach(() => {
 		unmount()
 		document.querySelector("#talqo-widget")?.remove()
 	})
@@ -38,6 +62,12 @@ describe("widget mount", () => {
 		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (#)")
 	})
 
+	test("reports an element target that cannot host the widget", () => {
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
+		mount(document as unknown as HTMLElement)
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: mount target not found (element)")
+	})
+
 	test("warns and renders no widget without an embed token", () => {
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		mount()
@@ -51,5 +81,207 @@ describe("widget mount", () => {
 		mount()
 
 		expect(fetchSpy).not.toHaveBeenCalled()
+	})
+})
+
+type WidgetModule = {
+	mount: (target?: MountTarget, options?: MountOptions) => void
+	unmount: () => void
+}
+
+function snippet(attributes: Record<string, string>): void {
+	const element = document.createElement("script")
+	for (const [name, value] of Object.entries(attributes)) {
+		element.setAttribute(name, value)
+	}
+	document.head.append(element)
+}
+
+function fakeClient(): ChatClient {
+	const snapshot: ChatSnapshot = {
+		isAvailable: true,
+		configuration: undefined,
+		messages: [],
+		activity: "idle",
+		actions: [],
+		notices: [],
+		acceptedMessageId: undefined,
+		activeTools: [],
+		error: undefined,
+	}
+	return {
+		subscribe: () => () => {},
+		getSnapshot: () => snapshot,
+		initialize: async () => {},
+		sendMessage: async () => {},
+		retryLastMessage: async () => {},
+		cancelResponse: async () => {},
+		startNewChat: async () => {},
+		dispose: () => {},
+	}
+}
+
+function importWidget(scenario: string): Promise<WidgetModule> {
+	return import(`./widget.tsx?${scenario}`) as Promise<WidgetModule>
+}
+
+async function importWidgetPaused(
+	scenario: string,
+	listeners?: Array<{ type: string; listener: EventListener }>,
+): Promise<WidgetModule> {
+	const ownReadyState = Object.getOwnPropertyDescriptor(document, "readyState")
+	const addListener = spyOn(document, "addEventListener").mockImplementation(((
+		type: string,
+		listener: EventListener,
+	) => {
+		listeners?.push({ type, listener })
+	}) as typeof document.addEventListener)
+	Object.defineProperty(document, "readyState", { value: "loading", configurable: true })
+	try {
+		return await importWidget(scenario)
+	} finally {
+		addListener.mockRestore()
+		if (ownReadyState) Object.defineProperty(document, "readyState", ownReadyState)
+		else Reflect.deleteProperty(document, "readyState")
+	}
+}
+
+describe("embed snippet discovery", () => {
+	let widget: WidgetModule | undefined
+
+	beforeEach(async () => {
+		;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+		await act(async () => unmount())
+		document.querySelector("#talqo-widget")?.remove()
+	})
+
+	afterEach(async () => {
+		await act(async () => widget?.unmount())
+		widget = undefined
+		;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false
+		document.querySelector("#talqo-widget")?.remove()
+		document.querySelectorAll("script[data-talqo-embed-token], script[data-talqo-preview]").forEach((element) => {
+			element.remove()
+		})
+	})
+
+	test("defers its mount until the document is parsed", async () => {
+		snippet({ "data-talqo-preview": "", "data-talqo-parent-origin": "https://dashboard.example.com" })
+		using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
+		const listeners: Array<{ type: string; listener: EventListener }> = []
+
+		widget = await importWidgetPaused("deferred-mount", listeners)
+		const onParsed = listeners.find((entry) => entry.type === "DOMContentLoaded")?.listener
+		expect(onParsed).toBeDefined()
+		expect(document.querySelector("#talqo-widget")).toBeNull()
+
+		await act(async () => onParsed?.({} as Event))
+
+		expect(document.querySelector("#talqo-widget")).not.toBeNull()
+		expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
+	})
+
+	test("renders the preview harness for a preview snippet", async () => {
+		snippet({ "data-talqo-preview": "", "data-talqo-parent-origin": "https://dashboard.example.com" })
+		using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
+
+		widget = await importWidgetPaused("preview-snippet")
+		await act(async () => widget?.mount())
+
+		expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
+	})
+
+	test("mounts the connected widget from the snippet with an injected client", async () => {
+		snippet({
+			"data-talqo-embed-token": "token-1",
+			"data-talqo-api": "https://api.example.com",
+			"data-talqo-title": "Support",
+		})
+		using fetchSpy = spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected fetch"))
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
+		const calls: Array<{ apiUrl: string; embedToken: string }> = []
+		const client = fakeClient()
+
+		widget = await importWidgetPaused("connected-snippet")
+		const target = document.createElement("div")
+		document.body.append(target)
+		await act(async () =>
+			widget?.mount(target, {
+				createClient(options) {
+					calls.push(options)
+					return client
+				},
+			}),
+		)
+
+		expect(calls).toEqual([{ apiUrl: "https://api.example.com", embedToken: "token-1" }])
+		expect(target.querySelector(".talqo-widget")).not.toBeNull()
+		expect(warning).not.toHaveBeenCalled()
+		expect(fetchSpy).not.toHaveBeenCalled()
+
+		await act(async () => widget?.unmount())
+		expect(target.childElementCount).toBe(0)
+		expect(() => widget?.unmount()).not.toThrow()
+		target.remove()
+	})
+
+	test("warns and renders nothing when the snippet lacks an API origin", async () => {
+		snippet({ "data-talqo-embed-token": "token-1" })
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
+		let created = 0
+
+		widget = await importWidgetPaused("token-only-snippet")
+		const target = document.createElement("div")
+		document.body.append(target)
+		await act(async () =>
+			widget?.mount(target, {
+				createClient() {
+					created += 1
+					return fakeClient()
+				},
+			}),
+		)
+
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: embed token or API origin missing")
+		expect(created).toBe(0)
+		expect(target.querySelector(".talqo-widget")).toBeNull()
+		target.remove()
+	})
+
+	test("warns about duplicate snippets and uses the first", async () => {
+		snippet({ "data-talqo-embed-token": "first", "data-talqo-api": "https://api.example.com" })
+		snippet({ "data-talqo-embed-token": "second", "data-talqo-api": "https://api.example.com" })
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
+		const tokens: string[] = []
+
+		widget = await importWidgetPaused("duplicate-snippets")
+		await act(async () =>
+			widget?.mount(document.createElement("div"), {
+				createClient(options) {
+					tokens.push(options.embedToken)
+					return fakeClient()
+				},
+			}),
+		)
+
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: multiple embed snippets found; using the first")
+		expect(tokens).toEqual(["first"])
+	})
+
+	test("remounting replaces the previous widget root", async () => {
+		snippet({ "data-talqo-embed-token": "token-1", "data-talqo-api": "https://api.example.com" })
+		const client = fakeClient()
+		const first = document.createElement("div")
+		const second = document.createElement("div")
+		document.body.append(first, second)
+
+		widget = await importWidgetPaused("remount")
+		await act(async () => widget?.mount(first, { createClient: () => client }))
+		await act(async () => widget?.mount(second, { createClient: () => client }))
+
+		expect(first.childElementCount).toBe(0)
+		expect(second.querySelector(".talqo-widget")).not.toBeNull()
+		first.remove()
+		second.remove()
 	})
 })

@@ -1,14 +1,30 @@
-import { describe, expect, spyOn, test } from "bun:test"
+import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test"
 
 import {
+	type ChatClient,
 	ChatClientError,
+	type ChatClientOptions,
 	type ChatConfiguration,
 	type ChatEvent,
 	type ChatTransport,
 	ChatTransportError,
 	createChatClient,
+	type SessionState,
 } from "./index"
 import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from "./storage"
+
+// These tests exercise the in-memory fallback and leave no records behind. A DOM
+// suite registered earlier in the process supplies one shared localStorage, which
+// would leak a credential or pending message from one test into the next; the
+// default-localStorage path has its own test.
+let ambientLocalStorage: PropertyDescriptor | undefined
+beforeAll(() => {
+	ambientLocalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage")
+	Reflect.deleteProperty(globalThis, "localStorage")
+})
+afterAll(() => {
+	if (ambientLocalStorage) Object.defineProperty(globalThis, "localStorage", ambientLocalStorage)
+})
 
 const configuration: ChatConfiguration = {
 	title: "Support",
@@ -100,6 +116,46 @@ function recoveryClient(loadSession: (loads: number) => Promise<Awaited<ReturnTy
 	})
 	return { client, loads: () => loads }
 }
+
+const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
+
+function acceptedEvent(generationId: string, ids: { user?: string; assistant?: string } = {}): ChatEvent {
+	return {
+		type: "accepted",
+		requestId: generationId,
+		generationId,
+		userMessage: { id: ids.user ?? "u1", createdAt: "now" },
+		assistantMessage: { id: ids.assistant ?? "a1", createdAt: "now" },
+	}
+}
+
+function testClient(overrides: Partial<ChatClientOptions> = {}): ChatClient {
+	return createChatClient({
+		apiUrl: "https://api.example.test",
+		embedToken: "embed",
+		storage: createMemoryStorage(),
+		transport: baseTransport(),
+		randomUUID: () => CREDENTIAL,
+		...overrides,
+	})
+}
+
+function unresolvedSession(): Promise<SessionState> {
+	return new Promise<SessionState>(() => undefined)
+}
+
+const cancellationFailures = [
+	{
+		name: "a non-transport failure",
+		failure: new Error("cancel failed"),
+		error: { code: "cancel-failed" },
+	},
+	{
+		name: "a transport failure",
+		failure: new ChatTransportError({ code: "internal-server-error", status: 500 }),
+		error: { code: "internal-server-error", status: 500 },
+	},
+] as const
 
 describe("createChatClient", () => {
 	test("stores a UUID bearer before the first send", async () => {
@@ -702,6 +758,7 @@ describe("createChatClient", () => {
 			error: rejection.detail,
 			messages: [],
 		})
+		expect(client.getSnapshot().actions).toEqual(["send", "new-chat"])
 		const record = readChatStorageRecord(
 			await storage.getItem(createChatStorageKey("https://api.example.test", "embed")),
 		)
@@ -1632,5 +1689,838 @@ describe("createChatClient", () => {
 		expect(aborted).toBe(true)
 		expect(notifications).toBe(beforeDispose)
 		await expect(client.sendMessage("later")).rejects.toThrow("disposed")
+	})
+})
+
+describe("chat client snapshots", () => {
+	test("reports the loading state before initialization completes", () => {
+		const client = testClient()
+
+		expect(client.getSnapshot()).toEqual({
+			isAvailable: false,
+			configuration: undefined,
+			activeTools: [],
+			messages: [],
+			activity: "loading",
+			actions: [],
+			notices: [],
+			acceptedMessageId: undefined,
+			error: undefined,
+		})
+	})
+
+	test("exposes the error name and detail of a rejected command", () => {
+		const detail = { code: "chat-unavailable" } as const
+
+		expect(new ChatClientError(detail)).toMatchObject({
+			name: "ChatClientError",
+			message: "chat-unavailable",
+			detail,
+		})
+	})
+
+	test("loads configuration once for repeated and concurrent initialization", async () => {
+		let configurations = 0
+		const client = testClient({
+			transport: baseTransport({
+				loadConfiguration: async () => {
+					configurations += 1
+					return configuration
+				},
+			}),
+		})
+
+		await Promise.all([client.initialize(), client.initialize()])
+		await client.initialize()
+
+		expect(configurations).toBe(1)
+	})
+
+	test("keeps the chat blocked without offering new chat when initialization fails", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				loadSession: async () => {
+					throw new Error("offline")
+				},
+			}),
+		})
+
+		await expect(client.initialize()).rejects.toThrow("offline")
+
+		expect(client.getSnapshot()).toMatchObject({
+			isAvailable: true,
+			activity: "blocked",
+			actions: [],
+			error: { code: "transport-error" },
+		})
+		expect(client.getSnapshot().error?.newChatAvailable).toBe(false)
+	})
+
+	test("exposes the latest completed user message as the accepted message", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				loadSession: async () => ({
+					messages: [
+						{ id: "u1", role: "user", text: "one", createdAt: "now", outcome: "completed" },
+						{ id: "a1", role: "assistant", text: "reply", createdAt: "now", outcome: "completed" },
+						{ id: "u2", role: "user", text: "two", createdAt: "now", outcome: "interrupted" },
+					],
+					activeGeneration: undefined,
+				}),
+			}),
+		})
+
+		await client.initialize()
+
+		expect(client.getSnapshot().acceptedMessageId).toBe("u1")
+	})
+
+	for (const [code, newChatAvailable] of [
+		["chat-conversation-too-long", true],
+		["chat-context-limit", true],
+		["chat-daily-allowance-exceeded", false],
+	] as const) {
+		test(`derives new-chat availability from the ${code} error`, async () => {
+			const client = testClient({
+				transport: baseTransport({
+					sendMessage: async () =>
+						streamFrom([acceptedEvent("generation"), { type: "error", outcome: "blocked", error: { code } }]),
+				}),
+			})
+			await client.initialize()
+
+			await expect(client.sendMessage("hello")).rejects.toThrow(code)
+
+			expect(client.getSnapshot().error).toMatchObject({ code, newChatAvailable })
+		})
+	}
+
+	const retryCases = [
+		{
+			name: "a retriable failed response",
+			error: { code: "provider-error", retriable: true },
+			outcome: "failed",
+			actions: ["send", "retry", "new-chat"],
+			retryError: undefined,
+		},
+		{
+			name: "a retriable blocked response",
+			error: { code: "provider-error", retriable: true },
+			outcome: "blocked",
+			actions: ["send", "new-chat"],
+			retryError: "No failed response",
+		},
+		{
+			name: "a non-retriable failed response",
+			error: { code: "provider-error" },
+			outcome: "failed",
+			actions: ["send", "new-chat"],
+			retryError: "not retriable",
+		},
+	] as const
+
+	for (const { name, error, outcome, actions, retryError } of retryCases) {
+		test(`offers retry only after ${name}`, async () => {
+			let attempts = 0
+			const client = testClient({
+				transport: baseTransport({
+					sendMessage: async () => {
+						attempts += 1
+						return attempts === 1
+							? streamFrom([acceptedEvent("generation"), { type: "error", outcome, error }])
+							: streamFrom([
+									acceptedEvent("retry", { user: "u2", assistant: "a2" }),
+									{ type: "terminal", outcome: "completed" },
+								])
+					},
+				}),
+			})
+			await client.initialize()
+			await expect(client.sendMessage("hello")).rejects.toThrow("provider-error")
+
+			expect(client.getSnapshot().actions).toEqual(actions)
+			expect(client.getSnapshot().messages.at(-1)?.outcome).toBe(outcome)
+			if (retryError === undefined) {
+				await expect(client.retryLastMessage()).resolves.toBeUndefined()
+			} else {
+				await expect(client.retryLastMessage()).rejects.toThrow(retryError)
+			}
+		})
+	}
+
+	test("rejects usage that violates the chat lifecycle", async () => {
+		let sends = 0
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					return streamFrom([])
+				},
+			}),
+		})
+
+		await expect(client.sendMessage("before initialize")).rejects.toThrow("not initialized")
+		await client.initialize()
+		await expect(client.sendMessage("")).rejects.toThrow("must not be empty")
+		await expect(client.retryLastMessage()).rejects.toThrow("not retriable")
+
+		expect(sends).toBe(0)
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [] })
+	})
+})
+
+describe("chat send lifecycle", () => {
+	for (const { detail, definite } of [
+		{ detail: { code: "invalid-request", status: 400 }, definite: true },
+		{ detail: { code: "internal-server-error", status: 500 }, definite: false },
+		{ detail: { code: "transport-error" }, definite: false },
+	] as const) {
+		test(`treats a pre-acceptance ${detail.code} with status ${detail.status ?? "none"} as ${definite ? "definite" : "uncertain"}`, async () => {
+			const rejection = new ChatTransportError(detail)
+			const client = testClient({
+				transport: baseTransport({
+					sendMessage: async () => {
+						throw rejection
+					},
+					loadSession: unresolvedSession,
+				}),
+				recoveryDelays: [0],
+			})
+			await client.initialize()
+
+			await expect(client.sendMessage("hello")).rejects.toBe(rejection)
+
+			if (definite) {
+				expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [], error: rejection.detail })
+			} else {
+				expect(client.getSnapshot()).toMatchObject({
+					activity: "recovering",
+					messages: [{ text: "hello", outcome: "interrupted" }],
+					error: rejection.detail,
+				})
+			}
+			client.dispose()
+		})
+	}
+
+	test("keeps an established conversation when the server definitely rejects a send", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		const rejection = new ChatTransportError({ code: "invalid-request", status: 400 })
+		const credentials: string[] = []
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				loadSession: async () => ({
+					messages: [{ id: "u1", role: "user", text: "earlier", createdAt: "now", outcome: "completed" }],
+					activeGeneration: undefined,
+				}),
+				sendMessage: async (input) => {
+					credentials.push(input.credential)
+					throw rejection
+				},
+			}),
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toBe(rejection)
+
+		expect(client.getSnapshot()).toMatchObject({
+			activity: "idle",
+			messages: [{ id: "u1", text: "earlier" }],
+			error: rejection.detail,
+		})
+		expect(
+			readChatStorageRecord(await storage.getItem(createChatStorageKey("https://api.example.test", "embed"))),
+		).toEqual({ version: 1, credential: CREDENTIAL })
+
+		await expect(client.sendMessage("again")).rejects.toBe(rejection)
+		expect(credentials).toEqual([CREDENTIAL, CREDENTIAL])
+	})
+
+	test("publishes the optimistic message and its timestamp before acceptance", async () => {
+		const response = deferred<AsyncIterable<ChatEvent>>()
+		const client = testClient({
+			now: () => new Date("2026-09-11T00:00:00.000Z"),
+			transport: baseTransport({ sendMessage: () => response.promise }),
+		})
+		await client.initialize()
+
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		await waitForSnapshot(client, () => client.getSnapshot().messages.length === 1)
+
+		expect(client.getSnapshot().messages).toEqual([
+			{
+				id: `pending:${CREDENTIAL}`,
+				role: "user",
+				text: "hello",
+				createdAt: "2026-09-11T00:00:00.000Z",
+				outcome: "pending",
+			},
+		])
+
+		response.resolve(streamFrom([]))
+		expect(await sending).toBeInstanceOf(Error)
+		client.dispose()
+	})
+
+	test("rejects a stream that closes without a terminal event", async () => {
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () => streamFrom([acceptedEvent("generation")]),
+				loadSession: unresolvedSession,
+			}),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toThrow("without a terminal event")
+
+		expect(client.getSnapshot()).toMatchObject({ activity: "recovering" })
+		expect(client.getSnapshot().messages).toMatchObject([
+			{ id: "u1", outcome: "completed" },
+			{ id: "a1", outcome: "interrupted" },
+		])
+		client.dispose()
+	})
+
+	test("rejects a stream that accepts the request twice", async () => {
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () => streamFrom([acceptedEvent("generation"), acceptedEvent("other")]),
+				loadSession: unresolvedSession,
+			}),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toThrow("more than once")
+		client.dispose()
+	})
+
+	test("tracks tool activity per server and clears only the finished tool", async () => {
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () =>
+					streamFrom([
+						acceptedEvent("generation"),
+						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
+						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
+						{ type: "tool-start", serverName: "Warehouse", toolName: "get_product" },
+						{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
+						{ type: "terminal", outcome: "completed" },
+					]),
+			}),
+		})
+		await client.initialize()
+		const observed: { serverName: string; toolName: string }[][] = []
+		client.subscribe(() => observed.push([...client.getSnapshot().activeTools]))
+
+		await client.sendMessage("is it in stock?")
+
+		expect(observed).toContainEqual([{ serverName: "Shopify", toolName: "get_product" }])
+		expect(observed).toContainEqual([
+			{ serverName: "Shopify", toolName: "get_product" },
+			{ serverName: "Warehouse", toolName: "get_product" },
+		])
+		expect(client.getSnapshot().activeTools).toEqual([{ serverName: "Warehouse", toolName: "get_product" }])
+	})
+})
+
+describe("chat cancellation", () => {
+	test("hides stop while a cancellation is pending", async () => {
+		const accepted = deferred<void>()
+		const cancellationStarted = deferred<void>()
+		const cancellation = deferred<void>()
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => ({
+					async *[Symbol.asyncIterator]() {
+						yield acceptedEvent("generation")
+						accepted.resolve()
+						await new Promise<void>((_resolve, reject) => {
+							signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+						})
+					},
+				}),
+				cancelResponse: async () => {
+					cancellationStarted.resolve()
+					await cancellation.promise
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		await accepted.promise
+
+		const cancelling = client.cancelResponse()
+		await cancellationStarted.promise
+
+		expect(client.getSnapshot()).toMatchObject({ activity: "stopping", actions: ["new-chat"] })
+		cancellation.resolve()
+		await cancelling
+		expect(await sending).toBeInstanceOf(Error)
+	})
+
+	test("passes the active generation and allows cancelling a later response", async () => {
+		const cancellations: { credential: string; generationId?: string }[] = []
+		let sends = 0
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => {
+					sends += 1
+					const attempt = sends
+					return {
+						async *[Symbol.asyncIterator]() {
+							yield acceptedEvent(`generation-${attempt}`, {
+								user: `u${attempt}`,
+								assistant: `a${attempt}`,
+							})
+							await new Promise<void>((_resolve, reject) => {
+								signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+							})
+						},
+					}
+				},
+				cancelResponse: async (input) => {
+					cancellations.push({ credential: input.credential, generationId: input.generationId })
+				},
+			}),
+		})
+		await client.initialize()
+
+		async function cancelActiveResponse(text: string) {
+			const sending = client.sendMessage(text).catch((cause: unknown) => cause)
+			await waitForSnapshot(client, () => client.getSnapshot().activity === "responding")
+			await client.cancelResponse()
+			expect(await sending).toBeInstanceOf(Error)
+		}
+
+		await cancelActiveResponse("one")
+		await cancelActiveResponse("two")
+
+		expect(cancellations).toEqual([
+			{ credential: CREDENTIAL, generationId: "generation-1" },
+			{ credential: CREDENTIAL, generationId: "generation-2" },
+		])
+		expect(client.getSnapshot().activity).toBe("idle")
+	})
+
+	test("ignores a stop request while idle", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		let cancellations = 0
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				cancelResponse: async () => {
+					cancellations += 1
+				},
+			}),
+		})
+		await client.initialize()
+
+		await client.cancelResponse()
+
+		expect(cancellations).toBe(0)
+		expect(client.getSnapshot().activity).toBe("idle")
+	})
+
+	test("does not contact the server to cancel an undelivered send", async () => {
+		const memory = createMemoryStorage()
+		const write = deferred<void>()
+		let firstWrite = true
+		let cancellations = 0
+		let sends = 0
+		const client = testClient({
+			storage: {
+				...memory,
+				async setItem(key, value) {
+					if (firstWrite) {
+						firstWrite = false
+						await write.promise
+					}
+					await memory.setItem(key, value)
+				},
+			},
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => {
+					sends += 1
+					signal.throwIfAborted()
+					return streamFrom([])
+				},
+				cancelResponse: async () => {
+					cancellations += 1
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+
+		const cancelling = client.cancelResponse()
+		write.resolve()
+		await cancelling
+
+		expect(await sending).toBeInstanceOf(Error)
+		expect(cancellations).toBe(0)
+		expect(sends).toBe(0)
+		expect(await memory.getItem(createChatStorageKey("https://api.example.test", "embed"))).toBeNull()
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [] })
+	})
+
+	for (const { name, failure, error } of cancellationFailures) {
+		test(`reports cancel-failed after ${name} while cancelling an undelivered send`, async () => {
+			const started = deferred<void>()
+			const client = testClient({
+				transport: baseTransport({
+					sendMessage: async ({ signal }) => {
+						started.resolve()
+						return abortableStream(signal)
+					},
+					cancelResponse: async () => {
+						throw failure
+					},
+					loadSession: unresolvedSession,
+				}),
+				recoveryDelays: [0],
+			})
+			await client.initialize()
+			const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+			await started.promise
+
+			await expect(client.cancelResponse()).rejects.toBe(failure)
+
+			expect(await sending).toBeInstanceOf(Error)
+			expect(client.getSnapshot()).toMatchObject({ activity: "recovering", error })
+			expect(client.getSnapshot().messages).toMatchObject([{ id: `pending:${CREDENTIAL}`, outcome: "interrupted" }])
+			client.dispose()
+		})
+	}
+
+	for (const { name, failure, error } of cancellationFailures) {
+		test(`resumes responding after ${name} while cancelling an accepted response`, async () => {
+			const client = testClient({
+				transport: baseTransport({
+					sendMessage: async ({ signal }) => ({
+						async *[Symbol.asyncIterator]() {
+							yield acceptedEvent("generation")
+							await new Promise<void>((_resolve, reject) => {
+								signal.addEventListener("abort", () => reject(signal.reason), { once: true })
+							})
+						},
+					}),
+					cancelResponse: async () => {
+						throw failure
+					},
+				}),
+			})
+			await client.initialize()
+			const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+			await waitForSnapshot(client, () => client.getSnapshot().activity === "responding")
+
+			await expect(client.cancelResponse()).rejects.toBe(failure)
+
+			expect(client.getSnapshot()).toMatchObject({ activity: "responding", error })
+			expect(client.getSnapshot().actions).toEqual(["stop", "new-chat"])
+			client.dispose()
+			expect(await sending).toBeInstanceOf(Error)
+		})
+	}
+})
+
+describe("chat recovery", () => {
+	test("marks an unfinished recovered response as interrupted when recovery is exhausted", async () => {
+		let sends = 0
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					if (sends === 1) throw new Error("connection lost")
+					return streamFrom([])
+				},
+				loadSession: async () => ({
+					messages: [
+						{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
+						{ id: "a1", role: "assistant", text: "partial", createdAt: "now", outcome: "streaming" },
+					],
+					activeGeneration: { id: "generation" },
+				}),
+			}),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
+
+		await waitForSnapshot(client, () => client.getSnapshot().notices.includes("recovery-unavailable"))
+
+		expect(client.getSnapshot()).toMatchObject({ activity: "blocked" })
+		expect(client.getSnapshot().messages).toMatchObject([
+			{ id: "u1", outcome: "completed" },
+			{ id: "a1", outcome: "interrupted" },
+		])
+	})
+
+	test("shows a stored pending message as interrupted while it is recovered", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL, pending: { requestId: "request", text: "hello" } }),
+		)
+		const client = testClient({
+			storage,
+			now: () => new Date("2026-09-11T00:00:00.000Z"),
+			transport: baseTransport({
+				sendMessage: () => new Promise<AsyncIterable<ChatEvent>>(() => undefined),
+			}),
+			recoveryDelays: [0],
+		})
+
+		await client.initialize()
+
+		expect(client.getSnapshot()).toMatchObject({ activity: "recovering" })
+		expect(client.getSnapshot().messages).toEqual([
+			{
+				id: "pending:request",
+				role: "user",
+				text: "hello",
+				createdAt: "2026-09-11T00:00:00.000Z",
+				outcome: "interrupted",
+			},
+		])
+		client.dispose()
+	})
+
+	test("polls an existing active generation after initialization", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		let loads = 0
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				loadSession: async () => {
+					loads += 1
+					return loads === 1
+						? {
+								messages: [{ id: "a1", role: "assistant", text: "partial", createdAt: "now", outcome: "streaming" }],
+								activeGeneration: { id: "generation" },
+							}
+						: { messages: [], activeGeneration: undefined }
+				},
+			}),
+			recoveryDelays: [0],
+		})
+
+		await client.initialize()
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
+		await new Promise((resolve) => setTimeout(resolve, 20))
+
+		expect(loads).toBe(2)
+		expect(client.getSnapshot().messages).toEqual([])
+	})
+
+	test("does not poll a session without an active generation", async () => {
+		const storage = createMemoryStorage()
+		await storage.setItem(
+			createChatStorageKey("https://api.example.test", "embed"),
+			JSON.stringify({ version: 1, credential: CREDENTIAL }),
+		)
+		let loads = 0
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				loadSession: async () => {
+					loads += 1
+					return { messages: [], activeGeneration: undefined }
+				},
+			}),
+			recoveryDelays: [0],
+		})
+
+		await client.initialize()
+		await new Promise((resolve) => setTimeout(resolve, 20))
+
+		expect(loads).toBe(1)
+		expect(client.getSnapshot().activity).toBe("idle")
+	})
+
+	test("closes the response stream used to confirm an uncertain send", async () => {
+		let sends = 0
+		let closed = 0
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends += 1
+					if (sends === 1) throw new Error("connection lost")
+					return {
+						[Symbol.asyncIterator]: () => ({
+							next: () => new Promise<IteratorResult<ChatEvent>>(() => undefined),
+							return: async () => {
+								closed += 1
+								return { done: true, value: undefined }
+							},
+						}),
+					}
+				},
+				loadSession: async () => ({ messages: [], activeGeneration: undefined }),
+			}),
+			recoveryDelays: [0],
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toThrow("connection lost")
+		await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
+
+		expect(closed).toBe(1)
+	})
+})
+
+describe("chat storage", () => {
+	test("persists credentials through the global localStorage by default", async () => {
+		const values = new Map<string, string>()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		values.set(key, JSON.stringify({ version: 1, credential: CREDENTIAL }))
+		const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage")
+		Object.defineProperty(globalThis, "localStorage", {
+			configurable: true,
+			value: {
+				getItem: (name: string) => values.get(name) ?? null,
+				setItem: (name: string, value: string) => values.set(name, value),
+				removeItem: (name: string) => values.delete(name),
+			},
+		})
+		try {
+			const client = createChatClient({
+				apiUrl: "https://api.example.test",
+				embedToken: "embed",
+				randomUUID: () => CREDENTIAL,
+				transport: baseTransport({
+					loadSession: async () => ({
+						messages: [{ id: "u1", role: "user", text: "earlier", createdAt: "now", outcome: "completed" }],
+						activeGeneration: undefined,
+					}),
+					sendMessage: async (input) => {
+						expect(readChatStorageRecord(values.get(key) ?? null)).toEqual({
+							version: 1,
+							credential: CREDENTIAL,
+							pending: { requestId: input.requestId, text: "hello" },
+						})
+						return streamFrom([
+							acceptedEvent("generation", { user: "u2", assistant: "a2" }),
+							{ type: "terminal", outcome: "completed" },
+						])
+					},
+				}),
+			})
+
+			await client.initialize()
+			expect(client.getSnapshot().messages).toMatchObject([{ id: "u1" }])
+			await client.sendMessage("hello")
+			expect(readChatStorageRecord(values.get(key) ?? null)).toEqual({ version: 1, credential: CREDENTIAL })
+
+			await client.startNewChat()
+			expect(values.has(key)).toBe(false)
+		} finally {
+			if (previous === undefined) Reflect.deleteProperty(globalThis, "localStorage")
+			else Object.defineProperty(globalThis, "localStorage", previous)
+		}
+	})
+})
+
+describe("chat reset and disposal", () => {
+	test("cancels a dispatch in flight before starting a new chat", async () => {
+		const started = deferred<void>()
+		let cancellations = 0
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => {
+					started.resolve()
+					return abortableStream(signal)
+				},
+				cancelResponse: async () => {
+					cancellations += 1
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello").catch((cause: unknown) => cause)
+		await started.promise
+
+		await client.startNewChat()
+
+		expect(cancellations).toBe(1)
+		expect(await sending).toBeInstanceOf(Error)
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [], actions: ["send", "new-chat"] })
+	})
+
+	test("does not cancel server work when starting a new chat from idle", async () => {
+		const storage = createMemoryStorage()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		await storage.setItem(key, JSON.stringify({ version: 1, credential: CREDENTIAL }))
+		let cancellations = 0
+		const client = testClient({
+			storage,
+			transport: baseTransport({
+				cancelResponse: async () => {
+					cancellations += 1
+				},
+			}),
+		})
+		await client.initialize()
+
+		await client.startNewChat()
+
+		expect(cancellations).toBe(0)
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [], actions: ["send", "new-chat"] })
+		expect(await storage.getItem(key)).toBeNull()
+	})
+
+	test("aborts an active send and rejects new listeners after disposal", async () => {
+		const started = deferred<void>()
+		const client = testClient({
+			transport: baseTransport({
+				sendMessage: async ({ signal }) => {
+					started.resolve()
+					return abortableStream(signal)
+				},
+			}),
+		})
+		await client.initialize()
+		const sending = client.sendMessage("hello")
+		await started.promise
+
+		client.dispose()
+
+		await expect(sending).rejects.toThrow("Chat client disposed")
+		expect(() => client.subscribe(() => undefined)).toThrow("disposed")
+		await expect(client.initialize()).rejects.toThrow("disposed")
+		await expect(client.sendMessage("later")).rejects.toThrow("disposed")
+		await expect(client.retryLastMessage()).rejects.toThrow("disposed")
+		expect(() => client.cancelResponse()).toThrow("disposed")
+
+		const idleClient = testClient()
+		await idleClient.initialize()
+		idleClient.dispose()
+		await expect(idleClient.startNewChat()).rejects.toThrow("disposed")
 	})
 })

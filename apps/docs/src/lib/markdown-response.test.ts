@@ -26,6 +26,7 @@ describe("markdownResponse", () => {
 	test("returns the problem catalog", async () => {
 		const response = await markdownResponse(["problems"])
 
+		expect(response?.headers.get("Content-Type")).toBe("text/markdown; charset=utf-8")
 		expect(await response?.text()).toContain("# API problem types")
 	})
 
