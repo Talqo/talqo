@@ -62,6 +62,6 @@ bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
 ```
 
-`bun run test:mutation` is incremental and runs two profiles: `stryker.config.json` (API, docs, SDK, shared) and `stryker.dom.config.json` (web, widget), split because Bun shares one global scope across test files. Add a workspace to the profile it can share a process with. Use `bun run test:mutation:full` for a repository-wide score.
+Mutation testing is not in CI because a full run takes hours. Run `bun run test:mutation` after changing behavior or its tests; it is incremental. Use `bun run test:mutation:full` for a repository-wide score, and `bun run test:mutation:integration` for API integration tests.
 
 Docs-only changes need no tests.
