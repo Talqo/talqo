@@ -1,9 +1,6 @@
-import type {
-	AiProviderConfiguration,
-	ProviderMetadata,
-	RedactedRoleConfiguration,
-	SaveAiProviderConfigurationInput,
-} from "@/features/ai-configuration/types.ts"
+import type { GetAiProviderConfiguration200 } from "@/api/generated/models/ai-providers/getAiProviderConfiguration200.zod.ts"
+import type { SaveAiProviderConfigurationBody } from "@/api/generated/models/ai-providers/saveAiProviderConfigurationBody.zod.ts"
+import type { ProviderMetadata, RedactedRoleConfiguration } from "@/features/ai-configuration/types.ts"
 import type { QueryClient } from "@/testing/component-harness"
 
 import { json } from "@/testing/api-responses"
@@ -88,7 +85,7 @@ function configuration(
 	revision: number,
 	baseURL: string,
 	embeddingBaseURL = "https://embeddings.example/v1",
-): AiProviderConfiguration {
+): GetAiProviderConfiguration200 {
 	const role = { providerId: "openai-compatible" as const, authMode: "static" as const, hasCredentials: true }
 	return {
 		revision,
@@ -103,7 +100,7 @@ function configuration(
 	}
 }
 
-function sharedEmbeddingConfiguration(): AiProviderConfiguration {
+function sharedEmbeddingConfiguration(): GetAiProviderConfiguration200 {
 	const baseURL = "https://server.example/v1"
 	return {
 		revision: 1,
@@ -116,7 +113,7 @@ function sharedEmbeddingConfiguration(): AiProviderConfiguration {
 	}
 }
 
-function separateEmbeddingConfiguration(): AiProviderConfiguration {
+function separateEmbeddingConfiguration(): GetAiProviderConfiguration200 {
 	return {
 		revision: 1,
 		health: "configured",
@@ -128,13 +125,13 @@ function separateEmbeddingConfiguration(): AiProviderConfiguration {
 	}
 }
 
-let server: AiProviderConfiguration
+let server: GetAiProviderConfiguration200
 let providers: ProviderMetadata[]
 let host: HTMLDivElement
 let root: Root
 let queryClient: InstanceType<typeof QueryClient>
 let harness: ReturnType<typeof createTestHarness>
-let saveRequests: SaveAiProviderConfigurationInput[]
+let saveRequests: SaveAiProviderConfigurationBody[]
 let saveResponse: Promise<Response> | undefined
 let configurationRequests: number
 let configurationFailure: Response | undefined
@@ -251,7 +248,7 @@ async function submitWithReembedConfirmation() {
 	await settle()
 }
 
-function expectSavedEmbedding(embedding: SaveAiProviderConfigurationInput["embedding"]) {
+function expectSavedEmbedding(embedding: SaveAiProviderConfigurationBody["embedding"]) {
 	expect(saveRequests).toHaveLength(1)
 	expect(saveRequests[0]?.embedding).toEqual(embedding)
 }
@@ -261,7 +258,7 @@ function canonicalSettings(settings: Record<string, string>): Record<string, str
 }
 
 function savedRole(
-	input: SaveAiProviderConfigurationInput["text"],
+	input: SaveAiProviderConfigurationBody["text"],
 	previous: RedactedRoleConfiguration | null,
 ): RedactedRoleConfiguration {
 	const hasCredentials =
@@ -300,7 +297,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	if (url === "/api/ai-provider-configuration" && method === "PUT") {
 		const body = JSON.parse(
 			typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? null),
-		) as SaveAiProviderConfigurationInput
+		) as SaveAiProviderConfigurationBody
 		saveRequests.push(body)
 		if (saveResponse) {
 			const response = saveResponse
@@ -416,7 +413,7 @@ describe("AiConfigurationPage", () => {
 		const initialConfigurationRequests = configurationRequests
 		const firstSave = Promise.withResolvers<Response>()
 		saveResponse = firstSave.promise
-		const expectedSave: SaveAiProviderConfigurationInput = {
+		const expectedSave: SaveAiProviderConfigurationBody = {
 			expectedRevision: 1,
 			text: {
 				providerId: "openai-compatible",

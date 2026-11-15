@@ -3,22 +3,18 @@ import { type Annotate, createWideEvents, type WideEvent } from "@/http/wide-eve
 import { EmbedNotFoundError } from "@/modules/embed/embed.service.ts"
 import { OpenAPIHono } from "@hono/zod-openapi"
 import { describe, expect, it } from "bun:test"
+import { websocket } from "hono/bun"
 
-import { chatEventSchema } from "./conversation.contract.ts"
+import { chatClientFrameSchema } from "./conversation.contract.ts"
 import { EmbedDisabledError, ProviderUnavailableError } from "./conversation.errors.ts"
 import { createConversationRoutes } from "./conversation.routes.ts"
 
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
 const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
+const START = { version: 1, type: "start", credential: CREDENTIAL, requestId: REQUEST_ID, text: "hello", tools: [] }
+// Mirrors TALQO_CHAT_MAX_INPUT_CHARACTERS in apps/api/.env.example.
+const CHAT_INPUT_LIMIT = 400_000
 
-function parseEvents(body: string) {
-	return body
-		.split("\n\n")
-		.filter(Boolean)
-		.map((frame) => chatEventSchema.parse(JSON.parse(frame.split("\ndata: ")[1] ?? "null")))
-}
-
-// "late-error" holds the stream open until `release`, like a generation still running after the 200.
 function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none") {
 	const calls: unknown[] = []
 	const gate = Promise.withResolvers<void>()
@@ -39,29 +35,66 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			}
 			emit(accepted)
-			if (failure === "successful-tool") {
-				emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "completed" })
-				emit({ version: 1, type: "terminal", outcome: "completed" })
-				return { ...accepted, duplicate: false, done: Promise.resolve() }
-			}
-			if (failure === "late-error") {
-				const done = (async () => {
-					await gate.promise
-					emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
+			const done = (async () => {
+				if (failure === "late-error") await gate.promise
+				const part = {
+					type: "dynamic-tool",
+					toolCallId: "lookup-call",
+					toolName: "shop_lookup",
+					input: {},
+					toolMetadata: { source: "mcp", serverName: "shop", displayName: "lookup" },
+				}
+				emit({
+					version: 1,
+					type: "part",
+					assistantMessageId: "assistant",
+					index: 0,
+					part: { ...part, state: "input-available" },
+				})
+				annotate?.({ "chat.tool_calls": 1 })
+				if (failure === "late-error") {
 					emit({
 						version: 1,
 						type: "error",
 						outcome: "failed",
 						error: { code: "provider-error", retriable: true, newChatAvailable: false },
 					})
-				})()
-				return { ...accepted, duplicate: false, done }
-			}
-			emit({ version: 1, type: "tool-start", serverName: "shop", toolName: "lookup" })
-			emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "failed" })
-			emit({ version: 1, type: "delta", assistantMessageId: "assistant", text: "hello" })
-			emit({ version: 1, type: "terminal", outcome: "completed" })
-			return { ...accepted, duplicate: false, done: Promise.resolve() }
+					return
+				}
+				if (failure === "successful-tool") {
+					emit({
+						version: 1,
+						type: "part",
+						assistantMessageId: "assistant",
+						index: 0,
+						part: {
+							...part,
+							state: "output-available",
+							output: {},
+							toolMetadata: { ...part.toolMetadata, outcome: "completed" },
+						},
+					})
+					emit({ version: 1, type: "terminal", outcome: "completed" })
+					return
+				}
+				emit({
+					version: 1,
+					type: "part",
+					assistantMessageId: "assistant",
+					index: 0,
+					part: {
+						...part,
+						state: "output-error",
+						errorText: "Tool failed",
+						toolMetadata: { ...part.toolMetadata, outcome: "failed" },
+					},
+				})
+				annotate?.({ "chat.tool_failures": 1 })
+				emit({ version: 1, type: "part", assistantMessageId: "assistant", index: 1, part: { type: "text", text: "" } })
+				emit({ version: 1, type: "delta", assistantMessageId: "assistant", index: 1, text: "hello" })
+				emit({ version: 1, type: "terminal", outcome: "completed" })
+			})()
+			return { ...accepted, duplicate: false, done }
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
@@ -80,200 +113,214 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 	return { app, calls, logged, release: () => gate.resolve() }
 }
 
-describe("public conversation routes", () => {
-	it("streams typed POST SSE and derives the network from the peer", async () => {
-		const { app, calls } = routes()
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
+function serve(app: ReturnType<typeof routes>["app"]) {
+	return Bun.serve({ port: 0, fetch: (request, host) => app.fetch(request, { server: host }), websocket })
+}
 
-		expect(response.status).toBe(200)
-		expect(response.headers.get("content-type")).toContain("text/event-stream")
-		const body = await response.text()
-		expect(body).toContain("event: chat")
-		expect(parseEvents(body).map((event) => event.type)).toEqual([
-			"accepted",
-			"tool-start",
-			"tool-end",
-			"delta",
-			"terminal",
-		])
-		expect(calls[0]).toMatchObject({ credential: CREDENTIAL, embedToken: "embed" })
-		expect(typeof (calls[0] as { networkHash?: unknown } | undefined)?.networkHash).toBe("string")
+function connect(origin: string, frame: unknown) {
+	const events: unknown[] = []
+	const accepted = Promise.withResolvers<void>()
+	const socket = new WebSocket(`${origin.replace("http:", "ws:")}/chat/embed/socket`)
+	const closed = new Promise<number>((resolve, reject) => {
+		socket.addEventListener("open", () => socket.send(typeof frame === "string" ? frame : JSON.stringify(frame)))
+		socket.addEventListener("message", (event) => {
+			const message: unknown = JSON.parse(String(event.data))
+			events.push(message)
+			if (typeof message === "object" && message !== null && "type" in message && message.type === "accepted")
+				accepted.resolve()
+		})
+		socket.addEventListener("close", (event) => resolve(event.code))
+		socket.addEventListener("error", reject)
+	})
+	return { events, accepted: accepted.promise, closed }
+}
+
+describe("public conversation routes", () => {
+	it("closes deeply nested tool results before authentication", async () => {
+		const { app, calls } = routes()
+		const server = serve(app)
+		try {
+			const frame = `{"version":1,"type":"tool-result","toolCallId":"call","output":${"[".repeat(10_000)}0${"]".repeat(10_000)}}`
+			expect(await connect(server.url.origin, frame).closed).toBe(1008)
+			expect(calls).toBeEmpty()
+		} finally {
+			await server.stop(true)
+		}
 	})
 
-	it("logs one wide event describing the generation without the chat credential", async () => {
+	it("logs failed upgrades even when no socket callbacks run", async () => {
 		const { app, logged } = routes()
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-		await response.text()
+		const server = serve(app)
+		try {
+			const response = await fetch(`${server.url.origin}/chat/embed/socket`, { headers: { Upgrade: "websocket" } })
+			expect(response.status).toBe(500)
+			expect(logged).toHaveLength(1)
+			expect(logged[0]).toMatchObject({ "http.response.status_code": 500, "error.code": "internal-server-error" })
+		} finally {
+			await server.stop(true)
+		}
+	})
 
-		expect(logged).toHaveLength(1)
-		expect(logged[0]).toMatchObject({
-			"http.route": "/chat/:embedToken/messages",
-			"http.response.status_code": 200,
-			"agent.id": "agent",
-			"embed.id": "embed-id",
-			"generation.id": "generation",
-			"chat.outcome": "completed",
-			"chat.duplicate": false,
-			"chat.tool_calls": 1,
-			"chat.tool_failures": 1,
-			"rag.chunks": 2,
-		})
-		expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
-		expect(JSON.stringify(logged)).not.toContain('"hi"')
+	it("requires a JSON tool output within the payload limit", () => {
+		const frame = { version: 1, type: "tool-result", toolCallId: "call" }
+		expect(chatClientFrameSchema.safeParse({ ...frame, output: null }).success).toBe(true)
+		for (const output of [undefined, NaN, new Date(), "x".repeat(262_144)])
+			expect(chatClientFrameSchema.safeParse({ ...frame, output }).success).toBe(false)
+		expect(chatClientFrameSchema.safeParse(frame).success).toBe(false)
+	})
+
+	it("authenticates a real socket in its first frame, derives the network, and logs one credential-free wide event", async () => {
+		const { app, calls, logged } = routes()
+		const server = serve(app)
+		try {
+			const turn = connect(server.url.origin, START)
+			expect(await turn.closed).toBe(1000)
+			expect(turn.events).toMatchObject([
+				{ type: "accepted" },
+				{ type: "part", index: 0, part: { state: "input-available" } },
+				{ type: "part", index: 0, part: { state: "output-error" } },
+				{ type: "part", index: 1, part: { type: "text" } },
+				{ type: "delta" },
+				{ type: "terminal" },
+			])
+			expect(calls).toHaveLength(1)
+			expect(calls[0]).toMatchObject({ credential: CREDENTIAL, text: "hello", embedToken: "embed" })
+			expect(calls[0]).toHaveProperty("networkHash")
+			expect(logged).toHaveLength(1)
+			expect(logged[0]).toMatchObject({
+				"http.route": "/chat/:embedToken/socket",
+				"agent.id": "agent",
+				"embed.id": "embed-id",
+				"generation.id": "generation",
+				"chat.outcome": "completed",
+				"chat.duplicate": false,
+				"chat.tool_calls": 1,
+				"chat.tool_failures": 1,
+				"rag.chunks": 2,
+			})
+			expect(JSON.stringify(logged)).not.toContain(CREDENTIAL)
+			expect(JSON.stringify(logged)).not.toContain('"hello"')
+		} finally {
+			await server.stop(true)
+		}
+	})
+
+	it.each([
+		{ version: 1, type: "cancel" },
+		{ ...START, credential: undefined },
+		{ ...START, requestId: "11111111-1111-1111-8111-111111111111" },
+		{ ...START, tools: Array.from({ length: 9 }, (_, index) => ({ name: `tool${index}`, inputSchema: {} })) },
+	])("closes invalid or over-budget starts before acceptance (%j)", async (frame) => {
+		const { app, calls } = routes()
+		const server = serve(app)
+		try {
+			expect(await connect(server.url.origin, frame).closed).toBe(1008)
+			expect(calls).toBeEmpty()
+		} finally {
+			await server.stop(true)
+		}
+	})
+
+	it.each([
+		["pre-accept", "provider-error", 502],
+		["embed", "embed-not-found", 404],
+		["disabled", "embed-disabled", 403],
+	] as const)("rejects %s failures before acceptance", async (failure, code, status) => {
+		const { app } = routes(failure)
+		const server = serve(app)
+		try {
+			const turn = connect(server.url.origin, START)
+			expect(await turn.closed).toBe(1000)
+			expect(turn.events).toEqual([{ version: 1, type: "rejected", code, status }])
+		} finally {
+			await server.stop(true)
+		}
 	})
 
 	it("counts only failed tool calls", async () => {
 		const { app, logged } = routes("successful-tool")
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-		await response.text()
-
-		expect(logged[0]).not.toHaveProperty("chat.tool_failures")
+		const server = serve(app)
+		try {
+			expect(await connect(server.url.origin, START).closed).toBe(1000)
+			expect(logged).toHaveLength(1)
+			expect(logged[0]).toMatchObject({ "chat.tool_calls": 1 })
+			expect(logged[0]).not.toHaveProperty("chat.tool_failures")
+		} finally {
+			await server.stop(true)
+		}
 	})
 
-	it("logs fields from events emitted after the response starts streaming", async () => {
+	it("closes a start frame beyond the documented input ceiling before acceptance", async () => {
+		const { app, calls } = routes()
+		const server = serve(app)
+		try {
+			// Two escaped surrogates encode one astral code point in 12 JSON bytes.
+			const text = "\\ud83d\\ude00".repeat(CHAT_INPUT_LIMIT + 1)
+			const frame = `{"version":1,"type":"start","credential":"${CREDENTIAL}","requestId":"${REQUEST_ID}","text":"${text}","tools":[]}`
+			expect(await connect(server.url.origin, frame).closed).toBe(1008)
+			expect(calls).toBeEmpty()
+		} finally {
+			await server.stop(true)
+		}
+	})
+
+	it("rejects a second start frame on one connection", async () => {
+		const { app, calls, release } = routes("late-error")
+		const server = serve(app)
+		try {
+			const events: unknown[] = []
+			const closed = await new Promise<number>((resolve, reject) => {
+				const socket = new WebSocket(`${server.url.origin.replace("http:", "ws:")}/chat/embed/socket`)
+				socket.addEventListener("open", () => {
+					socket.send(JSON.stringify(START))
+					socket.send(JSON.stringify({ ...START, requestId: "33333333-3333-4333-8333-333333333333" }))
+				})
+				socket.addEventListener("message", (event) => events.push(JSON.parse(String(event.data))))
+				socket.addEventListener("close", (event) => resolve(event.code))
+				socket.addEventListener("error", reject)
+			})
+			expect(closed).toBe(1008)
+			expect(calls).toHaveLength(1)
+			expect(events[0]).toMatchObject({ type: "accepted" })
+		} finally {
+			release()
+			await server.stop(true)
+		}
+	})
+
+	it("logs events emitted after socket acceptance before finishing the wide event", async () => {
 		const { app, logged, release } = routes("late-error")
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(200)
-		expect(logged).toBeEmpty()
-		release()
-		expect(parseEvents(await response.text()).map((event) => event.type)).toEqual(["accepted", "tool-start", "error"])
-		expect(logged).toHaveLength(1)
-		expect(logged[0]).toMatchObject({
-			"chat.outcome": "failed",
-			"chat.tool_calls": 1,
-			"error.code": "provider-error",
-			"http.response.status_code": 200,
-		})
+		const server = serve(app)
+		try {
+			const turn = connect(server.url.origin, START)
+			await turn.accepted
+			expect(logged).toBeEmpty()
+			release()
+			expect(await turn.closed).toBe(1000)
+			expect(turn.events).toMatchObject([{ type: "accepted" }, { type: "part" }, { type: "error" }])
+			expect(logged).toHaveLength(1)
+			expect(logged[0]).toMatchObject({
+				"chat.outcome": "failed",
+				"chat.tool_calls": 1,
+				"error.code": "provider-error",
+			})
+		} finally {
+			release()
+			await server.stop(true)
+		}
 	})
 
-	it("requires a bearer credential for POST /chat/embed/messages", async () => {
-		const { app } = routes()
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(401)
-		expect(await response.json()).toEqual({
-			code: "chat-session-unauthorized",
-			type: "https://docs.talqo.chat/problems#chat-session-unauthorized",
-		})
-	})
-
-	it("rejects generation when no trustworthy peer address exists", async () => {
+	it("rejects a socket upgrade when no trustworthy peer address exists", async () => {
 		const app = new OpenAPIHono().route(
 			"/chat",
-			createConversationRoutes(
-				{
-					send: async () => ({
-						version: 1 as const,
-						type: "accepted" as const,
-						requestId: REQUEST_ID,
-						generationId: "generation",
-						userMessage: { id: "user", createdAt: "2026-09-11T00:00:00.000Z" },
-						assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
-						duplicate: false,
-						done: Promise.resolve(),
-					}),
-					getSession: async () => ({ messages: [], activeGeneration: undefined }),
-					cancel: async () => undefined,
-				},
-				() => ({ peerAddress: undefined, forwardedFor: undefined }),
-			),
+			createConversationRoutes(undefined, () => ({
+				peerAddress: undefined,
+				forwardedFor: undefined,
+			})),
 		)
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
+		const response = await app.request("/chat/embed/socket", { headers: { Upgrade: "websocket" } })
 		expect(response.status).toBe(400)
-	})
-
-	it("accepts the documented input limit and rejects one code point more", async () => {
-		const { app } = routes()
-		const send = (text: string) =>
-			app.request("/chat/embed/messages", {
-				method: "POST",
-				headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-				body: JSON.stringify({ requestId: REQUEST_ID, text }),
-			})
-
-		const accepted = await send("x".repeat(400_000))
-		expect(accepted.status).toBe(200)
-		await accepted.text()
-
-		const rejected = await send("x".repeat(400_001))
-		expect(rejected.status).toBe(400)
-		expect(await rejected.json()).toMatchObject({ code: "invalid-request" })
-	})
-
-	it("rejects non-v4 request IDs before calling the service", async () => {
-		const { app, calls } = routes()
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: "11111111-1111-1111-8111-111111111111", text: "hi" }),
-		})
-
-		expect(response.status).toBe(400)
-		expect(response.headers.get("content-type")).toContain("application/problem+json")
-		expect(calls).toBeEmpty()
-	})
-
-	it("returns an RFC problem when provider preparation fails before acceptance", async () => {
-		const { app } = routes("pre-accept")
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(502)
-		expect(response.headers.get("content-type")).toContain("application/problem+json")
-		expect(await response.json()).toMatchObject({ code: "provider-error" })
-	})
-
-	it("maps an invalid or rotated embed token before streaming", async () => {
-		const { app } = routes("embed")
-		const response = await app.request("/chat/rotated/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(404)
-		expect(await response.json()).toMatchObject({ code: "embed-not-found" })
-	})
-
-	it("rejects a message to a disabled embed with embed-disabled before streaming", async () => {
-		const { app } = routes("disabled")
-		const response = await app.request("/chat/embed/messages", {
-			method: "POST",
-			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
-			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
-		})
-
-		expect(response.status).toBe(403)
-		expect(response.headers.get("content-type")).toContain("application/problem+json")
-		expect(await response.json()).toMatchObject({ code: "embed-disabled" })
+		expect(await response.json()).toMatchObject({ code: "chat-client-address-unavailable" })
 	})
 })
 
@@ -281,7 +328,6 @@ describe("operator conversation authentication boundary", () => {
 	it("requires a session to list or read conversations, even with a chat bearer", async () => {
 		const base = "/api/conversations"
 		const bearer = { headers: { Authorization: `Bearer ${CREDENTIAL}` } }
-
 		expect((await apiApp.request(base)).status).toBe(401)
 		expect((await apiApp.request(`${base}/${CREDENTIAL}`, bearer)).status).toBe(401)
 	})

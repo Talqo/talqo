@@ -2,7 +2,9 @@ import { PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { createCredentialVault } from "@/lib/credential-vault.ts"
 import { APICallError } from "@ai-sdk/provider"
+import { MockLanguageModelV4, simulateReadableStream } from "ai/test"
 import { describe, expect, it, mock } from "bun:test"
+import { z } from "zod"
 
 import type { SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { DiscoveryRequest } from "./ai-provider.discovery.ts"
@@ -137,17 +139,22 @@ type StreamTextOptions = Record<string, unknown> & {
 }
 
 function fakeStreamText(
-	result: { textStream: AsyncIterable<string>; usage: Promise<Record<string, unknown>> },
+	result: {
+		fullStream?: AsyncIterable<Record<string, unknown>>
+		textStream: AsyncIterable<string>
+		usage: Promise<Record<string, unknown>>
+	},
 	calls: StreamTextOptions[] = [],
 ) {
 	return ((options: StreamTextOptions) => {
 		calls.push(options)
-		return result
+		const fullStream =
+			result.fullStream ??
+			(async function* () {
+				for await (const text of result.textStream) yield { type: "text-delta", text }
+			})()
+		return { fullStream, usage: result.usage }
 	}) as never
-}
-
-function callStart(options: StreamTextOptions | undefined, toolName: string, toolCallId: string) {
-	options?.onToolExecutionStart?.({ toolCall: { toolName, toolCallId } })
 }
 
 function callEnd(options: StreamTextOptions | undefined, toolName: string, toolCallId: string, toolOutput: ToolOutput) {
@@ -464,7 +471,7 @@ describe("AI provider service", () => {
 		const calls: Record<string, unknown>[] = []
 		const { service } = createMemoryService(undefined, ((options: unknown) => {
 			calls.push(options as Record<string, unknown>)
-			return { textStream: (async function* () {})(), usage: Promise.resolve({}) }
+			return { fullStream: (async function* () {})(), usage: Promise.resolve({}) }
 		}) as never)
 		await service.saveConfiguration(input)
 		const prepared = await service.prepareTextOperation({
@@ -635,37 +642,71 @@ describe("AI provider service", () => {
 	})
 
 	it("emits tool activity with the server identity and the failure envelope", async () => {
-		const { prepared, streamCalls } = await prepareStreamingText(10, 1000)
+		const streamCalls: StreamTextOptions[] = []
+		const { service } = createMemoryService(
+			undefined,
+			fakeStreamText(
+				{
+					textStream: (async function* () {})(),
+					usage: Promise.resolve({}),
+					fullStream: (async function* () {
+						yield { type: "tool-call", toolCallId: "call-1", toolName: "lookup", input: { id: 1 } }
+					})(),
+				},
+				streamCalls,
+			),
+		)
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Hi" }],
+			maxOutputTokens: 10,
+			timeoutMs: 1000,
+		})
 		const toolEvents: ToolEvent[] = []
-		const tools = { lookup: { description: "Looks a product up" } }
+		const tools = { lookup: actualAi.tool({ description: "Looks a product up", inputSchema: z.object({}) }) }
 		const names = new Map([["lookup", { serverName: "Shopify", toolName: "lookup" }]])
 
 		await Array.fromAsync(
-			prepared.invoke(new AbortController().signal, { names, tools }, (event) => toolEvents.push(event)),
+			prepared.invoke(new AbortController().signal, { names, tools }, (event) => {
+				toolEvents.push(event)
+			}),
 		)
 
 		const options = streamCalls[0]
 		expect(options?.tools).toBe(tools)
-		callStart(options, "lookup", "call-1")
 		callEnd(options, "lookup", "call-1", { type: "tool-result", output: { isError: true } })
 		callEnd(options, "lookup", "call-2", { type: "tool-result", output: { content: [] } })
 		callEnd(options, "unmapped", "call-3", { type: "tool-error", error: new Error("boom") })
 
 		expect(toolEvents).toEqual([
-			{ type: "tool-start", identity: { serverName: "Shopify", toolName: "lookup" }, toolCallId: "call-1" },
+			{
+				type: "tool-start",
+				identity: { serverName: "Shopify", toolName: "lookup" },
+				toolCallId: "call-1",
+				toolName: "lookup",
+				input: { id: 1 },
+			},
 			{
 				type: "tool-end",
 				identity: { serverName: "Shopify", toolName: "lookup" },
 				toolCallId: "call-1",
 				outcome: "failed",
+				output: { isError: true },
 			},
 			{
 				type: "tool-end",
 				identity: { serverName: "Shopify", toolName: "lookup" },
 				toolCallId: "call-2",
 				outcome: "completed",
+				output: { content: [] },
 			},
-			{ type: "tool-end", identity: { serverName: "", toolName: "unmapped" }, toolCallId: "call-3", outcome: "failed" },
+			{
+				type: "tool-end",
+				identity: { serverName: "", toolName: "unmapped" },
+				toolCallId: "call-3",
+				outcome: "failed",
+				errorText: "Tool execution failed",
+			},
 		])
 	})
 
@@ -848,5 +889,82 @@ describe("AI provider service", () => {
 			settings,
 			credentials: undefined,
 		})
+	})
+	it("preserves text, tool execution, and step order through the real AI SDK loop", async () => {
+		const events: string[] = []
+		const usage = {
+			inputTokens: { total: 3, noCache: 3, cacheRead: undefined, cacheWrite: undefined },
+			outputTokens: { total: 2, text: 2, reasoning: undefined },
+		}
+		const model = new MockLanguageModelV4({
+			doStream: [
+				{
+					stream: simulateReadableStream({
+						initialDelayInMs: null,
+						chunkDelayInMs: null,
+						chunks: [
+							{ type: "stream-start", warnings: [] },
+							{ type: "text-start", id: "text-1" },
+							{ type: "text-delta", id: "text-1", delta: "Checking" },
+							{ type: "text-end", id: "text-1" },
+							{ type: "tool-call", toolCallId: "call", toolName: "lookup", input: "{}" },
+							{ type: "finish", usage, finishReason: { unified: "tool-calls", raw: "tool_calls" } },
+						],
+					}),
+				},
+				{
+					stream: simulateReadableStream({
+						initialDelayInMs: null,
+						chunkDelayInMs: null,
+						chunks: [
+							{ type: "stream-start", warnings: [] },
+							{ type: "text-start", id: "text-2" },
+							{ type: "text-delta", id: "text-2", delta: "Done" },
+							{ type: "text-end", id: "text-2" },
+							{ type: "finish", usage, finishReason: { unified: "stop", raw: "stop" } },
+						],
+					}),
+				},
+			],
+		})
+		const { service } = createMemoryService(undefined, (options) => actualAi.streamText({ ...options, model }))
+		await service.saveConfiguration(input)
+		const prepared = await service.prepareTextOperation({
+			messages: [{ role: "user", content: "Check" }],
+			maxOutputTokens: 100,
+			timeoutMs: 10_000,
+		})
+		for await (const event of prepared.invoke(
+			new AbortController().signal,
+			{
+				names: new Map([["lookup", { serverName: "Shop", toolName: "lookup" }]]),
+				tools: {
+					lookup: actualAi.tool({
+						inputSchema: z.object({}),
+						execute: () => {
+							events.push("execute")
+							return { stock: 7 }
+						},
+					}),
+				},
+			},
+			async (toolEvent) => {
+				events.push(toolEvent.type)
+				await Promise.resolve()
+			},
+		)) {
+			events.push(event.type === "text" ? event.text : event.type)
+			await new Promise<void>((resolve) => setImmediate(resolve))
+		}
+		expect(events).toEqual([
+			"step-start",
+			"Checking",
+			"tool-start",
+			"execute",
+			"tool-end",
+			"step-start",
+			"Done",
+			"finish",
+		])
 	})
 })

@@ -15,11 +15,19 @@ describe("Transcript", () => {
 		const html = renderToStaticMarkup(
 			<Transcript
 				messages={[
-					{ id: "1", role: "user", text: "**not bold**", outcome: "completed", createdAt: CREATED_AT },
+					{
+						id: "1",
+						role: "user",
+						text: "**not bold**",
+						parts: [{ type: "text", text: "**not bold**" }],
+						outcome: "completed",
+						createdAt: CREATED_AT,
+					},
 					{
 						id: "2",
 						role: "assistant",
 						text: "**Yes** <img src=x onerror=alert(1)>",
+						parts: [{ type: "text", text: "**Yes** <img src=x onerror=alert(1)>" }],
 						outcome: "blocked",
 						createdAt: CREATED_AT,
 					},
@@ -39,8 +47,22 @@ describe("Transcript outcomes", () => {
 		const html = renderToStaticMarkup(
 			<Transcript
 				messages={[
-					{ id: "1", role: "user", text: "Hello", outcome: "completed", createdAt: CREATED_AT },
-					{ id: "2", role: "assistant", text: "Hi", outcome: "completed", createdAt: CREATED_AT },
+					{
+						id: "1",
+						role: "user",
+						text: "Hello",
+						parts: [{ type: "text", text: "Hello" }],
+						outcome: "completed",
+						createdAt: CREATED_AT,
+					},
+					{
+						id: "2",
+						role: "assistant",
+						text: "Hi",
+						parts: [{ type: "text", text: "Hi" }],
+						outcome: "completed",
+						createdAt: CREATED_AT,
+					},
 				]}
 			/>,
 		)
@@ -59,6 +81,7 @@ describe("Transcript outcomes", () => {
 					id: `${index}`,
 					role: "assistant" as const,
 					text: "",
+					parts: [],
 					outcome,
 					createdAt: CREATED_AT,
 				}))}
@@ -74,7 +97,18 @@ describe("Transcript outcomes", () => {
 
 	test("does not label an outcome on a visitor message", () => {
 		const html = renderToStaticMarkup(
-			<Transcript messages={[{ id: "1", role: "user", text: "Hello", outcome: "failed", createdAt: CREATED_AT }]} />,
+			<Transcript
+				messages={[
+					{
+						id: "1",
+						role: "user",
+						text: "Hello",
+						parts: [{ type: "text", text: "Hello" }],
+						outcome: "failed",
+						createdAt: CREATED_AT,
+					},
+				]}
+			/>,
 		)
 
 		expect(html).toContain(t("conversations.visitor"))

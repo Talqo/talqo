@@ -59,6 +59,7 @@ packages -X-> apps
 - `packages/ui` is presentation-only: neutral components, styles, and presentation helpers. It contains no product workflows, domain rules, API calls, query policy, or app configuration.
 - Generated API clients belong to their consumer and may use consumer-specific integrations. OpenAPI is the reusable boundary.
 - `packages/sdk` is the framework-independent browser chat SDK; the widget consumes its workspace source and stable releases publish its ESM JavaScript and declarations to npm as `@talqo/sdk`.
+- The SDK owns one authenticated WebSocket per live turn and executes registered browser tools. The conversation module binds these tools into the AI SDK loop alongside MCP tools and owns ordered message parts. HTTP serves configuration, history, recovery, and cancellation without a live connection. WebSocket is the only live chat transport.
 - Apps do not import one another. Runtime communication crosses an explicit protocol boundary.
 - Package consumers use declared package exports, not package internals.
 - `apps/docs` is public documentation. Root `docs` is internal architecture, ADR, and contributor documentation.
@@ -135,7 +136,7 @@ Every role file and support directory is capability-triggered. Do not create emp
 ### Tests And Data
 
 - `*.test.ts` is Bun's test convention. Keep a unit test beside the service or pure code it verifies.
-- `*.routes.test.ts` is reserved for wiring only visible through the composed app (cookie and CORS headers, SSE framing, middleware-owned error mapping). HTTP status, validation, and service behavior default to integration tests.
+- `*.routes.test.ts` is reserved for wiring only visible through the composed app (cookie and CORS headers, WebSocket framing, middleware-owned error mapping). HTTP status, validation, and service behavior default to integration tests.
 - `<module>.integration.test.ts` exercises the module through its service interface against an isolated test database.
 - Module seeds contribute deterministic records to the centralized, non-destructive development seed. Development and E2E share the same production-plausible baseline; optional external-provider values come from an all-or-none seed environment tuple.
 - Playwright E2E specs live in `apps/e2e/tests/*.spec.ts` and verify only critical journeys across the real web app, API, and PostgreSQL. Their complete lifecycle is defined in [E2E Tests](#e2e-tests).

@@ -83,7 +83,7 @@ export const test = base.extend<
 			await mkdir(directory, { recursive: true })
 			const logPath = path.join(directory, "api.log")
 			const log = await open(logPath, "w")
-			const server = createTestServer()
+			const server = await createTestServer()
 			const providerOrigin = server.url.origin
 			let api: Subprocess | undefined
 			const errors: unknown[] = []

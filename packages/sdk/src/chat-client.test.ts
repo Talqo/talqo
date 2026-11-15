@@ -6,6 +6,7 @@ import {
 	type ChatClientOptions,
 	type ChatConfiguration,
 	type ChatEvent,
+	type ChatMessage,
 	type ChatTransport,
 	ChatTransportError,
 	createChatClient,
@@ -157,6 +158,47 @@ const cancellationFailures = [
 	},
 ] as const
 
+function recoveredTranscript(outcome: "completed" | "streaming"): ChatMessage[] {
+	return [
+		{
+			id: "u1",
+			role: "user",
+			text: "hello",
+			parts: [{ type: "text", text: "hello" }],
+			createdAt: "now",
+			outcome: "completed",
+		},
+		{
+			id: "a1",
+			role: "assistant",
+			text: "recovered",
+			parts: [{ type: "text", text: "recovered" }],
+			createdAt: "now",
+			outcome,
+		},
+	]
+}
+
+function toolPart(
+	toolCallId: string,
+	serverName: string,
+	displayName: string,
+	state: "input-available" | "output-available",
+) {
+	return {
+		type: "dynamic-tool" as const,
+		toolName: `${serverName}_${displayName}`,
+		toolCallId,
+		input: {},
+		state,
+		toolMetadata: {
+			source: "mcp" as const,
+			serverName,
+			displayName,
+			...(state === "output-available" ? { outcome: "completed" as const } : {}),
+		},
+	}
+}
 describe("createChatClient", () => {
 	test("stores a UUID bearer before the first send", async () => {
 		const storage = createMemoryStorage()
@@ -212,6 +254,7 @@ describe("createChatClient", () => {
 				JSON.stringify({
 					version: 1,
 					name: "Support",
+					isAvailable: true,
 					appearance: {
 						light: {
 							primary: "#111111",
@@ -272,8 +315,22 @@ describe("createChatClient", () => {
 				expect(credential).toBe("credential")
 				return {
 					messages: [
-						{ id: "u1", role: "user", text: "hello", createdAt: "2026-09-11T00:00:00Z", outcome: "completed" },
-						{ id: "a1", role: "assistant", text: "hi", createdAt: "2026-09-11T00:00:01Z", outcome: "completed" },
+						{
+							id: "u1",
+							role: "user",
+							text: "hello",
+							parts: [{ type: "text", text: "hello" }],
+							createdAt: "2026-09-11T00:00:00Z",
+							outcome: "completed",
+						},
+						{
+							id: "a1",
+							role: "assistant",
+							text: "hi",
+							parts: [{ type: "text", text: "hi" }],
+							createdAt: "2026-09-11T00:00:01Z",
+							outcome: "completed",
+						},
 					],
 					activeGeneration: undefined,
 				}
@@ -351,8 +408,9 @@ describe("createChatClient", () => {
 						userMessage: { id: "server-user", createdAt: "2026-09-11T00:00:00Z" },
 						assistantMessage: { id: "server-assistant", createdAt: "2026-09-11T00:00:01Z" },
 					},
-					{ type: "delta", assistantMessageId: "server-assistant", text: "Hel" },
-					{ type: "delta", assistantMessageId: "server-assistant", text: "lo" },
+					{ type: "part", assistantMessageId: "server-assistant", index: 0, part: { type: "text", text: "" } },
+					{ type: "delta", assistantMessageId: "server-assistant", index: 0, text: "Hel" },
+					{ type: "delta", assistantMessageId: "server-assistant", index: 0, text: "lo" },
 					{ type: "terminal", outcome: "completed" },
 				]),
 		})
@@ -562,15 +620,43 @@ describe("createChatClient", () => {
 					return loads === 1
 						? {
 								messages: [
-									{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" as const },
-									{ id: "a1", role: "assistant", text: "partial", createdAt: "now", outcome: "streaming" as const },
+									{
+										id: "u1",
+										role: "user",
+										text: "hello",
+										parts: [{ type: "text" as const, text: "hello" }],
+										createdAt: "now",
+										outcome: "completed" as const,
+									},
+									{
+										id: "a1",
+										role: "assistant",
+										text: "partial",
+										parts: [{ type: "text" as const, text: "partial" }],
+										createdAt: "now",
+										outcome: "streaming" as const,
+									},
 								],
 								activeGeneration: { id: "generation" },
 							}
 						: {
 								messages: [
-									{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" as const },
-									{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "completed" as const },
+									{
+										id: "u1",
+										role: "user",
+										text: "hello",
+										parts: [{ type: "text" as const, text: "hello" }],
+										createdAt: "now",
+										outcome: "completed" as const,
+									},
+									{
+										id: "a1",
+										role: "assistant",
+										text: "recovered",
+										parts: [{ type: "text" as const, text: "recovered" }],
+										createdAt: "now",
+										outcome: "completed" as const,
+									},
 								],
 								activeGeneration: undefined,
 							}
@@ -639,10 +725,7 @@ describe("createChatClient", () => {
 		const { client, loads } = recoveryClient(async (count) => {
 			if (count === 1) throw new Error("session temporarily unavailable")
 			return {
-				messages: [
-					{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
-					{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "completed" },
-				],
+				messages: recoveredTranscript("completed"),
 				activeGeneration: undefined,
 			}
 		})
@@ -770,7 +853,7 @@ describe("createChatClient", () => {
 			apiUrl: "https://api.example.test",
 			embedToken: "embed",
 			transport: baseTransport({
-				sendMessage: async () => streamFrom([{ type: "delta", assistantMessageId: "a1", text: "invalid" }]),
+				sendMessage: async () => streamFrom([{ type: "delta", assistantMessageId: "a1", index: 0, text: "invalid" }]),
 				loadSession: async () => {
 					throw new Error("not accepted")
 				},
@@ -801,7 +884,16 @@ describe("createChatClient", () => {
 					return loads === 1
 						? { messages: [], activeGeneration: undefined }
 						: {
-								messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
+								messages: [
+									{
+										id: "u1",
+										role: "user",
+										text: "hello",
+										parts: [{ type: "text", text: "hello" }],
+										createdAt: "now",
+										outcome: "completed",
+									},
+								],
 								activeGeneration: undefined,
 							}
 				},
@@ -864,10 +956,7 @@ describe("createChatClient", () => {
 			if (client.getSnapshot().messages.at(-1)?.text === "recovered") recoveryObserved.resolve()
 		})
 		recoveredSession.resolve({
-			messages: [
-				{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
-				{ id: "a1", role: "assistant", text: "recovered", createdAt: "now", outcome: "streaming" },
-			],
+			messages: recoveredTranscript("streaming"),
 			activeGeneration: { id: "generation" },
 		})
 		await recoveryObserved.promise
@@ -952,10 +1041,65 @@ describe("createChatClient", () => {
 							userMessage: { id: "u1", createdAt: "now" },
 							assistantMessage: { id: "a1", createdAt: "now" },
 						},
-						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
-						{ type: "delta", assistantMessageId: "a1", text: "Checking" },
-						{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
-						{ type: "delta", assistantMessageId: "a1", text: " stock" },
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 0,
+							part: {
+								type: "dynamic-tool",
+								toolCallId: "first",
+								toolName: "shopify_get_product",
+								input: {},
+								state: "input-available",
+								toolMetadata: { source: "mcp", displayName: "get_product", serverName: "Shopify" },
+							},
+						},
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 1,
+							part: {
+								type: "dynamic-tool",
+								toolCallId: "second",
+								toolName: "shopify_get_product",
+								input: {},
+								state: "input-available",
+								toolMetadata: { source: "mcp", displayName: "get_product", serverName: "Shopify" },
+							},
+						},
+						{ type: "part", assistantMessageId: "a1", index: 2, part: { type: "text", text: "" } },
+						{ type: "delta", assistantMessageId: "a1", index: 2, text: "Checking" },
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 0,
+							part: {
+								type: "dynamic-tool",
+								toolCallId: "first",
+								toolName: "shopify_get_product",
+								input: {},
+								output: { stock: 1 },
+								state: "output-available",
+								toolMetadata: { source: "mcp", displayName: "get_product", serverName: "Shopify" },
+							},
+						},
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 1,
+							part: {
+								type: "dynamic-tool",
+								toolCallId: "second",
+								toolName: "shopify_get_product",
+								input: {},
+								output: { stock: 2 },
+								state: "output-available",
+								toolMetadata: { source: "mcp", displayName: "get_product", serverName: "Shopify" },
+							},
+						},
+						{ type: "part", assistantMessageId: "a1", index: 3, part: { type: "step-start" } },
+						{ type: "part", assistantMessageId: "a1", index: 4, part: { type: "text", text: "!" } },
+						{ type: "delta", assistantMessageId: "a1", index: 2, text: " stock" },
 						{ type: "terminal", outcome: "completed" },
 					]),
 			}),
@@ -967,10 +1111,11 @@ describe("createChatClient", () => {
 		await client.sendMessage("is it in stock?")
 
 		expect(observed).toContainEqual(["get_product"])
+		expect(observed).toContainEqual(["get_product", "get_product"])
 		expect(observed).toContainEqual([])
 		expect(client.getSnapshot().messages).toMatchObject([
 			{ id: "u1", outcome: "completed" },
-			{ id: "a1", text: "Checking stock", outcome: "completed" },
+			{ id: "a1", text: "Checking stock!", outcome: "completed" },
 		])
 		expect(client.getSnapshot().activeTools).toEqual([])
 	})
@@ -1079,7 +1224,16 @@ describe("createChatClient", () => {
 					expect(input.credential).toBe(credential)
 					loads += 1
 					return {
-						messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
+						messages: [
+							{
+								id: "u1",
+								role: "user",
+								text: "hello",
+								parts: [{ type: "text", text: "hello" }],
+								createdAt: "now",
+								outcome: "completed",
+							},
+						],
 						activeGeneration: undefined,
 					}
 				},
@@ -1092,6 +1246,75 @@ describe("createChatClient", () => {
 		expect(loads).toBe(1)
 		expect(client.getSnapshot().messages).toHaveLength(1)
 		expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential })
+	})
+
+	test("restores an interrupted website action without resending it or offering retry", async () => {
+		const storage = createMemoryStorage()
+		const key = createChatStorageKey("https://api.example.test", "embed")
+		await storage.setItem(
+			key,
+			JSON.stringify({
+				version: 1,
+				credential: "credential",
+				pending: { requestId: "request", text: "Update the page", clientTools: true },
+			}),
+		)
+		let sends = 0
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage,
+			recoveryDelays: [0],
+			transport: baseTransport({
+				sendMessage: async () => {
+					sends++
+					throw new Error("Website actions must not be resubmitted")
+				},
+				loadSession: async () => ({
+					messages: [
+						{
+							id: "u1",
+							requestId: "request",
+							role: "user",
+							text: "Update the page",
+							parts: [{ type: "text", text: "Update the page" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+						{
+							id: "a1",
+							requestId: "request",
+							role: "assistant",
+							text: "",
+							parts: [
+								{
+									type: "dynamic-tool",
+									toolCallId: "action",
+									toolName: "updatePage",
+									input: {},
+									state: "output-error",
+									errorText: "Interrupted",
+									toolMetadata: { source: "client", displayName: "updatePage", outcome: "interrupted" },
+								},
+							],
+							createdAt: "now",
+							outcome: "interrupted",
+						},
+					],
+					activeGeneration: undefined,
+				}),
+			}),
+		})
+		try {
+			await client.initialize()
+			await waitForSnapshot(client, () => client.getSnapshot().activity === "idle")
+			expect(sends).toBe(0)
+			expect(client.getSnapshot().error).toMatchObject({ code: "website-action-uncertain", retriable: false })
+			expect(client.getSnapshot().actions).not.toContain("retry")
+			expect(readChatStorageRecord(await storage.getItem(key))).toEqual({ version: 1, credential: "credential" })
+		} finally {
+			client.dispose()
+		}
 	})
 
 	test("resubmits a stored pending message with its original identity", async () => {
@@ -1224,7 +1447,16 @@ describe("createChatClient", () => {
 			storage,
 			transport: baseTransport({
 				loadSession: async () => ({
-					messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
+					messages: [
+						{
+							id: "u1",
+							role: "user",
+							text: "hello",
+							parts: [{ type: "text", text: "hello" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+					],
 					activeGeneration: { id: "generation" },
 				}),
 				cancelResponse: async () => {
@@ -1304,7 +1536,16 @@ describe("createChatClient", () => {
 			storage,
 			transport: baseTransport({
 				loadSession: async () => ({
-					messages: [{ id: "u1", role: "user", text: "keep me", createdAt: "now", outcome: "completed" }],
+					messages: [
+						{
+							id: "u1",
+							role: "user",
+							text: "keep me",
+							parts: [{ type: "text", text: "keep me" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+					],
 					activeGeneration: { id: "generation" },
 				}),
 				cancelResponse: async () => {
@@ -1369,7 +1610,16 @@ describe("createChatClient", () => {
 			},
 			transport: baseTransport({
 				loadSession: async () => ({
-					messages: [{ id: "u1", role: "user", text: "keep me", createdAt: "now", outcome: "completed" }],
+					messages: [
+						{
+							id: "u1",
+							role: "user",
+							text: "keep me",
+							parts: [{ type: "text", text: "keep me" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+					],
 					activeGeneration: undefined,
 				}),
 				sendMessage: async (input) => {
@@ -1392,7 +1642,7 @@ describe("createChatClient", () => {
 		await expect(client.startNewChat()).rejects.toThrow("Persistent chat credential")
 
 		expect(client.getSnapshot()).toMatchObject({
-			messages: [expect.objectContaining({ text: "keep me" })],
+			messages: [{ text: "keep me" }],
 			error: { code: "reset-failed" },
 			notices: ["storage-unavailable"],
 		})
@@ -1465,7 +1715,16 @@ describe("createChatClient", () => {
 						await cancellation.promise
 					},
 					loadSession: async () => ({
-						messages: [{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" }],
+						messages: [
+							{
+								id: "u1",
+								role: "user",
+								text: "hello",
+								parts: [{ type: "text", text: "hello" }],
+								createdAt: "now",
+								outcome: "completed",
+							},
+						],
 						activeGeneration: undefined,
 					}),
 				}),
@@ -1790,9 +2049,30 @@ describe("chat client snapshots", () => {
 			transport: baseTransport({
 				loadSession: async () => ({
 					messages: [
-						{ id: "u1", role: "user", text: "one", createdAt: "now", outcome: "completed" },
-						{ id: "a1", role: "assistant", text: "reply", createdAt: "now", outcome: "completed" },
-						{ id: "u2", role: "user", text: "two", createdAt: "now", outcome: "interrupted" },
+						{
+							id: "u1",
+							role: "user",
+							text: "one",
+							parts: [{ type: "text", text: "one" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+						{
+							id: "a1",
+							role: "assistant",
+							text: "reply",
+							parts: [{ type: "text", text: "reply" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+						{
+							id: "u2",
+							role: "user",
+							text: "two",
+							parts: [{ type: "text", text: "two" }],
+							createdAt: "now",
+							outcome: "interrupted",
+						},
 					],
 					activeGeneration: undefined,
 				}),
@@ -1944,7 +2224,16 @@ describe("chat send lifecycle", () => {
 			storage,
 			transport: baseTransport({
 				loadSession: async () => ({
-					messages: [{ id: "u1", role: "user", text: "earlier", createdAt: "now", outcome: "completed" }],
+					messages: [
+						{
+							id: "u1",
+							role: "user",
+							text: "earlier",
+							parts: [{ type: "text", text: "earlier" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+					],
 					activeGeneration: undefined,
 				}),
 				sendMessage: async (input) => {
@@ -1986,6 +2275,7 @@ describe("chat send lifecycle", () => {
 				id: `pending:${CREDENTIAL}`,
 				role: "user",
 				text: "hello",
+				parts: [{ type: "text", text: "hello" }],
 				createdAt: "2026-09-11T00:00:00.000Z",
 				outcome: "pending",
 			},
@@ -2030,32 +2320,49 @@ describe("chat send lifecycle", () => {
 		client.dispose()
 	})
 
-	test("tracks tool activity per server and clears only the finished tool", async () => {
+	test("tracks each tool call until it finishes and clears unfinished calls on terminal", async () => {
 		const client = testClient({
 			transport: baseTransport({
 				sendMessage: async () =>
 					streamFrom([
 						acceptedEvent("generation"),
-						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
-						{ type: "tool-start", serverName: "Shopify", toolName: "get_product" },
-						{ type: "tool-start", serverName: "Warehouse", toolName: "get_product" },
-						{ type: "tool-end", serverName: "Shopify", toolName: "get_product", outcome: "completed" },
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 0,
+							part: toolPart("call-1", "Shopify", "get_product", "input-available"),
+						},
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 1,
+							part: toolPart("call-2", "Shopify", "get_product", "input-available"),
+						},
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 2,
+							part: toolPart("call-3", "Warehouse", "get_product", "input-available"),
+						},
+						{
+							type: "part",
+							assistantMessageId: "a1",
+							index: 0,
+							part: toolPart("call-1", "Shopify", "get_product", "output-available"),
+						},
 						{ type: "terminal", outcome: "completed" },
 					]),
 			}),
 		})
 		await client.initialize()
-		const observed: { serverName: string; toolName: string }[][] = []
-		client.subscribe(() => observed.push([...client.getSnapshot().activeTools]))
+		const observed: string[][] = []
+		client.subscribe(() => observed.push(client.getSnapshot().activeTools.map((tool) => tool.toolCallId ?? "")))
 
 		await client.sendMessage("is it in stock?")
 
-		expect(observed).toContainEqual([{ serverName: "Shopify", toolName: "get_product" }])
-		expect(observed).toContainEqual([
-			{ serverName: "Shopify", toolName: "get_product" },
-			{ serverName: "Warehouse", toolName: "get_product" },
-		])
-		expect(client.getSnapshot().activeTools).toEqual([{ serverName: "Warehouse", toolName: "get_product" }])
+		expect(observed).toContainEqual(["call-1", "call-2", "call-3"])
+		expect(observed).toContainEqual(["call-2", "call-3"])
+		expect(client.getSnapshot().activeTools).toEqual([])
 	})
 })
 
@@ -2275,8 +2582,22 @@ describe("chat recovery", () => {
 				},
 				loadSession: async () => ({
 					messages: [
-						{ id: "u1", role: "user", text: "hello", createdAt: "now", outcome: "completed" },
-						{ id: "a1", role: "assistant", text: "partial", createdAt: "now", outcome: "streaming" },
+						{
+							id: "u1",
+							role: "user",
+							text: "hello",
+							parts: [{ type: "text", text: "hello" }],
+							createdAt: "now",
+							outcome: "completed",
+						},
+						{
+							id: "a1",
+							role: "assistant",
+							text: "partial",
+							parts: [{ type: "text", text: "partial" }],
+							createdAt: "now",
+							outcome: "streaming",
+						},
 					],
 					activeGeneration: { id: "generation" },
 				}),
@@ -2318,6 +2639,7 @@ describe("chat recovery", () => {
 				id: "pending:request",
 				role: "user",
 				text: "hello",
+				parts: [{ type: "text", text: "hello" }],
 				createdAt: "2026-09-11T00:00:00.000Z",
 				outcome: "interrupted",
 			},
@@ -2339,7 +2661,16 @@ describe("chat recovery", () => {
 					loads += 1
 					return loads === 1
 						? {
-								messages: [{ id: "a1", role: "assistant", text: "partial", createdAt: "now", outcome: "streaming" }],
+								messages: [
+									{
+										id: "a1",
+										role: "assistant",
+										text: "partial",
+										parts: [{ type: "text", text: "partial" }],
+										createdAt: "now",
+										outcome: "streaming",
+									},
+								],
 								activeGeneration: { id: "generation" },
 							}
 						: { messages: [], activeGeneration: undefined }
@@ -2433,7 +2764,16 @@ describe("chat storage", () => {
 				randomUUID: () => CREDENTIAL,
 				transport: baseTransport({
 					loadSession: async () => ({
-						messages: [{ id: "u1", role: "user", text: "earlier", createdAt: "now", outcome: "completed" }],
+						messages: [
+							{
+								id: "u1",
+								role: "user",
+								text: "earlier",
+								parts: [{ type: "text", text: "earlier" }],
+								createdAt: "now",
+								outcome: "completed",
+							},
+						],
 						activeGeneration: undefined,
 					}),
 					sendMessage: async (input) => {

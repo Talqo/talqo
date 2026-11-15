@@ -9,6 +9,11 @@
 			script.async = true
 			script.dataset.talqoEmbedToken = params.get("token")
 			script.dataset.talqoApi = params.get("api")
+			if (params.has("tools"))
+				script.addEventListener("load", async () => {
+					const { mountTools } = await import("/client-tools.js")
+					mountTools()
+				})
 			document.body.append(script)
 		</script>
 	</body>
