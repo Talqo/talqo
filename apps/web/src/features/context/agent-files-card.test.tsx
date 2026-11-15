@@ -26,8 +26,10 @@ type PendingUpload = ReturnType<typeof Promise.withResolvers<Response>> & { file
 type FileOperation = { url: string; method: string; body: unknown }
 
 let files: AgentFile[]
+let allowedExtensions: string[]
 let fileListRequests: number
 let fileListFailures: Response[]
+let fileListResponses: Array<Response | Promise<Response>>
 let fileOperations: FileOperation[]
 let fileOperationResponses: Array<Response | Promise<Response>>
 let uploads: PendingUpload[]
@@ -41,9 +43,11 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const method = init?.method ?? "GET"
 	if (url === FILES_URL && method === "GET") {
 		fileListRequests++
+		const queued = fileListResponses.shift()
+		if (queued) return queued
 		const failure = fileListFailures.shift()
 		if (failure) return failure
-		return json({ files, maxSizeBytes: MAX_SIZE_BYTES, maxNameLength: 255, allowedExtensions: [".md"] })
+		return json({ files, maxSizeBytes: MAX_SIZE_BYTES, maxNameLength: 255, allowedExtensions })
 	}
 	if (url === FILES_URL && method === "POST") {
 		if (!(init?.body instanceof FormData)) throw new Error("upload body must be FormData")
@@ -117,6 +121,14 @@ function labelledButton(label: string): HTMLButtonElement | null {
 	return host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)
 }
 
+function dropzone(): HTMLButtonElement {
+	const found = [...host.querySelectorAll("button")].find((candidate) =>
+		candidate.textContent?.includes(t("agentFiles.dropzone")),
+	)
+	if (!found) throw new Error("dropzone not rendered")
+	return found
+}
+
 function element<T extends Element>(selector: string): T {
 	const found = document.querySelector<T>(selector)
 	if (!found) throw new Error(`${selector} not rendered`)
@@ -147,8 +159,10 @@ async function replaceInputValue(input: HTMLInputElement, value: string) {
 
 beforeEach(() => {
 	files = []
+	allowedExtensions = [".md"]
 	fileListRequests = 0
 	fileListFailures = []
+	fileListResponses = []
 	fileOperations = []
 	fileOperationResponses = []
 	uploads = []
@@ -181,6 +195,26 @@ describe("AgentFilesCard for a read-only operator", () => {
 		expect(host.textContent).toContain(t("agentFiles.emptyTitle"))
 		expect(host.textContent).toContain(t("agentFiles.emptyDescriptionReader"))
 	})
+
+	test("shows one status line per file and the error detail only for failed files", async () => {
+		files = [
+			{ ...FILE, name: "ready.md", embeddingStatus: "ready", embeddingError: null },
+			{ ...FILE, name: "pending.md", embeddingStatus: "pending", embeddingError: null },
+			{ ...FILE, name: "processing.md", embeddingStatus: "processing", embeddingError: "provider-error" },
+			{ ...FILE, name: "failed.md", embeddingStatus: "failed", embeddingError: null },
+			{ ...FILE, name: "broken.md", embeddingStatus: "failed", embeddingError: "empty-document" },
+		]
+		await renderCard()
+
+		const statusLines = [...host.querySelectorAll("li")].map((item) => item.querySelector("output")?.textContent)
+		expect(statusLines).toEqual([
+			t("agentFiles.status.ready"),
+			t("agentFiles.status.pending"),
+			t("agentFiles.status.processing"),
+			t("agentFiles.status.failed"),
+			`${t("agentFiles.status.failed")} · ${t("agentFiles.error.emptyDocument")}`,
+		])
+	})
 })
 
 describe("AgentFilesCard for a managing operator", () => {
@@ -201,6 +235,75 @@ describe("AgentFilesCard for a managing operator", () => {
 		files = [ready, { ...ready, name: "also-ready.md" }]
 		await act(() => queryClient.refetchQueries({ queryKey: [FILES_URL] }))
 		expect(currentRefetchInterval()).toBe(false)
+	})
+
+	test("describes the accepted formats and size limit from the loaded settings", async () => {
+		allowedExtensions = [".md", ".pdf"]
+		await renderCard(true)
+
+		expect(host.textContent).toContain(t("agentFiles.cardDescription", { maxSizeMB: 10, formats: "MD, PDF" }))
+		expect(element<HTMLInputElement>("#agent-file-input").accept).toBe(".md,.pdf")
+	})
+
+	test("shows a loading placeholder without settings or the dropzone hint until the list arrives", async () => {
+		const pendingList = Promise.withResolvers<Response>()
+		fileListResponses = [pendingList.promise]
+		await renderCard(true)
+
+		expect(host.textContent).toContain(t("agentFiles.loading"))
+		expect(host.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(9)
+		expect(host.textContent).not.toContain(t("agentFiles.dropzoneHint"))
+		expect(host.textContent).not.toContain(t("agentFiles.cardDescription", { maxSizeMB: 10, formats: "MD" }))
+
+		await act(async () =>
+			pendingList.resolve(
+				json({ files: [], maxSizeBytes: MAX_SIZE_BYTES, maxNameLength: 255, allowedExtensions: [".md"] }),
+			),
+		)
+		await settle()
+
+		expect(host.textContent).toContain(t("agentFiles.dropzoneHint"))
+	})
+
+	test("hides the dropzone hint once files are listed", async () => {
+		files = [{ ...FILE, embeddingStatus: "ready", embeddingError: null }]
+		await renderCard(true)
+
+		expect(host.textContent).not.toContain(t("agentFiles.dropzoneHint"))
+	})
+
+	test("shows the uploading state and disables both upload controls while an upload is pending", async () => {
+		await renderCard(true)
+		const zone = dropzone()
+		const input = await selectFiles([new File(["one"], "one.md")])
+
+		expect(host.textContent).toContain(t("agentFiles.uploading"))
+		expect(host.textContent).not.toContain(t("agentFiles.dropzone"))
+		expect(input.disabled).toBe(true)
+		expect(zone.disabled).toBe(true)
+
+		files = [{ ...FILE, name: "one.md", embeddingStatus: "ready", embeddingError: null }]
+		await resolveUpload(
+			0,
+			json({ file: { ...FILE, name: "one.md", embeddingStatus: "ready", embeddingError: null } }, 201),
+		)
+
+		expect(zone.textContent).toContain(t("agentFiles.dropzone"))
+		expect(zone.disabled).toBe(false)
+		expect(input.disabled).toBe(false)
+	})
+
+	test("cancels the dragover default and ignores a selection without files", async () => {
+		await renderCard(true)
+		const dragOver = new Event("dragover", { bubbles: true, cancelable: true })
+
+		await act(async () => dropzone().dispatchEvent(dragOver))
+		expect(dragOver.defaultPrevented).toBe(true)
+
+		await selectFiles([])
+
+		expect(uploads).toHaveLength(0)
+		expect(fileListRequests).toBe(1)
 	})
 
 	test("uploads a max-size file sequentially, stops after failure, and refreshes earlier successes", async () => {
@@ -378,16 +481,16 @@ describe("AgentFilesCard for a managing operator", () => {
 
 	test("uploads files dropped onto the dropzone", async () => {
 		await renderCard(true)
-		const dropzone = [...host.querySelectorAll("button")].find((candidate) =>
+		const zone = [...host.querySelectorAll("button")].find((candidate) =>
 			candidate.textContent?.includes(t("agentFiles.dropzone")),
 		)
-		if (!dropzone) throw new Error("dropzone not rendered")
+		if (!zone) throw new Error("dropzone not rendered")
 		const transfer = new DataTransfer()
 		transfer.items.add(new File(["dropped"], "dropped.md"))
 		const drop = new Event("drop", { bubbles: true, cancelable: true })
 		Object.defineProperty(drop, "dataTransfer", { value: transfer })
 
-		await act(async () => dropzone.dispatchEvent(drop))
+		await act(async () => zone.dispatchEvent(drop))
 
 		expect(drop.defaultPrevented).toBe(true)
 		expect(uploads.map(({ file }) => file.name)).toEqual(["dropped.md"])
@@ -398,12 +501,12 @@ describe("AgentFilesCard for a managing operator", () => {
 		await renderCard(true)
 		const input = element<HTMLInputElement>("#agent-file-input")
 		const clickInput = spyOn(input, "click")
-		const dropzone = [...host.querySelectorAll("button")].find((candidate) =>
+		const zone = [...host.querySelectorAll("button")].find((candidate) =>
 			candidate.textContent?.includes(t("agentFiles.dropzone")),
 		)
-		if (!dropzone) throw new Error("dropzone not rendered")
+		if (!zone) throw new Error("dropzone not rendered")
 
-		await click(dropzone)
+		await click(zone)
 		expect(clickInput).toHaveBeenCalledTimes(1)
 	})
 

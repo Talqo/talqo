@@ -45,10 +45,10 @@ let agentDetailResponse: Promise<Response> | undefined
 let embeds: Array<typeof EMBED>
 let embedsResponse: Promise<Response> | undefined
 let embedListFailing: boolean
-let createFailures: Response[]
+let createFailures: Array<Response | Promise<Response>>
 let createdBodies: Array<Record<string, unknown>>
-let updateFailures: Response[]
-let deleteFailures: Response[]
+let updateFailures: Array<Response | Promise<Response>>
+let deleteFailures: Array<Response | Promise<Response>>
 let requests: RequestRecord[]
 let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
@@ -89,6 +89,9 @@ async function respond(request: RequestInfo | URL, init?: RequestInit): Promise<
 	}
 	if (url === `/api/agents/${AGENT_ID}/files`) {
 		return json({ files: [], maxSizeBytes: 10_485_760, maxNameLength: 255, allowedExtensions: [".md"] })
+	}
+	if (url === `/api/agents/${AGENT_ID}/mcp-servers`) {
+		return json({ servers: [], stdioAllowed: false })
 	}
 	if (url === `/api/agents/${AGENT_ID}`) {
 		if (method === "GET") {
@@ -151,6 +154,7 @@ function makeRouter(initialEntry = `/dashboard/agent/${AGENT_ID}`) {
 async function renderPage(initialEntry?: string) {
 	router = makeRouter(initialEntry)
 	await renderRouter(root, queryClient, router)
+	await settle()
 }
 
 function nameInput(): HTMLInputElement {
@@ -215,7 +219,74 @@ afterEach(async () => {
 	document.documentElement.lang = "en"
 })
 
+describe("agent route search", () => {
+	const validateSearch = Route.options.validateSearch
+	if (typeof validateSearch !== "function") throw new Error("Agent route search validation missing")
+
+	test("keeps a tab the agent page renders", () => {
+		expect(validateSearch({ tab: "configuration" })).toEqual({ tab: "configuration" })
+		expect(validateSearch({ tab: "embeds" })).toEqual({ tab: "embeds" })
+	})
+
+	test("drops a tab the agent page does not render", () => {
+		expect(validateSearch({ tab: "unknown" })).toStrictEqual({ tab: undefined })
+		expect(validateSearch({})).toStrictEqual({ tab: undefined })
+	})
+})
+
 describe("agent detail access and editing", () => {
+	test("requests no protected data for an agent the operator cannot read", async () => {
+		canRead = false
+		await renderPage()
+		await settle()
+
+		expect(router.state.location.pathname).toBe("/dashboard/agents")
+		expect(requests.filter(({ url }) => url === `/api/agents/${AGENT_ID}`)).toHaveLength(0)
+		expect(requests.filter(({ url }) => url.startsWith("/api/embeds"))).toHaveLength(0)
+	})
+
+	test("shows readers a read-only configuration without management controls", async () => {
+		agentPermissions = ["agents:read"]
+		await renderPage()
+
+		expect(nameInput().readOnly).toBe(true)
+		expect(promptInput().readOnly).toBe(true)
+		expect(host.querySelector("#config-blacklist")).toBeNull()
+		expect(host.querySelector('label[for="config-blacklist"]')).toBeNull()
+		expect(host.textContent).toContain(t("agentFields.wordBlacklist"))
+		expect(host.querySelector('a[href="/dashboard/agents"]')?.textContent?.trim()).toBe(t("agentConfig.backToAgents"))
+		expect(host.textContent).not.toContain(t("agentConfig.subheading"))
+		expect(host.textContent).not.toContain(t("agentConfig.cardDescription"))
+		expect(host.textContent).not.toContain(t("agentConfig.dangerZone"))
+		expect(
+			[...host.querySelectorAll("button")].some((element) => element.textContent?.trim() === t("agentConfig.save")),
+		).toBe(false)
+		expect(embedRequestCount()).toBe(0)
+	})
+
+	test("clears a failed save and announces progress when the operator retries", async () => {
+		const pending = Promise.withResolvers<Response>()
+		updateFailures = [json({}, 500), pending.promise]
+		await renderPage()
+		await typeInto(nameInput(), "Renamed agent")
+
+		await click(button(t("agentConfig.save")))
+		expect(host.querySelector("form [role='alert']")?.textContent).toBe(t("agents.saveFailed"))
+
+		await click(button(t("agentConfig.save")))
+		expect(host.querySelector("form [role='alert']")).toBeNull()
+		expect(host.textContent).toContain(t("agentConfig.saving"))
+		expect(button(t("agentConfig.saving")).disabled).toBe(true)
+
+		await act(async () => pending.resolve(json({ agent: canonicalAgent })))
+		await settle()
+		await settle()
+
+		expect(host.textContent).toContain(t("agentConfig.saved"))
+		expect(button(t("agentConfig.save")).disabled).toBe(true)
+		expect(nameInput().value).toBe(INITIAL_AGENT.name)
+	})
+
 	test("clears protected content and bypasses the dirty guard when read access is revoked", async () => {
 		await renderPage()
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
@@ -343,6 +414,36 @@ describe("agent configuration validation", () => {
 		expect(requests.filter(({ method }) => method === "PUT")).toHaveLength(0)
 	})
 
+	test("labels each field and ties its counter and error to the input", async () => {
+		await renderPage()
+		expect(host.querySelector('label[for="config-name"]')?.textContent).toBe(t("agentFields.name"))
+		expect(host.querySelector('label[for="config-system-prompt"]')?.textContent).toBe(t("agentFields.systemPrompt"))
+		expect(host.querySelector('label[for="config-blacklist"]')?.textContent).toBe(t("agentFields.wordBlacklist"))
+		expect(nameInput().placeholder).toBe(t("agentFields.namePlaceholder"))
+		expect(promptInput().placeholder).toBe(t("agentFields.systemPromptPlaceholder"))
+		expect(nameInput().readOnly).toBe(false)
+		expect(promptInput().readOnly).toBe(false)
+		expect(host.textContent).toContain(t("agentConfig.subheading"))
+		expect(host.textContent).toContain(t("agentConfig.cardDescription"))
+		expect(host.textContent).toContain(t("agentConfig.dangerZone"))
+		expect(host.textContent).toContain(
+			t("agentFields.characterLimit", { used: INITIAL_AGENT.name.length, max: AGENT_NAME_MAX_LENGTH }),
+		)
+		expect(host.textContent).toContain(
+			t("agentFields.characterLimit", { used: INITIAL_AGENT.systemPrompt.length, max: SYSTEM_PROMPT_MAX_LENGTH }),
+		)
+		expect(nameInput().getAttribute("aria-describedby")).toBe("config-name-limit")
+		expect(promptInput().getAttribute("aria-describedby")).toBe("config-system-prompt-limit")
+
+		await typeInto(nameInput(), "Draft")
+		expect(host.textContent).toContain(t("agentFields.characterLimit", { used: 5, max: AGENT_NAME_MAX_LENGTH }))
+
+		await typeInto(nameInput(), "")
+		await click(button(t("agentConfig.save")))
+		expect(nameInput().getAttribute("aria-describedby")).toBe("config-name-limit config-name-error")
+		expect(promptInput().getAttribute("aria-describedby")).toBe("config-system-prompt-limit")
+	})
+
 	test("never submits a save for a read-only operator", async () => {
 		agentPermissions = ["agents:read"]
 		await renderPage()
@@ -440,6 +541,27 @@ describe("agent tabs", () => {
 		expect(host.textContent).toContain(t("agentFiles.cardTitle"))
 		expect(requests.some(({ url }) => url === `/api/agents/${AGENT_ID}/files`)).toBe(true)
 	})
+
+	test("renders every tab label and switches panels through the URL", async () => {
+		await renderPage()
+		for (const label of [
+			t("agentConfig.tabConfiguration"),
+			t("agentConfig.tabContext"),
+			t("agentConfig.tabEmbeds"),
+			t("agentConfig.tabMcp"),
+		]) {
+			expect(button(label)).toBeDefined()
+		}
+
+		await click(button(t("agentConfig.tabMcp")))
+		expect(router.state.location.search).toEqual({ tab: "mcp" })
+		expect(button(t("agentConfig.tabMcp")).getAttribute("aria-selected")).toBe("true")
+		expect(host.textContent).toContain(t("mcp.panelDescription"))
+
+		await click(button(t("agentConfig.tabEmbeds")))
+		expect(router.state.location.search).toEqual({ tab: "embeds" })
+		expect(host.textContent).toContain(t("embedSetup.agentPanelDescription"))
+	})
 })
 
 describe("agent embeds panel", () => {
@@ -517,6 +639,54 @@ describe("agent embeds panel", () => {
 
 		expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.disabled).toBe(true)
 	})
+
+	test("announces loading while the agent's embeds load", async () => {
+		const pending = Promise.withResolvers<Response>()
+		embedsResponse = pending.promise
+		await renderPage(EMBEDS_ENTRY)
+		expect(host.querySelector("output")?.textContent).toBe(t("embedSetup.loading"))
+
+		await act(async () => pending.resolve(json({ embeds: [] })))
+		await settle()
+		await settle()
+
+		expect(host.textContent).toContain(t("embedSetup.emptyTitle"))
+	})
+
+	for (const { from, seeded } of [
+		{ from: "the empty state", seeded: [] as Array<typeof EMBED> },
+		{ from: "the panel header", seeded: [EMBED] },
+	]) {
+		test(`announces embed creation from ${from} and opens the new embed`, async () => {
+			embeds = seeded
+			const pending = Promise.withResolvers<Response>()
+			createFailures = [pending.promise]
+			await renderPage(EMBEDS_ENTRY)
+			if (seeded.length === 0) expect(host.textContent).toContain(t("embedSetup.emptyDescriptionManager"))
+
+			await click(button(t("embedSetup.createEmbed")))
+			expect(button(t("embedSetup.creating")).disabled).toBe(true)
+			expect(createdBodies).toHaveLength(1)
+
+			const created = { ...EMBED, id: "created-embed", name: String(createdBodies[0]?.name) }
+			await act(async () => pending.resolve(json({ embed: created }, 201)))
+			await settle()
+			await settle()
+
+			expect(router.state.location.pathname).toBe("/dashboard/embeds/created-embed")
+		})
+	}
+
+	test("shows each embed's name, language and detail link", async () => {
+		embeds = [{ ...EMBED, appearance: { ...EMBED_FORM_DEFAULTS, language: "cs" } }]
+		await renderPage(EMBEDS_ENTRY)
+
+		expect(host.textContent).toContain(EMBED.name)
+		expect(host.textContent).toContain("Čeština")
+		const link = host.querySelector(`a[aria-label="${EMBED.name}"]`)
+		if (!link) throw new Error("Embed card link not rendered")
+		expect(link.getAttribute("href")?.startsWith(`/dashboard/embeds/${EMBED.id}`)).toBe(true)
+	})
 })
 
 describe("agent deletion", () => {
@@ -540,6 +710,50 @@ describe("agent deletion", () => {
 
 		expect(button(t("agentConfig.deleteAgent")).disabled).toBe(false)
 		expect(host.textContent).not.toContain(t("agentConfig.deleteBlockedByEmbeds", { count: 0 }))
+	})
+
+	test("points a blocked deletion at the agent's embeds tab", async () => {
+		embeds = [EMBED]
+		await renderPage()
+
+		expect(host.textContent).toContain(t("agentConfig.dangerZone"))
+		expect(host.textContent).toContain(t("agentConfig.dangerDescription"))
+		expect(host.textContent).toContain(t("agentConfig.deleteBlockedByEmbeds", { count: 1 }))
+		expect(button(t("agentConfig.deleteAgent")).disabled).toBe(true)
+		const link = [...host.querySelectorAll("a")].find(
+			(anchor) => anchor.textContent?.trim() === t("agentConfig.manageEmbeds"),
+		)
+		if (!link) throw new Error("Manage embeds link not rendered")
+		expect(link.getAttribute("href")).toBe(`/dashboard/agent/${AGENT_ID}?tab=embeds`)
+	})
+
+	test("names the agent in the delete confirmation and holds it open while deleting", async () => {
+		const pending = Promise.withResolvers<Response>()
+		deleteFailures = [pending.promise]
+		await renderPage()
+		await click(button(t("agentConfig.deleteAgent")))
+
+		expect(deleteDialog().textContent).toContain(t("agentConfig.deleteTitle"))
+		expect(deleteDialog().textContent).toContain(t("agentConfig.deletePrompt", { name: INITIAL_AGENT.name }))
+		expect(deleteDialog().textContent).toContain(t("agentConfig.confirmLabel", { name: INITIAL_AGENT.name }))
+		expect(button(t("agentConfig.deleteConfirm"), deleteDialog()).disabled).toBe(true)
+
+		const confirmation = deleteDialog().querySelector("input")
+		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
+		await typeInto(confirmation, INITIAL_AGENT.name)
+		const confirm = button(t("agentConfig.deleteConfirm"), deleteDialog())
+		expect(confirm.disabled).toBe(false)
+
+		await click(confirm)
+		expect(deleteDialog().textContent).toContain(t("agentConfig.deleting"))
+		expect(button(t("agentConfig.deleting"), deleteDialog()).disabled).toBe(true)
+
+		await act(async () => pending.resolve(new Response(null, { status: 204 })))
+		await settle()
+		await settle()
+
+		expect(router.state.location.pathname).toBe("/dashboard/agents")
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 	})
 
 	test("explains a deletion rejected because the agent is already gone", async () => {

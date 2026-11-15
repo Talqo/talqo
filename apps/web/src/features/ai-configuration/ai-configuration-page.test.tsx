@@ -47,6 +47,33 @@ const BEDROCK: ProviderMetadata = {
 	discovery: false,
 }
 
+// The API contract types setting and credential fields as free strings, so one provider can carry them all.
+const EVERY_FIELD: ProviderMetadata = {
+	id: "azure",
+	roles: ["text", "embedding"],
+	authModes: ["static", "deployment-identity"],
+	settingFields: ["baseURL", "project", "apiVersion", "region", "customEndpoint"],
+	requiredSettingFields: ["baseURL", "customEndpoint"],
+	credentialFields: ["apiKey", "accessKeyId", "secretAccessKey", "sessionToken"],
+	requiredCredentialFields: ["apiKey", "secretAccessKey"],
+	discovery: false,
+}
+
+const settingFieldLabels: Array<[string, string, boolean]> = [
+	["baseURL", t("aiConfiguration.fields.baseURL"), true],
+	["project", t("aiConfiguration.fields.project"), false],
+	["apiVersion", t("aiConfiguration.fields.apiVersion"), false],
+	["region", t("aiConfiguration.fields.region"), false],
+	["customEndpoint", "customEndpoint", true],
+]
+
+const credentialFieldLabels: Array<[string, string, boolean]> = [
+	["apiKey", t("aiConfiguration.fields.apiKey"), true],
+	["accessKeyId", t("aiConfiguration.fields.accessKeyId"), false],
+	["secretAccessKey", t("aiConfiguration.fields.secretAccessKey"), true],
+	["sessionToken", t("aiConfiguration.fields.sessionToken"), false],
+]
+
 function roleConfiguration(
 	providerId: ProviderMetadata["id"],
 	modelId: string,
@@ -76,6 +103,19 @@ function configuration(
 	}
 }
 
+function sharedEmbeddingConfiguration(): AiProviderConfiguration {
+	const baseURL = "https://server.example/v1"
+	return {
+		revision: 1,
+		health: "configured",
+		text: roleConfiguration("openai-compatible", "chat-model", { baseURL }),
+		embedding: {
+			...roleConfiguration("openai-compatible", "embedding-model", { baseURL }),
+			credentialSource: "text",
+		},
+	}
+}
+
 let server: AiProviderConfiguration
 let providers: ProviderMetadata[]
 let host: HTMLDivElement
@@ -85,7 +125,9 @@ let harness: ReturnType<typeof createTestHarness>
 let saveRequests: SaveAiProviderConfigurationInput[]
 let saveResponse: Promise<Response> | undefined
 let configurationRequests: number
+let configurationFailure: Response | undefined
 let providersFailure: Response | undefined
+let providersResponse: Promise<Response> | undefined
 let discoveryRequests: Array<{ providerId: string }>
 let discoveryFailure: Response | undefined
 
@@ -164,6 +206,12 @@ function inputById(id: string): HTMLInputElement {
 	return element
 }
 
+function labelFor(id: string): string {
+	const element = document.querySelector(`label[for="${id}"]`)
+	if (!element) throw new Error(`label for ${id} not rendered`)
+	return element.textContent?.trim() ?? ""
+}
+
 function tab(label: string): HTMLElement {
 	const element = [...host.querySelectorAll<HTMLElement>("[role=tab]")].find(
 		(candidate) => candidate.textContent?.trim() === label,
@@ -211,7 +259,14 @@ function savedRole(
 async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
 	const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
 	const method = init?.method ?? "GET"
-	if (url === "/api/ai-providers") return providersFailure ?? json({ providers })
+	if (url === "/api/ai-providers") {
+		if (providersResponse) {
+			const response = providersResponse
+			providersResponse = undefined
+			return response
+		}
+		return providersFailure ?? json({ providers })
+	}
 	if (url === "/api/ai-provider-models/discover") {
 		discoveryRequests.push(
 			(typeof init?.body === "string" ? JSON.parse(init.body) : init?.body) as { providerId: string },
@@ -242,7 +297,7 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	}
 	if (url === "/api/ai-provider-configuration") {
 		configurationRequests += 1
-		return json(server)
+		return configurationFailure ?? json(server)
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
 }
@@ -253,7 +308,9 @@ beforeEach(() => {
 	saveRequests = []
 	saveResponse = undefined
 	configurationRequests = 0
+	configurationFailure = undefined
 	providersFailure = undefined
+	providersResponse = undefined
 	discoveryRequests = []
 	discoveryFailure = undefined
 	harness = createTestHarness({ fetch: respond as typeof fetch })
@@ -285,6 +342,7 @@ describe("AiConfigurationPage", () => {
 		await settle()
 
 		expect(host.textContent).toContain(t("aiConfiguration.saved"))
+		expect(host.textContent).not.toContain(t("aiConfiguration.validationError"))
 		expect(baseUrlInput().value).toBe("https://saved.example/v1")
 	})
 
@@ -403,6 +461,7 @@ describe("AiConfigurationPage", () => {
 		expect(error?.getAttribute("role")).toBe("alert")
 		expect(model.getAttribute("aria-invalid")).toBe("true")
 		expect(model.getAttribute("aria-describedby")).toBe("text-model-error")
+		expect(host.textContent).toContain(t("aiConfiguration.validationError"))
 		expect(document.activeElement).toBe(model)
 	})
 
@@ -478,15 +537,7 @@ describe("AiConfigurationPage", () => {
 
 	test("shares the text connection with embeddings and saves the shared settings", async () => {
 		providers = [PROVIDER, OPENAI]
-		server = {
-			revision: 1,
-			health: "configured",
-			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
-			embedding: {
-				...roleConfiguration("openai-compatible", "embedding-model", { baseURL: "https://server.example/v1" }),
-				credentialSource: "text",
-			},
-		}
+		server = sharedEmbeddingConfiguration()
 		await renderPage()
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-selected")).toBe("true")
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-disabled")).not.toBe("true")
@@ -524,15 +575,7 @@ describe("AiConfigurationPage", () => {
 
 	test("falls back to an embedding provider when the text provider cannot embed", async () => {
 		providers = [PROVIDER, BEDROCK]
-		server = {
-			revision: 1,
-			health: "configured",
-			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
-			embedding: {
-				...roleConfiguration("openai-compatible", "embedding-model", { baseURL: "https://server.example/v1" }),
-				credentialSource: "text",
-			},
-		}
+		server = sharedEmbeddingConfiguration()
 		await renderPage()
 
 		await choose("text-provider", t("aiConfiguration.providers.amazonBedrock"))
@@ -547,6 +590,23 @@ describe("AiConfigurationPage", () => {
 		expect(inputById("text-accessKeyId")).not.toBeNull()
 		expect(inputById("text-secretAccessKey")).not.toBeNull()
 		expect(inputById("text-sessionToken")).not.toBeNull()
+
+		await type(inputById("text-model"), "bedrock-model")
+		await type(inputById("text-region"), "eu-west-1")
+		await type(inputById("text-accessKeyId"), "AKIAEXAMPLE")
+		await type(inputById("text-secretAccessKey"), "secret")
+		await type(embeddingBaseUrlInput(), "https://fallback.example/v1")
+		await type(inputById("embedding-apiKey"), "sk-fallback")
+		await submit()
+		await settle()
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests[0]?.embedding).toMatchObject({
+			providerId: "openai-compatible",
+			credentialSource: "separate",
+			credentials: { apiKey: "sk-fallback" },
+		})
 	})
 
 	test("restores the stored embedding connection when choosing it again", async () => {
@@ -792,6 +852,14 @@ describe("AiConfigurationPage", () => {
 
 		expect(discoveryRequests).not.toHaveLength(0)
 		for (const request of discoveryRequests) expect(request.providerId).toBe("openai")
+
+		const triggers = [
+			...host.querySelectorAll<HTMLElement>(`[aria-label="${t("aiConfiguration.discovery.showModels")}"]`),
+		]
+		expect(triggers).toHaveLength(2)
+		await act(async () => triggers[0]?.click())
+		await settle()
+		expect(document.body.textContent).toContain(t("aiConfiguration.discovery.noResults"))
 	})
 
 	test("copies the text connection when embeddings reuse it and restores the separate draft", async () => {
@@ -817,6 +885,14 @@ describe("AiConfigurationPage", () => {
 		const apiKey = host.querySelector<HTMLInputElement>("#text-apiKey")
 		expect(apiKey?.hasAttribute("required")).toBe(true)
 		expect(savedCredentialSections()).toHaveLength(1)
+
+		await type(inputById("text-model"), "gpt-4o")
+		await type(inputById("text-baseURL"), "https://openai.example/v1")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-apiKey-error")?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(saveRequests).toHaveLength(0)
 	})
 
 	test("treats a whitespace-only required setting as missing", async () => {
@@ -861,5 +937,285 @@ describe("AiConfigurationPage", () => {
 
 		expect(saveRequests).toHaveLength(1)
 		expect(saveRequests[0]?.embedding).toMatchObject({ credentialSource: "text" })
+	})
+
+	test("labels every provider field and marks only the required ones", async () => {
+		providers = [EVERY_FIELD]
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("azure", "chat-model", {}, false),
+			embedding: { ...roleConfiguration("azure", "embedding-model", {}, false), credentialSource: "separate" },
+		}
+		await renderPage()
+
+		expect(host.textContent).toContain(t("aiConfiguration.heading"))
+		expect(host.textContent).toContain(t("aiConfiguration.subheading"))
+		expect(host.textContent).toContain(t("aiConfiguration.textTitle"))
+		expect(host.textContent).toContain(t("aiConfiguration.textDescription"))
+		expect(host.textContent).toContain(t("aiConfiguration.embeddingTitle"))
+		expect(host.textContent).toContain(t("aiConfiguration.embeddingDescription"))
+		expect(host.textContent).toContain(t("common.requiredHint"))
+		expect(host.textContent).not.toContain(t("aiConfiguration.unusableWarning"))
+
+		expect(labelFor("text-provider")).toBe(`${t("aiConfiguration.fields.provider")} *`)
+		expect(labelFor("text-authentication")).toBe(t("aiConfiguration.fields.authentication"))
+		expect(labelFor("text-model")).toBe(`${t("aiConfiguration.fields.textModel")} *`)
+		expect(labelFor("embedding-model")).toBe(`${t("aiConfiguration.fields.embeddingModel")} *`)
+
+		for (const [field, label, required] of settingFieldLabels) {
+			expect(labelFor(`text-${field}`)).toBe(required ? `${label} *` : label)
+		}
+		for (const [field, label, required] of credentialFieldLabels) {
+			expect(labelFor(`text-${field}`)).toBe(required ? `${label} *` : label)
+		}
+		expect(labelFor("embedding-baseURL")).toBe(`${t("aiConfiguration.fields.baseURL")} *`)
+		expect(labelFor("embedding-apiKey")).toBe(`${t("aiConfiguration.fields.apiKey")} *`)
+
+		await choose("text-authentication", t("aiConfiguration.auth.deploymentIdentity"))
+		expect(host.querySelector("#text-apiKey")).toBeNull()
+
+		await choose("text-authentication", t("aiConfiguration.auth.static"))
+		expect(inputById("text-apiKey").hasAttribute("required")).toBe(true)
+	})
+
+	test("restores a provider's draft including typed credentials", async () => {
+		providers = [PROVIDER, OPENAI]
+		await renderPage()
+
+		await type(baseUrlInput(), "https://draft.example/v1")
+		await type(inputById("text-apiKey"), "sk-draft")
+
+		await choose("text-provider", t("aiConfiguration.providers.openai"))
+
+		expect(triggerText("text-provider")).toContain(t("aiConfiguration.providers.openai"))
+		expect(triggerText("text-provider")).not.toContain(t("aiConfiguration.providers.openaiCompatible"))
+		expect(inputById("text-model").value).toBe("")
+		expect(inputById("text-apiKey").value).toBe("")
+
+		await choose("text-provider", t("aiConfiguration.providers.openaiCompatible"))
+
+		expect(baseUrlInput().value).toBe("https://draft.example/v1")
+		expect(inputById("text-apiKey").value).toBe("sk-draft")
+	})
+
+	test("keeps the shared embedding model editable", async () => {
+		providers = [EVERY_FIELD]
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("azure", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration("azure", "embedding-model", { baseURL: "https://server.example/v1" }),
+				credentialSource: "text",
+			},
+		}
+		await renderPage()
+
+		expect(host.querySelector("#embedding-provider")).toBeNull()
+		expect(labelFor("embedding-model")).toBe(`${t("aiConfiguration.fields.embeddingModel")} *`)
+		const model = inputById("embedding-model")
+		expect(model.disabled).toBe(false)
+		expect(model.hasAttribute("required")).toBe(true)
+
+		await type(model, "embedding-shared")
+		expect(model.value).toBe("embedding-shared")
+	})
+
+	test("announces loading until the provider list arrives", async () => {
+		const deferred = Promise.withResolvers<Response>()
+		providersResponse = deferred.promise
+		await renderPage()
+
+		expect(host.textContent).toContain(t("aiConfiguration.loading"))
+		expect(host.querySelector("form")).toBeNull()
+
+		await act(async () => {
+			deferred.resolve(json({ providers }))
+			await Promise.resolve()
+		})
+		await settle()
+
+		expect(baseUrlInput().value).toBe("https://server.example/v1")
+	})
+
+	test("shows the configuration problem when only the configuration query fails", async () => {
+		configurationFailure = json(
+			{ code: "permission-denied", type: "https://docs.talqo.chat/problems#permission-denied" },
+			403,
+		)
+		await renderPage()
+
+		expect(host.textContent).toContain(t("aiConfiguration.heading"))
+		expect(host.textContent).toContain(t("aiConfiguration.subheading"))
+		expect(host.textContent).toContain(t("problems.permission-denied"))
+		expect(host.textContent).not.toContain(t("aiConfiguration.loadError"))
+		expect(host.querySelector("form")).toBeNull()
+	})
+
+	test("starts an unconfigured deployment without saved credentials and saves new ones", async () => {
+		providers = [OPENAI]
+		server = { revision: 0, health: "unconfigured", text: null, embedding: null }
+		await renderPage()
+
+		expect(savedCredentialSections()).toHaveLength(0)
+		expect(inputById("text-apiKey").hasAttribute("required")).toBe(true)
+
+		await type(inputById("text-model"), "gpt-4o")
+		await type(inputById("text-baseURL"), "https://api.example/v1")
+		await type(inputById("embedding-model"), "text-embedding-3-small")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-apiKey-error")?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(document.activeElement?.id).toBe("text-apiKey")
+		expect(saveRequests).toHaveLength(0)
+
+		await type(inputById("text-apiKey"), "sk-fresh")
+		await submit()
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.text).toEqual({
+			providerId: "openai",
+			authMode: "static",
+			modelId: "gpt-4o",
+			settings: { baseURL: "https://api.example/v1" },
+			credentials: { apiKey: "sk-fresh" },
+		})
+		expect(saveRequests[0]?.embedding).toMatchObject({
+			providerId: "openai",
+			credentials: { apiKey: "sk-fresh" },
+			credentialSource: "text",
+		})
+	})
+
+	test("validates bedrock settings and each required credential in turn", async () => {
+		providers = [PROVIDER, BEDROCK]
+		await renderPage()
+
+		await choose("text-provider", t("aiConfiguration.providers.amazonBedrock"))
+		await type(inputById("text-model"), "bedrock-model")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-region-error")?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(document.activeElement?.id).toBe("text-region")
+		expect(saveRequests).toHaveLength(0)
+
+		await type(inputById("text-region"), "eu-west-1")
+		await type(inputById("text-accessKeyId"), "AKIAEXAMPLE")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-secretAccessKey-error")?.textContent).toBe(
+			t("aiConfiguration.fields.fieldRequired"),
+		)
+		expect(host.querySelector("#text-accessKeyId-error")).toBeNull()
+		expect(inputById("text-accessKeyId").getAttribute("aria-invalid")).not.toBe("true")
+		expect(document.activeElement?.id).toBe("text-secretAccessKey")
+
+		await type(inputById("text-secretAccessKey"), "secret")
+		await submit()
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.text).toEqual({
+			providerId: "amazon-bedrock",
+			authMode: "static",
+			modelId: "bedrock-model",
+			settings: { region: "eu-west-1" },
+			credentials: { accessKeyId: "AKIAEXAMPLE", secretAccessKey: "secret" },
+		})
+	})
+
+	test("requires embedding credentials even when the text role has saved ones", async () => {
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration(
+					"openai-compatible",
+					"embedding-model",
+					{ baseURL: "https://embeddings.example/v1" },
+					false,
+				),
+				credentialSource: "separate",
+			},
+		}
+		await renderPage()
+
+		expect(inputById("embedding-apiKey").hasAttribute("required")).toBe(true)
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#embedding-apiKey-error")?.textContent).toBe(t("aiConfiguration.fields.fieldRequired"))
+		expect(document.activeElement?.id).toBe("embedding-apiKey")
+		expect(saveRequests).toHaveLength(0)
+
+		await type(inputById("embedding-apiKey"), "sk-embedding")
+		await submit()
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.embedding).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			modelId: "embedding-model",
+			settings: { baseURL: "https://embeddings.example/v1" },
+			credentials: { apiKey: "sk-embedding" },
+			credentialSource: "separate",
+		})
+	})
+
+	test("records a separate connection when embeddings stop reusing the text one", async () => {
+		server = sharedEmbeddingConfiguration()
+		await renderPage()
+		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-selected")).toBe("true")
+
+		await act(async () => tab(t("aiConfiguration.tabs.differentProvider")).click())
+		await settle()
+
+		expect(host.querySelector("#embedding-provider")).not.toBeNull()
+		expect(inputById("embedding-model").value).toBe("embedding-model")
+		await type(embeddingBaseUrlInput(), "https://separate.example/v1")
+		await type(inputById("embedding-apiKey"), "sk-embedding")
+		await submit()
+		await settle()
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.embedding).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			modelId: "embedding-model",
+			settings: { baseURL: "https://separate.example/v1" },
+			credentials: { apiKey: "sk-embedding" },
+			credentialSource: "separate",
+		})
+	})
+
+	test("keeps saved credentials when the replacement is only whitespace", async () => {
+		await renderPage()
+		await act(async () => button(t("aiConfiguration.replaceCredentials")).click())
+		await settle()
+
+		const apiKey = inputById("text-apiKey")
+		await type(apiKey, "   ")
+
+		expect(apiKey.hasAttribute("required")).toBe(false)
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#text-apiKey-error")).toBeNull()
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.text).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			modelId: "chat-model",
+			settings: { baseURL: "https://server.example/v1" },
+		})
 	})
 })

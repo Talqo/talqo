@@ -20,6 +20,7 @@ let gets: string[]
 let failure: Response | undefined
 let getFailure: Response | undefined
 let refreshResponse: Promise<Response> | undefined
+let mutationGate: Promise<void> | undefined
 let host: HTMLDivElement
 let root: Root
 let client: InstanceType<typeof QueryClient>
@@ -87,6 +88,38 @@ async function confirmRemoval() {
 	await click(confirm)
 }
 
+function combobox(): HTMLElement {
+	const trigger = host.querySelector<HTMLElement>("[role=combobox]")
+	if (!trigger) throw new Error("Missing agent picker")
+	return trigger
+}
+
+function editor(): HTMLFieldSetElement {
+	const found = host.querySelector<HTMLFieldSetElement>("fieldset[tabindex='-1']")
+	if (!found) throw new Error("Missing permission editor")
+	return found
+}
+
+function dialogButton(label: string): HTMLButtonElement {
+	const dialog = document.querySelector<HTMLElement>("[role=alertdialog]")
+	const found = [...(dialog?.querySelectorAll("button") ?? [])].find((element) => element.textContent?.trim() === label)
+	if (!found) throw new Error(`Missing dialog button ${label}`)
+	return found
+}
+
+async function pressEscape() {
+	await act(async () => {
+		document.activeElement?.dispatchEvent(
+			new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+		)
+	})
+	await settle()
+}
+
+function optionLabels(): (string | undefined)[] {
+	return [...document.querySelectorAll("[role=option]")].map((option) => option.textContent?.trim())
+}
+
 beforeEach(() => {
 	agents = [
 		{
@@ -104,6 +137,7 @@ beforeEach(() => {
 	getFailure = undefined
 	refreshResponse = undefined
 	agentsAfterRefresh = undefined
+	mutationGate = undefined
 	harness = createTestHarness({
 		fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
 			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
@@ -113,6 +147,7 @@ beforeEach(() => {
 				return getFailure ?? refreshResponse ?? json({ agents: agentsAfterRefresh ?? agents })
 			}
 			mutations.push({ method, body: typeof init?.body === "string" ? init.body : undefined })
+			if (mutationGate) await mutationGate
 			if (failure) return failure
 			const selected = agents.find((agent) => url.endsWith(`/agents/${agent.id}`))
 			if (!selected) throw new Error("Unknown agent")
@@ -422,5 +457,212 @@ describe("RoleAccessCard", () => {
 		await click(button(t("agentAccess.save")))
 
 		expect(client.getQueryData(["/api/agents/agent"])).toEqual({ private: true })
+	})
+
+	test("labels the card, the agent list, and the add picker", async () => {
+		await render()
+
+		expect(host.textContent).toContain(t("agentAccess.title"))
+		expect(host.querySelector("legend")?.textContent).toBe(t("agentAccess.agents"))
+		expect(combobox().getAttribute("aria-label")).toBe(t("agentAccess.addAgent"))
+		expect(combobox().textContent).toContain(t("agentAccess.addAgent"))
+	})
+
+	test("describes each permission switch and the selected agent", async () => {
+		await render()
+
+		expect(editor().tabIndex).toBe(-1)
+		expect(host.querySelectorAll("legend")[1]?.textContent).toBe(
+			t("agentAccess.permissionsFor", { agent: "Support bot" }),
+		)
+		const descriptionId = permissionSwitch("stats:read").getAttribute("aria-describedby") ?? ""
+		expect(document.getElementById(descriptionId)?.textContent).toBe(t("agentAccess.descriptions.statistics"))
+	})
+
+	test("marks only the selected agent as pressed", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await render()
+
+		expect(button("Support bot").getAttribute("aria-pressed")).toBe("true")
+		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("false")
+		await click(button("Observers bot"))
+		expect(button("Observers bot").getAttribute("aria-pressed")).toBe("true")
+		expect(button("Support bot").getAttribute("aria-pressed")).toBe("false")
+	})
+
+	test("offers only agents without access in the picker", async () => {
+		agents = [...agents, { id: "third", name: "Third bot", permissions: ALL, rolePermissions: [] }]
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await render()
+
+		await click(combobox())
+
+		expect(optionLabels()).toEqual(["Third bot"])
+	})
+
+	test("focuses the permissions editor after adding an agent", async () => {
+		agents = [...agents, { id: "third", name: "Third bot", permissions: ALL, rolePermissions: [] }]
+		await render()
+
+		await chooseAgent("Observers bot")
+
+		expect(editor().contains(document.activeElement)).toBe(true)
+	})
+
+	test("returns focus to the add picker whenever it closes without a choice", async () => {
+		agents = [...agents, { id: "third", name: "Third bot", permissions: ALL, rolePermissions: [] }]
+		await render()
+
+		await click(combobox())
+		await pressEscape()
+		expect(document.activeElement).toBe(combobox())
+
+		await chooseAgent("Observers bot")
+		await click(combobox())
+		await pressEscape()
+		expect(document.activeElement).toBe(combobox())
+	})
+
+	test("announces loading while agent access is still arriving", async () => {
+		const response = Promise.withResolvers<Response>()
+		refreshResponse = response.promise
+		await render()
+
+		expect(host.textContent).toContain(t("agentAccess.loading"))
+
+		response.resolve(json({ agents }))
+		refreshResponse = undefined
+		await settle()
+		expect(combobox()).not.toBeNull()
+	})
+
+	test("keeps another agent's draft when one draft reverts", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await render()
+
+		await click(permissionSwitch("conversations:read"))
+		await click(button("Observers bot"))
+		await click(permissionSwitch("conversations:read", "observers"))
+		await click(button("Support bot"))
+		await click(permissionSwitch("conversations:read"))
+
+		await click(button("Observers bot"))
+		expect(permissionSwitch("conversations:read", "observers").getAttribute("aria-checked")).toBe("true")
+		expect(button(t("agentAccess.save")).disabled).toBe(false)
+	})
+
+	test.each([
+		["agents:manage", ["agents:manage", "agents:read"]],
+		["agents:delete", ["agents:delete", "agents:read"]],
+	] as const)("saves implied view access alongside %s", async (permission, expected) => {
+		await render()
+		await chooseAgent("Observers bot")
+		await click(permissionSwitch(permission, "observers"))
+		await click(button(t("agentAccess.save")))
+
+		const body = JSON.parse(mutations[0]?.body ?? "{}") as { permissions: Permission[] }
+		const byName = (a: Permission, b: Permission) => a.localeCompare(b)
+		expect(body.permissions.toSorted(byName)).toEqual(expected.toSorted(byName))
+	})
+
+	test("saves only the granted permission when it implies none other", async () => {
+		await render()
+		await chooseAgent("Observers bot")
+		await click(permissionSwitch("stats:read", "observers"))
+		await click(button(t("agentAccess.save")))
+
+		expect(JSON.parse(mutations[0]?.body ?? "{}")).toEqual({ permissions: ["stats:read"] })
+	})
+
+	test("clears the saved confirmation and dirty flag as editing continues", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await render()
+		await click(permissionSwitch("stats:read"))
+		const save = button(t("agentAccess.save"))
+		save.focus()
+		await click(save)
+
+		expect(host.textContent).toContain(t("agentAccess.saved"))
+		expect(dirtyCalls.at(-1)).toBe(false)
+		expect(button(t("agentAccess.save")).disabled).toBe(true)
+		expect(document.activeElement).toBe(save)
+
+		await click(permissionSwitch("conversations:read"))
+		expect(host.textContent).not.toContain(t("agentAccess.saved"))
+
+		await click(button(t("agentAccess.save")))
+		expect(host.textContent).toContain(t("agentAccess.saved"))
+
+		await click(button("Observers bot"))
+		expect(host.textContent).not.toContain(t("agentAccess.saved"))
+	})
+
+	test("clears a failed save when another agent is selected", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		failure = json(
+			{ code: "permission-exceeds-own", type: "https://docs.talqo.chat/problems#permission-exceeds-own" },
+			403,
+		)
+		await render()
+		await click(permissionSwitch("stats:read"))
+		await click(button(t("agentAccess.save")))
+		expect(host.querySelector("[role=alert]")).not.toBeNull()
+
+		await click(button("Observers bot"))
+		expect(host.querySelector("[role=alert]")).toBeNull()
+	})
+
+	test("closes the removal dialog after access is removed", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await render()
+		await confirmRemoval()
+
+		expect(document.querySelector("[role=alertdialog]")).toBeNull()
+		expect(host.textContent).toContain(t("agentAccess.removed"))
+		expect(permissionSwitch("stats:read", "observers").getAttribute("aria-checked")).toBe("true")
+	})
+
+	test("labels the removal confirmation and shows the pending action", async () => {
+		const blocked = Promise.withResolvers<void>()
+		mutationGate = blocked.promise
+		await render()
+		await click(button(t("agentAccess.remove")))
+
+		const dialog = document.querySelector<HTMLElement>("[role=alertdialog]")
+		expect(dialog?.querySelector("[data-slot=dialog-title]")?.textContent).toBe(t("agentAccess.remove"))
+		expect(dialog?.querySelector("[data-slot=dialog-description]")?.textContent).toBe(
+			t("agentAccess.removePrompt", { agent: "Support bot" }),
+		)
+
+		await click(dialogButton(t("agentAccess.remove")))
+		expect(document.querySelector("[role=alertdialog]")?.textContent).toContain(t("roles.deleting"))
+		expect(dialogButton(t("roles.deleting")).disabled).toBe(true)
+
+		blocked.resolve()
+		mutationGate = undefined
+		await settle()
+		expect(document.querySelector("[role=alertdialog]")).toBeNull()
+	})
+
+	test("falls back to a generic message and skips the refresh on a server failure", async () => {
+		failure = new Response("boom", { status: 500 })
+		await render()
+		const refreshesBefore = gets.length
+
+		await confirmRemoval()
+
+		expect(document.querySelector("[role=alertdialog] [role=alert]")?.textContent).toContain(t("auth.errorFallback"))
+		expect(gets.length).toBe(refreshesBefore)
+	})
+
+	test("discards a new agent's draft when cancelled", async () => {
+		await render()
+		await chooseAgent("Observers bot")
+		await click(permissionSwitch("stats:read", "observers"))
+		expect(dirtyCalls.at(-1)).toBe(true)
+
+		await click(button(t("agentConfig.cancel")))
+		expect(dirtyCalls.at(-1)).toBe(false)
+		expect(host.textContent).not.toContain(t("agentAccess.permissionsFor", { agent: "Observers bot" }))
 	})
 })
