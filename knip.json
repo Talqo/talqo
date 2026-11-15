@@ -2,46 +2,44 @@
 	"$schema": "https://unpkg.com/knip@6/schema.json",
 	"treatConfigHintsAsErrors": true,
 	"ignoreBinaries": ["actionlint", "zizmor"],
-	// Knip derives `@stryker-mutator/<testRunner>-runner` from `testRunner: "bun"`.
-	// The Bun runner is the `@fidasek009/...` fork, so only the derived name is ignored.
-	"ignoreDependencies": ["@playwright/cli", "@stryker-mutator/bun-runner"],
+	"ignoreDependencies": ["@playwright/cli"],
 	"workspaces": {
 		".": {
 			"entry": ["*.ts"],
-			"project": ["*.ts"],
+			"project": ["*.ts"]
 		},
 		"apps/api": {
 			"entry": ["test-database.preload.ts"],
-			"project": ["src/**/*.ts", "*.ts"],
+			"project": ["src/**/*.ts", "*.ts"]
 		},
 		"apps/docs": {
 			"entry": ["src/components/mdx.tsx"],
 			"project": ["src/**/*.{ts,tsx,css}", "content/**/*.mdx", "*.ts"],
 			"ignoreIssues": {
-				"src/lib/source.ts": ["unlisted"],
-			},
+				"src/lib/source.ts": ["unlisted"]
+			}
 		},
 		"apps/e2e": {
-			"project": ["**/*.ts"],
+			"project": ["**/*.ts"]
 		},
 		"apps/web": {
 			"entry": ["i18next.config.ts"],
-			"project": ["src/**/*.{ts,tsx,css}", "*.ts", "!src/api/generated/**"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts", "!src/api/generated/**"]
 		},
 		"apps/widget": {
 			"entry": ["src/svg-stub-component.ts", "i18next.config.ts"],
-			"project": ["src/**/*.{ts,tsx,css}", "*.ts"],
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
 		},
 		"packages/sdk": {
 			"project": ["src/**/*.ts"],
 			"ignoreDependencies": ["@talqo/typescript-config"],
 			"ignoreIssues": {
-				"src/generated/**": ["exports", "types", "duplicates"],
-			},
+				"src/generated/**": ["exports", "types", "duplicates"]
+			}
 		},
 		"packages/ui": {
 			"entry": ["i18next.config.ts", "src/components/*.tsx", "src/lib/*.ts"],
-			"project": ["src/**/*.{ts,tsx,css}", "*.ts"],
-		},
-	},
+			"project": ["src/**/*.{ts,tsx,css}", "*.ts"]
+		}
+	}
 }
