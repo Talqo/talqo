@@ -29,6 +29,21 @@ afterEach(async () => {
 	host = undefined
 })
 
+async function renderPreview(element = <PreviewWidget />): Promise<HTMLElement> {
+	const elementHost = document.createElement("div")
+	document.body.append(elementHost)
+	host = elementHost
+	root = createRoot(elementHost)
+	await act(async () => root?.render(element))
+	return elementHost
+}
+
+async function dispatchMessage(origin: string, data: unknown) {
+	await act(async () => {
+		window.dispatchEvent(new MessageEvent("message", { origin, data }))
+	})
+}
+
 test("announces readiness and applies config only from the trusted dashboard origin", async () => {
 	window.history.replaceState(
 		{},
@@ -36,14 +51,10 @@ test("announces readiness and applies config only from the trusted dashboard ori
 		"/?title=Initial&forcedScheme=dark&parentOrigin=https%3A%2F%2Fdashboard.example.com",
 	)
 	using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
-
-	await act(async () => root?.render(<PreviewWidget />))
+	const view = await renderPreview()
 
 	expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
-	expect(host.querySelector(".talqo-widget")).toBeNull()
+	expect(view.querySelector(".talqo-widget")).toBeNull()
 
 	const data = {
 		source: "talqo-preview",
@@ -54,96 +65,51 @@ test("announces readiness and applies config only from the trusted dashboard ori
 		forcedScheme: "light",
 		isAvailable: true,
 	}
-	await act(async () => {
-		window.dispatchEvent(new MessageEvent("message", { origin: "https://other.example.com", data }))
-	})
-	expect(host.querySelector(".talqo-widget")).toBeNull()
+	await dispatchMessage("https://other.example.com", data)
+	expect(view.querySelector(".talqo-widget")).toBeNull()
 
-	await act(async () => {
-		window.dispatchEvent(new MessageEvent("message", { origin: "https://dashboard.example.com", data }))
-	})
-	expect(host.querySelector("h2")?.textContent).toBe("Updated")
-	expect(host.querySelector(".talqo-widget")?.getAttribute("data-scheme")).toBe("light")
-	expect(host.querySelector<HTMLElement>(".talqo-widget")?.style.getPropertyValue("--talqo-primary-input")).toBe(
+	await dispatchMessage("https://dashboard.example.com", data)
+	expect(view.querySelector("h2")?.textContent).toBe("Updated")
+	expect(view.querySelector(".talqo-widget")?.getAttribute("data-scheme")).toBe("light")
+	expect(view.querySelector<HTMLElement>(".talqo-widget")?.style.getPropertyValue("--talqo-primary-input")).toBe(
 		"#123456",
 	)
 })
 
 test("stays silent and ignores config without a trusted parent origin", async () => {
 	using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
-
-	await act(async () => root?.render(<PreviewWidget />))
+	const view = await renderPreview()
 
 	expect(postMessage).not.toHaveBeenCalled()
 
-	await act(async () => {
-		window.dispatchEvent(new MessageEvent("message", { origin: "https://dashboard.example.com", data: CONFIG_MESSAGE }))
-	})
-	expect(host.childElementCount).toBe(0)
+	await dispatchMessage("https://dashboard.example.com", CONFIG_MESSAGE)
+	expect(view.childElementCount).toBe(0)
 })
 
 test("ignores a malformed config from the trusted origin", async () => {
 	window.history.replaceState({}, "", "/?parentOrigin=https%3A%2F%2Fdashboard.example.com")
 	using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
-	await act(async () => root?.render(<PreviewWidget />))
+	const view = await renderPreview()
 
-	await act(async () => {
-		window.dispatchEvent(
-			new MessageEvent("message", {
-				origin: "https://dashboard.example.com",
-				data: { ...CONFIG_MESSAGE, title: "First" },
-			}),
-		)
-	})
-	expect(host.querySelector("h2")?.textContent).toBe("First")
+	await dispatchMessage("https://dashboard.example.com", { ...CONFIG_MESSAGE, title: "First" })
+	expect(view.querySelector("h2")?.textContent).toBe("First")
 
-	await act(async () => {
-		window.dispatchEvent(
-			new MessageEvent("message", {
-				origin: "https://dashboard.example.com",
-				data: { ...CONFIG_MESSAGE, source: "other-embed", title: "Broken" },
-			}),
-		)
-	})
-	expect(host.querySelector("h2")?.textContent).toBe("First")
+	await dispatchMessage("https://dashboard.example.com", { ...CONFIG_MESSAGE, source: "other-embed", title: "Broken" })
+	expect(view.querySelector("h2")?.textContent).toBe("First")
 	expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
 })
 
 test("follows parentOrigin prop changes and stops accepting the previous origin", async () => {
 	using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
-
-	await act(async () => root?.render(<PreviewWidget parentOrigin="https://a.example.com" />))
+	const view = await renderPreview(<PreviewWidget parentOrigin="https://a.example.com" />)
 	expect(postMessage).toHaveBeenLastCalledWith(readyMessage(), "https://a.example.com")
 
 	await act(async () => root?.render(<PreviewWidget parentOrigin="https://b.example.com" />))
 	expect(postMessage).toHaveBeenLastCalledWith(readyMessage(), "https://b.example.com")
 
-	await act(async () => {
-		window.dispatchEvent(
-			new MessageEvent("message", {
-				origin: "https://a.example.com",
-				data: { ...CONFIG_MESSAGE, title: "From A" },
-			}),
-		)
-	})
-	expect(host.querySelector("h2")).toBeNull()
+	await dispatchMessage("https://a.example.com", { ...CONFIG_MESSAGE, title: "From A" })
+	expect(view.querySelector("h2")).toBeNull()
 
-	await act(async () => {
-		window.dispatchEvent(
-			new MessageEvent("message", {
-				origin: "https://b.example.com",
-				data: { ...CONFIG_MESSAGE, title: "From B" },
-			}),
-		)
-	})
-	expect(host.querySelector("h2")?.textContent).toBe("From B")
+	await dispatchMessage("https://b.example.com", { ...CONFIG_MESSAGE, title: "From B" })
+	expect(view.querySelector("h2")?.textContent).toBe("From B")
 })
