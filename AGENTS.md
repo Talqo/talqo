@@ -62,6 +62,13 @@ bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
 ```
 
-Mutation testing is not in CI because a full run takes hours. Run `bun run test:mutation` after changing behavior or its tests; it is incremental. Use `bun run test:mutation:full` for a repository-wide score, and `bun run test:mutation:integration` for API integration tests.
+Run these only when explicitly requested, or once at the very end of implementation before handing over for review or merging. They are slow enough to break the loop, so never make them part of routine checks.
+
+```sh
+bun run test:mutation                  # behavior you changed; incremental
+bun run test:mutation:full             # repository-wide score
+bun run test:mutation:integration      # API integration coverage
+bun run test:mutation:integration:full # same, every mutant
+```
 
 Docs-only changes need no tests.
