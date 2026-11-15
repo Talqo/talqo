@@ -27,7 +27,6 @@ function mountTree(element: React.ReactElement): { container: HTMLElement; root:
 // tree this file rendered so later test files start with a clean body.
 afterEach(async () => {
 	for (const { container, root } of mounted.splice(0)) {
-		// oxlint-disable-next-line no-await-in-loop -- each unmount flushes its own effects.
 		await act(async () => root.unmount())
 		container.remove()
 	}
@@ -335,10 +334,8 @@ describe("dialog semantics", () => {
 			dialog.getBoundingClientRect = () =>
 				({ left: 500, right: 820, top: 116, bottom: 500, width: 320, height: 384 }) as DOMRect
 
-			// oxlint-disable-next-line no-await-in-loop -- each pointer position is asserted before the next one.
 			await act(async () => dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, clientX, clientY })))
 			expect(container.querySelector("dialog") === null).toBe(closes)
-			// oxlint-disable-next-line no-await-in-loop -- reopens only for the next position.
 			if (closes) await openPanel(container)
 		}
 
@@ -475,7 +472,6 @@ describe("EmbeddedWidget resize", () => {
 			{ clientX: 300, clientY: 300, width: "520px", height: "320px" },
 		] as const
 		for (const { clientX, clientY, width, height } of cases) {
-			// oxlint-disable-next-line no-await-in-loop -- each drag is asserted before the next replaces it.
 			await dragCornerTo(clientX, clientY)
 			expect(panel()?.style.width).toBe(width)
 			expect(panel()?.style.height).toBe(height)
@@ -513,7 +509,6 @@ describe("EmbeddedWidget resize", () => {
 	// Clicking the handle toggles between expanded and natural, so reset only when sized.
 	async function resetSize() {
 		for (let attempt = 0; attempt < 2 && panel()?.style.width !== ""; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- each click toggles the panel once.
 			await act(async () => corner().dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 0 })))
 		}
 	}
@@ -522,9 +517,7 @@ describe("EmbeddedWidget resize", () => {
 		await openChat()
 		mockPanelRect()
 		for (const { key, width, height } of cases) {
-			// oxlint-disable-next-line no-await-in-loop -- each direction is asserted before the next starts.
 			await resetSize()
-			// oxlint-disable-next-line no-await-in-loop -- paired with resetSize above.
 			const event = await pressKey(key)
 			expect(event.defaultPrevented).toBe(true)
 			expect(panel()?.style.width).toBe(width)

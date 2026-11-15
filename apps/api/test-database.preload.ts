@@ -25,7 +25,6 @@ try {
 	`
 	for (const { datname } of stale) {
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- keeps the concurrent-drop race local to one database.
 			await admin`DROP DATABASE IF EXISTS ${admin(datname)} WITH (FORCE)`
 		} catch {
 			// A concurrent run dropped this database first.

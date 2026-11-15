@@ -210,13 +210,11 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				let attemptedPending: ChatStorageRecord["pending"]
 				try {
 					const delay = delays[Math.min(poll, delays.length - 1)] ?? FIVE_SECONDS_MS
-					// oxlint-disable-next-line no-await-in-loop
 					await wait(delay, controller.signal)
 					if (credential === undefined) return
 					if (pendingMessage !== undefined) {
 						const pending = pendingMessage
 						attemptedPending = pending
-						// oxlint-disable-next-line no-await-in-loop
 						const events = await transport.sendMessage({
 							...context(controller.signal),
 							credential,
@@ -225,15 +223,12 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 						})
 						// Obtaining a successful response proves the idempotent request was accepted.
 						const iterator = events[Symbol.asyncIterator]()
-						// oxlint-disable-next-line no-await-in-loop
 						if (typeof iterator.return === "function") await iterator.return()
 						if (pendingMessage?.requestId === pending.requestId) {
 							pendingMessage = undefined
-							// oxlint-disable-next-line no-await-in-loop
 							await persist({ version: CHAT_STORAGE_VERSION, credential })
 						}
 					}
-					// oxlint-disable-next-line no-await-in-loop
 					const session = await transport.loadSession({ ...context(controller.signal), credential })
 					applySession(session)
 					if (session.activeGeneration === undefined) return
@@ -244,7 +239,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 							const attemptedRequestId = attemptedPending.requestId
 							pendingMessage = undefined
 							messages = messages.filter((message) => message.id !== `pending:${attemptedRequestId}`)
-							// oxlint-disable-next-line no-await-in-loop -- recovery attempts are intentionally sequential.
 							await persist({ version: CHAT_STORAGE_VERSION, credential })
 						}
 						error = cause.detail

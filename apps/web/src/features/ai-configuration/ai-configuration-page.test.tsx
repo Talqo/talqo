@@ -828,9 +828,7 @@ describe("AiConfigurationPage", () => {
 				(element) => element.textContent?.trim() === t("aiConfiguration.discovery.retry"),
 			)
 			if (!retry) break
-			// oxlint-disable-next-line no-await-in-loop -- retry buttons re-render after each discovery attempt
 			await act(async () => retry.click())
-			// oxlint-disable-next-line no-await-in-loop -- discovery is debounced
 			await wait(450)
 		}
 		expect(host.textContent).not.toContain(t("aiConfiguration.discovery.unavailableStored"))

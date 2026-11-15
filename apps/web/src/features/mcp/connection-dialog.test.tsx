@@ -445,7 +445,6 @@ describe("ConnectionDialog", () => {
 			t("mcp.stdioDisabled"),
 		]) {
 			// Responses are consumed in order, so each submit must finish before the next.
-			// eslint-disable-next-line no-await-in-loop
 			await submit()
 			expect(document.querySelector<HTMLElement>('[role="dialog"] [role="alert"]')?.textContent).toBe(message)
 		}

@@ -15,7 +15,6 @@ describe("in-memory credential limits", () => {
 			calls += 1
 		}
 		for (let attempt = 0; attempt < 10; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- successive attempts against one account.
 			await limit("network-a", "visitor", operation)
 		}
 		await expect(limit("network-b", "VISITOR", operation)).rejects.toMatchObject({
@@ -25,7 +24,6 @@ describe("in-memory credential limits", () => {
 		})
 		expect(calls).toBe(10)
 		for (let attempt = 0; attempt < 300; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- rejected usernames must not consume other counters.
 			await expect(limit(`network-${attempt}`, "visitor", operation)).rejects.toBeInstanceOf(CredentialRateLimitError)
 		}
 		expect(await limit("network-a", "other-visitor", async () => "allowed")).toBe("allowed")
@@ -41,11 +39,9 @@ describe("in-memory credential limits", () => {
 	it("limits a network even when it changes usernames", async () => {
 		const limit = createCredentialLimiter()
 		for (let attempt = 0; attempt < 30; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- exercise successive accounts from one network.
 			await limit("network", `visitor-${attempt}`, async () => undefined)
 		}
 		for (let attempt = 0; attempt < 300; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- a blocked network must not exhaust the global allowance.
 			await expect(limit("network", `blocked-${attempt}`, async () => undefined)).rejects.toBeInstanceOf(
 				CredentialRateLimitError,
 			)
@@ -56,7 +52,6 @@ describe("in-memory credential limits", () => {
 	it("bounds requests with rotating networks and usernames", async () => {
 		const limit = createCredentialLimiter()
 		for (let attempt = 0; attempt < 300; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- exhaust the process-wide allowance without hitting narrower limits.
 			await limit(`network-${attempt}`, `visitor-${attempt}`, async () => undefined)
 		}
 		await expect(limit("new-network", "new-visitor", async () => undefined)).rejects.toBeInstanceOf(
@@ -92,7 +87,6 @@ describe("in-memory credential limits", () => {
 	it("does not apply a network budget when no network is available", async () => {
 		const limit = createCredentialLimiter()
 		for (let attempt = 0; attempt < 31; attempt += 1) {
-			// oxlint-disable-next-line no-await-in-loop -- prove the missing network is not bucketed.
 			expect(await limit(null, `visitor-${attempt}`, async () => "allowed")).toBe("allowed")
 		}
 	})

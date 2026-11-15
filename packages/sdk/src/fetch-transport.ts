@@ -64,7 +64,6 @@ async function* responseChunks(body: ReadableStream<Uint8Array>, signal: AbortSi
 	let consumed = false
 	try {
 		while (true) {
-			// oxlint-disable-next-line no-await-in-loop -- stream chunks must be read sequentially.
 			const result = await reader.read()
 			signal.throwIfAborted()
 			if (result.done) {

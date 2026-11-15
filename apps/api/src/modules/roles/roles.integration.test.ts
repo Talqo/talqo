@@ -256,7 +256,6 @@ describe("agent-scoped access", () => {
 		const path = `/roles/${role.id}/agents/${a.id}`
 		expect((await call(cookie, "PUT", path, { permissions: ["agents:read"] })).status).toBe(204)
 		for (const permissions of [[], ["agents:read", "agents:read"], ["unknown"]]) {
-			// oxlint-disable-next-line no-await-in-loop -- each invalid replacement must preserve the saved grant.
 			await expectCode(await call(cookie, "PUT", path, { permissions }), 400, "invalid-request")
 		}
 		expect(await repo.findRoleAgentPermissions(role.id, a.id)).toEqual([{ permission: "agents:read" }])
@@ -1059,7 +1058,6 @@ describe("role routes", () => {
 		const { cookie } = await createAdminSession()
 
 		for (const permissions of [["admin"], ["agents:fly"], ["users:read", "users:read"]]) {
-			// oxlint-disable-next-line no-await-in-loop -- asserts each body in order.
 			await expectCode(await call(cookie, "POST", "/roles", { name: "Bad", permissions }), 400, "invalid-request")
 		}
 	})

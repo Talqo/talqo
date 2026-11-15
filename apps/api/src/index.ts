@@ -37,7 +37,6 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 	})
 }
 void (async () => {
-	/* eslint-disable no-await-in-loop -- only one worker may run per process */
 	while (true) {
 		try {
 			await runIngestion()
@@ -46,5 +45,4 @@ void (async () => {
 		}
 		await Bun.sleep(WORKER_RESTART_DELAY_MS)
 	}
-	/* eslint-enable no-await-in-loop */
 })()

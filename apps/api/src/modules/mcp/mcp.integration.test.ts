@@ -508,7 +508,6 @@ describe("mcp server lifecycle", () => {
 			["POST", `/api/agents/${agentId}/mcp-servers/any/probe`],
 			["POST", `/api/agents/${agentId}/mcp-servers/any/disable`],
 		] as const) {
-			// oxlint-disable-next-line no-await-in-loop -- asserts per route in order.
 			const response = await app.request(path, {
 				method,
 				headers: { Cookie: reader, "Content-Type": "application/json" },
@@ -574,9 +573,7 @@ const isRunning = async (pid: number) => Bun.file(`/proc/${pid}/stat`).exists()
 /** close() kills the child; the reaping is asynchronous, so poll rather than sleep a fixed amount. */
 async function waitUntilStopped(pid: number): Promise<boolean> {
 	for (let attempt = 0; attempt < 40; attempt++) {
-		// oxlint-disable-next-line no-await-in-loop -- polling one process, not independent work.
 		if (!(await isRunning(pid))) return true
-		// oxlint-disable-next-line no-await-in-loop -- poll interval.
 		await Bun.sleep(25)
 	}
 	return false

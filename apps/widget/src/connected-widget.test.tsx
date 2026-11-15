@@ -529,7 +529,6 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 		for (const [code, text] of cases) {
-			// oxlint-disable-next-line no-await-in-loop -- each published state is asserted before the next replaces it.
 			await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, error: error(code) }))
 			expect(host.textContent).toContain(text)
 		}

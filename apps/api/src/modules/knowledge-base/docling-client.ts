@@ -29,7 +29,6 @@ export async function chunkFile(
 	const { task_id: taskId } = submitSchema.parse(await submit.json())
 
 	const deadline = Date.now() + OVERALL_TIMEOUT_MS
-	/* eslint-disable no-await-in-loop -- task status polling is inherently sequential */
 	while (true) {
 		if (Date.now() > deadline) throw new Error("Docling Serve conversion timed out")
 		const poll = await fetcher(new URL(`/v1/status/poll/${taskId}`, baseUrl), {
@@ -41,7 +40,6 @@ export async function chunkFile(
 		if (status === "failure") throw new Error("Docling Serve failed to convert the file")
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
 	}
-	/* eslint-enable no-await-in-loop */
 
 	const result = await fetcher(new URL(`/v1/result/${taskId}`, baseUrl), {
 		signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -51,7 +49,7 @@ export async function chunkFile(
 	if (!reader) throw new Error("Docling Serve returned no response")
 	const pieces: Uint8Array[] = []
 	let length = 0
-	/* eslint-disable no-await-in-loop -- a response stream must be consumed in order with a byte cap */
+	// Read in order so the cap applies to the accumulated body.
 	while (true) {
 		const { done, value } = await reader.read()
 		if (done) break
@@ -62,7 +60,6 @@ export async function chunkFile(
 		}
 		pieces.push(value)
 	}
-	/* eslint-enable no-await-in-loop */
 	const body: unknown = JSON.parse(new TextDecoder().decode(Buffer.concat(pieces)))
 	return responseSchema
 		.parse(body)

@@ -152,7 +152,6 @@ export function AgentFilesCard({ agentId, canManage }: { agentId: string; canMan
 		try {
 			// Sequential so per-file feedback lines up with selection order.
 			for (const file of files) {
-				// eslint-disable-next-line no-await-in-loop
 				await uploadFile.mutateAsync({ agentId, data: { file } })
 			}
 		} catch (error) {

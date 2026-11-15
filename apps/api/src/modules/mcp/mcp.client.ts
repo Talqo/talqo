@@ -89,7 +89,6 @@ async function listAllTools(client: MCPClient, signal?: AbortSignal): Promise<Li
 	let cursor: string | undefined
 	do {
 		// Each cursor is only known once the previous page arrives, so these cannot be parallel.
-		// oxlint-disable-next-line no-await-in-loop -- sequential pagination.
 		const listed: ListToolsResult = await withListTimeout(
 			client.listTools(cursor ? { params: { cursor } } : undefined),
 			signal,
