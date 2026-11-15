@@ -973,9 +973,11 @@ describe("AiConfigurationPage", () => {
 		expect(labelFor("embedding-apiKey")).toBe(`${t("aiConfiguration.fields.apiKey")} *`)
 
 		await choose("text-authentication", t("aiConfiguration.auth.deploymentIdentity"))
+		expect(triggerText("text-authentication")).toContain(t("aiConfiguration.auth.deploymentIdentity"))
 		expect(host.querySelector("#text-apiKey")).toBeNull()
 
 		await choose("text-authentication", t("aiConfiguration.auth.static"))
+		expect(triggerText("text-authentication")).toContain(t("aiConfiguration.auth.static"))
 		expect(inputById("text-apiKey").hasAttribute("required")).toBe(true)
 	})
 
@@ -1193,6 +1195,73 @@ describe("AiConfigurationPage", () => {
 			modelId: "embedding-model",
 			settings: { baseURL: "https://separate.example/v1" },
 			credentials: { apiKey: "sk-embedding" },
+			credentialSource: "separate",
+		})
+	})
+
+	test("keeps a separate credential source when the embedding provider changes", async () => {
+		providers = [PROVIDER, OPENAI]
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration("openai-compatible", "embedding-model", { baseURL: "https://embeddings.example/v1" }),
+				credentialSource: "separate",
+			},
+		}
+		await renderPage()
+
+		await choose("embedding-provider", t("aiConfiguration.providers.openai"))
+		await type(inputById("embedding-model"), "text-embedding-3-small")
+		await type(embeddingBaseUrlInput(), "https://openai.example/v1")
+		await type(inputById("embedding-apiKey"), "sk-openai")
+		await submit()
+		await settle()
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.embedding).toEqual({
+			providerId: "openai",
+			authMode: "static",
+			modelId: "text-embedding-3-small",
+			settings: { baseURL: "https://openai.example/v1" },
+			credentials: { apiKey: "sk-openai" },
+			credentialSource: "separate",
+		})
+	})
+
+	test("moves the embedding connection off deployment identity when the provider changes", async () => {
+		providers = [PROVIDER, OPENAI]
+		server = {
+			revision: 1,
+			health: "configured",
+			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
+			embedding: {
+				...roleConfiguration("openai", "embedding-model", { baseURL: "https://openai.example/v1" }),
+				authMode: "deployment-identity",
+				credentialSource: "deployment-identity",
+			},
+		}
+		await renderPage()
+
+		await choose("embedding-provider", t("aiConfiguration.providers.openaiCompatible"))
+		await type(inputById("embedding-model"), "embedding-model-next")
+		await type(embeddingBaseUrlInput(), "https://separate.example/v1")
+		await type(inputById("embedding-apiKey"), "sk-separate")
+		await submit()
+		await settle()
+		await act(async () => button(t("aiConfiguration.reembedConfirm"), confirmationDialog()).click())
+		await settle()
+
+		expect(saveRequests).toHaveLength(1)
+		expect(saveRequests[0]?.embedding).toEqual({
+			providerId: "openai-compatible",
+			authMode: "static",
+			modelId: "embedding-model-next",
+			settings: { baseURL: "https://separate.example/v1" },
+			credentials: { apiKey: "sk-separate" },
 			credentialSource: "separate",
 		})
 	})
