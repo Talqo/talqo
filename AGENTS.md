@@ -62,7 +62,7 @@ bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
 ```
 
-Run these only when explicitly requested, or once at the very end of implementation before handing over for review or merging. They are slow enough to break the loop, so never make them part of routine checks.
+Run the following only when explicitly requested, or once at the very end of implementation before handing over for review or merging. They are slow enough to break the loop, so never make them part of routine checks.
 
 ```sh
 bun run test:mutation                  # behavior you changed; incremental
