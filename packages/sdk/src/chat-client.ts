@@ -48,10 +48,6 @@ function defaultRandomUUID(): string {
 
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
-		if (signal.aborted) {
-			reject(signal.reason)
-			return
-		}
 		const timeout = setTimeout(() => {
 			signal.removeEventListener("abort", onAbort)
 			resolve()
@@ -202,13 +198,6 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		publish()
 	}
 
-	async function acceptSession(session: SessionState): Promise<void> {
-		applySession(session)
-		if (pendingMessage === undefined || credential === undefined) return
-		pendingMessage = undefined
-		await persist({ version: CHAT_STORAGE_VERSION, credential })
-	}
-
 	function beginSessionRecoveryPolling(): void {
 		if (credential === undefined || disposed) return
 		recoveryController?.abort()
@@ -246,8 +235,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					}
 					// oxlint-disable-next-line no-await-in-loop
 					const session = await transport.loadSession({ ...context(controller.signal), credential })
-					// oxlint-disable-next-line no-await-in-loop
-					await acceptSession(session)
+					applySession(session)
 					if (session.activeGeneration === undefined) return
 				} catch (cause) {
 					if (controller.signal.aborted) return
@@ -297,7 +285,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 					credential = record?.credential
 					pendingMessage = record?.pending
 					if (credential !== undefined && pendingMessage === undefined) {
-						await acceptSession(await transport.loadSession({ ...context(controller.signal), credential }))
+						applySession(await transport.loadSession({ ...context(controller.signal), credential }))
 					} else if (pendingMessage !== undefined) {
 						messages = [
 							{
