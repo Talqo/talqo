@@ -17,16 +17,19 @@ const database = `talqo_file_${crypto.randomUUID().replaceAll("-", "")}`
 const admin = postgres(templateUrl, { database: "postgres", max: 1 })
 try {
 	// A killed run cannot drop its database, so reclaim ones left idle by earlier runs.
-	try {
-		const stale = await admin<{ datname: string }[]>`
-			SELECT datname FROM pg_database d
-			WHERE starts_with(datname, 'talqo_file_')
-				AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a WHERE a.datname = d.datname)
-				AND (pg_stat_file('base/' || d.oid || '/PG_VERSION')).modification < now() - interval '10 minutes'
-		`
-		await Promise.all(stale.map(({ datname }) => admin`DROP DATABASE IF EXISTS ${admin(datname)} WITH (FORCE)`))
-	} catch {
-		// A concurrent run reclaimed the same databases first; the new database is unaffected.
+	const stale = await admin<{ datname: string }[]>`
+		SELECT datname FROM pg_database d
+		WHERE starts_with(datname, 'talqo_file_')
+			AND NOT EXISTS (SELECT 1 FROM pg_stat_activity a WHERE a.datname = d.datname)
+			AND (pg_stat_file('base/' || d.oid || '/PG_VERSION')).modification < now() - interval '10 minutes'
+	`
+	for (const { datname } of stale) {
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- keeps the concurrent-drop race local to one database.
+			await admin`DROP DATABASE IF EXISTS ${admin(datname)} WITH (FORCE)`
+		} catch {
+			// A concurrent run dropped this database first.
+		}
 	}
 	await admin`CREATE DATABASE ${admin(database)} TEMPLATE ${admin(template.pathname.slice(1))}`
 } finally {
