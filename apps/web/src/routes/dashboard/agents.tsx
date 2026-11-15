@@ -1,3 +1,5 @@
+import type { ListAgents200 } from "@/api/generated/models/agent/listAgents200.zod"
+
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { FloatingActionButton } from "@/components/floating-action-button"
@@ -8,7 +10,6 @@ import { useCreateAgentFlow } from "@/features/agents/use-create-agent-flow"
 import { ProviderNoticeBanner } from "@/features/ai-configuration/provider-notice-banner"
 import { requirePermission } from "@/features/permissions/require-permission"
 import { useLanguage } from "@/lib/use-language"
-import { Button } from "@talqo/ui/components/button"
 import { Card, CardContent, CardDescription, CardHeader } from "@talqo/ui/components/card"
 import { CardLink } from "@talqo/ui/components/card-link"
 import { CardName } from "@talqo/ui/components/card-name"
@@ -46,88 +47,111 @@ function AgentsSkeleton({ label }: { label: string }) {
 	)
 }
 
-function AgentsPage() {
+function CreateAgentButton({ onCreate, pending }: { onCreate: () => void; pending: boolean }) {
+	const { t } = useTranslation()
+	return (
+		<FloatingActionButton onClick={onCreate} disabled={pending}>
+			<Plus />
+			{pending ? t("agents.creating") : t("agents.create")}
+		</FloatingActionButton>
+	)
+}
+
+type AgentListItem = ListAgents200["agents"][number]
+
+function AgentsGrid({ agents }: { agents: readonly AgentListItem[] }) {
 	const { t } = useTranslation()
 	const { language } = useLanguage()
+	return (
+		<div className="grid gap-4 md:grid-cols-2">
+			{agents.map((agent) => (
+				<Card key={agent.id} variant="interactive" className="relative h-full">
+					<CardHeader>
+						<CardName>{agent.name}</CardName>
+						<CardDescription>
+							{t("agents.updated", {
+								date: new Date(agent.updatedAt).toLocaleDateString(language, {
+									year: "numeric",
+									month: "short",
+									day: "numeric",
+								}),
+							})}
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<AgentCardSummary agentId={agent.id} />
+					</CardContent>
+					<CardLink
+						render={<Link to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} search={{ tab: undefined }} />}
+						aria-label={agent.name}
+					/>
+				</Card>
+			))}
+		</div>
+	)
+}
+
+function AgentsContent({
+	query,
+	agents,
+	canManage,
+	onCreate,
+	pending,
+}: {
+	query: ReturnType<typeof useListAgents>
+	agents: readonly AgentListItem[]
+	canManage: boolean
+	onCreate: () => void
+	pending: boolean
+}) {
+	const { t } = useTranslation()
+
+	if (query.isLoading) return <AgentsSkeleton label={t("agents.loading")} />
+	if (query.error) {
+		return <ProblemAlert error={query.error} fallback={t("agents.loadFailed")} onRetry={() => void query.refetch()} />
+	}
+	if (agents.length === 0) {
+		return (
+			<EmptyState
+				icon={Bot}
+				title={t("agents.emptyTitle")}
+				description={canManage ? t("agents.emptyDescriptionManager") : t("agents.emptyDescriptionReader")}
+				actions={canManage ? <CreateAgentButton onCreate={onCreate} pending={pending} /> : undefined}
+			/>
+		)
+	}
+	return <AgentsGrid agents={agents} />
+}
+
+function AgentsPage() {
+	const { t } = useTranslation()
 	const navigate = useNavigate()
-	const { data, error, isLoading, refetch } = useListAgents()
-	const agents = data?.data.agents.filter((agent) => agent.permissions.includes("agents:read"))
+	const agentsQuery = useListAgents()
+	const agents = agentsQuery.data?.data.agents.filter((agent) => agent.permissions.includes("agents:read")) ?? []
 	const canManage = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
 	const { create, pending, failure } = useCreateAgentFlow({
-		names: agents?.map((agent) => agent.name) ?? [],
-		refreshNames: refetch,
+		names: agents.map((agent) => agent.name),
+		refreshNames: agentsQuery.refetch,
 		onCreated: async (agentId) => {
-			await refetch()
+			await agentsQuery.refetch()
 			await navigate({ to: "/dashboard/agent/$agentId", params: { agentId }, search: { tab: undefined } })
 		},
 	})
+	const onCreate = () => void create()
 
 	return (
 		<div className="space-y-6">
 			<PageHeader
 				title={t("agents.heading")}
 				description={t("agents.subheading")}
-				actions={
-					canManage ? (
-						<FloatingActionButton onClick={() => void create()} disabled={pending}>
-							<Plus />
-							{pending ? t("agents.creating") : t("agents.create")}
-						</FloatingActionButton>
-					) : undefined
-				}
+				actions={canManage ? <CreateAgentButton onCreate={onCreate} pending={pending} /> : undefined}
 			/>
 
-			<ProblemAlert message={failure?.message} onRetry={failure?.retryable ? () => void create() : undefined} />
+			<ProblemAlert message={failure?.message} onRetry={failure?.retryable ? onCreate : undefined} />
 
 			<ProviderNoticeBanner />
 
-			{isLoading ? (
-				<AgentsSkeleton label={t("agents.loading")} />
-			) : error ? (
-				<ProblemAlert error={error} fallback={t("agents.loadFailed")} onRetry={() => void refetch()} />
-			) : !agents?.length ? (
-				<EmptyState
-					icon={Bot}
-					title={t("agents.emptyTitle")}
-					description={canManage ? t("agents.emptyDescriptionManager") : t("agents.emptyDescriptionReader")}
-					actions={
-						canManage ? (
-							<Button onClick={() => void create()} disabled={pending}>
-								<Plus className="size-4" />
-								{pending ? t("agents.creating") : t("agents.create")}
-							</Button>
-						) : undefined
-					}
-				/>
-			) : (
-				<div className="grid gap-4 md:grid-cols-2">
-					{agents.map((agent) => (
-						<Card key={agent.id} variant="interactive" className="relative h-full">
-							<CardHeader>
-								<CardName>{agent.name}</CardName>
-								<CardDescription>
-									{t("agents.updated", {
-										date: new Date(agent.updatedAt).toLocaleDateString(language, {
-											year: "numeric",
-											month: "short",
-											day: "numeric",
-										}),
-									})}
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<AgentCardSummary agentId={agent.id} />
-							</CardContent>
-							<CardLink
-								render={
-									<Link to="/dashboard/agent/$agentId" params={{ agentId: agent.id }} search={{ tab: undefined }} />
-								}
-								aria-label={agent.name}
-							/>
-						</Card>
-					))}
-				</div>
-			)}
+			<AgentsContent query={agentsQuery} agents={agents} canManage={canManage} onCreate={onCreate} pending={pending} />
 		</div>
 	)
 }

@@ -9,14 +9,10 @@ import * as roles from "@/modules/roles/roles.seed.ts"
 import * as usage from "@/modules/usage/usage.seed.ts"
 
 import { sql } from "./client.ts"
+import { assertSeedAllowed } from "./seed-policy.ts"
 
 export async function seed(): Promise<void> {
-	if (env.NODE_ENV !== "development" && env.NODE_ENV !== "test") {
-		throw new Error("Database seeding is available only in development or test")
-	}
-	if (Bun.env.TALQO_ALLOW_INSECURE_SEED !== "true") {
-		throw new Error("TALQO_ALLOW_INSECURE_SEED=true is required to create development fixtures")
-	}
+	assertSeedAllowed(env.NODE_ENV, Bun.env.TALQO_ALLOW_INSECURE_SEED)
 
 	await aiProvider.seed()
 	if (!(await roles.hasAdmin())) {

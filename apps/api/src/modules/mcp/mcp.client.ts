@@ -207,50 +207,68 @@ function truncateDescription(tool: ToolSet[string]): ToolSet[string] {
 	return { ...tool, description: description.slice(0, MAX_TOOL_DESCRIPTION_CHARACTERS) }
 }
 
-/**
- * A hostile server could burn model context, so every part shares one budget. Over-budget
- * non-text parts are dropped, and the marker is appended at most once.
- */
+const TRUNCATED_RESULT_MARKER = "…[truncated, the server returned more]"
+
+function isTextPart(part: unknown): part is { type: "text"; text: string } {
+	return (
+		part !== null &&
+		typeof part === "object" &&
+		"type" in part &&
+		part.type === "text" &&
+		"text" in part &&
+		typeof part.text === "string"
+	)
+}
+
+// A hostile server could burn model context. All parts share one budget and at most one marker.
+class ToolResultBudget {
+	remaining = MAX_TOOL_RESULT_CHARACTERS
+	marked = false
+	content: unknown[] = []
+
+	appendText(part: { type: "text"; text: string }): void {
+		const { text } = part
+		if (text.length <= this.remaining) {
+			this.remaining -= text.length
+			this.content.push(part)
+			return
+		}
+		const marker = this.marked ? "" : TRUNCATED_RESULT_MARKER
+		this.marked = true
+		this.content.push(Object.assign({}, part, { text: `${text.slice(0, this.remaining)}${marker}` }))
+		this.remaining = 0
+	}
+
+	appendStructured(part: unknown): void {
+		const size = JSON.stringify(part)?.length ?? 0
+		if (size > this.remaining) {
+			if (!this.marked) {
+				this.marked = true
+				this.content.push({ type: "text", text: TRUNCATED_RESULT_MARKER })
+			}
+			return
+		}
+		this.remaining -= size
+		this.content.push(part)
+	}
+}
+
+function hasResultContent(result: unknown): result is { content: unknown[] } {
+	return result !== null && typeof result === "object" && "content" in result && Array.isArray(result.content)
+}
+
 export function truncateResult(result: unknown): unknown {
 	if (typeof result === "string")
 		return result.length <= MAX_TOOL_RESULT_CHARACTERS
 			? result
-			: `${result.slice(0, MAX_TOOL_RESULT_CHARACTERS)}…[truncated, the server returned more]`
-	if (!result || typeof result !== "object" || !Array.isArray((result as { content?: unknown }).content)) return result
-	let remaining = MAX_TOOL_RESULT_CHARACTERS
-	let marked = false
-	const content: unknown[] = []
-	for (const part of (result as { content: unknown[] }).content) {
-		if (
-			!part ||
-			typeof part !== "object" ||
-			(part as { type?: unknown }).type !== "text" ||
-			typeof (part as { text?: unknown }).text !== "string"
-		) {
-			const size = JSON.stringify(part)?.length ?? 0
-			if (size > remaining) {
-				if (!marked) {
-					marked = true
-					content.push({ type: "text", text: "…[truncated, the server returned more]" })
-				}
-				continue
-			}
-			remaining -= size
-			content.push(part)
-			continue
-		}
-		const text = (part as { text: string }).text
-		if (text.length <= remaining) {
-			remaining -= text.length
-			content.push(part)
-			continue
-		}
-		const marker = marked ? "" : "…[truncated, the server returned more]"
-		marked = true
-		content.push(Object.assign({}, part, { text: `${text.slice(0, remaining)}${marker}` }))
-		remaining = 0
+			: `${result.slice(0, MAX_TOOL_RESULT_CHARACTERS)}${TRUNCATED_RESULT_MARKER}`
+	if (!hasResultContent(result)) return result
+	const budget = new ToolResultBudget()
+	for (const part of result.content) {
+		if (isTextPart(part)) budget.appendText(part)
+		else budget.appendStructured(part)
 	}
-	return Object.assign({}, result, { content })
+	return Object.assign({}, result, { content: budget.content })
 }
 
 function boundTool(tool: ToolSet[string]): ToolSet[string] {

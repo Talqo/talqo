@@ -8,12 +8,16 @@ await mock.module("./source", () => ({
 		page: async (page: { data: { title: string } }) => `# ${page.data.title}\n`,
 	},
 	source: {
-		getPage: (slugs: string[]) =>
-			slugs.length === 1 && slugs[0] === "deployment" ? { data: { title: "Deployment" } } : undefined,
+		getPage: (slugs: string[]) => {
+			if (slugs.length === 0) return { data: { title: "Docs home" } }
+			if (slugs.length === 1 && slugs[0] === "deployment") return { data: { title: "Deployment" } }
+			return undefined
+		},
 	},
 }))
 
 const { markdownResponse, negotiateMarkdown } = await import("./markdown-response")
+const { getMarkdown } = await import("@/routes/{$}[.]md")
 
 describe("markdownResponse", () => {
 	test("returns Markdown with a UTF-8 content type", async () => {
@@ -33,6 +37,24 @@ describe("markdownResponse", () => {
 	test("returns null for missing or invalid paths", async () => {
 		expect(await markdownResponse(["missing"])).toBeNull()
 		expect(await markdownResponse([""])).toBeNull()
+	})
+})
+
+describe("explicit Markdown URLs", () => {
+	test("decodes the extension and serves an existing page", async () => {
+		const response = await getMarkdown({ params: { _splat: "deployment.md" } })
+		expect(response.headers.get("Content-Type")).toBe("text/markdown; charset=utf-8")
+		expect(await response.text()).toBe("# Deployment\n")
+	})
+
+	test.each(["index.md", undefined])("serves the docs home for root Markdown requests", async (splat) => {
+		const response = await getMarkdown({ params: { _splat: splat } })
+		expect(response.headers.get("Content-Type")).toBe("text/markdown; charset=utf-8")
+		expect(await response.text()).toBe("# Docs home\n")
+	})
+
+	test("signals not-found for missing pages", async () => {
+		await expect(getMarkdown({ params: { _splat: "missing.md" } })).rejects.toMatchObject({ isNotFound: true })
 	})
 })
 

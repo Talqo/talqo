@@ -425,6 +425,22 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(announcement()?.textContent).toBe("Response complete.")
 	})
 
+	test("clears a completed announcement when the chat closes", async () => {
+		const store = await renderRespondingWidget()
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part two", "completed")],
+			}),
+		)
+		expect(announcement()?.textContent).toBe("Response complete.")
+
+		await openChat() // close from the launcher
+		await openChat() // reopen
+		expect(announcement()?.textContent).toBe("")
+	})
+
 	test("tells the end user administrators may review the chat before they write", async () => {
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)

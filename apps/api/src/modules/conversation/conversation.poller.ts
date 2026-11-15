@@ -12,25 +12,31 @@ export function createGenerationPoller() {
 	let pollErrorReported = false
 	let lastHeartbeat = performance.now()
 
+	function abortUnavailable(batch: { id: string; leaseToken: string }[], active: { id: string; cancelled: boolean }[]) {
+		const cancelled = new Map(active.map((entry) => [entry.id, entry.cancelled]))
+		for (const { id, leaseToken } of batch) {
+			const local = controllers.get(id)
+			if (local?.leaseToken === leaseToken && cancelled.get(id) !== false) local.controller.abort()
+		}
+	}
+
+	async function pollBatches(owned: { id: string; leaseToken: string }[], renew: boolean): Promise<void> {
+		// One batch at a time keeps each poll query bounded.
+		for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
+			const batch = owned.slice(offset, offset + POLL_BATCH_SIZE)
+			abortUnavailable(batch, await repository.pollRunningAttempts(batch, renew))
+		}
+		if (renew) lastHeartbeat = performance.now()
+		pollErrorReported = false
+	}
+
 	async function poll(): Promise<void> {
 		pollTimer = undefined
 		if (controllers.size === 0) return
 		polling = true
-		const renew = performance.now() - lastHeartbeat >= HEARTBEAT_MS
 		const owned = [...controllers].map(([id, { leaseToken }]) => ({ id, leaseToken }))
 		try {
-			// One batch at a time keeps each poll query bounded.
-			for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
-				const batch = owned.slice(offset, offset + POLL_BATCH_SIZE)
-				const active = await repository.pollRunningAttempts(batch, renew)
-				const status = new Map(active.map((entry) => [entry.id, entry.cancelled]))
-				for (const { id, leaseToken } of batch) {
-					const local = controllers.get(id)
-					if (local?.leaseToken === leaseToken && status.get(id) !== false) local.controller.abort()
-				}
-			}
-			if (renew) lastHeartbeat = performance.now()
-			pollErrorReported = false
+			await pollBatches(owned, performance.now() - lastHeartbeat >= HEARTBEAT_MS)
 		} catch (error) {
 			if (!pollErrorReported) console.error("conversation.poll.failed", { error })
 			pollErrorReported = true

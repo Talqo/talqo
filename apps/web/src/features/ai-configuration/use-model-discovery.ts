@@ -37,6 +37,15 @@ function discoveryRequest(context: DiscoveryContextWithRole): DiscoverAiProvider
 	return { ...connection, storedCredentialRole }
 }
 
+function currentResult(
+	result: DiscoveryResult | null,
+	request: DiscoverAiProviderModelsMutationBody | null,
+	attempt: number,
+) {
+	if (result?.request !== request) return null
+	return result.attempt === attempt ? result : null
+}
+
 export function useModelDiscovery(context: DiscoveryContextWithRole): ModelDiscoveryState {
 	const [result, setResult] = useState<DiscoveryResult | null>(null)
 	const [attempt, setAttempt] = useState(0)
@@ -66,7 +75,7 @@ export function useModelDiscovery(context: DiscoveryContextWithRole): ModelDisco
 		}
 	}, [request, attempt])
 
-	const current = result?.request === request && result?.attempt === attempt ? result : null
+	const current = currentResult(result, request, attempt)
 	return {
 		models: current?.models ?? null,
 		loading: request !== null && current === null,

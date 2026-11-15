@@ -63,22 +63,10 @@ export function composeSystemPrompt(systemPrompt: string): string {
 	return `${PLATFORM_SYSTEM_PROMPT}\n${systemPrompt}`
 }
 
-export function normalizeAgentInput(input: AgentInput): AgentInput {
-	const name = input.name.trim()
-	if (name.length === 0) throw new InvalidAgentInputError("Agent name is required")
-	if (name.length > AGENT_NAME_MAX_LENGTH) {
-		throw new InvalidAgentInputError(`Agent name must be at most ${AGENT_NAME_MAX_LENGTH} characters`)
-	}
-
-	const systemPrompt = input.systemPrompt.trim()
-	if (systemPrompt.length === 0) throw new InvalidAgentInputError("System prompt is required")
-	if (systemPrompt.length > SYSTEM_PROMPT_MAX_LENGTH) {
-		throw new InvalidAgentInputError(`System prompt must be at most ${SYSTEM_PROMPT_MAX_LENGTH} characters`)
-	}
-
+function normalizeWordBlacklist(words: string[]): string[] {
 	const wordBlacklist: string[] = []
 	const seen = new Set<string>()
-	for (const raw of input.wordBlacklist) {
+	for (const raw of words) {
 		const word = raw.trim()
 		if (!word) continue
 		if (word.length > BLACKLIST_WORD_MAX_LENGTH) {
@@ -93,7 +81,23 @@ export function normalizeAgentInput(input: AgentInput): AgentInput {
 		throw new InvalidAgentInputError(`An agent may define at most ${BLACKLIST_MAX_WORDS} blacklist words`)
 	}
 
-	return { name, systemPrompt, wordBlacklist }
+	return wordBlacklist
+}
+
+export function normalizeAgentInput(input: AgentInput): AgentInput {
+	const name = input.name.trim()
+	if (name.length === 0) throw new InvalidAgentInputError("Agent name is required")
+	if (name.length > AGENT_NAME_MAX_LENGTH) {
+		throw new InvalidAgentInputError(`Agent name must be at most ${AGENT_NAME_MAX_LENGTH} characters`)
+	}
+
+	const systemPrompt = input.systemPrompt.trim()
+	if (systemPrompt.length === 0) throw new InvalidAgentInputError("System prompt is required")
+	if (systemPrompt.length > SYSTEM_PROMPT_MAX_LENGTH) {
+		throw new InvalidAgentInputError(`System prompt must be at most ${SYSTEM_PROMPT_MAX_LENGTH} characters`)
+	}
+
+	return { name, systemPrompt, wordBlacklist: normalizeWordBlacklist(input.wordBlacklist) }
 }
 
 export async function listAgents(

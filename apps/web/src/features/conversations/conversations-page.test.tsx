@@ -207,7 +207,7 @@ describe("ConversationsPage", () => {
 		expect(host.querySelector("output")?.textContent).toBe(t("conversations.noAgentSelected"))
 		expect(requested.some((url) => url.startsWith("/api/conversations"))).toBe(false)
 
-		await click(combobox(t("dashboard.agentsLabel")))
+		await click(findCombobox(t("dashboard.agentsLabel"), host))
 		expect(button(t("dashboard.deselectAll"), document).disabled).toBe(true)
 	})
 

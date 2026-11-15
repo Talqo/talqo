@@ -31,6 +31,7 @@ import {
 } from "./conversation.errors.ts"
 import * as repository from "./conversation.repository.ts"
 import {
+	type ChatEvent,
 	CONVERSATION_PAGE_SIZE,
 	createConversationService,
 	getConversationService,
@@ -44,11 +45,11 @@ const REQUEST_3 = "33333333-3333-4333-8333-333333333333"
 const CREDENTIAL_1 = "44444444-4444-4444-8444-444444444444"
 const CREDENTIAL_2 = "55555555-5555-4555-8555-555555555555"
 
-async function fixture() {
+async function fixture(wordBlacklist: string[] = []) {
 	const createdAgent = await agent.createAgent({
 		name: `Agent ${crypto.randomUUID()}`,
 		systemPrompt: "System",
-		wordBlacklist: [],
+		wordBlacklist,
 	})
 	const createdEmbed = await embed.createEmbed(
 		{
@@ -59,6 +60,19 @@ async function fixture() {
 		await testAdminId(),
 	)
 	return { createdAgent, createdEmbed }
+}
+
+async function sendAndCollectEvents(
+	instance: ReturnType<typeof customService>,
+	embedToken: string,
+): Promise<ChatEvent[]> {
+	const events: ChatEvent[] = []
+	const sent = await instance.send(
+		{ embedToken, credential: CREDENTIAL_1, requestId: REQUEST_1, text: "hello", networkHash: "network-a" },
+		(event) => events.push(event),
+	)
+	await sent.done
+	return events
 }
 
 async function expectSafeTail(instance: ReturnType<typeof customService>, assistantId: string): Promise<void> {
@@ -181,6 +195,89 @@ afterEach(() => {
 })
 
 describe("conversation lifecycle", () => {
+	it("retains partial output and provider attribution when a stream fails", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = customService(async function* () {
+			yield { type: "start", provider: "anthropic", model: "actual-model" } as const
+			yield { type: "text", text: "partial text" } as const
+			throw new Error("provider disconnected")
+		})
+		const sent = await instance.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			requestId: REQUEST_1,
+			text: "hello",
+			networkHash: "network-a",
+		})
+		await sent.done
+		const session = await instance.getSession(CREDENTIAL_1)
+		expect(session.messages.find((message) => message.role === "assistant")?.text).toBe("partial text")
+		expect((await sql`SELECT provider, model, outcome, output_tokens FROM usage_record`)[0]).toMatchObject({
+			provider: "anthropic",
+			model: "actual-model",
+			outcome: "failed",
+			output_tokens: 3,
+		})
+	})
+
+	it("blocks a generation on a blacklisted word and withholds the tail", async () => {
+		const { createdEmbed } = await fixture(["secret"])
+		const instance = customService(async function* () {
+			yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
+			yield { type: "text", text: "safe text " } as const
+			yield { type: "text", text: "secret tail" } as const
+			yield {
+				type: "finish",
+				outcome: "completed",
+				provider: "openai-compatible",
+				model: "fake-model",
+				usage: {},
+			} as const
+		})
+		const events = await sendAndCollectEvents(instance, createdEmbed.embedToken)
+
+		expect(events.at(-1)).toEqual({ version: 1, type: "terminal", outcome: "blocked" })
+		expect(JSON.stringify(events)).not.toContain("secret")
+		const assistant = (await instance.getSession(CREDENTIAL_1)).messages.find((message) => message.role === "assistant")
+		expect(assistant).toMatchObject({ outcome: "blocked", text: "safe" })
+		expect((await sql`SELECT outcome FROM usage_record`)[0]).toMatchObject({ outcome: "blocked" })
+	})
+
+	it("fails the generation when a streamed output write is rejected", async () => {
+		const { createdEmbed } = await fixture()
+		const append = spyOn(repository, "appendOutput").mockImplementation(async () => false)
+		try {
+			const instance = customService(async function* () {
+				yield { type: "start", provider: "openai-compatible", model: "fake-model" } as const
+				yield { type: "text", text: "unsaved" } as const
+				yield {
+					type: "finish",
+					outcome: "completed",
+					provider: "openai-compatible",
+					model: "fake-model",
+					usage: {},
+				} as const
+			})
+			const events = await sendAndCollectEvents(instance, createdEmbed.embedToken)
+
+			expect(append).toHaveBeenCalled()
+			expect(events.some((event) => event.type === "delta")).toBe(false)
+			expect(events.at(-1)).toEqual({
+				version: 1,
+				type: "error",
+				outcome: "failed",
+				error: { code: "provider-error", retriable: true, newChatAvailable: false },
+			})
+			const assistant = (await instance.getSession(CREDENTIAL_1)).messages.find(
+				(message) => message.role === "assistant",
+			)
+			expect(assistant).toMatchObject({ outcome: "failed", text: "" })
+			expect((await sql`SELECT outcome FROM usage_record`)[0]).toMatchObject({ outcome: "failed" })
+		} finally {
+			append.mockRestore()
+		}
+	})
+
 	it("prunes expired allowance rows in bounded batches without deleting today's counters", async () => {
 		const { createdAgent, createdEmbed } = await fixture()
 		await sql`INSERT INTO conversation_daily_counter (agent_id, network_hash, day, count)
@@ -1251,6 +1348,75 @@ describe("conversation lifecycle", () => {
 			true,
 		)
 		await sql`UPDATE generation_attempt SET usage_recorded_at = NULL WHERE id = ${sent.generationId}`
+		await service().service.getSession(CREDENTIAL_1)
+		expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(1)
+		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM generation_attempt`)[0]?.recorded).toBe(
+			true,
+		)
+	})
+
+	it("tolerates agent deletion while recording finalized usage without recreating deleted data", async () => {
+		const { createdAgent, createdEmbed } = await fixture()
+		const instance = service()
+		const writeUsage = usage.recordUsage
+		const recordUsage = spyOn(usage, "recordUsage").mockImplementation(async (input) => {
+			await embed.deleteEmbed(createdEmbed.id, await testAdminId())
+			await agent.deleteAgent(createdAgent.id)
+			await writeUsage(input)
+		})
+		const events: { outcome?: string; type: string }[] = []
+		try {
+			const sent = await instance.service.send(
+				{
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "vanishing agent",
+					networkHash: "network-a",
+				},
+				(event) => events.push(event),
+			)
+			await sent.done
+
+			expect(events.at(-1)).toMatchObject({ type: "terminal", outcome: "completed" })
+			expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(0)
+			expect((await sql`SELECT count(*)::int AS count FROM generation_attempt`)[0]?.count).toBe(0)
+			expect((await sql`SELECT count(*)::int AS count FROM conversation`)[0]?.count).toBe(0)
+		} finally {
+			recordUsage.mockRestore()
+		}
+	})
+
+	it("emits a stream error while keeping usage pending when recording fails for another reason", async () => {
+		const { createdEmbed } = await fixture()
+		const instance = service()
+		const recordUsage = spyOn(usage, "recordUsage").mockRejectedValue(new Error("usage database down"))
+		const logged = spyOn(console, "error").mockImplementation(() => undefined)
+		const events: { error?: { code: string }; outcome?: string; type: string }[] = []
+		try {
+			const sent = await instance.service.send(
+				{
+					embedToken: createdEmbed.embedToken,
+					credential: CREDENTIAL_1,
+					requestId: REQUEST_1,
+					text: "usage failure",
+					networkHash: "network-a",
+				},
+				(event) => events.push(event),
+			)
+			await sent.done
+
+			expect(events.at(-1)).toMatchObject({
+				type: "error",
+				outcome: "failed",
+				error: { code: "provider-error" },
+			})
+			expect((await sql`SELECT usage_recorded_at IS NULL AS pending FROM generation_attempt`)[0]?.pending).toBe(true)
+			expect(logged).toHaveBeenCalledWith("conversation.finalization.failed", expect.anything())
+		} finally {
+			recordUsage.mockRestore()
+			logged.mockRestore()
+		}
 		await service().service.getSession(CREDENTIAL_1)
 		expect((await sql`SELECT count(*)::int AS count FROM usage_record`)[0]?.count).toBe(1)
 		expect((await sql`SELECT usage_recorded_at IS NOT NULL AS recorded FROM generation_attempt`)[0]?.recorded).toBe(

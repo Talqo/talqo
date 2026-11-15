@@ -1,23 +1,7 @@
 import { source } from "@/lib/source"
+import { escapeXml } from "@/lib/xml"
 import { createFileRoute } from "@tanstack/react-router"
 import { getRequestUrl } from "@tanstack/react-start/server"
-
-function escapeXml(value: string): string {
-	return value.replace(/[<>&'"]/g, (character) => {
-		switch (character) {
-			case "<":
-				return "&lt;"
-			case ">":
-				return "&gt;"
-			case "&":
-				return "&amp;"
-			case "'":
-				return "&apos;"
-			default:
-				return "&quot;"
-		}
-	})
-}
 
 export const Route = createFileRoute("/sitemap.xml")({
 	server: {

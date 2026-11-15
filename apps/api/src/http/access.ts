@@ -40,6 +40,32 @@ type SessionOptions = {
 	agentPermission?: roles.AgentPermission
 }
 
+async function requireAgentAccess(
+	userId: string,
+	agentId: string | undefined,
+	permission: roles.AgentPermission | undefined,
+): Promise<typeof PROBLEM_CODES.INVALID_REQUEST | undefined> {
+	if (agentId && !z.uuid().safeParse(agentId).success) return PROBLEM_CODES.INVALID_REQUEST
+	if (permission) {
+		if (agentId) await roles.requireAgentPermission(userId, agentId, permission)
+		else await roles.requireAgentScope(userId, permission)
+	}
+	if (agentId) await agents.getAgent(agentId)
+	return undefined
+}
+
+async function requireSessionPermissions(
+	userId: string,
+	agentId: string | undefined,
+	options: SessionOptions,
+): Promise<typeof PROBLEM_CODES.PERMISSION_DENIED | typeof PROBLEM_CODES.INVALID_REQUEST | undefined> {
+	if (options.permission) {
+		const held = await roles.listEffectivePermissions(userId)
+		if (!held.includes(options.permission)) return PROBLEM_CODES.PERMISSION_DENIED
+	}
+	return requireAgentAccess(userId, agentId, options.agentPermission)
+}
+
 function requireSession(options: SessionOptions) {
 	return policy(
 		createMiddleware<{ Variables: { user: PublicUser } }>(async (c, next) => {
@@ -56,20 +82,11 @@ function requireSession(options: SessionOptions) {
 				return problemResponse(c, PROBLEM_CODES.PASSWORD_CHANGE_REQUIRED, HTTP_STATUS.FORBIDDEN)
 			}
 
-			if (options.permission) {
-				const held = await roles.listEffectivePermissions(session.user.id)
-				if (!held.includes(options.permission)) {
-					return problemResponse(c, PROBLEM_CODES.PERMISSION_DENIED, HTTP_STATUS.FORBIDDEN)
-				}
+			const denied = await requireSessionPermissions(session.user.id, c.req.param("agentId"), options)
+			if (denied) {
+				const status = denied === PROBLEM_CODES.INVALID_REQUEST ? HTTP_STATUS.BAD_REQUEST : HTTP_STATUS.FORBIDDEN
+				return problemResponse(c, denied, status)
 			}
-			const agentId = c.req.param("agentId")
-			if (agentId && !z.uuid().safeParse(agentId).success)
-				return problemResponse(c, PROBLEM_CODES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
-			if (options.agentPermission) {
-				if (agentId) await roles.requireAgentPermission(session.user.id, agentId, options.agentPermission)
-				else await roles.requireAgentScope(session.user.id, options.agentPermission)
-			}
-			if (agentId) await agents.getAgent(agentId)
 
 			c.set("user", session.user)
 			return next()

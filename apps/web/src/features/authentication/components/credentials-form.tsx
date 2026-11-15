@@ -1,3 +1,5 @@
+import type { FieldError, UseFormRegisterReturn } from "react-hook-form"
+
 import {
 	credentialsFormSchema,
 	type CredentialsFormValues,
@@ -24,6 +26,79 @@ type CredentialsFormProps = {
 	submitting: boolean
 }
 
+function resolveCredentialsSchema(requireConfirmation: boolean, invitationRegistration: boolean) {
+	if (!requireConfirmation) return credentialsFormSchema
+	return invitationRegistration ? invitationRegistrationFormSchema : registrationFormSchema
+}
+
+function UsernameField({
+	error,
+	registration,
+}: {
+	error: FieldError | undefined
+	registration: UseFormRegisterReturn
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-2">
+			<Label htmlFor="username">{t("auth.credentialsForm.username")}</Label>
+			<Input
+				id="username"
+				autoComplete="username"
+				required
+				aria-invalid={error ? true : undefined}
+				aria-describedby={error ? "username-error" : undefined}
+				{...registration}
+			/>
+			{error && (
+				<p id="username-error" className="text-destructive text-xs" role="alert">
+					{t("auth.credentialsForm.usernameError", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+				</p>
+			)}
+		</div>
+	)
+}
+
+function CredentialPasswordField({
+	autoComplete,
+	error,
+	errorId,
+	errorMessage,
+	id,
+	label,
+	registration,
+}: {
+	autoComplete: "current-password" | "new-password"
+	error: FieldError | undefined
+	errorId: string
+	errorMessage: string
+	id: string
+	label: string
+	registration: UseFormRegisterReturn
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-2">
+			<Label htmlFor={id}>{label}</Label>
+			<PasswordInput
+				id={id}
+				autoComplete={autoComplete}
+				required
+				aria-invalid={error ? true : undefined}
+				aria-describedby={error ? errorId : undefined}
+				hideLabel={t("common.hidePassword")}
+				showLabel={t("common.showPassword")}
+				{...registration}
+			/>
+			{error && (
+				<p id={errorId} className="text-destructive text-xs" role="alert">
+					{errorMessage}
+				</p>
+			)}
+		</div>
+	)
+}
+
 export function CredentialsForm({
 	error,
 	invitationRegistration = false,
@@ -40,13 +115,7 @@ export function CredentialsForm({
 		handleSubmit,
 		formState: { errors },
 	} = useForm<CredentialsFormValues>({
-		resolver: zodResolver(
-			requireConfirmation
-				? invitationRegistration
-					? invitationRegistrationFormSchema
-					: registrationFormSchema
-				: credentialsFormSchema,
-		),
+		resolver: zodResolver(resolveCredentialsSchema(requireConfirmation, invitationRegistration)),
 	})
 
 	return (
@@ -57,59 +126,29 @@ export function CredentialsForm({
 			onSubmit={handleSubmit((input) => onSubmit({ password: input.password, username: input.username }))}
 		>
 			<p className="text-muted-foreground text-xs">{t("auth.requiredNote")}</p>
-			<div className="space-y-2">
-				<Label htmlFor="username">{t("auth.credentialsForm.username")}</Label>
-				<Input
-					id="username"
-					autoComplete="username"
-					required
-					aria-invalid={errors.username ? true : undefined}
-					aria-describedby={errors.username ? "username-error" : undefined}
-					{...register("username")}
-				/>
-				{errors.username && (
-					<p id="username-error" className="text-destructive text-xs" role="alert">
-						{t("auth.credentialsForm.usernameError", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
-					</p>
-				)}
-			</div>
-			<div className="space-y-2">
-				<Label htmlFor="password">{t("auth.credentialsForm.password")}</Label>
-				<PasswordInput
-					id="password"
-					autoComplete={passwordAutoComplete}
-					required
-					aria-invalid={errors.password ? true : undefined}
-					aria-describedby={errors.password ? "password-error" : undefined}
-					hideLabel={t("common.hidePassword")}
-					showLabel={t("common.showPassword")}
-					{...register("password")}
-				/>
-				{errors.password && (
-					<p id="password-error" className="text-destructive text-xs" role="alert">
-						{t("auth.credentialsForm.passwordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH })}
-					</p>
-				)}
-			</div>
+			<UsernameField error={errors.username} registration={register("username")} />
+			<CredentialPasswordField
+				id="password"
+				autoComplete={passwordAutoComplete}
+				label={t("auth.credentialsForm.password")}
+				error={errors.password}
+				errorId="password-error"
+				errorMessage={t("auth.credentialsForm.passwordError", {
+					min: PASSWORD_MIN_LENGTH,
+					max: PASSWORD_MAX_LENGTH,
+				})}
+				registration={register("password")}
+			/>
 			{requireConfirmation ? (
-				<div className="space-y-2">
-					<Label htmlFor="confirmPassword">{t("auth.credentialsForm.confirmPassword")}</Label>
-					<PasswordInput
-						id="confirmPassword"
-						autoComplete="new-password"
-						required
-						aria-invalid={errors.confirmPassword ? true : undefined}
-						aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
-						hideLabel={t("common.hidePassword")}
-						showLabel={t("common.showPassword")}
-						{...register("confirmPassword")}
-					/>
-					{errors.confirmPassword && (
-						<p id="confirm-password-error" className="text-destructive text-xs" role="alert">
-							{t("auth.credentialsForm.passwordMismatchError")}
-						</p>
-					)}
-				</div>
+				<CredentialPasswordField
+					id="confirmPassword"
+					autoComplete="new-password"
+					label={t("auth.credentialsForm.confirmPassword")}
+					error={errors.confirmPassword}
+					errorId="confirm-password-error"
+					errorMessage={t("auth.credentialsForm.passwordMismatchError")}
+					registration={register("confirmPassword")}
+				/>
 			) : null}
 			{error ? (
 				<p className="bg-destructive/10 text-destructive rounded-surface p-surface-padding text-sm" role="alert">

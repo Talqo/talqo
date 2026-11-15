@@ -129,20 +129,28 @@ function secretRefused(rows: EnvVariable[], requireSecretValue: boolean): boolea
 	return invalidSecretRow(rows, requireSecretValue) !== undefined
 }
 
-function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
+function nameReason(draft: ConnectionDraft): DraftReason | undefined {
 	if (!draft.name.trim()) return "nameRequired"
 	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
 	if (!/^[\x20-\x7E]+$/.test(draft.name)) return "nameAscii"
 	// Mirrors the API limit; the server re-checks and answers invalid-mcp-server-name.
 	if (draft.name.trim().length > MCP_SERVER_NAME_LIMIT) return "nameTooLong"
+	return undefined
+}
+
+function connectionReason(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
 	if (draft.transport === "http") {
 		if (!draft.url.trim()) return "addressRequired"
 		if (draft.authMode === "headers" && secretRefused(draft.headers, requireSecretValue)) return "secretRequired"
-	} else {
-		if (!draft.command.trim()) return "commandRequired"
-		if (secretRefused(draft.env, requireSecretValue)) return "secretRequired"
+		return undefined
 	}
+	if (!draft.command.trim()) return "commandRequired"
+	if (secretRefused(draft.env, requireSecretValue)) return "secretRequired"
 	return undefined
+}
+
+function validate(draft: ConnectionDraft, requireSecretValue: boolean): DraftReason | undefined {
+	return nameReason(draft) ?? connectionReason(draft, requireSecretValue)
 }
 
 export function toCreateBody(draft: ConnectionDraft): CreateResult {

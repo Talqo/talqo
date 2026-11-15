@@ -86,43 +86,25 @@ api.route("/agents", mcpServerRoutes)
 api.route("/conversations", conversationOperatorRoutes)
 app.route(API_PREFIX, api)
 app.notFound((context) => problemResponse(context, PROBLEM_CODES.ROUTE_NOT_FOUND, HTTP_STATUS.NOT_FOUND))
-// Mirrors Hono's default errorHandler pass-through for response-carrying errors,
-// hardened by validating the produced value is a real Response, and keeps a
-// generic body with the original error logged for everything else.
-export async function handleError(error: Error, context: Context): Promise<Response> {
-	if (error instanceof ApiError) {
-		if (error.headers) {
-			for (const [name, value] of Object.entries(error.headers)) context.header(name, value)
-		}
-		return problemResponse(context, error.problemCode, error.status)
-	}
-	if ("getResponse" in error && typeof error.getResponse === "function") {
-		let response: unknown
-		try {
-			response = (error.getResponse as () => unknown)()
-		} catch (responseError) {
-			console.error(responseError)
-			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
-		}
-		if (response instanceof Response) {
-			if (response.status < MIN_ERROR_STATUS || response.status > MAX_ERROR_STATUS) return response
+async function normalizeErrorResponse(response: Response, context: Context): Promise<Response> {
+	if (response.status < MIN_ERROR_STATUS || response.status > MAX_ERROR_STATUS) return response
 
-			let parsed: unknown
-			try {
-				parsed = await response.clone().json()
-			} catch {
-				parsed = undefined
-			}
-			const problem = problemDetailsSchema.safeParse(parsed)
-			const code = problem.success ? problem.data.code : PROBLEM_CODES.REQUEST_FAILED
-			const normalized = problemResponse(context, code, response.status as ContentfulStatusCode)
-			for (const [name, value] of response.headers) {
-				if (name.toLowerCase() !== "content-type") normalized.headers.append(name, value)
-			}
-			return normalized
-		}
+	let parsed: unknown
+	try {
+		parsed = await response.clone().json()
+	} catch {
+		parsed = undefined
 	}
+	const problem = problemDetailsSchema.safeParse(parsed)
+	const code = problem.success ? problem.data.code : PROBLEM_CODES.REQUEST_FAILED
+	const normalized = problemResponse(context, code, response.status as ContentfulStatusCode)
+	for (const [name, value] of response.headers) {
+		if (name.toLowerCase() !== "content-type") normalized.headers.append(name, value)
+	}
+	return normalized
+}
 
+function logUnhandledError(error: Error, context: Context): void {
 	annotate(context, { "error.type": error.constructor.name })
 	if (APICallError.isInstance(error)) {
 		console.error("provider.call.failed", {
@@ -134,6 +116,29 @@ export async function handleError(error: Error, context: Context): Promise<Respo
 	} else {
 		console.error(error)
 	}
+}
+
+function apiErrorResponse(error: ApiError, context: Context): Response {
+	for (const [name, value] of Object.entries(error.headers ?? {})) context.header(name, value)
+	return problemResponse(context, error.problemCode, error.status)
+}
+
+// Response-carrying errors retain their status and headers, but error bodies use our problem contract.
+export async function handleError(error: Error, context: Context): Promise<Response> {
+	if (error instanceof ApiError) {
+		return apiErrorResponse(error, context)
+	}
+	if ("getResponse" in error && typeof error.getResponse === "function") {
+		let response: unknown
+		try {
+			response = (error.getResponse as () => unknown)()
+		} catch (responseError) {
+			console.error(responseError)
+			return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
+		}
+		if (response instanceof Response) return normalizeErrorResponse(response, context)
+	}
+	logUnhandledError(error, context)
 	return problemResponse(context, PROBLEM_CODES.INTERNAL_SERVER_ERROR, HTTP_STATUS.INTERNAL_SERVER_ERROR)
 }
 

@@ -1,3 +1,5 @@
+import type { AgentDailyPoint, PageStats, StatsOverview } from "@/features/statistics/page-stats"
+
 import { useListAgents } from "@/api/generated/agent/agent.ts"
 import { useGetMyPermissions } from "@/api/generated/roles/roles.ts"
 import { useGetStatsOverview } from "@/api/generated/stats/stats.ts"
@@ -19,14 +21,8 @@ import {
 	statsMetricKeys,
 	useCompactNumber,
 } from "@/features/statistics/components/stats-charts"
-import {
-	type AgentDailyPoint,
-	type PageStats,
-	type StatsOverview,
-	toAgentDailyPoints,
-	toSelectedStats,
-} from "@/features/statistics/page-stats"
 import { DEFAULT_STATS_DAYS, STATS_RANGE_LABELS, type StatsDays } from "@/features/statistics/ranges"
+import { type BreakdownAgent, useDashboardUsage } from "@/features/statistics/use-dashboard-usage"
 import { formatTime } from "@/lib/format-date"
 import { retryUnlessClientError } from "@/lib/query-retry"
 import { useLanguage } from "@/lib/use-language"
@@ -35,7 +31,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@talq
 import { EmptyState } from "@talqo/ui/components/empty-state"
 import { Skeleton } from "@talqo/ui/components/skeleton"
 import { Bot, ChartColumn, Plus } from "lucide-react"
-import { useMemo } from "react"
+import { type ReactNode, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 const FORBIDDEN_STATUS = 403
@@ -173,8 +169,6 @@ function RangeEmptyState({ days, onShowAllTime }: { days: StatsDays; onShowAllTi
 	)
 }
 
-type BreakdownAgent = AgentLine & { conversations: number; messages: number; tokens: number }
-
 function DashboardUsage({
 	overview,
 	stats,
@@ -293,6 +287,121 @@ function DashboardUsage({
 	)
 }
 
+type QueryError = { status?: number } | null
+
+function DashboardReady({
+	agentLines,
+	breakdownAgents,
+	dailyPoints,
+	days,
+	onRangeChange,
+	onSelectionChange,
+	overview,
+	rangeIsEmpty,
+	selectedIds,
+	selectedLines,
+	stats,
+	updatedAt,
+}: {
+	agentLines: AgentLine[]
+	breakdownAgents: BreakdownAgent[]
+	dailyPoints: AgentDailyPoint[]
+	days: StatsDays
+	onRangeChange: (next: StatsDays) => void
+	onSelectionChange: (ids: string[]) => void
+	overview: StatsOverview
+	rangeIsEmpty: boolean
+	selectedIds: string[]
+	selectedLines: AgentLine[]
+	stats: PageStats
+	updatedAt: string
+}) {
+	const { t } = useTranslation()
+	return (
+		<>
+			<DashboardFilters
+				agentLines={agentLines}
+				selectedIds={selectedIds}
+				days={days}
+				updatedAt={updatedAt}
+				onSelectionChange={onSelectionChange}
+				onRangeChange={onRangeChange}
+			/>
+			{selectedIds.length === 0 ? (
+				<p className="text-muted-foreground">{t("dashboard.noAgentsSelected")}</p>
+			) : rangeIsEmpty ? (
+				<RangeEmptyState days={days} onShowAllTime={() => onRangeChange("all")} />
+			) : (
+				<DashboardUsage
+					overview={overview}
+					stats={stats}
+					selectedIds={selectedIds}
+					selectedLines={selectedLines}
+					dailyPoints={dailyPoints}
+					breakdownAgents={breakdownAgents}
+				/>
+			)}
+		</>
+	)
+}
+
+function DashboardFailure({
+	agentsError,
+	statsError,
+	onRetry,
+}: {
+	agentsError: QueryError
+	statsError: QueryError
+	onRetry: () => void
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-6">
+			<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
+			{statsError?.status === FORBIDDEN_STATUS || agentsError?.status === FORBIDDEN_STATUS ? (
+				<AccessDenied />
+			) : (
+				<ProblemAlert error={statsError ?? agentsError} fallback={t("dashboard.loadFailed")} onRetry={onRetry} />
+			)}
+		</div>
+	)
+}
+
+function DashboardCreationAlert({
+	create,
+	failure,
+}: {
+	create: () => void
+	failure?: { message: string; retryable: boolean } | null
+}) {
+	return <ProblemAlert message={failure?.message} onRetry={failure?.retryable ? create : undefined} />
+}
+
+function DashboardState({
+	canCreateAgent,
+	create,
+	hasAgents,
+	isLoading,
+	overview,
+	pending,
+	stats,
+	children,
+}: {
+	canCreateAgent: boolean
+	create: () => void
+	hasAgents: boolean
+	isLoading: boolean
+	overview: StatsOverview | undefined
+	pending: boolean
+	stats: PageStats | undefined
+	children: (overview: StatsOverview, stats: PageStats) => ReactNode
+}) {
+	const { t } = useTranslation()
+	if (isLoading || !overview || !stats) return <StatsSkeleton label={t("dashboard.loading")} />
+	if (!hasAgents) return <NoAgentsState canCreate={canCreateAgent} pending={pending} onCreate={create} />
+	return children(overview, stats)
+}
+
 export function DashboardIndexPage({
 	search,
 	onSearchChange,
@@ -314,7 +423,7 @@ export function DashboardIndexPage({
 	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
 	const canCreateAgent = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
 
-	const { error, isLoading } = statsQuery
+	const { isLoading } = statsQuery
 	const overview = statsQuery.data?.data.overview
 	const allAgents = agentsQuery.data?.data.agents.filter((agent) => agent.permissions.includes("stats:read"))
 	// Agents without activity still belong in the permitted statistics filter.
@@ -344,65 +453,25 @@ export function DashboardIndexPage({
 	const setRange = (next: StatsDays) => {
 		onSearchChange({ ...search, days: next === DEFAULT_STATS_DAYS ? undefined : next })
 	}
-	const selectedIds = useMemo(() => (selection ?? allIds).filter((id) => allIds.includes(id)), [selection, allIds])
-	const allSelected = selectedIds.length === allIds.length
-	const selectedLines = useMemo(
-		() => agentLines.filter((line) => selectedIds.includes(line.id)),
-		[agentLines, selectedIds],
-	)
-	const dailyPoints = useMemo(() => (overview ? toAgentDailyPoints(overview) : []), [overview])
-	const stats = useMemo(() => (overview ? toSelectedStats(overview, selectedIds) : undefined), [overview, selectedIds])
+	const { breakdownAgents, dailyPoints, rangeIsEmpty, selectedIds, selectedLines, stats } = useDashboardUsage({
+		overview,
+		agentLines,
+		selection,
+		allIds,
+	})
 	const updatedAt = new Date(statsQuery.dataUpdatedAt).toISOString()
-	// The breakdown table reads the server's own per-agent totals; only the zero rows for
-	// selected agents without activity are filled client-side.
-	const serverAgentTotals = useMemo(
-		() => new Map((overview?.agents ?? []).map((row) => [row.agentId, row])),
-		[overview],
-	)
-	// Every selected agent gets a row, zero-filled when it had no activity, so the
-	// breakdown always mirrors the filter selection.
-	const breakdownAgents = useMemo(
-		() =>
-			selectedLines
-				.map((line) => {
-					const row = serverAgentTotals.get(line.id)
-					return {
-						...line,
-						conversations: row?.conversations ?? 0,
-						messages: row?.messages ?? 0,
-						tokens: row ? row.inputTokens + row.outputTokens : 0,
-					}
-				})
-				.toSorted((left, right) => left.name.localeCompare(right.name)),
-		[selectedLines, serverAgentTotals],
-	)
-
 	const hasAgents = (allAgents?.length ?? 0) > 0
-	const rangeIsEmpty =
-		stats !== undefined && allSelected && stats.conversations === 0 && stats.messages === 0 && stats.tokens === 0
 
-	if (error?.status === FORBIDDEN_STATUS || agentsQuery.error?.status === FORBIDDEN_STATUS) {
+	if (statsQuery.error ?? agentsQuery.error) {
 		return (
-			<div className="space-y-6">
-				<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
-				<AccessDenied />
-			</div>
-		)
-	}
-
-	if (error || agentsQuery.error) {
-		return (
-			<div className="space-y-6">
-				<PageHeader title={t("dashboard.heading")} description={t("dashboard.subheading")} />
-				<ProblemAlert
-					error={error ?? agentsQuery.error}
-					fallback={t("dashboard.loadFailed")}
-					onRetry={() => {
-						void statsQuery.refetch()
-						void agentsQuery.refetch()
-					}}
-				/>
-			</div>
+			<DashboardFailure
+				agentsError={agentsQuery.error}
+				onRetry={() => {
+					void statsQuery.refetch()
+					void agentsQuery.refetch()
+				}}
+				statsError={statsQuery.error}
+			/>
 		)
 	}
 
@@ -412,38 +481,34 @@ export function DashboardIndexPage({
 
 			<ProviderNoticeBanner />
 
-			<ProblemAlert message={failure?.message} onRetry={failure?.retryable ? () => void create() : undefined} />
+			<DashboardCreationAlert create={() => void create()} failure={failure} />
 
-			{isLoading || agentsQuery.isLoading || !overview || !stats ? (
-				<StatsSkeleton label={t("dashboard.loading")} />
-			) : !hasAgents ? (
-				<NoAgentsState canCreate={canCreateAgent} pending={pending} onCreate={() => void create()} />
-			) : (
-				<>
-					<DashboardFilters
+			<DashboardState
+				canCreateAgent={canCreateAgent}
+				create={() => void create()}
+				hasAgents={hasAgents}
+				isLoading={isLoading || agentsQuery.isLoading}
+				overview={overview}
+				pending={pending}
+				stats={stats}
+			>
+				{(readyOverview, readyStats) => (
+					<DashboardReady
 						agentLines={agentLines}
-						selectedIds={selectedIds}
+						breakdownAgents={breakdownAgents}
+						dailyPoints={dailyPoints}
 						days={days}
-						updatedAt={updatedAt}
-						onSelectionChange={setSelection}
 						onRangeChange={setRange}
+						onSelectionChange={setSelection}
+						overview={readyOverview}
+						rangeIsEmpty={rangeIsEmpty}
+						selectedIds={selectedIds}
+						selectedLines={selectedLines}
+						stats={readyStats}
+						updatedAt={updatedAt}
 					/>
-					{selectedIds.length === 0 ? (
-						<p className="text-muted-foreground">{t("dashboard.noAgentsSelected")}</p>
-					) : rangeIsEmpty ? (
-						<RangeEmptyState days={days} onShowAllTime={() => setRange("all")} />
-					) : (
-						<DashboardUsage
-							overview={overview}
-							stats={stats}
-							selectedIds={selectedIds}
-							selectedLines={selectedLines}
-							dailyPoints={dailyPoints}
-							breakdownAgents={breakdownAgents}
-						/>
-					)}
-				</>
-			)}
+				)}
+			</DashboardState>
 		</div>
 	)
 }

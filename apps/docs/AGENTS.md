@@ -11,7 +11,7 @@
 - `content/docs` is canonical. `meta.json` controls navigation order.
 - `llms.txt`, `llms-full.txt`, `/<slug>.md`, `/problems.md`, and `/api/mcp` are generated from source. Do not edit them by hand.
 - `src/lib/markdown.ts` owns `getPageMarkdownUrl` and `decodeMarkdownUrl`; `src/routes/{$}[.]md.ts` serves the raw Markdown route.
-- `src/routes/$.tsx` owns per-page metadata, the canonical link, the Markdown alternate, and page actions.
+- `src/lib/doc-metadata.ts` builds per-page metadata, the canonical link, and the Markdown alternate. `src/routes/$.tsx` supplies loader data and page actions.
 - When adding a page, add it to `content/docs/meta.json` and link it from `index.mdx`.
 - Run `bun run test` after changing the problem catalog.
 

@@ -23,7 +23,7 @@ import { Skeleton } from "@talqo/ui/components/skeleton"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { type FieldErrors, useForm, type UseFormRegister } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
@@ -62,6 +62,40 @@ function RolesRow() {
 						<p className="text-muted-foreground text-sm">{t("account.noRoles")}</p>
 					)}
 				</div>
+			)}
+		</div>
+	)
+}
+
+function UsernameField({
+	register,
+	errors,
+}: {
+	register: UseFormRegister<UsernameFormValues>
+	errors: FieldErrors<UsernameFormValues>
+}) {
+	const { t } = useTranslation()
+	const invalid = Boolean(errors.username)
+
+	return (
+		<div className="space-y-2">
+			<Label htmlFor="account-username">{t("account.username")}</Label>
+			<Input
+				id="account-username"
+				autoComplete="username"
+				aria-describedby={
+					invalid ? "account-username-description account-username-error" : "account-username-description"
+				}
+				aria-invalid={invalid ? true : undefined}
+				{...register("username")}
+			/>
+			<p id="account-username-description" className="text-muted-foreground text-xs">
+				{t("account.usernameDescription")}
+			</p>
+			{invalid && (
+				<p id="account-username-error" className="text-destructive text-xs" role="alert">
+					{t("account.usernameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
+				</p>
 			)}
 		</div>
 	)
@@ -110,26 +144,7 @@ function UsernameForm({ username }: { username: string }) {
 
 	return (
 		<form className="space-y-4 border-t pt-6" onSubmit={handleSubmit(onValid, () => setFocus("username"))}>
-			<div className="space-y-2">
-				<Label htmlFor="account-username">{t("account.username")}</Label>
-				<Input
-					id="account-username"
-					autoComplete="username"
-					aria-describedby={
-						errors.username ? "account-username-description account-username-error" : "account-username-description"
-					}
-					aria-invalid={errors.username ? true : undefined}
-					{...register("username")}
-				/>
-				<p id="account-username-description" className="text-muted-foreground text-xs">
-					{t("account.usernameDescription")}
-				</p>
-				{errors.username && (
-					<p id="account-username-error" className="text-destructive text-xs" role="alert">
-						{t("account.usernameInvalid", { min: USERNAME_MIN_LENGTH, max: USERNAME_MAX_LENGTH })}
-					</p>
-				)}
-			</div>
+			<UsernameField register={register} errors={errors} />
 			{serverError && (
 				<p className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm" role="alert">
 					{serverError}

@@ -1,3 +1,5 @@
+import type { ReservedSql } from "postgres"
+
 import { env } from "@/config/env.ts"
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
@@ -131,13 +133,17 @@ async function list(agentId: string): Promise<StoredFile[]> {
 	return files.toSorted((a, b) => a.name.localeCompare(b.name))
 }
 
+function isFileMissing(error: unknown): boolean {
+	return (error as NodeJS.ErrnoException).code === "ENOENT"
+}
+
 async function listAgentDirectories(): Promise<string[]> {
 	try {
 		const entries = await readdir(UPLOAD_DIR, { withFileTypes: true })
 		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") return []
-		throw error
+		if (!isFileMissing(error)) throw error
+		return []
 	}
 }
 
@@ -203,8 +209,8 @@ async function remove(agentId: string, name: string): Promise<void> {
 	try {
 		await unlink(join(agentDir(agentId), name))
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new FileNotFoundError(`File ${name} not found`)
-		throw error
+		if (!isFileMissing(error)) throw error
+		throw new FileNotFoundError(`File ${name} not found`)
 	}
 }
 
@@ -287,14 +293,18 @@ export async function searchKnowledge(agentId: string, text: string, signal?: Ab
 	return repository.search(agentId, await operation.embed(text, signal), operation.key, RETRIEVAL_TOP_K)
 }
 
+async function recoverAgentUploads(agentId: string): Promise<void> {
+	try {
+		await Promise.all((await list(agentId)).map((file) => repository.enqueue(agentId, file.name)))
+	} catch (error) {
+		if (!isForeignKeyViolation(error)) throw error
+	}
+}
+
 async function recoverUploads(): Promise<void> {
 	// Enqueue one agent at a time to avoid flooding the database.
 	for (const agentId of await listAgentDirectories()) {
-		try {
-			await Promise.all((await list(agentId)).map((file) => repository.enqueue(agentId, file.name)))
-		} catch (error) {
-			if (!isForeignKeyViolation(error)) throw error
-		}
+		await recoverAgentUploads(agentId)
 	}
 }
 
@@ -331,73 +341,111 @@ async function convert(job: repository.Job): Promise<string[]> {
 	}
 }
 
-export async function runIngestion(): Promise<void> {
-	const connection = await (await import("@/db/client.ts")).sql.reserve()
-	let locked = false
+type WorkerConnection = ReservedSql
+type EmbeddingOperation = Awaited<ReturnType<typeof aiProvider.prepareEmbeddingOperation>>
+type IngestionDependencies = Parameters<typeof processPendingFiles<repository.Job>>[0]
+
+async function acquireWorkerLock(connection: WorkerConnection): Promise<boolean> {
+	const result = await connection<
+		{ acquired: boolean }[]
+	>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY.toString()}::bigint) AS acquired`
+	return result[0]?.acquired ?? false
+}
+
+async function unlockWorker(connection: WorkerConnection): Promise<void> {
+	await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY.toString()}::bigint)`
+}
+
+async function currentEmbeddingKey(): Promise<string | undefined> {
 	try {
-		const result = await connection<
-			{ acquired: boolean }[]
-		>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY.toString()}::bigint) AS acquired`
-		locked = result[0]?.acquired ?? false
-		if (!locked) return
-		await repository.recover()
-		await reconcileDanglingRows()
-		await recoverUploads()
-		while (true) {
+		return (await aiProvider.prepareEmbeddingOperation()).key
+	} catch (error) {
+		if (error instanceof aiProvider.UnusableConfigurationError) return undefined
+		throw error
+	}
+}
+
+function ingestionDependencies(model: EmbeddingOperation, connection: WorkerConnection): IngestionDependencies {
+	return {
+		claim: async () => {
+			await connection`SELECT 1`
+			return repository.claim(model.key)
+		},
+		convert,
+		embed: async (text) => {
 			await connection`SELECT 1`
 			try {
-				const model = await aiProvider.prepareEmbeddingOperation({ timeoutMs: EMBEDDING_TIMEOUT_MS })
-				await repository.reindexChanged(model.key)
-				await processPendingFiles({
-					claim: async () => {
-						await connection`SELECT 1`
-						return repository.claim(model.key)
-					},
-					convert,
-					embed: async (text) => {
-						await connection`SELECT 1`
-						try {
-							return await model.embed(text)
-						} catch (error) {
-							throw new IngestionError("provider-error", {
-								cause: error,
-							})
-						}
-					},
-					complete: async (job, chunks) => {
-						await connection`SELECT 1`
-						let currentKey: string
-						try {
-							currentKey = (await aiProvider.prepareEmbeddingOperation()).key
-						} catch (error) {
-							if (error instanceof aiProvider.UnusableConfigurationError) {
-								await repository.requeue(job)
-								return
-							}
-							throw error
-						}
-						if (currentKey !== model.key) {
-							await repository.requeue(job)
-							return
-						}
-						await repository.complete(job, model.key, chunks)
-					},
-					fail: async (job, error) => {
-						console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, error })
-						await repository.fail(job, error instanceof IngestionError ? error.reason : "unknown")
-					},
-				})
+				return await model.embed(text)
 			} catch (error) {
-				if (!(error instanceof aiProvider.UnusableConfigurationError))
-					console.error("agent-file.worker.failed", { error })
+				throw new IngestionError("provider-error", {
+					cause: error,
+				})
 			}
-			await Bun.sleep(WORKER_INTERVAL_MS)
-		}
+		},
+		complete: async (job, chunks) => {
+			await connection`SELECT 1`
+			const currentKey = await currentEmbeddingKey()
+			if (currentKey !== model.key) {
+				await repository.requeue(job)
+				return
+			}
+			await repository.complete(job, model.key, chunks)
+		},
+		fail: async (job, error) => {
+			console.error("agent-file.embedding.failed", { agentId: job.agentId, file: job.name, error })
+			await repository.fail(job, error instanceof IngestionError ? error.reason : "unknown")
+		},
+	}
+}
+
+function logWorkerFailure(error: unknown): void {
+	if (!(error instanceof aiProvider.UnusableConfigurationError)) console.error("agent-file.worker.failed", { error })
+}
+
+async function runIngestionBatch(connection: WorkerConnection): Promise<void> {
+	const model = await aiProvider.prepareEmbeddingOperation({ timeoutMs: EMBEDDING_TIMEOUT_MS })
+	await repository.reindexChanged(model.key)
+	await processPendingFiles(ingestionDependencies(model, connection))
+}
+
+async function processIngestionBatch(connection: WorkerConnection): Promise<void> {
+	try {
+		await runIngestionBatch(connection)
+	} catch (error) {
+		logWorkerFailure(error)
+	}
+}
+
+async function runIngestionLoop(connection: WorkerConnection): Promise<void> {
+	// Each batch finishes before the next poll.
+	while (true) {
+		await connection`SELECT 1`
+		await processIngestionBatch(connection)
+		await Bun.sleep(WORKER_INTERVAL_MS)
+	}
+}
+
+async function recoverAndRunWorker(connection: WorkerConnection): Promise<void> {
+	await repository.recover()
+	await reconcileDanglingRows()
+	await recoverUploads()
+	await runIngestionLoop(connection)
+}
+
+async function runWorker(connection: WorkerConnection): Promise<void> {
+	if (!(await acquireWorkerLock(connection))) return
+	try {
+		await recoverAndRunWorker(connection)
 	} finally {
-		try {
-			if (locked) await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY.toString()}::bigint)`
-		} finally {
-			connection.release()
-		}
+		await unlockWorker(connection)
+	}
+}
+
+export async function runIngestion(): Promise<void> {
+	const connection = await (await import("@/db/client.ts")).sql.reserve()
+	try {
+		await runWorker(connection)
+	} finally {
+		connection.release()
 	}
 }

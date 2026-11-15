@@ -41,6 +41,21 @@ function network(address: ipaddr.IPv4 | ipaddr.IPv6, ipv6Prefix: number): string
 	return `${ipaddr.IPv6.networkAddressFromCIDR(`${address.toString()}/${ipv6Prefix}`).toString()}/${ipv6Prefix}`
 }
 
+function forwardedAddress(
+	address: ipaddr.IPv4 | ipaddr.IPv6,
+	forwardedFor: string,
+	trustedProxyCidrs: readonly string[],
+): ipaddr.IPv4 | ipaddr.IPv6 | null {
+	const chain = forwardedFor.split(",").map(parseAddress)
+	for (let index = chain.length - 1; index >= 0; index -= 1) {
+		if (!trusted(address, trustedProxyCidrs)) break
+		const next = chain[index]
+		if (!next) return null
+		address = next
+	}
+	return address
+}
+
 export function resolveClientNetwork(
 	peerAddress: string | undefined,
 	forwardedFor: string | undefined,
@@ -51,13 +66,9 @@ export function resolveClientNetwork(
 	try {
 		let address = parseAddress(peerAddress)
 		if (forwardedFor && trusted(address, trustedProxyCidrs)) {
-			const chain = forwardedFor.split(",").map(parseAddress)
-			for (let index = chain.length - 1; index >= 0; index -= 1) {
-				if (!trusted(address, trustedProxyCidrs)) break
-				const next = chain[index]
-				if (!next) return null
-				address = next
-			}
+			const forwarded = forwardedAddress(address, forwardedFor, trustedProxyCidrs)
+			if (!forwarded) return null
+			address = forwarded
 		}
 		return network(address, ipv6Prefix)
 	} catch {

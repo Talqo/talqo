@@ -23,6 +23,13 @@ type ModelConfiguration = {
 	settings: Record<string, string>
 }
 
+type ModelBuilderContext = {
+	baseUrl?: string
+	configuration: ModelConfiguration
+	credentials: Record<string, string>
+	defaultAzureCredential: () => DefaultAzureCredential
+}
+
 let defaultAzureCredential: DefaultAzureCredential | undefined
 
 function azureTokenProvider(credentialFactory: () => DefaultAzureCredential): () => Promise<string> {
@@ -32,6 +39,116 @@ function azureTokenProvider(credentialFactory: () => DefaultAzureCredential): ()
 		if (!token) throw new Error("Azure deployment identity did not provide an access token")
 		return token.token
 	}
+}
+
+function selectModel(
+	configuration: ModelConfiguration,
+	textModel: () => LanguageModelV4,
+	embeddingModel: () => EmbeddingModelV4,
+): LanguageModelV4 | EmbeddingModelV4 {
+	return configuration.role === "text" ? textModel() : embeddingModel()
+}
+
+function openAiModel({ configuration, credentials }: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	const provider = createOpenAI({ apiKey: credentials.apiKey, project: configuration.settings.project })
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embedding(configuration.modelId),
+	)
+}
+
+function anthropicModel({ configuration, credentials }: ModelBuilderContext): LanguageModelV4 {
+	return createAnthropic({ apiKey: credentials.apiKey })(configuration.modelId)
+}
+
+function googleModel({ configuration, credentials }: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	const provider = createGoogle({ apiKey: credentials.apiKey })
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embedding(configuration.modelId),
+	)
+}
+
+function mistralModel({
+	configuration,
+	credentials,
+	baseUrl,
+}: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	const provider = createMistral({ apiKey: credentials.apiKey, baseURL: baseUrl })
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embedding(configuration.modelId),
+	)
+}
+
+function azureModel({
+	configuration,
+	credentials,
+	baseUrl,
+	defaultAzureCredential: credentialFactory,
+}: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	if (!baseUrl) throw new Error("Azure base URL is required")
+	const provider = createAzure({
+		baseURL: baseUrl,
+		apiVersion: configuration.settings.apiVersion,
+		...(configuration.authMode === "static"
+			? { apiKey: credentials.apiKey }
+			: { tokenProvider: azureTokenProvider(credentialFactory) }),
+	})
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embedding(configuration.modelId),
+	)
+}
+
+function bedrockModel({ configuration, credentials }: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	const provider = createAmazonBedrock({
+		region: configuration.settings.region,
+		...(configuration.authMode === "static"
+			? {
+					accessKeyId: credentials.accessKeyId,
+					secretAccessKey: credentials.secretAccessKey,
+					sessionToken: credentials.sessionToken,
+				}
+			: {}),
+	})
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embedding(configuration.modelId),
+	)
+}
+
+function openAiCompatibleModel({
+	configuration,
+	credentials,
+	baseUrl,
+}: ModelBuilderContext): LanguageModelV4 | EmbeddingModelV4 {
+	if (!baseUrl) throw new Error("OpenAI-compatible base URL is required")
+	const provider = createOpenAICompatible({
+		name: "openai-compatible",
+		baseURL: baseUrl,
+		apiKey: credentials.apiKey,
+	})
+	return selectModel(
+		configuration,
+		() => provider(configuration.modelId),
+		() => provider.embeddingModel(configuration.modelId),
+	)
+}
+
+const MODEL_BUILDERS: Record<AiProviderId, (context: ModelBuilderContext) => LanguageModelV4 | EmbeddingModelV4> = {
+	openai: openAiModel,
+	anthropic: anthropicModel,
+	google: googleModel,
+	mistral: mistralModel,
+	azure: azureModel,
+	"amazon-bedrock": bedrockModel,
+	"openai-compatible": openAiCompatibleModel,
 }
 
 export function createProviderModel(
@@ -45,57 +162,11 @@ export function createProviderModel(
 		throw new Error(`${configuration.providerId} does not support ${configuration.role}`)
 	}
 
-	const credentials = configuration.credentials ?? {}
 	const configuredBaseUrl = configuration.settings.baseURL
-	const validatedBaseUrl = configuredBaseUrl ? assertHttpBaseUrl(configuredBaseUrl).toString() : undefined
-	let provider
-	switch (configuration.providerId) {
-		case "openai":
-			provider = createOpenAI({ apiKey: credentials.apiKey, project: configuration.settings.project })
-			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
-		case "anthropic":
-			return createAnthropic({ apiKey: credentials.apiKey })(configuration.modelId)
-		case "google":
-			provider = createGoogle({ apiKey: credentials.apiKey })
-			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
-		case "mistral":
-			provider = createMistral({ apiKey: credentials.apiKey, baseURL: validatedBaseUrl })
-			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
-		case "azure":
-			if (!validatedBaseUrl) throw new Error("Azure base URL is required")
-			provider = createAzure({
-				baseURL: validatedBaseUrl,
-				apiVersion: configuration.settings.apiVersion,
-				...(configuration.authMode === "static"
-					? { apiKey: credentials.apiKey }
-					: { tokenProvider: azureTokenProvider(dependencies.defaultAzureCredential) }),
-			})
-			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
-		case "amazon-bedrock":
-			provider = createAmazonBedrock({
-				region: configuration.settings.region,
-				...(configuration.authMode === "static"
-					? {
-							accessKeyId: credentials.accessKeyId,
-							secretAccessKey: credentials.secretAccessKey,
-							sessionToken: credentials.sessionToken,
-						}
-					: {}),
-			})
-			return configuration.role === "text" ? provider(configuration.modelId) : provider.embedding(configuration.modelId)
-		case "openai-compatible":
-			if (!validatedBaseUrl) throw new Error("OpenAI-compatible base URL is required")
-			provider = createOpenAICompatible({
-				name: "openai-compatible",
-				baseURL: validatedBaseUrl,
-				apiKey: credentials.apiKey,
-			})
-			return configuration.role === "text"
-				? provider(configuration.modelId)
-				: provider.embeddingModel(configuration.modelId)
-		default: {
-			const exhausted: never = configuration.providerId
-			throw new Error(`Unsupported AI provider: ${String(exhausted)}`)
-		}
-	}
+	return MODEL_BUILDERS[configuration.providerId]({
+		configuration,
+		credentials: configuration.credentials ?? {},
+		baseUrl: configuredBaseUrl ? assertHttpBaseUrl(configuredBaseUrl).toString() : undefined,
+		defaultAzureCredential: dependencies.defaultAzureCredential,
+	})
 }

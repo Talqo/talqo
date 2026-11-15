@@ -2,6 +2,7 @@ import type { AiConfigurationFormValues } from "@/features/ai-configuration/ai-c
 import type { DiscoveryContext } from "@/features/ai-configuration/discovery-readiness.ts"
 import type {
 	AiProviderAuthMode,
+	AiProviderConfiguration,
 	AiProviderId,
 	ProviderMetadata,
 	RedactedRoleConfiguration,
@@ -45,7 +46,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
 import { LockIcon, PencilLineIcon } from "lucide-react"
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
-import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form"
+import {
+	type Control,
+	Controller,
+	type ControllerRenderProps,
+	type FieldErrors,
+	useForm,
+	useWatch,
+} from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 type RoleValue = RoleConfigurationInput & {
@@ -493,37 +501,598 @@ function RoleFields(props: {
 	)
 }
 
-export function AiConfigurationPage() {
-	const { t } = useTranslation()
-	const providersQuery = useListAiProviders()
-	const configurationQuery = useGetAiProviderConfiguration()
-	const save = useSaveAiProviderConfiguration()
-	const [saved, setSaved] = useState(false)
-	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
-	const [missingField, setMissingField] = useState<MissingField | null>(null)
+type SaveMutation = ReturnType<typeof useSaveAiProviderConfiguration>
+
+function findMissingField(
+	values: AiConfigurationFormValues,
+	providers: ProviderMetadata[],
+	storedText: RedactedRoleConfiguration | null,
+	storedEmbedding: RedactedRoleConfiguration | null,
+): MissingField | undefined {
+	for (const role of ["text", "embedding"] as const) {
+		if (role === "embedding" && values.embedding.credentialSource === "text") continue
+		const missing = missingRoleField(role, values, providers, role === "text" ? storedText : storedEmbedding)
+		if (missing) return missing
+	}
+	return undefined
+}
+
+function missingRoleField(
+	role: "text" | "embedding",
+	values: AiConfigurationFormValues,
+	providers: ProviderMetadata[],
+	stored: RedactedRoleConfiguration | null,
+): MissingField | undefined {
+	const roleValues = values[role]
+	const provider = providers.find((item) => item.id === roleValues.providerId)
+	if (!provider) return undefined
+	const missingSetting = provider.requiredSettingFields.find((field) => !roleValues.settings[field]?.trim())
+	if (missingSetting) return { field: missingSetting, kind: "setting", role }
+	if (roleValues.authMode !== "static") return undefined
+	const storedCredentials =
+		stored !== null &&
+		stored.hasCredentials &&
+		stored.providerId === provider.id &&
+		stored.authMode === roleValues.authMode
+	const drafting = Object.values(roleValues.credentials).some((credential) => credential.trim())
+	if (storedCredentials && !drafting) return undefined
+	const missingCredential = provider.requiredCredentialFields.find((field) => !roleValues.credentials[field]?.trim())
+	return missingCredential ? { field: missingCredential, kind: "credential", role } : undefined
+}
+
+function embeddingChanged(
+	stored: RedactedRoleConfiguration | null,
+	values: AiConfigurationFormValues["embedding"],
+): boolean {
+	if (!stored) return false
+	return (
+		stored.providerId !== values.providerId ||
+		stored.modelId !== values.modelId ||
+		settingsKey(stored.settings) !== settingsKey(values.settings)
+	)
+}
+
+function embeddingForTextChange(
+	next: RoleValue,
+	embedding: AiConfigurationFormValues["embedding"],
+	providers: ProviderMetadata[],
+	embeddingProviders: ProviderMetadata[],
+): AiConfigurationFormValues["embedding"] | undefined {
+	if (embedding.credentialSource !== "text") return undefined
+	const nextProvider = providers.find((provider) => provider.id === next.providerId)
+	if (nextProvider?.roles.includes("embedding")) {
+		return {
+			...embedding,
+			providerId: next.providerId,
+			authMode: next.authMode,
+			settings: next.settings,
+			credentials: next.credentials,
+		}
+	}
+	const fallback = embeddingProviders[0]
+	if (!fallback) return undefined
+	return {
+		providerId: fallback.id,
+		modelId: embedding.modelId,
+		authMode: fallback.authModes[0] ?? "static",
+		settings: {},
+		credentials: {},
+		credentialSource: "separate",
+	}
+}
+
+function useConfigurationForm(configuration: AiProviderConfiguration | undefined) {
 	const drafts = useRef(new Map<string, RoleValue>())
-	const {
-		control,
-		handleSubmit,
-		reset,
-		setValue,
-		getValues,
-		formState: { errors, isDirty },
-	} = useForm<AiConfigurationFormValues>({
+	const form = useForm<AiConfigurationFormValues>({
 		resolver: zodResolver(aiConfigurationFormSchema),
 		defaultValues: configurationToFormValues({ revision: 0, health: "unconfigured", text: null, embedding: null }),
 	})
-	const dirtyGuard = useDirtyFormGuard(isDirty)
-
-	// Depend on the response body, not the envelope: its `headers` makes the envelope new on every refetch.
-	const configuration = configurationQuery.data?.data
+	const dirtyGuard = useDirtyFormGuard(form.formState.isDirty)
+	const { reset } = form
 	useEffect(() => {
 		if (!configuration) return
 		drafts.current.clear()
 		reset(configurationToFormValues(configuration))
 	}, [configuration, reset])
+	const watchedTextRole = useWatch({ control: form.control, name: "text" })
+	return { ...form, drafts, dirtyGuard, watchedTextRole }
+}
 
-	const watchedTextRole = useWatch({ control, name: "text" })
+function useConfigurationSave(props: {
+	providers: ProviderMetadata[]
+	storedText: RedactedRoleConfiguration | null
+	storedEmbedding: RedactedRoleConfiguration | null
+	save: SaveMutation
+	refetch: () => Promise<unknown>
+}) {
+	const { providers, storedText, storedEmbedding, save, refetch } = props
+	const [saved, setSaved] = useState(false)
+	const [pendingSave, setPendingSave] = useState<AiConfigurationFormValues | null>(null)
+	const [missingField, setMissingField] = useState<MissingField | null>(null)
+
+	async function saveConfiguration(values: AiConfigurationFormValues) {
+		setSaved(false)
+		try {
+			await save.mutateAsync({ data: buildSaveInput(values) })
+			setPendingSave(null)
+			setSaved(true)
+			await refetch()
+		} catch {
+			// The mutation supplies the visible error; retain the draft for another attempt.
+		}
+	}
+
+	async function onValid(values: AiConfigurationFormValues) {
+		const missing = findMissingField(values, providers, storedText, storedEmbedding)
+		if (missing) {
+			setMissingField(missing)
+			document.getElementById(`${missing.role}-${missing.field}`)?.focus()
+			return
+		}
+		setMissingField(null)
+		if (embeddingChanged(storedEmbedding, values.embedding)) {
+			setPendingSave(values)
+			return
+		}
+		await saveConfiguration(values)
+	}
+
+	return { saved, pendingSave, setPendingSave, missingField, onValid, saveConfiguration }
+}
+
+type TextRoleCardProps = {
+	control: Control<AiConfigurationFormValues>
+	errors: FieldErrors<AiConfigurationFormValues>
+	providers: ProviderMetadata[]
+	stored: RedactedRoleConfiguration | null
+	drafts: RefObject<Map<string, RoleValue>>
+	credentialRevision: number
+	missing?: MissingField
+	onTextChange: (value: RoleValue) => void
+}
+
+function TextRoleCard(props: TextRoleCardProps) {
+	const { t } = useTranslation()
+	const { control, errors, providers, stored, drafts, credentialRevision, missing, onTextChange } = props
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle level={2}>{t("aiConfiguration.textTitle")}</CardTitle>
+				<CardDescription>{t("aiConfiguration.textDescription")}</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<Controller
+					control={control}
+					name="text"
+					render={({ field }) => (
+						<RoleFields
+							modelRole="text"
+							value={field.value}
+							onChange={(next) => {
+								field.onChange(next)
+								onTextChange(next)
+							}}
+							providers={providers}
+							stored={stored}
+							drafts={drafts}
+							credentialRevision={credentialRevision}
+							invalid={Boolean(errors.text?.modelId)}
+							missing={missing?.role === "text" ? missing : undefined}
+						/>
+					)}
+				/>
+			</CardContent>
+		</Card>
+	)
+}
+
+type EmbeddingSourceFieldsProps = {
+	field: ControllerRenderProps<AiConfigurationFormValues, "embedding">
+	textRole: AiConfigurationFormValues["text"]
+	textProvider: ProviderMetadata | undefined
+	embeddingProviders: ProviderMetadata[]
+	errors: FieldErrors<AiConfigurationFormValues>
+	storedText: RedactedRoleConfiguration | null
+	storedEmbedding: RedactedRoleConfiguration | null
+	drafts: RefObject<Map<string, RoleValue>>
+	credentialRevision: number
+	missing?: MissingField
+}
+
+type EmbeddingSourceChange = Pick<EmbeddingSourceFieldsProps, "field" | "textRole" | "textProvider" | "drafts">
+
+function changeEmbeddingSource(next: string, props: EmbeddingSourceChange) {
+	const { field, textRole, textProvider, drafts } = props
+	if (next === "same") {
+		if (!textProvider) return
+		drafts.current.set("embedding:separate", {
+			...field.value,
+			settings: { ...field.value.settings },
+			credentials: { ...field.value.credentials },
+		})
+		field.onChange({
+			...field.value,
+			providerId: textRole.providerId,
+			authMode: textRole.authMode,
+			settings: textRole.settings,
+			credentials: textRole.credentials,
+			credentialSource: "text",
+		})
+		return
+	}
+	const sameProvider = field.value.credentialSource === "text"
+	if (sameProvider) {
+		const draft = drafts.current.get("embedding:separate")
+		if (draft) {
+			field.onChange({
+				...draft,
+				settings: { ...draft.settings },
+				credentials: { ...draft.credentials },
+			})
+			return
+		}
+		field.onChange({
+			...field.value,
+			settings: {},
+			credentials: {},
+			credentialSource: "separate",
+		})
+		return
+	}
+}
+
+function SameEmbeddingTab(
+	props: Pick<EmbeddingSourceFieldsProps, "field" | "textRole" | "textProvider" | "storedText" | "errors">,
+) {
+	if (!props.textProvider) return null
+	return (
+		<TabsContent value="same">
+			<SameEmbeddingPanel
+				field={props.field}
+				textRole={props.textRole}
+				textProvider={props.textProvider}
+				stored={props.storedText}
+				invalid={Boolean(props.errors.embedding?.modelId)}
+			/>
+		</TabsContent>
+	)
+}
+
+type DifferentEmbeddingTabProps = Pick<
+	EmbeddingSourceFieldsProps,
+	"field" | "embeddingProviders" | "storedEmbedding" | "drafts" | "credentialRevision" | "errors" | "missing"
+> & { sameProvider: boolean }
+
+function DifferentEmbeddingTab(props: DifferentEmbeddingTabProps) {
+	return (
+		<TabsContent value="different">
+			{props.sameProvider ? null : (
+				<RoleFields
+					modelRole="embedding"
+					value={props.field.value}
+					onChange={props.field.onChange}
+					providers={props.embeddingProviders}
+					stored={props.storedEmbedding}
+					drafts={props.drafts}
+					credentialRevision={props.credentialRevision}
+					invalid={Boolean(props.errors.embedding?.modelId)}
+					missing={props.missing?.role === "embedding" ? props.missing : undefined}
+				/>
+			)}
+		</TabsContent>
+	)
+}
+
+function EmbeddingSourceFields(props: EmbeddingSourceFieldsProps) {
+	const { t } = useTranslation()
+	const canReuse = props.textProvider?.roles.includes("embedding") ?? false
+	const sameProvider = props.field.value.credentialSource === "text"
+	return (
+		<div className="space-y-4">
+			<Tabs
+				value={sameProvider ? "same" : "different"}
+				onValueChange={(next: string) => changeEmbeddingSource(next, props)}
+			>
+				<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>
+					<TabsTrigger value="same" disabled={!canReuse}>
+						{t("aiConfiguration.tabs.sameProvider")}
+					</TabsTrigger>
+					<TabsTrigger value="different">{t("aiConfiguration.tabs.differentProvider")}</TabsTrigger>
+				</TabsList>
+				<SameEmbeddingTab {...props} />
+				<DifferentEmbeddingTab {...props} sameProvider={sameProvider} />
+			</Tabs>
+			{!canReuse && <p className="text-muted-foreground text-xs">{t("aiConfiguration.sameProviderUnavailable")}</p>}
+		</div>
+	)
+}
+
+function SameEmbeddingPanel(props: {
+	field: ControllerRenderProps<AiConfigurationFormValues, "embedding">
+	textRole: AiConfigurationFormValues["text"]
+	textProvider: ProviderMetadata
+	stored: RedactedRoleConfiguration | null
+	invalid: boolean
+}) {
+	const { t } = useTranslation()
+	return (
+		<div className="space-y-4">
+			<p className="text-muted-foreground flex items-center gap-2 text-sm">
+				<ProviderBrand providerId={props.textProvider.id} />
+				{t("aiConfiguration.sameProviderNote")}
+			</p>
+			<ModelField
+				modelRole="embedding"
+				label={t("aiConfiguration.fields.embeddingModel")}
+				modelId={props.field.value.modelId}
+				onModelChange={(modelId) => props.field.onChange({ ...props.field.value, modelId })}
+				provider={props.textProvider}
+				value={props.textRole}
+				stored={props.stored}
+				storedCredentialRole="text"
+				invalid={props.invalid}
+			/>
+		</div>
+	)
+}
+
+type EmbeddingRoleCardProps = {
+	control: Control<AiConfigurationFormValues>
+	errors: FieldErrors<AiConfigurationFormValues>
+	providers: ProviderMetadata[]
+	embeddingProviders: ProviderMetadata[]
+	textRole: AiConfigurationFormValues["text"]
+	storedText: RedactedRoleConfiguration | null
+	storedEmbedding: RedactedRoleConfiguration | null
+	drafts: RefObject<Map<string, RoleValue>>
+	credentialRevision: number
+	missing?: MissingField
+}
+
+function EmbeddingRoleCard(props: EmbeddingRoleCardProps) {
+	const { t } = useTranslation()
+	const { control, providers, textRole, errors, ...rest } = props
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle level={2}>{t("aiConfiguration.embeddingTitle")}</CardTitle>
+				<CardDescription>{t("aiConfiguration.embeddingDescription")}</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<Controller
+					control={control}
+					name="embedding"
+					render={({ field }) => (
+						<EmbeddingSourceFields
+							field={field}
+							textRole={textRole}
+							textProvider={providers.find((provider) => provider.id === textRole.providerId)}
+							errors={errors}
+							{...rest}
+						/>
+					)}
+				/>
+			</CardContent>
+		</Card>
+	)
+}
+
+function ConfigurationFormStatus(props: {
+	errors: FieldErrors<AiConfigurationFormValues>
+	save: SaveMutation
+	saved: boolean
+	isDirty: boolean
+}) {
+	const { t } = useTranslation()
+	return (
+		<>
+			{Object.keys(props.errors).length > 0 && (
+				<p role="alert" className="text-destructive text-sm">
+					{t("aiConfiguration.validationError")}
+				</p>
+			)}
+			{props.save.isError && (
+				<p role="alert" className="text-destructive text-sm">
+					{getProblemMessage(props.save.error, t, t("aiConfiguration.saveFailed"))}
+				</p>
+			)}
+			<FormActions status={props.saved && !props.isDirty ? t("aiConfiguration.saved") : undefined}>
+				<Button type="submit" disabled={props.save.isPending || !props.isDirty}>
+					{props.save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.save")}
+				</Button>
+			</FormActions>
+		</>
+	)
+}
+
+type ConfigurationFormProps = {
+	control: Control<AiConfigurationFormValues>
+	errors: FieldErrors<AiConfigurationFormValues>
+	isDirty: boolean
+	saved: boolean
+	save: SaveMutation
+	providers: ProviderMetadata[]
+	embeddingProviders: ProviderMetadata[]
+	textRole: AiConfigurationFormValues["text"]
+	storedText: RedactedRoleConfiguration | null
+	storedEmbedding: RedactedRoleConfiguration | null
+	drafts: RefObject<Map<string, RoleValue>>
+	credentialRevision: number
+	missingField: MissingField | null
+	onTextChange: (value: RoleValue) => void
+	onSubmit: () => void
+}
+
+function ConfigurationForm(props: ConfigurationFormProps) {
+	const { t } = useTranslation()
+	const {
+		control,
+		errors,
+		isDirty,
+		saved,
+		save,
+		providers,
+		embeddingProviders,
+		textRole,
+		storedText,
+		storedEmbedding,
+		drafts,
+		credentialRevision,
+		missingField,
+		onTextChange,
+		onSubmit,
+	} = props
+	return (
+		<form
+			className="space-y-6"
+			noValidate
+			onSubmit={(event) => {
+				event.preventDefault()
+				onSubmit()
+			}}
+		>
+			<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
+			<TextRoleCard
+				control={control}
+				errors={errors}
+				providers={providers}
+				stored={storedText}
+				drafts={drafts}
+				credentialRevision={credentialRevision}
+				missing={missingField?.role === "text" ? missingField : undefined}
+				onTextChange={onTextChange}
+			/>
+			<EmbeddingRoleCard
+				control={control}
+				errors={errors}
+				providers={providers}
+				embeddingProviders={embeddingProviders}
+				textRole={textRole}
+				storedText={storedText}
+				storedEmbedding={storedEmbedding}
+				drafts={drafts}
+				credentialRevision={credentialRevision}
+				missing={missingField?.role === "embedding" ? missingField : undefined}
+			/>
+			<ConfigurationFormStatus errors={errors} save={save} saved={saved} isDirty={isDirty} />
+		</form>
+	)
+}
+
+function ReembedDialog(props: {
+	open: boolean
+	pendingSave: AiConfigurationFormValues | null
+	save: SaveMutation
+	onClose: () => void
+	onConfirm: (values: AiConfigurationFormValues) => void
+}) {
+	const { t } = useTranslation()
+	const { save, pendingSave } = props
+	return (
+		<Dialog
+			open={props.open}
+			onOpenChange={(open) => {
+				if (!open && !save.isPending) props.onClose()
+			}}
+		>
+			<DialogContent closeLabel={t("common.close")}>
+				<DialogHeader>
+					<DialogTitle>{t("aiConfiguration.reembedTitle")}</DialogTitle>
+					<DialogDescription>{t("aiConfiguration.reembedWarning")}</DialogDescription>
+				</DialogHeader>
+				{save.isError && (
+					<p role="alert" className="text-destructive text-sm">
+						{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
+					</p>
+				)}
+				<DialogFooter>
+					<Button type="button" variant="outline" disabled={save.isPending} onClick={props.onClose}>
+						{t("aiConfiguration.reembedCancel")}
+					</Button>
+					<Button
+						type="button"
+						disabled={save.isPending}
+						onClick={() => {
+							if (pendingSave) props.onConfirm(pendingSave)
+						}}
+					>
+						{save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.reembedConfirm")}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	)
+}
+
+function AiConfigurationEditor(props: {
+	configuration: AiProviderConfiguration
+	providers: ProviderMetadata[]
+	save: SaveMutation
+	refetch: () => Promise<unknown>
+}) {
+	const { t } = useTranslation()
+	const { configuration, providers, save, refetch } = props
+	const form = useConfigurationForm(configuration)
+	const saveState = useConfigurationSave({
+		providers,
+		storedText: configuration.text,
+		storedEmbedding: configuration.embedding,
+		save,
+		refetch,
+	})
+	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
+
+	function onTextChange(next: RoleValue) {
+		const embedding = embeddingForTextChange(next, form.getValues("embedding"), providers, embeddingProviders)
+		if (embedding) form.setValue("embedding", embedding)
+	}
+
+	return (
+		<div className="space-y-6">
+			<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
+			{configuration.health === "unusable" && (
+				<p
+					role="alert"
+					className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface p-surface-padding border text-sm"
+				>
+					{t("aiConfiguration.unusableWarning")}
+				</p>
+			)}
+			<ConfigurationForm
+				control={form.control}
+				errors={form.formState.errors}
+				isDirty={form.formState.isDirty}
+				saved={saveState.saved}
+				save={save}
+				providers={providers}
+				embeddingProviders={embeddingProviders}
+				textRole={form.watchedTextRole}
+				storedText={configuration.text}
+				storedEmbedding={configuration.embedding}
+				drafts={form.drafts}
+				credentialRevision={configuration.revision}
+				missingField={saveState.missingField}
+				onTextChange={onTextChange}
+				onSubmit={form.handleSubmit(saveState.onValid, focusFirstInvalidModel)}
+			/>
+			{form.dirtyGuard}
+			<ReembedDialog
+				open={saveState.pendingSave !== null}
+				pendingSave={saveState.pendingSave}
+				save={save}
+				onClose={() => saveState.setPendingSave(null)}
+				onConfirm={(values) => void saveState.saveConfiguration(values)}
+			/>
+		</div>
+	)
+}
+
+export function AiConfigurationPage() {
+	const { t } = useTranslation()
+	const providersQuery = useListAiProviders()
+	const configurationQuery = useGetAiProviderConfiguration()
+	const save = useSaveAiProviderConfiguration()
+	const configuration = configurationQuery.data?.data
 
 	if (providersQuery.isLoading || configurationQuery.isLoading)
 		return (
@@ -547,294 +1116,12 @@ export function AiConfigurationPage() {
 			</div>
 		)
 
-	const storedEmbedding = configuration.embedding
-	const storedText = configuration.text
-	const providers = providersQuery.data.data.providers
-	const embeddingProviders = providers.filter((provider) => provider.roles.includes("embedding"))
-
-	function findMissingField(values: AiConfigurationFormValues): MissingField | undefined {
-		for (const role of ["text", "embedding"] as const) {
-			if (role === "embedding" && values.embedding.credentialSource === "text") continue
-			const roleValues = values[role]
-			const provider = providers.find((item) => item.id === roleValues.providerId)
-			if (!provider) continue
-			const missingSetting = provider.requiredSettingFields.find((field) => !roleValues.settings[field]?.trim())
-			if (missingSetting) return { field: missingSetting, kind: "setting", role }
-			if (roleValues.authMode !== "static") continue
-			const stored = role === "text" ? storedText : storedEmbedding
-			const storedCredentials =
-				stored !== null &&
-				stored.hasCredentials &&
-				stored.providerId === provider.id &&
-				stored.authMode === roleValues.authMode
-			const drafting = Object.values(roleValues.credentials).some((credential) => credential.trim())
-			if (storedCredentials && !drafting) continue
-			const missingCredential = provider.requiredCredentialFields.find(
-				(field) => !roleValues.credentials[field]?.trim(),
-			)
-			if (missingCredential) return { field: missingCredential, kind: "credential", role }
-		}
-		return undefined
-	}
-
-	async function saveConfiguration(values: AiConfigurationFormValues) {
-		setSaved(false)
-		try {
-			await save.mutateAsync({ data: buildSaveInput(values) })
-			setPendingSave(null)
-			setSaved(true)
-			await configurationQuery.refetch()
-		} catch {
-			// The mutation supplies the visible error; retain the draft for another attempt.
-		}
-	}
-
-	async function onValid(values: AiConfigurationFormValues) {
-		const missing = findMissingField(values)
-		if (missing) {
-			setMissingField(missing)
-			document.getElementById(`${missing.role}-${missing.field}`)?.focus()
-			return
-		}
-		setMissingField(null)
-		if (
-			storedEmbedding &&
-			(storedEmbedding.providerId !== values.embedding.providerId ||
-				storedEmbedding.modelId !== values.embedding.modelId ||
-				settingsKey(storedEmbedding.settings) !== settingsKey(values.embedding.settings))
-		) {
-			setPendingSave(values)
-			return
-		}
-		await saveConfiguration(values)
-	}
-
-	function onTextChange(next: RoleValue) {
-		const embedding = getValues("embedding")
-		if (embedding.credentialSource !== "text") return
-		const nextProvider = providers.find((provider) => provider.id === next.providerId)
-		if (nextProvider?.roles.includes("embedding")) {
-			setValue("embedding", {
-				...embedding,
-				providerId: next.providerId,
-				authMode: next.authMode,
-				settings: next.settings,
-				credentials: next.credentials,
-			})
-			return
-		}
-		const fallback = embeddingProviders[0]
-		if (!fallback) return
-		setValue("embedding", {
-			providerId: fallback.id,
-			modelId: embedding.modelId,
-			authMode: fallback.authModes[0] ?? "static",
-			settings: {},
-			credentials: {},
-			credentialSource: "separate",
-		})
-	}
-
 	return (
-		<div className="space-y-6">
-			<PageHeader title={t("aiConfiguration.heading")} description={t("aiConfiguration.subheading")} />
-			{configuration.health === "unusable" && (
-				<p
-					role="alert"
-					className="border-destructive/30 bg-destructive/10 text-destructive rounded-surface p-surface-padding border text-sm"
-				>
-					{t("aiConfiguration.unusableWarning")}
-				</p>
-			)}
-			<form onSubmit={handleSubmit(onValid, focusFirstInvalidModel)} className="space-y-6" noValidate>
-				<p className="text-muted-foreground text-xs">{t("common.requiredHint")}</p>
-				<Card>
-					<CardHeader>
-						<CardTitle level={2}>{t("aiConfiguration.textTitle")}</CardTitle>
-						<CardDescription>{t("aiConfiguration.textDescription")}</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Controller
-							control={control}
-							name="text"
-							render={({ field }) => (
-								<RoleFields
-									modelRole="text"
-									value={field.value}
-									onChange={(next) => {
-										field.onChange(next)
-										onTextChange(next)
-									}}
-									providers={providers}
-									stored={configuration.text}
-									drafts={drafts}
-									credentialRevision={configuration.revision}
-									invalid={Boolean(errors.text?.modelId)}
-									missing={missingField?.role === "text" ? missingField : undefined}
-								/>
-							)}
-						/>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle level={2}>{t("aiConfiguration.embeddingTitle")}</CardTitle>
-						<CardDescription>{t("aiConfiguration.embeddingDescription")}</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Controller
-							control={control}
-							name="embedding"
-							render={({ field }) => {
-								const textRole = watchedTextRole
-								const textProvider = providers.find((provider) => provider.id === textRole.providerId)
-								const canReuse = textProvider?.roles.includes("embedding") ?? false
-								const sameProvider = field.value.credentialSource === "text"
-								return (
-									<div className="space-y-4">
-										<Tabs
-											value={sameProvider ? "same" : "different"}
-											onValueChange={(next) => {
-												if (next === "same") {
-													if (!textProvider) return
-													drafts.current.set("embedding:separate", {
-														...field.value,
-														settings: { ...field.value.settings },
-														credentials: { ...field.value.credentials },
-													})
-													field.onChange({
-														...field.value,
-														providerId: textRole.providerId,
-														authMode: textRole.authMode,
-														settings: textRole.settings,
-														credentials: textRole.credentials,
-														credentialSource: "text",
-													})
-													return
-												}
-												if (sameProvider) {
-													const draft = drafts.current.get("embedding:separate")
-													if (draft) {
-														field.onChange({
-															...draft,
-															settings: { ...draft.settings },
-															credentials: { ...draft.credentials },
-														})
-														return
-													}
-													field.onChange({
-														...field.value,
-														settings: {},
-														credentials: {},
-														credentialSource: "separate",
-													})
-													return
-												}
-											}}
-										>
-											<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>
-												<TabsTrigger value="same" disabled={!canReuse}>
-													{t("aiConfiguration.tabs.sameProvider")}
-												</TabsTrigger>
-												<TabsTrigger value="different">{t("aiConfiguration.tabs.differentProvider")}</TabsTrigger>
-											</TabsList>
-											<TabsContent value="same">
-												{textProvider && (
-													<div className="space-y-4">
-														<p className="text-muted-foreground flex items-center gap-2 text-sm">
-															<ProviderBrand providerId={textProvider.id} />
-															{t("aiConfiguration.sameProviderNote")}
-														</p>
-														<ModelField
-															modelRole="embedding"
-															label={t("aiConfiguration.fields.embeddingModel")}
-															modelId={field.value.modelId}
-															onModelChange={(modelId) => field.onChange({ ...field.value, modelId })}
-															provider={textProvider}
-															value={textRole}
-															stored={configuration.text}
-															storedCredentialRole="text"
-															invalid={Boolean(errors.embedding?.modelId)}
-														/>
-													</div>
-												)}
-											</TabsContent>
-											<TabsContent value="different">
-												{sameProvider ? null : (
-													<RoleFields
-														modelRole="embedding"
-														value={field.value}
-														onChange={field.onChange}
-														providers={embeddingProviders}
-														stored={configuration.embedding}
-														drafts={drafts}
-														credentialRevision={configuration.revision}
-														invalid={Boolean(errors.embedding?.modelId)}
-														missing={missingField?.role === "embedding" ? missingField : undefined}
-													/>
-												)}
-											</TabsContent>
-										</Tabs>
-										{!canReuse && (
-											<p className="text-muted-foreground text-xs">{t("aiConfiguration.sameProviderUnavailable")}</p>
-										)}
-									</div>
-								)
-							}}
-						/>
-					</CardContent>
-				</Card>
-
-				{Object.keys(errors).length > 0 && (
-					<p role="alert" className="text-destructive text-sm">
-						{t("aiConfiguration.validationError")}
-					</p>
-				)}
-				{save.isError && (
-					<p role="alert" className="text-destructive text-sm">
-						{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
-					</p>
-				)}
-				<FormActions status={saved && !isDirty ? t("aiConfiguration.saved") : undefined}>
-					<Button type="submit" disabled={save.isPending || !isDirty}>
-						{save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.save")}
-					</Button>
-				</FormActions>
-			</form>
-			{dirtyGuard}
-			<Dialog
-				open={pendingSave !== null}
-				onOpenChange={(open) => {
-					if (!open && !save.isPending) setPendingSave(null)
-				}}
-			>
-				<DialogContent closeLabel={t("common.close")}>
-					<DialogHeader>
-						<DialogTitle>{t("aiConfiguration.reembedTitle")}</DialogTitle>
-						<DialogDescription>{t("aiConfiguration.reembedWarning")}</DialogDescription>
-					</DialogHeader>
-					{save.isError && (
-						<p role="alert" className="text-destructive text-sm">
-							{getProblemMessage(save.error, t, t("aiConfiguration.saveFailed"))}
-						</p>
-					)}
-					<DialogFooter>
-						<Button type="button" variant="outline" disabled={save.isPending} onClick={() => setPendingSave(null)}>
-							{t("aiConfiguration.reembedCancel")}
-						</Button>
-						<Button
-							type="button"
-							disabled={save.isPending}
-							onClick={() => {
-								if (pendingSave) void saveConfiguration(pendingSave)
-							}}
-						>
-							{save.isPending ? t("aiConfiguration.saving") : t("aiConfiguration.reembedConfirm")}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</div>
+		<AiConfigurationEditor
+			configuration={configuration}
+			providers={providersQuery.data.data.providers}
+			save={save}
+			refetch={configurationQuery.refetch}
+		/>
 	)
 }

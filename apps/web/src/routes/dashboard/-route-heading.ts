@@ -32,3 +32,9 @@ export function useRouteHeading(pathname: string, main: RefObject<HTMLElement | 
 		return () => observer.disconnect()
 	}, [appName, main, pathname])
 }
+
+export function useDashboardHeading(pathname: string, appName: string) {
+	const main = useRef<HTMLElement>(null)
+	useRouteHeading(pathname, main, appName)
+	return main
+}

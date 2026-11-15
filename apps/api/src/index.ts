@@ -6,37 +6,10 @@ import { createStaticResponder, resolveStaticDirs } from "./http/static.ts"
 import { stdoutWideEventLog } from "./http/wide-event-stdout.ts"
 import { runIngestion } from "./modules/knowledge-base/knowledge-base.service.ts"
 
-// Misconfiguration must fail the process at boot, not during the first request.
-const config = parseEnv(process.env)
-// Static files bypass the API app entirely so its routes stay API-only.
-const serveStatic = createStaticResponder(resolveStaticDirs())
 const WORKER_RESTART_DELAY_MS = 3_000
 const SIGNAL_EXIT_BASE = 128
 
-const server = Bun.serve({
-	fetch(request, bunServer) {
-		const peerAddress = bunServer.requestIP(request)?.address
-		if (request.method === "GET" || request.method === "HEAD") {
-			return serveStatic(request).then((response) => response ?? app.fetch(request, { peerAddress }))
-		}
-		return app.fetch(request, { peerAddress })
-	},
-	hostname: "0.0.0.0",
-	port: config.TALQO_API_PORT,
-})
-
-console.log(`API listening on http://localhost:${server.port}`)
-for (const signal of ["SIGINT", "SIGTERM"] as const) {
-	process.once(signal, () => {
-		try {
-			stdoutWideEventLog.flush()
-		} finally {
-			// 128 + signal number, the shell convention for death by signal. Re-raising is ignored when the API is PID 1.
-			process.exit(SIGNAL_EXIT_BASE + constants.signals[signal])
-		}
-	})
-}
-void (async () => {
+export async function runIngestionLoop(): Promise<never> {
 	while (true) {
 		try {
 			await runIngestion()
@@ -45,4 +18,32 @@ void (async () => {
 		}
 		await Bun.sleep(WORKER_RESTART_DELAY_MS)
 	}
-})()
+}
+
+if (import.meta.main) {
+	// Misconfiguration must fail the process at boot, not during the first request.
+	const config = parseEnv(process.env)
+	// Static files bypass the API app entirely so its routes stay API-only.
+	const serveStatic = createStaticResponder(resolveStaticDirs())
+	const server = Bun.serve({
+		fetch(request, bunServer) {
+			const peerAddress = bunServer.requestIP(request)?.address
+			return serveStatic(request).then((response) => response ?? app.fetch(request, { peerAddress }))
+		},
+		hostname: "0.0.0.0",
+		port: config.TALQO_API_PORT,
+	})
+
+	console.log(`API listening on http://localhost:${server.port}`)
+	for (const signal of ["SIGINT", "SIGTERM"] as const) {
+		process.once(signal, () => {
+			try {
+				stdoutWideEventLog.flush()
+			} finally {
+				// 128 + signal number, the shell convention for death by signal. Re-raising is ignored when the API is PID 1.
+				process.exit(SIGNAL_EXIT_BASE + constants.signals[signal])
+			}
+		})
+	}
+	void runIngestionLoop()
+}

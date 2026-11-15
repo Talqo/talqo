@@ -97,14 +97,7 @@ function toView(row: McpServerRow): McpServerView {
 	}
 }
 
-function assertValid(input: McpCreateInput): void {
-	if (!input.name.trim() || input.name.length > MCP_SERVER_NAME_MAX_LENGTH)
-		throw new InvalidMcpServerNameError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
-	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
-	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
-	if (input.transport === "stdio" && !env.TALQO_MCP_ALLOW_STDIO)
-		throw new McpStdioDisabledError("Stdio MCP servers are disabled on this deployment (TALQO_MCP_ALLOW_STDIO=false)")
-	if (input.transport !== "http") return
+function assertValidHttpConnection(input: McpHttpInput): void {
 	let url: URL
 	try {
 		url = new URL(input.url)
@@ -116,6 +109,16 @@ function assertValid(input: McpCreateInput): void {
 		const lower = name.toLowerCase()
 		if (lower.startsWith(RESERVED_HEADER_PREFIX)) throw new InvalidMcpServerError(`${name} is reserved by MCP`)
 	}
+}
+
+function assertValid(input: McpCreateInput): void {
+	if (!input.name.trim() || input.name.length > MCP_SERVER_NAME_MAX_LENGTH)
+		throw new InvalidMcpServerNameError(`Name must be 1-${MCP_SERVER_NAME_MAX_LENGTH} characters`)
+	// The name becomes part of provider tool names, whose grammars accept printable ASCII only.
+	if (!/^[\x20-\x7E]+$/.test(input.name)) throw new InvalidMcpServerNameError("Name must contain ASCII characters only")
+	if (input.transport === "stdio" && !env.TALQO_MCP_ALLOW_STDIO)
+		throw new McpStdioDisabledError("Stdio MCP servers are disabled on this deployment (TALQO_MCP_ALLOW_STDIO=false)")
+	if (input.transport === "http") assertValidHttpConnection(input)
 }
 
 /**

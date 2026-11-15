@@ -76,11 +76,24 @@ export type PendingUsageFinalization = {
 	provider: string
 }
 
-async function acquireAcceptanceLocks(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	identityKey: string,
-	networkKey: string,
-): Promise<void> {
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
+type AcceptanceInput = {
+	agentId: string
+	dailyLimit: number
+	conversationId: string
+	embedAccessVersion: number
+	embedId: string
+	estimatedInputTokens: number
+	messageText: string
+	networkHash: string
+	requestId: string
+	historyRevision: number
+	historyTailId: string | null
+	concurrencyLimit: number
+}
+
+async function acquireAcceptanceLocks(tx: Transaction, identityKey: string, networkKey: string): Promise<void> {
 	// The numeric prefixes lock identity before network so concurrent requests share one order.
 	for (const key of [`1:${identityKey}`, `2:${networkKey}`]) {
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`)
@@ -162,63 +175,185 @@ async function interruptExpiredGenerationAttempts(
 		)
 }
 
-export async function acceptGenerationAttempt(input: {
-	agentId: string
-	dailyLimit: number
-	conversationId: string
-	embedAccessVersion: number
-	embedId: string
-	estimatedInputTokens: number
-	messageText: string
-	networkHash: string
-	requestId: string
-	historyRevision: number
-	historyTailId: string | null
-	concurrencyLimit: number
-}): Promise<AcceptedGenerationAttempt> {
+async function lockValidEmbed(tx: Transaction, input: AcceptanceInput): Promise<void> {
+	const [validEmbed] = await tx
+		.select({ id: embed.id, isDisabled: embed.isDisabled })
+		.from(embed)
+		.where(
+			and(
+				eq(embed.id, input.embedId),
+				eq(embed.accessVersion, input.embedAccessVersion),
+				eq(embed.agentId, input.agentId),
+			),
+		)
+		.for("update")
+		.limit(1)
+	if (!validEmbed) throw new SessionUnauthorizedError()
+	// Row-locked check: a disable racing acceptance either lands first here or after it.
+	if (validEmbed.isDisabled) throw new EmbedDisabledError()
+}
+
+async function ensureConversation(tx: Transaction, input: AcceptanceInput): Promise<void> {
+	const [existingConversation] = await tx
+		.select()
+		.from(conversation)
+		.where(eq(conversation.id, input.conversationId))
+		.limit(1)
+	if (existingConversation) {
+		if (
+			existingConversation.embedId !== input.embedId ||
+			existingConversation.embedAccessVersion !== input.embedAccessVersion
+		) {
+			throw new SessionUnauthorizedError()
+		}
+		return
+	}
+	await tx.insert(conversation).values({
+		id: input.conversationId,
+		agentId: input.agentId,
+		embedId: input.embedId,
+		embedAccessVersion: input.embedAccessVersion,
+	})
+}
+
+function findMessagePair(messages: (typeof message.$inferSelect)[]): {
+	assistantMessage: typeof message.$inferSelect
+	userMessage: typeof message.$inferSelect
+} {
+	const userMessage = messages.find((storedMessage) => storedMessage.role === "user")
+	const assistantMessage = messages.find((storedMessage) => storedMessage.role === "assistant")
+	if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: accepted pair incomplete")
+	return { userMessage, assistantMessage }
+}
+
+async function findAcceptedDuplicate(
+	tx: Transaction,
+	input: AcceptanceInput,
+): Promise<AcceptedGenerationAttempt | undefined> {
+	const [duplicate] = await tx
+		.select()
+		.from(generationAttempt)
+		.where(
+			and(eq(generationAttempt.conversationId, input.conversationId), eq(generationAttempt.requestId, input.requestId)),
+		)
+		.limit(1)
+	if (!duplicate) return undefined
+	const { userMessage, assistantMessage } = findMessagePair(
+		await tx.select().from(message).where(eq(message.generationAttemptId, duplicate.id)),
+	)
+	if (userMessage.text !== input.messageText) throw new RequestConflictError()
+	return { generationAttempt: duplicate, userMessage, assistantMessage, duplicate: true }
+}
+
+async function assertHistoryCurrent(tx: Transaction, input: AcceptanceInput): Promise<void> {
+	const [historyState] = await tx
+		.select({ revision: conversation.revision, latestCompletedMessageId: conversation.latestCompletedMessageId })
+		.from(conversation)
+		.where(eq(conversation.id, input.conversationId))
+		.limit(1)
+	if (
+		!historyState ||
+		historyState.revision !== input.historyRevision ||
+		historyState.latestCompletedMessageId !== input.historyTailId
+	) {
+		throw new StaleHistoryRepositoryError()
+	}
+}
+
+async function conversationActiveCount(tx: Transaction, conversationId: string): Promise<number> {
+	const [row] = await tx
+		.select({ value: count() })
+		.from(generationAttempt)
+		.where(and(eq(generationAttempt.conversationId, conversationId), activeUnexpired()))
+	return row?.value ?? 0
+}
+
+async function networkActiveCount(tx: Transaction, input: AcceptanceInput): Promise<number> {
+	const [row] = await tx
+		.select({ value: count() })
+		.from(generationAttempt)
+		.innerJoin(conversation, eq(conversation.id, generationAttempt.conversationId))
+		.where(
+			and(
+				eq(conversation.agentId, input.agentId),
+				eq(generationAttempt.networkHash, input.networkHash),
+				activeUnexpired(),
+			),
+		)
+	return row?.value ?? 0
+}
+
+async function reserveDailyAllowance(tx: Transaction, input: AcceptanceInput): Promise<void> {
+	const [counter] = await tx
+		.insert(conversationDailyCounter)
+		.values({ agentId: input.agentId, networkHash: input.networkHash, day: DATABASE_DAY, count: 1 })
+		.onConflictDoUpdate({
+			target: [conversationDailyCounter.agentId, conversationDailyCounter.networkHash, conversationDailyCounter.day],
+			set: { count: sql`${conversationDailyCounter.count} + 1`, updatedAt: DATABASE_NOW },
+			setWhere: lt(conversationDailyCounter.count, input.dailyLimit),
+		})
+		.returning()
+	if (!counter) throw new DailyAllowanceExceededError()
+}
+
+async function insertAcceptedGeneration(tx: Transaction, input: AcceptanceInput): Promise<AcceptedGenerationAttempt> {
+	const generationAttemptId = crypto.randomUUID()
+	const leaseToken = crypto.randomUUID()
+	const [generationAttemptRow] = await tx
+		.insert(generationAttempt)
+		.values({
+			id: generationAttemptId,
+			conversationId: input.conversationId,
+			requestId: input.requestId,
+			estimatedInputTokens: input.estimatedInputTokens,
+			networkHash: input.networkHash,
+			leaseToken,
+			leaseExpiresAt: DATABASE_LEASE_EXPIRY,
+		})
+		.returning()
+	if (!generationAttemptRow) throw new Error("acceptGenerationAttempt: insert returned no row")
+	const [userMessage, assistantMessage] = await tx
+		.insert(message)
+		.values([
+			{
+				id: crypto.randomUUID(),
+				conversationId: input.conversationId,
+				generationAttemptId,
+				role: "user",
+				text: input.messageText,
+				outcome: "completed",
+				createdAt: DATABASE_NOW,
+			},
+			{
+				id: crypto.randomUUID(),
+				conversationId: input.conversationId,
+				generationAttemptId,
+				role: "assistant",
+				text: "",
+				outcome: "streaming",
+				createdAt: sql`now() + interval '1 millisecond'`,
+			},
+		])
+		.returning()
+	if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: insert returned no row")
+	return { generationAttempt: generationAttemptRow, userMessage, assistantMessage, duplicate: false }
+}
+
+async function assertAdmission(tx: Transaction, input: AcceptanceInput): Promise<void> {
+	if ((await conversationActiveCount(tx, input.conversationId)) > 0) throw new SessionBusyError()
+	if ((await networkActiveCount(tx, input)) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
+	await reserveDailyAllowance(tx, input)
+}
+
+export async function acceptGenerationAttempt(input: AcceptanceInput): Promise<AcceptedGenerationAttempt> {
 	return db.transaction(async (tx) => {
 		await acquireAcceptanceLocks(
 			tx,
 			`conversation:${input.conversationId}`,
 			`network:${input.agentId}:${input.networkHash}`,
 		)
-
-		const [validEmbed] = await tx
-			.select({ id: embed.id, isDisabled: embed.isDisabled })
-			.from(embed)
-			.where(
-				and(
-					eq(embed.id, input.embedId),
-					eq(embed.accessVersion, input.embedAccessVersion),
-					eq(embed.agentId, input.agentId),
-				),
-			)
-			.for("update")
-			.limit(1)
-		if (!validEmbed) throw new SessionUnauthorizedError()
-		// Row-locked check: a disable racing acceptance either lands first here or after it.
-		if (validEmbed.isDisabled) throw new EmbedDisabledError()
-
-		const [existingConversation] = await tx
-			.select()
-			.from(conversation)
-			.where(eq(conversation.id, input.conversationId))
-			.limit(1)
-		if (existingConversation) {
-			if (
-				existingConversation.embedId !== input.embedId ||
-				existingConversation.embedAccessVersion !== input.embedAccessVersion
-			) {
-				throw new SessionUnauthorizedError()
-			}
-		} else {
-			await tx.insert(conversation).values({
-				id: input.conversationId,
-				agentId: input.agentId,
-				embedId: input.embedId,
-				embedAccessVersion: input.embedAccessVersion,
-			})
-		}
+		await lockValidEmbed(tx, input)
+		await ensureConversation(tx, input)
 		await interruptExpiredGenerationAttempts(
 			tx,
 			or(
@@ -229,107 +364,11 @@ export async function acceptGenerationAttempt(input: {
 				),
 			),
 		)
-
-		const [duplicate] = await tx
-			.select()
-			.from(generationAttempt)
-			.where(
-				and(
-					eq(generationAttempt.conversationId, input.conversationId),
-					eq(generationAttempt.requestId, input.requestId),
-				),
-			)
-			.limit(1)
-		if (duplicate) {
-			const messages = await tx.select().from(message).where(eq(message.generationAttemptId, duplicate.id))
-			const userMessage = messages.find((storedMessage) => storedMessage.role === "user")
-			const assistantMessage = messages.find((storedMessage) => storedMessage.role === "assistant")
-			if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: accepted pair incomplete")
-			if (userMessage.text !== input.messageText) throw new RequestConflictError()
-			return { generationAttempt: duplicate, userMessage, assistantMessage, duplicate: true }
-		}
-		const [historyState] = await tx
-			.select({ revision: conversation.revision, latestCompletedMessageId: conversation.latestCompletedMessageId })
-			.from(conversation)
-			.where(eq(conversation.id, input.conversationId))
-			.limit(1)
-		if (
-			!historyState ||
-			historyState.revision !== input.historyRevision ||
-			historyState.latestCompletedMessageId !== input.historyTailId
-		) {
-			throw new StaleHistoryRepositoryError()
-		}
-
-		const [conversationActive] = await tx
-			.select({ value: count() })
-			.from(generationAttempt)
-			.where(and(eq(generationAttempt.conversationId, input.conversationId), activeUnexpired()))
-		if ((conversationActive?.value ?? 0) > 0) throw new SessionBusyError()
-		const [networkActive] = await tx
-			.select({ value: count() })
-			.from(generationAttempt)
-			.innerJoin(conversation, eq(conversation.id, generationAttempt.conversationId))
-			.where(
-				and(
-					eq(conversation.agentId, input.agentId),
-					eq(generationAttempt.networkHash, input.networkHash),
-					activeUnexpired(),
-				),
-			)
-		if ((networkActive?.value ?? 0) >= input.concurrencyLimit) throw new ConcurrentGenerationLimitError()
-
-		const [counter] = await tx
-			.insert(conversationDailyCounter)
-			.values({ agentId: input.agentId, networkHash: input.networkHash, day: DATABASE_DAY, count: 1 })
-			.onConflictDoUpdate({
-				target: [conversationDailyCounter.agentId, conversationDailyCounter.networkHash, conversationDailyCounter.day],
-				set: { count: sql`${conversationDailyCounter.count} + 1`, updatedAt: DATABASE_NOW },
-				setWhere: lt(conversationDailyCounter.count, input.dailyLimit),
-			})
-			.returning()
-		if (!counter) throw new DailyAllowanceExceededError()
-
-		const generationAttemptId = crypto.randomUUID()
-		const leaseToken = crypto.randomUUID()
-		const [generationAttemptRow] = await tx
-			.insert(generationAttempt)
-			.values({
-				id: generationAttemptId,
-				conversationId: input.conversationId,
-				requestId: input.requestId,
-				estimatedInputTokens: input.estimatedInputTokens,
-				networkHash: input.networkHash,
-				leaseToken,
-				leaseExpiresAt: DATABASE_LEASE_EXPIRY,
-			})
-			.returning()
-		if (!generationAttemptRow) throw new Error("acceptGenerationAttempt: insert returned no row")
-		const [userMessage, assistantMessage] = await tx
-			.insert(message)
-			.values([
-				{
-					id: crypto.randomUUID(),
-					conversationId: input.conversationId,
-					generationAttemptId,
-					role: "user",
-					text: input.messageText,
-					outcome: "completed",
-					createdAt: DATABASE_NOW,
-				},
-				{
-					id: crypto.randomUUID(),
-					conversationId: input.conversationId,
-					generationAttemptId,
-					role: "assistant",
-					text: "",
-					outcome: "streaming",
-					createdAt: sql`now() + interval '1 millisecond'`,
-				},
-			])
-			.returning()
-		if (!userMessage || !assistantMessage) throw new Error("acceptGenerationAttempt: insert returned no row")
-		return { generationAttempt: generationAttemptRow, userMessage, assistantMessage, duplicate: false }
+		const duplicate = await findAcceptedDuplicate(tx, input)
+		if (duplicate) return duplicate
+		await assertHistoryCurrent(tx, input)
+		await assertAdmission(tx, input)
+		return insertAcceptedGeneration(tx, input)
 	})
 }
 

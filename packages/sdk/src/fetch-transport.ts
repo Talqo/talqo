@@ -164,66 +164,79 @@ async function requireSuccess(response: Response, signal: AbortSignal, now: () =
 	if (!response.ok) throw await problemError(response, signal, now)
 }
 
+function isMessageReference(value: unknown): value is { id: string; createdAt: string } {
+	return isRecord(value) && typeof value.id === "string" && typeof value.createdAt === "string"
+}
+
+function parseAcceptedEvent(value: Record<string, unknown>): ChatEvent | undefined {
+	if (
+		typeof value.requestId !== "string" ||
+		typeof value.generationId !== "string" ||
+		!isMessageReference(value.userMessage) ||
+		!isMessageReference(value.assistantMessage)
+	)
+		return undefined
+	const event = {
+		version: 1,
+		type: "accepted",
+		requestId: value.requestId,
+		generationId: value.generationId,
+		userMessage: { id: value.userMessage.id, createdAt: value.userMessage.createdAt },
+		assistantMessage: { id: value.assistantMessage.id, createdAt: value.assistantMessage.createdAt },
+	} satisfies ChatEventV1
+	const { version: _version, ...result } = event
+	return result
+}
+
+function parseDeltaEvent(value: Record<string, unknown>): ChatEvent | undefined {
+	if (typeof value.assistantMessageId !== "string" || typeof value.text !== "string") return undefined
+	return { type: "delta", assistantMessageId: value.assistantMessageId, text: value.text }
+}
+
+function parseToolEvent(value: Record<string, unknown>): ChatEvent | undefined {
+	if (typeof value.serverName !== "string" || typeof value.toolName !== "string") return undefined
+	if (value.type === "tool-start") return { type: "tool-start", serverName: value.serverName, toolName: value.toolName }
+	if (!isOneOf(value.outcome, TOOL_OUTCOMES)) return undefined
+	return { type: "tool-end", serverName: value.serverName, toolName: value.toolName, outcome: value.outcome }
+}
+
+function parseTerminalEvent(value: Record<string, unknown>): ChatEvent | undefined {
+	if (!isOneOf(value.outcome, TERMINAL_OUTCOMES)) return undefined
+	return { type: "terminal", outcome: value.outcome }
+}
+
+function parseStreamError(value: Record<string, unknown>): ChatError | undefined {
+	if (!isChatErrorCode(value.code)) throw invalidResponse(HTTP_OK)
+	if (typeof value.retriable !== "boolean" || typeof value.newChatAvailable !== "boolean") {
+		throw invalidResponse(HTTP_OK)
+	}
+	if (value.retryAt !== undefined && typeof value.retryAt !== "string") return undefined
+	return {
+		code: value.code,
+		retriable: value.retriable,
+		newChatAvailable: value.newChatAvailable,
+		...(value.retryAt === undefined ? {} : { retryAt: value.retryAt }),
+	}
+}
+
+function parseErrorEvent(value: Record<string, unknown>): ChatEvent | undefined {
+	if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error)) return undefined
+	const error = parseStreamError(value.error)
+	return error === undefined ? undefined : { type: "error", outcome: value.outcome, error }
+}
+
+const EVENT_PARSERS = new Map<string, (value: Record<string, unknown>) => ChatEvent | undefined>([
+	["accepted", parseAcceptedEvent],
+	["delta", parseDeltaEvent],
+	["tool-start", parseToolEvent],
+	["tool-end", parseToolEvent],
+	["terminal", parseTerminalEvent],
+	["error", parseErrorEvent],
+])
+
 function parseChatEvent(value: unknown, eventName: string | undefined): ChatEvent | undefined {
 	if (eventName !== "chat" || !isRecord(value) || value.version !== 1) return undefined
-	if (value.type === "accepted") {
-		if (
-			typeof value.requestId !== "string" ||
-			typeof value.generationId !== "string" ||
-			!isRecord(value.userMessage) ||
-			typeof value.userMessage.id !== "string" ||
-			typeof value.userMessage.createdAt !== "string" ||
-			!isRecord(value.assistantMessage) ||
-			typeof value.assistantMessage.id !== "string" ||
-			typeof value.assistantMessage.createdAt !== "string"
-		) {
-			return undefined
-		}
-		const event = {
-			version: 1,
-			type: "accepted",
-			requestId: value.requestId,
-			generationId: value.generationId,
-			userMessage: { id: value.userMessage.id, createdAt: value.userMessage.createdAt },
-			assistantMessage: { id: value.assistantMessage.id, createdAt: value.assistantMessage.createdAt },
-		} satisfies ChatEventV1
-		const { version: _version, ...result } = event
-		return result
-	}
-	if (value.type === "delta") {
-		if (typeof value.assistantMessageId !== "string" || typeof value.text !== "string") return undefined
-		return { type: "delta", assistantMessageId: value.assistantMessageId, text: value.text }
-	}
-	if (value.type === "tool-start" || value.type === "tool-end") {
-		if (typeof value.serverName !== "string" || typeof value.toolName !== "string") return undefined
-		if (value.type === "tool-start")
-			return { type: "tool-start", serverName: value.serverName, toolName: value.toolName }
-		if (!isOneOf(value.outcome, TOOL_OUTCOMES)) return undefined
-		return { type: "tool-end", serverName: value.serverName, toolName: value.toolName, outcome: value.outcome }
-	}
-	if (value.type === "terminal") {
-		if (!isOneOf(value.outcome, TERMINAL_OUTCOMES)) return undefined
-		return { type: "terminal", outcome: value.outcome }
-	}
-	if (value.type === "error") {
-		if (!isOneOf(value.outcome, ERROR_OUTCOMES) || !isRecord(value.error)) return undefined
-		if (!isChatErrorCode(value.error.code)) throw invalidResponse(HTTP_OK)
-		if (typeof value.error.retriable !== "boolean" || typeof value.error.newChatAvailable !== "boolean") {
-			throw invalidResponse(HTTP_OK)
-		}
-		if (value.error.retryAt !== undefined && typeof value.error.retryAt !== "string") return undefined
-		return {
-			type: "error",
-			outcome: value.outcome,
-			error: {
-				code: value.error.code,
-				retriable: value.error.retriable,
-				newChatAvailable: value.error.newChatAvailable,
-				...(value.error.retryAt === undefined ? {} : { retryAt: value.error.retryAt }),
-			},
-		}
-	}
-	return undefined
+	return typeof value.type === "string" ? EVENT_PARSERS.get(value.type)?.(value) : undefined
 }
 
 export function createFetchChatTransport(options: FetchChatTransportOptions = {}): ChatTransport {
