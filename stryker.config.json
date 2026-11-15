@@ -4,6 +4,7 @@
 	"plugins": ["./node_modules/@fidasek009/stryker-mutator-bun-runner/dist/index.js"],
 	"coverageAnalysis": "perTest",
 	"concurrency": "50%",
+	"timeoutMS": 30000,
 	"mutate": [
 		"apps/api/src/**/*.ts",
 		"packages/shared/src/**/*.ts",
