@@ -89,6 +89,14 @@ describe("AgentsPage empty states", () => {
 		expect(buttons(t("agents.create")).length).toBe(2)
 	})
 
+	test("invites an agent manager to create the first agent", async () => {
+		permissions = ["agents:create"]
+		await renderPage()
+
+		expect(host.textContent).toContain(t("agents.emptyDescriptionManager"))
+		expect(buttons(t("agents.create")).length).toBe(2)
+	})
+
 	test("does not tell a reader to create an agent", async () => {
 		permissions = ["users:read"]
 		await renderPage()

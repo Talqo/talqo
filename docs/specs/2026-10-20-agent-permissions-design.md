@@ -6,11 +6,11 @@ Status: Approved (2026-10-20).
 
 Operators belong to roles. Each role receives explicit permissions on individual agents. Operators configure these permissions on the role's detail page, below its name and workspace permissions.
 
-Replace global agent permissions outright. There is no compatibility layer, automatic backfill, ownership exception, all-agents grant, inheritance, deny rule, role ordering, or direct operator grant. Admin always has full access and is the only operator who can create agents.
+Replace global agent permissions outright, except for agent creation. There is no compatibility layer, automatic backfill, ownership exception, all-agents grant, inheritance, deny rule, role ordering, or direct operator grant. Admin always has full access. Operators whose roles include agent creation can also create agents.
 
 ## Permission model
 
-Global role permissions remain `users:read`, `users:manage`, `roles:manage`, and `ai_provider:manage`. The existing admin grant remains separate and cannot be assigned through roles. There is no `agents:create` permission.
+Global role permissions are `users:read`, `users:manage`, `roles:manage`, `ai_provider:manage`, and `agents:create`. The existing admin grant remains separate and cannot be assigned through roles. An **Agent Manager** role is installed with `agents:create`.
 
 Per-agent permissions are:
 
@@ -96,7 +96,7 @@ Generate OpenAPI and both consumer artifacts from the source contracts. Do not h
 
 ## Every affected resource
 
-- Agent creation requires admin. New agents have no role grants; admin can assign access afterward.
+- Agent creation requires admin or `agents:create`. Every role with `agents:create` automatically receives `agents:manage` on each newly created agent. Existing agents and unrelated grants do not change.
 - Agent configuration and deletion use their separate scoped capabilities. Preserve the current attached-embed deletion restriction and dependent cleanup.
 - Knowledge file listing, download, and reads require configuration viewing. Upload, retry, change, and removal require editing.
 - MCP reads require configuration viewing. Creation, update, deletion, discovery, and connection actions require editing. Resolve nested resources to their owning agent before authorizing.
@@ -150,7 +150,7 @@ Use pure tests for implication expansion, scoped union, and authority comparison
 
 - One role edits Agent A and only views Agent B. Another role adds conversation access on A without leaking editing to B.
 - Statistics-only and conversation-only operators receive names and permitted content, not configuration. Editors do not automatically receive transcripts, analytics, or deletion.
-- Admin creates agents; non-admin creation fails. New agents have no inherited grants.
+- Admin and operators with `agents:create` can create agents; other non-admin creation fails. Every role with `agents:create` automatically receives management access to new agents, with no inherited grants on existing agents.
 - Grants, removals, role assignments, role deletion, password resets, and user deletion cannot exceed the caller's global or scoped authority. Check both sides of implications, including replacing editing with viewing. Concurrent management writes cannot authorize against stale grants. Self-revocation applies on the next request.
 - Direct IDs, nested resource IDs, embed reassignment, transcript reads, pagination, empty scopes, and analytics aggregates do not bypass agent boundaries. Public chat behavior remains unchanged.
 - Role replacement is atomic, deletion cascades remove grants, invalid input fails, and re-adding a removed role uses fresh authorization.

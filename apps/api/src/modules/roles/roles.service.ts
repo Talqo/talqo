@@ -13,7 +13,13 @@ import * as repo from "./roles.repository.ts"
 const INVITATION_DURATION_MS = 1000 * 60 * 60 * 24 * 7
 
 // Global role permissions; `admin` is held only through the admin grant.
-export const GRANTABLE_PERMISSIONS = ["users:read", "users:manage", "roles:manage", "ai_provider:manage"] as const
+export const GRANTABLE_PERMISSIONS = [
+	"users:read",
+	"users:manage",
+	"roles:manage",
+	"ai_provider:manage",
+	"agents:create",
+] as const
 export const AGENT_PERMISSIONS = [
 	"stats:read",
 	"conversations:read",
@@ -33,6 +39,7 @@ export const Permission = {
 	UsersManage: "users:manage",
 	RolesManage: "roles:manage",
 	AiProviderManage: "ai_provider:manage",
+	AgentsCreate: "agents:create",
 } as const satisfies Record<string, Permission>
 
 export const AgentPermission = {
@@ -256,6 +263,10 @@ function holdsScopedPermissions(
 			),
 		)
 	)
+}
+
+export async function grantNewAgentAccess(agentId: string): Promise<void> {
+	await repo.withAccessLock(() => repo.grantNewAgentAccess(agentId))
 }
 
 export async function listAgentGrantsOfRole(roleId: string): Promise<{ agentId: string; permission: string }[]> {

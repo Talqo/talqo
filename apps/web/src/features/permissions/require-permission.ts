@@ -41,6 +41,7 @@ export function accessGate(
 	if (query.isError) return "error"
 	const permissions: readonly string[] = query.data?.data.permissions ?? []
 	if (permissions.includes("admin") || permissions.includes(required)) return "open"
+	if (required === "agents:read" && permissions.includes("agents:create")) return "open"
 	if (required.startsWith("agents:") || required === "stats:read" || required === "conversations:read") {
 		if (!agents || agents.isPending) return "pending"
 		if (agents.isError) return "error"

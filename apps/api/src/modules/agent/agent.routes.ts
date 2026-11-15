@@ -34,7 +34,7 @@ export const agentRoutes = new OpenAPIHono()
 		)
 	})
 	.openapi(createAgentRoute, async (c) => {
-		const agent = await service.createAgent(c.req.valid("json"))
+		const agent = await service.createAgent(c.req.valid("json"), c.get("user").id)
 		annotate(c, { "agent.id": agent.id })
 		return c.json(agentDetailResponseSchema.parse({ agent: serialize(agent) }), HTTP_STATUS.CREATED)
 	})

@@ -73,7 +73,7 @@ export const createAgentRoute = createRoute({
 	path: "/",
 	operationId: "createAgent",
 	tags: ["Agent"],
-	...access.permission(roles.Permission.Admin),
+	...access.permission(roles.Permission.AgentsCreate),
 	request: {
 		body: { content: { "application/json": { schema: createAgentRequestSchema } }, required: true },
 	},

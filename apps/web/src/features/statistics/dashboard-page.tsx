@@ -312,7 +312,8 @@ export function DashboardIndexPage({
 		{ query: { refetchInterval: STATS_REFRESH_MS, retry: retryUnlessClientError } },
 	)
 	const agentsQuery = useListAgents({ query: { retry: retryUnlessClientError } })
-	const canCreateAgent = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
+	const currentPermissions = useGetMyPermissions().data?.data.permissions ?? []
+	const canCreateAgent = currentPermissions.includes("admin") || currentPermissions.includes("agents:create")
 
 	const { error, isLoading } = statsQuery
 	const overview = statsQuery.data?.data.overview

@@ -1319,7 +1319,8 @@
                 "users:read",
                 "users:manage",
                 "roles:manage",
-                "ai_provider:manage"
+                "ai_provider:manage",
+                "agents:create"
               ]
             }
           },
@@ -3978,7 +3979,8 @@
                           "users:read",
                           "users:manage",
                           "roles:manage",
-                          "ai_provider:manage"
+                          "ai_provider:manage",
+                          "agents:create"
                         ]
                       }
                     }
@@ -4134,7 +4136,8 @@
                                 "users:read",
                                 "users:manage",
                                 "roles:manage",
-                                "ai_provider:manage"
+                                "ai_provider:manage",
+                                "agents:create"
                               ]
                             }
                           },
@@ -4415,7 +4418,8 @@
                               "users:read",
                               "users:manage",
                               "roles:manage",
-                              "ai_provider:manage"
+                              "ai_provider:manage",
+                              "agents:create"
                             ]
                           },
                           "implies": {
@@ -4426,7 +4430,8 @@
                                 "users:read",
                                 "users:manage",
                                 "roles:manage",
-                                "ai_provider:manage"
+                                "ai_provider:manage",
+                                "agents:create"
                               ]
                             }
                           }
@@ -4580,10 +4585,11 @@
                         "users:read",
                         "users:manage",
                         "roles:manage",
-                        "ai_provider:manage"
+                        "ai_provider:manage",
+                        "agents:create"
                       ]
                     },
-                    "maxItems": 4
+                    "maxItems": 5
                   }
                 },
                 "required": [
@@ -5035,10 +5041,11 @@
                         "users:read",
                         "users:manage",
                         "roles:manage",
-                        "ai_provider:manage"
+                        "ai_provider:manage",
+                        "agents:create"
                       ]
                     },
-                    "maxItems": 4
+                    "maxItems": 5
                   }
                 },
                 "required": [

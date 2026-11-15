@@ -52,6 +52,12 @@ describe("accessGate", () => {
 		expect(accessGate("agents:read", granted)).toBe("open")
 	})
 
+	test("opens the agents page for a creator before any agents exist", () => {
+		const permissions = query({ data: { data: { permissions: ["agents:create"] } } })
+		const agents = { isPending: false, isError: false, data: { data: { agents: [] } } }
+		expect(accessGate("agents:read", permissions, agents)).toBe("open")
+	})
+
 	test("denies a route whose requirement is absent", () => {
 		expect(accessGate("ai_provider:manage", query({ data: { data: { permissions: [] } } }))).toBe("denied")
 	})

@@ -82,6 +82,44 @@ test("manager creates, configures, and deletes an agent through the real API", a
 	}
 })
 
+test("an Agent Manager creates and configures a new agent", async ({ page }) => {
+	const manager = { username: crypto.randomUUID().replaceAll("-", ""), password: "agent-manager-password" }
+	let userId: string | undefined
+	let createdAgentId: string | undefined
+	try {
+		await createInvitedMember(page.request, manager)
+		await expect(await page.request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+		const usersResponse = await page.request.get("/api/users")
+		await expect(usersResponse).toBeOK()
+		const { users } = (await usersResponse.json()) as { users: { id: string; username: string }[] }
+		userId = users.find(({ username }) => username === manager.username)?.id
+		assert(userId, "Invited Agent Manager is missing")
+		const rolesResponse = await page.request.get("/api/roles")
+		await expect(rolesResponse).toBeOK()
+		const { roles } = (await rolesResponse.json()) as { roles: { id: string; name: string }[] }
+		const agentManager = roles.find(({ name }) => name === "Agent Manager")
+		assert(agentManager, "Agent Manager role is missing")
+		await expect(
+			await page.request.put(`/api/users/${userId}/roles`, { data: { roleIds: [agentManager.id] } }),
+		).toBeOK()
+
+		await openDashboard(page, manager, "/dashboard/agents")
+		await page.getByRole("button", { name: web("agents.create") }).click()
+		await expect(page).toHaveURL(/\/dashboard\/agent\//)
+		createdAgentId = new URL(page.url()).pathname.split("/").pop()
+		await expect(page.getByLabel(web("agentFields.name"))).toBeEnabled()
+		await page.getByLabel(web("agentFields.name")).fill("Created by Agent Manager")
+		await page.getByRole("button", { name: web("agentConfig.save") }).click()
+		await expect(page.getByText(web("agentConfig.saved"))).toBeVisible()
+	} finally {
+		await expect(await page.request.post("/api/auth/login", { data: ADMIN })).toBeOK()
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- Cleanup must handle a partially completed journey.
+		if (createdAgentId) await expect(await page.request.delete(`/api/agents/${createdAgentId}`)).toBeOK()
+		// oxlint-disable-next-line playwright/no-conditional-in-test, playwright/no-conditional-expect -- Cleanup must handle a partially completed journey.
+		if (userId) await expect(await page.request.delete(`/api/users/${userId}`)).toBeOK()
+	}
+})
+
 test("a read-only operator can inspect agents but finds no management controls", async ({ page, agent }) => {
 	const viewer = { username: crypto.randomUUID().replaceAll("-", ""), password: "viewer-test-password" }
 	await createInvitedMember(page.request, viewer)
