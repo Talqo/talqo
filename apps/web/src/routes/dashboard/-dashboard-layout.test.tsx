@@ -112,6 +112,22 @@ test("keeps global navigation and the current page when agent discovery fails", 
 	expect(rendered.host.querySelector("[role=alert]")).not.toBeNull()
 })
 
+test("lets agent creators open Agents before any agents exist", async () => {
+	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
+		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+		if (url.endsWith("/api/agents")) return json({ agents: [] })
+		return json(
+			url.endsWith("/api/me/permissions")
+				? { permissions: ["agents:create"] }
+				: { user: { username: "Manager", mustChangePassword: false } },
+		)
+	}) as typeof fetch)
+	const rendered = await renderPage(<h1>{t("agents.heading")}</h1>, "agents:read")
+	const links = [...rendered.host.querySelectorAll("nav a")].map((link) => link.textContent)
+	expect(links).toContain(t("nav.agents"))
+	expect(rendered.host.querySelector("h1")?.textContent).toBe(t("agents.heading"))
+})
+
 test("keeps the account name and log out in the sidebar footer", async () => {
 	mockAdminSession()
 	const rendered = await renderPage(<h1>{t("account.heading")}</h1>)

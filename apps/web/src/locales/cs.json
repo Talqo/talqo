@@ -645,12 +645,14 @@
 		"nameError": "Zadejte název o délce nejvýše {{max}} znaků.",
 		"notYours": "Můžete dát jen přístup, který sami máte.",
 		"permissionDescriptions": {
+			"agentsCreate": "Vytvářet agenty. Tato role automaticky získá oprávnění upravovat každého nově vytvořeného agenta.",
 			"aiProviderManage": "Vybrat poskytovatele AI a modely, které agenti používají.",
 			"rolesManage": "Vytvářet role a určovat, kdo je má.",
 			"usersManage": "Zvát členy, resetovat jejich hesla a mazat je.",
 			"usersRead": "Vidět všechny, kdo se mohou přihlásit do aplikace."
 		},
 		"permissionLabels": {
+			"agentsCreate": "Vytvářet agenty",
 			"aiProviderManage": "Nastavit AI",
 			"rolesManage": "Spravovat role",
 			"usersManage": "Spravovat tým",

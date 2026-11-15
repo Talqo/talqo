@@ -8,8 +8,8 @@ import * as zod from 'zod';
 
 export const ListGrantablePermissions200 = zod.object({
   "permissions": zod.array(zod.object({
-  "permission": zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage']),
-  "implies": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage']))
+  "permission": zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:create']),
+  "implies": zod.array(zod.enum(['users:read', 'users:manage', 'roles:manage', 'ai_provider:manage', 'agents:create']))
 }))
 })
 

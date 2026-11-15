@@ -637,12 +637,14 @@
 		"nameError": "Enter a name of up to {{max}} characters.",
 		"notYours": "You can only give access you have yourself.",
 		"permissionDescriptions": {
+			"agentsCreate": "Create agents. This role automatically gets edit access to every newly created agent.",
 			"aiProviderManage": "Choose the AI provider and models that agents use.",
 			"rolesManage": "Create roles and choose who has them.",
 			"usersManage": "Invite members, reset their passwords and delete them.",
 			"usersRead": "View everyone who can sign in to this dashboard."
 		},
 		"permissionLabels": {
+			"agentsCreate": "Create agents",
 			"aiProviderManage": "Configure AI",
 			"rolesManage": "Manage roles",
 			"usersManage": "Manage team",

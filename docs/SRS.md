@@ -118,7 +118,8 @@ Talqo is related to these repos:
 
 | ID | Requirement | Priority | Completion |
 |----|-------------|----------|------------|
-| FR-2.10 | Only the admin can create a new agent with a custom name | Medium | Done |
+| FR-2.10 | The admin or an operator with agent-creation permission can create a new agent with a custom name | Medium | Done |
+| FR-2.10a | Every role with agent-creation permission automatically receives configuration-management access to newly created agents, without receiving access to existing agents | High | Done |
 | FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
 | FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Done |
 | FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress |

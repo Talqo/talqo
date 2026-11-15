@@ -19,7 +19,10 @@ type AgentPayload = {
 	}
 }
 
-async function createMemberSession(grantedBy: string, permissions: roles.AgentPermission[] = []): Promise<string> {
+async function createMemberSession(
+	grantedBy: string,
+	permissions: (roles.GrantablePermission | roles.AgentPermission)[] = [],
+): Promise<string> {
 	const username = uniqueUsername()
 	const member = await identity.createUser({ username, password: DEFAULT_PASSWORD })
 	await giveRole(member.id, permissions)
@@ -285,6 +288,55 @@ describe("agent authorization", () => {
 		expect(
 			(await app.request(`/api/agents/${agent.id}`, { method: "DELETE", headers: { Cookie: deleter } })).status,
 		).toBe(204)
+	})
+
+	it("gives agent creators management access only to agents created after their grant", async () => {
+		const admin = await createAdminSession()
+		await createJsonRequest(admin.cookie, "POST", "/api/agents", {
+			name: "Existing private agent",
+			systemPrompt: "Prompt",
+			wordBlacklist: [],
+		})
+
+		const managerUsername = uniqueUsername()
+		const manager = await identity.createUser({ username: managerUsername, password: DEFAULT_PASSWORD })
+		await giveRole(manager.id, ["agents:create"])
+		const managerCookie = await login(managerUsername)
+
+		const before = await app.request("/api/agents", { headers: { Cookie: managerCookie } })
+		expect(await before.json()).toEqual({ agents: [] })
+
+		const created = await createJsonRequest(managerCookie, "POST", "/api/agents", {
+			name: "Manager created",
+			systemPrompt: "Prompt",
+			wordBlacklist: [],
+		})
+		expect(created.status).toBe(201)
+		const { agent } = (await created.json()) as AgentPayload
+		expect((await app.request(`/api/agents/${agent.id}`, { headers: { Cookie: managerCookie } })).status).toBe(200)
+		expect(
+			(
+				await createJsonRequest(managerCookie, "PUT", `/api/agents/${agent.id}`, {
+					name: "Manager updated",
+					systemPrompt: "Updated prompt",
+					wordBlacklist: [],
+				})
+			).status,
+		).toBe(200)
+
+		const adminCreated = await createJsonRequest(admin.cookie, "POST", "/api/agents", {
+			name: "Admin created after grant",
+			systemPrompt: "Prompt",
+			wordBlacklist: [],
+		})
+		expect(adminCreated.status).toBe(201)
+
+		const listed = await app.request("/api/agents", { headers: { Cookie: managerCookie } })
+		const body = (await listed.json()) as { agents: { name: string; permissions: string[] }[] }
+		expect(body.agents.map(({ name, permissions }) => ({ name, permissions }))).toEqual([
+			{ name: "Admin created after grant", permissions: ["agents:read", "agents:manage"] },
+			{ name: "Manager updated", permissions: ["agents:read", "agents:manage"] },
+		])
 	})
 
 	it("returns an empty discovery list and denies creation without agent grants", async () => {

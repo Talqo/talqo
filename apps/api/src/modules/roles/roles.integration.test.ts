@@ -846,6 +846,7 @@ describe("role management", () => {
 		const roles = await service.listRoles()
 		expect(roles.map(({ name, permissions }) => ({ name, permissions }))).toEqual([
 			{ name: "Agent editors", permissions: [] },
+			{ name: "Agent Manager", permissions: ["agents:create"] },
 			{ name: "Support", permissions: [] },
 			{ name: "Team managers", permissions: ["users:manage", "roles:manage"] },
 		])
@@ -857,7 +858,7 @@ describe("role management", () => {
 		expect(await service.listEffectivePermissions(member.id)).toEqual([])
 		await updateRole(support.id, { name: "Helpdesk", permissions: [] })
 		await seed.seed()
-		expect(await service.listRoles()).toHaveLength(3)
+		expect(await service.listRoles()).toHaveLength(4)
 		expect((await service.listRoles()).find(({ id }) => id === support.id)).toMatchObject({
 			name: "Helpdesk",
 			permissions: [],
@@ -931,6 +932,7 @@ describe("role management", () => {
 			{ permission: "users:manage", implies: ["users:read"] },
 			{ permission: "roles:manage", implies: ["users:read"] },
 			{ permission: "ai_provider:manage", implies: [] },
+			{ permission: "agents:create", implies: [] },
 		])
 	})
 })

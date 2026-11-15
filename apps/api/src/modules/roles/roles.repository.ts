@@ -62,6 +62,22 @@ export async function replaceRoleAgentPermissions(
 	})
 }
 
+export async function grantNewAgentAccess(agentId: string): Promise<void> {
+	await db
+		.insert(roleAgentPermission)
+		.select(
+			db
+				.select({
+					roleId: rolePermission.roleId,
+					agentId: sql<string>`${agentId}`.as("agent_id"),
+					permission: sql<string>`'agents:manage'`.as("permission"),
+				})
+				.from(rolePermission)
+				.where(eq(rolePermission.permission, "agents:create")),
+		)
+		.onConflictDoNothing()
+}
+
 let accessChanges = Promise.resolve()
 
 // Queue locally so waiting for the deployment-wide lock cannot exhaust the main connection pool.

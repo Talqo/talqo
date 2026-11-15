@@ -143,10 +143,11 @@ export async function getAgent(id: string): Promise<Agent> {
 	return toAgent(row)
 }
 
-export async function createAgent(input: AgentInput): Promise<Agent> {
+export async function createAgent(input: AgentInput, actorId?: string): Promise<Agent> {
 	const value = normalizeAgentInput(input)
+	let created: Agent
 	try {
-		return toAgent(
+		created = toAgent(
 			await repo.insertWithWords(
 				{
 					id: crypto.randomUUID(),
@@ -160,6 +161,15 @@ export async function createAgent(input: AgentInput): Promise<Agent> {
 		if (isUniqueViolation(error)) throw new DuplicateAgentNameError("An agent with this name already exists")
 		throw error
 	}
+	if (actorId) {
+		try {
+			await roles.grantNewAgentAccess(created.id)
+		} catch (error) {
+			await repo.deleteById(created.id)
+			throw error
+		}
+	}
+	return created
 }
 
 export async function updateAgent(id: string, input: AgentInput): Promise<Agent> {

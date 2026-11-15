@@ -52,7 +52,8 @@ function AgentsPage() {
 	const navigate = useNavigate()
 	const { data, error, isLoading, refetch } = useListAgents()
 	const agents = data?.data.agents.filter((agent) => agent.permissions.includes("agents:read"))
-	const canManage = useGetMyPermissions().data?.data.permissions.includes("admin") ?? false
+	const currentPermissions = useGetMyPermissions().data?.data.permissions ?? []
+	const canCreate = currentPermissions.includes("admin") || currentPermissions.includes("agents:create")
 	const { create, pending, failure } = useCreateAgentFlow({
 		names: agents?.map((agent) => agent.name) ?? [],
 		refreshNames: refetch,
@@ -68,7 +69,7 @@ function AgentsPage() {
 				title={t("agents.heading")}
 				description={t("agents.subheading")}
 				actions={
-					canManage ? (
+					canCreate ? (
 						<FloatingActionButton onClick={() => void create()} disabled={pending}>
 							<Plus />
 							{pending ? t("agents.creating") : t("agents.create")}
@@ -89,9 +90,9 @@ function AgentsPage() {
 				<EmptyState
 					icon={Bot}
 					title={t("agents.emptyTitle")}
-					description={canManage ? t("agents.emptyDescriptionManager") : t("agents.emptyDescriptionReader")}
+					description={canCreate ? t("agents.emptyDescriptionManager") : t("agents.emptyDescriptionReader")}
 					actions={
-						canManage ? (
+						canCreate ? (
 							<Button onClick={() => void create()} disabled={pending}>
 								<Plus className="size-4" />
 								{pending ? t("agents.creating") : t("agents.create")}

@@ -21,6 +21,12 @@ const SEED_ROLES = [
 		permissions: ["users:manage", "roles:manage"],
 		agentPermissions: [],
 	},
+	{
+		id: "agent-manager",
+		name: "Agent Manager",
+		permissions: ["agents:create"],
+		agentPermissions: ["agents:manage"],
+	},
 ] satisfies { id: string; name: string; permissions: GrantablePermission[]; agentPermissions: AgentPermission[] }[]
 
 export async function seed(): Promise<void> {
