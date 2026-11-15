@@ -5,6 +5,8 @@
 	"coverageAnalysis": "perTest",
 	"concurrency": "50%",
 	"timeoutMS": 30000,
+	"incremental": true,
+	"incrementalFile": "reports/mutation/dom.incremental.json",
 	"mutate": [
 		"apps/web/src/**/*.{ts,tsx}",
 		"apps/widget/src/**/*.{ts,tsx}",
