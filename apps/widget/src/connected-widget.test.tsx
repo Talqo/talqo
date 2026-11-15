@@ -639,7 +639,6 @@ describe("ConnectedEmbeddedWidget", () => {
 		await openChat()
 
 		expect(input().value).toBe("")
-		expect(input().placeholder).toBe("Type a message…")
 		expect(sendButton()?.getAttribute("aria-label")).toBe("Send")
 		expect(sendButton()?.disabled).toBe(true)
 

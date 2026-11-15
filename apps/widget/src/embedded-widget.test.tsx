@@ -255,8 +255,6 @@ describe("language", () => {
 
 		expect(widgetRoot(container).getAttribute("lang")).toBe("cs")
 		expect(container.textContent).toContain("Dobrý den!")
-		await act(async () => root.unmount())
-		container.remove()
 	})
 })
 

@@ -823,7 +823,7 @@ describe("AiConfigurationPage", () => {
 		expect(host.textContent).toContain(t("aiConfiguration.discovery.unavailableStored"))
 
 		discoveryFailure = undefined
-		while (true) {
+		for (let attempt = 0; attempt < 3; attempt += 1) {
 			const retry = [...host.querySelectorAll("button")].find(
 				(element) => element.textContent?.trim() === t("aiConfiguration.discovery.retry"),
 			)

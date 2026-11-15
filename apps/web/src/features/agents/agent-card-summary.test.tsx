@@ -1,16 +1,10 @@
 import type { Root } from "react-dom/client"
 
-import { GlobalRegistrator } from "@happy-dom/global-registrator"
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
-
-if (!GlobalRegistrator.isRegistered) GlobalRegistrator.register({ url: "http://localhost/" })
-await import("@/lib/i18n")
-;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+import { json } from "@/testing/api-responses"
+import { act, createTestHarness, QueryClientProvider, settle } from "@/testing/component-harness"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
 const { AgentCardSummary } = await import("./agent-card-summary")
-const { QueryClient, QueryClientProvider } = await import("@tanstack/react-query")
-const { createRoot } = await import("react-dom/client")
-const { act } = await import("react")
 const { t } = await import("i18next")
 
 const FILES_URL = "/api/agents/agent-1/files"
@@ -68,15 +62,12 @@ const EMBED = {
 	},
 }
 
+let harness: ReturnType<typeof createTestHarness>
 let host: HTMLDivElement
 let root: Root
-let client: InstanceType<typeof QueryClient>
+let client: ReturnType<typeof createTestHarness>["queryClient"]
 let failures: Record<string, Response | undefined>
 let pending: Record<string, Promise<Response> | undefined>
-
-function json(body: unknown): Response {
-	return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })
-}
 
 function responseFor(url: string): Response {
 	const failure = failures[url]
@@ -113,12 +104,6 @@ function responseFor(url: string): Response {
 	throw new Error(`unexpected request ${url}`)
 }
 
-async function settle() {
-	await act(async () => {
-		await new Promise((resolve) => setTimeout(resolve, 0))
-	})
-}
-
 async function renderSummary() {
 	await act(async () =>
 		root.render(
@@ -139,23 +124,21 @@ function metric(label: string): string {
 beforeEach(() => {
 	failures = {}
 	pending = {}
-	spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
-		const waiting = pending[url]
-		if (waiting) return waiting
-		return responseFor(url)
-	}) as typeof fetch)
-	client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-	host = document.createElement("div")
-	document.body.append(host)
-	root = createRoot(host)
+	harness = createTestHarness({
+		fetch: (async (input: RequestInfo | URL) => {
+			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+			const waiting = pending[url]
+			if (waiting) return waiting
+			return responseFor(url)
+		}) as typeof fetch,
+	})
+	host = harness.host
+	root = harness.root
+	client = harness.queryClient
 })
 
 afterEach(async () => {
-	await act(async () => root.unmount())
-	host.remove()
-	client.clear()
-	mock.restore()
+	await harness.dispose()
 })
 
 describe("AgentCardSummary", () => {

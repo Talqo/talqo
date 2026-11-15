@@ -454,8 +454,8 @@ describe("TeamPage", () => {
 		await click(button(t("team.generate"), dialog()))
 
 		const newPassword = dialogInput(t("account.newPassword")).value
-		expect(newPassword.length).toBeGreaterThanOrEqual(8)
-		expect(newPassword.length).toBeLessThanOrEqual(128)
+		expect(newPassword.length).toBeGreaterThanOrEqual(PASSWORD_MIN_LENGTH)
+		expect(newPassword.length).toBeLessThanOrEqual(PASSWORD_MAX_LENGTH)
 		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(newPassword)
 	})
 

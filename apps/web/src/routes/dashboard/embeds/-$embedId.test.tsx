@@ -333,7 +333,7 @@ describe("embed detail loading", () => {
 
 		expect(input("#widget-name").readOnly).toBe(true)
 		expect(input("#color-light-primary-hex").readOnly).toBe(true)
-		expect(host.querySelector("#widget-position")?.getAttribute("disabled")).not.toBeNull()
+		expect(host.querySelector<HTMLButtonElement>("#widget-position")?.disabled).toBe(true)
 		expect(host.querySelector("#embed-token")).toBeNull()
 		expect(host.textContent).not.toContain(t("embedSetup.deleteEmbed"))
 		expect(

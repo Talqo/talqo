@@ -206,7 +206,6 @@ describe("account settings", () => {
 		await renderPage()
 		expect(input("#account-username").getAttribute("aria-describedby")).toBe("account-username-description")
 		await type(input("#account-username"), "x")
-		input("#account-username").blur()
 
 		await click(button(t("account.saveUsername")))
 
