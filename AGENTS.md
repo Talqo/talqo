@@ -62,4 +62,6 @@ bun run i18n:fix         # app locales or translated keys
 bun run actions:check    # .github/workflows
 ```
 
+`bun run test:mutation` is not in CI because it takes hours. It runs two profiles: `stryker.config.json` for API, docs, SDK and shared, and `stryker.dom.config.json` for web and widget. Bun shares one global scope across the test files of a process, so a DOM-registering suite in the same run as the API suite changes its `Request`/`Response` and i18n. Add a workspace's source and test globs to the profile whose process it can share.
+
 Docs-only changes need no tests.
