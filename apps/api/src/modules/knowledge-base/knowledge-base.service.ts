@@ -341,18 +341,17 @@ async function convert(job: repository.Job): Promise<Array<string>> {
 	}
 }
 
-type WorkerConnection = ReservedSql
 type EmbeddingOperation = Awaited<ReturnType<typeof aiProvider.prepareEmbeddingOperation>>
 type IngestionDependencies = Parameters<typeof processPendingFiles<repository.Job>>[0]
 
-async function acquireWorkerLock(connection: WorkerConnection): Promise<boolean> {
+async function acquireWorkerLock(connection: ReservedSql): Promise<boolean> {
 	const result = await connection<
 		Array<{ acquired: boolean }>
 	>`SELECT pg_try_advisory_lock(${WORKER_LOCK_KEY.toString()}::bigint) AS acquired`
 	return result[0]?.acquired ?? false
 }
 
-async function unlockWorker(connection: WorkerConnection): Promise<void> {
+async function unlockWorker(connection: ReservedSql): Promise<void> {
 	await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY.toString()}::bigint)`
 }
 
@@ -365,7 +364,7 @@ async function currentEmbeddingKey(): Promise<string | undefined> {
 	}
 }
 
-function ingestionDependencies(model: EmbeddingOperation, connection: WorkerConnection): IngestionDependencies {
+function ingestionDependencies(model: EmbeddingOperation, connection: ReservedSql): IngestionDependencies {
 	return {
 		claim: async () => {
 			await connection`SELECT 1`
@@ -402,13 +401,13 @@ function logWorkerFailure(error: unknown): void {
 	if (!(error instanceof aiProvider.UnusableConfigurationError)) console.error("agent-file.worker.failed", { error })
 }
 
-async function runIngestionBatch(connection: WorkerConnection): Promise<void> {
+async function runIngestionBatch(connection: ReservedSql): Promise<void> {
 	const model = await aiProvider.prepareEmbeddingOperation({ timeoutMs: EMBEDDING_TIMEOUT_MS })
 	await repository.reindexChanged(model.key)
 	await processPendingFiles(ingestionDependencies(model, connection))
 }
 
-async function processIngestionBatch(connection: WorkerConnection): Promise<void> {
+async function processIngestionBatch(connection: ReservedSql): Promise<void> {
 	try {
 		await runIngestionBatch(connection)
 	} catch (error) {
@@ -416,7 +415,7 @@ async function processIngestionBatch(connection: WorkerConnection): Promise<void
 	}
 }
 
-async function runIngestionLoop(connection: WorkerConnection): Promise<void> {
+async function runIngestionLoop(connection: ReservedSql): Promise<void> {
 	// Each batch finishes before the next poll.
 	while (true) {
 		await connection`SELECT 1`
@@ -425,14 +424,14 @@ async function runIngestionLoop(connection: WorkerConnection): Promise<void> {
 	}
 }
 
-async function recoverAndRunWorker(connection: WorkerConnection): Promise<void> {
+async function recoverAndRunWorker(connection: ReservedSql): Promise<void> {
 	await repository.recover()
 	await reconcileDanglingRows()
 	await recoverUploads()
 	await runIngestionLoop(connection)
 }
 
-async function runWorker(connection: WorkerConnection): Promise<void> {
+async function runWorker(connection: ReservedSql): Promise<void> {
 	if (!(await acquireWorkerLock(connection))) return
 	try {
 		await recoverAndRunWorker(connection)

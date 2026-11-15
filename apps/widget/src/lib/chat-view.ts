@@ -1,10 +1,9 @@
-import type { ActiveTool, ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
+import type { ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 
 export type ChatAnnouncement = { id: number; text: string }
 
 export type ChatView = {
 	messages: ReadonlyArray<ChatMessage>
-	activeTools: ReadonlyArray<ActiveTool>
 	notices: ChatSnapshot["notices"]
 	activity: ChatSnapshot["activity"]
 	error: ChatError | undefined

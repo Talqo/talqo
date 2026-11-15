@@ -2,7 +2,11 @@ import type { ChatAnnouncement, ChatView } from "@/lib/chat-view"
 import type { ChatError, ChatMessage, ChatSnapshot } from "@talqo/sdk"
 import type { RefObject } from "react"
 
+import CircleCheckIcon from "@/assets/icons/circle-check.svg?react"
+import CircleXIcon from "@/assets/icons/circle-x.svg?react"
+import LoaderIcon from "@/assets/icons/loader.svg?react"
 import { Markdown } from "@talqo/ui/components/markdown"
+import { cn } from "@talqo/ui/lib/utils"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -12,19 +16,56 @@ import { Bubble, BubbleContent, BubbleGroup } from "./ui/bubble"
 // Unchanged messages keep object identity through the SDK, so memo skips most rows per delta.
 const TranscriptBubble = memo(function TranscriptBubble({ message }: { message: ChatMessage }) {
 	const { t } = useTranslation()
-	const awaitingText = message.role === "assistant" && message.outcome === "streaming" && message.text.length === 0
+	const toolStatuses = {
+		running: t("toolRunning"),
+		completed: t("toolCompleted"),
+		failed: t("toolFailed"),
+		cancelled: t("toolCancelled"),
+		interrupted: t("toolInterrupted"),
+	}
+	const lastPart = message.parts.at(-1)
+	const awaitingText =
+		message.role === "assistant" &&
+		message.outcome === "streaming" &&
+		!message.parts.some((part) => part.type === "dynamic-tool" && part.state === "input-available") &&
+		(lastPart?.type !== "text" || lastPart.text.length === 0)
 	return (
 		<Bubble align={message.role === "user" ? "end" : "start"}>
 			<span className="tw:sr-only">{message.role === "user" ? t("youLabel") : t("agentLabel")}</span>
-			{(awaitingText || message.text.length > 0) && (
-				<BubbleContent variant={message.role === "user" ? "default" : "muted"}>
-					{awaitingText ? (
-						<ResponseIndicator label={t("agentResponding")} />
-					) : message.role === "assistant" ? (
-						<Markdown>{message.text}</Markdown>
-					) : (
-						message.text
-					)}
+			{message.parts.map((part, index) => {
+				const partKey = `${message.id}:${index}`
+				if (part.type === "step-start" || (part.type === "text" && !part.text)) return null
+				if (part.type === "text")
+					return (
+						<BubbleContent key={partKey} variant={message.role === "user" ? "default" : "muted"}>
+							{message.role === "assistant" ? <Markdown>{part.text}</Markdown> : part.text}
+						</BubbleContent>
+					)
+				const status =
+					part.toolMetadata.outcome ??
+					(part.state === "input-available" ? "running" : part.state === "output-error" ? "failed" : "completed")
+				const StatusIcon = status === "running" ? LoaderIcon : status === "completed" ? CircleCheckIcon : CircleXIcon
+				return (
+					<output
+						key={part.toolCallId}
+						title={toolStatuses[status]}
+						className="tw:flex tw:min-w-0 tw:max-w-full tw:items-center tw:gap-1.5 tw:break-words tw:px-1 tw:text-muted-foreground tw:text-xs"
+					>
+						<StatusIcon
+							aria-hidden="true"
+							className={cn(
+								"tw:size-3.5 tw:shrink-0",
+								status === "running" && "tw:animate-spin tw:motion-reduce:animate-none",
+							)}
+						/>
+						{part.toolMetadata.source === "client" ? t("websiteTool") : t("connectedTool")}
+						<span className="tw:sr-only"> {toolStatuses[status]}</span>
+					</output>
+				)
+			})}
+			{awaitingText && (
+				<BubbleContent variant="muted">
+					<ResponseIndicator label={t("agentResponding")} />
 				</BubbleContent>
 			)}
 			{message.role === "assistant" && outcomeText(message.outcome, t) && (
@@ -170,7 +211,6 @@ export function ChatTranscript({
 					{view.messages.map((message) => (
 						<TranscriptBubble key={message.id} message={message} />
 					))}
-					{view.activeTools.length > 0 && <StatusBubble label={t("usingTool")} />}
 					{view.activity === "sending" && <StatusBubble label={t("agentResponding")} />}
 				</BubbleGroup>
 				<ActivityStatus activity={view.activity} />

@@ -4,7 +4,7 @@ import { test as applicationTest } from "./application"
 import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 export const test = applicationTest.extend<{
-	chatEmbed: { agentName: string; widgetUrl: string; providerControlOrigin: string }
+	chatEmbed: { agentId: string; agentName: string; widgetUrl: string; providerControlOrigin: string }
 }>({
 	chatEmbed: async ({ adminRequest: request, application }, use) => {
 		const agentName = `Chat ${crypto.randomUUID()}`
@@ -54,7 +54,7 @@ export const test = applicationTest.extend<{
 			const widgetUrl = new URL("/", application.widgetHostOrigin)
 			widgetUrl.searchParams.set("token", createdEmbed.embed.embedToken)
 			widgetUrl.searchParams.set("api", application.origin)
-			await use({ agentName, widgetUrl: widgetUrl.href, providerControlOrigin })
+			await use({ agentId, agentName, widgetUrl: widgetUrl.href, providerControlOrigin })
 		} finally {
 			await expect(await request.post(`${providerControlOrigin}/reset`)).toBeOK()
 			if (embedId) await expect(await request.delete(`/api/embeds/${embedId}`)).toBeOK()
