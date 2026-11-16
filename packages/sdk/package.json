@@ -26,6 +26,7 @@
 		"typecheck": "bun check"
 	},
 	"dependencies": {
+		"@floating-ui/dom": "1.8.0",
 		"@page-agent/page-controller": "1.12.4",
 		"ai": "7.0.159",
 		"zod": "4.6.7"
