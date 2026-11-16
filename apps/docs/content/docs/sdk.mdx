@@ -61,6 +61,8 @@ Enabled embeds automatically include a page tool that observes and operates webs
 
 Pass your chat's root element through `pageControl: { exclude: [chatElement] }` in `createChatClient()` so the agent cannot read or operate chat controls. The pre-built widget supplies its root automatically.
 
+To match the page controls to a custom UI, supply `pageControl.themeRoot: () => themedElement`. The controls follow that element's `--talqo-primary-input`, `--talqo-text-on-primary-input`, `--talqo-background-input`, `--talqo-surface-input`, and `--talqo-text-input` CSS properties, including style and class changes. The pre-built widget supplies its active palette automatically and remembers its open/closed state per embed across page loads when local storage is available.
+
 The page tool continues across same-origin page loads in the same tab. Talqo must be installed on each destination page, and browser tab storage must be available. Reconnection uses the original reply deadline; approval waits do not extend it. An API restart interrupts the task. Other origins, new tabs, and visitor-only payment steps require visitor participation. An interrupted action is inspected, never automatically repeated.
 
 You can also pass ordinary AI SDK function tools when creating the client:

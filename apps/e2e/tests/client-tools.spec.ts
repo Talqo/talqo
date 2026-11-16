@@ -16,7 +16,7 @@ async function openToolChat(page: Page, widgetUrl: string, params: Record<string
 async function reopenChat(page: Page) {
 	await page.reload()
 	await page.waitForFunction(() => document.documentElement.dataset.toolsReady === "true")
-	await page.getByRole("button", { name: widget("openChat") }).click()
+	await expect(page.getByRole("dialog")).toBeVisible()
 }
 
 async function expandToolGroup(scope: Page | Locator, label: string) {

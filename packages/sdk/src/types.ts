@@ -141,7 +141,7 @@ export type ChatTransport = {
 
 export type ChatClientOptions = {
 	/** Roots belonging to a custom chat UI. They are excluded from page observation and actions. */
-	pageControl?: { exclude?: readonly Element[] }
+	pageControl?: { exclude?: readonly Element[]; themeRoot?: () => Element | null }
 	/** AI SDK function tools with execute, runtime-validating schemas, static description, strict, and inputExamples. Other behaviors are rejected. */
 	tools?: ToolSet
 	apiUrl: string

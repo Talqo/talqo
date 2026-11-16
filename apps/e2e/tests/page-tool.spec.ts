@@ -2,13 +2,10 @@ import { expect, type Locator, type Page } from "@playwright/test"
 
 import { test } from "./chat-embed"
 import { widget } from "./i18n"
+import { WIDGET_APPEARANCE } from "./widget-appearance"
 
 const JOURNEY_TIMEOUT = 30_000
 const REQUEST = "Buy two large T-shirts. Deliver to Alex Example, 12 Market Street."
-
-async function showReply(page: Page, ui: "widget" | "sdk"): Promise<void> {
-	if (ui === "widget") await page.getByRole("button", { name: widget("openChat") }).click()
-}
 
 async function openShopChat(page: Page, widgetUrl: string, ui: "widget" | "sdk" = "widget"): Promise<Locator> {
 	const url = new URL(widgetUrl)
@@ -120,6 +117,7 @@ for (const ui of ["widget", "sdk"] as const)
 		chatEmbed,
 	}) => {
 		const approval = await startPurchase(page, chatEmbed.widgetUrl, ui)
+		await expect(page.getByRole("textbox", { name: widget("messageLabel") })).toBeVisible()
 		await expect(approval).toContainText("$53.00")
 		expect(await page.evaluate(() => sessionStorage.getItem("talqo-demo-shop"))).toContain('"order":null')
 		await approval.getByRole("button", { name: "Approve", exact: true }).click()
@@ -127,10 +125,10 @@ for (const ui of ["widget", "sdk"] as const)
 		await expect(page.locator("#demo-shop")).toContainText("quantity 2")
 		await expect(page.locator("#demo-shop")).toContainText("Large")
 		await expect(page.locator("#demo-shop")).toContainText("Total: $53.00")
-		await showReply(page, ui)
 		await expect(page.getByText("Your order is confirmed.", { exact: true })).toBeVisible()
 		const order = await page.evaluate(() => sessionStorage.getItem("talqo-demo-shop"))
 		await page.reload()
+		await expect(page.getByRole("textbox", { name: widget("messageLabel") })).toBeVisible()
 		await expect(page.getByRole("heading", { name: "Order confirmed" })).toBeVisible()
 		expect(await page.evaluate(() => sessionStorage.getItem("talqo-demo-shop"))).toBe(order)
 	})
@@ -152,13 +150,11 @@ test("changed delivery and a page reload require fresh approval; Cancel leaves t
 	await approval.getByRole("button", { name: "Cancel", exact: true }).click()
 	await expect(approval).toHaveCount(0)
 	expect(await page.evaluate(() => sessionStorage.getItem("talqo-demo-shop"))).toContain('"order":null')
-	await page.getByRole("button", { name: widget("openChat") }).click()
 	await expect(chat.getByText("The order was not placed.", { exact: true })).toBeVisible()
 })
 
 test("Stop cancels a pending order approval without committing", async ({ page, chatEmbed }) => {
 	const approval = await startPurchase(page, chatEmbed.widgetUrl)
-	await page.getByRole("button", { name: widget("openChat") }).click()
 	await approval.getByRole("button", { name: "Stop", exact: true }).click()
 	await expect(approval).toHaveCount(0)
 	await page.reload()
@@ -167,12 +163,53 @@ test("Stop cancels a pending order approval without committing", async ({ page, 
 	await expect(page.getByRole("region", { name: "Talqo" })).toHaveCount(0)
 })
 
+test("widget visibility survives reloads and closing is remembered", async ({ page, chatEmbed }) => {
+	await openShopChat(page, chatEmbed.widgetUrl)
+	await page.reload()
+	await expect(page.getByRole("dialog")).toBeVisible()
+	await page
+		.getByRole("dialog")
+		.getByRole("button", { name: widget("closeChat") })
+		.click()
+	await page.reload()
+	await expect(page.getByRole("button", { name: widget("openChat") })).toBeVisible()
+	await expect(page.getByRole("dialog")).toHaveCount(0)
+})
+
+test("widget remains usable when visibility storage is blocked", async ({ page, chatEmbed }) => {
+	await page.addInitScript(() => {
+		Object.defineProperty(window, "localStorage", {
+			get() {
+				throw new DOMException("Storage is blocked", "SecurityError")
+			},
+		})
+	})
+	const chat = await openShopChat(page, chatEmbed.widgetUrl)
+	await expect(chat).toBeVisible()
+	await chat.getByRole("button", { name: widget("closeChat") }).click()
+	await expect(chat).toHaveCount(0)
+})
+
+test("page approvals follow the widget palette, including theme changes", async ({ page, chatEmbed, adminRequest }) => {
+	await expect(
+		await adminRequest.put(`/api/embeds/${chatEmbed.embedId}`, {
+			data: { agentId: chatEmbed.agentId, name: "Chat test", appearance: { ...WIDGET_APPEARANCE, themeToggle: true } },
+		}),
+	).toBeOK()
+	const approval = await startPurchase(page, chatEmbed.widgetUrl)
+	const approve = approval.getByRole("button", { name: "Approve", exact: true })
+	await expect(approve).toHaveCSS("background-color", "rgb(124, 58, 237)")
+	await page.getByRole("button", { name: widget("switchToDark") }).click()
+	await expect(approve).toHaveCSS("background-color", "rgb(52, 211, 153)")
+	await expect(approval).toHaveCSS("background-color", "rgb(10, 10, 10)")
+	await approval.getByRole("button", { name: "Cancel", exact: true }).click()
+})
+
 test("the visitor supplies missing details without repeating the purchase objective", async ({ page, chatEmbed }) => {
 	const chat = await openShopChat(page, chatEmbed.widgetUrl)
 	await chat.getByRole("textbox", { name: widget("messageLabel") }).fill("Buy two large T-shirts.")
 	await chat.getByRole("button", { name: widget("send") }).click()
 	await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible({ timeout: JOURNEY_TIMEOUT })
-	await page.getByRole("button", { name: widget("openChat") }).click()
 	await expect(chat.getByText("What full name and delivery address should I use?", { exact: true })).toBeVisible()
 	await chat.getByRole("textbox", { name: widget("messageLabel") }).fill("Alex Example, 12 Market Street.")
 	await chat.getByRole("button", { name: widget("send") }).click()
