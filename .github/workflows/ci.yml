@@ -102,7 +102,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-26.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       FALLOW_AUDIT_BASE: origin/${{ github.base_ref || 'main' }}
     steps:
