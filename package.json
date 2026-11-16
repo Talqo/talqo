@@ -66,5 +66,8 @@
 		"supercov": "4.28.0",
 		"turbo": "2.11.11"
 	},
-	"packageManager": "bun@1.4.4"
+	"packageManager": "bun@1.4.4",
+	"patchedDependencies": {
+		"@page-agent/page-controller@1.12.4": "patches/@page-agent%2Fpage-controller@1.12.4.patch"
+	}
 }

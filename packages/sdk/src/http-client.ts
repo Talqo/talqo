@@ -55,7 +55,9 @@ function embedConfiguration(value: unknown): EmbedConfig | undefined {
 		!isRecord(value) ||
 		typeof value.name !== "string" ||
 		typeof value.isAvailable !== "boolean" ||
-		!isRecord(value.appearance)
+		!isRecord(value.appearance) ||
+		(value.pageControl !== undefined &&
+			(!isRecord(value.pageControl) || typeof value.pageControl.enabled !== "boolean"))
 	)
 		return undefined
 	return value as unknown as EmbedConfig
@@ -110,6 +112,7 @@ export function createChatHttpClient(
 				title: configuration.name,
 				appearance: configuration.appearance as unknown as Readonly<Record<string, unknown>>,
 				isAvailable: configuration.isAvailable,
+				pageControl: configuration.pageControl,
 			}
 		},
 		async loadSession(input) {

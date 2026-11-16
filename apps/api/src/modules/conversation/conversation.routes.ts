@@ -18,6 +18,7 @@ import {
 	MANIFEST_BYTES,
 	TOOL_PAYLOAD_BYTES,
 } from "./conversation.client-tools.ts"
+import { createPageConnection } from "./conversation.connection.ts"
 import {
 	cancelRoute,
 	chatClientFrameSchema,
@@ -32,7 +33,10 @@ import {
 } from "./conversation.contract.ts"
 import { getConversationService, getConversationTranscript, listConversations } from "./conversation.service.ts"
 
-type ConversationService = Pick<ReturnType<typeof getConversationService>, "cancel" | "getSession" | "send">
+type ConversationService = Pick<
+	ReturnType<typeof getConversationService>,
+	"authorizePageResume" | "cancel" | "getSession" | "send"
+>
 const SOCKET_POLICY_VIOLATION = 1008
 const SOCKET_NORMAL_CLOSE = 1000
 const SOCKET_START_DEADLINE_MS = 10_000
@@ -111,6 +115,7 @@ export function createConversationRoutes(
 	})
 
 	const activeService = () => service ?? getConversationService()
+	const pageConnections = new Map<string, ReturnType<typeof createPageConnection>>()
 	routes.openAPIRegistry.register("ChatClientFrameV1", chatClientFrameSchema)
 	routes.openAPIRegistry.register("ChatServerFrameV1", chatServerFrameSchema)
 	routes.openapi(socketRoute, async (c) => {
@@ -136,6 +141,7 @@ export function createConversationRoutes(
 		const networkHash = hashClientNetwork(normalized, env.APP_SECRET)
 		const embedToken = c.req.valid("param").embedToken
 		let channel: ClientToolChannel | undefined
+		let pageConnection: ReturnType<typeof createPageConnection> | undefined
 		let started = false
 		let closed = false
 		const cancellation = new AbortController()
@@ -174,6 +180,14 @@ export function createConversationRoutes(
 				: env.TALQO_CHAT_MAX_INPUT_CHARACTERS * MAX_JSON_BYTES_PER_CODE_POINT + MANIFEST_BYTES + FRAME_ENVELOPE_BYTES
 		}
 
+		function sendTurnFrame(ws: ChatSocket, message: unknown): void {
+			if (pageConnection) {
+				pageConnection.send(message)
+				return
+			}
+			sendFrame(ws, message)
+		}
+
 		async function runTurn(frame: StartFrame, ws: ChatSocket): Promise<void> {
 			try {
 				const result = await activeService().send(
@@ -190,38 +204,95 @@ export function createConversationRoutes(
 					(message) => {
 						if (message.type === "terminal" || message.type === "error") terminal = true
 						annotateChatEvent(c, message, toolCounts)
-						sendFrame(ws, message)
+						sendTurnFrame(ws, message)
 					},
 					annotator(c),
 				)
 				await result.done
 			} catch (error) {
-				sendFrame(ws, rejectionFrame(error))
+				sendTurnFrame(ws, rejectionFrame(error))
 			} finally {
 				clearTimeout(timeout)
 				completion.resolve()
+				if (frame.pageSession) pageConnections.delete(frame.pageSession)
+				pageConnection?.finish()
 				ws.close(SOCKET_NORMAL_CLOSE)
 			}
 		}
 
 		function startTurn(frame: StartFrame, ws: ChatSocket): void {
-			if (started) {
+			if (
+				started ||
+				(frame.pageSession &&
+					(pageConnections.has(frame.pageSession) || !frame.tools.some((tool) => tool.name === "talqo_page")))
+			) {
 				failFrame(ws)
 				return
 			}
 			started = true
 			clearTimeout(deadline)
+			if (frame.pageSession) {
+				pageConnection = createPageConnection({
+					credential: frame.credential,
+					embedToken,
+					origin,
+					send: (message) => ws.send(message),
+					close: () => ws.close(SOCKET_NORMAL_CLOSE),
+					cancel: () => cancellation.abort(),
+				})
+				pageConnections.set(frame.pageSession, pageConnection)
+			}
 			if (frame.tools.length)
 				channel = createClientToolChannel(
 					frame.tools,
-					(message) => sendFrame(ws, message),
+					(message) => sendTurnFrame(ws, message),
 					env.TALQO_CHAT_MAX_INPUT_CHARACTERS,
 				)
+			if (channel) pageConnection?.setChannel(channel)
 			timeout = setTimeout(() => {
 				channel?.interrupt()
+				pageConnection?.finish()
 				ws.close(SOCKET_POLICY_VIOLATION, "Turn deadline exceeded")
 			}, env.TALQO_CHAT_GENERATION_TIMEOUT_SECONDS * MILLISECONDS_PER_SECOND)
 			void runTurn(frame, ws)
+		}
+
+		function resumeTurn(frame: Extract<ClientFrame, { type: "resume" }>, ws: ChatSocket): void {
+			if (started) {
+				failFrame(ws)
+				return
+			}
+			const connection = pageConnections.get(frame.pageSession)
+			if (
+				!connection ||
+				connection.credential !== frame.credential ||
+				connection.embedToken !== embedToken ||
+				connection.origin !== origin
+			) {
+				failFrame(ws)
+				return
+			}
+			started = true
+			clearTimeout(deadline)
+			void (async () => {
+				try {
+					await activeService().authorizePageResume(frame.credential, embedToken)
+					if (closed) return
+					pageConnection = connection
+					channel = connection.channel
+					connection.attach(
+						(message) => ws.send(message),
+						() => {
+							terminal = true
+							completion.resolve()
+							ws.close(SOCKET_NORMAL_CLOSE)
+						},
+					)
+				} catch {
+					failFrame(ws)
+					completion.resolve()
+				}
+			})()
 		}
 
 		function acceptToolFrame(
@@ -243,9 +314,12 @@ export function createConversationRoutes(
 
 		function handleClientFrame(frame: ClientFrame, ws: ChatSocket): void {
 			if (frame.type === "start") startTurn(frame, ws)
+			else if (frame.type === "resume") resumeTurn(frame, ws)
 			else if (!started) failFrame(ws)
-			else if (frame.type === "cancel") cancellation.abort()
-			else acceptToolFrame(frame, ws)
+			else if (frame.type === "cancel") {
+				if (pageConnection) pageConnection.cancel()
+				else cancellation.abort()
+			} else acceptToolFrame(frame, ws)
 		}
 
 		return upgradeWebSocket(c, {
@@ -275,8 +349,11 @@ export function createConversationRoutes(
 			onClose() {
 				closed = true
 				clearTimeout(deadline)
-				clearTimeout(timeout)
-				channel?.interrupt()
+				if (pageConnection && !terminal) pageConnection.detach()
+				else {
+					clearTimeout(timeout)
+					channel?.interrupt()
+				}
 				if (!started) completion.resolve()
 			},
 			onError() {

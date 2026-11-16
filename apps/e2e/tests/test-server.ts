@@ -1,11 +1,13 @@
 import path from "node:path"
 
+import { orderAction } from "./fixtures/page-order"
+
 type ChatMessage = { content: unknown; role: string }
 type CompletionRequest = {
 	messages?: unknown
 	model?: unknown
 	stream?: unknown
-	tools?: { function: { name: string } }[]
+	tools?: { function: { name: string; description?: string } }[]
 }
 type PendingStream = { release(): void }
 
@@ -99,10 +101,20 @@ function streamCompletion(
 	const requestIndex = state.requests.length
 	const id = `chatcmpl-e2e-${requestIndex}`
 	const asksForPage = text(messages.at(-1)) === "Read this page"
-	const clientTool = asksForPage ? tools?.find((entry) => entry.function.name.startsWith("client_")) : undefined
+	const ordering = messages.some(
+		(message) => message.role === "user" && text(message).startsWith("Buy two large T-shirts"),
+	)
+	const order = ordering ? orderAction(messages) : undefined
+	let clientTool: NonNullable<CompletionRequest["tools"]>[number] | undefined
+	if (ordering && order?.input)
+		clientTool = tools?.find((entry) => entry.function.description?.startsWith("Observe and operate"))
+	else if (asksForPage) clientTool = tools?.find((entry) => entry.function.description === "Read the host page text")
 	if (asksForPage && !clientTool) throw new Error("The SDK client tool manifest did not reach the provider")
 	const stockTool = asksForPage ? tools?.find((entry) => entry.function.name.endsWith("get_stock_level")) : undefined
-	const answer = clientTool ? { chunks: [], delayed: false } : answerFor(messages)
+	let answer: ReturnType<typeof answerFor>
+	if (order?.answer) answer = { chunks: [order.answer], delayed: false }
+	else if (clientTool) answer = { chunks: [], delayed: false }
+	else answer = answerFor(messages)
 	const body = new ReadableStream<Uint8Array>({
 		start(controller) {
 			void (async () => {
@@ -111,9 +123,12 @@ function streamCompletion(
 						const calls = [
 							{
 								index: 0,
-								id: "page-call",
+								id: ordering ? `page-call-${requestIndex}` : "page-call",
 								type: "function",
-								function: { name: clientTool.function.name, arguments: "{}" },
+								function: {
+									name: clientTool.function.name,
+									arguments: JSON.stringify(order?.input ?? {}),
+								},
 							},
 						]
 						if (stockTool)
@@ -173,12 +188,33 @@ export async function createTestServer(): Promise<Bun.Server<undefined>> {
 		format: "esm",
 	})
 	if (!toolsBuild.success || !toolsBuild.outputs[0]) throw new Error("Could not build the browser tool fixture")
+	const sdkBuild = await Bun.build({
+		entrypoints: [path.join(import.meta.dirname, "fixtures/sdk-ui.ts")],
+		target: "browser",
+		format: "esm",
+	})
+	if (!sdkBuild.success || !sdkBuild.outputs[0]) throw new Error("Could not build the custom SDK UI")
+	const shopBuild = await Bun.build({
+		entrypoints: [path.resolve(import.meta.dirname, "../../widget/src/dev-shop.ts")],
+		target: "browser",
+		format: "esm",
+	})
+	const pageToolBuild = await Bun.build({
+		entrypoints: [path.resolve(import.meta.dirname, "../../../packages/sdk/src/page-tool.ts")],
+		target: "browser",
+		format: "esm",
+	})
+	if (!shopBuild.success || !shopBuild.outputs[0] || !pageToolBuild.success || !pageToolBuild.outputs[0])
+		throw new Error("Could not build page-tool browser fixtures")
 	const state: ProviderState = { requests: [], pendingStreams: [] }
 	return Bun.serve({
 		hostname: "127.0.0.1",
 		port: 0,
 		routes: {
 			"/client-tools.js": new Response(toolsBuild.outputs[0], { headers: { "content-type": "text/javascript" } }),
+			"/sdk-ui.js": new Response(sdkBuild.outputs[0], { headers: { "content-type": "text/javascript" } }),
+			"/dev-shop.js": new Response(shopBuild.outputs[0], { headers: { "content-type": "text/javascript" } }),
+			"/page-tool.js": new Response(pageToolBuild.outputs[0], { headers: { "content-type": "text/javascript" } }),
 			"/": new Response(Bun.file(path.join(import.meta.dirname, "fixtures/host.html"))),
 			"/widget.js": new Response(Bun.file(path.resolve(import.meta.dirname, "../../widget/dist/widget.js")), {
 				headers: { "content-type": "text/javascript" },

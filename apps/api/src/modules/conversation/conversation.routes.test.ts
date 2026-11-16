@@ -98,6 +98,7 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
+		authorizePageResume: async () => undefined,
 	}
 	const logged: WideEvent[] = []
 	const app = new OpenAPIHono()
@@ -134,10 +135,45 @@ function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket
 		socket.addEventListener("close", (event) => resolve(event.code))
 		socket.addEventListener("error", reject)
 	})
-	return { events, accepted: accepted.promise, closed }
+	return { events, accepted: accepted.promise, closed, socket }
 }
 
 describe("public conversation routes", () => {
+	it("reattaches a page turn without accepting or charging a second request", async () => {
+		const { app, calls, release } = routes("late-error")
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			const first = connect(server.url.origin, {
+				...START,
+				pageSession,
+				tools: [{ name: "talqo_page", inputSchema: {} }],
+			})
+			await first.accepted
+			first.socket.close()
+			await first.closed
+			const wrong = connect(server.url.origin, {
+				version: 1,
+				type: "resume",
+				pageSession,
+				credential: crypto.randomUUID(),
+			})
+			expect(await wrong.closed).toBe(1008)
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await resumed.accepted
+			release()
+			expect(await resumed.closed).toBe(1000)
+			expect(resumed.events).toMatchObject([
+				{ type: "accepted", requestId: REQUEST_ID },
+				{ type: "part" },
+				{ type: "error" },
+			])
+			expect(calls).toHaveLength(1)
+		} finally {
+			release()
+			await server.stop(true)
+		}
+	})
 	it("closes deeply nested tool results before authentication", async () => {
 		const { app, calls } = routes()
 		const server = serve(app)
@@ -224,6 +260,7 @@ describe("public conversation routes", () => {
 
 	it.each([
 		{ version: 1, type: "cancel" },
+		{ ...START, pageSession: crypto.randomUUID() },
 		{ ...START, credential: undefined },
 		{ ...START, requestId: "11111111-1111-1111-8111-111111111111" },
 		{ ...START, tools: Array.from({ length: 9 }, (_, index) => ({ name: `tool${index}`, inputSchema: {} })) },

@@ -9,8 +9,9 @@ import type {
 	SessionState,
 } from "./types.ts"
 
-import { captureClientTools } from "./client-tools.ts"
+import { captureClientTools, CLIENT_TOOL_LIMIT } from "./client-tools.ts"
 import { ChatTransportError } from "./http-client.ts"
+import { createPageTool, PAGE_TOOL_NAME } from "./page-tool.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	type ChatStorageRecord,
@@ -19,7 +20,12 @@ import {
 	createResilientStorage,
 	readChatStorageRecord,
 } from "./storage.ts"
-import { createWebSocketChatTransport } from "./websocket-transport.ts"
+import {
+	createWebSocketChatTransport,
+	type PageContinuation,
+	pageContinuationKey,
+	readPageContinuation,
+} from "./websocket-transport.ts"
 
 const ONE_SECOND_MS = 1_000
 const TWO_SECONDS_MS = 2_000
@@ -56,6 +62,7 @@ type SendState = {
 	assistantId?: string
 	terminalReceived: boolean
 	accepted: boolean
+	pageSession?: string
 }
 
 type PendingRecoveryAttempt = {
@@ -199,9 +206,21 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
-	const tools = captureClientTools(options.tools)
+	const customTools = Object.fromEntries(
+		Object.entries(options.tools ?? {}).map(([name, definition]) => [name, { ...definition }]),
+	)
+	let tools = captureClientTools(customTools)
+	let pageTool: ReturnType<typeof createPageTool> | undefined
 	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
-	const transport = options.transport ?? createWebSocketChatTransport(tools)
+	const transport =
+		options.transport ??
+		createWebSocketChatTransport({
+			get size() {
+				return tools.size
+			},
+			manifest: () => tools.manifest(),
+			execute: (request, signal) => tools.execute(request, signal),
+		})
 
 	const storage = createResilientStorage(
 		options.storage ?? {
@@ -487,9 +506,32 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			storage.getItem(storageKey),
 		])
 		configuration = loadedConfiguration
+		if (!options.transport && loadedConfiguration.pageControl?.enabled && typeof document !== "undefined") {
+			if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
+			if (tools.size === CLIENT_TOOL_LIMIT)
+				throw new Error(
+					"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
+				)
+			pageTool = createPageTool({
+				exclude: options.pageControl?.exclude ?? [],
+				language:
+					typeof loadedConfiguration.appearance.language === "string" ? loadedConfiguration.appearance.language : "en",
+				stop: cancelResponse,
+			})
+			tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
+		}
 		if (loadedConfiguration.isAvailable) await restoreStoredSession(serialized, controller.signal)
 		initialization = "ready"
 		publish()
+		const continuation = pageTool ? readPageContinuation(options.apiUrl, options.embedToken) : undefined
+		if (continuation && continuation.credential === credential && continuation.generationId === activeGenerationId) {
+			generation = "idle"
+			activeGenerationId = undefined
+			void sendMessage(continuation.text, continuation).catch(() => {
+				sessionStorage.removeItem(pageContinuationKey(options.apiUrl, options.embedToken))
+			})
+			return
+		}
 		if (activeGenerationId !== undefined || pendingMessage !== undefined) beginSessionRecoveryPolling()
 	}
 
@@ -539,11 +581,13 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		if (generation !== "idle") throw new Error("A chat response is already active")
 	}
 
-	function beginSend(text: string): SendState {
+	function beginSend(text: string, continuation?: PageContinuation): SendState {
 		const newSession = credential === undefined
 		credential ??= randomUUID()
 		const sendCredential = credential
-		const requestId = randomUUID()
+		const requestId = continuation?.requestId ?? randomUUID()
+		const pageSession =
+			continuation?.pageSession ?? (pageTool && typeof sessionStorage !== "undefined" ? randomUUID() : undefined)
 		const controller = new AbortController()
 		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"
@@ -570,6 +614,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			localUserId: `pending:${requestId}`,
 			accepted: false,
 			terminalReceived: false,
+			pageSession,
 		}
 	}
 
@@ -700,26 +745,27 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		}
 	}
 
-	async function sendMessage(text: string): Promise<void> {
+	async function sendMessage(text: string, continuation?: PageContinuation): Promise<void> {
 		requireReadyToSend()
 		requireIdleSend()
 		if (text.length === 0) throw new Error("Message text must not be empty")
-		const state = beginSend(text)
+		const state = beginSend(text, continuation)
 		try {
 			await state.send.persisted
 			const manifest = await tools.manifest()
 			state.send.controller.signal.throwIfAborted()
-			messages = [
-				...messages,
-				{
-					id: state.localUserId,
-					role: "user",
-					text,
-					parts: [{ type: "text", text }],
-					createdAt: now().toISOString(),
-					outcome: "pending",
-				},
-			]
+			if (!continuation)
+				messages = [
+					...messages,
+					{
+						id: state.localUserId,
+						role: "user",
+						text,
+						parts: [{ type: "text", text }],
+						createdAt: now().toISOString(),
+						outcome: "pending",
+					},
+				]
 			error = undefined
 			publish()
 			state.send.dispatched = true
@@ -729,6 +775,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 				requestId: state.requestId,
 				credential: state.credential,
 				tools: manifest,
+				pageSession: state.pageSession,
+				resume: continuation !== undefined,
 			})
 			await consumeSendEvents(state, events)
 		} catch (cause) {
@@ -918,6 +966,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		dispose() {
 			if (disposed) return
 			disposed = true
+			pageTool?.dispose()
 			initializationController?.abort(new Error("Chat client disposed"))
 			activeSend?.controller.abort(new Error("Chat client disposed"))
 			cancellationController?.abort(new Error("Chat client disposed"))

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto"
 
 export const CLIENT_TOOL_LIMIT = 8
 const CLIENT_TOOL_CALL_LIMIT = 16
+const PAGE_TOOL_CALL_LIMIT = 64
 export const TOOL_PAYLOAD_BYTES = 262_144
 export const MANIFEST_BYTES = 131_072
 export const TOOL_DESCRIPTION_CHARACTERS = 1000
@@ -37,6 +38,7 @@ export type ClientToolChannel = {
 	readonly dispatched: boolean
 	interrupt(): void
 	accept(result: ClientToolResult): void
+	resumePage(): void
 }
 
 export function createClientToolChannel(
@@ -44,7 +46,10 @@ export function createClientToolChannel(
 	dispatch: (request: ClientToolRequest) => void,
 	maxContextCharacters: number,
 ): ClientToolChannel {
-	const pending = new Map<string, { resolve(value: unknown): void; reject(error: Error): void; cleanup(): void }>()
+	const pending = new Map<
+		string,
+		{ name: string; resolve(value: unknown): void; reject(error: Error): void; cleanup(): void }
+	>()
 	const received = new Map<string, string>()
 	let calls = 0
 	const controller = new AbortController()
@@ -69,7 +74,13 @@ export function createClientToolChannel(
 			strict: definition.strict,
 			inputExamples: definition.inputExamples,
 			execute: async (input: unknown, options: ToolExecutionOptions<unknown>) => {
-				if (++calls > CLIENT_TOOL_CALL_LIMIT) throw new Error("Client tool call limit reached")
+				if (
+					++calls >
+					([...binding.names.values()].some((item) => item.toolName === "talqo_page")
+						? PAGE_TOOL_CALL_LIMIT
+						: CLIENT_TOOL_CALL_LIMIT)
+				)
+					throw new Error("Client tool call limit reached")
 				if (controller.signal.aborted) throw new Error("Client connection interrupted")
 				if (Buffer.byteLength(JSON.stringify(input)) > TOOL_PAYLOAD_BYTES) throw new Error("Tool input too large")
 				const { toolCallId, abortSignal, messages } = options
@@ -82,7 +93,7 @@ export function createClientToolChannel(
 						reject(new Error("Tool execution cancelled"))
 					}
 					const cleanup = () => abortSignal?.removeEventListener("abort", abort)
-					pending.set(toolCallId, { resolve, reject, cleanup })
+					pending.set(toolCallId, { name: definition.name, resolve, reject, cleanup })
 					abortSignal?.addEventListener("abort", abort, { once: true })
 					try {
 						dispatch({
@@ -112,6 +123,21 @@ export function createClientToolChannel(
 			return calls > 0
 		},
 		interrupt,
+		resumePage() {
+			for (const [toolCallId, call] of pending) {
+				if (call.name !== "talqo_page") {
+					interrupt()
+					return
+				}
+				pending.delete(toolCallId)
+				call.cleanup()
+				call.resolve({
+					status: "interrupted",
+					message:
+						"The document changed or disconnected. Observe the current page before any further action. The previous action may have executed. Establish its outcome; never replay an uncertain commitment.",
+				})
+			}
+		},
 		accept(result: ClientToolResult) {
 			const serialized = JSON.stringify(result)
 			const previous = received.get(result.toolCallId)

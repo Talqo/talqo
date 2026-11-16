@@ -57,7 +57,13 @@ The embed token is public. Provider API keys and operator credentials must stay 
 
 ## Browser tools
 
-Pass ordinary AI SDK function tools when creating the client. Talqo includes no built-in browser tools.
+Enabled embeds automatically include a page tool that observes and operates website controls. It owns the on-page action feedback, approval buttons, and Stop control. Custom interfaces do not render approval state.
+
+Pass your chat's root element through `pageControl: { exclude: [chatElement] }` in `createChatClient()` so the agent cannot read or operate chat controls. The pre-built widget supplies its root automatically.
+
+The page tool continues across same-origin page loads in the same tab. Talqo must be installed on each destination page, and browser tab storage must be available. Reconnection uses the original reply deadline; approval waits do not extend it. An API restart interrupts the task. Other origins, new tabs, and visitor-only payment steps require visitor participation. An interrupted action is inspected, never automatically repeated.
+
+You can also pass ordinary AI SDK function tools when creating the client:
 
 ```ts
 import { createChatClient } from "@talqo/sdk"
@@ -81,9 +87,9 @@ const chat = createChatClient({
 
 Install `ai` and your schema library alongside the SDK. Tools support `type: "function"`, a static `description`, `inputSchema`, `outputSchema`, `strict`, static `inputExamples`, and `execute`.
 
-Talqo rejects other Tool API features, including approval, provider-defined tools, callbacks, custom context, and streaming outputs. `execute` receives the AI SDK call ID, public conversation messages, and abort signal. Its `messages` exclude private instructions and retrieved knowledge-base context.
+Talqo rejects other Tool API features, including AI SDK approval fields, provider-defined tools, callbacks, custom context, and streaming outputs. `execute` receives the AI SDK call ID, public conversation messages, and abort signal. Its `messages` exclude private instructions and retrieved knowledge-base context.
 
-Register at most 8 tools. Each turn allows 16 browser-tool calls, including failures. Inputs and outputs must be JSON values of at most 256 KiB each. The tool manifest is limited to 128 KiB. The SDK validates inputs and declared outputs locally.
+Register at most 8 tools in total. The page tool occupies one slot when enabled, leaving 7 custom-tool slots. `talqo_page` is reserved for it. Turns with the page tool allow 64 browser-tool calls; other turns allow 16, including failures. Inputs and outputs must be JSON values of at most 256 KiB each. The tool manifest is limited to 128 KiB. The SDK validates inputs and declared outputs locally.
 
 Talqo stores browser and MCP tool results in conversation history and sends them to the model on later completed turns. Do not return secrets or unnecessary personal data.
 

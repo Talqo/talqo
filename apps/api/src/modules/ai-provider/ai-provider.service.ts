@@ -23,6 +23,7 @@ const CONFIG_ID = "singleton"
  * `streamText` defaults to one step, which drops tool results. Each step is billed, so the bound caps cost.
  */
 const MAX_TOOL_STEPS = 5
+const MAX_PAGE_TOOL_STEPS = 64
 
 /** How a resolved tool identifies itself to a caller. Carried opaquely; no MCP types cross over. */
 export type ToolIdentity = { serverName: string; toolName: string; source?: "client" | "mcp" }
@@ -222,7 +223,13 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			maxRetries: input.maxRetries,
 			abortSignal: input.signal,
 			timeout: input.timeoutMs,
-			stopWhen: isStepCount(MAX_TOOL_STEPS),
+			stopWhen: isStepCount(
+				[...(input.toolNames?.values() ?? [])].some(
+					(entry) => entry.source === "client" && entry.toolName === "talqo_page",
+				)
+					? MAX_PAGE_TOOL_STEPS
+					: MAX_TOOL_STEPS,
+			),
 			onError: () => undefined,
 			...(input.tools ? { tools: input.tools } : {}),
 			onAbort: abort,

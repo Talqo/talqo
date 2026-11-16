@@ -44,6 +44,21 @@ beforeEach(async () => {
 })
 
 describe("embed lifecycle", () => {
+	it("defaults page control on, preserves omitted updates, and publishes only enablement", async () => {
+		const created = await createEmbed(await createAgent())
+		expect(created.pageControl).toEqual({ enabled: true, approvalInstructions: null })
+		const saved = await replaceEmbed(created, {
+			pageControl: { enabled: false, approvalInstructions: "  Always ask before submitting forms.  " },
+		})
+		const olderUpdate = await replaceEmbed(saved, { name: "Renamed" })
+		expect(olderUpdate.pageControl).toEqual({
+			enabled: false,
+			approvalInstructions: "Always ask before submitting forms.",
+		})
+		expect((await service.getConfigByToken(created.embedToken)).pageControl).toEqual({ enabled: false })
+		const reset = await replaceEmbed(olderUpdate, { pageControl: { enabled: true, approvalInstructions: "   " } })
+		expect(reset.pageControl).toEqual({ enabled: true, approvalInstructions: null })
+	})
 	it("conceals hidden embeds with the same problem as missing embeds", async () => {
 		const visible = await createAgent("Visible")
 		const hidden = await createEmbed(await createAgent("Hidden"))
@@ -282,6 +297,7 @@ describe("public config lookup", () => {
 			name: "Marketing site",
 			appearance: DEFAULT_WIDGET_APPEARANCE,
 			isAvailable: false,
+			pageControl: { enabled: true },
 		})
 	})
 

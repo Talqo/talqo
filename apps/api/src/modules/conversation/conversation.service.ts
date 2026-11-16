@@ -28,6 +28,7 @@ import {
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
 import { finalizePart } from "./conversation.messages.ts"
+import { PAGE_TOOL_NAME, pageToolInstructions } from "./conversation.page-tool.ts"
 import { CANCELLATION_REASON, createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
 import {
@@ -925,6 +926,12 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
+			for (const [name, identity] of input.clientTools?.binding.names ?? []) {
+				if (identity.toolName === PAGE_TOOL_NAME && !currentEmbed.pageControl.enabled) {
+					input.clientTools?.binding.names.delete(name)
+					delete input.clientTools?.binding.tools[name]
+				}
+			}
 			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
 			const conversationId = requireUuid(
 				input.credential,
@@ -939,7 +946,12 @@ export function createConversationService(dependencies: Dependencies) {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
-				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
+				const hasPageTool = [...(input.clientTools?.binding.names.values() ?? [])].some(
+					(identity) => identity.toolName === PAGE_TOOL_NAME,
+				)
+				const systemPrompt =
+					agentService.composeSystemPrompt(agent.systemPrompt) +
+					(hasPageTool ? `\n\n${pageToolInstructions(currentEmbed.pageControl.approvalInstructions)}` : "")
 				const messages = await completedPrompt(systemPrompt, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
@@ -1029,6 +1041,14 @@ export function createConversationService(dependencies: Dependencies) {
 				messages: (await repository.listMessages(session.conversationId)).map(publicMessage),
 				activeGeneration: await repository.getActiveGenerationAttempt(session.conversationId),
 			}
+		},
+
+		async authorizePageResume(credential: string, embedToken: string): Promise<void> {
+			const session = await authenticate(credential)
+			const currentEmbed = await embedService.getEmbedByToken(embedToken)
+			if (session.embedId !== currentEmbed.id)
+				throw new SessionUnauthorizedError("Session does not belong to this embed")
+			if (currentEmbed.isDisabled || !currentEmbed.pageControl.enabled) throw new EmbedDisabledError()
 		},
 
 		async cancel(credential: string, generationId?: string): Promise<void> {

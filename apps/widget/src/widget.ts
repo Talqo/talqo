@@ -16,7 +16,9 @@ import { launcherText } from "./lib/launcher-text"
 import "./launcher.css"
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools">) => ChatClient
+export type ChatClientFactory = (
+	options: Pick<ChatClientOptions, "apiUrl" | "embedToken" | "tools" | "pageControl">,
+) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory; tools?: ChatClientOptions["tools"] }
 
 const DEFAULT_TARGET = "#talqo-widget"
@@ -293,7 +295,12 @@ function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, 
 
 	appearanceOverrides = appearanceFromDataset(dataset)
 	datasetTitle = dataset?.talqoTitle
-	client = (options.createClient ?? createChatClient)({ apiUrl: origin, embedToken, tools: options.tools })
+	client = (options.createClient ?? createChatClient)({
+		apiUrl: origin,
+		embedToken,
+		tools: options.tools,
+		pageControl: { exclude: [target] },
+	})
 	unsubscribe = client.subscribe(syncLauncher)
 	attachMediaListener()
 	syncLauncher()
