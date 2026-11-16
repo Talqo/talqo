@@ -31,29 +31,24 @@ describe("conversation seed traffic", () => {
 			[AGENT_IDS[2]]: 60,
 		})
 		expect(new Set(rows.conversations.map((row) => row.id)).size).toBe(rows.conversations.length)
-		for (const conversation of rows.conversations) expect(conversation.id).toStartWith("seed-stats-")
-		for (const message of rows.messages) expect(message.createdAt.getTime()).toBeLessThanOrEqual(NOON.getTime())
-		for (const attempt of rows.attempts) {
-			expect(attempt).toMatchObject({
-				finalOutcome: "completed",
-				providerInvoked: true,
-				status: "completed",
-				usageInputTokens: 1_280,
-				usageOutputTokens: 320,
-			})
-		}
+		expect(rows.conversations.every((conversation) => conversation.id.startsWith("seed-stats-"))).toBe(true)
+		expect(rows.messages.every((message) => message.createdAt.getTime() <= NOON.getTime())).toBe(true)
+		expect(rows.attempts.every((attempt) => attempt.finalOutcome === "completed")).toBe(true)
+		expect(rows.attempts.every((attempt) => attempt.providerInvoked === true && attempt.status === "completed")).toBe(
+			true,
+		)
+		expect(
+			rows.attempts.every((attempt) => attempt.usageInputTokens === 1_280 && attempt.usageOutputTokens === 320),
+		).toBe(true)
 	})
 
 	it("skips today's traffic when the elapsed day cannot fit a whole conversation", () => {
 		const rows = planRows(JUST_AFTER_MIDNIGHT)
 
 		expect(rows.conversations).toHaveLength(350)
-		for (const conversation of rows.conversations) {
-			expect(conversation.createdAt.getTime()).toBeLessThan(new Date("2026-05-15T00:00:00Z").getTime())
-		}
-		for (const message of rows.messages) {
-			expect(message.createdAt.getTime()).toBeLessThanOrEqual(JUST_AFTER_MIDNIGHT.getTime())
-		}
+		const midnight = new Date("2026-05-15T00:00:00Z").getTime()
+		expect(rows.conversations.every((conversation) => conversation.createdAt.getTime() < midnight)).toBe(true)
+		expect(rows.messages.every((message) => message.createdAt.getTime() <= JUST_AFTER_MIDNIGHT.getTime())).toBe(true)
 	})
 
 	it("links each planned attempt to the last message of its conversation", () => {
@@ -65,12 +60,22 @@ describe("conversation seed traffic", () => {
 			messagesByConversation.set(message.conversationId, stored)
 		}
 
-		for (const attempt of rows.attempts) {
-			const messages = messagesByConversation.get(attempt.conversationId) ?? []
-			expect(messages).toHaveLength(4)
-			expect(messages.map((message) => message.role)).toEqual(["user", "assistant", "user", "assistant"])
-			expect(messages.at(-1)?.createdAt).toEqual(attempt.usageRecordedAt)
-		}
+		expect(
+			rows.attempts.map((attempt) => {
+				const messages = messagesByConversation.get(attempt.conversationId) ?? []
+				return {
+					lastMessageAt: messages.at(-1)?.createdAt,
+					roles: messages.map((message) => message.role),
+					total: messages.length,
+				}
+			}),
+		).toEqual(
+			rows.attempts.map((attempt) => ({
+				lastMessageAt: attempt.usageRecordedAt,
+				roles: ["user", "assistant", "user", "assistant"],
+				total: 4,
+			})),
+		)
 	})
 })
 
