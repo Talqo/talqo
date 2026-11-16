@@ -10,7 +10,7 @@
 	"scripts": {
 		"actions:check": "actionlint && zizmor --offline .",
 		"build": "turbo run build",
-		"check": "bun run typecheck && fallow audit --only dead-code,dupes --format compact --quiet",
+		"check": "bun run typecheck && fallow audit --only dead-code --format compact --quiet && bun run duplication",
 		"ci": "bun run --sequential actions:check contracts:check quality dead-code duplication architecture i18n typecheck health build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated packages/sdk/src/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x orval --config orval.config.ts --fail-on-warnings",
