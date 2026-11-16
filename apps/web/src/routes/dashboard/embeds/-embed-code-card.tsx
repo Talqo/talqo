@@ -8,9 +8,12 @@ import { apiOriginOverride, buildEmbedSnippet } from "./-embed-snippet"
 
 const COPY_FEEDBACK_MS = 2000
 
-function snippetFor(embedToken: string): string {
+function snippetFor(embedToken: string): string | undefined {
 	const configuredScriptUrl = import.meta.env.VITE_WIDGET_CDN_URL
 	const scriptUrl = configuredScriptUrl ?? `${window.location.origin}/widget.js`
+	if (!scriptUrl) {
+		return undefined
+	}
 	return buildEmbedSnippet(scriptUrl, {
 		embedToken,
 		apiOrigin: apiOriginOverride(scriptUrl, window.location.origin),
@@ -28,6 +31,9 @@ export function EmbedCodeCard({ embedToken, isDisabled }: { embedToken: string; 
 	}, [])
 
 	async function copySnippet() {
+		if (!snippet) {
+			return
+		}
 		try {
 			await navigator.clipboard.writeText(snippet)
 			setCopied(true)
