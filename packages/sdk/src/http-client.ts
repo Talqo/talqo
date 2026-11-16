@@ -54,7 +54,7 @@ type EmbedConfiguration = {
 	appearance: Readonly<Record<string, unknown>>
 	isAvailable: boolean
 	name: string
-	pageControl?: { readonly enabled: boolean }
+	pageControl?: { readonly enabled: boolean; readonly approvalInstructions?: string }
 }
 
 function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
@@ -67,14 +67,23 @@ function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
 		return undefined
 	}
 	const pageControl = value.pageControl
-	if (pageControl !== undefined && (!isRecord(pageControl) || typeof pageControl.enabled !== "boolean")) {
-		return undefined
+	if (pageControl !== undefined) {
+		if (!isRecord(pageControl) || typeof pageControl.enabled !== "boolean") return undefined
+		if (pageControl.approvalInstructions !== undefined && typeof pageControl.approvalInstructions !== "string")
+			return undefined
 	}
 	return {
 		appearance: value.appearance,
 		isAvailable: value.isAvailable,
 		name: value.name,
-		...(pageControl === undefined ? {} : { pageControl: { enabled: pageControl.enabled } }),
+		...(pageControl === undefined
+			? {}
+			: {
+					pageControl: {
+						enabled: pageControl.enabled,
+						approvalInstructions: pageControl.approvalInstructions,
+					},
+				}),
 	}
 }
 

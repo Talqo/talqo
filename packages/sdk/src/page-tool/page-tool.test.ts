@@ -1,7 +1,8 @@
+import { captureClientTools } from "@/client-tools.ts"
+import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 import { expect, test } from "bun:test"
 import { z } from "zod"
 
-import { captureClientTools } from "./client-tools.ts"
 import { createPageTool } from "./page-tool.ts"
 
 test("advertises an object-root tool schema accepted by structured-output providers without touching the DOM", async () => {
@@ -11,6 +12,13 @@ test("advertises an object-root tool schema accepted by structured-output provid
 	expect(manifest[0]?.inputSchema).not.toHaveProperty("anyOf")
 	expect(JSON.stringify(manifest[0]?.inputSchema)).not.toContain('"oneOf"')
 	expect(manifest[0]?.inputSchema).toHaveProperty("properties.action.type", "string")
+})
+
+test("advertises configured approval instructions up to the saved setting's limit", async () => {
+	const instructions = "x".repeat(APPROVAL_INSTRUCTIONS_MAX_LENGTH)
+	const page = createPageTool({ exclude: [], language: "en", approvalInstructions: instructions, stop: async () => {} })
+	const manifest = await captureClientTools({ talqo_page: page.definition }).manifest()
+	expect(manifest[0]?.description).toContain(instructions)
 })
 
 test("reports incomplete actions before browser execution", async () => {

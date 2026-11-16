@@ -12,7 +12,7 @@ export const chatClientFrameV1ThreeToolCallIdMax = 256;
 
 export const chatClientFrameV1FourToolCallIdMax = 256;
 
-export const chatClientFrameV1FourErrorMax = 1000;
+export const chatClientFrameV1FourErrorMax = 4096;
 
 
 

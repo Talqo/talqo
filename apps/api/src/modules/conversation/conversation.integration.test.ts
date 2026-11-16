@@ -195,58 +195,48 @@ afterEach(() => {
 })
 
 describe("structured tool history", () => {
-	it.each([true, false])(
-		"enforces saved page-control enablement and instructions against stale manifests (%s)",
-		async (enabled) => {
-			const { createdEmbed } = await fixture()
-			await embed.updateEmbed(
-				createdEmbed.id,
-				{
-					...createdEmbed,
-					pageControl: { enabled, approvalInstructions: "Ask before every form submission." },
-				},
-				await testAdminId(),
-			)
-			const channel = createClientToolChannel(
-				[
-					{ name: "talqo_page", inputSchema: {} },
-					{ name: "custom_lookup", inputSchema: {} },
-				],
-				() => {},
-				400_000,
-			)
-			const instance = service()
-			const turn = await instance.service.send({
-				embedToken: createdEmbed.embedToken,
-				credential: CREDENTIAL_1,
-				networkHash: "network",
-				requestId: REQUEST_1,
-				text: "Use this website",
-				clientTools: channel,
-			})
-			await turn.done
-			expect([...channel.binding.names.values()].map((tool) => tool.toolName)).toEqual(
-				enabled ? ["talqo_page", "custom_lookup"] : ["custom_lookup"],
-			)
-			expect(JSON.stringify(instance.prompts).includes("Ask before every form submission.")).toBe(enabled)
-			if (enabled)
-				await expect(
-					instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken),
-				).resolves.toBeUndefined()
-			else
-				await expect(
-					instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken),
-				).rejects.toBeInstanceOf(EmbedDisabledError)
-			const other = await fixture()
-			await expect(
-				instance.service.authorizePageResume(CREDENTIAL_1, other.createdEmbed.embedToken),
-			).rejects.toBeInstanceOf(SessionUnauthorizedError)
-			await embed.rotateEmbedToken(createdEmbed.id, await testAdminId())
+	it.each([true, false])("enforces saved page-control enablement against stale manifests (%s)", async (enabled) => {
+		const { createdAgent, createdEmbed } = await fixture()
+		await agent.updateAgent(createdAgent.id, {
+			...createdAgent,
+			pageControl: { enabled, approvalInstructions: "Ask before every form submission." },
+		})
+		const channel = createClientToolChannel(
+			[
+				{ name: "talqo_page", inputSchema: {} },
+				{ name: "custom_lookup", inputSchema: {} },
+			],
+			() => {},
+			400_000,
+		)
+		const instance = service()
+		const turn = await instance.service.send({
+			embedToken: createdEmbed.embedToken,
+			credential: CREDENTIAL_1,
+			networkHash: "network",
+			requestId: REQUEST_1,
+			text: "Use this website",
+			clientTools: channel,
+		})
+		await turn.done
+		expect([...channel.binding.names.values()].map((tool) => tool.toolName)).toEqual(
+			enabled ? ["talqo_page", "custom_lookup"] : ["custom_lookup"],
+		)
+		if (enabled)
+			await expect(instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken)).resolves.toBeUndefined()
+		else
 			await expect(instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken)).rejects.toBeInstanceOf(
-				SessionUnauthorizedError,
+				EmbedDisabledError,
 			)
-		},
-	)
+		const other = await fixture()
+		await expect(
+			instance.service.authorizePageResume(CREDENTIAL_1, other.createdEmbed.embedToken),
+		).rejects.toBeInstanceOf(SessionUnauthorizedError)
+		await embed.rotateEmbedToken(createdEmbed.id, await testAdminId())
+		await expect(instance.service.authorizePageResume(CREDENTIAL_1, createdEmbed.embedToken)).rejects.toBeInstanceOf(
+			SessionUnauthorizedError,
+		)
+	})
 	it("migrates existing text without changing message identity or losing empty messages", async () => {
 		const migration = await Bun.file(new URL("../../../drizzle/0016_marvelous_silver_fox.sql", import.meta.url)).text()
 		await sql.begin(async (tx) => {

@@ -575,11 +575,12 @@
 		"team": "Tým"
 	},
 	"pageControl": {
-		"defaultPolicy": "Povolit prohlížení, výběr produktů, přípravu košíku a rozepsané formuláře. Požadovat schválení nákupů, plateb, závažných změn účtu a nejasných závazků.",
-		"description": "Agent může hledat produkty, vyplňovat formuláře a dokončit objednávku. Návštěvníci vidí jeho kroky a mohou ho zastavit.",
-		"enabled": "Povolit agentovi používat tento web",
-		"help": "Prázdné pole použije výchozí pravidla. Agent tyto pokyny vyhodnocuje; nejde o vynucená oprávnění.",
-		"instructions": "Kdy požádat o schválení"
+		"connectedTools": "Připojené nástroje",
+		"description": "Umožněte agentovi procházet stránky, vyplňovat formuláře a plnit úkoly na vašem webu.",
+		"instructions": "Kdy požádat o schválení",
+		"instructionsRequired": "Zadejte pokyny ke schvalování, nejvýše {{max}} znaků.",
+		"restoreDefaults": "Obnovit výchozí",
+		"title": "Akce na webu"
 	},
 	"permissions": {
 		"accessDeniedBody": "Pokud tuto stránku potřebujete, požádejte správce o přístup.",

@@ -21,17 +21,18 @@
 		"registry": "https://registry.npmjs.org/"
 	},
 	"scripts": {
-		"build": "bun build src/index.ts --target browser --format esm --packages external --outdir dist && tsc -p tsconfig.build.json",
+		"build": "bun build src/index.ts --target browser --format esm --external ai --external zod --external @floating-ui/dom --outdir dist && tsc -p tsconfig.build.json",
 		"test": "bun test",
 		"typecheck": "bun check"
 	},
 	"dependencies": {
 		"@floating-ui/dom": "1.8.0",
-		"@page-agent/page-controller": "1.12.4",
 		"ai": "7.0.159",
 		"zod": "4.6.7"
 	},
 	"devDependencies": {
+		"@talqo/shared": "workspace:*",
+		"@talqo/page-controller": "0.1.0",
 		"@talqo/typescript-config": "workspace:*",
 		"@types/bun": "1.4.5",
 		"typescript": "7.0.2"

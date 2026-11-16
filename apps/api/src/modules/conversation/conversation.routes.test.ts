@@ -15,7 +15,10 @@ const START = { version: 1, type: "start", credential: CREDENTIAL, requestId: RE
 // Mirrors TALQO_CHAT_MAX_INPUT_CHARACTERS in apps/api/.env.example.
 const CHAT_INPUT_LIMIT = 400_000
 
-function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none") {
+function routes(
+	failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none",
+	authorizePageResume = async () => {},
+) {
 	const calls: Array<unknown> = []
 	const gate = Promise.withResolvers<void>()
 	const service = {
@@ -98,20 +101,24 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 		},
 		getSession: async () => ({ messages: [], activeGeneration: undefined }),
 		cancel: async () => undefined,
-		authorizePageResume: async () => undefined,
+		authorizePageResume,
 	}
 	const logged: Array<WideEvent> = []
+	const loggedEvent = Promise.withResolvers<void>()
 	const app = new OpenAPIHono()
 		.use(
 			"*",
-			createWideEvents((event) => logged.push(event)),
+			createWideEvents((event) => {
+				logged.push(event)
+				loggedEvent.resolve()
+			}),
 		)
 		.route(
 			"/chat",
 			createConversationRoutes(service, () => ({ peerAddress: "::ffff:192.0.2.4", forwardedFor: undefined })),
 		)
 	app.onError(handleError)
-	return { app, calls, logged, release: () => gate.resolve() }
+	return { app, calls, logged, loggedEvent: loggedEvent.promise, release: () => gate.resolve() }
 }
 
 function serve(app: ReturnType<typeof routes>["app"]) {
@@ -139,6 +146,36 @@ function connect(origin: string, frame: unknown, onAccepted?: (socket: WebSocket
 }
 
 describe("public conversation routes", () => {
+	it("finishes the wide event when a resume socket closes during authorization", async () => {
+		const authorizing = Promise.withResolvers<void>()
+		const authorized = Promise.withResolvers<void>()
+		const { app, loggedEvent, logged, release } = routes("late-error", async () => {
+			authorizing.resolve()
+			await authorized.promise
+		})
+		const server = serve(app)
+		const pageSession = crypto.randomUUID()
+		try {
+			const first = connect(server.url.origin, {
+				...START,
+				pageSession,
+				tools: [{ name: "talqo_page", inputSchema: {} }],
+			})
+			await first.accepted
+			first.socket.close()
+			await first.closed
+			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			await authorizing.promise
+			resumed.socket.close()
+			await resumed.closed
+			await loggedEvent
+			expect(logged).toHaveLength(1)
+		} finally {
+			authorized.resolve()
+			release()
+			await server.stop(true)
+		}
+	})
 	it("reattaches a page turn without accepting or charging a second request", async () => {
 		const { app, calls, release } = routes("late-error")
 		const server = serve(app)
@@ -161,6 +198,9 @@ describe("public conversation routes", () => {
 			expect(await wrong.closed).toBe(1008)
 			const resumed = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
 			await resumed.accepted
+			const contender = connect(server.url.origin, { version: 1, type: "resume", pageSession, credential: CREDENTIAL })
+			expect(await contender.closed).toBe(1008)
+			expect(calls[0]).toHaveProperty("clientTools.interrupted", false)
 			release()
 			expect(await resumed.closed).toBe(1000)
 			expect(resumed.events).toMatchObject([

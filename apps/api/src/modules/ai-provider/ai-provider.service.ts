@@ -3,8 +3,8 @@ import type { createCredentialVault, CredentialEnvelope } from "@/lib/credential
 
 import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
-import { APICallError, type LanguageModelV4 } from "@ai-sdk/provider"
-import { embed as aiEmbed, isStepCount, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
+import { APICallError, type EmbeddingModelV4, type LanguageModelV4 } from "@ai-sdk/provider"
+import { embed as aiEmbed, type ModelMessage, streamText as aiStreamText, type ToolSet } from "ai"
 
 import type { DiscoverModelsInput, SaveConfigurationInput } from "./ai-provider.contract.ts"
 import type { StoredConfiguration, StoredEmbeddingConfiguration, StoredTextConfiguration } from "./ai-provider.types.ts"
@@ -223,13 +223,15 @@ async function* defaultGenerate(input: Parameters<Generate>[0], streamText: type
 			maxRetries: input.maxRetries,
 			abortSignal: input.signal,
 			timeout: input.timeoutMs,
-			stopWhen: isStepCount(
-				[...(input.toolNames?.values() ?? [])].some(
-					(entry) => entry.source === "client" && entry.toolName === "talqo_page",
+			stopWhen: ({ steps }) => {
+				const usedPage = steps.some((step) =>
+					step.toolCalls.some((call) => {
+						const entry = input.toolNames?.get(call.toolName)
+						return entry?.source === "client" && entry.toolName === "talqo_page"
+					}),
 				)
-					? MAX_PAGE_TOOL_STEPS
-					: MAX_TOOL_STEPS,
-			),
+				return steps.length >= (usedPage ? MAX_PAGE_TOOL_STEPS : MAX_TOOL_STEPS)
+			},
 			onError: () => undefined,
 			...(input.tools ? { tools: input.tools } : {}),
 			onAbort: abort,

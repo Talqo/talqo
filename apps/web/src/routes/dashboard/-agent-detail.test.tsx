@@ -19,6 +19,7 @@ const INITIAL_AGENT = {
 	name: "Support agent",
 	systemPrompt: "Answer support questions.",
 	wordBlacklist: ["seed-term"],
+	pageControl: { enabled: true, approvalInstructions: "Confirm before paying." },
 	createdAt: TIMESTAMP,
 	updatedAt: TIMESTAMP,
 }

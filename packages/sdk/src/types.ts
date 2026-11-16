@@ -8,7 +8,7 @@ export type ChatConfiguration = {
 	readonly appearance: Readonly<Record<string, unknown>>
 	/** Requires an enabled embed and a usable text provider. */
 	readonly isAvailable: boolean
-	readonly pageControl?: { readonly enabled: boolean }
+	readonly pageControl?: { readonly enabled: boolean; readonly approvalInstructions?: string }
 }
 
 export type ChatMessageRole = "user" | "assistant"
@@ -140,7 +140,7 @@ export type ChatTransport = {
 }
 
 export type ChatClientOptions = {
-	/** Roots belonging to a custom chat UI. They are excluded from page observation and actions. */
+	/** Opt in to website actions by supplying the chat's roots. They are excluded from observation and actions. */
 	pageControl?: { exclude?: readonly Element[]; themeRoot?: () => Element | null }
 	/** AI SDK function tools with execute, runtime-validating schemas, static description, strict, and inputExamples. Other behaviors are rejected. */
 	tools?: ToolSet

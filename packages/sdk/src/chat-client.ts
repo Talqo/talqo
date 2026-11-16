@@ -11,7 +11,7 @@ import type {
 
 import { captureClientTools, CLIENT_TOOL_LIMIT } from "./client-tools.ts"
 import { ChatTransportError } from "./http-client.ts"
-import { createPageTool, PAGE_TOOL_NAME } from "./page-tool.ts"
+import { createPageTool, PAGE_TOOL_NAME } from "./page-tool/page-tool.ts"
 import {
 	CHAT_STORAGE_VERSION,
 	type ChatStorageRecord,
@@ -21,10 +21,11 @@ import {
 	readChatStorageRecord,
 } from "./storage.ts"
 import {
+	canStorePageContinuation,
 	createWebSocketChatTransport,
 	type PageContinuation,
-	pageContinuationKey,
 	readPageContinuation,
+	removePageContinuation,
 } from "./websocket-transport.ts"
 
 const ONE_SECOND_MS = 1000
@@ -211,6 +212,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	)
 	let tools = captureClientTools(customTools)
 	let pageTool: ReturnType<typeof createPageTool> | undefined
+	let pageStorageUnavailable = false
 	if (options.transport && tools.size) throw new Error("Client tools require the WebSocket transport")
 	const transport =
 		options.transport ??
@@ -280,7 +282,8 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 
 	function snapshotNotices(): ChatSnapshot["notices"] {
 		const notices: Array<ChatSnapshot["notices"][number]> = []
-		if (storage.isFallback() && error?.code !== "storage-unavailable") notices.push("storage-unavailable")
+		if ((storage.isFallback() || pageStorageUnavailable) && error?.code !== "storage-unavailable")
+			notices.push("storage-unavailable")
 		if (generation === "recovery-exhausted") notices.push("recovery-unavailable")
 		return notices
 	}
@@ -506,19 +509,33 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			storage.getItem(storageKey),
 		])
 		configuration = loadedConfiguration
-		if (!options.transport && loadedConfiguration.pageControl?.enabled && typeof document !== "undefined") {
-			if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
-			if (tools.size === CLIENT_TOOL_LIMIT)
-				throw new Error(
-					"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
-				)
-			pageTool = createPageTool({
-				exclude: options.pageControl?.exclude ?? [],
-				language:
-					typeof loadedConfiguration.appearance.language === "string" ? loadedConfiguration.appearance.language : "en",
-				stop: cancelResponse,
-			})
-			tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
+		if (
+			!options.transport &&
+			options.pageControl &&
+			loadedConfiguration.pageControl?.enabled &&
+			typeof document !== "undefined"
+		) {
+			if (!options.pageControl.exclude?.length)
+				throw new Error("Page control requires the chat root in pageControl.exclude")
+			pageStorageUnavailable = !canStorePageContinuation()
+			if (!pageStorageUnavailable) {
+				if (Object.hasOwn(customTools, PAGE_TOOL_NAME)) throw new Error("Reserved client tool name: talqo_page")
+				if (tools.size === CLIENT_TOOL_LIMIT)
+					throw new Error(
+						"Page control uses one of 8 client tools. Disable page control or register at most 7 custom tools.",
+					)
+				pageTool = createPageTool({
+					approvalInstructions: loadedConfiguration.pageControl.approvalInstructions,
+					exclude: options.pageControl.exclude,
+					themeRoot: options.pageControl.themeRoot,
+					language:
+						typeof loadedConfiguration.appearance.language === "string"
+							? loadedConfiguration.appearance.language
+							: "en",
+					stop: cancelResponse,
+				})
+				tools = captureClientTools({ ...customTools, [PAGE_TOOL_NAME]: pageTool.definition })
+			}
 		}
 		if (loadedConfiguration.isAvailable) await restoreStoredSession(serialized, controller.signal)
 		initialization = "ready"
@@ -528,7 +545,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 			generation = "idle"
 			activeGenerationId = undefined
 			void sendMessage(continuation.text, continuation).catch(() => {
-				sessionStorage.removeItem(pageContinuationKey(options.apiUrl, options.embedToken))
+				removePageContinuation(options.apiUrl, options.embedToken)
 			})
 			return
 		}
@@ -586,8 +603,7 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 		credential ??= randomUUID()
 		const sendCredential = credential
 		const requestId = continuation?.requestId ?? randomUUID()
-		const pageSession =
-			continuation?.pageSession ?? (pageTool && typeof sessionStorage !== "undefined" ? randomUUID() : undefined)
+		const pageSession = continuation?.pageSession ?? (pageTool ? randomUUID() : undefined)
 		const controller = new AbortController()
 		pendingMessage = { requestId, text, ...(tools.size ? { clientTools: true } : {}) }
 		generation = "sending"

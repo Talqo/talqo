@@ -32,7 +32,14 @@ test("page observations reflect live controls and reject disabled or detached ta
 	await page.setContent(`<div id="root"><label>Email <input id="email" value="old@example.com"></label>
 <label>Delivery <select id="delivery"><option>Standard</option><option>Express</option></select></label>
 <span id="label">Save product</span><button aria-labelledby="label" id="save">Save</button>
-<button id="target">Place order</button></div><div id="chat"><button>Private chat control</button></div>`)
+<button id="target">Place order</button>
+<label>Password <input type="password" value="password-secret"></label>
+<label>Card <input autocomplete="cc-number" value="4111111111111111"></label>
+<form id="unsafe-form" action="https://elsewhere.example/"><input id="unsafe-input"></form>
+<button id="outside-submit" form="unsafe-form">External submission</button>
+<form><button id="override" formaction="https://elsewhere.example/">Override</button>
+<button id="new-tab" formtarget="_blank">New tab</button></form>
+<a id="base-link" href="/">Base target</a></div><div id="chat"><button>Private chat control</button></div>`)
 	const result = await page.evaluate(async () => {
 		type PageToolModule = {
 			createPageTool(options: { exclude: Element[]; language: string; stop(): Promise<void> }): {
@@ -41,9 +48,12 @@ test("page observations reflect live controls and reject disabled or detached ta
 			}
 		}
 		const moduleUrl = "/page-tool.js"
+		history.replaceState(null, "", "/?access_token=url-secret#fragment-secret")
 		const { createPageTool } = (await import(moduleUrl)) as PageToolModule
 		const excluded = document.querySelector("#chat")
 		if (!excluded) throw new Error("Missing excluded root")
+		const email = document.querySelector("#email")
+		email?.addEventListener("focus", () => email.setAttribute("aria-invalid", "false"), { once: true })
 		const controller = new AbortController()
 		const pageTool = createPageTool({ exclude: [excluded], language: "en", stop: async () => controller.abort() })
 		const execute = pageTool.definition.execute
@@ -97,18 +107,46 @@ test("page observations reflect live controls and reject disabled or detached ta
 				description: "Place order",
 				approval: null,
 			})
-			return { before, filled, selected, disabled, detached }
+			const blocked: unknown[] = []
+			for (const id of ["unsafe-input", "outside-submit", "override", "new-tab", "base-link"]) {
+				if (id === "base-link") {
+					const base = document.createElement("base")
+					base.target = "_blank"
+					document.head.append(base)
+				}
+				// oxlint-disable-next-line no-await-in-loop -- Each action needs a fresh snapshot.
+				const current = (await run({ action: "observe" })) as { snapshot: string; content: string }
+				// oxlint-disable-next-line no-await-in-loop -- Actions must use their own observation in order.
+				const denied = await run({
+					action: "click",
+					snapshot: current.snapshot,
+					index: index(current.content, id),
+					description: "Use control",
+					approval: null,
+				})
+				blocked.push(denied)
+			}
+			return { before, filled, selected, disabled, detached, blocked }
 		} finally {
 			pageTool.dispose()
 		}
 	})
 	expect(result.before.content).not.toContain("Private chat control")
+	expect(JSON.stringify(result.before)).not.toMatch(/password-secret|4111111111111111|url-secret|fragment-secret/)
 	expect(result.before.content).toContain("Save product")
 	expect(result.filled).toMatchObject({ status: "dispatched" })
 	expect(result.filled.page.content).toContain("new@example.com")
 	expect(result.selected.page.content).toContain("value=Express")
 	expect(result.disabled).toMatchObject({ status: "failed" })
 	expect(result.detached).toMatchObject({ status: "failed" })
+	expect(result.blocked).toEqual(
+		Array.from({ length: 5 }, () =>
+			expect.objectContaining({
+				status: "failed",
+				message: expect.stringContaining("Only this tab and origin"),
+			}),
+		),
+	)
 })
 
 for (const ui of ["widget", "sdk"] as const)
@@ -188,6 +226,37 @@ test("widget remains usable when visibility storage is blocked", async ({ page, 
 	await expect(chat).toBeVisible()
 	await chat.getByRole("button", { name: widget("closeChat") }).click()
 	await expect(chat).toHaveCount(0)
+})
+
+test("blocked tab storage disables website actions without breaking ordinary chat", async ({ page, chatEmbed }) => {
+	await page.addInitScript(() => {
+		Object.defineProperty(window, "sessionStorage", {
+			get() {
+				throw new DOMException("Storage is blocked", "SecurityError")
+			},
+		})
+	})
+	await page.goto(chatEmbed.widgetUrl)
+	await page.getByRole("button", { name: widget("openChat") }).click()
+	const chat = page.getByRole("dialog")
+	await chat.getByRole("textbox", { name: widget("messageLabel") }).fill("Where is my order?")
+	await chat.getByRole("button", { name: widget("send") }).click()
+	await expect(chat.getByText("It ships tomorrow.", { exact: true })).toBeVisible()
+	await expect(page.getByRole("region", { name: "Talqo" })).toHaveCount(0)
+})
+
+test("existing custom SDK UIs can keep eight tools without opting into website actions", async ({
+	page,
+	chatEmbed,
+}) => {
+	const url = new URL(chatEmbed.widgetUrl)
+	url.searchParams.set("sdk", "true")
+	url.searchParams.set("legacy", "true")
+	await page.goto(url.href)
+	const chat = page.getByRole("form", { name: "Custom chat" })
+	await chat.getByRole("textbox", { name: "Message" }).fill("Where is my order?")
+	await chat.getByRole("button", { name: "Send message" }).click()
+	await expect(page.getByRole("status", { name: "Reply" })).toHaveText("It ships **tomorrow**.")
 })
 
 test("page approvals follow the widget palette, including theme changes", async ({ page, chatEmbed, adminRequest }) => {

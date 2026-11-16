@@ -4,13 +4,32 @@ import { describe, expect, test } from "bun:test"
 
 import { type ClientToolRequest, createClientToolChannel } from "./conversation.client-tools.ts"
 
-function executeTool(channel: ReturnType<typeof createClientToolChannel>) {
-	const definition = Object.values(channel.binding.tools)[0]
+function executeTool(channel: ReturnType<typeof createClientToolChannel>, index = 0) {
+	const definition = Object.values(channel.binding.tools)[index]
 	if (!definition?.execute) throw new Error("Expected a tool proxy")
 	return definition.execute as (input: unknown, options: ToolExecutionOptions<unknown>) => Promise<unknown>
 }
 
 describe("browser tool channel", () => {
+	test("a preceding custom call does not swallow the page call's uncertainty result", async () => {
+		const channel = createClientToolChannel(
+			[
+				{ name: "custom", inputSchema: {} },
+				{ name: "talqo_page", inputSchema: {} },
+			],
+			() => {},
+			400_000,
+		)
+		const custom = Promise.resolve(
+			executeTool(channel)({}, { toolCallId: "custom", messages: [], context: undefined }),
+		).catch((error: unknown) => error)
+		const page = executeTool(channel, 1)({}, { toolCallId: "page", messages: [], context: undefined })
+		channel.resumePage()
+		const result = await page
+		expect(result).toMatchObject({ status: "interrupted" })
+		expect(result).toHaveProperty("message", expect.stringContaining("outcome is unknown"))
+		expect(await custom).toMatchObject({ message: "Client connection interrupted" })
+	})
 	test("resuming a page call reports uncertainty without dispatching the action again", async () => {
 		const requests: ClientToolRequest[] = []
 		const channel = createClientToolChannel(

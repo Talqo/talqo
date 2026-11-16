@@ -10,6 +10,8 @@ export const updateAgentBodyNameMax = 100;
 
 export const updateAgentBodySystemPromptMax = 20000;
 
+export const updateAgentBodyPageControlApprovalInstructionsMax = 2000;
+
 export const updateAgentBodyWordBlacklistItemMax = 100;
 
 export const updateAgentBodyWordBlacklistMax = 100;
@@ -18,6 +20,10 @@ export const updateAgentBodyWordBlacklistMax = 100;
 export const UpdateAgentBody = zod.object({
   "name": zod.string().min(1).max(updateAgentBodyNameMax),
   "systemPrompt": zod.string().min(1).max(updateAgentBodySystemPromptMax),
+  "pageControl": zod.object({
+  "enabled": zod.boolean(),
+  "approvalInstructions": zod.string().min(1).max(updateAgentBodyPageControlApprovalInstructionsMax)
+}).optional(),
   "wordBlacklist": zod.array(zod.string().min(1).max(updateAgentBodyWordBlacklistItemMax)).max(updateAgentBodyWordBlacklistMax)
 })
 

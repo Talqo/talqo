@@ -23,8 +23,6 @@ export const embed = pgTable(
 		embedToken: text("embed_token").notNull().unique(),
 		accessVersion: integer("access_version").notNull().default(1),
 		isDisabled: boolean("is_disabled").notNull().default(false),
-		pageControlEnabled: boolean("page_control_enabled").notNull().default(true),
-		pageApprovalInstructions: text("page_approval_instructions"),
 		lightPrimaryColor: text("light_primary_color").notNull(),
 		lightTextOnPrimaryColor: text("light_text_on_primary_color").notNull(),
 		lightBackgroundColor: text("light_background_color").notNull(),

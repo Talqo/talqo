@@ -21,17 +21,34 @@ const continuationSchema = z.object({
 	text: z.string(),
 })
 export type PageContinuation = z.infer<typeof continuationSchema>
-export function pageContinuationKey(apiUrl: string, embedToken: string): string {
+function pageContinuationKey(apiUrl: string, embedToken: string): string {
 	return `talqo:page-turn:${apiUrl}:${embedToken}`
 }
-export function readPageContinuation(apiUrl: string, embedToken: string): PageContinuation | undefined {
-	if (typeof sessionStorage === "undefined") return undefined
-	const serialized = sessionStorage.getItem(pageContinuationKey(apiUrl, embedToken))
-	if (!serialized) return undefined
+export function canStorePageContinuation(): boolean {
 	try {
+		const key = `talqo:page-storage-check:${crypto.randomUUID()}`
+		sessionStorage.setItem(key, "1")
+		const available = sessionStorage.getItem(key) === "1"
+		sessionStorage.removeItem(key)
+		return available
+	} catch {
+		return false
+	}
+}
+export function removePageContinuation(apiUrl: string, embedToken: string): void {
+	try {
+		sessionStorage.removeItem(pageContinuationKey(apiUrl, embedToken))
+	} catch {
+		console.warn("TalqoSDK: page continuation storage unavailable")
+	}
+}
+export function readPageContinuation(apiUrl: string, embedToken: string): PageContinuation | undefined {
+	try {
+		const serialized = sessionStorage.getItem(pageContinuationKey(apiUrl, embedToken))
+		if (!serialized) return undefined
 		return continuationSchema.parse(JSON.parse(serialized))
 	} catch {
-		sessionStorage.removeItem(pageContinuationKey(apiUrl, embedToken))
+		removePageContinuation(apiUrl, embedToken)
 		return undefined
 	}
 }
@@ -236,7 +253,7 @@ export function createWebSocketChatTransport(
 				queue.push({ event: parsed, bytes })
 				bufferedBytes += bytes
 				if (parsed.type === "terminal" || parsed.type === "error") {
-					if (input.pageSession) sessionStorage.removeItem(storageKey)
+					if (input.pageSession) removePageContinuation(input.apiUrl, input.embedToken)
 					terminal = true
 					delivered = true
 					toolController.abort()

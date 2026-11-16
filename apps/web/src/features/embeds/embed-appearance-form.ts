@@ -14,7 +14,6 @@ import { z } from "zod"
 
 // Same source as the API contract, so guidance while typing cannot disagree with the reject.
 const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
-const APPROVAL_INSTRUCTIONS_LIMIT = 2000
 
 const schemeSchema = z.object({
 	primary: colorSchema,
@@ -32,7 +31,6 @@ export const embedFormSchema = z.object({
 	theme: z.enum(WIDGET_THEMES),
 	themeToggle: z.boolean(),
 	language: z.enum(SUPPORTED_LANGUAGES),
-	pageControl: z.object({ enabled: z.boolean(), approvalInstructions: z.string().max(APPROVAL_INSTRUCTIONS_LIMIT) }),
 })
 
 export type EmbedFormValues = z.infer<typeof embedFormSchema>
@@ -45,7 +43,6 @@ export const EMBED_FORM_DEFAULTS: Omit<EmbedFormValues, "name"> = {
 	theme: DEFAULT_WIDGET_APPEARANCE.theme,
 	themeToggle: DEFAULT_WIDGET_APPEARANCE.themeToggle,
 	language: DEFAULT_WIDGET_APPEARANCE.language,
-	pageControl: { enabled: true, approvalInstructions: "" },
 }
 
 /** The form is flat under each scheme; the API takes a nested appearance object. */
@@ -70,14 +67,10 @@ function toSchemeFormValues(scheme: WidgetScheme): WidgetSchemeFormValues {
 	}
 }
 
-export function toFormValues(embed: Pick<Embed, "appearance" | "name" | "pageControl">): EmbedFormValues {
+export function toFormValues(embed: Pick<Embed, "appearance" | "name">): EmbedFormValues {
 	const { language, light, dark } = embed.appearance
 	return {
 		name: embed.name,
-		pageControl: {
-			enabled: embed.pageControl.enabled,
-			approvalInstructions: embed.pageControl.approvalInstructions ?? "",
-		},
 		light: toSchemeFormValues(light),
 		dark: toSchemeFormValues(dark),
 		position: embed.appearance.position,

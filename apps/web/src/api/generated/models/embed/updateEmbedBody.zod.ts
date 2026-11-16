@@ -19,8 +19,6 @@ export const updateEmbedBodyAppearanceDarkTextOnPrimaryRegExp = new RegExp('^#[0
 export const updateEmbedBodyAppearanceDarkBackgroundRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
 export const updateEmbedBodyAppearanceDarkSurfaceRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
 export const updateEmbedBodyAppearanceDarkTextRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
-export const updateEmbedBodyPageControlApprovalInstructionsMax = 2000;
-
 
 export const UpdateEmbedBody = zod.object({
   "agentId": zod.string().min(1),
@@ -44,11 +42,7 @@ export const UpdateEmbedBody = zod.object({
   "theme": zod.enum(['system', 'light', 'dark']),
   "themeToggle": zod.boolean(),
   "language": zod.enum(['en', 'cs'])
-}),
-  "pageControl": zod.object({
-  "enabled": zod.boolean(),
-  "approvalInstructions": zod.string().max(updateEmbedBodyPageControlApprovalInstructionsMax).nullable()
-}).optional()
+})
 })
 
 export type UpdateEmbedBody = zod.input<typeof UpdateEmbedBody>;

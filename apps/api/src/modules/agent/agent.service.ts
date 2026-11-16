@@ -8,6 +8,7 @@ import { HTTP_STATUS } from "@/http/status.ts"
 import { isRestrictViolation, isUniqueViolation } from "@/lib/pg-error.ts"
 import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
+import { APPROVAL_INSTRUCTIONS_MAX_LENGTH } from "@talqo/shared/page-control"
 
 import { PLATFORM_SYSTEM_PROMPT } from "./agent.platform-prompt.ts"
 import * as repo from "./agent.repository.ts"
@@ -38,6 +39,7 @@ function toAgent({ agent, words }: repo.AgentWithWords): Agent {
 		id: agent.id,
 		name: agent.name,
 		systemPrompt: agent.systemPrompt,
+		pageControl: { enabled: agent.pageControlEnabled, approvalInstructions: agent.pageApprovalInstructions },
 		wordBlacklist: words.map((word) => word.word),
 		createdAt: agent.createdAt,
 		updatedAt: agent.updatedAt,
@@ -49,11 +51,13 @@ export type Agent = {
 	id: string
 	name: string
 	systemPrompt: string
+	pageControl: { enabled: boolean; approvalInstructions: string }
 	updatedAt: Date
 	wordBlacklist: Array<string>
 }
 
 export type AgentInput = {
+	pageControl?: Agent["pageControl"]
 	name: string
 	systemPrompt: string
 	wordBlacklist: Array<string>
@@ -97,7 +101,16 @@ export function normalizeAgentInput(input: AgentInput): AgentInput {
 		throw new InvalidAgentInputError(`System prompt must be at most ${SYSTEM_PROMPT_MAX_LENGTH} characters`)
 	}
 
-	return { name, systemPrompt, wordBlacklist: normalizeWordBlacklist(input.wordBlacklist) }
+	const pageControl = input.pageControl
+		? { enabled: input.pageControl.enabled, approvalInstructions: input.pageControl.approvalInstructions.trim() }
+		: undefined
+	if (
+		pageControl &&
+		(!pageControl.approvalInstructions || pageControl.approvalInstructions.length > APPROVAL_INSTRUCTIONS_MAX_LENGTH)
+	)
+		throw new InvalidAgentInputError("Approval instructions must be between 1 and 2000 characters")
+
+	return { name, systemPrompt, wordBlacklist: normalizeWordBlacklist(input.wordBlacklist), pageControl }
 }
 
 export async function listAgents(
@@ -158,6 +171,8 @@ export async function createAgent(input: AgentInput): Promise<Agent> {
 					id: crypto.randomUUID(),
 					name: value.name,
 					systemPrompt: value.systemPrompt,
+					pageControlEnabled: value.pageControl?.enabled,
+					pageApprovalInstructions: value.pageControl?.approvalInstructions,
 				},
 				value.wordBlacklist,
 			),
@@ -173,7 +188,16 @@ export async function updateAgent(id: string, input: AgentInput): Promise<Agent>
 	try {
 		const updated = await repo.updateWithWords(
 			id,
-			{ name: value.name, systemPrompt: value.systemPrompt },
+			{
+				name: value.name,
+				systemPrompt: value.systemPrompt,
+				...(value.pageControl
+					? {
+							pageControlEnabled: value.pageControl.enabled,
+							pageApprovalInstructions: value.pageControl.approvalInstructions,
+						}
+					: {}),
+			},
 			value.wordBlacklist,
 		)
 		if (!updated) throw new AgentNotFoundError(`updateAgent: agent ${id} not found`)
