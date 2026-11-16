@@ -192,6 +192,16 @@ export async function createTestServer(): Promise<Bun.Server<undefined>> {
 		entrypoints: [path.join(import.meta.dirname, "fixtures/sdk-ui.ts")],
 		target: "browser",
 		format: "esm",
+		plugins: [
+			{
+				name: "published-sdk",
+				setup(build) {
+					build.onResolve({ filter: /^@talqo\/sdk$/ }, () => ({
+						path: path.resolve(import.meta.dirname, "../../../packages/sdk/dist/index.js"),
+					}))
+				},
+			},
+		],
 	})
 	if (!sdkBuild.success || !sdkBuild.outputs[0]) throw new Error("Could not build the custom SDK UI")
 	const shopBuild = await Bun.build({
@@ -200,7 +210,7 @@ export async function createTestServer(): Promise<Bun.Server<undefined>> {
 		format: "esm",
 	})
 	const pageToolBuild = await Bun.build({
-		entrypoints: [path.resolve(import.meta.dirname, "../../../packages/sdk/src/page-tool.ts")],
+		entrypoints: [path.resolve(import.meta.dirname, "../../../packages/sdk/src/page-tool/page-tool.ts")],
 		target: "browser",
 		format: "esm",
 	})

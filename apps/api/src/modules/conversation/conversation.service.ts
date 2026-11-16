@@ -10,6 +10,7 @@ import * as knowledgeBase from "@/modules/knowledge-base/knowledge-base.service.
 import * as mcp from "@/modules/mcp/mcp.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import * as usageService from "@/modules/usage/usage.service.ts"
+import { PAGE_TOOL_NAME } from "@talqo/shared/page-control"
 import { asSchema, convertToModelMessages, type ModelMessage, type UIMessage } from "ai"
 import { z } from "zod"
 
@@ -28,7 +29,6 @@ import {
 	SessionUnauthorizedError,
 } from "./conversation.errors.ts"
 import { finalizePart } from "./conversation.messages.ts"
-import { PAGE_TOOL_NAME, pageToolInstructions } from "./conversation.page-tool.ts"
 import { CANCELLATION_REASON, createGenerationPoller } from "./conversation.poller.ts"
 import * as repository from "./conversation.repository.ts"
 import {
@@ -926,8 +926,9 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
+			const agent = await agentService.getAgent(currentEmbed.agentId)
 			for (const [name, identity] of input.clientTools?.binding.names ?? []) {
-				if (identity.toolName === PAGE_TOOL_NAME && !currentEmbed.pageControl.enabled) {
+				if (identity.toolName === PAGE_TOOL_NAME && !agent.pageControl.enabled) {
 					input.clientTools?.binding.names.delete(name)
 					delete input.clientTools?.binding.tools[name]
 				}
@@ -941,17 +942,11 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.new_conversation": !session })
 			const agentId = currentEmbed.agentId
 			annotate({ "agent.id": agentId, "embed.id": currentEmbed.id })
-			const agent = await agentService.getAgent(agentId)
 			async function preparePrompt() {
 				const history = session
 					? await repository.getHistorySnapshot(session.conversationId)
 					: { messages: [], revision: 0, latestCompletedMessageId: null }
-				const hasPageTool = [...(input.clientTools?.binding.names.values() ?? [])].some(
-					(identity) => identity.toolName === PAGE_TOOL_NAME,
-				)
-				const systemPrompt =
-					agentService.composeSystemPrompt(agent.systemPrompt) +
-					(hasPageTool ? `\n\n${pageToolInstructions(currentEmbed.pageControl.approvalInstructions)}` : "")
+				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
 				const messages = await completedPrompt(systemPrompt, history.messages, input.text)
 				const promptContent = promptText(messages)
 				const promptCharacters = Array.from(promptContent).length
@@ -1048,7 +1043,8 @@ export function createConversationService(dependencies: Dependencies) {
 			const currentEmbed = await embedService.getEmbedByToken(embedToken)
 			if (session.embedId !== currentEmbed.id)
 				throw new SessionUnauthorizedError("Session does not belong to this embed")
-			if (currentEmbed.isDisabled || !currentEmbed.pageControl.enabled) throw new EmbedDisabledError()
+			const agent = await agentService.getAgent(currentEmbed.agentId)
+			if (currentEmbed.isDisabled || !agent.pageControl.enabled) throw new EmbedDisabledError()
 		},
 
 		async cancel(credential: string, generationId?: string): Promise<void> {

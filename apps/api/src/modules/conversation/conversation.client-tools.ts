@@ -8,7 +8,7 @@ const CLIENT_TOOL_CALL_LIMIT = 16
 const PAGE_TOOL_CALL_LIMIT = 64
 export const TOOL_PAYLOAD_BYTES = 262_144
 export const MANIFEST_BYTES = 131_072
-export const TOOL_DESCRIPTION_CHARACTERS = 1000
+export const TOOL_DESCRIPTION_CHARACTERS = 4096
 const TOOL_NAME_HASH_CHARACTERS = 32
 
 export type ClientToolDefinition = {
@@ -124,19 +124,20 @@ export function createClientToolChannel(
 		},
 		interrupt,
 		resumePage() {
+			let interruptedCustomCall = false
 			for (const [toolCallId, call] of pending) {
 				if (call.name !== "talqo_page") {
-					interrupt()
-					return
+					interruptedCustomCall = true
+					continue
 				}
 				pending.delete(toolCallId)
 				call.cleanup()
 				call.resolve({
 					status: "interrupted",
-					message:
-						"The document changed or disconnected. Observe the current page before any further action. The previous action may have executed. Establish its outcome; never replay an uncertain commitment.",
+					message: "The client disconnected during execution. The outcome is unknown.",
 				})
 			}
+			if (interruptedCustomCall) interrupt()
 		},
 		accept(result: ClientToolResult) {
 			const serialized = JSON.stringify(result)

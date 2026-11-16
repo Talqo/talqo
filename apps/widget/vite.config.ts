@@ -31,6 +31,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src`,
+			"./page-tool.css": `${import.meta.dirname}/../../packages/sdk/src/page-tool/page-tool.css?inline`,
 		},
 	},
 	server: {

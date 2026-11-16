@@ -8,6 +8,7 @@
 		"./chat-transcript": "./src/chat-transcript.ts",
 		"./credentials": "./src/credentials.ts",
 		"./languages": "./src/languages.ts",
+		"./page-control": "./src/page-control.ts",
 		"./preview-channel": "./src/preview-channel.ts",
 		"./problem-codes": "./src/problem-codes.ts",
 		"./widget-appearance": "./src/widget-appearance.ts"

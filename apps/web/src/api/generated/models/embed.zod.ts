@@ -9,8 +9,6 @@ import { EmbedAppearance } from './embedAppearance.zod';
 
 export const embedAccessVersionExclusiveMin = 0;
 
-export const embedPageControlApprovalInstructionsMax = 2000;
-
 
 
 export const Embed = zod.object({
@@ -20,11 +18,7 @@ export const Embed = zod.object({
   "embedToken": zod.string(),
   "accessVersion": zod.int().gt(embedAccessVersionExclusiveMin),
   "isDisabled": zod.boolean(),
-  "appearance": EmbedAppearance,
-  "pageControl": zod.object({
-  "enabled": zod.boolean(),
-  "approvalInstructions": zod.string().max(embedPageControlApprovalInstructionsMax).nullable()
-})
+  "appearance": EmbedAppearance
 });
 
 export type Embed = zod.input<typeof Embed>;

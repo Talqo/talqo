@@ -57,7 +57,10 @@ function embedConfiguration(value: unknown): EmbedConfig | undefined {
 		typeof value.isAvailable !== "boolean" ||
 		!isRecord(value.appearance) ||
 		(value.pageControl !== undefined &&
-			(!isRecord(value.pageControl) || typeof value.pageControl.enabled !== "boolean"))
+			(!isRecord(value.pageControl) ||
+				typeof value.pageControl.enabled !== "boolean" ||
+				(value.pageControl.approvalInstructions !== undefined &&
+					typeof value.pageControl.approvalInstructions !== "string")))
 	)
 		return undefined
 	return value as unknown as EmbedConfig

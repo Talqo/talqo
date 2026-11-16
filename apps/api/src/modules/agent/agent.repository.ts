@@ -69,7 +69,7 @@ export async function insertWithWords(values: NewAgent, words: string[]): Promis
 
 export async function updateWithWords(
 	id: string,
-	values: Pick<NewAgent, "name" | "systemPrompt">,
+	values: Pick<NewAgent, "name" | "systemPrompt" | "pageControlEnabled" | "pageApprovalInstructions">,
 	words: string[],
 ): Promise<AgentWithWords | undefined> {
 	return db.transaction(async (tx) => {

@@ -18,6 +18,12 @@ export function createPageConnection(input: {
 	let bytes = 0
 	let channel: ClientToolChannel | undefined
 	let finished = false
+	function finish(): void {
+		if (finished) return
+		finished = true
+		clearTimeout(detached)
+		close()
+	}
 	return {
 		credential: input.credential,
 		embedToken: input.embedToken,
@@ -30,35 +36,38 @@ export function createPageConnection(input: {
 			return channel
 		},
 		send(message: unknown) {
+			if (finished) return
 			const serialized = JSON.stringify(message)
-			bytes += Buffer.byteLength(serialized)
-			if (bytes > BUFFER_BYTES) {
-				channel?.interrupt()
-				throw new Error("Page turn buffer exceeded")
-			}
 			// Tool invocations are never replayed to a replacement document.
-			if (!(typeof message === "object" && message !== null && "type" in message && message.type === "tool-call"))
+			if (!(typeof message === "object" && message !== null && "type" in message && message.type === "tool-call")) {
+				const frameBytes = Buffer.byteLength(serialized)
+				if (bytes + frameBytes > BUFFER_BYTES) {
+					console.warn("conversation.page-buffer.exceeded", { bufferedBytes: bytes, frameBytes })
+					channel?.interrupt()
+					input.cancel()
+					finish()
+					return
+				}
+				bytes += frameBytes
 				frames.push(serialized)
+			}
 			sender?.(serialized)
 		},
-		detach() {
-			if (finished) return
+		detach(owner: (message: string) => void) {
+			if (finished || sender !== owner) return
 			sender = undefined
 			clearTimeout(detached)
 			detached = setTimeout(() => channel?.interrupt(), RECONNECT_MS)
 		},
-		attach(send: (message: string) => void, finish: () => void) {
-			if (finished || sender) throw new Error("Page turn is not available for reconnection")
+		attach(send: (message: string) => void, onFinish: () => void): boolean {
+			if (finished || sender) return false
 			clearTimeout(detached)
 			sender = send
-			close = finish
+			close = onFinish
 			for (const frame of frames) send(frame)
 			channel?.resumePage()
+			return true
 		},
-		finish() {
-			finished = true
-			clearTimeout(detached)
-			close()
-		},
+		finish,
 	}
 }

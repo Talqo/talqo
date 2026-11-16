@@ -138,6 +138,11 @@ test("a read-only operator can inspect agents but finds no management controls",
 		await expect(page.getByRole("button", { name: web("agentConfig.save") })).toHaveCount(0)
 		await expect(page.getByText(web("agentConfig.dangerZone"))).toHaveCount(0)
 
+		await page.getByRole("tab", { name: web("agentConfig.tabMcp") }).click()
+		await expect(page.getByRole("switch", { name: web("pageControl.title") })).toBeDisabled()
+		await expect(page.getByRole("textbox", { name: web("pageControl.instructions") })).toHaveAttribute("readonly", "")
+		await expect(page.getByRole("button", { name: web("agentConfig.save") })).toHaveCount(0)
+
 		await page.getByRole("tab", { name: web("agentConfig.tabContext") }).click()
 		const downloadPromise = page.waitForEvent("download")
 		await page.getByRole("button", { name: web("agentFiles.download", { name: "reader-guide.md" }) }).click()

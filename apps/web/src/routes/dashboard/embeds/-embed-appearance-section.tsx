@@ -20,7 +20,6 @@ import { Label } from "@talqo/ui/components/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@talqo/ui/components/select"
 import { Switch } from "@talqo/ui/components/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@talqo/ui/components/tabs"
-import { Textarea } from "@talqo/ui/components/textarea"
 import { useQueryClient } from "@tanstack/react-query"
 import { type Control, Controller, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -186,10 +185,6 @@ export function EmbedAppearanceSection({
 					name: submitted.name.trim(),
 					agentId: embed.agentId,
 					appearance: toAppearance(submitted),
-					pageControl: {
-						enabled: submitted.pageControl.enabled,
-						approvalInstructions: submitted.pageControl.approvalInstructions.trim() || null,
-					},
 				},
 			},
 			// Re-sync on save so the stored values show through and the fields go clean.
@@ -209,33 +204,6 @@ export function EmbedAppearanceSection({
 					<CardContent>
 						<form onSubmit={handleSubmit(onValid, () => setFocus("name"))} className="space-y-4">
 							<fieldset className="space-y-4">
-								<div className="space-y-2">
-									<div className="flex items-center gap-2">
-										<Controller
-											control={control}
-											name="pageControl.enabled"
-											render={({ field }) => (
-												<Switch
-													id="page-control"
-													disabled={!canManage}
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											)}
-										/>
-										<Label htmlFor="page-control">{t("pageControl.enabled")}</Label>
-									</div>
-									<p className="text-muted-foreground text-sm">{t("pageControl.description")}</p>
-									<Label htmlFor="page-approval">{t("pageControl.instructions")}</Label>
-									<Textarea
-										id="page-approval"
-										readOnly={!canManage}
-										maxLength={2000}
-										placeholder={t("pageControl.defaultPolicy")}
-										{...register("pageControl.approvalInstructions")}
-									/>
-									<p className="text-muted-foreground text-sm">{t("pageControl.help")}</p>
-								</div>
 								<div className="space-y-2">
 									<Label htmlFor="widget-name">{t("embedSetup.nameLabel")}</Label>
 									<Input

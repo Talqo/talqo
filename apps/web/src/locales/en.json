@@ -565,11 +565,12 @@
 		"team": "Team"
 	},
 	"pageControl": {
-		"defaultPolicy": "Allow browsing, product selection, cart preparation, and draft forms. Ask before purchases, payments, consequential account changes, or unclear commitments.",
-		"description": "The agent can find products, fill forms, and complete checkout. Visitors see its actions and can stop it.",
-		"enabled": "Let the agent use this website",
-		"help": "Leave blank to use the default rules. The agent interprets these instructions; they are not enforced permissions.",
-		"instructions": "When to ask for approval"
+		"connectedTools": "Connected tools",
+		"description": "Let the agent browse pages, fill forms, and complete tasks on your website.",
+		"instructions": "When to ask for approval",
+		"instructionsRequired": "Enter approval instructions, up to {{max}} characters.",
+		"restoreDefaults": "Restore defaults",
+		"title": "Website actions"
 	},
 	"permissions": {
 		"accessDeniedBody": "An admin can grant you access; ask them if you need this page.",

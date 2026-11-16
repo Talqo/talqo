@@ -13,7 +13,8 @@ export const EmbedConfig = zod.object({
   "appearance": EmbedAppearance,
   "isAvailable": zod.boolean(),
   "pageControl": zod.object({
-  "enabled": zod.boolean()
+  "enabled": zod.boolean(),
+  "approvalInstructions": zod.string()
 })
 });
 

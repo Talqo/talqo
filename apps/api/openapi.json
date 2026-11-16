@@ -1383,7 +1383,7 @@
               },
               "error": {
                 "type": "string",
-                "maxLength": 1000
+                "maxLength": 4096
               }
             },
             "required": [
@@ -2087,6 +2087,23 @@
           "systemPrompt": {
             "type": "string"
           },
+          "pageControl": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "approvalInstructions": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "enabled",
+              "approvalInstructions"
+            ]
+          },
           "wordBlacklist": {
             "type": "array",
             "items": {
@@ -2106,6 +2123,7 @@
           "id",
           "name",
           "systemPrompt",
+          "pageControl",
           "wordBlacklist",
           "createdAt",
           "updatedAt"
@@ -2135,25 +2153,6 @@
           },
           "appearance": {
             "$ref": "#/components/schemas/EmbedAppearance"
-          },
-          "pageControl": {
-            "type": "object",
-            "properties": {
-              "enabled": {
-                "type": "boolean"
-              },
-              "approvalInstructions": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "maxLength": 2000
-              }
-            },
-            "required": [
-              "enabled",
-              "approvalInstructions"
-            ]
           }
         },
         "required": [
@@ -2163,8 +2162,7 @@
           "embedToken",
           "accessVersion",
           "isDisabled",
-          "appearance",
-          "pageControl"
+          "appearance"
         ]
       },
       "EmbedAppearance": {
@@ -2254,10 +2252,14 @@
             "properties": {
               "enabled": {
                 "type": "boolean"
+              },
+              "approvalInstructions": {
+                "type": "string"
               }
             },
             "required": [
-              "enabled"
+              "enabled",
+              "approvalInstructions"
             ]
           }
         },
@@ -6010,6 +6012,23 @@
                     "minLength": 1,
                     "maxLength": 20000
                   },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
+                    ]
+                  },
                   "wordBlacklist": {
                     "type": "array",
                     "items": {
@@ -6229,6 +6248,23 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 20000
+                  },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
+                    ]
                   },
                   "wordBlacklist": {
                     "type": "array",
@@ -6619,25 +6655,6 @@
                       "themeToggle",
                       "language"
                     ]
-                  },
-                  "pageControl": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "approvalInstructions": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "maxLength": 2000
-                      }
-                    },
-                    "required": [
-                      "enabled",
-                      "approvalInstructions"
-                    ]
                   }
                 },
                 "required": [
@@ -6949,25 +6966,6 @@
                       "theme",
                       "themeToggle",
                       "language"
-                    ]
-                  },
-                  "pageControl": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "approvalInstructions": {
-                        "type": [
-                          "string",
-                          "null"
-                        ],
-                        "maxLength": 2000
-                      }
-                    },
-                    "required": [
-                      "enabled",
-                      "approvalInstructions"
                     ]
                   }
                 },

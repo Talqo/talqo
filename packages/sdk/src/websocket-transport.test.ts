@@ -5,7 +5,7 @@ import { z } from "zod"
 import { createChatClient } from "./chat-client.ts"
 import { captureClientTools } from "./client-tools.ts"
 import { createChatStorageKey, createMemoryStorage, readChatStorageRecord } from "./storage.ts"
-import { createWebSocketChatTransport } from "./websocket-transport.ts"
+import { canStorePageContinuation, createWebSocketChatTransport, readPageContinuation } from "./websocket-transport.ts"
 
 const CREDENTIAL = "22222222-2222-4222-8222-222222222222"
 const REQUEST_ID = "11111111-1111-4111-8111-111111111111"
@@ -71,6 +71,23 @@ async function startedTurn(apiUrl: string) {
 function upgrade(request: Request, host: Bun.Server<undefined>): Response | undefined {
 	return host.upgrade(request) ? undefined : new Response(null, { status: 400 })
 }
+
+test("blocked sessionStorage getters cannot break initialization's continuation lookup", () => {
+	const descriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage")
+	Object.defineProperty(globalThis, "sessionStorage", {
+		configurable: true,
+		get() {
+			throw new Error("Storage is blocked")
+		},
+	})
+	try {
+		expect(canStorePageContinuation()).toBe(false)
+		expect(readPageContinuation("https://example.com", "embed")).toBeUndefined()
+	} finally {
+		if (descriptor) Object.defineProperty(globalThis, "sessionStorage", descriptor)
+		else Reflect.deleteProperty(globalThis, "sessionStorage")
+	}
+})
 
 test("rejects unknown error codes after validating the frame", async () => {
 	const server = Bun.serve({

@@ -24,6 +24,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 		const excluded = document.querySelector("#chat")
 		const purchase = document.querySelector("#purchase")
 		if (!excluded || !purchase) throw new Error("Missing page controls")
+		if (purchase instanceof HTMLElement) purchase.focus()
 		purchase.addEventListener("click", () => {
 			document.body.dataset.purchased = "true"
 		})
@@ -59,6 +60,7 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 	})
 	const approval = page.getByRole("region", { name: "Talqo" })
 	await expect(approval.getByRole("button", { name: "Approve", exact: true })).toBeVisible()
+	await expect(approval.getByRole("button", { name: "Approve", exact: true })).toBeFocused()
 	await expect
 		.poll(async () => {
 			const card = await approval.boundingBox()
@@ -101,5 +103,6 @@ test("approval follows its target, avoids the chat, and falls back inside a smal
 	await expect(page.locator("body")).not.toHaveAttribute("data-purchased")
 	await approval.getByRole("button", { name: "Cancel", exact: true }).click()
 	await expect(approval).toHaveCount(0)
+	await expect(page.getByRole("button", { name: "Place order", exact: true })).toBeFocused()
 	await expect(page.locator("body")).not.toHaveAttribute("data-purchased")
 })

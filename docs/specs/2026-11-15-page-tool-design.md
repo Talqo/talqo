@@ -8,7 +8,7 @@ Approved.
 
 A visitor can request a purchase and have the agent complete the order. The visitor supplies missing information and explicitly approves consequential actions, but does not have to drive checkout.
 
-Use a built-in SDK tool backed by `@page-agent/page-controller`. Keep the agent's actions visible on the host page and leave chat presentation unchanged.
+Use a built-in SDK tool backed by `@talqo/page-controller`. Keep the agent's actions visible on the host page and leave chat presentation unchanged.
 
 ## Purchase journey
 
@@ -37,7 +37,7 @@ Verify the current stable PageController release before adding it. Correct its l
 
 The tool owns a small, style-isolated on-page panel and target highlighting. Scroll the active control into view, highlight it before acting, and describe the current action. Provide Stop without blocking ordinary page interaction.
 
-Browsing, product selection, cart preparation, and draft form filling proceed without approval by default. Purchases, payments, consequential account changes, and unclear commitments require approval. Operators can customize these rules per embed through plain-language instructions; the model interprets them.
+Browsing, product selection, cart preparation, and draft form filling proceed without approval by default. Purchases, payments, consequential account changes, and unclear commitments require approval. Operators can customize these rules per agent through plain-language instructions; the model interprets them.
 
 Show Approve and Cancel for the exact proposed commitment. A purchase request in chat does not replace the approval button. Approval authorizes only that action. Recheck the target and material order details before execution; a changed product, quantity, price, fee, or delivery choice requires fresh approval.
 
@@ -47,9 +47,9 @@ Support keyboard operation, visible focus, accessible status announcements, redu
 
 ## Operator settings and integration
 
-Add an embed-level page-control switch, enabled by default for existing and new embeds, and editable approval instructions with a default policy. Save both through the existing embed settings and permissions. Omitted fields in older update callers preserve saved settings.
+Website actions belong to the agent's Tools tab, separately from connected tools. One switch, enabled by default, applies to every embed using that agent. Approval instructions are prefilled editable content, with Restore defaults and Save actions. Hide the instructions when disabled without discarding them. Save through agent settings and permissions; omitted fields in older update callers preserve saved settings. Embed appearance has no website-action controls.
 
-The API supplies the effective instructions to the model and prevents a disabled embed's built-in tool from being invoked, including through a stale browser manifest. Disabling page control must not disable unrelated custom tools.
+The API supplies the agent's instructions to the model and prevents its disabled website tool from being invoked, including through a stale browser manifest. Disabling website actions must not disable unrelated custom tools.
 
 The SDK owns browser execution, tool-owned UI, and cleanup. The conversation module owns task continuity and recorded execution outcomes. Preserve the purchase objective and completed action outcomes across page navigation and requests for visitor input.
 

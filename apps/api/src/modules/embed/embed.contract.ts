@@ -11,11 +11,6 @@ import { EMBED_NAME_MAX_LENGTH } from "./embed.service.ts"
 // Shared with the widget: colors it rejects would silently fall back to defaults.
 const colorSchema = z.string().regex(HEX_COLOR_PATTERN, HEX_COLOR_MESSAGE)
 const nameSchema = z.string().trim().min(1).max(EMBED_NAME_MAX_LENGTH)
-const APPROVAL_INSTRUCTIONS_LIMIT = 2000
-const pageControlSchema = z.object({
-	enabled: z.boolean(),
-	approvalInstructions: z.string().trim().max(APPROVAL_INSTRUCTIONS_LIMIT).nullable(),
-})
 
 // Exactly the five colors the widget paints with; nothing here derives a tone or hue.
 const schemeInputSchema = z
@@ -76,7 +71,6 @@ const embedResponseSchema = z
 		accessVersion: z.number().int().positive(),
 		isDisabled: z.boolean(),
 		appearance: appearanceResponseSchema,
-		pageControl: pageControlSchema,
 	})
 	.openapi("Embed")
 
@@ -88,7 +82,7 @@ export const embedConfigResponseSchema = z
 		appearance: appearanceResponseSchema,
 		// Requires an enabled embed and a usable text provider.
 		isAvailable: z.boolean(),
-		pageControl: z.object({ enabled: z.boolean() }),
+		pageControl: z.object({ enabled: z.boolean(), approvalInstructions: z.string() }),
 	})
 	.openapi("EmbedConfig")
 
@@ -97,7 +91,6 @@ const embedInputSchema = z.object({
 	agentId: z.string().min(1),
 	name: nameSchema,
 	appearance: appearanceInputSchema,
-	pageControl: pageControlSchema.optional(),
 })
 
 export const embedDetailResponseSchema = z.object({ embed: embedResponseSchema })

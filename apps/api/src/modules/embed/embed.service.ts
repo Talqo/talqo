@@ -6,6 +6,7 @@ import { ApiError, PROBLEM_CODES } from "@/http/problem.ts"
 import { HTTP_STATUS } from "@/http/status.ts"
 import { generateOpaqueToken } from "@/lib/opaque-token.ts"
 import { isForeignKeyViolation } from "@/lib/pg-error.ts"
+import * as agentService from "@/modules/agent/agent.service.ts"
 import * as aiProvider from "@/modules/ai-provider/ai-provider.service.ts"
 import * as roles from "@/modules/roles/roles.service.ts"
 import { WIDGET_CONFIG_VERSION } from "@talqo/shared/widget-appearance"
@@ -15,7 +16,6 @@ import * as repo from "./embed.repository.ts"
 export const EMBED_NAME_MAX_LENGTH = 80
 
 export type Embed = {
-	pageControl: { enabled: boolean; approvalInstructions: string | null }
 	accessVersion: number
 	agentId: string
 	appearance: WidgetAppearance
@@ -26,7 +26,7 @@ export type Embed = {
 }
 
 export type EmbedConfig = {
-	pageControl: { enabled: boolean }
+	pageControl: { enabled: boolean; approvalInstructions: string }
 	appearance: WidgetAppearance
 	isAvailable: boolean
 	name: string
@@ -35,7 +35,6 @@ export type EmbedConfig = {
 }
 
 export type EmbedInput = {
-	pageControl?: Embed["pageControl"]
 	agentId: string
 	appearance: WidgetAppearance
 	name: string
@@ -62,7 +61,6 @@ function toEmbed(row: EmbedRow): Embed {
 		embedToken: row.embedToken,
 		accessVersion: row.accessVersion,
 		isDisabled: row.isDisabled,
-		pageControl: { enabled: row.pageControlEnabled, approvalInstructions: row.pageApprovalInstructions },
 		appearance: {
 			light: {
 				primary: row.lightPrimaryColor,
@@ -133,8 +131,6 @@ export async function createEmbed(input: EmbedInput, actorId: string): Promise<E
 			name: input.name,
 			embedToken: generateOpaqueToken(),
 			...toColumns(input.appearance),
-			pageControlEnabled: input.pageControl?.enabled,
-			pageApprovalInstructions: input.pageControl?.approvalInstructions?.trim() || null,
 		})
 		return toEmbed(row)
 	} catch (error) {
@@ -153,12 +149,6 @@ export async function updateEmbed(id: string, input: EmbedInput, actorId: string
 				agentId: input.agentId,
 				name: input.name,
 				...toColumns(input.appearance),
-				...(input.pageControl
-					? {
-							pageControlEnabled: input.pageControl.enabled,
-							pageApprovalInstructions: input.pageControl.approvalInstructions?.trim() || null,
-						}
-					: {}),
 			},
 			current.agentId,
 		)
@@ -201,15 +191,16 @@ export async function getConfigByToken(embedToken: string, annotate: Annotate = 
 	const row = await repo.findEmbedByToken(embedToken)
 	if (!row) throw new EmbedNotFoundError("Embed not found")
 	annotate({ "embed.id": row.id, "agent.id": row.agentId })
-	const { name, appearance, isDisabled, pageControl } = toEmbed(row)
+	const { name, appearance, isDisabled } = toEmbed(row)
+	const agent = await agentService.getAgent(row.agentId)
 	const isAvailable = !isDisabled && (await aiProvider.canGenerateText())
 	return {
 		version: WIDGET_CONFIG_VERSION,
 		name,
 		appearance,
 		isAvailable,
-		pageControl: { enabled: pageControl.enabled },
-		updatedAt: row.updatedAt,
+		pageControl: agent.pageControl,
+		updatedAt: new Date(Math.max(row.updatedAt.getTime(), agent.updatedAt.getTime())),
 	}
 }
 

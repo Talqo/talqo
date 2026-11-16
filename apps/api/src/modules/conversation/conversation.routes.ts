@@ -142,6 +142,9 @@ export function createConversationRoutes(
 		const embedToken = c.req.valid("param").embedToken
 		let channel: ClientToolChannel | undefined
 		let pageConnection: ReturnType<typeof createPageConnection> | undefined
+		let socketSender: ((message: string) => void) | undefined
+		let resuming = false
+		let resumeCancellationRequested = false
 		let started = false
 		let closed = false
 		const cancellation = new AbortController()
@@ -232,11 +235,13 @@ export function createConversationRoutes(
 			started = true
 			clearTimeout(deadline)
 			if (frame.pageSession) {
+				const send = (message: string) => ws.send(message)
+				socketSender = send
 				pageConnection = createPageConnection({
 					credential: frame.credential,
 					embedToken,
 					origin,
-					send: (message) => ws.send(message),
+					send,
 					close: () => ws.close(SOCKET_NORMAL_CLOSE),
 					cancel: () => cancellation.abort(),
 				})
@@ -273,24 +278,31 @@ export function createConversationRoutes(
 				return
 			}
 			started = true
+			resuming = true
+			const send = (message: string) => ws.send(message)
+			socketSender = send
 			clearTimeout(deadline)
 			void (async () => {
 				try {
 					await activeService().authorizePageResume(frame.credential, embedToken)
-					if (closed) return
+					if (resumeCancellationRequested) connection.cancel()
+					if (closed || terminal) return
+					const attached = connection.attach(send, () => {
+						terminal = true
+						completion.resolve()
+						ws.close(SOCKET_NORMAL_CLOSE)
+					})
+					if (!attached) {
+						failFrame(ws)
+						return
+					}
 					pageConnection = connection
 					channel = connection.channel
-					connection.attach(
-						(message) => ws.send(message),
-						() => {
-							terminal = true
-							completion.resolve()
-							ws.close(SOCKET_NORMAL_CLOSE)
-						},
-					)
 				} catch {
 					failFrame(ws)
-					completion.resolve()
+				} finally {
+					resuming = false
+					if (!pageConnection) completion.resolve()
 				}
 			})()
 		}
@@ -317,7 +329,8 @@ export function createConversationRoutes(
 			else if (frame.type === "resume") resumeTurn(frame, ws)
 			else if (!started) failFrame(ws)
 			else if (frame.type === "cancel") {
-				if (pageConnection) pageConnection.cancel()
+				if (resuming) resumeCancellationRequested = true
+				else if (pageConnection) pageConnection.cancel()
 				else cancellation.abort()
 			} else acceptToolFrame(frame, ws)
 		}
@@ -349,15 +362,16 @@ export function createConversationRoutes(
 			onClose() {
 				closed = true
 				clearTimeout(deadline)
-				if (pageConnection && !terminal) pageConnection.detach()
+				if (pageConnection && socketSender && !terminal) pageConnection.detach(socketSender)
 				else {
 					clearTimeout(timeout)
 					channel?.interrupt()
 				}
-				if (!started) completion.resolve()
+				if (!started || resuming) completion.resolve()
 			},
 			onError() {
-				channel?.interrupt()
+				if (pageConnection && socketSender) pageConnection.detach(socketSender)
+				else channel?.interrupt()
 			},
 		}).catch((error: unknown) => {
 			completion.resolve()
