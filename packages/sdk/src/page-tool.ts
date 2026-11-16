@@ -4,6 +4,8 @@ import type { Tool } from "ai"
 import { tool } from "ai"
 import { z } from "zod"
 
+import { anchorPageApproval } from "./page-tool-position.ts"
+
 export const PAGE_TOOL_NAME = "talqo_page"
 const DESCRIPTION_LIMIT = 300
 const APPROVAL_LIMIT = 2000
@@ -14,7 +16,13 @@ const CENTER_DIVISOR = 2
 const target = {
 	snapshot: z.string().describe("Required for click, fill, and select. Copy the latest observation's snapshot."),
 	index: z.number().int().nonnegative(),
-	description: z.string().min(1).max(DESCRIPTION_LIMIT),
+	description: z
+		.string()
+		.min(1)
+		.max(DESCRIPTION_LIMIT)
+		.describe(
+			"A short visitor-facing action, such as 'Entering your delivery address'. Never show selectors or HTML attributes.",
+		),
 	approval: z
 		.string()
 		.min(1)
@@ -132,6 +140,8 @@ export function createPageTool(options: {
 		if (!panel) return
 		panel.style.top = "16px"
 		panel.style.bottom = "auto"
+		panel.style.left = "auto"
+		panel.style.right = "16px"
 		const targetRect = element.getBoundingClientRect()
 		const panelRect = panel.getBoundingClientRect()
 		if (targetRect.right > panelRect.left && targetRect.top < panelRect.bottom && targetRect.bottom > panelRect.top) {
@@ -261,15 +271,17 @@ button:focus-visible{outline:2px solid var(--talqo-primary-input);outline-offset
 
 	function approve(summary: string, element: HTMLElement, signal: AbortSignal): Promise<boolean> {
 		return new Promise((resolve, reject) => {
-			if (!buttons || !status) throw new Error("Page controls are unavailable")
+			if (!buttons || !status || !panel || !highlight) throw new Error("Page controls are unavailable")
 			status.textContent = summary
 			if (heading) heading.textContent = text.approval
 			const finish = (approved: boolean) => {
+				stopPositioning()
 				signal.removeEventListener("abort", abort)
 				buttons?.replaceChildren()
 				resolve(approved)
 			}
 			const abort = () => {
+				stopPositioning()
 				buttons?.replaceChildren()
 				reject(signal.reason)
 			}
@@ -284,7 +296,7 @@ button:focus-visible{outline:2px solid var(--talqo-primary-input);outline-offset
 				button.addEventListener("click", () => finish(approved), { once: true })
 				buttons.append(button)
 			}
-			placePanel(element)
+			const stopPositioning = anchorPageApproval(panel, highlight, element, options.exclude)
 		})
 	}
 
