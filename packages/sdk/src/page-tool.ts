@@ -46,6 +46,8 @@ const labels = {
 		cancel: "Cancel",
 		stop: "Stop",
 		observing: "Reading this page",
+		working: "Working on this page",
+		approval: "Your approval is needed",
 		stopped: "Could not stop the agent. Try Stop in chat.",
 	},
 	cs: {
@@ -53,6 +55,8 @@ const labels = {
 		cancel: "Zrušit",
 		stop: "Zastavit",
 		observing: "Čtu tuto stránku",
+		working: "Pracuji na této stránce",
+		approval: "Je potřeba vaše schválení",
 		stopped: "Agenta se nepodařilo zastavit. Zkuste Zastavit v chatu.",
 	},
 }
@@ -62,7 +66,12 @@ async function browserState(page: PageController): Promise<BrowserState> {
 	return { ...state, content: state.content.replace(/\*\[(\d+)\]/g, "[$1]") }
 }
 
-export function createPageTool(options: { exclude: readonly Element[]; language: string; stop(): Promise<void> }): {
+export function createPageTool(options: {
+	exclude: readonly Element[]
+	language: string
+	themeRoot?: () => Element | null
+	stop(): Promise<void>
+}): {
 	dispose(): void
 	definition: Tool<z.infer<typeof inputSchema>, unknown>
 } {
@@ -70,6 +79,8 @@ export function createPageTool(options: { exclude: readonly Element[]; language:
 	let panel: HTMLElement | undefined
 	let status: HTMLElement | undefined
 	let buttons: HTMLElement | undefined
+	let heading: HTMLElement | undefined
+	let themeObserver: MutationObserver | undefined
 	let highlight: HTMLElement | undefined
 	let snapshot: { id: string; content: string; url: string } | undefined
 	let busy = false
@@ -90,6 +101,9 @@ export function createPageTool(options: { exclude: readonly Element[]; language:
 		highlight = undefined
 		status = undefined
 		buttons = undefined
+		heading = undefined
+		themeObserver?.disconnect()
+		themeObserver = undefined
 		snapshot = undefined
 		validateAction = undefined
 		for (const dialog of modalDialogs) {
@@ -135,17 +149,31 @@ export function createPageTool(options: { exclude: readonly Element[]; language:
 		panel.lang = options.language === "cs" ? "cs" : "en"
 		const shadow = panel.attachShadow({ mode: "open" })
 		const style = document.createElement("style")
-		style.textContent = `:host{all:initial;position:fixed;top:16px;right:16px;z-index:2147483647;width:min(340px,calc(100vw - 32px));font:15px/1.5 system-ui;color:#17202a}
-section{background:#fff;border:1px solid #87929e;border-radius:12px;padding:16px;box-shadow:0 4px 24px #0003;max-height:calc(100dvh - 32px);box-sizing:border-box;display:flex;flex-direction:column}
-p{margin:0 0 12px;white-space:pre-wrap;overflow-wrap:anywhere;overflow-y:auto;min-height:0;max-height:40dvh}div{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
-button{font:inherit;padding:8px 14px;min-height:44px;border:1px solid #56616d;border-radius:6px;background:#fff;color:#17202a;cursor:pointer}
-button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}`
+		style.textContent = `:host{all:initial;--talqo-primary-input:#1a7f4b;--talqo-text-on-primary-input:#fff;--talqo-background-input:#fff;--talqo-surface-input:#f5f5f5;--talqo-text-input:#171717;position:fixed;top:16px;right:16px;z-index:2147483647;width:min(340px,calc(100vw - 32px));font:14px/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--talqo-text-input)}
+*{box-sizing:border-box}
+section{background:var(--talqo-background-input);border:1px solid color-mix(in srgb,var(--talqo-text-input) 12%,transparent);border-radius:12px;box-shadow:0 10px 15px -3px #0000001a,0 4px 6px -4px #0000001a;max-height:calc(100dvh - 32px);display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid color-mix(in srgb,var(--talqo-text-input) 12%,transparent)}
+h2{margin:0;font:inherit;font-size:12px;font-weight:600}
+p{margin:0;padding:16px;white-space:pre-wrap;overflow-wrap:anywhere;overflow-y:auto;min-height:0;max-height:40dvh}
+.actions{display:flex;gap:8px;padding:0 16px 16px;flex-shrink:0}.actions:empty{display:none}
+button{font:inherit;font-weight:500;padding:8px 16px;min-height:44px;border:1px solid transparent;border-radius:9999px;background:var(--talqo-surface-input);color:var(--talqo-text-input);cursor:pointer;transition:background-color .15s}
+.actions button{flex:1}
+button[data-primary]{background:var(--talqo-primary-input);color:var(--talqo-text-on-primary-input)}
+button:hover{background:color-mix(in srgb,var(--talqo-surface-input) 88%,var(--talqo-text-input))}
+button[data-primary]:hover{background:color-mix(in srgb,var(--talqo-primary-input) 90%,var(--talqo-text-input))}
+header button{min-height:36px;padding:4px 12px;font-size:12px;background:transparent;border-color:color-mix(in srgb,var(--talqo-text-input) 12%,transparent)}
+button:focus-visible{outline:2px solid var(--talqo-primary-input);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){button{transition:none}}`
 		const section = document.createElement("section")
 		section.setAttribute("aria-label", "Talqo")
+		const header = document.createElement("header")
+		heading = document.createElement("h2")
+		heading.textContent = text.working
 		status = document.createElement("p")
 		status.setAttribute("role", "status")
 		status.tabIndex = 0
 		buttons = document.createElement("div")
+		buttons.className = "actions"
 		const stop = document.createElement("button")
 		stop.textContent = text.stop
 		stop.addEventListener("click", () => {
@@ -155,12 +183,31 @@ button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}`
 				if (status) status.textContent = text.stopped
 			})
 		})
-		section.append(status, buttons, stop)
+		header.append(heading, stop)
+		section.append(header, status, buttons)
 		shadow.append(style, section)
 		document.body.append(panel)
+		const themeRoot = options.themeRoot?.()
+		if (themeRoot) {
+			const syncTheme = () => {
+				const theme = getComputedStyle(themeRoot)
+				for (const token of ["primary", "text-on-primary", "background", "surface", "text"]) {
+					const property = `--talqo-${token}-input`
+					const value = theme.getPropertyValue(property).trim()
+					if (value) panel?.style.setProperty(property, value)
+					else panel?.style.removeProperty(property)
+				}
+				if (highlight && panel)
+					highlight.style.borderColor = getComputedStyle(panel).getPropertyValue("--talqo-primary-input")
+			}
+			syncTheme()
+			themeObserver = new MutationObserver(syncTheme)
+			themeObserver.observe(themeRoot, { attributes: true, attributeFilter: ["style", "class", "data-scheme"] })
+		}
 		highlight = document.createElement("div")
 		highlight.style.cssText =
-			"all:initial;position:fixed;pointer-events:none;z-index:2147483646;border:3px solid #2563eb;border-radius:4px;box-sizing:border-box"
+			"all:initial;position:fixed;pointer-events:none;z-index:2147483646;border:2px solid;border-radius:6px;box-sizing:border-box"
+		highlight.style.borderColor = getComputedStyle(panel).getPropertyValue("--talqo-primary-input")
 		highlight.hidden = true
 		document.body.append(highlight)
 		const { PageController: Controller } = await import("@page-agent/page-controller")
@@ -216,6 +263,7 @@ button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}`
 		return new Promise((resolve, reject) => {
 			if (!buttons || !status) throw new Error("Page controls are unavailable")
 			status.textContent = summary
+			if (heading) heading.textContent = text.approval
 			const finish = (approved: boolean) => {
 				signal.removeEventListener("abort", abort)
 				buttons?.replaceChildren()
@@ -231,6 +279,7 @@ button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}`
 				[text.cancel, false],
 			] as const) {
 				const button = document.createElement("button")
+				if (approved) button.dataset.primary = ""
 				button.textContent = label
 				button.addEventListener("click", () => finish(approved), { once: true })
 				buttons.append(button)
@@ -262,6 +311,7 @@ button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}`
 					signal.throwIfAborted()
 					const page = await setup()
 					signal.throwIfAborted()
+					if (heading) heading.textContent = text.working
 					if (status) status.textContent = input.action === "observe" ? text.observing : input.description
 					if (input.action === "observe") return await observe()
 					if (input.action === "scroll") {

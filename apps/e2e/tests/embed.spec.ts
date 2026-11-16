@@ -114,7 +114,7 @@ test("widget streams a multi-turn chat and verifies history", async ({ page, req
 
 	// The same session proves persistence: a reload must not lose either turn.
 	await page.reload()
-	await page.getByRole("button", { name: widget("openChat") }).click()
+	await expect(dialog).toBeVisible()
 	await expect(dialog.getByText("Give me the first answer", { exact: true })).toBeVisible()
 	await expect(dialog.getByText("First streamed answer.", { exact: true })).toBeVisible()
 	await expect(dialog.getByText("Prove you received the earlier turn", { exact: true })).toBeVisible()

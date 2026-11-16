@@ -44,6 +44,7 @@ export type EmbeddedWidgetProps = {
 export type ConnectedEmbeddedWidgetProps = EmbeddedWidgetProps & {
 	client: ChatClient
 	disposeOnUnmount?: boolean
+	openStateKey?: string
 }
 
 type ColorScheme = "light" | "dark"
@@ -109,8 +110,17 @@ function chatView(snapshot: ChatSnapshot | undefined, language: string): ChatVie
 	}
 }
 
-function useChatDialog(defaultOpen: boolean | undefined) {
-	const [open, setOpen] = useState(defaultOpen ?? false)
+function useChatDialog(defaultOpen: boolean | undefined, openStateKey: string | undefined) {
+	const [open, setOpen] = useState(() => {
+		if (openStateKey) {
+			try {
+				return localStorage.getItem(openStateKey) === "true"
+			} catch {
+				console.warn("TalqoWidget: visibility storage unavailable; using page-local state")
+			}
+		}
+		return defaultOpen ?? false
+	})
 	const launcherRef = useRef<HTMLButtonElement>(null)
 	const panelRef = useRef<HTMLDialogElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
@@ -118,6 +128,15 @@ function useChatDialog(defaultOpen: boolean | undefined) {
 	// strand keyboard users in the widget.
 	const openWithoutFocus = useRef(defaultOpen === true)
 	const wasOpen = useRef(false)
+
+	useEffect(() => {
+		if (!openStateKey) return
+		try {
+			localStorage.setItem(openStateKey, String(open))
+		} catch {
+			console.warn("TalqoWidget: visibility storage unavailable; using page-local state")
+		}
+	}, [open, openStateKey])
 
 	useEffect(() => {
 		if (wasOpen.current && !open) {
@@ -251,6 +270,7 @@ function WidgetChat({
 	forcedScheme,
 	snapshot,
 	client,
+	openStateKey,
 }: {
 	title?: string
 	appearance: WidgetAppearance
@@ -258,10 +278,11 @@ function WidgetChat({
 	forcedScheme?: ColorScheme
 	snapshot?: ChatSnapshot
 	client?: ChatClient
+	openStateKey?: string
 }) {
 	const { t, i18n } = useTranslation()
 	const chat = chatView(snapshot, i18n.language)
-	const { open: chatOpen, toggle, close, launcherRef, panelRef, inputRef } = useChatDialog(defaultOpen)
+	const { open: chatOpen, toggle, close, launcherRef, panelRef, inputRef } = useChatDialog(defaultOpen, openStateKey)
 	const scheme = useChatScheme(appearance, forcedScheme)
 	const panel = useResizablePanel(appearance.position, panelRef)
 	const panelStyle: CSSProperties = panel.size ? { width: panel.size.width, height: panel.size.height } : {}
@@ -383,6 +404,7 @@ export function ConnectedEmbeddedWidget({
 	forcedScheme,
 	defaultOpen,
 	disposeOnUnmount = true,
+	openStateKey,
 }: ConnectedEmbeddedWidgetProps) {
 	const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot)
 
@@ -405,6 +427,7 @@ export function ConnectedEmbeddedWidget({
 			appearance={appearance}
 			forcedScheme={forcedScheme}
 			defaultOpen={defaultOpen}
+			openStateKey={openStateKey}
 		/>
 	)
 }
@@ -416,6 +439,7 @@ function ConnectedWidgetContent({
 	appearance,
 	forcedScheme,
 	defaultOpen,
+	openStateKey,
 }: ConnectedEmbeddedWidgetProps & { snapshot: ChatSnapshot }) {
 	const configuredAppearance = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
 	const resolved = resolveAppearance(mergeAppearance(configuredAppearance, appearance ?? {}))
@@ -434,6 +458,7 @@ function ConnectedWidgetContent({
 				defaultOpen={defaultOpen}
 				snapshot={snapshot}
 				client={client}
+				openStateKey={openStateKey}
 			/>
 		</I18nextProvider>
 	)

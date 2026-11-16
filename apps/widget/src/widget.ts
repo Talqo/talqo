@@ -41,6 +41,7 @@ let launcher: HTMLButtonElement | null = null
 let chatModule: ChatModule | null = null
 let chatPromise: Promise<ChatModule> | null = null
 let chatBoot: ChatBoot | null = null
+let openStateKey: string | undefined
 let appearanceOverrides: WidgetAppearanceInput = {}
 let datasetTitle: string | undefined
 let mediaQuery: MediaQueryList | null = null
@@ -169,7 +170,7 @@ function syncLauncher() {
 	lastLauncherKey = key
 	const button = ensureLauncher()
 	applyLauncher(button, appearance, scheme)
-	chatBoot = { mode: "connected", client, appearance, title: datasetTitle }
+	chatBoot = { mode: "connected", client, appearance, title: datasetTitle, openStateKey }
 }
 
 function chatScriptUrl(): string | undefined {
@@ -295,11 +296,12 @@ function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, 
 
 	appearanceOverrides = appearanceFromDataset(dataset)
 	datasetTitle = dataset?.talqoTitle
+	openStateKey = `talqo:widget-open:${encodeURIComponent(origin)}:${encodeURIComponent(embedToken)}`
 	client = (options.createClient ?? createChatClient)({
 		apiUrl: origin,
 		embedToken,
 		tools: options.tools,
-		pageControl: { exclude: [target] },
+		pageControl: { exclude: [target], themeRoot: () => target.querySelector(".talqo-widget") },
 	})
 	unsubscribe = client.subscribe(syncLauncher)
 	attachMediaListener()
