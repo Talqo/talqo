@@ -11,7 +11,10 @@ export const EmbedConfig = zod.object({
   "version": zod.number(),
   "name": zod.string(),
   "appearance": EmbedAppearance,
-  "isAvailable": zod.boolean()
+  "isAvailable": zod.boolean(),
+  "pageControl": zod.object({
+  "enabled": zod.boolean()
+})
 });
 
 export type EmbedConfig = zod.input<typeof EmbedConfig>;

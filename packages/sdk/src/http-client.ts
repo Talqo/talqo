@@ -54,6 +54,7 @@ type EmbedConfiguration = {
 	appearance: Readonly<Record<string, unknown>>
 	isAvailable: boolean
 	name: string
+	pageControl?: { readonly enabled: boolean }
 }
 
 function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
@@ -65,7 +66,16 @@ function embedConfiguration(value: unknown): EmbedConfiguration | undefined {
 	) {
 		return undefined
 	}
-	return { appearance: value.appearance, isAvailable: value.isAvailable, name: value.name }
+	const pageControl = value.pageControl
+	if (pageControl !== undefined && (!isRecord(pageControl) || typeof pageControl.enabled !== "boolean")) {
+		return undefined
+	}
+	return {
+		appearance: value.appearance,
+		isAvailable: value.isAvailable,
+		name: value.name,
+		...(pageControl === undefined ? {} : { pageControl: { enabled: pageControl.enabled } }),
+	}
 }
 
 function retryAt(response: Response, now: () => Date): string | undefined {
@@ -117,6 +127,7 @@ export function createChatHttpClient(
 				title: configuration.name,
 				appearance: configuration.appearance,
 				isAvailable: configuration.isAvailable,
+				pageControl: configuration.pageControl,
 			}
 		},
 		async loadSession(input) {

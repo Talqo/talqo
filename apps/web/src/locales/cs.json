@@ -574,6 +574,13 @@
 		"dashboard": "Přehled",
 		"team": "Tým"
 	},
+	"pageControl": {
+		"defaultPolicy": "Povolit prohlížení, výběr produktů, přípravu košíku a rozepsané formuláře. Požadovat schválení nákupů, plateb, závažných změn účtu a nejasných závazků.",
+		"description": "Agent může hledat produkty, vyplňovat formuláře a dokončit objednávku. Návštěvníci vidí jeho kroky a mohou ho zastavit.",
+		"enabled": "Povolit agentovi používat tento web",
+		"help": "Prázdné pole použije výchozí pravidla. Agent tyto pokyny vyhodnocuje; nejde o vynucená oprávnění.",
+		"instructions": "Kdy požádat o schválení"
+	},
 	"permissions": {
 		"accessDeniedBody": "Pokud tuto stránku potřebujete, požádejte správce o přístup.",
 		"accessDeniedDescription": "K zobrazení této stránky nemáte oprávnění.",

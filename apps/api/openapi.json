@@ -1285,6 +1285,10 @@
               },
               "tools": {
                 "$ref": "#/components/schemas/ClientToolManifest"
+              },
+              "pageSession": {
+                "type": "string",
+                "format": "uuid"
               }
             },
             "required": [
@@ -1294,6 +1298,38 @@
               "requestId",
               "text",
               "tools"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "resume"
+                ]
+              },
+              "credential": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "pageSession": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "version",
+              "type",
+              "credential",
+              "pageSession"
             ],
             "additionalProperties": false
           },
@@ -2099,6 +2135,25 @@
           },
           "appearance": {
             "$ref": "#/components/schemas/EmbedAppearance"
+          },
+          "pageControl": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "approvalInstructions": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "enabled",
+              "approvalInstructions"
+            ]
           }
         },
         "required": [
@@ -2108,7 +2163,8 @@
           "embedToken",
           "accessVersion",
           "isDisabled",
-          "appearance"
+          "appearance",
+          "pageControl"
         ]
       },
       "EmbedAppearance": {
@@ -2192,13 +2248,25 @@
           },
           "isAvailable": {
             "type": "boolean"
+          },
+          "pageControl": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "enabled"
+            ]
           }
         },
         "required": [
           "version",
           "name",
           "appearance",
-          "isAvailable"
+          "isAvailable",
+          "pageControl"
         ]
       },
       "AgentFile": {
@@ -6551,6 +6619,25 @@
                       "themeToggle",
                       "language"
                     ]
+                  },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
+                    ]
                   }
                 },
                 "required": [
@@ -6862,6 +6949,25 @@
                       "theme",
                       "themeToggle",
                       "language"
+                    ]
+                  },
+                  "pageControl": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "approvalInstructions": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "approvalInstructions"
                     ]
                   }
                 },

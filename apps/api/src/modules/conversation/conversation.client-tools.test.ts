@@ -11,6 +11,20 @@ function executeTool(channel: ReturnType<typeof createClientToolChannel>) {
 }
 
 describe("browser tool channel", () => {
+	test("resuming a page call reports uncertainty without dispatching the action again", async () => {
+		const requests: ClientToolRequest[] = []
+		const channel = createClientToolChannel(
+			[{ name: "talqo_page", inputSchema: {} }],
+			(request) => requests.push(request),
+			400_000,
+		)
+		const execute = executeTool(channel)
+		const pending = execute({ action: "click" }, { toolCallId: "purchase", messages: [], context: undefined })
+		channel.resumePage()
+		expect(await pending).toMatchObject({ status: "interrupted" })
+		expect(requests).toHaveLength(1)
+		expect(() => channel.accept({ toolCallId: "purchase", output: "late" })).toThrow("Unknown")
+	})
 	test("correlates parallel calls, accepts identical duplicate results, and counts failures toward the call budget", async () => {
 		const requests: Array<ClientToolRequest> = []
 		const channel = createClientToolChannel(
