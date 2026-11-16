@@ -64,7 +64,7 @@ bun run check
 
 CI runs whole-repository checks and the full unit suite. It rejects clones of at least 70 tokens and new CRAP findings at scores of 8 or higher, or 30 for React components.
 
-Run `bun run health` to collect fresh unit and integration coverage and check changed-code health, including CRAP. It requires Docker.
+Run `bun run health` to collect fresh unit and integration coverage and check changed-code health, including CRAP. It requires Docker. It compares against the branch's upstream, or the remote default branch when there is none; CI pins the pull request base through `FALLOW_AUDIT_BASE`.
 
 Run `bun run build` for build-affecting changes, `bun run test:integration` for database-backed changes, and `bun run e2e` for critical journeys. Integration and E2E tests require Docker to be running.
 

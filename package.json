@@ -20,7 +20,7 @@
 		"architecture": "fallow architecture --fail-on-issues",
 		"dead-code": "fallow dead-code --fail-on-issues",
 		"health": "bun run cov:record && bun run health:check",
-		"health:check": "fallow audit --only health --base ${FALLOW_AUDIT_BASE:-origin/main} --format compact --quiet",
+		"health:check": "fallow audit --only health --format compact --quiet",
 		"dev": "./scripts/dev.sh",
 		"dev:teardown": "docker compose down",
 		"dev:docs": "turbo run dev --filter=@talqo/docs --ui=tui",
