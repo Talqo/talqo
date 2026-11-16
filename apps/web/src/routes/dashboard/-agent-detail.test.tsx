@@ -188,6 +188,12 @@ function deleteDialog(): HTMLElement {
 	return found
 }
 
+async function typeDeleteConfirmation() {
+	const confirmation = deleteDialog().querySelector("input")
+	if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
+	await typeInto(confirmation, INITIAL_AGENT.name)
+}
+
 function embedRequestCount(): number {
 	return requests.filter(({ method, url }) => method === "GET" && url.startsWith("/api/embeds")).length
 }
@@ -423,6 +429,7 @@ describe("agent configuration validation", () => {
 		expect(promptInput().placeholder).toBe(t("agentFields.systemPromptPlaceholder"))
 		expect(nameInput().readOnly).toBe(false)
 		expect(promptInput().readOnly).toBe(false)
+		expect(host.textContent).toContain(t("agentConfig.cardTitle"))
 		expect(host.textContent).toContain(t("agentConfig.subheading"))
 		expect(host.textContent).toContain(t("agentConfig.cardDescription"))
 		expect(host.textContent).toContain(t("agentConfig.dangerZone"))
@@ -481,12 +488,14 @@ describe("agent loading failures", () => {
 		const beforeRetry = requests.filter(
 			({ url, method }) => url === `/api/agents/${AGENT_ID}` && method === "GET",
 		).length
+		const listRequests = requests.filter(({ url }) => url === "/api/agents").length
 
 		await click(button(t("common.retry")))
 
 		expect(requests.filter(({ url, method }) => url === `/api/agents/${AGENT_ID}` && method === "GET")).toHaveLength(
 			beforeRetry + 1,
 		)
+		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(listRequests)
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 	})
 
@@ -521,6 +530,7 @@ describe("agent loading failures", () => {
 		await click(button(t("common.retry")))
 
 		expect(requests.filter(({ url }) => url === "/api/agents")).toHaveLength(beforeRetry + 1)
+		expect(requests.filter(({ url, method }) => url === `/api/agents/${AGENT_ID}` && method === "GET")).toHaveLength(1)
 		expect(nameInput().value).toBe(INITIAL_AGENT.name)
 	})
 })
@@ -653,6 +663,21 @@ describe("agent embeds panel", () => {
 		expect(host.textContent).toContain(t("embedSetup.emptyTitle"))
 	})
 
+	test("creates an embed while the agent's embed list is still loading", async () => {
+		const pending = Promise.withResolvers<Response>()
+		embedsResponse = pending.promise
+		await renderPage(EMBEDS_ENTRY)
+
+		await click(button(t("embedSetup.createEmbed")))
+
+		expect(createdBodies).toEqual([
+			{ name: t("embedSetup.defaultName"), agentId: AGENT_ID, appearance: EMBED_FORM_DEFAULTS },
+		])
+		expect(router.state.location.pathname).toBe("/dashboard/embeds/created-embed")
+
+		await act(async () => pending.resolve(json({ embeds: [] })))
+	})
+
 	for (const { from, seeded } of [
 		{ from: "the empty state", seeded: [] as Array<typeof EMBED> },
 		{ from: "the panel header", seeded: [EMBED] },
@@ -720,6 +745,13 @@ describe("agent deletion", () => {
 		expect(host.textContent).toContain(t("agentConfig.dangerDescription"))
 		expect(host.textContent).toContain(t("agentConfig.deleteBlockedByEmbeds", { count: 1 }))
 		expect(button(t("agentConfig.deleteAgent")).disabled).toBe(true)
+		const dangerZone = host.querySelector("section[aria-labelledby]")
+		if (!dangerZone) throw new Error("Danger zone not rendered")
+		const paragraphs = [...dangerZone.querySelectorAll("p")].map((paragraph) => paragraph.textContent)
+		expect(paragraphs).toContain(t("agentConfig.deleteAgent"))
+		expect(paragraphs).toContain(
+			`${t("agentConfig.deleteBlockedByEmbeds", { count: 1 })} ${t("agentConfig.manageEmbeds")}`,
+		)
 		const link = [...host.querySelectorAll("a")].find(
 			(anchor) => anchor.textContent?.trim() === t("agentConfig.manageEmbeds"),
 		)
@@ -738,9 +770,7 @@ describe("agent deletion", () => {
 		expect(deleteDialog().textContent).toContain(t("agentConfig.confirmLabel", { name: INITIAL_AGENT.name }))
 		expect(button(t("agentConfig.deleteConfirm"), deleteDialog()).disabled).toBe(true)
 
-		const confirmation = deleteDialog().querySelector("input")
-		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
-		await typeInto(confirmation, INITIAL_AGENT.name)
+		await typeDeleteConfirmation()
 		const confirm = button(t("agentConfig.deleteConfirm"), deleteDialog())
 		expect(confirm.disabled).toBe(false)
 
@@ -764,9 +794,7 @@ describe("agent deletion", () => {
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 
 		await click(button(t("agentConfig.deleteAgent")))
-		const confirmation = deleteDialog().querySelector("input")
-		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
-		await typeInto(confirmation, INITIAL_AGENT.name)
+		await typeDeleteConfirmation()
 
 		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
 
@@ -774,14 +802,33 @@ describe("agent deletion", () => {
 		expect(router.state.location.pathname).toBe(`/dashboard/agent/${AGENT_ID}`)
 	})
 
+	test("clears the previous deletion error while retrying without closing the dialog", async () => {
+		const pending = Promise.withResolvers<Response>()
+		deleteFailures = [json({}, 500), pending.promise]
+		await renderPage()
+		await click(button(t("agentConfig.deleteAgent")))
+		await typeDeleteConfirmation()
+
+		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
+		expect(deleteDialog().textContent).toContain(t("agents.deleteFailed"))
+
+		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
+		expect(deleteDialog().textContent).not.toContain(t("agents.deleteFailed"))
+		expect(deleteDialog().textContent).toContain(t("agentConfig.deleting"))
+
+		await act(async () => pending.resolve(new Response(null, { status: 204 })))
+		await settle()
+		await settle()
+
+		expect(router.state.location.pathname).toBe("/dashboard/agents")
+	})
+
 	test("keeps a failed deletion open, refreshes embeds, then bypasses the dirty guard on success", async () => {
 		deleteFailures = [json({}, 500)]
 		await renderPage()
 		await typeInto(nameInput(), "Unsaved agent name")
 		await click(button(t("agentConfig.deleteAgent")))
-		const confirmation = deleteDialog().querySelector("input")
-		if (!(confirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
-		await typeInto(confirmation, INITIAL_AGENT.name)
+		await typeDeleteConfirmation()
 		const embedsBeforeDelete = embedRequestCount()
 
 		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
@@ -794,9 +841,7 @@ describe("agent deletion", () => {
 		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		await click(button(t("agentConfig.deleteAgent")))
 		expect(deleteDialog().textContent).not.toContain(t("agents.deleteFailed"))
-		const retriedConfirmation = deleteDialog().querySelector("input")
-		if (!(retriedConfirmation instanceof HTMLInputElement)) throw new Error("Delete confirmation field not rendered")
-		await typeInto(retriedConfirmation, INITIAL_AGENT.name)
+		await typeDeleteConfirmation()
 
 		await click(button(t("agentConfig.deleteConfirm"), deleteDialog()))
 		expect(router.state.location.pathname).toBe("/dashboard/agents")

@@ -88,6 +88,17 @@ async function confirmRemoval() {
 	await click(confirm)
 }
 
+async function failSave() {
+	failure = json(
+		{ code: "permission-exceeds-own", type: "https://docs.talqo.chat/problems#permission-exceeds-own" },
+		403,
+	)
+	await render()
+	await click(permissionSwitch("stats:read"))
+	await click(button(t("agentAccess.save")))
+	expect(host.querySelector("[role=alert]")).not.toBeNull()
+}
+
 function combobox(): HTMLElement {
 	const trigger = host.querySelector<HTMLElement>("[role=combobox]")
 	if (!trigger) throw new Error("Missing agent picker")
@@ -597,19 +608,56 @@ describe("RoleAccessCard", () => {
 		expect(host.textContent).not.toContain(t("agentAccess.saved"))
 	})
 
-	test("clears a failed save when another agent is selected", async () => {
+	test("clears a failed save when the selection changes", async () => {
+		agents = [...agents, { id: "third", name: "Third bot", permissions: ALL, rolePermissions: [] }]
 		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
-		failure = json(
-			{ code: "permission-exceeds-own", type: "https://docs.talqo.chat/problems#permission-exceeds-own" },
-			403,
-		)
-		await render()
-		await click(permissionSwitch("stats:read"))
-		await click(button(t("agentAccess.save")))
-		expect(host.querySelector("[role=alert]")).not.toBeNull()
+		await failSave()
 
 		await click(button("Observers bot"))
 		expect(host.querySelector("[role=alert]")).toBeNull()
+
+		await click(button("Support bot"))
+		await click(button(t("agentAccess.save")))
+		expect(host.querySelector("[role=alert]")).not.toBeNull()
+
+		await chooseAgent("Third bot")
+		expect(host.querySelector("[role=alert]")).toBeNull()
+	})
+
+	test("clears the saved confirmation when the picker adds an agent", async () => {
+		await render()
+		await click(permissionSwitch("stats:read"))
+		await click(button(t("agentAccess.save")))
+		expect(host.textContent).toContain(t("agentAccess.saved"))
+
+		await chooseAgent("Observers bot")
+		expect(host.textContent).not.toContain(t("agentAccess.saved"))
+	})
+
+	test("clears a failed save when removal is confirmed", async () => {
+		agents[1] = { ...agentAt(1), rolePermissions: ["stats:read"] }
+		await failSave()
+
+		failure = undefined
+		await confirmRemoval()
+		expect(host.querySelector("[role=alert]")).toBeNull()
+	})
+
+	test("clears the saved confirmation when removal fails", async () => {
+		await render()
+		await click(permissionSwitch("stats:read"))
+		await click(button(t("agentAccess.save")))
+		expect(host.textContent).toContain(t("agentAccess.saved"))
+
+		failure = json(
+			{ code: "internal-server-error", type: "https://docs.talqo.chat/problems#internal-server-error" },
+			500,
+		)
+		await click(button(t("agentAccess.remove")))
+		await click(dialogButton(t("agentAccess.remove")))
+		await click(dialogButton(t("agentConfig.cancel")))
+
+		expect(host.textContent).not.toContain(t("agentAccess.saved"))
 	})
 
 	test("closes the removal dialog after access is removed", async () => {

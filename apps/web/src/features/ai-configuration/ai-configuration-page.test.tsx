@@ -116,6 +116,18 @@ function sharedEmbeddingConfiguration(): AiProviderConfiguration {
 	}
 }
 
+function separateEmbeddingConfiguration(): AiProviderConfiguration {
+	return {
+		revision: 1,
+		health: "configured",
+		text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
+		embedding: {
+			...roleConfiguration("openai-compatible", "embedding-model", { baseURL: "https://embeddings.example/v1" }, false),
+			credentialSource: "separate",
+		},
+	}
+}
+
 let server: AiProviderConfiguration
 let providers: ProviderMetadata[]
 let host: HTMLDivElement
@@ -497,6 +509,7 @@ describe("AiConfigurationPage", () => {
 		await act(async () => button(t("aiConfiguration.replaceCredentials")).click())
 		await settle()
 
+		expect(host.textContent).toContain(t("aiConfiguration.keepCredentialsNote"))
 		const apiKey = host.querySelector<HTMLInputElement>("#text-apiKey")
 		if (!apiKey) throw new Error("credential input not rendered")
 		expect(apiKey.hasAttribute("required")).toBe(false)
@@ -506,6 +519,7 @@ describe("AiConfigurationPage", () => {
 		await act(async () => button(t("aiConfiguration.keepSavedCredentials")).click())
 		await settle()
 
+		expect(host.textContent).not.toContain(t("aiConfiguration.keepCredentialsNote"))
 		expect(host.querySelector("#text-apiKey")).toBeNull()
 		expect(savedCredentialSections()).toHaveLength(2)
 
@@ -541,6 +555,10 @@ describe("AiConfigurationPage", () => {
 		await renderPage()
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-selected")).toBe("true")
 		expect(tab(t("aiConfiguration.tabs.sameProvider")).getAttribute("aria-disabled")).not.toBe("true")
+		expect(host.querySelector("[role=tablist]")?.getAttribute("aria-label")).toBe(
+			t("aiConfiguration.embeddingSourceLabel"),
+		)
+		expect(host.textContent).not.toContain(t("aiConfiguration.sameProviderUnavailable"))
 
 		await choose("text-provider", t("aiConfiguration.providers.openai"))
 		expect(host.querySelector("#embedding-provider")).toBeNull()
@@ -865,6 +883,7 @@ describe("AiConfigurationPage", () => {
 
 		await act(async () => tab(t("aiConfiguration.tabs.sameProvider")).click())
 		await settle()
+		expect(host.textContent).toContain(t("aiConfiguration.sameProviderNote"))
 		expect(host.querySelector("#embedding-provider")).toBeNull()
 		expect(host.querySelector("#embedding-baseURL")).toBeNull()
 		expect(host.querySelector<HTMLInputElement>("#embedding-model")?.value).toBe("embedding-model")
@@ -1017,6 +1036,15 @@ describe("AiConfigurationPage", () => {
 		const model = inputById("embedding-model")
 		expect(model.disabled).toBe(false)
 		expect(model.hasAttribute("required")).toBe(true)
+		expect(host.querySelector("#embedding-model-error")).toBeNull()
+
+		await type(model, "")
+		await submit()
+		await settle()
+
+		expect(host.querySelector("#embedding-model-error")?.textContent).toBe(t("aiConfiguration.fields.modelRequired"))
+		expect(model.getAttribute("aria-invalid")).toBe("true")
+		expect(document.activeElement).toBe(model)
 
 		await type(model, "embedding-shared")
 		expect(model.value).toBe("embedding-shared")
@@ -1130,20 +1158,7 @@ describe("AiConfigurationPage", () => {
 	})
 
 	test("requires embedding credentials even when the text role has saved ones", async () => {
-		server = {
-			revision: 1,
-			health: "configured",
-			text: roleConfiguration("openai-compatible", "chat-model", { baseURL: "https://server.example/v1" }),
-			embedding: {
-				...roleConfiguration(
-					"openai-compatible",
-					"embedding-model",
-					{ baseURL: "https://embeddings.example/v1" },
-					false,
-				),
-				credentialSource: "separate",
-			},
-		}
+		server = separateEmbeddingConfiguration()
 		await renderPage()
 
 		expect(inputById("embedding-apiKey").hasAttribute("required")).toBe(true)
@@ -1284,5 +1299,53 @@ describe("AiConfigurationPage", () => {
 			modelId: "chat-model",
 			settings: { baseURL: "https://server.example/v1" },
 		})
+	})
+
+	test("restores typed embedding credentials when returning to a separate connection", async () => {
+		server = separateEmbeddingConfiguration()
+		await renderPage()
+		expect(inputById("embedding-apiKey").hasAttribute("required")).toBe(true)
+
+		await type(inputById("embedding-apiKey"), "sk-draft")
+		await act(async () => tab(t("aiConfiguration.tabs.sameProvider")).click())
+		await settle()
+		expect(host.querySelector("#embedding-apiKey")).toBeNull()
+
+		await act(async () => tab(t("aiConfiguration.tabs.differentProvider")).click())
+		await settle()
+
+		expect(inputById("embedding-apiKey").value).toBe("sk-draft")
+		expect(embeddingBaseUrlInput().value).toBe("https://embeddings.example/v1")
+	})
+
+	test("shows the generic discovery notice when typed credentials cannot list models", async () => {
+		server = separateEmbeddingConfiguration()
+		discoveryFailure = json({}, 500)
+		await renderPage()
+		await act(async () => button(t("aiConfiguration.replaceCredentials")).click())
+		await settle()
+
+		await type(inputById("text-apiKey"), "sk-new")
+		await type(baseUrlInput(), "https://new.example/v1")
+		await wait(450)
+
+		expect(host.textContent).toContain(t("aiConfiguration.discovery.unavailable"))
+		expect(host.textContent).not.toContain(t("aiConfiguration.discovery.unavailableStored"))
+	})
+
+	test("drops provider drafts when the configuration reloads", async () => {
+		providers = [PROVIDER, OPENAI]
+		await renderPage()
+		await choose("text-provider", t("aiConfiguration.providers.openai"))
+		await type(baseUrlInput(), "https://openai.example/v1")
+		await choose("text-provider", t("aiConfiguration.providers.openaiCompatible"))
+
+		server = configuration(2, "https://reloaded.example/v1")
+		await act(() => queryClient.refetchQueries())
+		await settle()
+		expect(baseUrlInput().value).toBe("https://reloaded.example/v1")
+
+		await choose("text-provider", t("aiConfiguration.providers.openai"))
+		expect(baseUrlInput().value).toBe("")
 	})
 })
