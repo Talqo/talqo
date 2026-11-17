@@ -228,8 +228,11 @@ describe("title", () => {
 		const container = render(<EmbeddedWidget title="Support" />)
 		expect(launcherButton(container).getAttribute("aria-label")).toBe("Open chat")
 		await openPanel(container)
+		const header = container.querySelector("header")
 		expect(launcherButton(container).getAttribute("aria-label")).toBe("Close chat")
 		expect(container.querySelector("dialog")?.getAttribute("aria-label")).toBe("Support")
+		expect(header?.className).toContain("tw:bg-primary")
+		expect(header?.className).toContain("tw:text-primary-foreground")
 	})
 })
 
@@ -435,11 +438,14 @@ describe("EmbeddedWidget resize", () => {
 		stubViewport(1024, 768)
 	})
 
-	test("shows the corner resize grip on desktop when the chat is open", async () => {
+	test("shows a white stripe along the desktop resize border when the chat is open", async () => {
 		expect(host.querySelector('[data-testid="resize-corner"]')).toBeNull()
 
 		await openChat()
-		expect(host.querySelector('[data-testid="resize-corner"]')).not.toBeNull()
+		const handle = host.querySelector('[data-testid="resize-corner"]')
+		expect(handle).not.toBeNull()
+		expect(handle?.querySelector("svg")).toBeNull()
+		expect(handle?.querySelector("span")?.className).toContain("tw:bg-white")
 	})
 
 	test("hides resize handles when the pointer is coarse", async () => {
