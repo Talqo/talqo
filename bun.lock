@@ -169,7 +169,7 @@
         "zod": "4.6.7",
       },
       "devDependencies": {
-        "@page-agent/page-controller": "1.12.4",
+        "@talqo/page-controller": "0.1.0",
         "@talqo/shared": "workspace:*",
         "@talqo/typescript-config": "workspace:*",
         "@types/bun": "1.4.4",
@@ -216,9 +216,6 @@
         "vite": "8.3.8",
       },
     },
-  },
-  "patchedDependencies": {
-    "@page-agent/page-controller@1.12.4": "patches/@page-agent%2Fpage-controller@1.12.4.patch",
   },
   "packages": {
     "@ai-sdk/amazon-bedrock": ["@ai-sdk/amazon-bedrock@5.0.142", "", { "dependencies": { "@ai-sdk/anthropic": "4.0.105", "@ai-sdk/openai": "4.0.118", "@ai-sdk/provider": "4.0.38", "@ai-sdk/provider-utils": "5.0.81", "@smithy/eventstream-codec": "^4.3.3", "@smithy/util-utf8": "^4.3.3", "aws4fetch": "^1.0.20" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-eOwZ14N8XmamP6hZPirRen+xS1F5563MIPBz8RiQiV/bbcxZvEepQKPe85QeKDm+NwiBVrCXEFS6dtB08vjjJQ=="],
@@ -705,8 +702,6 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.94.0", "", { "os": "win32", "cpu": "x64" }, "sha512-I3eZdd4bemIJQDNv9XDV/FEofDxIoN32tzCv98wIgLdW05EqxZb5hF4AwPrRzHD/dQhl0n7KgPy5AQPfM0HWrA=="],
 
-    "@page-agent/page-controller": ["@page-agent/page-controller@1.12.4", "", { "dependencies": { "ai-motion": "^0.4.8" } }, "sha512-I8se6/QMhg1wMZp52fkX37xbv/lkUnBihtadcoZKOQ9xvL562/sd141mu5ANPGvaCosPlXxJQ3HGIwA2VM4bwQ=="],
-
     "@pinojs/redact": ["@pinojs/redact@0.4.0", "", {}, "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="],
 
     "@playwright/cli": ["@playwright/cli@0.1.24", "", { "dependencies": { "playwright": "1.66.0-alpha-1794252756000", "playwright-core": "1.66.0-alpha-1794252756000" }, "bin": { "playwright-cli": "playwright-cli.js" } }, "sha512-AIO0AiPHh1ZB9e+i+ZiRwSTfqlkJtWcojgtPnW/BbBCgr96OojlL15dc1jWWclfbjdwPv5900qxuDyEHghjSqw=="],
@@ -988,6 +983,8 @@
     "@talqo/docs": ["@talqo/docs@workspace:apps/docs"],
 
     "@talqo/e2e": ["@talqo/e2e@workspace:apps/e2e"],
+
+    "@talqo/page-controller": ["@talqo/page-controller@0.1.0", "", { "dependencies": { "ai-motion": "^0.4.8" } }, "sha512-L/s1phhRifxMIGAX/lOlHobAZbkzHrD8bWJl2QvsD05KOd/vsGlW/wv76yS3f3VdxVBElxme1SPWGs5/BoHl9w=="],
 
     "@talqo/sdk": ["@talqo/sdk@workspace:packages/sdk"],
 

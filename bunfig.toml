@@ -2,6 +2,8 @@
 globalStore = true
 linker = "isolated"
 minimumReleaseAge = 86400
+# Reviewed first-party release (Talqo/page-agent#1); later versions still wait.
+minimumReleaseAgeExcludes = ["@talqo/page-controller@0.1.0"]
 
 [run]
 bun = true
