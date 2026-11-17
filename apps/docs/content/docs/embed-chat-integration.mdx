@@ -20,11 +20,13 @@ Place the generated widget snippet on your website:
 
 Keep `async`, so the widget never delays the host page's own content. Omit `data-talqo-api` when `widget.js` and the API share an origin.
 
+The widget includes the current page path with each question by default. Set `data-talqo-page-context="false"` on the script to disable this when paths contain personal data, customer identifiers, reset tokens, or other secrets. Query strings and fragments are excluded.
+
 ## Chat behavior
 
 Talqo sends the saved system prompt and completed conversation history with each message. It does not truncate or summarize history. Failed, cancelled, blocked, and interrupted replies are excluded from later model input.
 
-Talqo does not send page locations by default. To send the current page path to the AI provider with each question, add `data-talqo-page-context="true"` to the widget script. Enable this only when your paths contain no personal data, customer identifiers, reset tokens, or other secrets. Query strings and fragments are excluded. The context is saved as part of the user message and appears in conversation history. Custom interfaces can provide site context through the [SDK](/sdk).
+Site context is saved as part of the user message and appears in conversation history. Custom interfaces can provide site context through the [SDK](/sdk).
 
 ## Limits and network identity
 

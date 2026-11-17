@@ -69,12 +69,10 @@ test("widget fetches and paints its palette across origins", async ({ page, chat
 
 test("widget streams a multi-turn chat and verifies history", async ({ page, request, chatEmbed }) => {
 	const { providerControlOrigin } = chatEmbed
-	const widgetUrl = new URL(chatEmbed.widgetUrl)
-	widgetUrl.searchParams.set("pageContext", "true")
 	const firstUserTurn = "Site context:\nCurrent page path: /\n\nGive me the first answer"
 	const secondUserTurn = "Site context:\nCurrent page path: /product/guitar\n\nProve you received the earlier turn"
 
-	await page.goto(widgetUrl.href)
+	await page.goto(chatEmbed.widgetUrl)
 	await page.getByRole("button", { name: widget("openChat") }).click()
 	const dialog = page.getByRole("dialog")
 	const messageInput = dialog.getByRole("textbox", { name: widget("messageLabel") })

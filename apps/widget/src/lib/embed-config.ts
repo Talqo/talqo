@@ -38,7 +38,7 @@ export function appearanceFromDataset(dataset: DOMStringMap | undefined): Widget
 }
 
 export function isPageContextEnabled(dataset: DOMStringMap | undefined): boolean {
-	return dataset?.talqoPageContext === "true"
+	return parseBoolean(dataset?.talqoPageContext) ?? true
 }
 
 /** Attributes last: a per-page override outranks the stored config, one color at a time. */

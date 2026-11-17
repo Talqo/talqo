@@ -58,12 +58,13 @@ describe("appearanceFromDataset", () => {
 })
 
 describe("isPageContextEnabled", () => {
-	test("requires an explicit true value", () => {
-		expect(isPageContextEnabled(undefined)).toBe(false)
-		expect(isPageContextEnabled({})).toBe(false)
-		expect(isPageContextEnabled({ talqoPageContext: "false" })).toBe(false)
-		expect(isPageContextEnabled({ talqoPageContext: "" })).toBe(false)
+	test("defaults on unless explicitly set to false", () => {
+		expect(isPageContextEnabled(undefined)).toBe(true)
+		expect(isPageContextEnabled({})).toBe(true)
+		expect(isPageContextEnabled({ talqoPageContext: "" })).toBe(true)
+		expect(isPageContextEnabled({ talqoPageContext: "other" })).toBe(true)
 		expect(isPageContextEnabled({ talqoPageContext: "true" })).toBe(true)
+		expect(isPageContextEnabled({ talqoPageContext: "false" })).toBe(false)
 	})
 })
 
