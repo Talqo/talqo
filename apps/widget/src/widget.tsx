@@ -1,4 +1,4 @@
-import { type ChatClient, type ChatClientOptions, createChatClient } from "@talqo/sdk"
+import { type ChatClient, createChatClient } from "@talqo/sdk"
 import { createRoot, type Root } from "react-dom/client"
 
 import { ConnectedEmbeddedWidget } from "./embedded-widget"
@@ -8,7 +8,7 @@ import { PreviewWidget } from "./preview"
 let root: Root | null = null
 
 export type MountTarget = string | HTMLElement
-export type ChatClientFactory = (options: Pick<ChatClientOptions, "apiUrl" | "embedToken">) => ChatClient
+export type ChatClientFactory = (options: { apiUrl: string; embedToken: string }) => ChatClient
 export type MountOptions = { createClient?: ChatClientFactory }
 
 const DEFAULT_TARGET = "#talqo-widget"

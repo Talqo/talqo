@@ -85,6 +85,7 @@
 		"tabContext": "Knowledge",
 		"tabEmbeds": "Embeds",
 		"tabMcp": "Tools",
+		"tabTestChat": "Test chat",
 		"wasDeleted": "This agent was deleted elsewhere. Go back to the list for the current state."
 	},
 	"agentFields": {
@@ -330,7 +331,7 @@
 		"noAgentSelected": "Select at least one agent to see its conversations.",
 		"noPreview": "No visitor message",
 		"outcomeBlocked": "Stopped: the answer contained a blocked word.",
-		"outcomeCancelled": "The visitor stopped this answer.",
+		"outcomeCancelled": "This answer was stopped.",
 		"outcomeFailed": "The agent could not answer.",
 		"outcomeInterrupted": "This answer was interrupted.",
 		"outcomeStreaming": "Still answering…",
@@ -686,5 +687,28 @@
 		"savingRoles": "Saving…",
 		"subheading": "See who can sign in, what roles they have, and manage their accounts.",
 		"switcherLabel": "Team and roles"
+	},
+	"testChat": {
+		"description": "Chat with this agent to see how it answers visitors. It uses the saved settings, knowledge, and tools. Test chats are not listed in Conversations, but they use your AI provider like real chats.",
+		"empty": "Send a message to see how your agent replies.",
+		"errorAccess": "You no longer have permission to test this agent.",
+		"errorBusy": "Another answer is still being written. Wait for it to finish, then try again.",
+		"errorConnection": "The connection was lost. Check your network, then try again.",
+		"errorGeneric": "Something went wrong. Try again.",
+		"errorInput": "This message cannot be sent. Shorten it and try again.",
+		"errorProvider": "The AI provider did not answer. Check the AI provider settings, then try again.",
+		"errorReset": "A new chat could not be started. Your current chat was kept.",
+		"errorStop": "The answer could not be stopped. It may still finish.",
+		"errorTooLong": "This chat is too long for the model. Start a new chat to continue.",
+		"messageLabel": "Message",
+		"newChat": "New chat",
+		"placeholder": "Ask what a visitor might ask…",
+		"retry": "Try again",
+		"send": "Send",
+		"stop": "Stop",
+		"stopping": "Stopping…",
+		"title": "Test chat",
+		"usingTool": "Using {{tool}}…",
+		"you": "You"
 	}
 }

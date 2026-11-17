@@ -87,6 +87,7 @@
 		"tabContext": "Znalosti",
 		"tabEmbeds": "Integrace",
 		"tabMcp": "Nástroje",
+		"tabTestChat": "Zkušební chat",
 		"wasDeleted": "Tento agent byl jinde smazán. Vraťte se na seznam agentů, kde uvidíte aktuální stav."
 	},
 	"agentFields": {
@@ -334,7 +335,7 @@
 		"noAgentSelected": "Vyberte alespoň jednoho agenta, abyste viděli jeho konverzace.",
 		"noPreview": "Bez zprávy návštěvníka",
 		"outcomeBlocked": "Zastaveno: odpověď obsahovala blokované slovo.",
-		"outcomeCancelled": "Návštěvník tuto odpověď zastavil.",
+		"outcomeCancelled": "Tato odpověď byla zastavena.",
 		"outcomeFailed": "Agent nedokázal odpovědět.",
 		"outcomeInterrupted": "Odpověď byla přerušena.",
 		"outcomeStreaming": "Agent stále odpovídá…",
@@ -694,5 +695,28 @@
 		"savingRoles": "Ukládání…",
 		"subheading": "Zobrazte, kdo se může přihlásit, jaké má role, a spravujte jejich účty.",
 		"switcherLabel": "Tým a role"
+	},
+	"testChat": {
+		"description": "Napište agentovi a uvidíte, jak odpovídá návštěvníkům. Používá uložené nastavení, znalosti a nástroje. Zkušební chaty se nezobrazují v Konverzacích, ale využívají vašeho poskytovatele AI stejně jako skutečné chaty.",
+		"empty": "Pošlete zprávu a uvidíte, jak agent odpoví.",
+		"errorAccess": "Už nemáte oprávnění tohoto agenta testovat.",
+		"errorBusy": "Ještě se píše jiná odpověď. Počkejte, až skončí, a zkuste to znovu.",
+		"errorConnection": "Spojení bylo přerušeno. Zkontrolujte připojení a zkuste to znovu.",
+		"errorGeneric": "Něco se pokazilo. Zkuste to znovu.",
+		"errorInput": "Tuto zprávu nelze odeslat. Zkraťte ji a zkuste to znovu.",
+		"errorProvider": "Poskytovatel AI neodpověděl. Zkontrolujte nastavení poskytovatele AI a zkuste to znovu.",
+		"errorReset": "Nový chat se nepodařilo spustit. Aktuální chat zůstal zachován.",
+		"errorStop": "Odpověď se nepodařilo zastavit. Může se ještě dokončit.",
+		"errorTooLong": "Tento chat je pro model příliš dlouhý. Pokračujte v novém chatu.",
+		"messageLabel": "Zpráva",
+		"newChat": "Nový chat",
+		"placeholder": "Zeptejte se na to, na co by se zeptal návštěvník…",
+		"retry": "Zkusit znovu",
+		"send": "Odeslat",
+		"stop": "Zastavit",
+		"stopping": "Zastavování…",
+		"title": "Zkušební chat",
+		"usingTool": "Používá {{tool}}…",
+		"you": "Vy"
 	}
 }

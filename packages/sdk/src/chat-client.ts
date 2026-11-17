@@ -12,6 +12,7 @@ import type {
 
 import { ChatTransportError, createFetchChatTransport } from "./fetch-transport.ts"
 import {
+	type AsyncStorage,
 	CHAT_STORAGE_VERSION,
 	type ChatStorageRecord,
 	createChatStorageKey,
@@ -134,6 +135,19 @@ function isUnauthorizedCancellation(state: CancellationState, cause: unknown): b
 	return state.preAcceptance && cause instanceof ChatTransportError && cause.detail.status === HTTP_UNAUTHORIZED
 }
 
+// Resolved lazily so importing the SDK never touches browser APIs.
+function localStorageAdapter(): AsyncStorage {
+	return {
+		getItem: async (key) => globalThis.localStorage.getItem(key),
+		setItem: async (key, value) => {
+			globalThis.localStorage.setItem(key, value)
+		},
+		removeItem: async (key) => {
+			globalThis.localStorage.removeItem(key)
+		},
+	}
+}
+
 export function createChatClient(options: ChatClientOptions): ChatClient {
 	let configuration: ChatConfiguration | undefined
 	let messages: readonly ChatMessage[] = []
@@ -154,21 +168,14 @@ export function createChatClient(options: ChatClientOptions): ChatClient {
 	let cancellationController: AbortController | undefined
 	let cancellationPromise: Promise<void> | undefined
 	const listeners = new Set<() => void>()
-	const storageKey = createChatStorageKey(options.apiUrl, options.embedToken)
+	const storageKey =
+		options.embedToken === undefined ? "talqo:chat" : createChatStorageKey(options.apiUrl, options.embedToken)
 	const randomUUID = options.randomUUID ?? defaultRandomUUID
 	const now = options.now ?? (() => new Date())
 	const transport = options.transport ?? createFetchChatTransport()
 
 	const storage = createResilientStorage(
-		options.storage ?? {
-			getItem: async (key) => globalThis.localStorage.getItem(key),
-			setItem: async (key, value) => {
-				globalThis.localStorage.setItem(key, value)
-			},
-			removeItem: async (key) => {
-				globalThis.localStorage.removeItem(key)
-			},
-		},
+		options.embedToken === undefined ? createMemoryStorage() : (options.storage ?? localStorageAdapter()),
 		createMemoryStorage(),
 		() => {
 			error = {

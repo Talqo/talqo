@@ -7,7 +7,7 @@ import type {
 	GetChatSession200MessagesItemOutcome as MessageOutcome,
 	SendChatMessageBody,
 } from "./generated/contracts.ts"
-import type { ChatError, ChatEvent, ChatTransport } from "./types.ts"
+import type { ChatError, ChatEvent, ChatTransport, TransportContext } from "./types.ts"
 
 import { GetChatSession200MessagesItemOutcome, GetChatSession200MessagesItemRole } from "./generated/contracts.ts"
 import { parseSseStream } from "./sse.ts"
@@ -15,9 +15,27 @@ import { isChatErrorCode } from "./types.ts"
 
 type FetchImplementation = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
+type SessionContext = TransportContext & { credential: string }
+
+/** Where a session operation is sent and how its credential travels; streaming and parsing stay shared. */
+export type ChatEndpoint = {
+	path: string
+	init?: { credentials?: RequestCredentials; headers?: Readonly<Record<string, string>> }
+	/** Extra JSON body fields, merged into a send or cancel body. */
+	body?: Readonly<Record<string, unknown>>
+}
+
+export type ChatEndpoints = {
+	session(input: SessionContext): ChatEndpoint
+	send(input: SessionContext): ChatEndpoint
+	cancel(input: SessionContext): ChatEndpoint
+}
+
 export type FetchChatTransportOptions = {
 	fetch?: FetchImplementation
 	now?: () => Date
+	/** Overrides the public embed chat routes, for example to address an operator-authenticated API. */
+	endpoints?: ChatEndpoints
 }
 
 export class ChatTransportError extends Error {
@@ -44,6 +62,40 @@ const TERMINAL_OUTCOMES = MESSAGE_OUTCOMES.filter(
 const ERROR_OUTCOMES = TERMINAL_OUTCOMES.filter(
 	(outcome): outcome is Exclude<MessageOutcome, "streaming" | "completed"> => outcome !== "completed",
 )
+
+function requireEmbedToken(input: TransportContext): string {
+	if (input.embedToken === undefined) throw new Error("The public chat transport requires an embed token")
+	return input.embedToken
+}
+
+function bearer(credential: string) {
+	return { headers: { Authorization: `Bearer ${credential}` } }
+}
+
+const PUBLIC_ENDPOINTS: ChatEndpoints = {
+	session: (input) => ({ path: "/api/chat/session", init: bearer(input.credential) }),
+	send: (input) => ({
+		path: `/api/chat/${encodeURIComponent(requireEmbedToken(input))}/messages`,
+		init: bearer(input.credential),
+	}),
+	cancel: (input) => ({ path: "/api/chat/cancel", init: bearer(input.credential) }),
+}
+
+function requestInit(
+	target: ChatEndpoint,
+	signal: AbortSignal,
+	method: "GET" | "POST",
+	headers: Record<string, string>,
+	body?: Record<string, unknown>,
+): RequestInit {
+	return {
+		...target.init,
+		method,
+		signal,
+		headers: { ...headers, ...target.init?.headers },
+		...(body === undefined ? {} : { body: JSON.stringify({ ...body, ...target.body }) }),
+	}
+}
 
 function endpoint(apiUrl: string, path: string): string {
 	const url = new URL(apiUrl)
@@ -242,11 +294,12 @@ function parseChatEvent(value: unknown, eventName: string | undefined): ChatEven
 export function createFetchChatTransport(options: FetchChatTransportOptions = {}): ChatTransport {
 	const fetchImplementation = options.fetch ?? globalThis.fetch
 	const now = options.now ?? (() => new Date())
+	const endpoints = options.endpoints ?? PUBLIC_ENDPOINTS
 
 	return {
 		async loadConfiguration(input) {
 			const response = await fetchImplementation(
-				endpoint(input.apiUrl, `/api/embed-config/${encodeURIComponent(input.embedToken)}`),
+				endpoint(input.apiUrl, `/api/embed-config/${encodeURIComponent(requireEmbedToken(input))}`),
 				{ method: "GET", signal: input.signal, headers: JSON_HEADERS },
 			)
 			await requireSuccess(response, input.signal, now)
@@ -261,11 +314,11 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 		},
 
 		async loadSession(input) {
-			const response = await fetchImplementation(endpoint(input.apiUrl, "/api/chat/session"), {
-				method: "GET",
-				signal: input.signal,
-				headers: { ...JSON_HEADERS, Authorization: `Bearer ${input.credential}` },
-			})
+			const target = endpoints.session(input)
+			const response = await fetchImplementation(
+				endpoint(input.apiUrl, target.path),
+				requestInit(target, input.signal, "GET", JSON_HEADERS),
+			)
 			await requireSuccess(response, input.signal, now)
 			const value = await readJson(response, input.signal)
 			if (!isSession(value)) throw invalidResponse(response.status)
@@ -274,14 +327,10 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 
 		async sendMessage(input) {
 			const body = { requestId: input.requestId, text: input.text } satisfies SendChatMessageBody
+			const target = endpoints.send(input)
 			const response = await fetchImplementation(
-				endpoint(input.apiUrl, `/api/chat/${encodeURIComponent(input.embedToken)}/messages`),
-				{
-					method: "POST",
-					signal: input.signal,
-					headers: { ...SSE_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
-					body: JSON.stringify(body),
-				},
+				endpoint(input.apiUrl, target.path),
+				requestInit(target, input.signal, "POST", SSE_POST_HEADERS, body),
 			)
 			await requireSuccess(response, input.signal, now)
 			if (!response.headers.get("Content-Type")?.toLowerCase().startsWith("text/event-stream") || !response.body) {
@@ -294,12 +343,11 @@ export function createFetchChatTransport(options: FetchChatTransportOptions = {}
 			const body = (
 				input.generationId === undefined ? {} : { generationId: input.generationId }
 			) satisfies CancelChatGenerationBody
-			const response = await fetchImplementation(endpoint(input.apiUrl, "/api/chat/cancel"), {
-				method: "POST",
-				signal: input.signal,
-				headers: { ...JSON_POST_HEADERS, Authorization: `Bearer ${input.credential}` },
-				body: JSON.stringify(body),
-			})
+			const target = endpoints.cancel(input)
+			const response = await fetchImplementation(
+				endpoint(input.apiUrl, target.path),
+				requestInit(target, input.signal, "POST", JSON_POST_HEADERS, body),
+			)
 			await requireSuccess(response, input.signal, now)
 		},
 	}

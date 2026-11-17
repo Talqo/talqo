@@ -1,5 +1,11 @@
 export { ChatClientError, createChatClient } from "./chat-client.ts"
-export { ChatTransportError, createFetchChatTransport, type FetchChatTransportOptions } from "./fetch-transport.ts"
+export {
+	type ChatEndpoint,
+	type ChatEndpoints,
+	ChatTransportError,
+	createFetchChatTransport,
+	type FetchChatTransportOptions,
+} from "./fetch-transport.ts"
 export type { AsyncStorage } from "./storage.ts"
 export type {
 	ActiveTool,

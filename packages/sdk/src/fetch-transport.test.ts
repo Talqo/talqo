@@ -33,6 +33,8 @@ const APPEARANCE = {
 	language: "en",
 } as const
 
+const COOKIE = { credentials: "include" } as const
+
 type FetchCall = { url: string; init: RequestInit | undefined }
 
 function requestUrl(input: string | URL | Request): string {
@@ -226,6 +228,53 @@ describe("createFetchChatTransport", () => {
 				},
 			},
 		})
+	})
+
+	test("routes session operations through custom endpoints while keeping stream parsing", async () => {
+		const terminal = 'event: chat\ndata: {"version":1,"type":"terminal","outcome":"completed"}\n\n'
+		const fake = recordingFetch([
+			jsonResponse({ messages: [] }),
+			streamResponse([terminal]),
+			new Response(null, { status: 204 }),
+		])
+		const base = "/api/agents/a/test-chat"
+		const transport = createFetchChatTransport({
+			fetch: fake.fetch,
+			endpoints: {
+				session: (input) => ({ path: `${base}/conversations/${input.credential}`, init: COOKIE }),
+				send: (input) => ({ path: `${base}/messages`, init: COOKIE, body: { conversationId: input.credential } }),
+				cancel: (input) => ({ path: `${base}/conversations/${input.credential}/cancel`, init: COOKIE }),
+			},
+		})
+		const operator = { apiUrl: API_URL, signal: new AbortController().signal, credential: CREDENTIAL }
+
+		await transport.loadSession(operator)
+		const events = await Array.fromAsync(
+			await transport.sendMessage({ ...operator, requestId: REQUEST_ID, text: "hi" }),
+		)
+		await transport.cancelResponse(operator)
+
+		expect(events).toEqual([{ type: "terminal", outcome: "completed" }])
+		expect(fake.calls.map((call) => [call.url, call.init?.credentials, call.init?.body])).toEqual([
+			[`https://api.example.test${base}/conversations/${CREDENTIAL}`, "include", undefined],
+			[
+				`https://api.example.test${base}/messages`,
+				"include",
+				JSON.stringify({ requestId: REQUEST_ID, text: "hi", conversationId: CREDENTIAL }),
+			],
+			[`https://api.example.test${base}/conversations/${CREDENTIAL}/cancel`, "include", "{}"],
+		])
+		expect(fake.calls.some((call) => "Authorization" in (call.init?.headers ?? {}))).toBe(false)
+	})
+
+	test("requires an embed token on the public routes", async () => {
+		const transport = createFetchChatTransport({ fetch: recordingFetch([]).fetch })
+		const signal = new AbortController().signal
+
+		await expect(transport.loadConfiguration({ apiUrl: API_URL, signal })).rejects.toThrow("embed token")
+		await expect(
+			transport.sendMessage({ apiUrl: API_URL, signal, credential: CREDENTIAL, requestId: REQUEST_ID, text: "hi" }),
+		).rejects.toThrow("embed token")
 	})
 
 	test("cancels the response body when an events stream is abandoned", async () => {

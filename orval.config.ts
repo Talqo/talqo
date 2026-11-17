@@ -17,7 +17,18 @@ export default defineConfig({
 		input: {
 			target: "./apps/api/openapi.json",
 			filters: {
-				tags: ["Health", "AI Providers", "Identity", "Roles", "Agent", "Embed", "MCP", "Stats", "Conversation"],
+				tags: [
+					"Health",
+					"AI Providers",
+					"Identity",
+					"Roles",
+					"Agent",
+					"Embed",
+					"MCP",
+					"Stats",
+					"Conversation",
+					"Test Chat",
+				],
 				schemas: ["ProblemDetails"],
 			},
 		},
@@ -45,6 +56,10 @@ export default defineConfig({
 				query: {
 					shouldExportKeys: true,
 					signal: true,
+				},
+				operations: {
+					// An SSE body is not JSON; the dashboard streams it through the SDK transport instead.
+					sendTestChatMessage: { fetch: { forceSuccessResponse: false } },
 				},
 				zod: {
 					generateReusableSchemas: true,

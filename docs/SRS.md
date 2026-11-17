@@ -121,7 +121,7 @@ Talqo is related to these repos:
 | FR-2.10 | Only the admin can create a new agent with a custom name | Medium | Done |
 | FR-2.11 | Operator can set a system prompt that defines the agent's persona, role, and tone for their domain — a single raw prompt field for v1 | High | Done |
 | FR-2.12 | Operator can maintain a word blacklist; the agent must not use or engage with blacklisted terms | Medium | Done |
-| FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | In progress |
+| FR-2.13 | Operator can preview/test the agent via a live chat interface inside the dashboard, without embedding the widget on their site | Medium | Done |
 | FR-2.13a | Operator with agent-deletion permission can delete an agent, permanently removing its data; attached embeds block deletion until removed or reassigned | Medium | Done |
 
 #### 3.2.4 Knowledge base & integrations (FR-2d)

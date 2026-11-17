@@ -23,9 +23,11 @@ function chatBodyLimit() {
 	})
 }
 
+const TEST_CHAT_SEND_PATH = /^\/api\/agents\/[^/]+\/test-chat\/messages$/
+
 export const rejectOversizedBody = createMiddleware(async (context, next) => {
 	if (!context.req.header("Content-Type")?.startsWith("application/json")) return next()
-	if (context.req.path.startsWith("/api/chat/")) {
+	if (context.req.path.startsWith("/api/chat/") || TEST_CHAT_SEND_PATH.test(context.req.path)) {
 		return chatBodyLimit()(context, next)
 	}
 	return rejectOversizedJsonBody(context, next)
