@@ -205,7 +205,7 @@ Retries of a turn in which a browser tool was dispatched are not automatically o
 
 The SDK exposes ordered parts with stable message/call identities. A derived plain-text value may remain for compatibility with existing consumers, but parts determine rendering and history.
 
-The widget and saved conversation view render text and tool entries in order. Each tool entry shows only Website tool or Connected tool beside a circular spinner while running, a circle-check when completed, or a circle-X when failed, cancelled, or interrupted. Localized exact statuses remain accessible to screen readers and on hover. Tool and server names remain stored for audits but are not displayed. Do not announce every streamed token or expose raw payloads as tooltips.
+The widget and saved conversation view render text and tool entries in order. Each tool entry shows only Website tool or Connected tool beside a circular spinner while running, a circle-check when completed, or a circle-X when failed, cancelled, or interrupted. Consecutive tool entries collapse behind a summary that states the run length, and expanding it shows each entry. Localized exact statuses remain accessible to screen readers and on hover. Tool and server names remain stored for audits but are not displayed. Do not announce every streamed token or expose raw payloads as tooltips.
 
 Completed calls remain visible after the answer, reload, cancellation, and failure. Identical names do not merge separate calls. Inputs/results are retained but not rendered as expandable content in this change.
 

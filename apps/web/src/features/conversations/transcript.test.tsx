@@ -1,3 +1,5 @@
+import type { ConversationMessage as Message } from "@/api/generated/models/conversationMessage.zod.ts"
+
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 import { describe, expect, test } from "bun:test"
 
@@ -9,6 +11,18 @@ const { renderToStaticMarkup } = await import("react-dom/server")
 const { t } = await import("i18next")
 
 const CREATED_AT = "2026-10-01T10:00:00.000Z"
+
+function toolPart(id: string): Message["parts"][number] {
+	return {
+		type: "dynamic-tool",
+		toolName: "lookup",
+		toolCallId: id,
+		input: {},
+		toolMetadata: { source: "mcp", displayName: "lookup", outcome: "completed" },
+		state: "output-available",
+		output: {},
+	}
+}
 
 describe("Transcript", () => {
 	test("renders agent Markdown without executing model HTML and labels unfinished answers", () => {
@@ -113,5 +127,27 @@ describe("Transcript outcomes", () => {
 
 		expect(html).toContain(t("conversations.visitor"))
 		expect(html).not.toContain(t("conversations.outcomeFailed"))
+	})
+
+	test("groups consecutive tool calls into one collapsed block and keeps single calls bare", () => {
+		const html = renderToStaticMarkup(
+			<Transcript
+				messages={[
+					{
+						id: "1",
+						role: "assistant",
+						text: "",
+						parts: [toolPart("first"), { type: "text", text: "Answer" }, toolPart("second"), toolPart("third")],
+						outcome: "completed",
+						createdAt: CREATED_AT,
+					},
+				]}
+			/>,
+		)
+
+		expect(html.match(/<details/g) ?? []).toHaveLength(1)
+		expect(html).not.toContain("<details open")
+		expect(html).toContain(t("conversations.toolsCalled", { count: 2 }))
+		expect(html.match(/<output/g) ?? []).toHaveLength(3)
 	})
 })

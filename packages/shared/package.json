@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./chat-transcript": "./src/chat-transcript.ts",
 		"./credentials": "./src/credentials.ts",
 		"./languages": "./src/languages.ts",
 		"./preview-channel": "./src/preview-channel.ts",
