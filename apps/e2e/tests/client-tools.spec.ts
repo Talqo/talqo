@@ -25,7 +25,7 @@ async function expandToolGroup(scope: Page | Locator, label: string) {
 	await summary.click()
 }
 
-test("browser and connected tool results survive the live answer, reload, and operator transcript", async ({
+test("browser and backend tool results survive the live answer, reload, and operator transcript", async ({
 	page,
 	adminRequest,
 	chatEmbed,
@@ -48,7 +48,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
 		widget("toolCompleted"),
 	)
-	await expect(dialog.getByRole("status").filter({ hasText: widget("connectedTool") })).toContainText(
+	await expect(dialog.getByRole("status").filter({ hasText: widget("backendTool") })).toContainText(
 		widget("toolCompleted"),
 	)
 	await expect(dialog.getByText("readPage", { exact: false })).toHaveCount(0)
@@ -78,7 +78,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await expect(page.getByRole("status").filter({ hasText: web("conversations.websiteTool") })).toContainText(
 		web("conversations.toolCompleted"),
 	)
-	await expect(page.getByRole("status").filter({ hasText: web("conversations.connectedTool") })).toContainText(
+	await expect(page.getByRole("status").filter({ hasText: web("conversations.backendTool") })).toContainText(
 		web("conversations.toolCompleted"),
 	)
 	await expect(page.getByText("readPage", { exact: false })).toHaveCount(0)

@@ -314,8 +314,8 @@
 	},
 	"conversations": {
 		"agent": "Agent",
+		"backendTool": "Backend tool",
 		"backToConversations": "Back to conversations",
-		"connectedTool": "Connected tool",
 		"emptyDescription": "They appear here after visitors chat with an agent.",
 		"emptyFilteredDescription": "Try a different agent filter.",
 		"emptyFilteredTitle": "No conversations match this filter",

@@ -43,7 +43,7 @@ function ToolRow({ part }: { part: ToolPart }) {
 					status === "running" && "tw:animate-spin tw:motion-reduce:animate-none",
 				)}
 			/>
-			{part.toolMetadata.source === "client" ? t("websiteTool") : t("connectedTool")}
+			{part.toolMetadata.source === "client" ? t("websiteTool") : t("backendTool")}
 			<span className="tw:sr-only"> {toolStatuses[status]}</span>
 		</output>
 	)

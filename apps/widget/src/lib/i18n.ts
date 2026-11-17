@@ -1,6 +1,7 @@
+import type { SupportedLanguage } from "@talqo/shared"
+
 import cs from "@/locales/cs.json"
 import en from "@/locales/en.json"
-import type { SupportedLanguage } from "@talqo/shared"
 import { createInstance, type i18n as I18nInstance } from "i18next"
 import { initReactI18next } from "react-i18next"
 
