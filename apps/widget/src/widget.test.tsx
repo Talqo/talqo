@@ -3,6 +3,7 @@ import type { ChatClient, ChatSnapshot } from "@talqo/sdk"
 import { readyMessage } from "@talqo/shared/preview-channel"
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
+import type { ChatBoot, ChatModule } from "./lib/chat-bridge"
 import type { MountOptions, MountTarget } from "./widget"
 
 // Import paused: with a parsed document the module auto-mounts at import, outside any test,
@@ -121,8 +122,41 @@ function fakeClient(): ChatClient {
 	}
 }
 
+function replaceChat(module: ChatModule | undefined): void {
+	const scope = window as { talqoDevChat?: ChatModule }
+	if (module) scope.talqoDevChat = module
+	else Reflect.deleteProperty(scope, "talqoDevChat")
+}
+
+function fakeChat(): {
+	module: ChatModule
+	mounts: Array<{ target: HTMLElement; boot: ChatBoot }>
+	unmounts: () => number
+} {
+	const mounts: Array<{ target: HTMLElement; boot: ChatBoot }> = []
+	let unmounts = 0
+	return {
+		mounts,
+		unmounts: () => unmounts,
+		module: {
+			mount(target, boot) {
+				mounts.push({ target, boot })
+				if (boot.mode === "preview" && boot.parentOrigin) {
+					window.parent.postMessage(readyMessage(), boot.parentOrigin)
+				}
+				const root = document.createElement("div")
+				root.className = "talqo-widget"
+				target.append(root)
+			},
+			unmount() {
+				unmounts += 1
+			},
+		},
+	}
+}
+
 function importWidget(scenario: string): Promise<WidgetModule> {
-	return import(`./widget.tsx?${scenario}`) as Promise<WidgetModule>
+	return import(`./widget.ts?${scenario}`) as Promise<WidgetModule>
 }
 
 async function importWidgetPaused(
@@ -153,6 +187,7 @@ describe("embed snippet discovery", () => {
 		;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 		await act(async () => unmount())
 		document.querySelector("#talqo-widget")?.remove()
+		replaceChat(undefined)
 	})
 
 	afterEach(async () => {
@@ -163,11 +198,13 @@ describe("embed snippet discovery", () => {
 		document.querySelectorAll("script[data-talqo-embed-token], script[data-talqo-preview]").forEach((element) => {
 			element.remove()
 		})
+		replaceChat(undefined)
 	})
 
 	test("defers its mount until the document is parsed", async () => {
 		snippet({ "data-talqo-preview": "", "data-talqo-parent-origin": "https://dashboard.example.com" })
 		using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
+		replaceChat(fakeChat().module)
 		const listeners: Array<{ type: string; listener: EventListener }> = []
 
 		widget = await importWidgetPaused("deferred-mount", listeners)
@@ -184,11 +221,15 @@ describe("embed snippet discovery", () => {
 	test("renders the preview harness for a preview snippet", async () => {
 		snippet({ "data-talqo-preview": "", "data-talqo-parent-origin": "https://dashboard.example.com" })
 		using postMessage = spyOn(window.parent, "postMessage").mockImplementation(() => {})
+		const chat = fakeChat()
+		replaceChat(chat.module)
 
 		widget = await importWidgetPaused("preview-snippet")
 		await act(async () => widget?.mount())
 
 		expect(postMessage).toHaveBeenCalledWith(readyMessage(), "https://dashboard.example.com")
+		expect(chat.mounts).toHaveLength(1)
+		expect(chat.mounts[0]?.boot).toEqual({ mode: "preview", parentOrigin: "https://dashboard.example.com" })
 	})
 
 	test("mounts the connected widget from the snippet with an injected client", async () => {
@@ -201,6 +242,8 @@ describe("embed snippet discovery", () => {
 		using warning = spyOn(console, "warn").mockImplementation(() => {})
 		const calls: Array<{ apiUrl: string; embedToken: string }> = []
 		const client = fakeClient()
+		const chat = fakeChat()
+		replaceChat(chat.module)
 
 		widget = await importWidgetPaused("connected-snippet")
 		const target = document.createElement("div")
@@ -215,12 +258,21 @@ describe("embed snippet discovery", () => {
 		)
 
 		expect(calls).toEqual([{ apiUrl: "https://api.example.com", embedToken: "token-1" }])
-		expect(target.querySelector(".talqo-widget")).not.toBeNull()
+		expect(target.querySelector(".talqo-widget-loader")).not.toBeNull()
+		expect(chat.mounts).toHaveLength(0)
 		expect(warning).not.toHaveBeenCalled()
 		expect(fetchSpy).not.toHaveBeenCalled()
 
+		await act(async () => target.querySelector<HTMLButtonElement>(".talqo-widget-loader")?.click())
+
+		expect(chat.mounts).toHaveLength(1)
+		expect(chat.mounts[0]?.boot).toMatchObject({ mode: "connected", client, title: "Support" })
+		expect(target.querySelector(".talqo-widget")).not.toBeNull()
+		expect(target.querySelector(".talqo-widget-loader")).toBeNull()
+
 		await act(async () => widget?.unmount())
 		expect(target.childElementCount).toBe(0)
+		expect(chat.unmounts()).toBe(1)
 		expect(() => widget?.unmount()).not.toThrow()
 		target.remove()
 	})
@@ -280,7 +332,7 @@ describe("embed snippet discovery", () => {
 		await act(async () => widget?.mount(second, { createClient: () => client }))
 
 		expect(first.childElementCount).toBe(0)
-		expect(second.querySelector(".talqo-widget")).not.toBeNull()
+		expect(second.querySelector(".talqo-widget-loader")).not.toBeNull()
 		first.remove()
 		second.remove()
 	})
