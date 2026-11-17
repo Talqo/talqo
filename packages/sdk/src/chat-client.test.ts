@@ -1690,6 +1690,23 @@ describe("createChatClient", () => {
 		expect(notifications).toBe(beforeDispose)
 		await expect(client.sendMessage("later")).rejects.toThrow("disposed")
 	})
+
+	test("rejects sends when Web Crypto is unavailable", async () => {
+		using randomUUIDSpy = spyOn(globalThis.crypto, "randomUUID").mockImplementation(() => {
+			throw new Error("crypto unavailable")
+		})
+		const client = createChatClient({
+			apiUrl: "https://api.example.test",
+			embedToken: "embed",
+			storage: createMemoryStorage(),
+			transport: baseTransport(),
+		})
+		await client.initialize()
+
+		await expect(client.sendMessage("hello")).rejects.toThrow("Web Crypto is required to generate chat credentials")
+		expect(client.getSnapshot()).toMatchObject({ activity: "idle", messages: [] })
+		expect(randomUUIDSpy).toHaveBeenCalled()
+	})
 })
 
 describe("chat client snapshots", () => {

@@ -13,6 +13,8 @@
 		"ci": "bun run --sequential actions:check contracts:check quality knip duplication i18n typecheck test build",
 		"contracts:check": "bun run contracts:generate && ! git status --porcelain -- apps/api/openapi.json apps/web/src/api/generated packages/sdk/src/generated | grep .",
 		"contracts:generate": "bun run --cwd apps/api openapi:generate && bun x orval --config orval.config.ts --fail-on-warnings",
+		"cov": "supercov runs latest gaps",
+		"cov:record": "supercov -- sh -c 'SUPERCOV_TEST_KIND=unit bun run test --force -- --timeout 60000 && SUPERCOV_TEST_KIND=integration TALQO_TEST_TIMEOUT=60000 bun run test:integration' && supercov runs latest report --format istanbul --output .cache/coverage/coverage-final.json --force",
 		"duplication": "jscpd --config .jscpd.json --exit-code 1 --fail-on-empty",
 		"dev": "./scripts/dev.sh",
 		"dev:teardown": "docker compose down",
@@ -57,6 +59,7 @@
 		"oxlint": "1.93.0",
 		"oxlint-tsgolint": "^7.0.2006",
 		"@fidasek009/stryker-mutator-bun-runner": "0.5.2",
+		"supercov": "4.28.0",
 		"turbo": "2.11.10"
 	},
 	"packageManager": "bun@1.4.4"
