@@ -316,8 +316,8 @@
 	},
 	"conversations": {
 		"agent": "Agent",
+		"backendTool": "Backendový nástroj",
 		"backToConversations": "Zpět na konverzace",
-		"connectedTool": "Připojený nástroj",
 		"emptyDescription": "Zobrazí se zde poté, co si návštěvníci popovídají s agentem.",
 		"emptyFilteredDescription": "Zkuste jiný filtr agentů.",
 		"emptyFilteredTitle": "Tomuto filtru neodpovídají žádné konverzace",

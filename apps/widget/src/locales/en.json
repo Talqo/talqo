@@ -1,9 +1,9 @@
 {
 	"agentLabel": "Agent",
 	"agentResponding": "Agent is responding",
+	"backendTool": "Backend tool",
 	"chatUnavailable": "This chat isn't available right now.",
 	"closeChat": "Close chat",
-	"connectedTool": "Connected tool",
 	"defaultTitle": "AI Chat",
 	"errorCancelFailed": "The response could not be stopped. It may still be running.",
 	"errorClientAddressUnavailable": "Chat cannot verify this network and is unavailable.",

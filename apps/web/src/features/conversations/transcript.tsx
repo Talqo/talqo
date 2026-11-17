@@ -43,7 +43,7 @@ function ToolRow({ part }: { part: ToolPart }) {
 				aria-hidden="true"
 				className={cn("size-3.5 shrink-0", status === "running" && "animate-spin motion-reduce:animate-none")}
 			/>
-			{part.toolMetadata.source === "client" ? t("conversations.websiteTool") : t("conversations.connectedTool")}
+			{part.toolMetadata.source === "client" ? t("conversations.websiteTool") : t("conversations.backendTool")}
 			<span className="sr-only"> {toolStatuses[status]}</span>
 		</output>
 	)

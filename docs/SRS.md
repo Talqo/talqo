@@ -73,7 +73,7 @@ Talqo is related to these repos:
 | FR-1.7 | Widget can be resized by the end user on desktop (not available on mobile viewports) | Low | Done |
 | FR-1.8 | End user can cancel a streaming reply | High | Done |
 | FR-1.9 | End user can retry the last message after a failed turn | Medium | Done |
-| FR-1.10 | Live and saved transcripts show Website tool or Connected tool with status icons and accessible status text; exact tool names, inputs, outputs, and outcomes remain stored for audits; interrupted browser calls are not replayed | Low | Done |
+| FR-1.10 | Live and saved transcripts show Website tool or Backend tool with status icons and accessible status text; exact tool names, inputs, outputs, and outcomes remain stored for audits; interrupted browser calls are not replayed | Low | Done |
 | FR-1.11 | End user sees a working fallback in degraded states: a revoked session explains the lost access and offers a new chat, unavailable browser storage continues in memory, and an invalid embed hides the widget | Medium | Done |
 
 ### 3.2 Dashboard (FR-2)

@@ -282,7 +282,7 @@ describe("ConnectedEmbeddedWidget", () => {
 						.map((node) => node.textContent)
 						.join(""),
 				),
-			).toEqual(["Website tool", "Connected tool"])
+			).toEqual(["Website tool", "Backend tool"])
 			for (const row of rows) {
 				expect(row.querySelector(".tw\\:sr-only")?.textContent).toBe(` ${row.title}`)
 				expect(row.textContent).not.toContain("internal_tool_name")
@@ -826,7 +826,7 @@ describe("ConnectedEmbeddedWidget", () => {
 		const store = fakeClient()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
-		expect(host.textContent).not.toContain("Connected tool")
+		expect(host.textContent).not.toContain("Backend tool")
 
 		await act(async () =>
 			store.setSnapshot({
@@ -852,7 +852,7 @@ describe("ConnectedEmbeddedWidget", () => {
 				],
 			}),
 		)
-		expect(host.textContent).toContain("Connected tool")
+		expect(host.textContent).toContain("Backend tool")
 	})
 
 	test("shows new chat only after a conversation exists and only when the SDK allows it", async () => {
