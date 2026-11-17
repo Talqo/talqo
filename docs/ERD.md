@@ -53,6 +53,7 @@ erDiagram
     AGENT ||--o{ CONVERSATION : receives
     AGENT ||--o{ CONVERSATION_DAILY_COUNTER : limits
     EMBED o|--o{ CONVERSATION : originated
+    USER |o--o{ CONVERSATION : "tests (dashboard)"
     CONVERSATION ||--o{ GENERATION_ATTEMPT : accepts
     CONVERSATION ||--o{ MESSAGE : includes
     GENERATION_ATTEMPT ||--|{ MESSAGE : produces

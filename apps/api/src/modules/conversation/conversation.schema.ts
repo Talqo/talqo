@@ -1,5 +1,6 @@
 import { agent } from "@/modules/agent/agent.schema.ts"
 import { embed } from "@/modules/embed/embed.schema.ts"
+import { user } from "@/modules/identity/identity.schema.ts"
 import { sql } from "drizzle-orm"
 import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core"
 
@@ -19,6 +20,10 @@ export const generationAttemptFinalOutcome = pgEnum(
 	GENERATION_ATTEMPT_FINAL_OUTCOMES,
 )
 
+export const CONVERSATION_ORIGINS = ["embed", "dashboard"] as const
+export type ConversationOrigin = (typeof CONVERSATION_ORIGINS)[number]
+export const conversationOrigin = pgEnum("conversation_origin", CONVERSATION_ORIGINS)
+
 export const conversation = pgTable(
 	"conversation",
 	{
@@ -30,8 +35,11 @@ export const conversation = pgTable(
 		agentId: text("agent_id")
 			.notNull()
 			.references(() => agent.id, { onDelete: "cascade" }),
+		origin: conversationOrigin("origin").notNull().default("embed"),
 		embedId: text("embed_id").references(() => embed.id, { onDelete: "set null" }),
-		embedAccessVersion: integer("embed_access_version").notNull(),
+		embedAccessVersion: integer("embed_access_version"),
+		// Set null on operator deletion so the usage their test chats produced survives.
+		operatorId: text("operator_id").references(() => user.id, { onDelete: "set null" }),
 		revision: integer("revision").notNull().default(0),
 		latestCompletedMessageId: text("latest_completed_message_id"),
 		createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
@@ -41,6 +49,11 @@ export const conversation = pgTable(
 		index("conversation_embed_id_idx").on(table.embedId),
 		index("conversation_agent_id_created_at_idx").on(table.agentId, table.createdAt),
 		index("conversation_created_at_idx").on(table.createdAt, table.referenceId),
+		index("conversation_operator_id_idx").on(table.operatorId),
+		check(
+			"conversation_origin_identity_check",
+			sql`CASE ${table.origin} WHEN 'embed' THEN ${table.embedAccessVersion} IS NOT NULL AND ${table.operatorId} IS NULL ELSE ${table.embedId} IS NULL AND ${table.embedAccessVersion} IS NULL END`,
+		),
 	],
 )
 
@@ -54,7 +67,8 @@ export const generationAttempt = pgTable(
 		requestId: text("request_id").notNull(),
 		estimatedInputTokens: integer("estimated_input_tokens").notNull(),
 		status: generationAttemptStatus("status").notNull().default("accepted"),
-		networkHash: text("network_hash").notNull(),
+		// Null for dashboard test chats, which are exempt from network allowances.
+		networkHash: text("network_hash"),
 		leaseToken: text("lease_token").notNull(),
 		leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true, mode: "date" }).notNull(),
 		cancellationRequestedAt: timestamp("cancellation_requested_at", { withTimezone: true, mode: "date" }),

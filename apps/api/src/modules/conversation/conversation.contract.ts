@@ -2,6 +2,7 @@ import { MAX_CHAT_INPUT_CHARACTERS } from "@/config/env.ts"
 import { access } from "@/http/access.ts"
 import { payloadTooLargeResponse, problemResponse } from "@/http/openapi.ts"
 import { PROBLEM_CODES } from "@/http/problem.ts"
+import * as roles from "@/modules/roles/roles.service.ts"
 import { createRoute, z } from "@hono/zod-openapi"
 
 import { CONVERSATION_AGENT_FILTER_MAX, CONVERSATION_PAGE_MAX } from "./conversation.service.ts"
@@ -236,6 +237,83 @@ export const getConversationRoute = createRoute({
 		401: operatorAuthRequired,
 		403: operatorForbidden,
 		404: problemResponse([PROBLEM_CODES.CONVERSATION_NOT_FOUND]),
+		500: operatorServerError,
+	},
+})
+
+const testChatAgentParams = z.object({
+	agentId: z.string().openapi({ param: { name: "agentId", in: "path" } }),
+})
+const testChatConversationParams = testChatAgentParams.extend({
+	conversationId: z.uuid({ version: "v4" }).openapi({ param: { name: "conversationId", in: "path" } }),
+})
+const testChatNotFound = problemResponse([PROBLEM_CODES.AGENT_NOT_FOUND, PROBLEM_CODES.CONVERSATION_NOT_FOUND])
+
+export const sendTestChatMessageRoute = createRoute({
+	method: "post",
+	path: "/messages",
+	operationId: "sendTestChatMessage",
+	tags: ["Test Chat"],
+	...access.agent(roles.AgentPermission.AgentManage),
+	request: {
+		params: testChatAgentParams,
+		body: {
+			required: true,
+			content: { "application/json": { schema: sendBody.extend({ conversationId: z.uuid({ version: "v4" }) }) } },
+		},
+	},
+	responses: {
+		200: sseResponse,
+		400: problemResponse([
+			PROBLEM_CODES.INVALID_REQUEST,
+			PROBLEM_CODES.MALFORMED_JSON,
+			PROBLEM_CODES.CHAT_CONVERSATION_TOO_LONG,
+		]),
+		401: operatorAuthRequired,
+		403: operatorForbidden,
+		404: testChatNotFound,
+		409: conflictProblem,
+		413: payloadTooLargeResponse,
+		429: problemResponse([PROBLEM_CODES.CHAT_CONCURRENCY_LIMIT, PROBLEM_CODES.CHAT_SESSION_BUSY]),
+		502: problemResponse([PROBLEM_CODES.PROVIDER_ERROR]),
+		500: operatorServerError,
+	},
+})
+
+export const getTestChatSessionRoute = createRoute({
+	method: "get",
+	path: "/conversations/{conversationId}",
+	operationId: "getTestChatSession",
+	tags: ["Test Chat"],
+	...access.agent(roles.AgentPermission.AgentManage),
+	request: { params: testChatConversationParams },
+	responses: {
+		200: { content: { "application/json": { schema: sessionStateSchema } }, description: "Conversation history" },
+		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST]),
+		401: operatorAuthRequired,
+		403: operatorForbidden,
+		404: testChatNotFound,
+		500: operatorServerError,
+	},
+})
+
+export const cancelTestChatRoute = createRoute({
+	method: "post",
+	path: "/conversations/{conversationId}/cancel",
+	operationId: "cancelTestChatGeneration",
+	tags: ["Test Chat"],
+	...access.agent(roles.AgentPermission.AgentManage),
+	request: {
+		params: testChatConversationParams,
+		body: { required: false, content: { "application/json": { schema: cancelBody } } },
+	},
+	responses: {
+		204: { description: "Cancellation requested" },
+		400: problemResponse([PROBLEM_CODES.INVALID_REQUEST, PROBLEM_CODES.MALFORMED_JSON]),
+		401: operatorAuthRequired,
+		403: operatorForbidden,
+		404: testChatNotFound,
+		413: payloadTooLargeResponse,
 		500: operatorServerError,
 	},
 })

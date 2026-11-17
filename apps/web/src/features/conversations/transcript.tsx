@@ -4,6 +4,9 @@ import { Markdown } from "@talqo/ui/components/markdown"
 import { cn } from "@talqo/ui/lib/utils"
 import { useTranslation } from "react-i18next"
 
+// Live chats also show a sent message as pending until the server accepts it.
+type TranscriptMessage = Omit<Message, "outcome"> & { outcome: Message["outcome"] | "pending" }
+
 const OUTCOME_KEYS = {
 	streaming: "conversations.outcomeStreaming",
 	failed: "conversations.outcomeFailed",
@@ -12,11 +15,18 @@ const OUTCOME_KEYS = {
 	interrupted: "conversations.outcomeInterrupted",
 } as const satisfies Partial<Record<Message["outcome"], string>>
 
-function outcomeKey(outcome: Message["outcome"]) {
-	return outcome === "completed" ? undefined : OUTCOME_KEYS[outcome]
+function outcomeKey(outcome: TranscriptMessage["outcome"]) {
+	return outcome === "completed" || outcome === "pending" ? undefined : OUTCOME_KEYS[outcome]
 }
 
-export function Transcript({ messages }: { messages: Message[] }) {
+export function Transcript({
+	messages,
+	userLabel,
+}: {
+	messages: readonly TranscriptMessage[]
+	/** Defaults to the visitor label used for retained conversations. */
+	userLabel?: string
+}) {
 	const { t } = useTranslation()
 	return (
 		<ol className="bg-foreground/8 rounded-surface p-surface-padding space-y-4 border">
@@ -26,7 +36,7 @@ export function Transcript({ messages }: { messages: Message[] }) {
 				return (
 					<li key={message.id} className={cn("flex flex-col gap-1", fromVisitor ? "items-end" : "items-start")}>
 						<span className="text-muted-foreground px-1 text-xs">
-							{fromVisitor ? t("conversations.visitor") : t("conversations.agent")}
+							{fromVisitor ? (userLabel ?? t("conversations.visitor")) : t("conversations.agent")}
 						</span>
 						{message.text.length > 0 && (
 							<div

@@ -114,6 +114,9 @@ export type ChatEvent =
 
 type ChatErrorCode = "chat-context-limit" | "chat-input-incompatible" | "provider-error"
 
+type DashboardSessionInput = { agentId: string; conversationId: string; operatorId: string }
+type DashboardSendInput = DashboardSessionInput & { requestId: string; text: string }
+
 type SendInput = {
 	credential: string
 	embedToken: string
@@ -540,6 +543,13 @@ async function findMatchingSession(
 	return session
 }
 
+async function requireDashboardConversation(input: DashboardSessionInput): Promise<string> {
+	await roles.requireAgentPermission(input.operatorId, input.agentId, roles.AgentPermission.AgentManage)
+	const found = await repository.findDashboardConversation(input)
+	if (!found) throw new ConversationNotFoundError()
+	return found.conversationId
+}
+
 export function createConversationService(dependencies: Dependencies) {
 	const poller = createGenerationPoller()
 	let lastRecovery = -Infinity
@@ -691,6 +701,103 @@ export function createConversationService(dependencies: Dependencies) {
 		return accepted.duplicate ? Promise.resolve() : run(accepted, agent, messages, prepared, emit, annotate)
 	}
 
+	type Admission =
+		| { origin: "embed"; embedAccessVersion: number; embedId: string; networkHash: string }
+		| { origin: "dashboard"; operatorId: string }
+
+	async function acceptAndStart(
+		input: {
+			admission: Admission
+			agent: agentService.Agent
+			conversationId: string
+			existing: boolean
+			requestId: string
+			text: string
+		},
+		emit: (event: ChatEvent) => void,
+		annotate: Annotate,
+	) {
+		const { agent } = input
+		async function preparePrompt() {
+			const history = input.existing
+				? await repository.getHistorySnapshot(input.conversationId)
+				: { messages: [], revision: 0, latestCompletedMessageId: null }
+			const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
+			const messages = completedPrompt(systemPrompt, history.messages, input.text)
+			const promptContent = promptText(messages)
+			const promptCharacters = Array.from(promptContent).length
+			annotate({ "chat.prompt_characters": promptCharacters })
+			if (promptCharacters > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+			return { history, messages, promptContent }
+		}
+		async function prepareAndAccept(attempt: number): Promise<{
+			accepted: repository.AcceptedGenerationAttempt
+			messages: aiProvider.TextMessage[]
+			prepared: PreparedOperation
+		}> {
+			const { history, messages, promptContent } = await preparePrompt()
+			let prepared: PreparedOperation
+			try {
+				prepared = await dependencies.prepare({
+					messages,
+					maxOutputTokens: dependencies.maxOutputTokens,
+					timeoutMs: dependencies.timeoutMs,
+				})
+			} catch (error) {
+				console.error("conversation.provider.unavailable", { agentId: agent.id, error })
+				throw new ProviderUnavailableError("The configured text provider is unavailable", { cause: error })
+			}
+			await dependencies.beforeAccept?.(attempt)
+			const base = {
+				agentId: agent.id,
+				conversationId: input.conversationId,
+				requestId: input.requestId,
+				historyRevision: history.revision,
+				historyTailId: history.latestCompletedMessageId,
+				estimatedInputTokens: usageService.estimateTokens(promptContent),
+				messageText: input.text,
+				concurrencyLimit: dependencies.concurrencyLimit,
+			}
+			try {
+				const accepted = await repository.acceptGenerationAttempt(
+					input.admission.origin === "embed"
+						? { ...base, ...input.admission, dailyLimit: dependencies.dailyLimit }
+						: { ...base, ...input.admission },
+				)
+				return { accepted, messages, prepared }
+			} catch (error) {
+				if (error instanceof repository.StaleHistoryRepositoryError) {
+					if (attempt + 1 < MAX_HISTORY_ACCEPT_ATTEMPTS) return prepareAndAccept(attempt + 1)
+					throw new SessionBusyError("Conversation history changed repeatedly")
+				}
+				throw error
+			}
+		}
+		const { accepted, messages, prepared } = await prepareAndAccept(0)
+		const acceptedEvent: ChatEvent = {
+			version: 1,
+			type: "accepted",
+			requestId: input.requestId,
+			generationId: accepted.generationAttempt.id,
+			userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
+			assistantMessage: {
+				id: accepted.assistantMessage.id,
+				createdAt: accepted.assistantMessage.createdAt.toISOString(),
+			},
+		}
+		annotate({ "chat.duplicate": accepted.duplicate })
+		emit(acceptedEvent)
+		if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
+			emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
+		}
+		const done = startGeneration(accepted, agent, messages, prepared, emit, annotate)
+		return { ...acceptedEvent, duplicate: accepted.duplicate, done }
+	}
+
+	function requireWithinInputBound(text: string): void {
+		if (Array.from(text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+	}
+
 	return {
 		async send(input: SendInput, emit: (event: ChatEvent) => void = () => {}, annotate: Annotate = () => {}) {
 			await recoverUsage()
@@ -699,89 +806,77 @@ export function createConversationService(dependencies: Dependencies) {
 			annotate({ "chat.request_id": input.requestId })
 			const currentEmbed = await embedService.getEmbedByToken(input.embedToken)
 			if (currentEmbed.isDisabled) throw new EmbedDisabledError()
-			if (Array.from(input.text).length > dependencies.maxInputCharacters) throw new ConversationTooLongError()
+			requireWithinInputBound(input.text)
 			const conversationId = requireUuid(
 				input.credential,
 				new SessionUnauthorizedError("A valid session credential is required"),
 			)
 			const session = await findMatchingSession(conversationId, currentEmbed)
 			annotate({ "chat.new_conversation": !session })
-			const agentId = currentEmbed.agentId
-			annotate({ "agent.id": agentId, "embed.id": currentEmbed.id })
-			const agent = await agentService.getAgent(agentId)
-			async function preparePrompt() {
-				const history = session
-					? await repository.getHistorySnapshot(session.conversationId)
-					: { messages: [], revision: 0, latestCompletedMessageId: null }
-				const systemPrompt = agentService.composeSystemPrompt(agent.systemPrompt)
-				const messages = completedPrompt(systemPrompt, history.messages, input.text)
-				const promptContent = promptText(messages)
-				const promptCharacters = Array.from(promptContent).length
-				annotate({ "chat.prompt_characters": promptCharacters })
-				if (promptCharacters > dependencies.maxInputCharacters) throw new ConversationTooLongError()
-				return { history, messages, promptContent }
-			}
-			async function prepareAndAccept(attempt: number): Promise<{
-				accepted: repository.AcceptedGenerationAttempt
-				messages: aiProvider.TextMessage[]
-				prepared: PreparedOperation
-			}> {
-				const { history, messages, promptContent } = await preparePrompt()
-				let prepared: PreparedOperation
-				try {
-					prepared = await dependencies.prepare({
-						messages,
-						maxOutputTokens: dependencies.maxOutputTokens,
-						timeoutMs: dependencies.timeoutMs,
-					})
-				} catch (error) {
-					console.error("conversation.provider.unavailable", { agentId, error })
-					throw new ProviderUnavailableError("The configured text provider is unavailable", { cause: error })
-				}
-				await dependencies.beforeAccept?.(attempt)
-				try {
-					const accepted = await repository.acceptGenerationAttempt({
-						agentId,
-						conversationId,
-						embedAccessVersion: currentEmbed.accessVersion,
+			annotate({ "agent.id": currentEmbed.agentId, "embed.id": currentEmbed.id })
+			return acceptAndStart(
+				{
+					admission: {
+						origin: "embed",
 						embedId: currentEmbed.id,
-						requestId: input.requestId,
-						historyRevision: history.revision,
-						historyTailId: history.latestCompletedMessageId,
-						estimatedInputTokens: usageService.estimateTokens(promptContent),
-						messageText: input.text,
+						embedAccessVersion: currentEmbed.accessVersion,
 						networkHash: input.networkHash,
-						dailyLimit: dependencies.dailyLimit,
-						concurrencyLimit: dependencies.concurrencyLimit,
-					})
-					return { accepted, messages, prepared }
-				} catch (error) {
-					if (error instanceof repository.StaleHistoryRepositoryError) {
-						if (attempt + 1 < MAX_HISTORY_ACCEPT_ATTEMPTS) return prepareAndAccept(attempt + 1)
-						throw new SessionBusyError("Conversation history changed repeatedly")
-					}
-					throw error
-				}
-			}
-			const { accepted, messages, prepared } = await prepareAndAccept(0)
-			const acceptedEvent: ChatEvent = {
-				version: 1,
-				type: "accepted",
-				requestId: input.requestId,
-				generationId: accepted.generationAttempt.id,
-				userMessage: { id: accepted.userMessage.id, createdAt: accepted.userMessage.createdAt.toISOString() },
-				assistantMessage: {
-					id: accepted.assistantMessage.id,
-					createdAt: accepted.assistantMessage.createdAt.toISOString(),
+					},
+					agent: await agentService.getAgent(currentEmbed.agentId),
+					conversationId,
+					existing: Boolean(session),
+					requestId: input.requestId,
+					text: input.text,
 				},
+				emit,
+				annotate,
+			)
+		},
+
+		/** Operator test chat: same generation pipeline, authorized by the operator instead of an embed. */
+		async sendFromDashboard(
+			input: DashboardSendInput,
+			emit: (event: ChatEvent) => void = () => {},
+			annotate: Annotate = () => {},
+		) {
+			await recoverUsage()
+			if (!input.text) throw new InvalidChatInputError("Message text is required")
+			requireUuid(input.requestId, new InvalidChatInputError("Request ID is invalid"))
+			const conversationId = requireUuid(input.conversationId, new InvalidChatInputError("Conversation ID is invalid"))
+			annotate({ "chat.request_id": input.requestId, "agent.id": input.agentId })
+			requireWithinInputBound(input.text)
+			await roles.requireAgentPermission(input.operatorId, input.agentId, roles.AgentPermission.AgentManage)
+			const agent = await agentService.getAgent(input.agentId)
+			const session = await repository.findDashboardConversation({ ...input, conversationId })
+			annotate({ "chat.new_conversation": !session })
+			return acceptAndStart(
+				{
+					admission: { origin: "dashboard", operatorId: input.operatorId },
+					agent,
+					conversationId,
+					existing: Boolean(session),
+					requestId: input.requestId,
+					text: input.text,
+				},
+				emit,
+				annotate,
+			)
+		},
+
+		async getDashboardSession(input: DashboardSessionInput) {
+			await repository.recoverExpiredGenerationAttempts()
+			await recoverUsage()
+			const conversationId = await requireDashboardConversation(input)
+			return {
+				messages: (await repository.listMessages(conversationId)).map(publicMessage),
+				activeGeneration: await repository.getActiveGenerationAttempt(conversationId),
 			}
-			annotate({ "chat.duplicate": accepted.duplicate })
-			emit(acceptedEvent)
-			if (accepted.duplicate && !isActiveStatus(accepted.generationAttempt.status)) {
-				emit({ version: 1, type: "terminal", outcome: accepted.generationAttempt.status })
-			}
-			const done = startGeneration(accepted, agent, messages, prepared, emit, annotate)
-			return { ...acceptedEvent, duplicate: accepted.duplicate, done }
+		},
+
+		async cancelFromDashboard(input: DashboardSessionInput & { generationId?: string }): Promise<void> {
+			const conversationId = await requireDashboardConversation(input)
+			const matched = await repository.requestCancellation(conversationId, input.generationId)
+			for (const id of matched) poller.abort(id)
 		},
 
 		async getSession(credential: string) {
