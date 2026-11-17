@@ -2,9 +2,11 @@ import type { Role } from "@/api/generated/models/role.zod"
 import type { QueryClient } from "@/testing/component-harness"
 
 import { ListUsers200 } from "@/api/generated/models/roles/listUsers200.zod"
+import { formatDateTime } from "@/lib/format-date"
 import { json, parseJsonBody, recordRequest } from "@/testing/api-responses"
 import { act, createTestHarness, QueryClientProvider, type Root, settle } from "@/testing/component-harness"
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@talqo/shared"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 
 const { TeamPage } = await import("./team-page")
 const { LanguageProvider } = await import("@/lib/use-language")
@@ -27,8 +29,17 @@ let myPermissions: string[]
 let users: ListedUser[]
 let roles: Role[]
 let assignFailure: Response | undefined
+let assignPending: Promise<Response> | undefined
+let deleteFailure: Response | undefined
+let deletePending: Promise<Response> | undefined
+let invitationFailure: Response | undefined
+let invitationPending: Promise<Response> | undefined
+let resetFailure: Response | undefined
+let resetPending: Promise<Response> | undefined
 let rolesFailure: Response | undefined
 let rolesResponse: Promise<Response> | undefined
+let usersFailure: Response | undefined
+let usersResponse: Promise<Response> | undefined
 let requests: { body: unknown; method: string; url: string }[]
 let host: HTMLDivElement
 let root: Root
@@ -52,11 +63,11 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	const { url, method } = recordRequest(requests, input, init)
 	if (url === "/api/me/permissions") return json({ permissions: myPermissions })
 	if (url === "/api/auth/session") return json({ user: { id: "me", username: "me", mustChangePassword: false } })
-	if (url === "/api/users") return json({ users })
+	if (url === "/api/users") return usersResponse ?? usersFailure ?? json({ users })
 	if (url === "/api/roles")
 		return rolesResponse ?? rolesFailure ?? json({ roles, manageableRoleIds: roles.map((role) => role.id) })
 	if (url === "/api/invitations" && method === "POST")
-		return json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
+		return invitationPending ?? invitationFailure ?? json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)
 	if (url === "/api/permissions") {
 		return json({
 			permissions: [
@@ -69,8 +80,15 @@ async function respond(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 	}
 	if (/^\/api\/users\/[^/]+\/roles$/.test(url) && method === "PUT") {
 		if (assignFailure) return assignFailure
+		if (assignPending) return assignPending
 		const { roleIds } = parseJsonBody(init?.body) as { roleIds: string[] }
 		return json({ roles: roles.filter(({ id }) => roleIds.includes(id)).map(({ id, name }) => ({ id, name })) })
+	}
+	if (/^\/api\/users\/[^/]+\/password$/.test(url) && method === "PATCH") {
+		return resetFailure ?? resetPending ?? new Response(null, { status: 204 })
+	}
+	if (/^\/api\/users\/[^/]+$/.test(url) && method === "DELETE") {
+		return deletePending ?? deleteFailure ?? new Response(null, { status: 204 })
 	}
 	throw new Error(`unexpected request ${method} ${url}`)
 }
@@ -116,8 +134,22 @@ function button(name: string, scope: ParentNode = document): HTMLButtonElement {
 	return found
 }
 
+function labelledButton(label: string, scope: ParentNode = document): HTMLButtonElement {
+	const found = scope.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)
+	if (!found) throw new Error(`button labelled "${label}" not rendered`)
+	return found
+}
+
 async function click(element: HTMLElement) {
 	await act(async () => element.click())
+	await settle()
+}
+
+async function type(element: HTMLInputElement, text: string) {
+	await act(async () => {
+		Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(element, text)
+		element.dispatchEvent(new Event("input", { bubbles: true }))
+	})
 	await settle()
 }
 
@@ -130,10 +162,27 @@ function checkbox(label: string): HTMLElement {
 	return input
 }
 
-function dialog(): HTMLElement {
-	const found = document.querySelector<HTMLElement>("[role='dialog']")
+function dialog(role = "dialog"): HTMLElement {
+	const found = document.querySelector<HTMLElement>(`[role='${role}']`)
 	if (!found) throw new Error("dialog not open")
 	return found
+}
+
+function dialogInput(label: string): HTMLInputElement {
+	const labelElement = [...dialog().querySelectorAll("label")].find((element) => element.textContent?.trim() === label)
+	const input = labelElement ? document.getElementById(labelElement.htmlFor) : null
+	if (!(input instanceof HTMLInputElement)) throw new Error(`input "${label}" not rendered`)
+	return input
+}
+
+async function openResetDialog() {
+	await click(button(t("team.resetPassword"), card("helper")))
+}
+
+async function submitResetPassword(password: string, confirmation = password) {
+	await type(dialogInput(t("account.newPassword")), password)
+	await type(dialogInput(t("account.confirmNewPassword")), confirmation)
+	await click(button(t("team.resetPassword"), dialog()))
 }
 
 beforeEach(() => {
@@ -141,8 +190,17 @@ beforeEach(() => {
 	users = []
 	roles = []
 	assignFailure = undefined
+	assignPending = undefined
+	deleteFailure = undefined
+	deletePending = undefined
+	invitationFailure = undefined
+	invitationPending = undefined
+	resetFailure = undefined
+	resetPending = undefined
 	rolesFailure = undefined
 	rolesResponse = undefined
+	usersFailure = undefined
+	usersResponse = undefined
 	requests = []
 	harness = createTestHarness({ fetch: respond as typeof fetch })
 	;({ host, root, queryClient } = harness)
@@ -227,6 +285,21 @@ describe("TeamPage", () => {
 		})
 	})
 
+	test("does not load or offer roles to an inviter who cannot manage roles", async () => {
+		myPermissions = ["users:read", "users:manage"]
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		expect(requestCount("/api/roles")).toBe(0)
+
+		await click(button(t("auth.invitations.heading")))
+		expect(dialog().querySelector("[role='checkbox']")).toBeNull()
+		expect(dialog().textContent).not.toContain(t("auth.invitations.roles"))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(requests.find(({ method, url }) => method === "POST" && url === "/api/invitations")?.body).toEqual({
+			roleIds: [],
+		})
+	})
+
 	test("explains unavailable invitation roles and does not preselect access the operator lacks", async () => {
 		myPermissions = ["users:read", "users:manage", "roles:manage"]
 		roles = [{ id: "default", name: "Default", permissions: ["ai_provider:manage"], memberCount: 0 }]
@@ -249,18 +322,166 @@ describe("TeamPage", () => {
 			roleIds: [],
 		})
 	})
+	test("shows the generated invitation link, copies it, and explains a copy failure", async () => {
+		const writeText = spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined)
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+
+		const link = document.querySelector<HTMLInputElement>("#invitation-link")
+		expect(link?.value).toBe(`${window.location.origin}/accept-invite?token=invite`)
+		expect(button(t("auth.invitations.create"), dialog()).disabled).toBe(true)
+
+		await click(labelledButton(t("auth.invitations.copy"), dialog()))
+		expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/accept-invite?token=invite`)
+		expect(dialog().textContent).toContain(t("auth.invitations.copied"))
+
+		writeText.mockRejectedValue(new Error("clipboard unavailable"))
+		await click(labelledButton(t("auth.invitations.copy"), dialog()))
+		expect(dialog().textContent).toContain(t("auth.invitations.copyFailed"))
+		expect(dialog().textContent).not.toContain(t("auth.invitations.copied"))
+
+		writeText.mockResolvedValue(undefined)
+		await click(labelledButton(t("auth.invitations.copy"), dialog()))
+		expect(dialog().textContent).not.toContain(t("auth.invitations.copyFailed"))
+		expect(dialog().textContent).toContain(t("auth.invitations.copied"))
+		expect(checkbox("Default").getAttribute("aria-disabled")).toBe("true")
+
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("auth.invitations.heading")))
+		expect(document.querySelector("#invitation-link")).toBeNull()
+		expect(dialog().textContent).not.toContain(t("auth.invitations.copied"))
+	})
+
+	test("labels the invitation dialog, its role picker, and the generated link", async () => {
+		roles = [{ id: "default", name: "Default", permissions: [], memberCount: 0 }]
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+
+		expect(dialog().textContent).toContain(t("auth.invitations.heading"))
+		expect(dialog().textContent).toContain(t("auth.invitations.roles"))
+		expect(buttonNames(dialog())).toContain(t("common.close"))
+
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(dialog().textContent).toContain(t("auth.invitations.linkLabel"))
+		expect(dialog().textContent).toContain(
+			t("auth.invitations.expiresLabel", { date: formatDateTime("2026-10-25T00:00:00Z", "en") }),
+		)
+	})
+
+	test("starts a new invitation without a stale copied notice", async () => {
+		spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined)
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+		await click(labelledButton(t("auth.invitations.copy"), dialog()))
+		expect(dialog().textContent).toContain(t("auth.invitations.copied"))
+
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(dialog().textContent).not.toContain(t("auth.invitations.copied"))
+	})
+
+	test("keeps the invitation button unavailable while roles load", async () => {
+		const deferred = Promise.withResolvers<Response>()
+		rolesResponse = deferred.promise
+		await renderPage()
+
+		expect(button(t("auth.invitations.heading")).disabled).toBe(true)
+		await act(async () => deferred.resolve(json({ roles: [], manageableRoleIds: [] })))
+		await settle()
+		expect(button(t("auth.invitations.heading")).disabled).toBe(false)
+	})
+
+	test("keeps a failed invitation open with the server reason and retries", async () => {
+		invitationFailure = problem("internal-server-error", 500)
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(requests.filter(({ method, url }) => method === "POST" && url === "/api/invitations")).toHaveLength(1)
+
+		invitationFailure = undefined
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(document.querySelector<HTMLInputElement>("#invitation-link")?.value).toBe(
+			`${window.location.origin}/accept-invite?token=invite`,
+		)
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+	})
+
+	test("keeps the invitation dialog open while the server creates it", async () => {
+		const pending = Promise.withResolvers<Response>()
+		invitationPending = pending.promise
+		await renderPage()
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+
+		expect(button(t("auth.invitations.create"), dialog()).disabled).toBe(true)
+		await click(button(t("team.cancel"), dialog()))
+		expect(button(t("auth.invitations.create"), dialog()).disabled).toBe(true)
+
+		await act(async () => pending.resolve(json({ token: "invite", expiresAt: "2026-10-25T00:00:00Z" }, 201)))
+		await settle()
+		expect(document.querySelector<HTMLInputElement>("#invitation-link")?.value).toBe(
+			`${window.location.origin}/accept-invite?token=invite`,
+		)
+	})
+
 	test("shows a read-only list with role and admin badges to an operator who can only see users", async () => {
 		myPermissions = ["users:read"]
 		users = [
 			user("owner", { permissions: EVERYTHING, canManage: false, mustChangePassword: null }),
 			user("helper", { roles: [{ id: "support", name: "Support" }], mustChangePassword: null }),
+			user("plain", { mustChangePassword: null }),
 		]
 		await renderPage()
 
 		expect(ListUsers200.safeParse({ users }).success).toBe(true)
 		expect(card("owner").textContent).toContain(t("team.adminBadge"))
 		expect(card("helper").textContent).toContain("Support")
+		expect(host.querySelector("output")).toBeNull()
+		expect(requestCount("/api/roles")).toBe(0)
 		expect(buttonNames(host)).toEqual([])
+	})
+
+	test("offers a retry when the team list fails to load", async () => {
+		usersFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		await renderPage()
+
+		expect(host.querySelector("[role='alert'] p")?.textContent).toBe(t("problems.internal-server-error"))
+		usersFailure = undefined
+		await click(button(t("common.retry")))
+		expect(card("helper").textContent).toContain("helper")
+	})
+
+	test("shows the team skeleton until the member list resolves", async () => {
+		const deferred = Promise.withResolvers<Response>()
+		usersResponse = deferred.promise
+		await renderPage()
+
+		expect(host.textContent).toContain(t("team.loading"))
+		await act(async () => deferred.resolve(json({ users: [user("helper")] })))
+		await settle()
+		expect(card("helper")).not.toBeNull()
+	})
+
+	test("replaces a forbidden team list with an access denial", async () => {
+		usersFailure = problem("permission-denied", 403)
+		await renderPage()
+
+		expect(host.textContent).toContain(t("permissions.accessDeniedTitle"))
+		expect(host.querySelector("[role='alert']")).toBeNull()
+	})
+
+	test("marks a member who must change their password", async () => {
+		users = [user("pending", { mustChangePassword: true })]
+		await renderPage()
+
+		expect(card("pending").textContent).toContain(t("team.pendingChange"))
 	})
 
 	test("shows each user name as a card heading", async () => {
@@ -272,6 +493,15 @@ describe("TeamPage", () => {
 		expect(heading?.textContent).toBe("helper")
 	})
 
+	test("shows the page heading and description", async () => {
+		await renderPage()
+
+		const heading = host.querySelector("h1")
+		expect(heading?.textContent).toBe(t("team.heading"))
+		expect(heading?.title).toBe(t("team.heading"))
+		expect(heading?.nextElementSibling?.textContent).toBe(t("team.subheading"))
+	})
+
 	test("offers user actions only for users whose access the operator holds", async () => {
 		myPermissions = ["users:read", "users:manage"]
 		users = [user("reader"), user("editor", { canManage: false })]
@@ -279,8 +509,288 @@ describe("TeamPage", () => {
 
 		expect(buttonNames(host)).toContain(t("auth.invitations.heading"))
 		expect(buttonNames(card("reader"))).toEqual([t("team.resetPassword"), t("team.delete")])
+		expect(card("reader").textContent).not.toContain(t("team.cannotChange"))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
 		expect(buttonNames(card("editor"))).toEqual([])
 		expect(card("editor").textContent).toContain(t("team.cannotChange"))
+	})
+
+	test("generates identical valid passwords in both reset fields", async () => {
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.resetPassword"), card("helper")))
+		await click(button(t("team.generate"), dialog()))
+
+		const newPassword = dialogInput(t("account.newPassword")).value
+		expect(newPassword.length).toBeGreaterThanOrEqual(PASSWORD_MIN_LENGTH)
+		expect(newPassword.length).toBeLessThanOrEqual(PASSWORD_MAX_LENGTH)
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(newPassword)
+	})
+
+	test("labels the reset dialog and copies the generated password", async () => {
+		const writeText = spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined)
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.resetPassword"), card("helper")))
+
+		expect(dialog().textContent).toContain(t("team.resetDialogTitle", { username: "helper" }))
+		expect(dialog().textContent).toContain(t("team.resetDialogDescription"))
+		expect(dialog().textContent).toContain(t("team.resetWarning"))
+
+		await click(button(t("team.generate"), dialog()))
+		const generated = dialogInput(t("account.newPassword")).value
+		await click(labelledButton(t("team.copy"), dialog()))
+		expect(writeText).toHaveBeenCalledWith(generated)
+	})
+
+	test("clears password errors when a password is generated", async () => {
+		users = [user("helper")]
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword("short", "different")
+		expect(document.querySelector("#reset-new-password-error-helper")).not.toBeNull()
+		expect(document.querySelector("#reset-confirm-password-error-helper")).not.toBeNull()
+
+		await click(button(t("team.generate"), dialog()))
+		expect(document.querySelector("#reset-new-password-error-helper")).toBeNull()
+		expect(document.querySelector("#reset-confirm-password-error-helper")).toBeNull()
+	})
+
+	test("blocks an invalid reset password and closes on cancel", async () => {
+		users = [user("helper")]
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword("short", "different")
+
+		expect(dialogInput(t("account.newPassword")).getAttribute("aria-invalid")).toBe("true")
+		expect(dialogInput(t("account.newPassword")).getAttribute("aria-describedby")).toBe(
+			"reset-new-password-error-helper",
+		)
+		expect(dialogInput(t("account.confirmNewPassword")).getAttribute("aria-invalid")).toBe("true")
+		expect(dialogInput(t("account.confirmNewPassword")).getAttribute("aria-describedby")).toBe(
+			"reset-confirm-password-error-helper",
+		)
+		expect(document.querySelector("#reset-new-password-error-helper")?.textContent).toBe(
+			t("account.newPasswordError", { min: PASSWORD_MIN_LENGTH, max: PASSWORD_MAX_LENGTH }),
+		)
+		expect(document.querySelector("#reset-confirm-password-error-helper")?.textContent).toBe(
+			t("account.passwordMismatchError"),
+		)
+		expect(requests.some(({ method }) => method === "PATCH")).toBe(false)
+
+		await click(button(t("team.cancel"), dialog()))
+		expect(document.querySelector("[role='dialog']")).toBeNull()
+	})
+
+	test("keeps entered passwords and the dialog open when reset is rejected", async () => {
+		resetFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		const password = "correct-horse-battery-staple"
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword(password)
+
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+		expect(dialogInput(t("account.newPassword")).value).toBe(password)
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe(password)
+
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("team.resetPassword"), card("helper")))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+	})
+
+	test("resets only the selected user's password, refreshes users, and clears the form", async () => {
+		users = [user("helper"), user("other")]
+		const password = "replacement-password"
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await openResetDialog()
+		await submitResetPassword(password)
+
+		expect(requests.find(({ method, url }) => method === "PATCH" && url === "/api/users/helper/password")).toEqual({
+			method: "PATCH",
+			url: "/api/users/helper/password",
+			body: { newPassword: password },
+		})
+		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
+		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
+		expect(card("other").textContent).not.toContain(t("team.resetSuccess"))
+
+		await click(button(t("team.resetPassword"), card("helper")))
+		expect(dialogInput(t("account.newPassword")).value).toBe("")
+		expect(dialogInput(t("account.confirmNewPassword")).value).toBe("")
+	})
+
+	test("keeps the reset dialog open and fields intact while the reset is pending", async () => {
+		const pending = Promise.withResolvers<Response>()
+		resetPending = pending.promise
+		users = [user("helper")]
+		const password = "replacement-password"
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword(password)
+
+		expect(button(t("team.resetting"), dialog()).disabled).toBe(true)
+		await click(button(t("team.cancel"), dialog()))
+		expect(dialogInput(t("account.newPassword")).value).toBe(password)
+		await click(button(t("common.close"), dialog()))
+		expect(dialogInput(t("account.newPassword")).value).toBe(password)
+
+		await act(async () => pending.resolve(new Response(null, { status: 204 })))
+		await settle()
+		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
+	})
+
+	test("explains when the generated password cannot be copied", async () => {
+		const writeText = spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("clipboard unavailable"))
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.resetPassword"), card("helper")))
+		await click(button(t("team.generate"), dialog()))
+		await click(labelledButton(t("team.copy"), dialog()))
+
+		expect(dialog().textContent).toContain(t("team.copyFailed"))
+
+		writeText.mockResolvedValue(undefined)
+		await click(labelledButton(t("team.copy"), dialog()))
+		expect(dialog().textContent).not.toContain(t("team.copyFailed"))
+	})
+
+	test("falls back to a generic reason when the server error is not a problem document", async () => {
+		const password = "replacement-password"
+		resetFailure = json({ unexpected: true }, 500)
+		users = [user("helper")]
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword(password)
+		expect(dialog().textContent).toContain(t("auth.errorFallback"))
+		await click(button(t("team.cancel"), dialog()))
+
+		invitationFailure = json({ unexpected: true }, 500)
+		await click(button(t("auth.invitations.heading")))
+		await click(button(t("auth.invitations.create"), dialog()))
+		expect(dialog().textContent).toContain(t("auth.errorFallback"))
+		await click(button(t("team.cancel"), dialog()))
+
+		deleteFailure = json({ unexpected: true }, 500)
+		await click(button(t("team.delete"), card("helper")))
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+		expect(dialog("alertdialog").textContent).toContain(t("auth.errorFallback"))
+		expect(requestCount("/api/users")).toBe(usersBefore)
+	})
+
+	test("clears the previous reset failure while a retry is pending", async () => {
+		const pending = Promise.withResolvers<Response>()
+		resetFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		const password = "replacement-password"
+		await renderPage()
+		await openResetDialog()
+		await submitResetPassword(password)
+		expect(dialog().textContent).toContain(t("problems.internal-server-error"))
+
+		resetFailure = undefined
+		resetPending = pending.promise
+		await click(button(t("team.resetPassword"), dialog()))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+
+		await act(async () => pending.resolve(new Response(null, { status: 204 })))
+		await settle()
+		expect(card("helper").textContent).toContain(t("team.resetSuccess"))
+	})
+
+	test("keeps deletion actionable and shows the server error after a failure", async () => {
+		deleteFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		const failedDialog = dialog("alertdialog")
+		expect(failedDialog.textContent).toContain(t("problems.internal-server-error"))
+		expect(button(t("team.deleteConfirm"), failedDialog).disabled).toBe(false)
+		expect(requestCount("/api/users")).toBe(usersBefore)
+
+		await click(button(t("team.cancel"), failedDialog))
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		await click(button(t("team.delete"), card("helper")))
+		expect(dialog("alertdialog").querySelector("[role='alert']")).toBeNull()
+	})
+
+	test("refreshes and closes when deletion reports the user is already gone", async () => {
+		deleteFailure = problem("user-not-found", 404)
+		users = [user("helper")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		users = []
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
+		expect(host.querySelector("[data-user-id='helper']")).toBeNull()
+	})
+
+	test("deletes the selected member and refreshes the list", async () => {
+		users = [user("helper"), user("other")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.delete"), card("helper")))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+
+		expect(requests.find(({ method }) => method === "DELETE")).toEqual({
+			method: "DELETE",
+			url: "/api/users/helper",
+			body: undefined,
+		})
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
+	})
+
+	test("names the member in the delete confirmation, reports progress, and clears the old failure", async () => {
+		deleteFailure = problem("internal-server-error", 500)
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.delete"), card("helper")))
+		expect(dialog("alertdialog").textContent).toContain(t("team.deleteTitle"))
+		expect(dialog("alertdialog").textContent).toContain(t("team.deletePrompt", { username: "helper" }))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+		expect(dialog("alertdialog").textContent).toContain(t("problems.internal-server-error"))
+
+		const pending = Promise.withResolvers<Response>()
+		deleteFailure = undefined
+		deletePending = pending.promise
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+		expect(dialog("alertdialog").querySelector("[role='alert']")).toBeNull()
+		expect(button(t("team.deleting"), dialog("alertdialog")).disabled).toBe(true)
+		expect(button(t("team.cancel"), dialog("alertdialog")).disabled).toBe(true)
+
+		await act(async () => pending.resolve(new Response(null, { status: 204 })))
+		await settle()
+		expect(document.querySelector("[role='alertdialog']")).toBeNull()
+	})
+
+	test("refreshes only the member list after resetting or deleting a member", async () => {
+		myPermissions = ["users:read", "users:manage", "roles:manage"]
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
+		users = [user("helper"), user("other")]
+		const password = "replacement-password"
+		await renderPage()
+		expect(requestCount("/api/roles")).toBe(1)
+
+		const rolesBeforeReset = requestCount("/api/roles")
+		await openResetDialog()
+		await submitResetPassword(password)
+		expect(requestCount("/api/roles")).toBe(rolesBeforeReset)
+
+		const rolesBeforeDelete = requestCount("/api/roles")
+		await click(button(t("team.delete"), card("other")))
+		await click(button(t("team.deleteConfirm"), dialog("alertdialog")))
+		expect(requestCount("/api/roles")).toBe(rolesBeforeDelete)
 	})
 
 	test("lets a role manager assign only roles within their own access", async () => {
@@ -314,6 +824,23 @@ describe("TeamPage", () => {
 
 		await click(button(t("team.editRoles"), card("me")))
 		expect(dialog().textContent).not.toContain(t("team.lockoutWarning"))
+		await click(checkbox("Managers"))
+
+		expect(dialog().textContent).toContain(t("team.lockoutWarning"))
+	})
+
+	test("warns about the operator's own roles even when another member is listed first", async () => {
+		myPermissions = ["users:read", "roles:manage"]
+		roles = [
+			{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 1 },
+			{ id: "managers", name: "Managers", permissions: ["roles:manage"], memberCount: 1 },
+		]
+		users = [
+			user("helper", { roles: [{ id: "readers", name: "Readers" }] }),
+			user("me", { roles: [{ id: "managers", name: "Managers" }] }),
+		]
+		await renderPage()
+		await click(button(t("team.editRoles"), card("me")))
 		await click(checkbox("Managers"))
 
 		expect(dialog().textContent).toContain(t("team.lockoutWarning"))
@@ -357,9 +884,11 @@ describe("TeamPage", () => {
 		const deferred = Promise.withResolvers<Response>()
 		rolesResponse = deferred.promise
 		await renderPage()
+		expect(host.textContent).toContain(t("roles.loading"))
 		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(true)
 		await act(async () => deferred.resolve(json({ roles: [], manageableRoleIds: [] })))
 		await settle()
+		expect(host.textContent).not.toContain(t("roles.loading"))
 		expect(button(t("team.editRoles"), card("helper")).disabled).toBe(false)
 	})
 
@@ -378,6 +907,37 @@ describe("TeamPage", () => {
 		await click(button(t("team.editRoles"), card("helper")))
 
 		expect(checkbox("Readers").getAttribute("aria-checked")).toBe("true")
+	})
+
+	test("offers a role manager no assignable roles without letting them save", async () => {
+		myPermissions = ["users:read", "roles:manage"]
+		users = [user("helper")]
+		await renderPage()
+		await click(button(t("team.editRoles"), card("helper")))
+
+		expect(dialog().textContent).toContain(t("team.noRoles"))
+		expect(button(t("team.saveRoles"), dialog()).disabled).toBe(true)
+	})
+
+	test("keeps the role dialog open while saving and closes it after success", async () => {
+		const pending = Promise.withResolvers<Response>()
+		assignPending = pending.promise
+		roles = [{ id: "readers", name: "Readers", permissions: ["users:read"], memberCount: 0 }]
+		users = [user("helper")]
+		await renderPage()
+		const usersBefore = requestCount("/api/users")
+		await click(button(t("team.editRoles"), card("helper")))
+		await click(checkbox("Readers"))
+		await click(button(t("team.saveRoles"), dialog()))
+
+		expect(button(t("team.savingRoles"), dialog()).disabled).toBe(true)
+		await click(button(t("team.cancel"), dialog()))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
+
+		await act(async () => pending.resolve(json({ roles: [{ id: "readers", name: "Readers" }] })))
+		await settle()
+		expect(document.querySelector("[role='dialog']")).toBeNull()
+		expect(requestCount("/api/users")).toBeGreaterThan(usersBefore)
 	})
 
 	test("closes and refreshes users and the operator's own access after saving", async () => {
@@ -406,6 +966,9 @@ describe("TeamPage", () => {
 		await click(button(t("team.saveRoles"), dialog()))
 
 		expect(dialog().textContent).toContain(t("problems.permission-exceeds-own"))
+		await click(button(t("team.cancel"), dialog()))
+		await click(button(t("team.editRoles"), card("helper")))
+		expect(dialog().querySelector("[role='alert']")).toBeNull()
 	})
 
 	test("does not warn the admin or an operator editing someone else", async () => {
@@ -418,7 +981,10 @@ describe("TeamPage", () => {
 		await click(button(t("team.cancel"), dialog()))
 
 		myPermissions = ["users:read", "roles:manage"]
-		users = [user("helper", { roles: [{ id: "managers", name: "Managers" }] })]
+		users = [
+			user("me", { roles: [{ id: "managers", name: "Managers" }] }),
+			user("helper", { roles: [{ id: "managers", name: "Managers" }] }),
+		]
 		await act(() => queryClient.refetchQueries())
 		await settle()
 		await click(button(t("team.editRoles"), card("helper")))

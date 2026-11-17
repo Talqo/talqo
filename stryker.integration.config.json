@@ -1,0 +1,30 @@
+{
+	"$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+	"testRunner": "bun",
+	"plugins": ["./node_modules/@fidasek009/stryker-mutator-bun-runner/dist/index.js"],
+	"coverageAnalysis": "perTest",
+	"concurrency": "50%",
+	"timeoutMS": 30000,
+	"incremental": true,
+	"incrementalFile": "reports/mutation/integration.incremental.json",
+	"mutate": [
+		"apps/api/src/**/*.ts",
+		"!**/*.{test,spec}.ts",
+		"!**/*.d.ts",
+		"!**/*.seed.ts",
+		"!**/generated/**",
+		"!apps/api/src/{index,openapi,test-helpers}.ts",
+		"!apps/api/src/db/**",
+		"!apps/api/src/**/*.platform-prompt.ts",
+		"!apps/api/src/**/*-stdout.ts"
+	],
+	"bun": {
+		"testFiles": ["apps/api/src/**/*.integration.test.ts"],
+		"bunArgs": ["--env-file", "apps/api/.env.example", "--preload", "./apps/api/test-database.preload.ts"],
+		"timeout": 60000
+	},
+	"reporters": ["clear-text", "progress", "html", "json"],
+	"jsonReporter": { "fileName": "reports/mutation/integration.json" },
+	"htmlReporter": { "fileName": "reports/mutation/integration.html" },
+	"ignorePatterns": ["reports"]
+}

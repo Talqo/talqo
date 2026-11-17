@@ -19,8 +19,8 @@ type Dependencies<T extends Job> = {
 	fail(job: T, error: unknown): Promise<void>
 }
 
-/* eslint-disable no-await-in-loop -- file and provider work must run strictly one at a time */
 export async function processPendingFiles<T extends Job>(dependencies: Dependencies<T>): Promise<void> {
+	// File and provider work runs strictly one job at a time.
 	for (let job = await dependencies.claim(); job; job = await dependencies.claim()) {
 		try {
 			const texts = await dependencies.convert(job)
@@ -33,4 +33,3 @@ export async function processPendingFiles<T extends Job>(dependencies: Dependenc
 		}
 	}
 }
-/* eslint-enable no-await-in-loop */

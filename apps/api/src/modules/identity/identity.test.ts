@@ -1,4 +1,10 @@
-import { CREDENTIAL_MAX_LENGTH, PASSWORD_MAX_LENGTH } from "@talqo/shared"
+import {
+	CREDENTIAL_MAX_LENGTH,
+	PASSWORD_MAX_LENGTH,
+	PASSWORD_MIN_LENGTH,
+	USERNAME_MAX_LENGTH,
+	USERNAME_MIN_LENGTH,
+} from "@talqo/shared"
 import { describe, expect, it } from "bun:test"
 
 import { changePasswordRequestSchema, loginRequestSchema } from "./identity.contract.ts"
@@ -15,8 +21,14 @@ describe("assertValidUsername", () => {
 		expect(() => assertValidUsername("valid_user-123")).not.toThrow()
 	})
 
+	it("accepts usernames at the documented length limits", () => {
+		expect(() => assertValidUsername("a".repeat(USERNAME_MIN_LENGTH))).not.toThrow()
+		expect(() => assertValidUsername("a".repeat(USERNAME_MAX_LENGTH))).not.toThrow()
+	})
+
 	it("rejects a username shorter than the minimum length", () => {
 		expect(() => assertValidUsername("ab")).toThrow(InvalidUsernameError)
+		expect(() => assertValidUsername("ab")).toThrow("Username must be between 3 and 32 characters")
 	})
 
 	it("rejects a username longer than the maximum length", () => {
@@ -25,6 +37,9 @@ describe("assertValidUsername", () => {
 
 	it("rejects a username with disallowed characters", () => {
 		expect(() => assertValidUsername("invalid user!")).toThrow(InvalidUsernameError)
+		expect(() => assertValidUsername("invalid user!")).toThrow(
+			"Username may only contain letters, numbers, underscores, and hyphens",
+		)
 	})
 })
 
@@ -46,8 +61,14 @@ describe("assertValidPassword", () => {
 		expect(() => assertValidPassword("correct-horse-battery-staple")).not.toThrow()
 	})
 
+	it("accepts passwords at the documented length limits", () => {
+		expect(() => assertValidPassword("p".repeat(PASSWORD_MIN_LENGTH))).not.toThrow()
+		expect(() => assertValidPassword("p".repeat(PASSWORD_MAX_LENGTH))).not.toThrow()
+	})
+
 	it("rejects a password shorter than the minimum length", () => {
 		expect(() => assertValidPassword("short")).toThrow(InvalidPasswordFormatError)
+		expect(() => assertValidPassword("short")).toThrow("Password must be between 8 and 128 characters")
 	})
 
 	it("rejects a password longer than the maximum length", () => {

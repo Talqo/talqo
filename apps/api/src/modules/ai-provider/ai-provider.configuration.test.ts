@@ -91,4 +91,103 @@ describe("validateConfigurationInput", () => {
 			}),
 		).toThrow(/unsupported settings|does not support setting/)
 	})
+
+	it("rejects credentials that are only whitespace", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 0,
+				text: { ...text, credentials: { apiKey: "   " } },
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "text",
+				},
+			}),
+		).toThrow("openai credentials are required: apiKey")
+	})
+
+	it("rejects a base URL that is not HTTP or HTTPS", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 0,
+				text: { ...text, providerId: "mistral", settings: { baseURL: "file:///etc/secrets" } },
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "text",
+				},
+			}),
+		).toThrow("Provider base URL must use HTTP or HTTPS")
+	})
+
+	it("rejects an authentication mode the provider does not offer", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 0,
+				text: { ...text, authMode: "deployment-identity" },
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "text",
+				},
+			}),
+		).toThrow("openai does not support deployment-identity authentication")
+	})
+
+	it("rejects reusing text credentials under different provider settings", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 0,
+				text: { ...text, providerId: "mistral", settings: { baseURL: "https://api.mistral.ai/v1" } },
+				embedding: {
+					providerId: "mistral",
+					modelId: "mistral-embed",
+					authMode: "static",
+					settings: { baseURL: "https://eu.api.mistral.ai/v1" },
+					credentialSource: "text",
+				},
+			}),
+		).toThrow(/reuse text credentials/)
+	})
+
+	it("rejects a deployment-identity embedding source without deployment-identity authentication", () => {
+		expect(() =>
+			validateConfigurationInput({
+				expectedRevision: 0,
+				text,
+				embedding: {
+					providerId: "openai",
+					modelId: "text-embedding-3-small",
+					authMode: "static",
+					settings: {},
+					credentialSource: "deployment-identity",
+				},
+			}),
+		).toThrow("Embedding deployment identity requires deployment-identity authentication")
+	})
+
+	it("accepts a save that keeps already stored static credentials", () => {
+		expect(() =>
+			validateConfigurationInput(
+				{
+					expectedRevision: 1,
+					text: { ...text, credentials: undefined },
+					embedding: {
+						providerId: "openai",
+						modelId: "text-embedding-3-small",
+						authMode: "static",
+						settings: {},
+						credentialSource: "text",
+					},
+				},
+				{ text: { credentials: true }, embedding: { credentials: true } },
+			),
+		).not.toThrow()
+	})
 })

@@ -1,0 +1,46 @@
+{
+	"$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+	"testRunner": "bun",
+	"plugins": ["./node_modules/@fidasek009/stryker-mutator-bun-runner/dist/index.js"],
+	"coverageAnalysis": "perTest",
+	"concurrency": "50%",
+	"timeoutMS": 30000,
+	"incremental": true,
+	"incrementalFile": "reports/mutation/unit.incremental.json",
+	"mutate": [
+		"apps/api/src/**/*.ts",
+		"apps/docs/src/lib/**/*.ts",
+		"packages/sdk/src/**/*.ts",
+		"packages/shared/src/**/*.ts",
+		"!**/*.{test,spec}.{ts,tsx}",
+		"!**/*.seed.ts",
+		"!**/*.d.ts",
+		"!**/generated/**",
+		"!apps/api/src/db/**",
+		"!apps/api/src/{index,openapi,test-helpers}.ts",
+		"!apps/api/src/**/*.platform-prompt.ts",
+		"!apps/api/src/**/*-stdout.ts",
+		"!apps/docs/src/lib/source.ts"
+	],
+	"bun": {
+		"testFiles": [
+			"apps/api/src/**/*.{test,spec}.ts",
+			"apps/docs/src/**/*.{test,spec}.{ts,tsx}",
+			"packages/sdk/src/**/*.{test,spec}.ts",
+			"packages/shared/src/**/*.{test,spec}.ts"
+		],
+		"bunArgs": [
+			"--env-file",
+			"apps/api/.env.example",
+			"--preload",
+			"./apps/api/no-database.preload.ts",
+			"--path-ignore-patterns",
+			"**/*.integration.test.ts"
+		],
+		"timeout": 15000
+	},
+	"reporters": ["clear-text", "progress", "html", "json", "event-recorder"],
+	"htmlReporter": { "fileName": "reports/mutation/unit.html" },
+	"jsonReporter": { "fileName": "reports/mutation/unit.json" },
+	"ignorePatterns": ["reports"]
+}

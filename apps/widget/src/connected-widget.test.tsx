@@ -34,7 +34,7 @@ const noopAction = async () => {}
 function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 	let snapshot = initial
 	const listeners = new Set<() => void>()
-	const calls = { cancel: 0, initialize: 0, newChat: 0, retry: 0, sends: [] as string[] }
+	const calls = { cancel: 0, dispose: 0, initialize: 0, newChat: 0, retry: 0, sends: [] as string[] }
 	let initialize = noopAction
 	let sendMessage: (text: string) => Promise<void> = noopAction
 	let cancelResponse = noopAction
@@ -64,7 +64,9 @@ function fakeClient(initial: ChatSnapshot = READY_SNAPSHOT) {
 		async retryLastMessage() {
 			calls.retry += 1
 		},
-		dispose() {},
+		dispose() {
+			calls.dispose += 1
+		},
 	}
 	return {
 		calls,
@@ -123,8 +125,24 @@ async function draft(text: string) {
 }
 
 async function submit() {
-	await act(async () =>
-		host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+	const event = new Event("submit", { bubbles: true, cancelable: true })
+	await act(async () => host.querySelector("form")?.dispatchEvent(event))
+	return event
+}
+
+function sendButton(): HTMLButtonElement | null {
+	return host.querySelector<HTMLButtonElement>("form button[type='submit']")
+}
+
+function headerNewChat(): HTMLButtonElement | null {
+	return host.querySelector<HTMLButtonElement>("dialog header button[aria-label='New chat']")
+}
+
+function errorPanelNewChat(): HTMLButtonElement | null {
+	return (
+		[...host.querySelectorAll<HTMLButtonElement>("button[aria-label='New chat']")].find(
+			(button) => button.textContent?.length,
+		) ?? null
 	)
 }
 
@@ -147,6 +165,15 @@ async function scrollTo(top: number) {
 	await act(async () => {
 		transcript().scrollTop = top
 		transcript().dispatchEvent(new Event("scroll", { bubbles: true }))
+	})
+}
+
+function retriableFailure() {
+	return fakeClient({
+		...READY_SNAPSHOT,
+		messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
+		error: error("provider-error", { retriable: true }),
+		actions: ["send", "retry", "new-chat"],
 	})
 }
 
@@ -287,6 +314,7 @@ describe("ConnectedEmbeddedWidget", () => {
 			}),
 		)
 		expect(host.querySelectorAll("[data-slot='bubble-content'] output")).toHaveLength(1)
+		expect(host.querySelector("[data-slot='bubble-content'] output")?.textContent).toBe("Agent is responding")
 
 		await act(async () =>
 			store.setSnapshot({
@@ -501,7 +529,6 @@ describe("ConnectedEmbeddedWidget", () => {
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 		for (const [code, text] of cases) {
-			// oxlint-disable-next-line no-await-in-loop -- each published state is asserted before the next replaces it.
 			await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, error: error(code) }))
 			expect(host.textContent).toContain(text)
 		}
@@ -529,17 +556,13 @@ describe("ConnectedEmbeddedWidget", () => {
 	})
 
 	test("offers an explicit retry only for a retriable failed turn", async () => {
-		const store = fakeClient({
-			...READY_SNAPSHOT,
-			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "", "failed")],
-			error: error("provider-error", { retriable: true }),
-			actions: ["send", "retry", "new-chat"],
-		})
+		const store = retriableFailure()
 		await render(<ConnectedEmbeddedWidget client={store.client} />)
 		await openChat()
 
 		const retry = host.querySelector<HTMLButtonElement>("button[aria-label='Retry']")
 		expect(retry).not.toBeNull()
+		expect(retry?.textContent).toBe("Retry")
 		await act(async () => retry?.click())
 		expect(store.calls.retry).toBe(1)
 
@@ -607,6 +630,290 @@ describe("ConnectedEmbeddedWidget", () => {
 		expect(input().disabled).toBe(false)
 		expect(document.activeElement).toBe(input())
 		expect(host.querySelector<HTMLButtonElement>("form button[type='submit']")?.disabled).toBe(true)
+	})
+
+	test("enables sending only for a non-blank draft the SDK accepts", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(input().value).toBe("")
+		expect(sendButton()?.getAttribute("aria-label")).toBe("Send")
+		expect(sendButton()?.disabled).toBe(true)
+
+		await draft("hello")
+		expect(sendButton()?.disabled).toBe(false)
+
+		await draft("   ")
+		expect(sendButton()?.disabled).toBe(true)
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, actions: [] }))
+		await draft("hello")
+		expect(sendButton()?.disabled).toBe(true)
+	})
+
+	test("disables the composer only while the conversation is blocked", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			activity: "blocked",
+			actions: ["new-chat"],
+			error: error("chat-session-unauthorized", { newChatAvailable: true }),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(input().disabled).toBe(true)
+
+		await act(async () => store.setSnapshot(READY_SNAPSHOT))
+		expect(input().disabled).toBe(false)
+	})
+
+	test("shows a disabled stopping control until the cancellation settles", async () => {
+		const store = fakeClient({ ...READY_SNAPSHOT, activity: "stopping", actions: [] })
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const stop = host.querySelector<HTMLButtonElement>("button[aria-label='Stopping…']")
+		expect(stop).not.toBeNull()
+		expect(stop?.disabled).toBe(true)
+		expect(sendButton()).toBeNull()
+		expect(host.querySelector("button[aria-label='Stop generating']")).toBeNull()
+	})
+
+	test("prevents the page from reloading when a message is sent", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		await draft("hello")
+
+		const event = await submit()
+		expect(event.defaultPrevented).toBe(true)
+		expect(store.calls.sends).toEqual(["hello"])
+	})
+
+	test("shows progress copy only for the matching activity", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		expect(host.textContent).not.toContain("Loading chat")
+		expect(host.textContent).not.toContain("Recovering response")
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, activity: "loading", actions: [] }))
+		expect(host.textContent).toContain("Loading chat")
+		expect(host.textContent).not.toContain("Recovering response")
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, activity: "recovering" }))
+		expect(host.textContent).not.toContain("Loading chat")
+		expect(host.textContent).toContain("Recovering response")
+	})
+
+	test("shows the greeting only before the conversation starts", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const greeting = host.querySelector("[data-slot='bubble']")
+		expect(greeting?.textContent).toContain("Hi there!")
+		expect(greeting?.textContent).toContain("Agent")
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, activity: "loading", actions: [] }))
+		expect(host.textContent).not.toContain("Hi there!")
+
+		await act(async () =>
+			store.setSnapshot({ ...READY_SNAPSHOT, messages: [message("u1", "user", "Hello", "completed")] }),
+		)
+		expect(host.textContent).not.toContain("Hi there!")
+	})
+
+	test("indicates tool use only while a tool is active", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(host.textContent).not.toContain("Using a tool")
+
+		await act(async () =>
+			store.setSnapshot({ ...READY_SNAPSHOT, activeTools: [{ serverName: "shop", toolName: "search" }] }),
+		)
+		expect(host.textContent).toContain("Using a tool")
+	})
+
+	test("shows new chat only after a conversation exists and only when the SDK allows it", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(headerNewChat()).toBeNull()
+
+		const history = [message("u1", "user", "Hello", "completed")]
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, messages: history }))
+		expect(headerNewChat()?.disabled).toBe(false)
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, messages: history, actions: ["send"] }))
+		expect(headerNewChat()?.disabled).toBe(true)
+	})
+
+	test("does not announce outcomes from the loaded history", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Hi", "completed")],
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(announcement()?.textContent).toBe("")
+	})
+
+	test("announces each terminal outcome by name and clears it on close", async () => {
+		const store = await renderRespondingWidget()
+		const history = [message("u1", "user", "Hello", "completed")]
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [...history, message("a1", "assistant", "Part", "cancelled")],
+			}),
+		)
+		expect(announcement()?.textContent).toBe("Response cancelled")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [
+					...history,
+					message("a1", "assistant", "Part", "cancelled"),
+					message("a2", "assistant", "", "streaming"),
+				],
+			}),
+		)
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [
+					...history,
+					message("a1", "assistant", "Part", "cancelled"),
+					message("a2", "assistant", "Nope", "failed"),
+				],
+			}),
+		)
+		expect(announcement()?.textContent).toBe("Response failed")
+
+		await openChat() // close
+		await openChat() // reopen
+		expect(announcement()?.textContent).toBe("")
+	})
+
+	test("does not announce a response that finishes while the panel is closed", async () => {
+		const store = await renderRespondingWidget()
+		await openChat() // close
+		expect(announcement()).toBeNull()
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "completed")],
+			}),
+		)
+		await openChat() // reopen
+		expect(announcement()?.textContent).toBe("")
+	})
+
+	test("preserves a draft the visitor edits after sending", async () => {
+		const store = fakeClient()
+		let finish!: () => void
+		store.onSend(
+			() =>
+				new Promise<void>((resolve) => {
+					finish = resolve
+				}),
+		)
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		await draft("first")
+		await submit()
+		await draft("second")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				acceptedMessageId: "u1",
+				messages: [message("u1", "user", "first", "completed")],
+			}),
+		)
+		expect(input().value).toBe("second")
+		await act(async () => finish())
+	})
+
+	test("keeps the draft when the SDK restores an acceptance without a local send", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		await draft("unsent")
+
+		await act(async () => store.setSnapshot({ ...READY_SNAPSHOT, acceptedMessageId: "restored" }))
+		expect(input().value).toBe("unsent")
+	})
+
+	test("offers a labelled new chat from a conversation-full error only when allowed", async () => {
+		const full = [message("u1", "user", "Hello", "completed")]
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: full,
+			error: error("chat-conversation-too-long"),
+		})
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(errorPanelNewChat()).toBeNull()
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				messages: full,
+				error: error("chat-conversation-too-long", { newChatAvailable: true }),
+			}),
+		)
+		expect(errorPanelNewChat()?.textContent).toBe("New chat")
+	})
+
+	test("falls back to the default title when the SDK sends no configuration", async () => {
+		const store = fakeClient({ ...READY_SNAPSHOT, configuration: undefined })
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(host.querySelector("h2")?.textContent).toBe("AI Chat")
+	})
+
+	test("retranslates when the SDK configuration changes language", async () => {
+		const store = fakeClient()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		expect(host.textContent).toContain("Hi there!")
+
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				configuration: { title: "SDK support", appearance: { language: "cs" }, isAvailable: true },
+			}),
+		)
+		await act(async () => {})
+
+		expect(host.querySelector<HTMLElement>(".talqo-widget")?.getAttribute("lang")).toBe("cs")
+		expect(host.textContent).toContain("Dobrý den!")
+	})
+
+	test("warns on initialization failure and disposes the client when it unmounts", async () => {
+		using warning = spyOn(console, "warn").mockImplementation(() => {})
+		const store = fakeClient()
+		store.onInitialize(async () => {
+			throw new Error("offline")
+		})
+
+		const localHost = document.createElement("div")
+		document.body.append(localHost)
+		const localRoot = createRoot(localHost)
+		await act(async () => localRoot.render(<ConnectedEmbeddedWidget client={store.client} />))
+		await act(async () => {})
+
+		expect(warning).toHaveBeenCalledWith("TalqoWidget: initialization failed", expect.any(Error))
+		await act(async () => localRoot.unmount())
+		expect(store.calls.dispose).toBe(1)
+		localHost.remove()
 	})
 
 	test("renders outcome labels for failed, blocked, and interrupted turns", async () => {
@@ -772,6 +1079,65 @@ describe("transcript autoscroll", () => {
 		)
 
 		expect(transcript().scrollTop).toBe(1400)
+	})
+
+	test("stays pinned exactly at the sticky threshold", async () => {
+		const store = await renderStreamingWidget()
+		// 1000 - 652 - 300 = 48, the last pixel row that still counts as the bottom.
+		await scrollTo(652)
+
+		await growTranscript(store)
+
+		expect(transcript().scrollTop).toBe(1200)
+	})
+
+	test("retrying re-pins a scrolled-up visitor so the new response is visible", async () => {
+		const store = retriableFailure()
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+		mockScrollMetrics(transcript(), { scrollHeight: 1000, clientHeight: 300 })
+		await scrollTo(0)
+
+		await act(async () => host.querySelector<HTMLButtonElement>("button[aria-label='Retry']")?.click())
+		mockScrollMetrics(transcript(), { scrollHeight: 1400, clientHeight: 300 })
+		await act(async () =>
+			store.setSnapshot({
+				...READY_SNAPSHOT,
+				activity: "responding",
+				actions: ["stop", "new-chat"],
+				messages: [message("u1", "user", "Hello", "completed"), message("a1", "assistant", "Part", "streaming")],
+			}),
+		)
+
+		expect(transcript().scrollTop).toBe(1400)
+	})
+
+	test("opening the panel pins the newest message", async () => {
+		const store = fakeClient({
+			...READY_SNAPSHOT,
+			messages: Array.from({ length: 12 }, (_, index) =>
+				message(`m${index}`, index % 2 === 0 ? "user" : "assistant", `Message ${index}`, "completed"),
+			),
+		})
+		const scrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight")
+		const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight")
+		Object.defineProperty(HTMLElement.prototype, "scrollHeight", { configurable: true, get: () => 1000 })
+		Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 300 })
+		try {
+			await render(<ConnectedEmbeddedWidget client={store.client} />)
+			await openChat()
+			await scrollTo(0)
+
+			await openChat() // close
+			await openChat() // reopen
+
+			expect(transcript().scrollTop).toBe(1000)
+		} finally {
+			if (scrollHeight) Object.defineProperty(HTMLElement.prototype, "scrollHeight", scrollHeight)
+			else Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight")
+			if (clientHeight) Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeight)
+			else Reflect.deleteProperty(HTMLElement.prototype, "clientHeight")
+		}
 	})
 })
 

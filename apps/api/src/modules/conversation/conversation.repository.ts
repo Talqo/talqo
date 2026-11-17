@@ -81,8 +81,8 @@ async function acquireAcceptanceLocks(
 	identityKey: string,
 	networkKey: string,
 ): Promise<void> {
+	// The numeric prefixes lock identity before network so concurrent requests share one order.
 	for (const key of [`1:${identityKey}`, `2:${networkKey}`]) {
-		// oxlint-disable-next-line no-await-in-loop -- fixed identity-before-network order prevents deadlocks.
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`)
 	}
 }

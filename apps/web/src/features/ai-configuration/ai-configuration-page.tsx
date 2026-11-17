@@ -48,7 +48,10 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from "react"
 import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-type RoleValue = RoleConfigurationInput & { credentials: Record<string, string> }
+type RoleValue = RoleConfigurationInput & {
+	credentials: Record<string, string>
+	credentialSource?: AiConfigurationFormValues["embedding"]["credentialSource"]
+}
 type MissingField = { field: string; kind: "credential" | "setting"; role: "text" | "embedding" }
 
 function settingsKey(settings: Record<string, string>): string {
@@ -263,17 +266,19 @@ function ConnectionFields({
 			onChange({ ...draft, settings: { ...draft.settings }, credentials: { ...draft.credentials } })
 			return
 		}
-		if (stored && stored.providerId === providerId) {
-			onChange({
-				providerId,
-				modelId: stored.modelId,
-				authMode: stored.authMode,
-				settings: { ...stored.settings },
-				credentials: {},
-			})
-			return
-		}
-		onChange({ providerId, modelId: "", authMode: next.authModes[0] ?? "static", settings: {}, credentials: {} })
+		const restored = stored && stored.providerId === providerId ? stored : undefined
+		const authMode = restored?.authMode ?? next.authModes[0] ?? "static"
+		onChange({
+			...value,
+			providerId,
+			modelId: restored?.modelId ?? "",
+			authMode,
+			settings: restored ? { ...restored.settings } : {},
+			credentials: {},
+			...(role === "embedding"
+				? { credentialSource: authMode === "deployment-identity" ? "deployment-identity" : "separate" }
+				: {}),
+		})
 	}
 
 	return (
@@ -303,7 +308,7 @@ function ConnectionFields({
 						disabled={disabled}
 					>
 						<SelectTrigger id={`${role}-authentication`} className="w-full">
-							<SelectValue />
+							<SelectValue>{(mode: AiProviderAuthMode) => authModeLabel(mode, t)}</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							{provider.authModes.map((mode) => (
@@ -618,7 +623,7 @@ export function AiConfigurationPage() {
 			})
 			return
 		}
-		const fallback = embeddingProviders.find((provider) => provider.id !== next.providerId) ?? embeddingProviders[0]
+		const fallback = embeddingProviders[0]
 		if (!fallback) return
 		setValue("embedding", {
 			providerId: fallback.id,
@@ -726,11 +731,6 @@ export function AiConfigurationPage() {
 													})
 													return
 												}
-												field.onChange({
-													...field.value,
-													credentialSource:
-														field.value.authMode === "deployment-identity" ? "deployment-identity" : "separate",
-												})
 											}}
 										>
 											<TabsList aria-label={t("aiConfiguration.embeddingSourceLabel")}>

@@ -19,9 +19,9 @@ export function createGenerationPoller() {
 		const renew = performance.now() - lastHeartbeat >= HEARTBEAT_MS
 		const owned = [...controllers].map(([id, { leaseToken }]) => ({ id, leaseToken }))
 		try {
+			// One batch at a time keeps each poll query bounded.
 			for (let offset = 0; offset < owned.length; offset += POLL_BATCH_SIZE) {
 				const batch = owned.slice(offset, offset + POLL_BATCH_SIZE)
-				// oxlint-disable-next-line no-await-in-loop -- sequential batches bound database work per query.
 				const active = await repository.pollRunningAttempts(batch, renew)
 				const status = new Map(active.map((entry) => [entry.id, entry.cancelled]))
 				for (const { id, leaseToken } of batch) {

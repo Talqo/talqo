@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
 
 import { apiOrigin, appearanceFromDataset, mergeAppearance } from "./embed-config"
 
@@ -83,7 +83,9 @@ function script(attributes: Record<string, string>): HTMLScriptElement {
 
 describe("apiOrigin", () => {
 	test("defaults to the origin the widget script itself came from", () => {
+		using warn = spyOn(console, "warn").mockImplementation(() => {})
 		expect(apiOrigin(script({ src: "https://cdn.example.com/widget.js" }))).toBe("https://cdn.example.com")
+		expect(warn).not.toHaveBeenCalled()
 	})
 
 	test("prefers an explicit data-talqo-api for split deployments", () => {
@@ -93,9 +95,13 @@ describe("apiOrigin", () => {
 	})
 
 	test("falls back to the script origin when the override is unparseable", () => {
+		using warn = spyOn(console, "warn").mockImplementation(() => {})
 		const element = script({ src: "https://cdn.example.com/widget.js", "data-talqo-api": "nonsense" })
 
 		expect(apiOrigin(element)).toBe("https://cdn.example.com")
+		expect(warn).toHaveBeenCalledWith(
+			"TalqoWidget: data-talqo-api is not a valid URL; falling back to the script origin",
+		)
 	})
 
 	test("is undefined without a script, so no fetch is attempted", () => {

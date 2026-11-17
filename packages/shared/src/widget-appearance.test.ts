@@ -24,6 +24,8 @@ describe("isHexColor", () => {
 		expect(isHexColor("1a7f4b")).toBe(false)
 		expect(isHexColor(undefined)).toBe(false)
 		expect(isHexColor(0x1a7f4b)).toBe(false)
+		// RegExp#test coerces its argument, so the string check must be explicit.
+		expect(isHexColor(["#1a7f4b"])).toBe(false)
 	})
 })
 

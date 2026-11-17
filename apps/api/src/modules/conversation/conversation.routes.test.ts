@@ -19,7 +19,7 @@ function parseEvents(body: string) {
 }
 
 // "late-error" holds the stream open until `release`, like a generation still running after the 200.
-function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" = "none") {
+function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-accept" | "successful-tool" = "none") {
 	const calls: unknown[] = []
 	const gate = Promise.withResolvers<void>()
 	const service = {
@@ -39,6 +39,11 @@ function routes(failure: "disabled" | "embed" | "late-error" | "none" | "pre-acc
 				assistantMessage: { id: "assistant", createdAt: "2026-09-11T00:00:00.001Z" },
 			}
 			emit(accepted)
+			if (failure === "successful-tool") {
+				emit({ version: 1, type: "tool-end", serverName: "shop", toolName: "lookup", outcome: "completed" })
+				emit({ version: 1, type: "terminal", outcome: "completed" })
+				return { ...accepted, duplicate: false, done: Promise.resolve() }
+			}
 			if (failure === "late-error") {
 				const done = (async () => {
 					await gate.promise
@@ -125,6 +130,18 @@ describe("public conversation routes", () => {
 		expect(JSON.stringify(logged)).not.toContain('"hi"')
 	})
 
+	it("counts only failed tool calls", async () => {
+		const { app, logged } = routes("successful-tool")
+		const response = await app.request("/chat/embed/messages", {
+			method: "POST",
+			headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
+		})
+		await response.text()
+
+		expect(logged[0]).not.toHaveProperty("chat.tool_failures")
+	})
+
 	it("logs fields from events emitted after the response starts streaming", async () => {
 		const { app, logged, release } = routes("late-error")
 		const response = await app.request("/chat/embed/messages", {
@@ -188,6 +205,24 @@ describe("public conversation routes", () => {
 			body: JSON.stringify({ requestId: REQUEST_ID, text: "hi" }),
 		})
 		expect(response.status).toBe(400)
+	})
+
+	it("accepts the documented input limit and rejects one code point more", async () => {
+		const { app } = routes()
+		const send = (text: string) =>
+			app.request("/chat/embed/messages", {
+				method: "POST",
+				headers: { Authorization: `Bearer ${CREDENTIAL}`, "Content-Type": "application/json" },
+				body: JSON.stringify({ requestId: REQUEST_ID, text }),
+			})
+
+		const accepted = await send("x".repeat(400_000))
+		expect(accepted.status).toBe(200)
+		await accepted.text()
+
+		const rejected = await send("x".repeat(400_001))
+		expect(rejected.status).toBe(400)
+		expect(await rejected.json()).toMatchObject({ code: "invalid-request" })
 	})
 
 	it("rejects non-v4 request IDs before calling the service", async () => {

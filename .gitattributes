@@ -1,3 +1,9 @@
+# Test suites
+*.test.ts linguist-generated
+*.test.tsx linguist-generated
+*.spec.ts linguist-generated
+*.spec.tsx linguist-generated
+
 # Generated artifacts
 /apps/api/openapi.json linguist-generated
 /apps/api/drizzle/** linguist-generated

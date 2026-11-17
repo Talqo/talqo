@@ -288,7 +288,7 @@ export async function searchKnowledge(agentId: string, text: string, signal?: Ab
 }
 
 async function recoverUploads(): Promise<void> {
-	/* eslint-disable no-await-in-loop -- scan local directories without flooding the database */
+	// Enqueue one agent at a time to avoid flooding the database.
 	for (const agentId of await listAgentDirectories()) {
 		try {
 			await Promise.all((await list(agentId)).map((file) => repository.enqueue(agentId, file.name)))
@@ -296,7 +296,6 @@ async function recoverUploads(): Promise<void> {
 			if (!isForeignKeyViolation(error)) throw error
 		}
 	}
-	/* eslint-enable no-await-in-loop */
 }
 
 export async function reconcileDanglingRows(): Promise<void> {
@@ -344,7 +343,6 @@ export async function runIngestion(): Promise<void> {
 		await repository.recover()
 		await reconcileDanglingRows()
 		await recoverUploads()
-		/* eslint-disable no-await-in-loop -- each batch finishes before the next poll */
 		while (true) {
 			await connection`SELECT 1`
 			try {
@@ -395,7 +393,6 @@ export async function runIngestion(): Promise<void> {
 			}
 			await Bun.sleep(WORKER_INTERVAL_MS)
 		}
-		/* eslint-enable no-await-in-loop */
 	} finally {
 		try {
 			if (locked) await connection`SELECT pg_advisory_unlock(${WORKER_LOCK_KEY.toString()}::bigint)`

@@ -37,10 +37,12 @@ describe("wide event log", () => {
 		const { lines, stream } = destination()
 		const log = createWideEventLog(stream)
 		log.write(EVENT)
+		log.write({ ...EVENT, "http.response.status_code": 400 })
 		log.write({ ...EVENT, "http.response.status_code": 404 })
+		log.write({ ...EVENT, "http.response.status_code": 500 })
 		log.write({ ...EVENT, "http.response.status_code": 503 })
 
-		expect(lines.map((line) => line["level"])).toEqual(["info", "warn", "error"])
+		expect(lines.map((line) => line["level"])).toEqual(["info", "warn", "warn", "error", "error"])
 		expect(lines[0]).toMatchObject({ ...EVENT, event: "http.request", "service.name": "talqo-api" })
 		expect(String(lines[0]?.["time"])).toMatch(/^\d{4}-\d{2}-\d{2}T/)
 	})
@@ -56,5 +58,16 @@ describe("wide event log", () => {
 		log.write(EVENT)
 
 		expect(lines.map((line) => line["log.dropped"])).toEqual([2, undefined])
+	})
+
+	it("flushes synchronously when the destination supports it", () => {
+		const { stream } = destination()
+		let flushes = 0
+		const log = createWideEventLog(Object.assign(stream, { flushSync: () => (flushes += 1) }))
+
+		log.flush()
+
+		expect(flushes).toBe(1)
+		expect(() => createWideEventLog(destination().stream).flush()).not.toThrow()
 	})
 })

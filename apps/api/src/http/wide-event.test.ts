@@ -49,6 +49,8 @@ describe("wide events", () => {
 			"agent.id": AGENT_ID,
 			"user.id": "operator",
 		})
+		expect(logged[0]?.duration_ms).toBeGreaterThanOrEqual(0)
+		expect(logged[0]?.duration_ms).toBeLessThan(1_000)
 		expect(Object.keys(logged[0] ?? {}).toSorted()).toEqual([
 			"agent.id",
 			"duration_ms",
@@ -156,5 +158,10 @@ describe("wide events", () => {
 
 		expect(response.status).toBe(200)
 		expect(await response.json()).toEqual({ ok: true })
+	})
+
+	it("ignores annotation and deferral outside a wide-event request", async () => {
+		expect(() => annotate({} as Parameters<typeof annotate>[0], { "user.id": "operator" })).not.toThrow()
+		expect(() => deferWideEvent({} as Parameters<typeof deferWideEvent>[0], Promise.resolve())).not.toThrow()
 	})
 })

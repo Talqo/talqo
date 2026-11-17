@@ -224,8 +224,8 @@ export function createConversationService(dependencies: Dependencies) {
 		recovering = (async () => {
 			await repository.pruneDailyCounters()
 			const pending = await repository.listPendingUsageFinalizations(USAGE_FINALIZATION_BATCH)
+			// Finalize one bounded group at a time to limit database load.
 			for (let offset = 0; offset < pending.length; offset += USAGE_FINALIZATION_CONCURRENCY) {
-				// oxlint-disable-next-line no-await-in-loop -- bounded recovery must finish each group before starting another.
 				await Promise.all(pending.slice(offset, offset + USAGE_FINALIZATION_CONCURRENCY).map(recordPendingUsage))
 			}
 			lastRecovery = performance.now()
@@ -286,11 +286,11 @@ export function createConversationService(dependencies: Dependencies) {
 		}
 		async function queueOutput(text: string): Promise<void> {
 			if (!text || outputFailed) return
+			// Provider text order must survive batching.
 			for (let offset = 0; offset < text.length;) {
 				const length = Math.min(OUTPUT_BATCH_SIZE - bufferedOutput.length, text.length - offset)
 				bufferedOutput += text.slice(offset, offset + length)
 				offset += length
-				// oxlint-disable-next-line no-await-in-loop -- writes must preserve provider text order.
 				if (bufferedOutput.length >= OUTPUT_BATCH_SIZE) await flushOutput()
 				if (outputFailed) return
 			}

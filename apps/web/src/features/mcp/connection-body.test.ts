@@ -2,7 +2,14 @@ import type { McpServer } from "@/api/generated/models/mcpServer.zod"
 
 import { describe, expect, test } from "bun:test"
 
-import { type ConnectionDraft, EMPTY_DRAFT, toCreateBody, toEditBody, toggledBody } from "./connection-body"
+import {
+	type ConnectionDraft,
+	connectionSummary,
+	EMPTY_DRAFT,
+	toCreateBody,
+	toEditBody,
+	toggledBody,
+} from "./connection-body"
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
 	return {
@@ -29,10 +36,14 @@ function draft(patch: Partial<ConnectionDraft> = {}): ConnectionDraft {
 }
 
 describe("toCreateBody", () => {
-	test("refuses an incomplete form instead of sending half of it", () => {
+	test("refuses an incomplete or whitespace-only form instead of sending half of it", () => {
 		expect(toCreateBody(EMPTY_DRAFT)).toEqual({ ok: false, reason: "nameRequired" })
-		expect(toCreateBody(draft())).toEqual({ ok: false, reason: "addressRequired" })
-		expect(toCreateBody(draft({ transport: "stdio" }))).toEqual({ ok: false, reason: "commandRequired" })
+		expect(toCreateBody(draft({ name: " \t " }))).toEqual({ ok: false, reason: "nameRequired" })
+		expect(toCreateBody(draft({ url: " \t " }))).toEqual({ ok: false, reason: "addressRequired" })
+		expect(toCreateBody(draft({ transport: "stdio", command: " \n " }))).toEqual({
+			ok: false,
+			reason: "commandRequired",
+		})
 		expect(
 			toCreateBody(
 				draft({
@@ -55,11 +66,33 @@ describe("toCreateBody", () => {
 		})
 	})
 
-	test("refuses a name longer than the server accepts", () => {
-		expect(toCreateBody(draft({ name: `${"a".repeat(80)}x`, url: "https://example.test/mcp" }))).toEqual({
+	test("trims padded fields and accepts a name at the 80-character limit", () => {
+		const name = "a".repeat(80)
+		expect(toCreateBody(draft({ name: ` ${name} `, url: " https://example.test/mcp " }))).toEqual({
+			ok: true,
+			body: {
+				name,
+				server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
+			},
+		})
+		expect(toCreateBody(draft({ name: `${name}x`, url: "https://example.test/mcp" }))).toEqual({
 			ok: false,
 			reason: "nameTooLong",
 		})
+	})
+})
+
+describe("connectionSummary", () => {
+	test("uses the configured URL for HTTP connections", () => {
+		expect(connectionSummary(server())).toBe("https://example.test/mcp")
+	})
+
+	test("shows the stdio command followed by its arguments", () => {
+		expect(
+			connectionSummary(
+				server({ transport: "stdio", url: null, authMode: null, command: "bunx", args: ["-y", "@scope/server"] }),
+			),
+		).toBe("bunx -y @scope/server")
 	})
 })
 
@@ -103,8 +136,8 @@ function edit(
 }
 
 describe("toEditBody", () => {
-	test("keeps the revision without touching tools", () => {
-		const body = edit()
+	test("trims the name and keeps the revision without touching tools", () => {
+		const body = edit({ name: " Stock " })
 
 		expect(body).toMatchObject({ ok: true, body: { expectedRevision: 7, name: "Stock" } })
 		// An explicit list replaces the enabled flags, so the dialog sends none and the stored ones survive.
@@ -113,7 +146,7 @@ describe("toEditBody", () => {
 
 	test("leaves a stored secret alone when the operator leaves the value blank", () => {
 		const body = edit(
-			{ authMode: "headers", headers: [{ id: "h1", name: "X-API-Key", value: "" }] },
+			{ authMode: "headers", headers: [{ id: "h1", name: " X-API-Key ", value: "" }] },
 			{ headers: [{ name: "X-API-Key" }] },
 		)
 
@@ -150,9 +183,31 @@ describe("toEditBody", () => {
 	})
 
 	test("refuses a value with no name instead of silently dropping it", () => {
-		expect(edit({ authMode: "headers", headers: [{ id: "h1", name: "", value: "v" }] })).toEqual({
+		expect(edit({ authMode: "headers", headers: [{ id: "h1", name: " ", value: "v" }] })).toEqual({
 			ok: false,
 			reason: "secretRequired",
+		})
+	})
+
+	test("switches off header authentication without validating or sending hidden rows", () => {
+		expect(
+			edit(
+				{
+					authMode: "none",
+					headers: [
+						{ id: "h1", name: "X-API-Key", value: "secret" },
+						{ id: "h2", name: "", value: "orphan" },
+					],
+				},
+				{ headers: [{ name: "X-API-Key" }] },
+			),
+		).toEqual({
+			ok: true,
+			body: {
+				name: "Stock",
+				expectedRevision: 7,
+				server: { transport: "http", url: "https://example.test/mcp", authMode: "none" },
+			},
 		})
 	})
 })
@@ -208,7 +263,7 @@ describe("env variables", () => {
 		expect((body as { body: { server: object } }).body.server).not.toHaveProperty("deleteEnv")
 	})
 
-	test("ignores an untouched empty row instead of blocking the save", () => {
+	test("builds an exact stdio create body and ignores an untouched empty row", () => {
 		const body = toCreateBody(
 			draft({
 				transport: "stdio",
@@ -220,23 +275,29 @@ describe("env variables", () => {
 			}),
 		)
 
-		expect(body).toMatchObject({ ok: true, body: { server: { env: { API_KEY: "one" } } } })
+		expect(body).toEqual({
+			ok: true,
+			body: {
+				name: "Stock",
+				server: { transport: "stdio", command: "bunx", args: [], env: { API_KEY: "one" } },
+			},
+		})
 	})
 
 	test("refuses a half-filled variable instead of silently dropping it", () => {
 		expect(
-			toCreateBody(draft({ transport: "stdio", command: "bunx", env: [{ id: "e0", name: "", value: "orphan" }] })),
+			toCreateBody(draft({ transport: "stdio", command: "bunx", env: [{ id: "e0", name: " ", value: "orphan" }] })),
 		).toEqual({ ok: false, reason: "secretRequired" })
 		expect(
 			toCreateBody(draft({ transport: "stdio", command: "bunx", env: [{ id: "e1", name: "API_KEY", value: "" }] })),
 		).toEqual({ ok: false, reason: "secretRequired" })
 	})
 
-	test("trims arguments and collapses blanks and repeats", () => {
+	test("trims the command and arguments and collapses blanks and repeats", () => {
 		const body = toCreateBody(
 			draft({
 				transport: "stdio",
-				command: "bunx",
+				command: " bunx ",
 				args: [
 					{ id: "a1", value: "-y" },
 					{ id: "a2", value: "" },
@@ -246,6 +307,6 @@ describe("env variables", () => {
 			}),
 		)
 
-		expect(body).toMatchObject({ ok: true, body: { server: { args: ["-y", "@scope/server"] } } })
+		expect(body).toMatchObject({ ok: true, body: { server: { command: "bunx", args: ["-y", "@scope/server"] } } })
 	})
 })

@@ -1,9 +1,15 @@
 import { describe, expect, it } from "bun:test"
 
-import { parseEnv } from "./env.ts"
+import { env as runtimeEnv, parseEnv } from "./env.ts"
 
 const APP_SECRET = Buffer.alloc(32, 7).toString("base64url")
 const DOCLING = "http://docling:5001"
+const BASE = {
+	APP_SECRET,
+	DATABASE_URL: "postgres://talqo:talqo@127.0.0.1:5432/talqo",
+	TALQO_DOCLING_URL: DOCLING,
+	NODE_ENV: "production",
+}
 
 describe("parseEnv", () => {
 	it("allows an operating-system-assigned API port and rejects out-of-range ports", () => {
@@ -119,7 +125,7 @@ describe("parseEnv", () => {
 		expect(() => parseEnv({ ...base, TALQO_CHAT_DAILY_MESSAGE_LIMIT: "0" })).toThrow()
 		expect(() => parseEnv({ ...base, TALQO_CHAT_GENERATION_TIMEOUT_SECONDS: "301" })).toThrow()
 		expect(() => parseEnv({ ...base, TALQO_RATE_LIMIT_IPV6_PREFIX_LENGTH: "129" })).toThrow()
-		expect(() => parseEnv({ ...base, TALQO_TRUSTED_PROXY_CIDRS: "not-a-cidr" })).toThrow()
+		expect(() => parseEnv({ ...base, TALQO_TRUSTED_PROXY_CIDRS: "not-a-cidr" })).toThrow(/valid CIDRs/)
 	})
 
 	it("rejects an invalid NODE_ENV", () => {
@@ -168,7 +174,14 @@ describe("parseEnv", () => {
 				TALQO_DOCLING_URL: DOCLING,
 				NODE_ENV: "production",
 			}),
-		).toThrow(/APP_SECRET/)
+		).toThrow(/APP_SECRET must not be zero-filled in production[\s\S]*at APP_SECRET/)
+	})
+
+	it("accepts an APP_SECRET that merely contains a zero byte in production", () => {
+		const secret = Buffer.alloc(32, 7)
+		secret[10] = 0
+
+		expect(parseEnv({ ...BASE, APP_SECRET: secret.toString("base64url") }).NODE_ENV).toBe("production")
 	})
 
 	it("requires the deployment-wired Docling endpoint", () => {
@@ -193,5 +206,15 @@ describe("parseEnv", () => {
 
 	it("rejects an invalid DATABASE_URL", () => {
 		expect(() => parseEnv({ DATABASE_URL: "not-a-url" })).toThrow(/DATABASE_URL/)
+	})
+})
+
+describe("env accessors", () => {
+	it("exposes the validated process configuration through every getter", () => {
+		const loaded = parseEnv(process.env)
+
+		for (const key of Object.keys(loaded)) {
+			expect(runtimeEnv[key as keyof typeof loaded]).toEqual(loaded[key as keyof typeof loaded])
+		}
 	})
 })

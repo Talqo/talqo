@@ -1,14 +1,19 @@
-import { beforeEach, describe, expect, spyOn, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
 import { readFileSync } from "node:fs"
 
 await import("./test-setup")
 
+// The bundle mounts a React root with document-level listeners; leave the next
+// test file a clean document.
+function detach(): void {
+	;(window as { TalqoWidget?: { unmount: () => void } }).TalqoWidget?.unmount()
+	document.querySelector("#talqo-widget")?.remove()
+	document.querySelectorAll("style").forEach((style) => style.remove())
+}
+
 describe("built embed bundle", () => {
-	beforeEach(() => {
-		;(window as { TalqoWidget?: { unmount: () => void } }).TalqoWidget?.unmount()
-		document.querySelector("#talqo-widget")?.remove()
-		document.querySelectorAll("style").forEach((style) => style.remove())
-	})
+	beforeEach(detach)
+	afterEach(detach)
 	test("boots and auto-mounts", () => {
 		const code = readFileSync(new URL("../dist/widget.js", import.meta.url), "utf8")
 

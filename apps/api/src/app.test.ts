@@ -6,6 +6,8 @@ import { describe, expect, it, spyOn } from "bun:test"
 
 import { app, handleError } from "./app.ts"
 import { access, isAccessPolicy, requireAccessPolicy } from "./http/access.ts"
+import { ApiError, PROBLEM_CODES } from "./http/problem.ts"
+import { HTTP_STATUS } from "./http/status.ts"
 
 const respond = () =>
 	({
@@ -43,6 +45,43 @@ describe("api", () => {
 		expect(response.status).toBe(204)
 	})
 
+	it("rejects an invalid request body with problem details before the handler runs", async () => {
+		const response = await app.request("/api/auth/login", {
+			headers: { "Content-Type": "application/json" },
+			method: "POST",
+			body: JSON.stringify({}),
+		})
+
+		expect(response.status).toBe(400)
+		expect(await response.json()).toEqual({
+			code: "invalid-request",
+			type: "https://docs.talqo.chat/problems#invalid-request",
+		})
+	})
+
+	it("forwards declared error headers with the problem response", async () => {
+		const pending: Record<string, string> = {}
+		const context = {
+			header: (name: string, value: string) => {
+				pending[name] = value
+			},
+			json: (data: unknown, status: number, headers?: Record<string, string>) =>
+				new Response(JSON.stringify(data), { headers: { ...pending, ...headers }, status }),
+		} as unknown as Context
+
+		const response = await handleError(
+			new ApiError(PROBLEM_CODES.AUTH_RATE_LIMITED, HTTP_STATUS.TOO_MANY_REQUESTS, undefined, { "Retry-After": "1" }),
+			context,
+		)
+
+		expect(response.status).toBe(429)
+		expect(response.headers.get("Retry-After")).toBe("1")
+		expect(await response.json()).toEqual({
+			code: "auth-rate-limited",
+			type: "https://docs.talqo.chat/problems#auth-rate-limited",
+		})
+	})
+
 	it("logs unexpected errors and keeps the response generic", async () => {
 		using _ = spyOn(console, "error").mockImplementation(() => {})
 
@@ -56,8 +95,9 @@ describe("api", () => {
 				return response
 			},
 		}
+		const error = new Error("boom")
 
-		await handleError(new Error("boom"), context as unknown as Context)
+		await handleError(error, context as unknown as Context)
 
 		expect(response?.status).toBe(500)
 		expect(response?.headers.get("Content-Type")).toBe("application/problem+json")
@@ -65,7 +105,7 @@ describe("api", () => {
 			code: "internal-server-error",
 			type: "https://docs.talqo.chat/problems#internal-server-error",
 		})
-		expect(console.error).toHaveBeenCalled()
+		expect(console.error).toHaveBeenCalledWith(error)
 	})
 
 	it("redacts provider call errors in logs", async () => {
@@ -90,6 +130,11 @@ describe("api", () => {
 
 		expect(response?.status).toBe(500)
 		expect(logged.mock.calls[0]?.[0]).toBe("provider.call.failed")
+		expect(logged.mock.calls[0]?.[1]).toMatchObject({
+			statusCode: 500,
+			url: "https://provider.invalid/stream",
+			isRetryable: true,
+		})
 		expect(JSON.stringify(logged.mock.calls)).not.toContain("must-not-leak")
 	})
 
@@ -108,6 +153,7 @@ describe("api", () => {
 		})
 
 		for (const { status, body, forwarded, code } of [
+			{ status: 400, body: { error: "Bad request" }, forwarded: ["X-Reason", "invalid"], code: "request-failed" },
 			{ status: 402, body: { error: "Payment required" }, forwarded: ["Retry-After", "30"], code: "request-failed" },
 			{
 				status: 403,
@@ -115,6 +161,7 @@ describe("api", () => {
 				forwarded: ["Set-Cookie", "session=; Max-Age=0"],
 				code: "permission-denied",
 			},
+			{ status: 599, body: { error: "Gateway gone" }, forwarded: ["Retry-After", "5"], code: "request-failed" },
 		] as const) {
 			it(`normalizes a carried ${status} response without logging, forwarding ${forwarded[0]}`, async () => {
 				using _ = spyOn(console, "error").mockImplementation(() => {})
@@ -168,6 +215,21 @@ describe("api", () => {
 				type: "https://docs.talqo.chat/problems#internal-server-error",
 			})
 			expect(console.error).toHaveBeenCalled()
+		})
+
+		it("ignores a carried error whose getResponse returns no Response", async () => {
+			using _ = spyOn(console, "error").mockImplementation(() => {})
+
+			const response = await handleError(
+				carriedError(() => undefined as unknown as Response),
+				respond(),
+			)
+
+			expect(response.status).toBe(500)
+			expect(await response.json()).toEqual({
+				code: "internal-server-error",
+				type: "https://docs.talqo.chat/problems#internal-server-error",
+			})
 		})
 	})
 

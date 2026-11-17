@@ -104,6 +104,8 @@
 		"typescript/switch-exhaustiveness-check": "error",
 		// Flags explicit `.call()` bindings and this-free closure factories passed to `useSyncExternalStore`.
 		"typescript/unbound-method": "off",
+		// Streams, polling, and ordered writes must await in sequence; parallelizing them changes behavior.
+		"no-await-in-loop": "off",
 		"no-restricted-globals": ["error", "close", "open", "print", "focus", "blur", "scroll", "status"]
 	},
 	"overrides": [

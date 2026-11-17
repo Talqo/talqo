@@ -1379,9 +1379,7 @@ describe("conversation lifecycle", () => {
 		})
 		const input = { embedToken: createdEmbed.embedToken, credential: CREDENTIAL_1, networkHash: "network-a" }
 		for (const text of ["first", "repeat me", "trigger", "follow up", "repeat me"]) {
-			// oxlint-disable-next-line no-await-in-loop -- turns must complete in order.
 			const sent = await svc.send({ ...input, requestId: crypto.randomUUID(), text })
-			// oxlint-disable-next-line no-await-in-loop
 			await sent.done
 		}
 
@@ -1714,7 +1712,6 @@ describe("operator conversation reads", () => {
 	it("pages by offset without skipping or repeating conversations", async () => {
 		const { createdEmbed } = await fixture()
 		for (const text of ["one", "two", "three"]) {
-			// oxlint-disable-next-line no-await-in-loop -- start order defines the expected page order.
 			await chat(createdEmbed.embedToken, crypto.randomUUID(), text)
 		}
 

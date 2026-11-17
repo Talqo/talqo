@@ -13,4 +13,13 @@ describe("renderProblemsMarkdown", () => {
 
 		expect(markdown).toContain("/problems#")
 	})
+
+	test("renders each problem as one titled section", () => {
+		const markdown = renderProblemsMarkdown()
+		const sample = PROBLEMS[0]!
+
+		expect(markdown).toContain(
+			`## ${sample.title}\n\n\`${sample.status}\` · \`${sample.code}\`\n\n${sample.meaning}\n\n**Fix:** ${sample.guidance}`,
+		)
+	})
 })

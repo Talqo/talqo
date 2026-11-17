@@ -240,7 +240,6 @@ describe("credential throttling", () => {
 		async (path) => {
 			const username = uniqueUsername()
 			for (let attempt = 0; attempt < 10; attempt += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- fill the username allowance before the HTTP request.
 				await service.runCredentialOperation(null, username, async () => undefined)
 			}
 			const response = await app.request(path, {

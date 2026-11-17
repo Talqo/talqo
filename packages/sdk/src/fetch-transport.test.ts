@@ -94,12 +94,39 @@ function context(signal = new AbortController().signal) {
 	return { apiUrl: API_URL, embedToken: EMBED_TOKEN, signal }
 }
 
+function chatStream(payload: unknown, eventName: string | null = "chat"): Response {
+	const header = eventName === null ? "" : `event: ${eventName}\n`
+	return streamResponse([`${header}data: ${JSON.stringify(payload)}\n\n`])
+}
+
+async function streamedEvents(payload: unknown, eventName: string | null = "chat"): Promise<ChatEvent[]> {
+	const fake = recordingFetch([chatStream(payload, eventName)])
+	const transport = createFetchChatTransport({ fetch: fake.fetch })
+	return Array.fromAsync(
+		await transport.sendMessage({ ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }),
+	)
+}
+
+function withAccepted(overrides: Record<string, unknown>) {
+	return { ...ACCEPTED_EVENT, ...overrides }
+}
+
+const ACCEPTED_EVENT = {
+	version: 1,
+	type: "accepted",
+	requestId: REQUEST_ID,
+	generationId: "generation",
+	userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z" },
+	assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
+}
+
 async function rejectedDetail(action: Promise<unknown>) {
 	try {
 		await action
 		throw new Error("expected rejection")
 	} catch (error) {
 		expect(error).toBeInstanceOf(ChatTransportError)
+		expect((error as Error).name).toBe("ChatTransportError")
 		return (error as ChatTransportError).detail
 	}
 }
@@ -503,22 +530,27 @@ describe("createFetchChatTransport", () => {
 	})
 
 	test("uses bearer-authenticated cancellation", async () => {
-		const fake = recordingFetch([new Response(null, { status: 204 })])
+		const fake = recordingFetch([new Response(null, { status: 204 }), new Response(null, { status: 204 })])
 		const transport = createFetchChatTransport({ fetch: fake.fetch })
 
 		await transport.cancelResponse({ ...context(), credential: CREDENTIAL, generationId: "generation" })
+		await transport.cancelResponse({ ...context(), credential: CREDENTIAL })
 
-		expect(fake.calls[0]).toMatchObject({
-			url: "https://api.example.test/api/chat/cancel",
-			init: {
-				body: JSON.stringify({ generationId: "generation" }),
-				headers: {
-					Accept: "application/json",
-					Authorization: `Bearer ${CREDENTIAL}`,
-					"Content-Type": "application/json",
+		for (const call of fake.calls) {
+			expect(call).toMatchObject({
+				url: "https://api.example.test/api/chat/cancel",
+				init: {
+					method: "POST",
+					headers: {
+						Accept: "application/json",
+						Authorization: `Bearer ${CREDENTIAL}`,
+						"Content-Type": "application/json",
+					},
 				},
-			},
-		})
+			})
+		}
+		expect(fake.calls[0]?.init?.body).toBe(JSON.stringify({ generationId: "generation" }))
+		expect(fake.calls[1]?.init?.body).toBe(JSON.stringify({}))
 	})
 
 	test("forwards abort to fetch and active response-body reading", async () => {
@@ -556,5 +588,330 @@ describe("createFetchChatTransport", () => {
 		readingController.abort(new Error("stop read"))
 		await expect(reading).rejects.toThrow("stop read")
 		expect(bodyCancelled).toBe(true)
+	})
+
+	test("cancels a response body that is already aborted before the first read", async () => {
+		let cancelled = false
+		const body = new ReadableStream<Uint8Array>({
+			cancel() {
+				cancelled = true
+			},
+		})
+		const transport = createFetchChatTransport({
+			fetch: async () => new Response(body, { headers: { "Content-Type": "text/event-stream" } }),
+		})
+		const controller = new AbortController()
+		const events = await transport.sendMessage({
+			...context(controller.signal),
+			requestId: REQUEST_ID,
+			credential: CREDENTIAL,
+			text: "hello",
+		})
+
+		controller.abort(new Error("stop before read"))
+
+		const guarded = Promise.race([
+			events[Symbol.asyncIterator]().next(),
+			Bun.sleep(100).then(() => {
+				throw new Error("response body was read before the abort")
+			}),
+		])
+		await expect(guarded).rejects.toThrow("stop before read")
+		expect(cancelled).toBe(true)
+	})
+
+	test("prefers the abort reason when a response body fails while aborted", async () => {
+		const body = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				controller.error(new Error("socket closed"))
+			},
+		})
+		const transport = createFetchChatTransport({
+			fetch: async () => new Response(body, { headers: { "Content-Type": "application/json" } }),
+		})
+		const controller = new AbortController()
+		controller.abort(new Error("stop load"))
+
+		await expect(transport.loadConfiguration(context(controller.signal))).rejects.toThrow("stop load")
+	})
+
+	test("normalizes tool, delta, and terminal events", async () => {
+		const cases: { payload: unknown; expected: ChatEvent }[] = [
+			{
+				payload: { version: 1, type: "delta", assistantMessageId: "assistant", text: "Hi", extra: true },
+				expected: { type: "delta", assistantMessageId: "assistant", text: "Hi" },
+			},
+			{
+				payload: { version: 1, type: "tool-start", serverName: "search", toolName: "lookup", extra: true },
+				expected: { type: "tool-start", serverName: "search", toolName: "lookup" },
+			},
+			...(["completed", "failed", "cancelled"] as const).map((outcome) => ({
+				payload: { version: 1, type: "tool-end", serverName: "search", toolName: "lookup", outcome, extra: true },
+				expected: { type: "tool-end", serverName: "search", toolName: "lookup", outcome } as ChatEvent,
+			})),
+			{
+				payload: { version: 1, type: "terminal", outcome: "blocked", extra: true },
+				expected: { type: "terminal", outcome: "blocked" },
+			},
+			{
+				payload: { ...ACCEPTED_EVENT, extra: true },
+				expected: {
+					type: "accepted",
+					requestId: REQUEST_ID,
+					generationId: "generation",
+					userMessage: { id: "user", createdAt: "2026-09-12T12:00:00Z" },
+					assistantMessage: { id: "assistant", createdAt: "2026-09-12T12:00:01Z" },
+				},
+			},
+		]
+		await Promise.all(
+			cases.map(async ({ payload, expected }) => {
+				expect(await streamedEvents(payload)).toEqual([expected])
+			}),
+		)
+	})
+
+	test("rejects unrecognized or malformed chat events", async () => {
+		const delta = { version: 1, type: "delta", assistantMessageId: "assistant", text: "Hi" }
+		const errorEvent = {
+			version: 1,
+			type: "error",
+			outcome: "failed",
+			error: { code: "provider-error", retriable: true, newChatAvailable: false },
+		}
+		const cases: {
+			shape: string
+			payload: unknown
+			eventName?: string | null
+		}[] = [
+			{ shape: "untyped event", payload: delta, eventName: null },
+			{ shape: "custom event name", payload: delta, eventName: "message" },
+			{ shape: "unknown event type", payload: { version: 1, type: "heartbeat" } },
+			{ shape: "accepted without requestId", payload: withAccepted({ requestId: undefined }) },
+			{ shape: "accepted with numeric requestId", payload: withAccepted({ requestId: 42 }) },
+			{ shape: "accepted with numeric generationId", payload: withAccepted({ generationId: 42 }) },
+			{ shape: "accepted without userMessage", payload: withAccepted({ userMessage: null }) },
+			{
+				shape: "accepted with numeric userMessage id",
+				payload: withAccepted({ userMessage: { id: 42, createdAt: "2026-09-12T12:00:00Z" } }),
+			},
+			{
+				shape: "accepted without userMessage createdAt",
+				payload: withAccepted({ userMessage: { id: "user" } }),
+			},
+			{ shape: "accepted without assistantMessage ids", payload: withAccepted({ assistantMessage: {} }) },
+			{
+				shape: "accepted with numeric assistantMessage id",
+				payload: withAccepted({ assistantMessage: { id: 42, createdAt: "2026-09-12T12:00:01Z" } }),
+			},
+			{
+				shape: "accepted without assistantMessage createdAt",
+				payload: withAccepted({ assistantMessage: { id: "assistant" } }),
+			},
+			{
+				shape: "delta with numeric assistantMessageId",
+				payload: { ...delta, assistantMessageId: 42 },
+			},
+			{
+				shape: "tool-start without toolName",
+				payload: { version: 1, type: "tool-start", serverName: "search" },
+			},
+			{
+				shape: "tool-start with numeric toolName",
+				payload: { version: 1, type: "tool-start", serverName: "search", toolName: 42 },
+			},
+			{
+				shape: "tool-end without serverName",
+				payload: { version: 1, type: "tool-end", toolName: "lookup", outcome: "completed" },
+			},
+			{
+				shape: "tool-end with unknown outcome",
+				payload: { version: 1, type: "tool-end", serverName: "search", toolName: "lookup", outcome: "running" },
+			},
+			{ shape: "terminal streaming", payload: { version: 1, type: "terminal", outcome: "streaming" } },
+			{ shape: "terminal pending", payload: { version: 1, type: "terminal", outcome: "pending" } },
+			{
+				shape: "error with completed outcome",
+				payload: { ...errorEvent, outcome: "completed" },
+			},
+			{ shape: "error without error facts", payload: { ...errorEvent, error: "boom" } },
+			{
+				shape: "error with numeric retryAt",
+				payload: { ...errorEvent, error: { ...errorEvent.error, retryAt: 42 } },
+			},
+		]
+
+		await Promise.all(
+			cases.map(async ({ shape, payload, eventName }) =>
+				expect(streamedEvents(payload, eventName === undefined ? "chat" : eventName), shape).rejects.toThrow(
+					"validation",
+				),
+			),
+		)
+	})
+
+	test("rejects success responses that are not a chat event stream", async () => {
+		const responses = [
+			jsonResponse({ messages: [] }),
+			new Response(null, { headers: { "Content-Type": "text/event-stream" } }),
+			new Response("event: chat\ndata: {}\n\n", { headers: { "Content-Type": "text/plain" } }),
+			new Response(streamResponse([]).body),
+		]
+		await Promise.all(
+			responses.map(async (response) => {
+				const transport = createFetchChatTransport({ fetch: async () => response.clone() })
+				const detail = await rejectedDetail(
+					transport.sendMessage({ ...context(), requestId: REQUEST_ID, credential: CREDENTIAL, text: "hello" }),
+				)
+				expect(detail, response.headers.get("Content-Type") ?? "no content type").toEqual({
+					code: "invalid-response",
+					status: 200,
+				})
+			}),
+		)
+	})
+
+	test("maps error responses without a usable problem document to invalid-response", async () => {
+		const responses = [
+			new Response(null, { status: 500 }),
+			new Response("<html>bad gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } }),
+			new Response("{", { status: 400, headers: { "Content-Type": "application/problem+json" } }),
+			jsonResponse(
+				{ code: "embed-not-found" },
+				{ status: 400, headers: { "Content-Type": "application/problem+json" } },
+			),
+			jsonResponse([], { status: 400, headers: { "Content-Type": "application/problem+json" } }),
+			jsonResponse(
+				{ code: "embed-not-found", type: "https://docs.talqo.chat/problems#embed-not-found" },
+				{ status: 404, headers: { "Content-Type": "text/plain" } },
+			),
+			new Response("not-json", { status: 200, headers: { "Content-Type": "text/html" } }),
+		]
+		await Promise.all(
+			responses.map(async (response) => {
+				const transport = createFetchChatTransport({ fetch: async () => response.clone() })
+				expect(
+					await rejectedDetail(transport.loadConfiguration(context())),
+					`${response.status} ${response.headers.get("Content-Type") ?? "no content type"}`,
+				).toEqual({ code: "invalid-response", status: response.status })
+			}),
+		)
+	})
+
+	test("rejects session and configuration payloads outside the published schema", async () => {
+		const message = {
+			id: "message",
+			role: "assistant",
+			text: "Hello",
+			createdAt: "2026-09-12T12:00:00Z",
+			outcome: "completed",
+		}
+		const sessionCases: { shape: string; payload: unknown }[] = [
+			{ shape: "null session", payload: null },
+			{ shape: "session without messages", payload: {} },
+			{ shape: "session with non-array messages", payload: { messages: {} } },
+			{ shape: "message with numeric id", payload: { messages: [{ ...message, id: 42 }] } },
+			{ shape: "message with unknown role", payload: { messages: [{ ...message, role: "system" }] } },
+			{ shape: "message with unknown outcome", payload: { messages: [{ ...message, outcome: "done" }] } },
+			{ shape: "message with numeric createdAt", payload: { messages: [{ ...message, createdAt: 42 }] } },
+			{
+				shape: "one valid and one invalid message",
+				payload: { messages: [message, { ...message, outcome: "done" }] },
+			},
+			{ shape: "string activeGeneration", payload: { messages: [], activeGeneration: "generation" } },
+			{ shape: "numeric activeGeneration id", payload: { messages: [], activeGeneration: { id: 42 } } },
+		]
+		await Promise.all(
+			sessionCases.map(async ({ shape, payload }) => {
+				const transport = createFetchChatTransport({ fetch: async () => jsonResponse(payload) })
+				expect(await rejectedDetail(transport.loadSession({ ...context(), credential: CREDENTIAL })), shape).toEqual({
+					code: "invalid-response",
+					status: 200,
+				})
+			}),
+		)
+
+		const configurationCases: { shape: string; payload: unknown }[] = [
+			{ shape: "array configuration", payload: [] },
+			{ shape: "array appearance", payload: { name: "Support", appearance: [] } },
+			{ shape: "null appearance", payload: { name: "Support", appearance: null } },
+		]
+		await Promise.all(
+			configurationCases.map(async ({ shape, payload }) => {
+				const transport = createFetchChatTransport({ fetch: async () => jsonResponse(payload) })
+				expect(await rejectedDetail(transport.loadConfiguration(context())), shape).toEqual({
+					code: "invalid-response",
+					status: 200,
+				})
+			}),
+		)
+	})
+
+	test("derives retry hints only from usable rate-limit headers", async () => {
+		const now = new Date("2026-09-12T12:00:00Z")
+		const cases: { shape: string; headers: HeadersInit; retryAt: string }[] = [
+			{ shape: "numeric Retry-After", headers: { "Retry-After": "9" }, retryAt: "2026-09-12T12:00:09.000Z" },
+			{ shape: "zero Retry-After", headers: { "Retry-After": "0" }, retryAt: "2026-09-12T12:00:00.000Z" },
+			{
+				shape: "HTTP-date Retry-After",
+				headers: { "Retry-After": "Sat, 12 Sep 2026 13:00:00 GMT" },
+				retryAt: "2026-09-12T13:00:00.000Z",
+			},
+			{
+				shape: "HTTP-date reset",
+				headers: { "X-RateLimit-Reset": "2026-09-13T00:00:00Z" },
+				retryAt: "2026-09-13T00:00:00Z",
+			},
+			{
+				shape: "unusable reset falling back to Retry-After",
+				headers: { "X-RateLimit-Reset": "soon", "Retry-After": "5" },
+				retryAt: "2026-09-12T12:00:05.000Z",
+			},
+		]
+		await Promise.all(
+			cases.map(async ({ shape, headers, retryAt }) => {
+				const transport = createFetchChatTransport({
+					fetch: async () => problem("chat-concurrency-limit", 429, headers),
+					now: () => now,
+				})
+				expect(await rejectedDetail(transport.loadConfiguration(context())), shape).toEqual({
+					code: "chat-concurrency-limit",
+					type: "https://docs.talqo.chat/problems#chat-concurrency-limit",
+					status: 429,
+					retryAt,
+				})
+			}),
+		)
+
+		const unusable: HeadersInit[] = [
+			{ "Retry-After": "later" },
+			{ "Retry-After": "Infinity" },
+			{ "X-RateLimit-Reset": "soon" },
+		]
+		await Promise.all(
+			unusable.map(async (headers) => {
+				const transport = createFetchChatTransport({
+					fetch: async () => problem("chat-concurrency-limit", 429, headers),
+					now: () => now,
+				})
+				expect(await rejectedDetail(transport.loadConfiguration(context())), JSON.stringify(headers)).toEqual({
+					code: "chat-concurrency-limit",
+					type: "https://docs.talqo.chat/problems#chat-concurrency-limit",
+					status: 429,
+				})
+			}),
+		)
+	})
+
+	test("computes Retry-After from the current clock when no clock is injected", async () => {
+		const before = Date.now()
+		const transport = createFetchChatTransport({
+			fetch: async () => problem("chat-concurrency-limit", 429, { "Retry-After": "5" }),
+		})
+		const { retryAt } = await rejectedDetail(transport.loadConfiguration(context()))
+		const after = Date.now()
+
+		expect(Date.parse(retryAt ?? "")).toBeGreaterThanOrEqual(before + 5_000)
+		expect(Date.parse(retryAt ?? "")).toBeLessThanOrEqual(after + 5_000)
 	})
 })
