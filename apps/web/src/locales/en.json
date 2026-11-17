@@ -346,6 +346,8 @@
 		"toolFailed": "Failed",
 		"toolInterrupted": "Interrupted",
 		"toolRunning": "Running",
+		"toolsCalled_one": "{{count}} tool called",
+		"toolsCalled_other": "{{count}} tools called",
 		"total_one": "{{count}} conversation",
 		"total_other": "{{count}} conversations",
 		"unknownAgent": "Deleted agent",

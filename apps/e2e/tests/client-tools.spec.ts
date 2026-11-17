@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test"
+import { expect, type Locator, type Page } from "@playwright/test"
 
 import { test } from "./chat-embed"
 import { web, widget } from "./i18n"
@@ -17,6 +17,12 @@ async function reopenChat(page: Page) {
 	await page.reload()
 	await page.waitForFunction(() => document.documentElement.dataset.toolsReady === "true")
 	await page.getByRole("button", { name: widget("openChat") }).click()
+}
+
+async function expandToolGroup(scope: Page | Locator, label: string) {
+	const summary = scope.getByText(label, { exact: true })
+	await expect(summary).toBeVisible()
+	await summary.click()
 }
 
 test("browser and connected tool results survive the live answer, reload, and operator transcript", async ({
@@ -38,6 +44,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await input.fill("Read this page")
 	await dialog.getByRole("button", { name: widget("send") }).click()
 	await expect(dialog.getByText("Page says host text.", { exact: true })).toBeVisible()
+	await expandToolGroup(dialog, widget("toolsCalled", { count: 2 }))
 	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
 		widget("toolCompleted"),
 	)
@@ -50,6 +57,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await dialog.getByRole("button", { name: widget("send") }).click()
 	await expect(dialog.getByText("Page says host text.", { exact: true })).toHaveCount(2)
 	await reopenChat(page)
+	await expandToolGroup(dialog, widget("toolsCalled", { count: 2 }))
 	await expect(dialog.getByRole("status").filter({ hasText: widget("websiteTool") })).toContainText(
 		widget("toolCompleted"),
 	)
@@ -66,6 +74,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	)
 	await openDashboard(page, ADMIN, "/dashboard/conversations")
 	await page.getByRole("link", { name: "Read this page" }).click()
+	await expandToolGroup(page, web("conversations.toolsCalled", { count: 2 }))
 	await expect(page.getByRole("status").filter({ hasText: web("conversations.websiteTool") })).toContainText(
 		web("conversations.toolCompleted"),
 	)
@@ -75,6 +84,7 @@ test("browser and connected tool results survive the live answer, reload, and op
 	await expect(page.getByText("readPage", { exact: false })).toHaveCount(0)
 	await expect(page.getByText("get_stock_level", { exact: false })).toHaveCount(0)
 	await page.reload()
+	await expandToolGroup(page, web("conversations.toolsCalled", { count: 2 }))
 	await expect(page.getByRole("status").filter({ hasText: web("conversations.websiteTool") })).toContainText(
 		web("conversations.toolCompleted"),
 	)

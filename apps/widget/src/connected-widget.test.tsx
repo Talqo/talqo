@@ -94,6 +94,18 @@ function message(id: string, role: ChatMessage["role"], text: string, outcome: C
 	return { id, role, text, parts: text ? [{ type: "text", text }] : [], outcome, createdAt: "2026-09-12T00:00:00Z" }
 }
 
+function toolPart(id: string): ChatMessage["parts"][number] {
+	return {
+		type: "dynamic-tool",
+		toolName: "lookup",
+		toolCallId: id,
+		input: {},
+		toolMetadata: { source: "mcp", displayName: "lookup", outcome: "completed" },
+		state: "output-available",
+		output: {},
+	}
+}
+
 function error(code: ChatErrorCode, overrides: Partial<ChatError> = {}): ChatError {
 	return { code, ...overrides }
 }
@@ -278,6 +290,23 @@ describe("ConnectedEmbeddedWidget", () => {
 			}
 		})
 	}
+
+	test("groups consecutive tool calls into one collapsed summary", async () => {
+		const assistant: ChatMessage = {
+			...message("a1", "assistant", "", "completed"),
+			parts: [toolPart("first"), { type: "text", text: "Answer" }, toolPart("second"), toolPart("third")],
+		}
+		const store = fakeClient({ ...READY_SNAPSHOT, messages: [assistant] })
+		await render(<ConnectedEmbeddedWidget client={store.client} />)
+		await openChat()
+
+		const details = [...transcript().querySelectorAll("details")]
+		expect(details).toHaveLength(1)
+		expect(details[0]?.open).toBe(false)
+		expect(details[0]?.querySelector("summary")?.textContent).toBe("2 tools called")
+		expect(details[0]?.querySelectorAll("output")).toHaveLength(2)
+		expect([...transcript().querySelectorAll("output")]).toHaveLength(3)
+	})
 
 	test("initializes the semantic client and uses SDK configuration with host overrides", async () => {
 		const store = fakeClient()

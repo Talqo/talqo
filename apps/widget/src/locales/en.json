@@ -56,6 +56,8 @@
 	"toolFailed": "Failed",
 	"toolInterrupted": "Interrupted",
 	"toolRunning": "Running",
+	"toolsCalled_one": "{{count}} tool called",
+	"toolsCalled_other": "{{count}} tools called",
 	"transcriptLabel": "Conversation",
 	"websiteActionUncertain": "The reply stopped after a website tool ran. Its action may already have happened. Check the page before asking again.",
 	"websiteTool": "Website tool",
