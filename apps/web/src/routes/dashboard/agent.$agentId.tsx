@@ -161,7 +161,8 @@ function useAgentSettingsForm(agentId: string, agent: Agent | undefined) {
 	})
 	const [editedTerms, setEditedTerms] = useState<{ agentId: string; terms: string[] } | null>(null)
 	useEffect(() => {
-		if (agent) reset({ name: agent.name, systemPrompt: agent.systemPrompt })
+		// keepDirtyValues so a background refetch never discards the operator's typing.
+		if (agent) reset({ name: agent.name, systemPrompt: agent.systemPrompt }, { keepDirtyValues: true })
 	}, [agent, reset])
 	const savedTerms = agent?.wordBlacklist ?? []
 	const terms = editedTerms?.agentId === agentId ? editedTerms.terms : savedTerms

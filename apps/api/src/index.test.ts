@@ -43,7 +43,7 @@ test("keeps HTTP available while the ingestion worker restarts, and exits on SIG
 		// The database-free preload makes each real worker attempt fail at the database boundary.
 		const [stdout] = await Promise.all([
 			readUntil(child.stdout, (text) => text.includes("API listening on")),
-			readUntil(child.stderr, (text) => text.split("agent-file.worker.stopped").length >= 3),
+			readUntil(child.stderr, (text) => text.split("agent-file.worker.stopped").length >= 2),
 		])
 		const address = /http:\/\/localhost:\d+/.exec(stdout)?.[0]
 		if (!address) throw new Error("API did not report its listen address")

@@ -139,7 +139,8 @@ function clearSeedEnvironment(): void {
 }
 
 describe("AI provider seed", () => {
-	beforeEach(() => {
+	beforeEach(async () => {
+		await sql`DELETE FROM ai_provider_config`
 		clearSeedEnvironment()
 	})
 

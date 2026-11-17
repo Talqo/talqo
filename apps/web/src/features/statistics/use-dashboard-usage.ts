@@ -27,7 +27,10 @@ export function useDashboardUsage({
 	selection: string[] | undefined
 	allIds: string[]
 }): DashboardUsage {
-	const selectedIds = useMemo(() => (selection ?? allIds).filter((id) => allIds.includes(id)), [selection, allIds])
+	const selectedIds = useMemo(
+		() => [...new Set((selection ?? allIds).filter((id) => allIds.includes(id)))],
+		[selection, allIds],
+	)
 	const selectedLines = useMemo(
 		() => agentLines.filter((line) => selectedIds.includes(line.id)),
 		[agentLines, selectedIds],

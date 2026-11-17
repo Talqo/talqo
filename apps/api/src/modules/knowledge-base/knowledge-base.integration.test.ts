@@ -233,8 +233,8 @@ describe("ingestion worker", () => {
 	it("recovers uploads and embeds a pending file before the next poll", async () => {
 		const doclingUrl = new URL(env.TALQO_DOCLING_URL)
 		const stub = Bun.serve({
-			hostname: doclingUrl.hostname,
-			port: Number(doclingUrl.port),
+			hostname: "127.0.0.1",
+			port: 0,
 			fetch(request) {
 				const { pathname } = new URL(request.url)
 				if (pathname === "/v1/chunk/hybrid/file/async") return Response.json({ task_id: "task-1" })
@@ -246,6 +246,20 @@ describe("ingestion worker", () => {
 				return new Response("not found", { status: 404 })
 			},
 		})
+		// The conversion client reads the configured URL; redirect only that origin to the ephemeral stub.
+		const originalFetch = globalThis.fetch
+		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+			Object.assign(
+				(input: string | URL | Request, init?: RequestInit) => {
+					const url = input instanceof Request ? new URL(input.url) : new URL(input)
+					return originalFetch(
+						url.origin === doclingUrl.origin ? new URL(`${url.pathname}${url.search}`, stub.url) : input,
+						init,
+					)
+				},
+				{ preconnect: originalFetch.preconnect },
+			),
+		)
 		const owner = await createOwner("Worker")
 		const orphanAgentId = crypto.randomUUID()
 		await mkdir(join(UPLOAD_ROOT, orphanAgentId), { recursive: true })
@@ -263,7 +277,7 @@ describe("ingestion worker", () => {
 				providerId: "openai-compatible",
 				modelId: "test-embedding",
 				authMode: "static",
-				settings: { baseURL: `${doclingUrl.origin}/v1` },
+				settings: { baseURL: `${stub.url.origin}/v1` },
 				credentialSource: "separate",
 				credentials: { apiKey: "sk-embedding" },
 			},
@@ -278,9 +292,11 @@ describe("ingestion worker", () => {
 			expect(await searchKnowledge(owner.id, "content")).toEqual(["Worker ingested content"])
 		} finally {
 			sleep.mockRestore()
+			fetchSpy.mockRestore()
 			await stub.stop(true)
 			await sql`DELETE FROM ai_provider_config`
 			await agent.deleteAgent(owner.id)
+			await rm(join(UPLOAD_ROOT, orphanAgentId), { recursive: true, force: true })
 		}
 	})
 })

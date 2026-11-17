@@ -61,7 +61,7 @@ export function ChatComposer({
 				<button
 					type="submit"
 					aria-label={t("send")}
-					disabled={!sendAvailable || draft.trim().length === 0}
+					disabled={disabled || !sendAvailable || draft.trim().length === 0}
 					className={composerButtonClasses}
 				>
 					<SendIcon aria-hidden="true" />

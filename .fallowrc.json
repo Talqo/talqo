@@ -50,6 +50,7 @@
 			{ "from": "web", "allow": ["web", "packages"] },
 			{ "from": "widget", "allow": ["widget", "packages"] },
 			{ "from": "docs", "allow": ["docs", "packages"] },
+			{ "from": "e2e", "allow": ["e2e", "packages"] },
 			{ "from": "packages", "allow": ["packages"] }
 		]
 	},

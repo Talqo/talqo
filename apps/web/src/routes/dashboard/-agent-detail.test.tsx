@@ -334,6 +334,19 @@ describe("agent detail access and editing", () => {
 		for (const key of protectedKeys) expect(queryClient.getQueryData(key)).toBeUndefined()
 	})
 
+	test("preserves unsaved edits across a background refetch", async () => {
+		await renderPage()
+		await typeInto(nameInput(), "Unsaved agent name")
+		agent = { ...INITIAL_AGENT, name: "Renamed elsewhere" }
+
+		await act(async () => {
+			await queryClient.refetchQueries({ queryKey: [`/api/agents/${AGENT_ID}`] })
+		})
+		await settle()
+
+		expect(nameInput().value).toBe("Unsaved agent name")
+	})
+
 	test("preserves edits across failed saves and resets to the canonical agent after retry", async () => {
 		agent = { ...INITIAL_AGENT, wordBlacklist: ["retained-term", "seed-term"] }
 		canonicalAgent = {
