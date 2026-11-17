@@ -6,6 +6,21 @@ import { isScopedSelector, WIDGET_SCOPE } from "./src/lib/css-scope.ts"
 
 const MAX_LEAKED_SELECTORS = 5
 
+const SCOPED_SELECTORS: Record<string, string> = {
+	":root": WIDGET_SCOPE,
+	":host": WIDGET_SCOPE,
+	"*": `${WIDGET_SCOPE} *`,
+	"::before": `${WIDGET_SCOPE} *::before`,
+	":before": `${WIDGET_SCOPE} *::before`,
+	"::after": `${WIDGET_SCOPE} *::after`,
+	":after": `${WIDGET_SCOPE} *::after`,
+	"::backdrop": `${WIDGET_SCOPE} ::backdrop`,
+}
+
+function scopeSelector(selector: string): string {
+	return SCOPED_SELECTORS[selector] ?? selector
+}
+
 function scopeWidgetCss(css: string): string {
 	const root = parse(css)
 
@@ -27,25 +42,7 @@ function scopeWidgetCss(css: string): string {
 	})
 
 	root.walkRules((rule) => {
-		rule.selectors = rule.selectors.map((selector) => {
-			switch (selector) {
-				case ":root":
-				case ":host":
-					return WIDGET_SCOPE
-				case "*":
-					return `${WIDGET_SCOPE} *`
-				case "::before":
-				case ":before":
-					return `${WIDGET_SCOPE} *::before`
-				case "::after":
-				case ":after":
-					return `${WIDGET_SCOPE} *::after`
-				case "::backdrop":
-					return `${WIDGET_SCOPE} ::backdrop`
-				default:
-					return selector
-			}
-		})
+		rule.selectors = rule.selectors.map(scopeSelector)
 	})
 
 	assertNoGlobalRules(root)

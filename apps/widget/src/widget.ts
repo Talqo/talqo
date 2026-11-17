@@ -1,4 +1,9 @@
-import type { WidgetAppearance, WidgetAppearanceInput, WidgetScheme } from "@talqo/shared/widget-appearance"
+import type {
+	WidgetAppearance,
+	WidgetAppearanceInput,
+	WidgetPosition,
+	WidgetScheme,
+} from "@talqo/shared/widget-appearance"
 
 import { type ChatClient, type ChatClientOptions, createChatClient } from "@talqo/sdk"
 import logoUrl from "@talqo/ui/assets/logo.svg"
@@ -17,6 +22,11 @@ export type MountOptions = { createClient?: ChatClientFactory }
 const DEFAULT_TARGET = "#talqo-widget"
 const DARK_SCHEME_QUERY = "(prefers-color-scheme: dark)"
 const CHAT_SCRIPT_NAME = "widget-chat.js"
+
+const LAUNCHER_OFFSETS: Record<WidgetPosition, { right: string; left: string }> = {
+	"bottom-right": { right: "1rem", left: "auto" },
+	"bottom-left": { right: "auto", left: "1rem" },
+}
 
 /** Captured at module scope: `document.currentScript` is null once `mount()` runs. */
 const embedScript: HTMLScriptElement | null =
@@ -112,14 +122,15 @@ function ensureLauncher(): HTMLButtonElement {
 
 function applyLauncher(button: HTMLButtonElement, appearance: WidgetAppearance, scheme: WidgetScheme) {
 	const text = launcherText(appearance.language)
+	const offset = LAUNCHER_OFFSETS[appearance.position]
 	button.style.background = scheme.primary
 	button.style.color = scheme.textOnPrimary
-	button.style.right = appearance.position === "bottom-right" ? "1rem" : "auto"
-	button.style.left = appearance.position === "bottom-left" ? "1rem" : "auto"
+	button.style.right = offset.right
+	button.style.left = offset.left
 	button.lang = appearance.language
-	button.dataset.loading = loading ? "true" : "false"
-	button.dataset.error = loadFailed ? "true" : "false"
-	button.setAttribute("aria-busy", loading ? "true" : "false")
+	button.dataset.loading = String(loading)
+	button.dataset.error = String(loadFailed)
+	button.setAttribute("aria-busy", String(loading))
 	button.setAttribute("aria-label", loadFailed ? text.errorTransport : text.openChat)
 	button.title = loadFailed ? text.errorTransport : ""
 	button.style.setProperty("--talqo-loader-logo", `url("${logoUrl}")`)
@@ -131,17 +142,24 @@ function removeLauncher() {
 	lastLauncherKey = ""
 }
 
+function launcherState(chatClient: ChatClient) {
+	const snapshot = chatClient.getSnapshot()
+	if (!snapshot.isAvailable) return null
+
+	const configured = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
+	const appearance = resolveAppearance(mergeAppearance(configured, appearanceOverrides))
+	return { appearance, scheme: activeScheme(appearance, prefersDark()) }
+}
+
 function syncLauncher() {
 	if (!container || handedOff || !client) return
-	const snapshot = client.getSnapshot()
-	if (!snapshot.isAvailable) {
+	const state = launcherState(client)
+	if (!state) {
 		removeLauncher()
 		return
 	}
 
-	const configured = (snapshot.configuration?.appearance ?? {}) as WidgetAppearanceInput
-	const appearance = resolveAppearance(mergeAppearance(configured, appearanceOverrides))
-	const scheme = activeScheme(appearance, prefersDark())
+	const { appearance, scheme } = state
 	const key = JSON.stringify({ appearance, scheme, loading, loadFailed })
 	if (launcher && key === lastLauncherKey) return
 
@@ -209,15 +227,7 @@ function prefetchChat() {
 	void loadChat().catch(() => {})
 }
 
-async function openChat() {
-	const boot = chatBoot
-	if (!container || !boot || loading || handedOff) return
-
-	const current = generation
-	loading = true
-	loadFailed = false
-	syncLauncher()
-
+async function handOff(boot: ChatBoot, current: number) {
 	try {
 		const module = await loadChat()
 		if (current !== generation || !container) return
@@ -237,36 +247,44 @@ async function openChat() {
 	}
 }
 
-export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
-	const element = resolveMountElement(target)
-	if (!element) {
-		console.warn(`TalqoWidget: mount target not found (${typeof target === "string" ? target : "element"})`)
-		return
-	}
+async function openChat() {
+	const boot = chatBoot
+	if (!container || !boot || loading || handedOff) return
 
-	unmount()
+	const current = generation
+	loading = true
+	loadFailed = false
+	syncLauncher()
+	await handOff(boot, current)
+}
 
-	const dataset = embedScript?.dataset
-	const nextContainer = document.createElement("div")
-	nextContainer.dataset.talqoRoot = ""
-	element.append(nextContainer)
-	container = nextContainer
+function warnMissingTarget(target: MountTarget): void {
+	const description = typeof target === "string" ? target : "element"
+	console.warn(`TalqoWidget: mount target not found (${description})`)
+}
 
-	if (dataset?.talqoPreview !== undefined) {
-		const current = generation
-		void loadChat()
-			.then((module) => {
-				if (current !== generation || !container) return
-				module.mount(container, { mode: "preview", parentOrigin: dataset.talqoParentOrigin })
-			})
-			.catch((cause: unknown) => console.warn("TalqoWidget: failed to load chat", cause))
-		return
-	}
+function createMountRoot(element: HTMLElement): HTMLElement {
+	const root = document.createElement("div")
+	root.dataset.talqoRoot = ""
+	element.append(root)
+	return root
+}
 
+function mountPreview(target: HTMLElement, dataset: DOMStringMap): void {
+	const current = generation
+	void loadChat()
+		.then((module) => {
+			if (current !== generation || container !== target) return
+			module.mount(target, { mode: "preview", parentOrigin: dataset.talqoParentOrigin })
+		})
+		.catch((cause: unknown) => console.warn("TalqoWidget: failed to load chat", cause))
+}
+
+function mountConnected(target: HTMLElement, dataset: DOMStringMap | undefined, options: MountOptions): void {
 	const embedToken = dataset?.talqoEmbedToken
 	const origin = apiOrigin(embedScript)
 	if (!embedToken || !origin) {
-		nextContainer.remove()
+		target.remove()
 		container = null
 		console.warn("TalqoWidget: embed token or API origin missing")
 		return
@@ -279,6 +297,26 @@ export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOption
 	attachMediaListener()
 	syncLauncher()
 	void client.initialize().catch((cause: unknown) => console.warn("TalqoWidget: initialization failed", cause))
+}
+
+export function mount(target: MountTarget = DEFAULT_TARGET, options: MountOptions = {}) {
+	const element = resolveMountElement(target)
+	if (!element) {
+		warnMissingTarget(target)
+		return
+	}
+
+	unmount()
+
+	const dataset = embedScript?.dataset
+	container = createMountRoot(element)
+
+	if (dataset?.talqoPreview !== undefined) {
+		mountPreview(container, dataset)
+		return
+	}
+
+	mountConnected(container, dataset, options)
 }
 
 export function unmount() {
